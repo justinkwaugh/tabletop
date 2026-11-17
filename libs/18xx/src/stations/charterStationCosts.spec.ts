@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Station } from '../map/station.js'
-import { charterStationCost } from './charterStationCosts.js'
+import { charterScheduleCost } from './charterStationCosts.js'
 import type { StationPlacementContext } from './stationPlacement.js'
 
-const costs = { AG: [0, 40, 100, 100, 100] }
+const schedule = [0, 40, 100, 100, 100]
 const placed = (id: string, locationId: string): Station => ({
     id,
     companyId: 'AG',
@@ -18,18 +18,16 @@ const placement = (stationId: string): StationPlacementContext => ({
     connected: true
 })
 
-describe('charterStationCost', () => {
-    const state = {
-        stations: [placed('AG:1', 'D15'), waiting('AG:2'), waiting('AG:3'), waiting('AG:4')]
-    }
+describe('charterScheduleCost', () => {
+    const charter = [placed('AG:1', 'D15'), waiting('AG:2'), waiting('AG:3'), waiting('AG:4')]
 
     it('shows each waiting token at the price its charter prints for it', () => {
-        expect(['AG:2', 'AG:3', 'AG:4'].map((id) => charterStationCost(state, id, costs))).toEqual([
-            40, 100, 100
-        ])
+        expect(
+            ['AG:2', 'AG:3', 'AG:4'].map((id) => charterScheduleCost(charter, id, schedule))
+        ).toEqual([40, 100, 100])
     })
 
     it('charges a placement the next price, whichever token is placed', () => {
-        expect(charterStationCost(state, 'AG:4', costs, placement('AG:4'))).toBe(40)
+        expect(charterScheduleCost(charter, 'AG:4', schedule, placement('AG:4'))).toBe(40)
     })
 })

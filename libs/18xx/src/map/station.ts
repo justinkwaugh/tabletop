@@ -132,6 +132,18 @@ export function placeableStations(
     )
 }
 
+/** A waiting token's place among its company's tokens still waiting to be placed. */
+export function waitingStationIndex(
+    stations: readonly Station[],
+    station: Pick<Station, 'id' | 'companyId'>
+): number {
+    const index = stations
+        .filter((entry) => entry.companyId === station.companyId && entry.status === 'available')
+        .findIndex((entry) => entry.id === station.id)
+    assert(index >= 0, `Station ${station.id} is waiting to be placed`)
+    return index
+}
+
 /** Whether a city holds a neutral station, which keeps it open to every route (1882 §11.1). */
 export function cityHasNeutralStation(
     state: Pick<StationState, 'stations' | 'neutralStations'>,

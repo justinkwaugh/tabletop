@@ -22,7 +22,7 @@ const DestinationStationCost = 100
 function placementCost(
     state: StationPlacementState,
     stationId: string,
-    placement?: StationPlacementContext
+    context?: StationPlacementContext
 ): number {
     const station = state.stations.find((entry) => entry.id === stationId)
     assertExists(station, 'A station placement requires a known station')
@@ -36,7 +36,7 @@ function placementCost(
         ),
         stationId,
         schedule,
-        placement
+        context
     )
 }
 

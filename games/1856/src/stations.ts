@@ -107,8 +107,7 @@ function homeChoice1856(state: OperatingStationState): HomeStationChoice | undef
 export const StationRules1856: StationRules = {
     map: Map1856,
     tileSet: TileSet1856,
-    placementCost: (state, stationId, placement) =>
-        charterStationCost(state, stationId, StationCosts1856, placement),
+    placementCost: charterStationCost(StationCosts1856),
     placementLimit: (state, companyId) => (waterlooStationThisTurn(state, companyId) ? 0 : 1),
     pendingHomes: pendingHomes1856,
     homeChoice: homeChoice1856

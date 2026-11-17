@@ -82,14 +82,14 @@ function homeChoice1882(state: OperatingStationState): HomeStationChoice | undef
         : undefined
 }
 
+const charterCost1882 = charterStationCost(StationCosts1882)
+
 export const StationRules1882: StationRules = {
     map: Map1882,
     tileSet: TileSet1882,
     // A neutral station is free; the second station costs $40 and later ones $100 (§11.4).
-    placementCost: (state, stationId, placement) =>
-        neutralStation(state, stationId)
-            ? 0
-            : charterStationCost(state, stationId, StationCosts1882, placement),
+    placementCost: (state, stationId, context) =>
+        neutralStation(state, stationId) ? 0 : charterCost1882(state, stationId, context),
     // One station a turn, a neutral one or the company's own; the CN places none (§10.4, §11.4).
     placementLimit: (_state, companyId) => (companyId === CnId ? 0 : 1),
     pendingHomes: pendingHomes1882,

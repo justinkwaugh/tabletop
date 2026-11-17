@@ -20,8 +20,7 @@ export const StationCountsChesapeake = charterStationCounts(StationCostsChesapea
 export const StationRulesChesapeake: StationRules = {
     map: MapChesapeake,
     tileSet: TileSetChesapeake,
-    placementCost: (state, stationId, placement) =>
-        charterStationCost(state, stationId, StationCostsChesapeake, placement),
+    placementCost: charterStationCost(StationCostsChesapeake),
     placementLimit: () => 1,
     // A floated company places its home station as it begins its first operating turn.
     pendingHomes(state) {

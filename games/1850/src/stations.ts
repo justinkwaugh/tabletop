@@ -1,42 +1,27 @@
 import { assertExists } from '@tabletop/common'
 import {
-    charterScheduleCost,
+    charterStationCost,
     getCompany,
     homeStationId,
     nextOperatingCompany,
-    type StationPlacementContext,
-    type StationPlacementState,
     type StationRules
 } from '@tabletop/18xx'
-import { company1850 } from './companies.js'
+import { Companies1850 } from './companies.js'
 import { edgeTokenChoice } from './edgeTokens.js'
 import { Map1850 } from './map.js'
 import { MesabiAccess } from './mesabiAccess.js'
 import { requireState1850 } from './state.js'
 import { TileSet1850 } from './tiles.js'
 
-/** A company's stations cost what its charter says, cheapest first (§7.5, §15.3). */
-function placementCost(
-    state: StationPlacementState,
-    stationId: string,
-    placement?: StationPlacementContext
-): number {
-    const station = state.stations.find((entry) => entry.id === stationId)
-    assertExists(station, 'A station placement requires a known station')
-    const schedule = company1850(station.companyId)?.stationCosts
-    assertExists(schedule, 'The charter prices each of its stations')
-    return charterScheduleCost(
-        state.stations.filter((entry) => entry.companyId === station.companyId),
-        stationId,
-        schedule,
-        placement
-    )
-}
+// A company's stations cost what its charter says, cheapest first (§7.5, §15.3).
+const charterCost1850 = charterStationCost(
+    Object.fromEntries(Companies1850.map((company) => [company.id, company.stationCosts]))
+)
 
 export const StationRules1850: StationRules = {
     map: Map1850,
     tileSet: TileSet1850,
-    placementCost,
+    placementCost: charterCost1850,
     stopAllowed: MesabiAccess.open,
     // An edge token counts as the turn's token placement (§7.2, §7.4).
     placementLimit: (state) => (requireState1850(state).edgeTokenPlaced ? 0 : 1),

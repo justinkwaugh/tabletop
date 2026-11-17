@@ -1,7 +1,7 @@
 import { assertExists, distanceAxial } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
 import type { RailwayMap } from '../map/map.js'
-import { companyStationCenters } from '../map/station.js'
+import { companyStationCenters, waitingStationIndex } from '../map/station.js'
 import type { StationPlacementState, StationRules } from './stationPlacement.js'
 
 /** The hexes between two map locations, without regard to track. */
@@ -29,10 +29,7 @@ export function perHexStationCost(
     ) => {
         if (station.status !== 'available' || getCompany(state, station.companyId).kind !== 'major')
             return 0
-        const waiting = state.stations.filter(
-            (entry) => entry.companyId === station.companyId && entry.status === 'available'
-        )
-        return ratesPerHex[placedCount + waiting.indexOf(station)] ?? 0
+        return ratesPerHex[placedCount + waitingStationIndex(state.stations, station)] ?? 0
     }
     return (state, stationId, context) => {
         const station = state.stations.find((entry) => entry.id === stationId)

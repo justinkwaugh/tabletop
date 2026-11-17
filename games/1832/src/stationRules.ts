@@ -41,7 +41,7 @@ const MergedStationCost = 100
 function mergedStationCost(
     state: StationState,
     stationId: string,
-    placement?: StationPlacementContext
+    context?: StationPlacementContext
 ): number {
     const station = state.stations.find((entry) => entry.id === stationId)
     assertExists(station, 'A station placement requires a known station')
@@ -61,7 +61,7 @@ function mergedStationCost(
         charter.filter((entry) => !title.returnedStationIds?.includes(entry.id)),
         stationId,
         schedule,
-        placement
+        context
     )
 }
 
