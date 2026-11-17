@@ -32,12 +32,14 @@
     }
 </script>
 
+<!-- The body is flex-auto, not flex-1: Safari 18 takes the 0% basis of flex-1 as the body's
+     height in a content-sized dialog, collapsing the modal to one row. -->
 <Modal
     bind:open
     size="xs"
     outsideclose
     class="backdrop:bg-black/70 dark:bg-gray-900 border border-highlight-border dark:border-highlight-border divide-y-0 max-sm:mt-auto max-sm:mb-0 max-sm:mx-0 max-sm:max-w-none max-sm:h-[calc(100dvh-1.75rem)] max-sm:max-h-none max-sm:rounded-b-none max-sm:border-b-0"
-    classes={{ body: 'flex flex-col min-h-0 flex-1' }}
+    classes={{ body: 'flex flex-col min-h-0 flex-auto' }}
 >
     <CreateGameSteps
         {titles}

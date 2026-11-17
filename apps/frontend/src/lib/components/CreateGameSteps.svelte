@@ -117,7 +117,8 @@
         min-height: 0;
     }
     .list-step {
-        flex: 1;
+        /* auto, not 0%: Safari 18 sizes the modal from a 0% basis and collapses it */
+        flex: 1 1 auto;
     }
     .heading {
         min-width: 0;
