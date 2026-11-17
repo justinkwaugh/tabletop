@@ -68,14 +68,17 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
     },
     // The board prints no title: the title in the Channel north of Cherbourg, clear of land by 90.
     // The legend in the south-west, where the board prints its railroad introduction panel: in
-    // the Bay of Biscay, clear of land by 40, narrowed to 400 for its two rows. Lille,
-    // Valenciennes, Sedan and Metz stand on the board's land border, so their 1 goes in the hex.
+    // the Bay of Biscay along the board's west edge, clear of land by 24. Fitted to a 1024-wide
+    // window's view the board is near square, so the zoom control reaches up the bay's mouth to
+    // y 1483, and the open water above it is narrower: the legend stands above the control,
+    // narrowed to 300 (its widest row's text ends at 275). Lille, Valenciennes, Sedan and Metz
+    // stand on the board's land border, so their 1 goes in the hex.
     'map.fr': {
         name: 'France',
         boardLabel: 'Map of France',
         title: { x: 160, y: 96 },
-        legend: { x: 32, y: 1572 },
-        legendWidth: 400,
+        legend: { x: 16, y: 1464 },
+        legendWidth: 300,
         limitMarksInHex: ['city.fr.lille', 'city.fr.valenciennes', 'city.fr.sedan', 'city.fr.metz']
     },
     // The board prints no title: the title off the board's land south-east of Dresden, clear of

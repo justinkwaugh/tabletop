@@ -17,27 +17,31 @@ import { boxesOverlap, boxInside } from '$lib/testing/shapeChecks.js'
 // in a 2 px border with 8 × 4 padding.
 const ZOOM_CONTROL = { width: 108, height: 36 }
 
-// The board views the platform gives from a phone to a 1440 × 900 window, as measured: the board's
-// width is the game column's on a 375 × 812 or 390 × 844 phone, and what the sidebar leaves at
-// 1280 × 900 (and the desktop view the fitted scale is set by), 1366 × 768 and 1440 × 900.
-const VIEW_WIDTHS: readonly (readonly [string, number])[] = [
-    ['375 × 812 phone', 330],
-    ['390 × 844 phone', 343],
-    ['1280 × 900 window', 936],
-    ['desktop view', DESKTOP_BOARD_VIEW.width],
-    ['1366 × 768 window', 1022],
-    ['1440 × 900 window', 1096]
-]
 // Its height is what the header and the panels round it leave: from a phone's under its tallest
 // action panel to a 900 px window's with no action area under the board. A building turn at
 // 1440 × 900 leaves 611, the desktop view 564.
 const VIEW_HEIGHTS = { shortest: 380, tallest: 649 }
 
+// The board views the platform gives from a phone to a 1440 × 900 window, as measured: the board's
+// width is the game column's on a 375 × 812 or 390 × 844 phone, and what the sidebar leaves at
+// 1024 × 768, 1280 × 900 (and the desktop view the fitted scale is set by), 1366 × 768 and
+// 1440 × 900. A 1024-wide window's board is 680 wide, never shorter than a 1024 × 768 window's
+// building turn leaves it (478; 516 with no action area), and as tall as a 900 px window's.
+const VIEW_WIDTHS: readonly (readonly [string, number, number?])[] = [
+    ['375 × 812 phone', 330],
+    ['390 × 844 phone', 343],
+    ['1024 × 768 window', 680, 478],
+    ['1280 × 900 window', 936],
+    ['desktop view', DESKTOP_BOARD_VIEW.width],
+    ['1366 × 768 window', 1022],
+    ['1440 × 900 window', 1096]
+]
+
 // The whole board is fitted to every one of those views (a phone's zoomed fully out).
 const FITTED_VIEWS: readonly (readonly [string, RectangleDimensions])[] = VIEW_WIDTHS.flatMap(
-    ([name, width]) =>
-        Array.from({ length: VIEW_HEIGHTS.tallest - VIEW_HEIGHTS.shortest + 1 }, (_, step) => {
-            const height = VIEW_HEIGHTS.shortest + step
+    ([name, width, shortest = VIEW_HEIGHTS.shortest]) =>
+        Array.from({ length: VIEW_HEIGHTS.tallest - shortest + 1 }, (_, step) => {
+            const height = shortest + step
             return [`${name}, ${width} × ${height}`, { width, height }] as const
         })
 )
@@ -79,7 +83,7 @@ describe('each map’s sea layout', () => {
             expect(boxesOverlap(titleBox(layout), legendBox(mapId))).toBe(false)
         })
 
-        it(`keeps ${mapId}’s title and legend clear of the zoom control, the board fitted to every view from a phone’s to 1440 × 900’s`, () => {
+        it(`keeps ${mapId}’s title and legend clear of the zoom control, the board fitted to every view from a phone’s to 1440 × 900’s, 1024 × 768’s included`, () => {
             const under = FITTED_VIEWS.flatMap(([viewName, view]) => {
                 const control = zoomControlBox(geometry, view)
                 return boxes
@@ -106,7 +110,7 @@ describe('each map’s sea layout', () => {
                 'map.usa': 500,
                 'map.au': 520,
                 'map.ca': 440,
-                'map.fr': 400,
+                'map.fr': 300,
                 'map.de': 480
             }
         )
@@ -125,6 +129,11 @@ describe('each map’s sea layout', () => {
         // Australia’s, Canada’s and France’s printed colour row holds five cubes.
         expect(legendRows('map.au')[0]?.railroadIds).toHaveLength(5)
         expect(legendTextX('map.au')).toBe(134)
+    })
+
+    it('stands France’s legend in the Bay of Biscay, above where the zoom control reaches at 1024 × 768', () => {
+        expect(MAP_LAYOUTS['map.fr'].legend).toEqual({ x: 16, y: 1464 })
+        expect(legendBox('map.fr')).toEqual({ x: 16, y: 1350, width: 300, height: 114 })
     })
 
     it('stands each expansion map’s legend where its board prints the introduction panel', () => {
