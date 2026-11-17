@@ -1,4 +1,10 @@
-import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    isCallGameAction,
+    type AxialCoordinates,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { isMoveRing, isPlaceRing, isRemoveRing, isRemoveRow } from '@tabletop/yinsh'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
@@ -32,16 +38,30 @@ export type TakeEntry = Span & Passing & { kind: 'take'; removals: Removal[] }
 export type RingEntry = Span &
     Passing & { kind: 'ring'; ring: { coords: AxialCoordinates; ringsRemoved: number } }
 
-export type HistoryEntry = PlaceEntry | MoveEntry | TakeEntry | RingEntry
+export type PlayerEntry = PlaceEntry | MoveEntry | TakeEntry | RingEntry
+
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = PlayerEntry | CallEntry
 
 // A move and the rows and rings its player takes after it make one entry; the opponent's rows
-// from that move make another. The action that ends a turn records a pass that follows it.
+// from that move make another. The action that ends a turn records a pass that follows it. A
+// call stands on its own, even after a row whose ring never came.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {
         const span = { id: action.id, firstIndex: index, lastIndex: index }
         const last = entries.at(-1)
-        if (isPlaceRing(action)) {
+        if (isCallGameAction(action)) {
+            entries.push({ ...span, kind: 'call', action })
+        } else if (isPlaceRing(action)) {
             entries.push({
                 ...span,
                 kind: 'place',

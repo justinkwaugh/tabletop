@@ -13,7 +13,9 @@
 
     // The opponent could not move, so you move again.
     const passedPlayerId = $derived(
-        lastEntry?.kind === 'place' ? undefined : lastEntry?.passedPlayerId
+        lastEntry?.kind === 'place' || lastEntry?.kind === 'call'
+            ? undefined
+            : lastEntry?.passedPlayerId
     )
 
     const prompt = $derived.by(() => {
