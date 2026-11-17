@@ -56,3 +56,15 @@ test('a move cuts stacks off, and Undo takes it back with the stack chosen', asy
     expect(await actionCount(page)).toBe(0)
     expect(await page.evaluate(() => window.dvonnSession.chosenFrom)).toEqual({ q: -3, r: 1 })
 })
+
+test('the gaps between pieces down a hole are as light in a tall stack as in a short one', async ({
+    page
+}) => {
+    // Stacks from one to ten high on the board, and tallies of three and ten on the cards.
+    await openScenario(page, 'Midgame')
+    const shades = await page
+        .locator('path.hole-shadow')
+        .evaluateAll((paths) => paths.map((path) => path.getAttribute('fill-opacity')))
+    expect(shades.length).toBeGreaterThan(0)
+    expect(new Set(shades)).toEqual(new Set([shades[0]]))
+})

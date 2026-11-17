@@ -56,8 +56,9 @@
     const throughId = `dvonn-through-${uid}`
     const openingId = `dvonn-opening-${uid}`
     const MID_LEVEL = (SHADE_LEVELS - 1) / 2
-    // The shade between the hole's far walls; lighter where the board shows through.
-    const WALL_SHADE = 0.85
+    // The shade between the hole's far walls. Light falls straight down the hole, so the gaps
+    // are as light in a tall stack as where the board shows through a short one.
+    const WALL_SHADE = 0.85 * HOLE_SHADE
 
     const box = $derived(lookBox(radius))
     const drawing = $derived(pieceDrawing(radius, model))
@@ -193,11 +194,7 @@
         <path d={ellipsePath(hole.opening)}></path>
     </clipPath>
     <g clip-path="url(#{openingId})">
-        <path
-            d={hole.shadow}
-            class="hole-shadow"
-            fill-opacity={hole.through ? WALL_SHADE * HOLE_SHADE : WALL_SHADE}
-        ></path>
+        <path d={hole.shadow} class="hole-shadow" fill-opacity={WALL_SHADE}></path>
         {#each hole.walls as wall, index (index)}
             <path d={wall.band} fill="url(#{prefix}-{wall.tone}-wall)"></path>
             <g transform="translate(0 {wall.offset})">
