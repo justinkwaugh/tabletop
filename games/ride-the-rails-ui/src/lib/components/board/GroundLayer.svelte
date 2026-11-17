@@ -4,6 +4,7 @@
     import { BOARD_LOOK, CITY_CENTRE_INSET, hexPaint } from '$lib/utils/boardLook.js'
     import { MOUNTAIN_PEAK } from '$lib/utils/cityMarks.js'
     import { insetCellPoints } from '$lib/utils/pickMarks.js'
+    import { ALPS_HATCH, alpsHatchPath, HOURGLASS } from '$lib/utils/terrainMarks.js'
 
     const gameSession = getGameSession()
 
@@ -15,13 +16,21 @@
             points: hexPoints(hex.id),
             center: hexCenter(hex.id),
             paint: hexPaint(hex.id),
-            mountain: hex.terrain === 'mountain'
+            // R-8.2: the Alps carry a mountain's peak too.
+            mountain: hex.terrain === 'mountain' || hex.terrain === 'alps',
+            alps: hex.terrain === 'alps',
+            longDistance: hex.terrain === 'long-distance'
         }))
     )
     // Plains first, on their grid; mountains and cities over them, so their pale edges show whole.
     const PLAINS = $derived(HEXES.filter((hex) => hex.paint.edge === 'var(--rtr-hex-edge)'))
     const PATCHES = $derived(HEXES.filter((hex) => hex.paint.edge !== 'var(--rtr-hex-edge)'))
     const MOUNTAINS = $derived(HEXES.filter((hex) => hex.mountain))
+    // R-8.2: the Alps' hatch over their fill, their pale edges drawn again over it; an hourglass in
+    // each long-distance hex.
+    const ALPS = $derived(HEXES.filter((hex) => hex.alps))
+    const ALPS_HATCH_PATH = $derived(alpsHatchPath(board))
+    const LONG_DISTANCE = $derived(HEXES.filter((hex) => hex.longDistance))
     // BOARD_LOOK.cityCentre 'cream-inset': every city's middle in the plains' cream, its grey a rim,
     // in each of its cells.
     const CITY_CENTRES = $derived(
@@ -101,6 +110,24 @@
     {#each CITY_CENTRES as city (city.key)}
         <polygon points={city.points} fill="var(--rtr-plain)" data-city-centre></polygon>
     {/each}
+    {#if ALPS_HATCH_PATH}
+        <path
+            d={ALPS_HATCH_PATH}
+            fill="none"
+            stroke="var(--rtr-alps-hatch)"
+            stroke-width={ALPS_HATCH.width}
+            data-alps-hatch
+        ></path>
+        {#each ALPS as hex (hex.hexId)}
+            <polygon
+                points={hex.points}
+                fill="none"
+                stroke={hex.paint.edge}
+                stroke-width={hex.paint.edgeWidth}
+                stroke-linejoin="round"
+            ></polygon>
+        {/each}
+    {/if}
     {#each MOUNTAINS as hex (hex.hexId)}
         <path
             d={MOUNTAIN_PEAK.path}
@@ -109,6 +136,28 @@
             fill="var(--rtr-mountain-ink)"
             aria-hidden="true"
         ></path>
+    {/each}
+    {#each LONG_DISTANCE as hex (hex.hexId)}
+        <g
+            transform="translate({hex.center.x + HOURGLASS.at.x} {hex.center.y + HOURGLASS.at.y})"
+            data-hourglass={hex.hexId}
+        >
+            <path
+                d={HOURGLASS.frame}
+                stroke="var(--rtr-ink)"
+                stroke-width={HOURGLASS.frameWidth}
+                stroke-linecap="round"
+            ></path>
+            <path
+                d={HOURGLASS.glass}
+                fill="var(--rtr-white)"
+                fill-opacity={HOURGLASS.glassOpacity}
+                stroke="var(--rtr-ink)"
+                stroke-width={HOURGLASS.glassWidth}
+                stroke-linejoin="round"
+            ></path>
+            <path d={HOURGLASS.sand} fill="var(--rtr-ink)"></path>
+        </g>
     {/each}
     {#if FRAME}
         <rect

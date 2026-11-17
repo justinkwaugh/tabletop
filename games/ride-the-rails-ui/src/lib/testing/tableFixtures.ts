@@ -353,6 +353,18 @@ const YELLOW_CINCINNATI = line(['Chicago', 'Cincinnati'], { start: true })
 // And Yellow on from Chicago to Saint Louis, south-west of the city.
 const YELLOW_CHICAGO_SAINT_LOUIS = line(['Chicago', 'Saint Louis'])
 
+// R-8.2, Australia: Red from Sydney, Blue from Melbourne along the Alps over four mountains, and
+// Orange from Adelaide into the first long-distance hex of the chain to Perth.
+const AU: MapId = 'map.au'
+const AU_RED_SYDNEY = line(['Sydney', 'Goulburn'], { start: true, mapId: AU })
+const AU_BLUE_ALPS = [
+    cityHexId('Melbourne', AU),
+    ...walk(cityHexId('Melbourne', AU), cityHexId('Bairnsdale', AU), true)
+]
+const AU_RED_COWRA = line(['Goulburn', 'Cowra'], { mapId: AU })
+/** The long-distance hexes from Adelaide to Perth, in the order a railroad enters them. */
+export const AU_PERTH_CHAIN = ['hex.au.3-13', 'hex.au.2-12', 'hex.au.1-13'] as const
+
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
     shares: SHARE_ROUND_ONE,
@@ -364,6 +376,45 @@ const EAST_COAST_ROUND: PlayedRound = {
 }
 
 export const TABLE_FIXTURES: readonly TableFixture[] = [
+    // R-8.2: Australia in round 4. Orange stands in the chain's first long-distance hex, so Ada's
+    // Orange placement in the next, her turn's first, ends her turn; Blue runs past the Alps over
+    // the mountains.
+    {
+        slug: 'australia-perth-chain',
+        name: 'Australia perth chain',
+        recipe: {
+            mapId: AU,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, AU_RED_SYDNEY]] },
+                        { playerId: 'p2', runs: [[BLUE, AU_BLUE_ALPS.slice(0, 3)]] },
+                        { playerId: 'p3', runs: [[RED, AU_RED_COWRA]] }
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: BLUE, p3: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, [cityHexId('Adelaide', AU)]]] },
+                        { playerId: 'p2', runs: [[BLUE, AU_BLUE_ALPS.slice(3)]] }
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                {
+                    shares: { p1: YELLOW, p2: RED, p3: YELLOW },
+                    // A long-distance hex takes only a turn's first placement, and ends the turn.
+                    builds: [{ playerId: 'p1', runs: [[ORANGE, [AU_PERTH_CHAIN[0]]]] }],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                { shares: { p3: PURPLE, p2: BLUE, p1: PURPLE }, builds: [] }
+            ],
+            phase: PhaseName.Build,
+            carried: [cityIdOf('Sydney', AU), cityIdOf('Melbourne', AU)]
+        }
+    },
     // Scenario 1: the last seat in turn order takes the game's first share (R-2.2, R-3.1).
     {
         slug: 'first-share',

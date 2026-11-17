@@ -38,13 +38,14 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
         title: { x: 1800, y: 118 },
         legend: { x: 52, y: 1196 }
     },
-    // The board prints no title. The title in the open sea north of Perth, clear of land by 72;
-    // the legend in the sea south-east of Melbourne, clear of land by 36.
+    // The board prints no title: the title in the open sea north of Perth, clear of land by 72.
+    // The legend in the south-west, where the board prints its railroad introduction panel: in the
+    // sea south of Adelaide, clear of land by 40.
     'map.au': {
         name: 'Australia',
         boardLabel: 'Map of Australia',
         title: { x: 200, y: 118 },
-        legend: { x: 1460, y: 1264 }
+        legend: { x: 40, y: 1256 }
     },
     // The board prints no title. The title in the open water south of Sherbrooke, the legend in
     // the open water south of Kingston, each clear of land by 200 or more.

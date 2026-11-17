@@ -123,7 +123,9 @@ function patch(fill: string): HexPaint {
 /** A hex's fill and edge in a hex colouring scheme. */
 export function hexPaint(hexId: HexId, scheme: HexFillScheme = BOARD_LOOK.hexFill): HexPaint {
     const hex = hexById(hexId)
-    if (hex.terrain === 'mountain') return patch('var(--rtr-mountain)')
+    // R-8.2: the Alps are mountains no track enters, their hatch drawn over the fill.
+    if (hex.terrain === 'mountain' || hex.terrain === 'alps') return patch('var(--rtr-mountain)')
+    if (hex.terrain === 'long-distance') return patch('var(--rtr-long-haul)')
     const city = cityIn(hexId)
     if (!city || scheme === 'terrain') return PLAIN_PAINT
     if (scheme === 'city-tint') return patch('var(--rtr-hex-city)')

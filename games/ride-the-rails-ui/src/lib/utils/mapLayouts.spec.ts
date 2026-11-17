@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAP_IDS } from '@tabletop/ride-the-rails'
+import { MAP_IDS, type MapId } from '@tabletop/ride-the-rails'
 import { boardGeometry, hexBox } from './boardGeometry.js'
 import {
     legendBox,
@@ -67,6 +67,15 @@ describe('each map’s sea layout', () => {
         // Australia’s, Canada’s and France’s printed colour row holds five cubes.
         expect(legendRows('map.au')[0]?.railroadIds).toHaveLength(5)
         expect(legendTextX('map.au')).toBe(134)
+    })
+
+    it('stands each expansion map’s legend where its board prints the introduction panel', () => {
+        const southWest = (mapId: MapId) => {
+            const { width, height } = boardGeometry(mapId)
+            const box = legendBox(mapId)
+            return box.x + box.width <= width / 2 && box.y >= height / 2
+        }
+        expect(southWest('map.au')).toBe(true)
     })
 
     it('writes one legend row per start rule, Red and Blue sharing theirs', () => {

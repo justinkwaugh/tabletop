@@ -100,6 +100,16 @@ describe('hex paint', () => {
         expect(paint('Omaha')).toEqual(patch('var(--rtr-hex-city)'))
     })
 
+    it('fills the Alps as mountains and a long-distance hex in its ochre, both as patches (R-8.2)', () => {
+        const hexOf = (terrain: string) => {
+            const hex = boardMap('map.au').hexes.find((candidate) => candidate.terrain === terrain)
+            if (!hex) throw new Error(`No ${terrain} hex`)
+            return hex.id
+        }
+        expect(hexPaint(hexOf('alps'))).toEqual(patch('var(--rtr-mountain)'))
+        expect(hexPaint(hexOf('long-distance'))).toEqual(patch('var(--rtr-long-haul)'))
+    })
+
     it('greys every city with no limit as Chicago: Toronto, Paris and Berlin (R-8)', () => {
         for (const [mapId, name] of [
             ['map.ca', 'Toronto'],

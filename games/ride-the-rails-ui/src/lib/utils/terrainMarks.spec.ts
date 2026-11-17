@@ -3,8 +3,14 @@ import type { Point } from '@tabletop/common'
 import { MAP_IDS, boardMap, type MapId } from '@tabletop/ride-the-rails'
 import { boardGeometry, type BoardGeometry } from './boardGeometry.js'
 import { capacityMarks } from './cityMarks.js'
-import { HEX_LIMIT_MARK, hexLimitMarks } from './terrainMarks.js'
-import { insideConvexPolygon } from '$lib/testing/shapeChecks.js'
+import {
+    ALPS_HATCH,
+    alpsHatchPath,
+    HEX_LIMIT_MARK,
+    HOURGLASS,
+    hexLimitMarks
+} from './terrainMarks.js'
+import { insideConvexPolygon, reachPastConvex } from '$lib/testing/shapeChecks.js'
 
 function squareCorners(center: Point, side: number): Point[] {
     const half = side / 2
@@ -98,5 +104,88 @@ describe('limit marks inside a hex (R-4.1.4, R-8)', () => {
 
     it('keeps every USA capacity mark in the sea, where it was', () => {
         expect(capacityMarks(boardGeometry('map.usa')).every((mark) => !mark.inHex)).toBe(true)
+    })
+})
+
+/** Each `M x y L x y` segment of a path of straight lines. */
+function segmentsOf(path: string): [Point, Point][] {
+    return [...path.matchAll(/M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)/g)].map((match) => [
+        { x: Number(match[1]), y: Number(match[2]) },
+        { x: Number(match[3]), y: Number(match[4]) }
+    ])
+}
+
+describe('the Alps (R-8.2)', () => {
+    const geometry = boardGeometry('map.au')
+    const alps = geometry.map.hexes.filter((hex) => hex.terrain === 'alps')
+    const segments = segmentsOf(alpsHatchPath(geometry))
+    const alpsHexOf = (point: Point) =>
+        alps.find((hex) =>
+            geometry
+                .place(hex.id)
+                .cells.some((cell) => reachPastConvex(point, cell.vertices) <= 0.06)
+        )
+
+    it('hatches every Alps hex with the sea’s 45° lines, drawn lines and no pattern', () => {
+        expect(alps).toHaveLength(14)
+        for (const [from, to] of segments) {
+            // Down and to the left at 45°, as the sea's hatch runs.
+            expect(to.x - from.x).toBeCloseTo(-(to.y - from.y), 0)
+        }
+        for (const hex of alps) {
+            const crossing = segments.filter(([from, to]) =>
+                insideConvexPolygon(
+                    { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 },
+                    geometry.place(hex.id).cells[0]?.vertices ?? []
+                )
+            )
+            expect(crossing.length, hex.id).toBeGreaterThanOrEqual(5)
+        }
+    })
+
+    it('keeps the hatch inside the Alps: each line ends on an Alps hex’s edge', () => {
+        for (const [from, to] of segments) {
+            expect(alpsHexOf(from), `${from.x},${from.y}`).toBeDefined()
+            expect(alpsHexOf(to), `${to.x},${to.y}`).toBeDefined()
+        }
+    })
+
+    it('spaces the lines as the sea’s, a little heavier, on the sea’s own lattice', () => {
+        expect(ALPS_HATCH.spacing).toBe(7)
+        expect(ALPS_HATCH.width).toBeGreaterThan(1.5)
+        for (const [from] of segments) {
+            const offset = (from.x + from.y) / (ALPS_HATCH.spacing * Math.SQRT2)
+            expect(Math.abs(offset - Math.round(offset))).toBeLessThan(0.02)
+        }
+    })
+
+    it('draws nothing on a map with no Alps', () => {
+        for (const mapId of ['map.usa', 'map.ca', 'map.fr', 'map.de'] as const) {
+            expect(alpsHatchPath(boardGeometry(mapId))).toBe('')
+        }
+    })
+})
+
+describe('the long-distance hexes (R-8.2)', () => {
+    it('stands the hourglass at the bottom of the hex, wholly inside it, below the 1', () => {
+        const geometry = boardGeometry('map.au')
+        const longDistance = geometry.map.hexes.filter((hex) => hex.terrain === 'long-distance')
+        expect(longDistance).toHaveLength(4)
+        for (const hex of longDistance) {
+            const { center, cells } = geometry.place(hex.id)
+            const corners = cells[0]?.vertices ?? []
+            const { half, at } = HOURGLASS
+            for (const corner of [
+                { x: -half.x, y: -half.y },
+                { x: half.x, y: -half.y },
+                { x: half.x, y: half.y },
+                { x: -half.x, y: half.y }
+            ]) {
+                const point = { x: center.x + at.x + corner.x, y: center.y + at.y + corner.y }
+                expect(insideConvexPolygon(point, corners), hex.id).toBe(true)
+            }
+            const mark = hexLimitMarks(geometry).find((found) => found.hexId === hex.id)
+            expect(mark?.y ?? Infinity).toBeLessThan(center.y + at.y - half.y)
+        }
     })
 })

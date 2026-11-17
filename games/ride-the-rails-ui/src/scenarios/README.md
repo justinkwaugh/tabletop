@@ -2,6 +2,13 @@
 
 The dev harness lists these under **Scenarios**; loading one again starts it over. The menu names each file by its slug, so a fixture's name is its slug with the first letter capitalised. Each is a position reached by legal play: `src/lib/testing/tableFixtures.ts` builds it by sending every past placement through the engine in its seat's building turn. `tableFixtures.spec.ts` writes the files and fails when one drifts; after changing a fixture, run `pnpm exec vitest run -u src/lib/testing/tableFixtures.spec.ts`. The seats are Ada, Ben, Cora, Dell and Eli, in turn order. The numbers are the contract's verification scenarios (`docs/ui-interaction-visual-contract.md`); the Playwright specs in `tests/` play them.
 
+## Australia perth chain
+
+Australia, round 4 with three seats, Build. Orange started in Adelaide and stands in the first long-distance hex of the chain to Perth; Blue runs from Melbourne past the Alps over four mountains; Red runs west from Sydney. Ada holds Red, Orange, Yellow and Purple and builds first.
+
+- The Alps are hatched; the four long-distance hexes are ochre with a "1" and an hourglass; Perth and Brisbane carry their gold pills, "$50" and "$20".
+- The chain's next hex lights for Orange; the one past it does not. An Orange placement there, the turn's first, ends Ada's turn.
+
 ## First share
 
 Round 1 with four seats, before anyone holds a share. Dell, last in turn order, decides first (scenario 1).

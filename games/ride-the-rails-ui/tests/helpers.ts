@@ -51,7 +51,7 @@ export async function openScenario(page: Page, name: string) {
 }
 
 export function board(page: Page): Locator {
-    return page.getByRole('group', { name: 'Map of the USA' })
+    return page.getByRole('group', { name: /^Map of / })
 }
 
 /** The lit hexes, by their accessible names. */
