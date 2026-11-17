@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { pieceColor, PieceColor } from '@tabletop/lyngk'
 import { entrySegments, type Segment } from './entryText.js'
-import type { HistoryEntry } from './historyEntries.js'
+import type { PlayerEntry } from './historyEntries.js'
 
 function read(segments: Segment[]): string {
     return segments
@@ -22,7 +22,7 @@ function read(segments: Segment[]): string {
 
 const span = { id: 'a', firstIndex: 0, lastIndex: 1, playerId: 'p' }
 
-const move: HistoryEntry = {
+const move: PlayerEntry = {
     ...span,
     kind: 'move',
     claimed: PieceColor.Red,
@@ -49,7 +49,7 @@ describe('entrySegments', () => {
     })
 
     it('names a plain move from and to', () => {
-        const plain: HistoryEntry = {
+        const plain: PlayerEntry = {
             ...move,
             claimed: undefined,
             via: [],

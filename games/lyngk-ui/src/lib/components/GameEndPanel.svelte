@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { EndReason } from '@tabletop/lyngk'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -15,6 +16,7 @@
 
     // Names the count that decided the game: stacks of 5 first, then 4s, 3s, 2s and singles.
     const reason = $derived.by(() => {
+        if (session.gameCall) return undefined
         const { gameState } = session
         if (gameState.endReason === EndReason.StackOfSix) {
             const [winner] = winners
@@ -33,12 +35,16 @@
 </script>
 
 <div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--lyngk-ink)">
-    <div class="text-[22px] font-semibold tracking-[0.06em]">
-        {#if isDraw}
-            A draw
-        {:else if winners[0]}
-            {winners[0] === session.myPlayer?.id ? 'You win' : `${nameOf(winners[0])} wins`}
-        {/if}
-    </div>
-    <div class="text-[15px] text-(--lyngk-ink-quiet)">{reason}</div>
+    {#if reason}
+        <div class="text-[22px] font-semibold tracking-[0.06em]">
+            {#if isDraw}
+                A draw
+            {:else if winners[0]}
+                {winners[0] === session.myPlayer?.id ? 'You win' : `${nameOf(winners[0])} wins`}
+            {/if}
+        </div>
+        <div class="text-[15px] text-(--lyngk-ink-quiet)">{reason}</div>
+    {:else}
+        <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
+    {/if}
 </div>

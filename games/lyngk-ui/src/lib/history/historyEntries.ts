@@ -1,4 +1,9 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import {
+    isCallGameAction,
+    type AxialCoordinates,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { isClaimColor, isMoveStack, type PieceColor } from '@tabletop/lyngk'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
@@ -18,13 +23,35 @@ export type MoveEntry = Span & {
 
 export type ClaimEntry = Span & { kind: 'claim'; claimed: PieceColor }
 
-export type HistoryEntry = MoveEntry | ClaimEntry
+export type PlayerEntry = MoveEntry | ClaimEntry
 
-// A claim and the move after it make one entry.
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = PlayerEntry | CallEntry
+
+// A claim and the move after it make one entry. A call stands on its own, even after a claim
+// whose move never came.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {
         const last = entries.at(-1)
+        if (isCallGameAction(action)) {
+            entries.push({
+                kind: 'call',
+                id: action.id,
+                firstIndex: index,
+                lastIndex: index,
+                action
+            })
+            return
+        }
         if (isClaimColor(action)) {
             entries.push({
                 kind: 'claim',
