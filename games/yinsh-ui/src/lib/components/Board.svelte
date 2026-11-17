@@ -139,11 +139,11 @@
 </script>
 
 {#snippet ring(tone: Tone, seedKey: string)}
-    <RingShape {tone} {seedKey} prefix={PREFIX} />
+    <RingShape {tone} {seedKey} prefix={PREFIX} turned={view.turned} />
 {/snippet}
 
 {#snippet marker(tone: Tone, seedKey: string)}
-    <MarkerShape {tone} {seedKey} prefix={PREFIX} />
+    <MarkerShape {tone} {seedKey} prefix={PREFIX} turned={view.turned} />
 {/snippet}
 
 {#snippet ringShadow()}
@@ -163,6 +163,7 @@
                     toTone={session.toneOfPlayer(piece.flip.toPlayerId)}
                     seedKey={piece.seed}
                     prefix={PREFIX}
+                    turned={view.turned}
                     part={animator.flipPart(piece.key)}
                 />
             {:else}
@@ -186,6 +187,7 @@
                     tone={session.toneOfPlayer(piece.playerId)}
                     seedKey={piece.seed}
                     prefix={PREFIX}
+                    turned={view.turned}
                     near
                 />
             {/key}
@@ -203,6 +205,7 @@
                     tone={session.toneOfPlayer(piece.playerId)}
                     seedKey={piece.seed}
                     prefix={PREFIX}
+                    turned={view.turned}
                     near
                 />
             {/key}
@@ -344,7 +347,13 @@
                     ></use>
                     <g {@attach animator.flierPart(flier.key, 'nearNode')}>
                         <g {@attach animator.flierPart(flier.key, 'nearBody')}>
-                            <RingShape {tone} seedKey={flier.seed} prefix={PREFIX} near />
+                            <RingShape
+                                {tone}
+                                seedKey={flier.seed}
+                                prefix={PREFIX}
+                                turned={view.turned}
+                                near
+                            />
                         </g>
                     </g>
                 {/if}

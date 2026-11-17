@@ -87,29 +87,39 @@ function sideSpecks(random: () => number, count: number): SideSpeck[] {
     }))
 }
 
-export function ringSpecks(tone: Tone, seed: number, innerRatio: number) {
+// On a board seen from the far side, the specks on a top turn half round with it, and the side
+// and the inner wall you see are their other halves, drawn from a second seed.
+function halfTurned(specks: Speck[]): Speck[] {
+    return specks.map((speck) => ({ ...speck, x: -speck.x, y: -speck.y }))
+}
+
+export function ringSpecks(tone: Tone, seed: number, innerRatio: number, turned = false) {
     const random = seededRandom(seed)
     const sized = <T extends { r: number }>(speck: T): T => ({
         ...speck,
         r: speck.r * RING_SPECK_SIZE[tone]
     })
+    const face = bandSpecks(random, RING_FACE_SPECKS[tone], innerRatio + 0.01, 0.96).map(sized)
+    const other = turned ? seededRandom(seed + 1) : random
     return {
-        face: bandSpecks(random, RING_FACE_SPECKS[tone], innerRatio + 0.01, 0.96).map(sized),
-        side: sideSpecks(random, RING_SIDE_SPECKS).map(sized),
-        wall: wallSpecks(random, RING_WALL_SPECKS).map(sized)
+        face: turned ? halfTurned(face) : face,
+        side: sideSpecks(other, RING_SIDE_SPECKS).map(sized),
+        wall: wallSpecks(other, RING_WALL_SPECKS).map(sized)
     }
 }
 
-export function markerSpecks(seed: number, lipRatio: number) {
+export function markerSpecks(seed: number, lipRatio: number, turned = false) {
     const random = seededRandom(seed)
     const colored = <T>(speck: T, index: number): ColoredSpeck<T> => ({
         ...speck,
         color: MARKER_SPECK_COLORS[index % MARKER_SPECK_COLORS.length]
     })
+    const lip = bandSpecks(random, MARKER_LIP_SPECKS, lipRatio + 0.03, 0.95)
+    const other = turned ? seededRandom(seed + 1) : random
     return {
-        lip: bandSpecks(random, MARKER_LIP_SPECKS, lipRatio + 0.03, 0.95).map(colored),
-        side: sideSpecks(random, MARKER_SIDE_SPECKS).map(colored),
-        wall: wallSpecks(random, MARKER_WALL_SPECKS).map(colored)
+        lip: (turned ? halfTurned(lip) : lip).map(colored),
+        side: sideSpecks(other, MARKER_SIDE_SPECKS).map(colored),
+        wall: wallSpecks(other, MARKER_WALL_SPECKS).map(colored)
     }
 }
 

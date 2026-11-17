@@ -16,18 +16,20 @@
         toTone,
         seedKey,
         prefix,
+        turned,
         part
     }: {
         tone: Tone
         toTone: Tone
         seedKey: string
         prefix: string
+        turned: boolean
         part: (name: FlipPart) => Attachment<SVGElement>
     } = $props()
 </script>
 
 <g {@attach part('before')}>
-    <MarkerShape {tone} {seedKey} {prefix} />
+    <MarkerShape {tone} {seedKey} {prefix} {turned} />
 </g>
 <g {@attach part('turning')} visibility="hidden">
     <path
@@ -58,5 +60,5 @@
     </g>
 </g>
 <g {@attach part('after')} visibility="hidden">
-    <MarkerShape tone={toTone} {seedKey} {prefix} />
+    <MarkerShape tone={toTone} {seedKey} {prefix} {turned} />
 </g>

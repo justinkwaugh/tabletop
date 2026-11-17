@@ -14,12 +14,17 @@
     import SpeckMark from './SpeckMark.svelte'
 
     // A marker lying on its point, `tone` face up. The gradients come from a PieceDefs with the
-    // same prefix in the same SVG.
-    let { tone, seedKey, prefix }: { tone: Tone; seedKey: string; prefix: string } = $props()
+    // same prefix in the same SVG. `turned` shows it from the far side of the table.
+    let {
+        tone,
+        seedKey,
+        prefix,
+        turned = false
+    }: { tone: Tone; seedKey: string; prefix: string; turned?: boolean } = $props()
 
     const drawing = markerDrawing(VIEW, MARKER_RADIUS, MARKER_HEIGHT)
     const style = $derived(MARKER_STYLES[tone])
-    const specks = $derived(markerSpecks(seedOf(seedKey), MARKER_FACE))
+    const specks = $derived(markerSpecks(seedOf(seedKey), MARKER_FACE, turned))
 </script>
 
 {#each drawing.slices as slice, index (index)}
