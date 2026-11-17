@@ -200,6 +200,35 @@ test('A press that cannot move focus to a hex reads no scroll positions', async 
     expect(reads.pointerInside).toBeGreaterThan(0)
 })
 
+/** How far the phone's table is scrolled sideways, and where its game column then stands. */
+function tablePlace(page: Page): Promise<{ scrollLeft: number; columnLeft: number }> {
+    return page.locator('.table-scroller').evaluate((scroller) => ({
+        scrollLeft: scroller.scrollLeft,
+        columnLeft: Math.round(
+            scroller.querySelector('.game-column')?.getBoundingClientRect().left ?? NaN
+        )
+    }))
+}
+
+// Australia, Canada and Germany are drawn with flat-topped hexes.
+for (const [map, scenario] of [
+    ['the USA', 'Two railroads meet'],
+    ['flat-topped Canada', 'Canada toronto']
+] as const) {
+    test(`Zooming out from rest on ${map} leaves the table where it was, the Players drawer off screen`, async ({
+        page
+    }) => {
+        test.skip(!isPhone(), 'Only a phone’s table scrolls sideways, to its Players drawer.')
+        await openScenario(page, scenario)
+        const rest = await tablePlace(page)
+        // At rest the table is scrolled to its end: the drawer is off to the left.
+        expect(rest.scrollLeft).toBeGreaterThan(0)
+        await page.getByRole('button', { name: 'Zoom out', exact: true }).tap()
+        await settled(page)
+        expect(await tablePlace(page)).toEqual(rest)
+    })
+}
+
 function isPhone(): boolean {
     return test.info().project.use.isMobile === true
 }
