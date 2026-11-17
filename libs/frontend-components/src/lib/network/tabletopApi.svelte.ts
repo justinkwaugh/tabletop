@@ -679,7 +679,7 @@ export class TabletopApi {
     }
     actOnTournament(
         id: string,
-        operation: 'publish' | 'cancel' | 'lock' | 'leave' | 'pause' | 'resume' | 'retry'
+        operation: 'publish' | 'cancel' | 'lock' | 'start' | 'leave' | 'pause' | 'resume' | 'retry'
     ) {
         return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/${operation}`,

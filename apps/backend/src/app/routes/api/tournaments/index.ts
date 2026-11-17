@@ -251,7 +251,7 @@ export default async function (fastify: FastifyInstance) {
             }
         )
     }
-    for (const operation of ['publish', 'cancel', 'lock'] as const) {
+    for (const operation of ['publish', 'cancel', 'lock', 'start'] as const) {
         fastify.post<{ Params: Static<typeof TournamentParams> }>(
             `/:id/${operation}`,
             { schema: { params: TournamentParams }, preHandler: fastify.verifyRoleAdmin },

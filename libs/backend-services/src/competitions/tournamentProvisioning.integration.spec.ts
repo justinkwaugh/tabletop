@@ -437,6 +437,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await tournaments.readGameLinks(id)).length).toBe(7)
         })
 
+        it('creates the games of a tournament an administrator starts before it fills', async () => {
+            const { tournament } = await fixture()
+            const id = `${tournament.id}-early`
+            await service.create(id, tournament, admin)
+            await service.publish(id, admin)
+            for (const user of users.slice(0, 4)) await service.join(id, user)
+            await service.start(id, admin)
+            await service.runTask({ tournamentId: id })
+            const started = await tournaments.read(id)
+            expect(started?.status).toBe('inProgress')
+            expect(started?.entrants).toHaveLength(4)
+            expect((await tournaments.readGameLinks(id)).length).toBe(4)
+        })
+
         it('reports initial enqueue failure and retries the join without extending its countdown', async () => {
             const { tournament } = await fixture()
             let now = Date.now()

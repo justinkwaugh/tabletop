@@ -1,5 +1,6 @@
 import type { Tournament } from '@tabletop/common'
 import { nanoid } from 'nanoid'
+import { touchRevision } from './competitionAccess.js'
 
 export function updateTournamentRegistration(tournament: Tournament, now: number): boolean {
     if (tournament.status !== 'open') return false
@@ -24,28 +25,34 @@ export function updateTournamentRegistration(tournament: Tournament, now: number
         tournament.nextTaskAt = policy.closesAt
         return false
     }
-    delete tournament.startsAt
-    delete tournament.startId
     if (policy.kind === 'deadline' && tournament.entrants.length < policy.minimumEntrants) {
         delete tournament.schedulingError
+        delete tournament.startsAt
+        delete tournament.startId
         tournament.status = 'cancelled'
         tournament.cancelledAt = now
         tournament.cancellationReason = 'undersubscribed'
         delete tournament.nextTaskAt
+        touchRevision(tournament, now)
     } else {
-        tournament.status = 'locked'
-        tournament.lockedAt = now
-        tournament.nextTaskAt = now
-        tournament.stages = [
-            {
-                id: tournament.format.stages[0].id,
-                status: 'awaitingSchedule',
-                rosterRevision: tournament.revision + 1,
-                createdAt: now
-            }
-        ]
+        lockTournamentRegistration(tournament, now)
     }
-    tournament.revision++
-    tournament.updatedAt = now
     return true
+}
+
+export function lockTournamentRegistration(tournament: Tournament, now: number) {
+    delete tournament.startsAt
+    delete tournament.startId
+    tournament.status = 'locked'
+    tournament.lockedAt = now
+    tournament.nextTaskAt = now
+    tournament.stages = [
+        {
+            id: tournament.format.stages[0].id,
+            status: 'awaitingSchedule',
+            rosterRevision: tournament.revision + 1,
+            createdAt: now
+        }
+    ]
+    touchRevision(tournament, now)
 }

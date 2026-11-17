@@ -10,6 +10,7 @@
         tournamentAccountIds,
         tournamentCapacity,
         tournamentEntrantAccount,
+        tournamentFillsATable,
         tournamentInPlay,
         type TournamentDetail,
         type TournamentEntrant,
@@ -126,6 +127,7 @@
                   (tournamentCapacity(tournament.rules.registration) ?? 256)
             : false
     )
+    let fillsATable = $derived(tournament ? tournamentFillsATable(tournament) : false)
     let correcting = $state(false)
     let replacing = $state(false)
     let editingDraft = $state(false)
@@ -156,7 +158,16 @@
         }
     }
     async function act(
-        operation: 'join' | 'leave' | 'publish' | 'cancel' | 'lock' | 'pause' | 'resume' | 'retry'
+        operation:
+            | 'join'
+            | 'leave'
+            | 'publish'
+            | 'cancel'
+            | 'lock'
+            | 'start'
+            | 'pause'
+            | 'resume'
+            | 'retry'
     ) {
         if (!tournament) return
         busy = true
@@ -170,6 +181,12 @@
             await refresh()
             busy = false
         }
+    }
+    function startNow() {
+        if (!tournament) return
+        const players = tournament.entrants.length
+        if (window.confirm(`Close registration and start with ${players} players?`))
+            void act('start')
     }
     async function rebuildStandings() {
         if (!tournament) return
@@ -304,6 +321,16 @@
                                     ? 'w-64'
                                     : 'w-40'} rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                             >
+                                {#if tournament.status === 'open'}
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700"
+                                        disabled={busy || !fillsATable}
+                                        title={fillsATable
+                                            ? undefined
+                                            : `Needs at least ${tournament.rules.tableSize} players`}
+                                        onclick={startNow}>Close &amp; start now</button
+                                    >
+                                {/if}
                                 {#if tournament.status === 'locked' || tournament.status === 'inProgress'}
                                     <button
                                         class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"

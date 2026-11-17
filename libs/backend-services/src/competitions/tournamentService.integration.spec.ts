@@ -479,6 +479,63 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(detail.tournament.entrants.length).toBe(2)
         })
 
+        it('lets an administrator close registration and start with a short roster', async () => {
+            const whenFull = draft()
+            whenFull.rules.registration = { kind: 'whenFull', capacity: 4 }
+            const deadline = draft()
+            deadline.rules.registration = {
+                kind: 'deadline',
+                minimumEntrants: 4,
+                closesAt: now + 86_400_000
+            }
+            for (const input of [whenFull, deadline]) {
+                const id = await open(input)
+                await service.join(id, users[1])
+                await expect(service.start(id, admin)).rejects.toMatchObject({ statusCode: 409 })
+                await expect(service.start(id, users[1])).rejects.toMatchObject({
+                    statusCode: 403
+                })
+                await service.join(id, users[2])
+                const started = await service.start(id, admin)
+                expect(started.status).toBe('locked')
+                expect(started.nextTaskAt).toBe(now)
+                expect(started.stages[0]).toMatchObject({
+                    id: 'opening',
+                    status: 'awaitingSchedule'
+                })
+                expect((await service.start(id, admin)).revision).toBe(started.revision)
+                await expect(service.join(id, users[3])).rejects.toMatchObject({
+                    statusCode: 409
+                })
+                expect((await service.get(id, admin)).tournament.entrants).toHaveLength(2)
+            }
+        })
+
+        it('starts rather than cancels a deadline event that closed below its minimum', async () => {
+            const input = draft()
+            input.rules.registration = {
+                kind: 'deadline',
+                minimumEntrants: 4,
+                closesAt: now + 1000
+            }
+            const id = await open(input)
+            await service.join(id, users[1])
+            now += 1001
+            await expect(service.start(id, admin)).rejects.toMatchObject({ statusCode: 409 })
+            expect((await store.read(id))?.status).toBe('open')
+            const late = await open({
+                ...input,
+                rules: {
+                    ...input.rules,
+                    registration: { ...input.rules.registration, closesAt: now + 1000 }
+                }
+            })
+            await service.join(late, users[1])
+            await service.join(late, users[2])
+            now += 1001
+            expect((await service.start(late, admin)).status).toBe('locked')
+        })
+
         it('cancels undersubscribed dated events but never expires when-full events', async () => {
             const input = draft()
             input.rules.registration = {

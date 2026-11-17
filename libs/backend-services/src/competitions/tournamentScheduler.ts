@@ -4,6 +4,7 @@ import {
     knockoutBracket,
     knockoutSlots,
     shuffle,
+    tournamentFillsATable,
     tournamentTableId,
     type KnockoutTableDue,
     type Tournament,
@@ -26,7 +27,7 @@ export function generateTournamentSchedule(
     const gamesPerEntrant = tournament.format.stages[0].gamesPerEntrant
     const entrantIds = entrants.map((entrant) => entrant.userId).sort()
     const count = entrantIds.length
-    if (count < tableSize)
+    if (!tournamentFillsATable(tournament))
         throw new TournamentError(`At least ${tableSize} players are needed for a full table`, 400)
     if (count > 256 || new Set(entrantIds).size !== count)
         throw new TournamentError('The locked roster is invalid', 400)

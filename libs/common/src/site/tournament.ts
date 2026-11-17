@@ -189,6 +189,10 @@ export function tournamentTableConfig(
         : tournament.rules.gameConfig
 }
 
+export function tournamentFillsATable(tournament: Pick<Tournament, 'entrants' | 'rules'>): boolean {
+    return tournament.entrants.length >= tournament.rules.tableSize
+}
+
 export function tournamentInPlay(status: Tournament['status']): boolean {
     return status === 'locked' || status === 'inProgress'
 }

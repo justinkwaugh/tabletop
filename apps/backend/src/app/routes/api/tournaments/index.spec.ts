@@ -42,6 +42,7 @@ async function setup(roles: Role[]) {
         cancel: change,
         control: change,
         lock: change,
+        start: change,
         previewSchedule: change,
         correctResult: change,
         rebuildStandings: change,
@@ -159,11 +160,13 @@ describe('tournament administrator authorization', () => {
                     url: '/tournaments/event/standings/rebuild',
                     payload: { revision: 1 }
                 },
-                ...['publish', 'cancel', 'lock', 'pause', 'resume', 'retry'].map((operation) => ({
-                    method: 'POST',
-                    url: `/tournaments/event/${operation}`,
-                    payload: {}
-                }))
+                ...['publish', 'cancel', 'lock', 'start', 'pause', 'resume', 'retry'].map(
+                    (operation) => ({
+                        method: 'POST',
+                        url: `/tournaments/event/${operation}`,
+                        payload: {}
+                    })
+                )
             ]
             for (const request of requests) {
                 const response = await server.inject({

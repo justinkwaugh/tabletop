@@ -27,6 +27,7 @@ import {
     tournamentEntrantAccount,
     tournamentEntrantAccounts,
     tournamentEntrantIndex,
+    tournamentFillsATable,
     tournamentInPlay,
     tournamentTableReference,
     tournamentTableSettled,
@@ -53,7 +54,10 @@ import type { NotificationService } from '../notifications/notificationService.j
 import { sendCompetitionUpdate } from './competitionUpdates.js'
 
 import { TournamentDispatcher } from './tournamentDispatcher.js'
-import { updateTournamentRegistration } from './tournamentRegistration.js'
+import {
+    lockTournamentRegistration,
+    updateTournamentRegistration
+} from './tournamentRegistration.js'
 import { tournamentPlacings, type TournamentTableResult } from './tournamentScoring.js'
 import { entrantTableCounts } from './tournamentDispatch.js'
 import { enqueueTournamentResultsEmail, type TournamentTask } from './tournamentTasks.js'
@@ -297,6 +301,23 @@ export class TournamentService {
                 throw new TournamentError(
                     'Registration stays open until capacity or the published deadline'
                 )
+        })
+        await this.notify(result)
+        await this.dispatcher.enqueue(result)
+        return result
+    }
+
+    async start(id: string, user: User): Promise<Tournament> {
+        requireAdministrator(user)
+        const result = await this.store.update(id, user, true, (tournament) => {
+            if (tournament.status === 'draft')
+                throw new TournamentError('Open registration before starting the tournament')
+            if (tournament.status !== 'open') return
+            if (!tournamentFillsATable(tournament))
+                throw new TournamentError(
+                    `At least ${tournament.rules.tableSize} players are needed to start`
+                )
+            lockTournamentRegistration(tournament, this.now())
         })
         await this.notify(result)
         await this.dispatcher.enqueue(result)
