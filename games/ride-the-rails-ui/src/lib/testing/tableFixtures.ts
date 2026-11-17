@@ -380,6 +380,14 @@ const FR_PARIS_NORTH: HexId = 'hex.fr.13-11'
 const FR_RED_TO_PARIS = [cityHexId('Lille', FR), ...walk(cityHexId('Lille', FR), FR_PARIS_NORTH)]
 const FR_BLUE_REIMS = line(['Sedan', 'Reims'], { start: true, mapId: FR })
 
+// R-8.5, Germany: Red from Leipzig and Blue from Dresden both into Berlin, Purple started there,
+// and Orange started in München beside a mountain.
+const DE: MapId = 'map.de'
+const DE_RED_BERLIN = line(['Leipzig', 'Berlin'], { start: true, mapId: DE })
+const DE_BLUE_BERLIN = line(['Dresden', 'Berlin'], { start: true, mapId: DE })
+/** The mountain beside München, where an Orange placement costs the turn nothing. */
+export const DE_MOUNTAIN_BY_MUNCHEN: HexId = 'hex.de.14-50'
+
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
     shares: SHARE_ROUND_ONE,
@@ -391,6 +399,47 @@ const EAST_COAST_ROUND: PlayedRound = {
 }
 
 export const TABLE_FIXTURES: readonly TableFixture[] = [
+    // R-8.5: Germany in round 4. Red, Blue and Purple stand in Berlin, one city over two cells;
+    // Orange in München lights the mountain beside it, which costs its turn nothing.
+    {
+        slug: 'germany-berlin',
+        name: 'Germany berlin',
+        recipe: {
+            mapId: DE,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, DE_RED_BERLIN.slice(0, 4)]] },
+                        { playerId: 'p2', runs: [[BLUE, DE_BLUE_BERLIN.slice(0, 4)]] },
+                        { playerId: 'p3', runs: [[RED, DE_RED_BERLIN.slice(4)]] }
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 1 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: BLUE, p3: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, [cityHexId('München', DE)]]] },
+                        { playerId: 'p2', runs: [[BLUE, DE_BLUE_BERLIN.slice(4)]] }
+                    ],
+                    journeys: { p1: 2, p2: 1, p3: 2 }
+                },
+                {
+                    shares: { p2: RED, p3: YELLOW, p1: YELLOW },
+                    builds: [],
+                    journeys: { p1: 4, p2: 0, p3: 3 }
+                },
+                {
+                    shares: { p3: PURPLE, p1: PURPLE, p2: PURPLE },
+                    builds: [{ playerId: 'p2', runs: [[PURPLE, [cityHexId('Berlin', DE)]]] }]
+                }
+            ],
+            phase: PhaseName.Build,
+            currentPlayerId: 'p1',
+            carried: [cityIdOf('Leipzig', DE), cityIdOf('Dresden', DE)]
+        }
+    },
     // R-8.4: France in round 2. Red stands in the entry hex north of Paris, so Paris lights with
     // its $10; Orange in Le Havre lights round it, never across the estuary to Caen.
     {

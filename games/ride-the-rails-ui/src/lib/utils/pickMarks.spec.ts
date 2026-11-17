@@ -23,6 +23,7 @@ import {
     buildChoice,
     chipModifiers,
     fewerPlacements,
+    hexSteps,
     linkChoice,
     litHexLabel,
     litHexViews,
@@ -109,6 +110,18 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             )
             expect(placeName(hex.id)).not.toMatch(/row|column|\d/)
         }
+    })
+
+    it('measures a hex’s distance to a city over two cells to its nearer cell (R-8.5)', () => {
+        const germany = boardMap('map.de')
+        const berlin = germany.cities.find((city) => city.name === 'Berlin')
+        assertExists(berlin)
+        // Beside Berlin's second cell only.
+        for (const hexId of ['hex.de.21-17', 'hex.de.21-19', 'hex.de.20-20'] as const) {
+            expect(germany.adjacentHexIds(hexId)).toContain(berlin.hexId)
+            expect(hexSteps(germany, hexId, berlin.hexId), hexId).toBe(1)
+        }
+        expect(hexSteps(germany, 'hex.de.22-20', berlin.hexId)).toBe(2)
     })
 
     it('gives every hex a name no other hex has', () => {

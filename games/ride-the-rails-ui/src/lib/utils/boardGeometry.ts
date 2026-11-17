@@ -164,6 +164,41 @@ export function outlineLoops(cells: readonly (readonly Point[])[]): Point[][] {
     return loops
 }
 
+/**
+ * A closed outline with every side moved in by `distance`, each corner where its two moved sides
+ * meet, so a corner that turns in (where Berlin's two cells meet) stays a sharp corner too.
+ */
+export function insetLoop(points: readonly Point[], distance: number): Point[] {
+    const area = points.reduce((sum, point, index) => {
+        const next = points[(index + 1) % points.length] ?? point
+        return sum + point.x * next.y - next.x * point.y
+    }, 0)
+    // The inward side of each side, whichever way the outline runs.
+    const turn = area > 0 ? 1 : -1
+    const moved = points.map((from, index) => {
+        const to = points[(index + 1) % points.length] ?? from
+        const length = Math.hypot(to.x - from.x, to.y - from.y)
+        const normal = {
+            x: (-(to.y - from.y) / length) * turn,
+            y: ((to.x - from.x) / length) * turn
+        }
+        return {
+            from: { x: from.x + normal.x * distance, y: from.y + normal.y * distance },
+            to: { x: to.x + normal.x * distance, y: to.y + normal.y * distance }
+        }
+    })
+    return moved.map((side, index) => {
+        const before = moved[(index - 1 + moved.length) % moved.length] ?? side
+        const r = { x: before.to.x - before.from.x, y: before.to.y - before.from.y }
+        const s = { x: side.to.x - side.from.x, y: side.to.y - side.from.y }
+        const cross = r.x * s.y - r.y * s.x
+        if (Math.abs(cross) < 1e-9) return side.from
+        const t =
+            ((side.from.x - before.from.x) * s.y - (side.from.y - before.from.y) * s.x) / cross
+        return { x: before.from.x + r.x * t, y: before.from.y + r.y * t }
+    })
+}
+
 /** A point as SVG writes it, to a tenth of a board unit. */
 export function pointText({ x, y }: Point): string {
     return `${x.toFixed(1)},${y.toFixed(1)}`

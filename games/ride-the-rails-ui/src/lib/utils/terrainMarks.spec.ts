@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
 import { MAP_IDS, boardMap, hexIdToAxial, type MapId } from '@tabletop/ride-the-rails'
 import { boardGeometry, type BoardGeometry } from './boardGeometry.js'
-import { capacityMarks } from './cityMarks.js'
+import { capacityMarks, START_BAND_WIDTH, startBandSpans } from './cityMarks.js'
+import { passengerSpot } from './passengerLayout.js'
+import { insetCellPoints } from './pickMarks.js'
+import { trackSlots } from './trackLayout.js'
 import { MAP_LAYOUTS } from './mapLayouts.js'
 import {
     ALPS_HATCH,
     alpsHatchPath,
+    bonusPillSpot,
+    outlineBandPaths,
     HEX_LIMIT_MARK,
     entryRingSides,
     HOURGLASS,
@@ -304,3 +309,98 @@ describe('the ring round Paris (R-8.4)', () => {
 function cityHex(mapId: MapId, name: string) {
     return cityNamed(mapId, name).hexId
 }
+
+describe('Berlin, one city over two cells (R-8.5)', () => {
+    const geometry = boardGeometry('map.de')
+    const berlin = cityNamed('map.de', 'Berlin')
+    const place = geometry.place(berlin.hexId)
+    const [own, second] = place.cells
+    const tolerance = 0.06
+    const insideBerlin = (point: Point) =>
+        place.cells.some((cell) => reachPastConvex(point, cell.vertices) <= tolerance)
+    const loopPoints = (loop: string): Point[] =>
+        loop.split(' ').map((pair) => {
+            const [x, y] = pair.split(',').map(Number)
+            return { x: x ?? NaN, y: y ?? NaN }
+        })
+
+    it('draws Berlin’s outline as one loop of ten corners round its two cells', () => {
+        expect(place.cells).toHaveLength(2)
+        expect(place.outline).toHaveLength(10)
+        for (const corner of place.outline) expect(insideBerlin(corner)).toBe(true)
+    })
+
+    it('fills one cream middle and rings it once: every inset is one loop inside both cells', () => {
+        for (const inset of [0, 3.5, 9]) {
+            const loops = insetCellPoints(berlin.hexId, inset)
+            expect(loops, `inset ${inset}`).toHaveLength(1)
+            const points = loopPoints(loops[0] ?? '')
+            expect(points).toHaveLength(10)
+            for (const point of points) expect(insideBerlin(point), `inset ${inset}`).toBe(true)
+        }
+        // A single cell keeps its own six corners.
+        const single = cityNamed('map.de', 'Hamburg')
+        expect(insetCellPoints(single.hexId, 9)).toHaveLength(1)
+        expect(loopPoints(insetCellPoints(single.hexId, 9)[0] ?? '')).toHaveLength(6)
+    })
+
+    it('bands Berlin once round its whole outline, a colour a half, split top to bottom', () => {
+        const outline = place.outline.map((corner) => ({
+            x: corner.x - place.center.x,
+            y: corner.y - place.center.y
+        }))
+        const paths = outlineBandPaths(outline, startBandSpans(2), START_BAND_WIDTH)
+        expect(paths).toHaveLength(2)
+        const [right, left] = paths.map((path) =>
+            [...path.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => ({
+                x: Number(match[1]) + place.center.x,
+                y: Number(match[2]) + place.center.y
+            }))
+        )
+        for (const point of [...(right ?? []), ...(left ?? [])]) {
+            expect(insideBerlin(point)).toBe(true)
+        }
+        expect(Math.min(...(right ?? []).map((point) => point.x))).toBeGreaterThan(
+            place.center.x - 0.5
+        )
+        expect(Math.max(...(left ?? []).map((point) => point.x))).toBeLessThan(place.center.x + 0.5)
+        // One colour rings the whole outline, its inner loop a band's width in.
+        const [ring] = outlineBandPaths(outline, startBandSpans(1), START_BAND_WIDTH)
+        expect(ring?.split('Z').filter(Boolean)).toHaveLength(2)
+    })
+
+    it('alternates Berlin’s cubes between its cells: full size up to four, Chicago’s size at five or six', () => {
+        if (!own || !second) throw new Error('Berlin has two cells')
+        for (let held = 1; held <= 6; held++) {
+            const slots = trackSlots(berlin.hexId, held)
+            expect(slots).toHaveLength(held)
+            slots.forEach((slot, index) => {
+                const cell = index % 2 === 0 ? own : second
+                for (const corner of squareCorners(slot, slot.width)) {
+                    expect(insideConvexPolygon(corner, cell.vertices), `${held}: ${index}`).toBe(
+                        true
+                    )
+                }
+                expect(slot.width, `${held}: ${index}`).toBe(held >= 5 ? 16 : 26)
+            })
+        }
+    })
+
+    it('stands the passenger and the 6 in Berlin’s own cell and the pill in its second', () => {
+        if (!own || !second) throw new Error('Berlin has two cells')
+        const passenger = passengerSpot(berlin.id, false)
+        expect(insideConvexPolygon(passenger, own.vertices)).toBe(true)
+        expect(passenger.x).toBeGreaterThan(own.center.x)
+        const six = capacityMarks(geometry).find((mark) => mark.cityId === berlin.id)
+        expect(six && insideConvexPolygon(six, own.vertices)).toBe(true)
+        const pill = bonusPillSpot(berlin.hexId)
+        expect(insideConvexPolygon(pill, second.vertices)).toBe(true)
+        expect(pill.y).toBeGreaterThan(second.center.y)
+        // A single-cell city's pill stands at its bottom centre, as before.
+        const hamburg = geometry.place(cityNamed('map.de', 'Hamburg').hexId)
+        expect(bonusPillSpot(cityNamed('map.de', 'Hamburg').hexId)).toEqual({
+            x: hamburg.center.x + geometry.hexFrame.bonusPill.x,
+            y: hamburg.center.y + geometry.hexFrame.bonusPill.y
+        })
+    })
+})

@@ -1,6 +1,6 @@
 import { assert, type Point } from '@tabletop/common'
 import { hexIdToAxial, type HexId, type ImpassablePair } from '@tabletop/ride-the-rails'
-import type { BoardGeometry } from './boardGeometry.js'
+import { hexCells, hexCenter, hexFrameOf, insetLoop, type BoardGeometry } from './boardGeometry.js'
 
 // Art plan, Expansion boards: the marks the expansion maps' boards add inside their hexes, in board
 // units from a hex's centre, each drawn as plain shapes (no filter, mask or pattern).
@@ -182,4 +182,90 @@ export function entryRingSides(geometry: BoardGeometry): EntryRingSide[] {
             })
         )
     })
+}
+
+// R-8.5: Berlin, one city over two cells: one band round its whole outline, as a single cell's.
+
+/** Degrees clockwise from the top, as a band's spans count them. */
+function bearingOfPoint({ x, y }: Point): number {
+    return ((Math.atan2(x, -y) * 180) / Math.PI + 360) % 360
+}
+
+/** Where a ray from the origin at this bearing leaves a loop the origin sees whole. */
+function rayExit(loop: readonly Point[], degrees: number): Point {
+    const radians = (degrees * Math.PI) / 180
+    const direction = { x: Math.sin(radians), y: -Math.cos(radians) }
+    let nearest: Point | undefined
+    let nearestReach = Infinity
+    loop.forEach((from, index) => {
+        const to = loop[(index + 1) % loop.length] ?? from
+        const side = { x: to.x - from.x, y: to.y - from.y }
+        const cross = direction.x * side.y - direction.y * side.x
+        if (Math.abs(cross) < 1e-9) return
+        const reach = (from.x * side.y - from.y * side.x) / cross
+        const along = (from.x * direction.y - from.y * direction.x) / cross
+        if (reach > 0 && along >= -1e-9 && along <= 1 + 1e-9 && reach < nearestReach) {
+            nearestReach = reach
+            nearest = { x: direction.x * reach, y: direction.y * reach }
+        }
+    })
+    assert(nearest !== undefined, `No side at ${degrees}°`)
+    return nearest
+}
+
+/** The loop's corners between two bearings, with where the two rays leave it at each end. */
+function loopRun(loop: readonly Point[], from: number, to: number): Point[] {
+    const between = loop
+        .map((corner) => ({ corner, bearing: bearingOfPoint(corner) }))
+        .filter(({ bearing }) => bearing > from + 1e-6 && bearing < to - 1e-6)
+        .toSorted((a, b) => a.bearing - b.bearing)
+        .map(({ corner }) => corner)
+    return [rayExit(loop, from), ...between, rayExit(loop, to)]
+}
+
+function bandPath(points: readonly Point[]): string {
+    return `M${points.map(pointText).join('L')}Z`
+}
+
+/**
+ * A start band round an outline of several cells, its points from the hex's centre: one closed
+ * path per span between the outline and the outline a band's width in, a single span the whole
+ * ring (filled even-odd), as `startBandPaths` draws a single cell's.
+ */
+export function outlineBandPaths(
+    outline: readonly Point[],
+    spans: readonly { from: number; to: number }[],
+    width: number
+): string[] {
+    const inner = insetLoop(outline, width)
+    if (spans.length === 1) return [`${bandPath(outline)}${bandPath(inner)}`]
+    return spans.map(({ from, to }) =>
+        bandPath([...loopRun(outline, from, to), ...loopRun(inner, from, to).reverse()])
+    )
+}
+
+/** A separator across an outline's band where each span starts, when there are two or more. */
+export function outlineBandSeparators(
+    outline: readonly Point[],
+    spans: readonly { from: number; to: number }[],
+    width: number
+): string[] {
+    if (spans.length < 2) return []
+    const inner = insetLoop(outline, width)
+    return spans.map(({ from }) => {
+        const outer = rayExit(outline, from)
+        const end = rayExit(inner, from)
+        return `M${pointText(outer)}L${pointText(end)}`
+    })
+}
+
+/**
+ * Where a city's bonus pill stands: at the bottom centre of its hex, of its second cell for a city
+ * over two (R-8: Berlin's passenger and limit mark take its first).
+ */
+export function bonusPillSpot(hexId: HexId): Point {
+    const cell = hexCells(hexId).at(-1)
+    const center = cell?.center ?? hexCenter(hexId)
+    const offset = hexFrameOf(hexId).bonusPill
+    return { x: center.x + offset.x, y: center.y + offset.y }
 }

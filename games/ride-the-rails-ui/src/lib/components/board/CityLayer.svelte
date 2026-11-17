@@ -1,7 +1,8 @@
 <script lang="ts">
-    import type { RailroadId } from '@tabletop/ride-the-rails'
+    import type { Point } from '@tabletop/common'
+    import type { HexId, RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { hexCenter } from '$lib/utils/boardGeometry.js'
+    import { hexCells, hexCenter, hexOutline } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { cityPieces } from '$lib/utils/boardPieces.js'
     import { startCues } from '$lib/utils/startCues.js'
@@ -27,10 +28,20 @@
         return extra.length > 0 ? [BLACK, ...extra] : []
     }
 
+    // R-8.5: a city over two cells is banded round its whole outline, from its centre.
+    function twinOutline(hexId: HexId, center: Point): Point[] | undefined {
+        if (hexCells(hexId).length < 2) return undefined
+        return hexOutline(hexId).map((corner) => ({
+            x: corner.x - center.x,
+            y: corner.y - center.y
+        }))
+    }
+
     const cities = $derived(
         cityPieces(gameSession.gameState).map((city) => ({
             ...city,
             center: hexCenter(city.hexId),
+            outline: twinOutline(city.hexId, hexCenter(city.hexId)),
             bandColours: bandColours(
                 city.startColours,
                 cues.filter((cue) => cue.hexId === city.hexId).map((cue) => cue.railroadId)
@@ -49,6 +60,7 @@
                 <StartBand
                     startColours={city.bandColours}
                     frame={gameSession.boardFrame.hexFrame}
+                    outline={city.outline}
                 />
             {/if}
         </g>

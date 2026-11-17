@@ -8,7 +8,7 @@ import {
     type RailroadId,
     type Track
 } from '@tabletop/ride-the-rails'
-import { hexCenter, hexFrameOf } from './boardGeometry.js'
+import { hexCells, hexCenter, hexFrameOf } from './boardGeometry.js'
 import { CUBE_UNIT } from './cubeShape.js'
 import type { TrackSlot, TrackSlotLayout, TrackSlotOffsets } from './hexFrame.js'
 
@@ -37,9 +37,51 @@ export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
     return isCityHex(hexId) ? 'city' : 'open-hex'
 }
 
+// R-8.5: how many of a twin city's cubes each of its two cells holds, by how many it holds.
+const TWIN_SHARES: Readonly<Record<number, readonly [number, number]>> = {
+    1: [1, 0],
+    2: [1, 1],
+    3: [2, 1],
+    4: [2, 2],
+    5: [3, 2],
+    6: [3, 3]
+}
+
+/**
+ * R-8.5: a city over two cells (Berlin) holds its cubes in turn in each cell, its own first: one
+ * each full size, two each full size, then Chicago's small size at five or six.
+ */
+function twinSlots(hexId: HexId, held: number): TrackSlot[] {
+    const cells = hexCells(hexId)
+    const { twinCell } = hexFrameOf(hexId).trackSlots
+    const shares = TWIN_SHARES[held] ?? TWIN_SHARES[MOST_LOCOMOTIVES_IN_A_HEX] ?? [0, 0]
+    const small = held >= 5
+    const cellSlots = (count: number): readonly TrackSlot[] =>
+        count >= 3
+            ? twinCell.three
+            : count === 2
+              ? small
+                  ? twinCell.smallTwo
+                  : twinCell.two
+              : twinCell.one
+    const [own, second] = cells.map((cell, index) =>
+        cellSlots(shares[index] ?? 0).map((offset) => ({
+            ...offset,
+            x: cell.center.x + offset.x,
+            y: cell.center.y + offset.y
+        }))
+    )
+    return Array.from({ length: shares[0] + shares[1] }, (_, index) => {
+        const slot = index % 2 === 0 ? own?.[index / 2] : second?.[(index - 1) / 2]
+        assertExists(slot, `Hex ${hexId} has no twin slot ${index}`)
+        return slot
+    })
+}
+
 /** The hex's slots when it holds `held` cubes: a lone cube stands in the middle; Chicago's
- * cubes regroup as they arrive (CHICAGO_LAYOUTS). */
+ * cubes regroup as they arrive (CHICAGO_LAYOUTS); a city over two cells alternates them. */
 export function trackSlots(hexId: HexId, held?: number): TrackSlot[] {
+    if (hexCells(hexId).length > 1) return twinSlots(hexId, held ?? MOST_LOCOMOTIVES_IN_A_HEX)
     const center = hexCenter(hexId)
     const slots = hexFrameOf(hexId).trackSlots
     return layoutOffsets(slots, trackSlotLayout(hexId), held).map((offset) => ({

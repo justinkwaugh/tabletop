@@ -70,9 +70,10 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
         legendWidth: 400,
         limitMarksInHex: ['city.fr.lille', 'city.fr.valenciennes', 'city.fr.sedan', 'city.fr.metz']
     },
-    // The board prints no title. The title off the board's land south-east of Dresden, clear of
-    // land by 86; the legend in the North Sea, clear of land by 24. That sea is 520 wide at most,
-    // so the legend is narrowed to 480, still wider than its rows need.
+    // The board prints no title: the title off the board's land south-east of Dresden, clear of
+    // land by 86. The board prints its railroad introduction panel in the south-west, but no open
+    // sea there holds even a card 360 wide, so the legend stands in the North Sea, clear of land by
+    // 24. That sea is 520 wide at most, so the legend is narrowed to 480, wider than its rows need.
     'map.de': {
         name: 'Germany',
         boardLabel: 'Map of Germany',

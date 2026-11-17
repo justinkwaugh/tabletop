@@ -102,3 +102,33 @@ test('France: Paris lights with its $10, and nothing crosses the estuary (R-8.4)
     await expect.poll(() => trackIn(page, 'hex.fr.13-13')).toEqual(['railroad.red'])
     await expect.poll(() => moneyOf(page, 'p1')).toBe(before + 10)
 })
+
+test('Germany: Berlin is one city, and Orange builds on a mountain for nothing (R-8.5)', async ({
+    page
+}) => {
+    await openScenario(page, 'Germany berlin')
+    await expect(page.getByRole('group', { name: 'Map of Germany' })).toBeVisible()
+    const berlin = board(page).locator('[data-city-marks="city.de.berlin"]')
+    // One band round both cells: Purple and Black, one path each.
+    await expect(berlin.locator('[data-band-colour]')).toHaveCount(2)
+    await expect(board(page).locator('g.bonuses [data-bonus-text="$3"]')).toHaveCount(1)
+    await expect(board(page).locator('[data-limit-in-hex="city.de.berlin"]')).toHaveCount(1)
+    expect(await trackIn(page, 'hex.de.19-17')).toEqual([
+        'railroad.red',
+        'railroad.blue',
+        'railroad.purple'
+    ])
+
+    // Orange in München may take the mountain beside it, and says nothing of the limit.
+    const mountain = litHexAt(page, 'hex.de.14-50')
+    await expect(mountain).toHaveCount(1)
+    expect(await mountain.getAttribute('aria-label')).not.toContain('limit')
+
+    await pressHex(page, mountain)
+    await expect.poll(() => trackIn(page, 'hex.de.14-50')).toEqual(['railroad.orange'])
+    // The turn's limit stands at 8: an Orange mountain uses no mountain.
+    await expect
+        .poll(() => page.evaluate(() => window.rtrSession.gameState.building?.usedMountain))
+        .toBe(false)
+    await expect(page.locator('div.action').getByText('1 of 8 placed')).toHaveCount(1)
+})

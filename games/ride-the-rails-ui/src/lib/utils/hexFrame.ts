@@ -14,6 +14,11 @@ export type TrackSlotOffsets = {
     readonly lone: Partial<Record<TrackSlotLayout, TrackSlot>>
     /** Chicago's cubes by how many it holds. */
     readonly chicago: Readonly<Record<number, readonly TrackSlot[]>>
+    /**
+     * R-8.5: one cell of a city drawn over two (Berlin), by how many of the city's cubes it holds:
+     * one in the middle, two side by side, small pairs and rows once the city holds five or six.
+     */
+    readonly twinCell: Readonly<Record<'one' | 'two' | 'smallTwo' | 'three', readonly TrackSlot[]>>
 }
 
 export type HexFrame = {
@@ -83,6 +88,15 @@ function trackSlotOffsets(chicagoRowsY: readonly [number, number]): TrackSlotOff
                 slot(-chicagoHalfX, bottomRowY, CHICAGO_WIDTH),
                 slot(chicagoHalfX, bottomRowY, CHICAGO_WIDTH)
             ]
+        },
+        twinCell: {
+            one: [slot(0, TRACK_Y, CUBE_WIDTH)],
+            two: [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
+            smallTwo: [
+                slot(-chicagoHalfX, TRACK_Y, CHICAGO_WIDTH),
+                slot(chicagoHalfX, TRACK_Y, CHICAGO_WIDTH)
+            ],
+            three: chicagoRow.map((x) => slot(x, TRACK_Y, CHICAGO_WIDTH))
         }
     }
 }

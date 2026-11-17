@@ -2,6 +2,13 @@
 
 The dev harness lists these under **Scenarios**; loading one again starts it over. The menu names each file by its slug, so a fixture's name is its slug with the first letter capitalised. Each is a position reached by legal play: `src/lib/testing/tableFixtures.ts` builds it by sending every past placement through the engine in its seat's building turn. `tableFixtures.spec.ts` writes the files and fails when one drifts; after changing a fixture, run `pnpm exec vitest run -u src/lib/testing/tableFixtures.spec.ts`. The seats are Ada, Ben, Cora, Dell and Eli, in turn order. The numbers are the contract's verification scenarios (`docs/ui-interaction-visual-contract.md`); the Playwright specs in `tests/` play them.
 
+## Germany berlin
+
+Germany, round 4 with three seats, Build. Red from Leipzig and Blue from Dresden have reached Berlin, Ben has started Purple there, and Ada started Orange in München. Ada holds Red, Orange, Yellow and Purple and builds next.
+
+- Berlin is one city over two cells: one outline, one Purple and Black band, one cream middle, its three cubes alternating between the cells, its "6" and passenger in its own cell and its "$3" pill in the second.
+- The mountain beside München lights for Orange with no "−1": an Orange placement there leaves the limit at 8.
+
 ## France paris ring
 
 France, round 2 with three seats, Build. Red runs from Lille into the entry hex north of Paris, Blue from Sedan to Reims, and Ben has started Orange in Le Havre. Ada holds Red and Orange and builds next.

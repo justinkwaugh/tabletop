@@ -1,6 +1,6 @@
 import type { Point } from '@tabletop/common'
 import { cityById, type CityId } from '@tabletop/ride-the-rails'
-import { hexCenter } from './boardGeometry.js'
+import { hexCells, hexCenter } from './boardGeometry.js'
 import {
     PASSENGER_LIFT,
     PASSENGER_SCALE,
@@ -10,9 +10,13 @@ import {
 
 export type PassengerSpot = Point & { scale: number }
 
-/** Where a city's passenger stands, or stood, in board units, and its scale there. */
+/**
+ * Where a city's passenger stands, or stood, in board units, and its scale there: from the centre
+ * of the city's own cell (R-8: Berlin's first of two).
+ */
 export function passengerSpot(cityId: CityId, lifted: boolean): PassengerSpot {
-    const center = hexCenter(cityById(cityId).hexId)
+    const hexId = cityById(cityId).hexId
+    const center = hexCells(hexId)[0]?.center ?? hexCenter(hexId)
     const offset = passengerOffset(cityId)
     return {
         x: center.x + offset.x,

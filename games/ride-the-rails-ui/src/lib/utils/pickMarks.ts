@@ -1,4 +1,4 @@
-import { assertExists, distanceAxial } from '@tabletop/common'
+import { assertExists, distanceAxial, type Point } from '@tabletop/common'
 import {
     FIVE_DOLLAR_BONUS,
     MAP_IDS,
@@ -25,9 +25,13 @@ import {
     hexCells,
     hexCenter,
     hexOutline,
+    insetLoop,
     pointText,
     type BoardGeometry
 } from './boardGeometry.js'
+
+/** How far a cell's side stands from its centre, for each unit its corners do. */
+const APOTHEM_RATIO = Math.cos(Math.PI / 6)
 import { railroadNames, railroadStyle } from './railroadStyle.js'
 import { ghostCubes, type GhostCube } from './trackLayout.js'
 
@@ -121,25 +125,34 @@ const STEP_WORDS = ['one hex', 'two hexes', 'three hexes', 'four hexes', 'five h
 
 type Bearing = { terrain: string; cityName: string; angle: number; steps: number }
 
-function hexSteps(map: BoardMap, from: HexId, to: HexId): number {
-    return distanceAxial(hexIdToAxial(map.orientation, from), hexIdToAxial(map.orientation, to))
+/** How many hexes from one hex to another, counted to the other's nearer cell (R-8: Berlin's two). */
+export function hexSteps(map: BoardMap, from: HexId, to: HexId): number {
+    const start = hexIdToAxial(map.orientation, from)
+    return Math.min(...map.cellsOf(to).map((cell) => distanceAxial(start, cell)))
 }
 
-// A plain or mountain from its nearest city; a tie in distance goes to the city first in the
-// map's table.
+/** The centre of the hex's cell nearest the point: its one cell's, or the nearer of Berlin's two. */
+function nearestCellCenter(hexId: HexId, point: Point): Point {
+    const centers = hexCells(hexId).map((cell) => cell.center)
+    const distance = (center: Point) => Math.hypot(point.x - center.x, point.y - center.y)
+    return centers.reduce((best, center) => (distance(center) < distance(best) ? center : best))
+}
+
+// A plain or mountain from its nearest city, measured to the city's nearer cell; a tie in distance
+// goes to the city first in the map's table.
 function bearingOf(map: BoardMap, hexId: HexId, terrain: string): Bearing {
     const center = hexCenter(hexId)
     let nearest = map.cities[0]
     let nearestDistance = Infinity
     for (const city of map.cities) {
-        const cityCenter = hexCenter(city.hexId)
+        const cityCenter = nearestCellCenter(city.hexId, center)
         const distance = Math.hypot(center.x - cityCenter.x, center.y - cityCenter.y)
         if (distance < nearestDistance - DISTANCE_TIE) {
             nearest = city
             nearestDistance = distance
         }
     }
-    const cityCenter = hexCenter(nearest.hexId)
+    const cityCenter = nearestCellCenter(nearest.hexId, center)
     return {
         terrain,
         cityName: nearest.name,
@@ -303,7 +316,19 @@ export function litHexViews(
  * Each of the hex's cells, its corners pulled in towards the cell's centre, for rings drawn inside
  * the hex edge: one polygon a cell.
  */
+/**
+ * The hex's outline drawn this far in, as SVG points: a cell's own corners brought in towards its
+ * centre, or for a hex over two cells (R-8: Berlin) its one outline with every side moved in as
+ * far as a cell's sides move, so the hex has one middle and one ring.
+ */
 export function insetCellPoints(hexId: HexId, inset: number): string[] {
+    if (hexCells(hexId).length > 1) {
+        return [
+            insetLoop(hexOutline(hexId), inset * APOTHEM_RATIO)
+                .map(pointText)
+                .join(' ')
+        ]
+    }
     return hexCells(hexId).map(({ center, vertices }) =>
         vertices
             .map((corner) => {
