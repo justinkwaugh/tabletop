@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { ActionType, spaceFromName as s } from '@tabletop/dvonn'
 import { historyEntries } from './historyEntries.js'
 
@@ -45,6 +51,34 @@ describe('historyEntries', () => {
                 passedPlayerId: 'a',
                 firstIndex: 1
             }
+        ])
+    })
+
+    it('gives a called game its own entry after the last move', () => {
+        const call: CallGameAction = {
+            id: 'call',
+            gameId: 'g',
+            source: ActionSource.System,
+            type: CALL_GAME_ACTION_TYPE,
+            call: {
+                kind: GameCallKind.Conceded,
+                initiatorPlayerId: 'b',
+                declaredWinnerId: 'a',
+                approvingPlayerIds: ['b'],
+                decliningPlayerIds: []
+            }
+        }
+        const entries = historyEntries([
+            action('a', {
+                type: ActionType.PlacePiece,
+                coords: s('E3'),
+                metadata: { piece: { playerId: 'a' } }
+            }),
+            call
+        ])
+        expect(entries).toMatchObject([
+            { kind: 'place', playerId: 'a', firstIndex: 0 },
+            { kind: 'call', firstIndex: 1, lastIndex: 1, action: call }
         ])
     })
 })

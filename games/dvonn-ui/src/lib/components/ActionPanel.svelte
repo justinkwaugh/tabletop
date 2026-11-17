@@ -8,8 +8,11 @@
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
 
     // Rule E8: a player without a move passes, and the other moves again.
+    const passedPlayerId = $derived(
+        lastEntry?.kind === 'call' ? undefined : lastEntry?.passedPlayerId
+    )
     const opponentPassed = $derived(
-        lastEntry?.passedPlayerId !== undefined && lastEntry.passedPlayerId !== session.myPlayer?.id
+        passedPlayerId !== undefined && passedPlayerId !== session.myPlayer?.id
     )
 
     const prompt = $derived.by(() => {
@@ -19,8 +22,8 @@
                 : 'Place a piece on any empty space'
         }
         if (session.chosenFrom) return 'Choose where the stack lands'
-        if (session.canMove && opponentPassed && lastEntry?.passedPlayerId) {
-            return `${session.getPlayerName(lastEntry.passedPlayerId)} cannot move; move again`
+        if (session.canMove && opponentPassed && passedPlayerId) {
+            return `${session.getPlayerName(passedPlayerId)} cannot move; move again`
         }
         if (session.canMove) return 'Choose a piece or stack to move'
         return undefined
