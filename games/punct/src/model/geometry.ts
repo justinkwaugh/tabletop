@@ -41,8 +41,11 @@ export const SPACES: readonly AxialCoordinates[] = Array.from(
 
 const SPACE_KEYS = new Set(SPACES.map(spaceKey))
 
+// A space's key folds fractions onto other spaces, so submitted fractions are no space.
 export function isSpace(coords: AxialCoordinates): boolean {
-    return SPACE_KEYS.has(spaceKey(coords))
+    return (
+        Number.isInteger(coords.q) && Number.isInteger(coords.r) && SPACE_KEYS.has(spaceKey(coords))
+    )
 }
 
 export function isCentre(coords: AxialCoordinates): boolean {
