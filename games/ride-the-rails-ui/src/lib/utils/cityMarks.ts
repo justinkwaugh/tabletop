@@ -1,9 +1,9 @@
 import { assertExists, type Point } from '@tabletop/common'
-import type { CityId, RailroadId } from '@tabletop/ride-the-rails'
+import type { CityId, HexId, RailroadId } from '@tabletop/ride-the-rails'
 import { HEX_SIZE, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
 import type { CityBonusMark } from './boardPieces.js'
 import type { HexFrame } from './hexFrame.js'
-import { HEX_LIMIT_MARK_AT } from './terrainMarks.js'
+import { HEX_LIMIT_MARK_AT, hexLimitMarks } from './terrainMarks.js'
 
 // Art plan, City marks: every mark is placed from its hex's centre, in board units, and turned to
 // the way up its map's hexes stand (`hexFrame`).
@@ -148,21 +148,29 @@ export const MOUNTAIN_PEAK = { path: 'M-9 0 L-3 -8 L1 -3 L4 -6 L9 0 Z', scale: 1
 export const CAPACITY_MARK = { side: 20, gap: 6, chicagoExtra: 9 } as const
 
 export type CapacityMarkView = {
-    cityId: CityId
+    /** The hex it limits: its city's own hex, or another hex that holds one locomotive (R-8). */
+    hexId: HexId
+    /** The city it limits, where the hex is a city's. */
+    cityId: CityId | undefined
     text: string
     x: number
     y: number
-    /** Drawn inside its city's hex (`HEX_LIMIT_MARK`), where no side opens on water. */
+    /** Drawn inside its hex (`HEX_LIMIT_MARK`), where no side opens on water. */
     inHex: boolean
 }
 
 /**
- * R-4.1.3, R-4.1.4: beside each city with a printed limit other than two, in the water, the most
- * locomotives it holds: 1 on the East Coast, and Chicago any number, so at most six, one per
- * railroad. Each mark stands just past the first of the hex's sides, in the frame's order, with no
- * land beyond: its id's cell's sides first, then any other cell's (R-8: Berlin covers two). A city
- * with no side on water (R-8: Paris, Berlin), or one its map's layout names, has the mark inside
- * its hex instead, at the top left of its id's cell.
+ * R-4.1.3, R-4.1.4, R-8: every limit printed on the map. Beside each city with a limit other than
+ * two, the most locomotives it holds: 1 on the East Coast, and Chicago any number, so at most six,
+ * one per railroad; then beside every other hex that holds one locomotive (Australia's
+ * long-distance hexes, France's Paris entry hexes), a 1.
+ *
+ * Each mark stands in the water just past the first of its hex's sides, in the frame's order, with
+ * no land beyond and a mark's gap clear of every mark placed before it (the cities in the map's
+ * order, then the other hexes): its id's cell's sides first, then any other cell's (Berlin covers
+ * two). A hex with no such side (Paris, Berlin, the Paris entry hexes), or a city its map's layout
+ * names, has the mark inside the hex instead: a city's at the top left of its id's cell, another
+ * hex's at its top centre (`hexLimitMarks`).
  */
 export function capacityMarks(
     geometry: BoardGeometry,
@@ -174,48 +182,62 @@ export function capacityMarks(
     const isWater = (x: number, y: number) =>
         !landCenters.some((land) => Math.hypot(land.x - x, land.y - y) < HEX_SIZE / 2)
     const sides = geometry.hexFrame.capacitySides.map((degrees) => (degrees * Math.PI) / 180)
-    return geometry.map.cities.flatMap((city): CapacityMarkView[] => {
-        const text = city.capacity === 1 ? '1' : city.capacity === 'unlimited' ? '6' : undefined
-        if (text === undefined) return []
-        const centers = geometry.place(city.hexId).cells.map((cell) => cell.center)
-        const open = centers
-            .flatMap((center) => sides.map((angle) => ({ center, angle })))
-            .find(({ center, angle }) =>
-                isWater(
-                    center.x + Math.cos(angle) * HEX_WIDTH,
-                    center.y + Math.sin(angle) * HEX_WIDTH
-                )
-            )
-        const own = centers[0]
-        assertExists(own, `${city.id} covers no cell`)
-        if (!open || inHex.includes(city.id)) {
-            return [
-                {
-                    cityId: city.id,
-                    text,
-                    x: own.x + HEX_LIMIT_MARK_AT.city.x,
-                    y: own.y + HEX_LIMIT_MARK_AT.city.y,
-                    inHex: true
-                }
-            ]
-        }
-        const { center, angle } = open
+    const placed: Point[] = []
+    const clearOfPlaced = (spot: Point) =>
+        placed.every(
+            (other) =>
+                Math.max(Math.abs(other.x - spot.x), Math.abs(other.y - spot.y)) >=
+                CAPACITY_MARK.side + CAPACITY_MARK.gap
+        )
+    const seaSpot = (hexId: HexId, text: string): Point | undefined => {
         // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
         const distance =
             HEX_WIDTH / 2 +
             CAPACITY_MARK.gap +
             CAPACITY_MARK.side / 2 +
             (text === '6' ? CAPACITY_MARK.chicagoExtra : 0)
-        return [
-            {
-                cityId: city.id,
-                text,
+        return geometry
+            .place(hexId)
+            .cells.flatMap(({ center }) => sides.map((angle) => ({ center, angle })))
+            .filter(({ center, angle }) =>
+                isWater(
+                    center.x + Math.cos(angle) * HEX_WIDTH,
+                    center.y + Math.sin(angle) * HEX_WIDTH
+                )
+            )
+            .map(({ center, angle }) => ({
                 x: center.x + Math.cos(angle) * distance,
-                y: center.y + Math.sin(angle) * distance,
-                inHex: false
-            }
+                y: center.y + Math.sin(angle) * distance
+            }))
+            .find(clearOfPlaced)
+    }
+    const mark = (
+        hexId: HexId,
+        cityId: CityId | undefined,
+        text: string,
+        inside: Point
+    ): CapacityMarkView => {
+        const spot = cityId && inHex.includes(cityId) ? undefined : seaSpot(hexId, text)
+        if (spot) placed.push(spot)
+        const { x, y } = spot ?? inside
+        return { hexId, cityId, text, x, y, inHex: !spot }
+    }
+    const cityMarks = geometry.map.cities.flatMap((city): CapacityMarkView[] => {
+        const text = city.capacity === 1 ? '1' : city.capacity === 'unlimited' ? '6' : undefined
+        if (text === undefined) return []
+        const own = geometry.place(city.hexId).cells[0]?.center
+        assertExists(own, `${city.id} covers no cell`)
+        return [
+            mark(city.hexId, city.id, text, {
+                x: own.x + HEX_LIMIT_MARK_AT.city.x,
+                y: own.y + HEX_LIMIT_MARK_AT.city.y
+            })
         ]
     })
+    const hexMarks = hexLimitMarks(geometry).map((inside) =>
+        mark(inside.hexId, undefined, inside.text, inside)
+    )
+    return [...cityMarks, ...hexMarks]
 }
 
 // The bonus pill (BOARD_LOOK.bonus 'pill').

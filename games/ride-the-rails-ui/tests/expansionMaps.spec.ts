@@ -41,7 +41,9 @@ test('Australia: a long-distance placement ends the turn (R-8.2)', async ({ page
     await expect(page.getByRole('group', { name: 'Map of Australia' })).toBeVisible()
     await expect(board(page).locator('[data-alps-hatch]')).toHaveCount(1)
     await expect(board(page).locator('[data-hourglass]')).toHaveCount(4)
-    await expect(board(page).locator('[data-limit-in-hex]')).toHaveCount(4)
+    // Every long-distance hex has a side on the sea, so its 1 stands there, as Perth's does.
+    await expect(board(page).locator('[data-limit-in-hex]')).toHaveCount(0)
+    await expect(board(page).locator('[data-limit-in-sea]')).toHaveCount(6)
 
     const lit = await litHexIds(page)
     // Orange may enter the chain's next long-distance hex, its turn's first placement; never the
@@ -54,6 +56,36 @@ test('Australia: a long-distance placement ends the turn (R-8.2)', async ({ page
     await pressHex(page, litHexAt(page, 'hex.au.2-12'))
     await expect.poll(() => trackIn(page, 'hex.au.2-12')).toEqual(['railroad.orange'])
     await expect.poll(() => activePlayerId(page)).not.toBe('p1')
+})
+
+test('Australia: a long-distance hex’s 1 stands in the sea beside it, over no hex (R-8.2)', async ({
+    page
+}) => {
+    await openScenario(page, 'Australia perth chain')
+    await settled(page)
+    for (const hexId of ['hex.au.2-12', 'hex.au.1-13', 'hex.au.3-13', 'hex.au.34-8']) {
+        const mark = board(page).locator(`[data-limit-in-sea="${hexId}"]`)
+        await expect(mark).toHaveCount(1)
+        await expect(mark.locator('text')).toHaveText('1')
+        // The mark's four corners, in board units, fall in no hex on the board.
+        const corners = await mark.evaluate((element) => {
+            if (!(element instanceof SVGGraphicsElement)) return -1
+            const { e, f } = element.transform.baseVal.consolidate()?.matrix ?? { e: 0, f: 0 }
+            const square = element.querySelector('rect')?.getBBox()
+            if (!square) return -1
+            const hexes = [...document.querySelectorAll<SVGPolygonElement>('polygon[data-hex-id]')]
+            return [
+                [square.x, square.y],
+                [square.x + square.width, square.y],
+                [square.x, square.y + square.height],
+                [square.x + square.width, square.y + square.height]
+            ].filter(([x = 0, y = 0]) =>
+                hexes.every((hex) => !hex.isPointInFill(new DOMPoint(e + x, f + y)))
+            ).length
+        })
+        expect(corners, hexId).toBe(4)
+        await expect(board(page).locator(`[data-limit-in-hex="${hexId}"]`)).toHaveCount(0)
+    }
 })
 
 test('Canada: no pick is offered across an impassable side (R-8.3)', async ({ page }) => {

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
 import { MAP_IDS, boardMap, hexIdToAxial, type MapId } from '@tabletop/ride-the-rails'
-import { boardGeometry, type BoardGeometry } from './boardGeometry.js'
-import { capacityMarks, START_BAND_WIDTH, startBandSpans } from './cityMarks.js'
+import { boardGeometry, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
+import { CAPACITY_MARK, capacityMarks, START_BAND_WIDTH, startBandSpans } from './cityMarks.js'
 import { passengerSpot } from './passengerLayout.js'
 import { insetCellPoints } from './pickMarks.js'
 import { trackSlots } from './trackLayout.js'
-import { MAP_LAYOUTS } from './mapLayouts.js'
+import { legendBox, MAP_LAYOUTS, titleBox } from './mapLayouts.js'
 import {
     ALPS_HATCH,
     alpsHatchPath,
@@ -18,7 +18,13 @@ import {
     hexLimitMarks,
     impassableSides
 } from './terrainMarks.js'
-import { insideConvexPolygon, reachPastConvex } from '$lib/testing/shapeChecks.js'
+import {
+    boxesOverlap,
+    boxInside,
+    centredBox,
+    insideConvexPolygon,
+    reachPastConvex
+} from '$lib/testing/shapeChecks.js'
 
 function squareCorners(center: Point, side: number): Point[] {
     const half = side / 2
@@ -111,7 +117,112 @@ describe('limit marks inside a hex (R-4.1.4, R-8)', () => {
     })
 
     it('keeps every USA capacity mark in the sea, where it was', () => {
-        expect(capacityMarks(boardGeometry('map.usa')).every((mark) => !mark.inHex)).toBe(true)
+        const marks = capacityMarks(boardGeometry('map.usa'))
+        expect(marks.every((mark) => !mark.inHex)).toBe(true)
+        const tenth = (value: number) => Math.round(value * 10) / 10
+        expect(marks.map((mark) => [mark.cityId, tenth(mark.x), tenth(mark.y)])).toEqual([
+            ['city.usa.chicago', 1490.1, 328.3],
+            ['city.usa.new-york', 2099.8, 440],
+            ['city.usa.philadelphia', 1995.9, 500],
+            ['city.usa.baltimore', 1926.6, 620],
+            ['city.usa.washington', 1926.6, 740],
+            ['city.usa.charleston', 1822.7, 800],
+            ['city.usa.jacksonville', 1753.4, 920]
+        ])
+    })
+})
+
+describe('limit marks in the sea beside a hex that opens on water (R-4.1.4, R-8)', () => {
+    const marksOf = (mapId: MapId) =>
+        capacityMarks(boardGeometry(mapId), MAP_LAYOUTS[mapId].limitMarksInHex)
+    const hexIdsOf = (mapId: MapId, inHex: boolean) =>
+        marksOf(mapId)
+            .filter((mark) => mark.inHex === inHex)
+            .map((mark) => mark.hexId)
+    const cityHexes = (mapId: MapId, names: string[]) =>
+        names.map((name) => cityNamed(mapId, name).hexId)
+
+    it('moves each marked hex with a side on open water into the sea: Australia’s four long-distance hexes', () => {
+        expect(hexIdsOf('map.au', false)).toEqual([
+            ...cityHexes('map.au', ['Brisbane', 'Perth']),
+            'hex.au.34-8',
+            'hex.au.2-12',
+            'hex.au.1-13',
+            'hex.au.3-13'
+        ])
+        expect(hexIdsOf('map.au', true)).toEqual([])
+        expect(hexIdsOf('map.ca', false)).toEqual(cityHexes('map.ca', ['Toronto']))
+        expect(hexIdsOf('map.ca', true)).toEqual([])
+    })
+
+    it('keeps in the hex every mark with no side on open water, and the layout’s border cities', () => {
+        const entries = boardMap('map.fr')
+            .hexes.filter((hex) => boardMap('map.fr').groupsOf(hex.id).includes('paris-entry'))
+            .map((hex) => hex.id)
+        expect(hexIdsOf('map.fr', false)).toEqual([])
+        expect(hexIdsOf('map.fr', true)).toEqual([
+            ...cityHexes('map.fr', ['Lille', 'Valenciennes', 'Sedan', 'Metz', 'Paris']),
+            ...entries
+        ])
+        expect(hexIdsOf('map.de', false)).toEqual([])
+        expect(hexIdsOf('map.de', true)).toEqual(cityHexes('map.de', ['Berlin']))
+        expect(hexIdsOf('map.usa', true)).toEqual([])
+    })
+
+    it('stands every sea mark on the board, over no land and clear of the other marks, title and legend', () => {
+        for (const mapId of MAP_IDS) {
+            const geometry = boardGeometry(mapId)
+            const cells = geometry.hexIds.flatMap((hexId) => geometry.place(hexId).cells)
+            const sea = marksOf(mapId).filter((mark) => !mark.inHex)
+            const boxOf = (mark: Point) =>
+                centredBox({ ...mark, width: CAPACITY_MARK.side, height: CAPACITY_MARK.side })
+            for (const mark of sea) {
+                const box = boxOf(mark)
+                const label = `${mapId} ${mark.hexId}`
+                expect(boxInside(box, geometry.extents), label).toBe(true)
+                for (const cell of cells) {
+                    for (const corner of squareCorners(mark, CAPACITY_MARK.side)) {
+                        expect(reachPastConvex(corner, cell.vertices), label).toBeGreaterThan(0)
+                    }
+                    for (const vertex of cell.vertices) {
+                        expect(boxInside({ ...vertex, width: 0, height: 0 }, box), label).toBe(
+                            false
+                        )
+                    }
+                }
+                expect(boxesOverlap(box, titleBox(MAP_LAYOUTS[mapId])), label).toBe(false)
+                expect(boxesOverlap(box, legendBox(mapId)), label).toBe(false)
+                for (const other of sea.filter((found) => found !== mark)) {
+                    const apart = Math.max(Math.abs(other.x - mark.x), Math.abs(other.y - mark.y))
+                    expect(apart, `${label} ${other.hexId}`).toBeGreaterThanOrEqual(
+                        CAPACITY_MARK.side + CAPACITY_MARK.gap
+                    )
+                }
+            }
+        }
+    })
+
+    it('stands a mark past the first open side in the frame’s order clear of the marks before it', () => {
+        const geometry = boardGeometry('map.au')
+        // The side, in degrees from east, past which each long-distance hex's 1 stands: the
+        // north-east, but Perth's neighbour, whose north is beside Perth's own 1, its south-west.
+        const sides: Record<string, number> = {
+            'hex.au.34-8': -30,
+            'hex.au.2-12': -30,
+            'hex.au.1-13': 150,
+            'hex.au.3-13': -30
+        }
+        const marks = marksOf('map.au').filter((found) => found.hexId in sides)
+        expect(marks).toHaveLength(4)
+        for (const mark of marks) {
+            const center = geometry.place(mark.hexId).center
+            const degrees = (Math.atan2(mark.y - center.y, mark.x - center.x) * 180) / Math.PI
+            expect(degrees, mark.hexId).toBeCloseTo(sides[mark.hexId] ?? NaN)
+            expect(Math.hypot(mark.x - center.x, mark.y - center.y), mark.hexId).toBeCloseTo(
+                HEX_WIDTH / 2 + CAPACITY_MARK.gap + CAPACITY_MARK.side / 2
+            )
+            expect(mark.text).toBe('1')
+        }
     })
 })
 
@@ -175,7 +286,7 @@ describe('the Alps (R-8.2)', () => {
 })
 
 describe('the long-distance hexes (R-8.2)', () => {
-    it('stands the hourglass at the bottom of the hex, wholly inside it, below the 1', () => {
+    it('stands the hourglass at the bottom of the hex, wholly inside it, below where an in-hex 1 stands', () => {
         const geometry = boardGeometry('map.au')
         const longDistance = geometry.map.hexes.filter((hex) => hex.terrain === 'long-distance')
         expect(longDistance).toHaveLength(4)

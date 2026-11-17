@@ -442,7 +442,10 @@ describe('a hex’s marks, either way up', () => {
         for (const geometry of [boardGeometry('map.usa'), geometryOf(FLAT_FIXTURE_MAP)]) {
             const marks = capacityMarks(geometry)
             const limited = geometry.map.cities.filter((city) => city.capacity !== 2)
-            expect(marks.map((mark) => mark.cityId)).toEqual(limited.map((city) => city.id))
+            // The cities first, then any other hex that holds one (the fixture's long-distance hex).
+            const cityMarks = marks.filter((mark) => mark.cityId !== undefined)
+            expect(cityMarks.map((mark) => mark.cityId)).toEqual(limited.map((city) => city.id))
+            expect(marks.slice(0, cityMarks.length)).toEqual(cityMarks)
             for (const mark of marks.filter((candidate) => !candidate.inHex)) {
                 const half = CAPACITY_MARK.side / 2
                 const box = {

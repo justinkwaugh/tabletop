@@ -29,7 +29,8 @@ export type HexLimitMarkView = { hexId: HexId; text: string; x: number; y: numbe
 
 /**
  * R-8: every hex other than a city that holds one locomotive, a long-distance hex (Australia) or a
- * Paris entry hex (France), carries a 1 at its top centre.
+ * Paris entry hex (France), carries a 1: where it stands inside the hex, at its top centre. Where a
+ * side opens on water it stands in the sea instead (`capacityMarks`).
  */
 export function hexLimitMarks(geometry: BoardGeometry): HexLimitMarkView[] {
     return geometry.map.hexes.flatMap((hex) => {
