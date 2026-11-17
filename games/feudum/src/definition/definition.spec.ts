@@ -3,6 +3,7 @@ import {
     assertExists,
     GameMetadata,
     GameResult,
+    GameVisibility,
     reportGameProgress,
     validateGameResult,
     type GameProgress
@@ -114,6 +115,11 @@ describe('The definition', () => {
             minPlayers: 2,
             maxPlayers: 5
         })
+    })
+
+    it('is listed at Beta visibility, marked beta', () => {
+        expect(FeudumInfo.metadata.visibility).toBe(GameVisibility.Beta)
+        expect(FeudumInfo.metadata.beta).toBe(true)
     })
 
     it('credits the designer and the artist on one line, and links the publisher', () => {
