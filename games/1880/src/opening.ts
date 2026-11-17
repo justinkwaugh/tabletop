@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, shuffle, type Prng } from '@tabletop/common'
 import {
     awardCertificates,
     awardPrivate,
@@ -27,6 +27,7 @@ import {
     Privates1880,
     StationCosts1880
 } from './companies.js'
+import { GameConfig1880 } from './definition/gameConfig.js'
 import { Map1880 } from './map.js'
 import { BankPoolId1880, ReservePoolId1880 } from './names.js'
 import type { HydratedState1880, State1880 } from './state.js'
@@ -112,13 +113,23 @@ function majorCertificates(companyId: string) {
     )
 }
 
+function investorsLeftOut(playerCount: number, prng: Prng): string[] {
+    const ids = ForeignInvestors1880.map((investor) => investor.id)
+    shuffle(ids, prng.random)
+    return ids.slice(playerCount)
+}
+
 export function createOpening1880({
     players,
+    prng,
     config,
     startingPositions
 }: OpeningSetup): Opening<typeof State1880, HydratedState1880> {
     assert(players.length >= 3 && players.length <= 7, '1880 supports three through seven players')
     const capital = startingCash1880({ playerCount: players.length, config })
+    const removedInvestorIds = GameConfig1880.options(config).randomInvestors
+        ? investorsLeftOut(players.length, prng)
+        : []
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
         bank: {},
@@ -127,7 +138,8 @@ export function createOpening1880({
             ...ForeignInvestors1880.map((investor) => ({
                 id: investor.id,
                 kind: 'minor',
-                ...unstarted
+                ...unstarted,
+                ...(removedInvestorIds.includes(investor.id) ? { closed: true } : {})
             })),
             ...Privates1880.map((company) => ({ id: company.id, kind: 'private' }))
         ],
@@ -175,7 +187,8 @@ export function createOpening1880({
             parSlots: {},
             permits: {},
             fullyCapitalized: [],
-            playerLoans: []
+            playerLoans: [],
+            ...(removedInvestorIds.length ? { removedInvestorIds } : {})
         },
         begin: beginSelectionAuction(AuctionRules1880, startingPositions)
     }

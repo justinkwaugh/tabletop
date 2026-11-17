@@ -97,10 +97,18 @@ export function investorChooser(state: HydratedState1880): string | undefined {
         : undefined
 }
 
+/** The investors the game is played with, in number order: all but any left out at setup. */
+export function investorsInGame(state: Pick<HydratedState1880, 'removedInvestorIds'>): string[] {
+    return ForeignInvestors1880.map((investor) => investor.id).filter(
+        (id) => !state.removedInvestorIds?.includes(id)
+    )
+}
+
 /** The investors still free to choose, in number order. */
 export function unchosenInvestors(state: HydratedState1880): string[] {
     return ForeignInvestors1880.map((investor) => investor.id).filter(
-        (id) => presidentCertificate(state, id)?.owner.kind === 'bank'
+        (id) =>
+            !getCompany(state, id).closed && presidentCertificate(state, id)?.owner.kind === 'bank'
     )
 }
 

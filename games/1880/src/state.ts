@@ -55,6 +55,8 @@ export const TitleFields1880 = {
     /** The majors that have received the second half of their capital (§XII). */
     fullyCapitalized: Type.Array(Id, { uniqueItems: true }),
     investorMerger: Type.Optional(InvestorMerger1880),
+    /** The foreign investors the random investors variant left out of the game at setup. */
+    removedInvestorIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
     /** The Rocket of China's owner, choosing where the second 4-train goes (§VI). */
     rocketExchanger: Type.Optional(Id)
 }

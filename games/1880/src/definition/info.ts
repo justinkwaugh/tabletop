@@ -1,5 +1,6 @@
 import { EighteenXXPreferenceDefinition, EighteenXXSeries } from '@tabletop/18xx'
 import { GameVisibility, type GameInfo } from '@tabletop/common'
+import { Configurator1880 } from './gameConfig.js'
 import { GAME_VERSION } from './version.js'
 
 export const Info1880: GameInfo = {
@@ -20,5 +21,6 @@ export const Info1880: GameInfo = {
         series: EighteenXXSeries,
         beta: true,
         visibility: GameVisibility.Beta
-    }
+    },
+    configurator: new Configurator1880()
 }

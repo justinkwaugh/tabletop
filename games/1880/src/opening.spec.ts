@@ -8,14 +8,14 @@ import {
     opened,
     type Table
 } from '../test/kit.js'
+import { ForeignInvestors1880 } from './companies.js'
+import { investorsInGame, unchosenInvestors } from './investors.js'
+import { isInvestor } from './stock.js'
 import { seatsByCash } from './opening.js'
 
 /** The current chooser takes the lowest-numbered investor left. */
 function chooseOne(game: Table): void {
-    const investorId = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'].find(
-        (id) => holderOf(game, `${id}:president`) === 'bank'
-    )
-    game.act('ChooseInvestor', { investorId })
+    game.act('ChooseInvestor', { investorId: unchosenInvestors(game.hydrated)[0] })
 }
 
 describe('the private auction (§V)', () => {
@@ -136,5 +136,55 @@ describe('the private auction (§V)', () => {
         expect(game.player).toBe(game.state.turnManager.turnOrder[0])
         expect(game.valid()).toContain('StartCompany')
         expect(game.valid()).not.toContain('SellShares')
+    })
+})
+
+describe('the random investors variant', () => {
+    const investorIds = ForeignInvestors1880.map((investor) => investor.id)
+    const closedInvestors = (game: Table) =>
+        game.state.companies
+            .filter((company) => isInvestor(company.id) && company.closed)
+            .map((company) => company.id)
+
+    it('plays with every investor without the variant', () => {
+        const game = kit.table(4, 3)
+        expect(game.state.removedInvestorIds).toBeUndefined()
+        expect(investorsInGame(game.state)).toEqual(investorIds)
+        expect(closedInvestors(game)).toEqual([])
+    })
+
+    it('draws one investor per player and leaves the rest out of the game', () => {
+        const game = kit.table(4, 3, { randomInvestors: true })
+        const removed = game.state.removedInvestorIds ?? []
+        expect(removed).toHaveLength(3)
+        expect(closedInvestors(game).toSorted()).toEqual(removed.toSorted())
+        const inGame = investorIds.filter((id) => !removed.includes(id))
+        expect(investorsInGame(game.state)).toEqual(inGame)
+        auctionAtFaceValue(game)
+        expect(game.state.machineState).toBe('ChoosingInvestors')
+        expect(unchosenInvestors(game.hydrated)).toEqual(inGame)
+        expect(() => game.act('ChooseInvestor', { investorId: removed[0] })).toThrow()
+        chooseInvestors(game)
+        expect(game.state.machineState).toBe('StockRound')
+        const placed = game.state.stations
+            .filter((station) => isInvestor(station.companyId) && station.status === 'placed')
+            .map((station) => station.companyId)
+        expect(placed).toEqual(inGame)
+        expect(closedInvestors(game).toSorted()).toEqual(removed.toSorted())
+    })
+
+    it('leaves no investor out with seven players', () => {
+        const game = kit.table(7, 3, { randomInvestors: true })
+        expect(game.state.removedInvestorIds).toBeUndefined()
+        expect(closedInvestors(game)).toEqual([])
+    })
+
+    it('draws different investors with different seeds', () => {
+        const draws = new Set(
+            [1, 2, 3, 4, 5, 6].map((seed) =>
+                kit.table(3, seed, { randomInvestors: true }).state.removedInvestorIds?.join()
+            )
+        )
+        expect(draws.size).toBeGreaterThan(1)
     })
 })

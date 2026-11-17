@@ -14,6 +14,8 @@
     import { describe1880Action } from './history.js'
     import InvestorChoice from './InvestorChoice.svelte'
     import InvestorMerger from './InvestorMerger.svelte'
+    import InvestorsInGame from './InvestorsInGame.svelte'
+    import SetupHistoryEntry from './SetupHistoryEntry.svelte'
     import PrivatePowers from './PrivatePowers.svelte'
     import RocketExchange from './RocketExchange.svelte'
     import OperatingOrder from './OperatingOrder.svelte'
@@ -24,6 +26,8 @@
     const historyDescription: TitleActionDescription = (action, names, shared) =>
         describe1880Action(action, names, session.presentation.money, shared)
 </script>
+
+{#snippet historySetup()}<SetupHistoryEntry {session} />{/snippet}
 
 {#snippet operatingOrder(reveal: (locationId: string) => void)}<OperatingOrder
         {session}
@@ -36,8 +40,12 @@
     {createRouteWorker}
     {historyDescription}
     boardPanel={{ label: 'Operating order', content: operatingOrder }}
+    historySetup={session.gameState.removedInvestorIds ? historySetup : undefined}
 >
     {#snippet actions(_focusLocation, focusRoute)}
+        {#if session.gameState.removedInvestorIds && session.gameState.machineState === 'SelectionAuction'}
+            <InvestorsInGame {session} />
+        {/if}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
         {:else if session.selectionAuction.active}

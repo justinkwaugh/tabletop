@@ -1,5 +1,6 @@
 import { titleTestKit, type Table as TitleTable } from '../../../libs/18xx/test/titleTestKit.js'
 import { Privates1880 } from '../src/companies.js'
+import { unchosenInvestors } from '../src/investors.js'
 import { Definition } from '../src/definition/gameDefinition.js'
 import { MajorHomes1880, Map1880 } from '../src/map.js'
 import type { HydratedState1880, State1880 } from '../src/state.js'
@@ -86,20 +87,8 @@ export function auctionAtFaceValue(game: Table): void {
 
 /** Each player in turn takes the lowest-numbered investor left. */
 export function chooseInvestors(game: Table): void {
-    while (game.state.machineState === 'ChoosingInvestors') {
-        const taken = new Set(
-            game.state.certificates
-                .filter(
-                    (certificate) =>
-                        certificate.companyId.startsWith('A') &&
-                        certificate.kind === 'share' &&
-                        certificate.owner.kind === 'player'
-                )
-                .map((certificate) => certificate.companyId)
-        )
-        const investorId = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'].find((id) => !taken.has(id))
-        game.act('ChooseInvestor', { investorId })
-    }
+    while (game.state.machineState === 'ChoosingInvestors')
+        game.act('ChooseInvestor', { investorId: unchosenInvestors(game.hydrated)[0] })
 }
 
 /**
