@@ -547,10 +547,12 @@
         font-variant-numeric: tabular-nums;
     }
 
+    /* Cyan with a dark edge, as the spots in the other GIPF project games: gold vanished on yellow
+       pieces. */
     .win-spot {
-        fill: var(--punct-win);
-        stroke: rgb(0 0 0 / 0.6);
-        stroke-width: 1.2;
+        fill: var(--punct-mark);
+        stroke: rgb(0 0 0 / 0.8);
+        stroke-width: 1.4;
         pointer-events: none;
     }
 </style>
