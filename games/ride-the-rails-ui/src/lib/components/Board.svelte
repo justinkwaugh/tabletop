@@ -14,6 +14,7 @@
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
+    import LinkRingLayer from './board/LinkRingLayer.svelte'
     import PassengerLayer from './board/PassengerLayer.svelte'
     import PickLayer from './board/PickLayer.svelte'
     import PopupAnchor, { CHOICE_ANCHOR_ID, RIDE_ANCHOR_ID } from './board/PopupAnchor.svelte'
@@ -80,6 +81,7 @@
     <LitWashLayer {views} />
     <CapacityMarks />
     <MapTitle layout={gameSession.mapLayout} />
+    <LinkRingLayer />
     <CityLayer />
     <StartCueLayer />
     <BonusLayer />

@@ -76,6 +76,20 @@ Round 5, Build. Purple from San Francisco waits beside Denver, where Orange's li
 
 - Denver reads "place Purple, $12 Transcontinental"; the plain hex east of it, on Orange's line, reads "$8".
 
+## Canada link in reach
+
+Round 4 on Canada, Build. Blue runs from Windsor and Red from Montréal into Toronto, Orange from Québec City to Montréal, and Yellow from Sault Ste. Marie to Toronto's door; Ada holds Yellow and builds first (the Intercolonial, R-8.3).
+
+- The turn line shows the Intercolonial's chip, "$8 · open", in the Transcontinental's place; Sault Ste. Marie, Windsor and Québec City wear gold rings.
+- Toronto reads "place Yellow, $3, $8 Intercolonial". Placing it joins the three: the link cities outline, a gold coin flies to the chip, Ada gains $11, the chip shows her seat, and the rings go.
+
+## Germany link in reach
+
+Round 4 on Germany, Build. Red runs from Köln to Hamburg, Blue from Dresden to Berlin, Orange from München through the mountains to Dresden, and Yellow from Hamburg to Berlin's door; Ada holds Yellow and builds first (Greater Germany, R-8.5).
+
+- The turn line shows Greater Germany's chip, "$12 · open"; Berlin (round both its hexes), Hamburg, Köln, Dresden and München wear gold rings.
+- Berlin reads "place Yellow, $3, $12 Greater Germany". Placing it joins the five: Ada gains $15, the chip shows her seat, and the rings go.
+
 ## Purple arrives
 
 Round 4, Build, the first round Purple may build. Ada holds Red, Orange and Purple; Purple has no track yet (scenario 25 and the railroad cards).

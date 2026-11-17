@@ -6,6 +6,7 @@
     import { roundTickets, shownRoundNumber } from '$lib/utils/marginTracks.js'
     import RoundTicket from './RoundTicket.svelte'
     import RoundTickets from './RoundTickets.svelte'
+    import ConnectionChip from './ConnectionChip.svelte'
     import SeatDot from './SeatDot.svelte'
     import TranscontinentalChip from './TranscontinentalChip.svelte'
 
@@ -63,6 +64,8 @@
             <span class="lg:hidden"><RoundTicket ticket={currentTicket} /></span>
         {/if}
         {#if hasTranscontinental}<TranscontinentalChip />{/if}
+        <!-- R-8: a map with a connection bonus shows its chip in the Transcontinental's place. -->
+        <ConnectionChip />
         <button
             type="button"
             class="rounded-full border-2 border-rtr-pill bg-transparent px-3 py-0.5 text-sm font-semibold text-rtr-pill hover:enabled:bg-rtr-panel-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent max-sm:px-2"

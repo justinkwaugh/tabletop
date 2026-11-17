@@ -93,7 +93,7 @@ async function flyPlacement(
         animationContext
     }: Pick<Step, 'from' | 'to' | 'animationContext'> & { from: State },
     piece: LocomotivePiece,
-    paid: { playerId: string; isStart: boolean; bonuses: Parameters<typeof bonusCoins>[1] }
+    paid: { playerId: string; isStart: boolean; bonuses: Parameters<typeof bonusCoins>[2] }
 ) {
     const key = locomotiveFlyerKey(piece.key)
     // The board the step draws: its map is the state's (Displayed Game State).
@@ -101,7 +101,7 @@ async function flyPlacement(
     const start = railroadSourcePoint(board, flights.table, piece.railroadId)
     const startScale = TRAVELLING_LOCOMOTIVE_WIDTH / piece.slot.width
     const startPose = pose(start.x, start.y, startScale)
-    const coins = bonusCoins(piece.hexId, paid.bonuses)
+    const coins = bonusCoins(to.mapId, piece.hexId, paid.bonuses)
     const shown = await showFlyers(flights, [
         {
             key,

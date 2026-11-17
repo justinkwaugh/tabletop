@@ -1,0 +1,371 @@
+{
+ "game": {
+  "id": "scenario-canada-link-in-reach",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "ride-the-rails",
+  "deleted": false,
+  "name": "Canada link in reach",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p1",
+    "name": "Ada",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p2",
+    "name": "Ben",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p3",
+    "name": "Cora",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p4",
+    "name": "Dell",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "map": "map.ca"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-01-05T12:00:00.000Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-01-05T12:00:00.000Z",
+  "updatedAt": "2026-01-05T12:00:00.000Z",
+  "lastActionAt": "2026-01-05T12:00:00.000Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "state-canada-link-in-reach",
+  "gameId": "scenario-canada-link-in-reach",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 7
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 0
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p1",
+    "color": "pink",
+    "money": 12,
+    "shares": {
+     "railroad.blue": 1,
+     "railroad.orange": 1,
+     "railroad.yellow": 2
+    }
+   },
+   {
+    "playerId": "p2",
+    "color": "gray",
+    "money": 13,
+    "shares": {
+     "railroad.red": 2,
+     "railroad.orange": 1,
+     "railroad.yellow": 1
+    }
+   },
+   {
+    "playerId": "p3",
+    "color": "green",
+    "money": 14,
+    "shares": {
+     "railroad.blue": 2,
+     "railroad.red": 1,
+     "railroad.yellow": 1
+    }
+   },
+   {
+    "playerId": "p4",
+    "color": "white",
+    "money": 15,
+    "shares": {
+     "railroad.red": 1,
+     "railroad.orange": 2,
+     "railroad.yellow": 1
+    }
+   }
+  ],
+  "machineState": "Building",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ],
+   "turnCounts": {
+    "p1": 0,
+    "p2": 0,
+    "p3": 0,
+    "p4": 0
+   }
+  },
+  "rideTheRailsRevision": 1,
+  "mapId": "map.ca",
+  "roundManager": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 4
+    }
+   ]
+  },
+  "phaseManager": {
+   "series": [
+    {
+     "type": "phase",
+     "start": 0,
+     "name": "build"
+    }
+   ]
+  },
+  "track": {
+   "hex.ca.1-29": [
+    "railroad.blue"
+   ],
+   "hex.ca.2-28": [
+    "railroad.blue"
+   ],
+   "hex.ca.3-29": [
+    "railroad.blue"
+   ],
+   "hex.ca.4-28": [
+    "railroad.blue"
+   ],
+   "hex.ca.4-26": [
+    "railroad.blue"
+   ],
+   "hex.ca.24-10": [
+    "railroad.red",
+    "railroad.orange"
+   ],
+   "hex.ca.23-11": [
+    "railroad.red"
+   ],
+   "hex.ca.22-12": [
+    "railroad.red"
+   ],
+   "hex.ca.21-13": [
+    "railroad.red"
+   ],
+   "hex.ca.20-14": [
+    "railroad.red"
+   ],
+   "hex.ca.4-24": [
+    "railroad.blue"
+   ],
+   "hex.ca.5-23": [
+    "railroad.blue"
+   ],
+   "hex.ca.6-22": [
+    "railroad.blue"
+   ],
+   "hex.ca.7-23": [
+    "railroad.blue"
+   ],
+   "hex.ca.8-22": [
+    "railroad.blue"
+   ],
+   "hex.ca.19-15": [
+    "railroad.red"
+   ],
+   "hex.ca.18-16": [
+    "railroad.red"
+   ],
+   "hex.ca.17-17": [
+    "railroad.red"
+   ],
+   "hex.ca.16-18": [
+    "railroad.red"
+   ],
+   "hex.ca.15-17": [
+    "railroad.red"
+   ],
+   "hex.ca.9-21": [
+    "railroad.blue"
+   ],
+   "hex.ca.10-20": [
+    "railroad.blue"
+   ],
+   "hex.ca.11-21": [
+    "railroad.blue",
+    "railroad.red"
+   ],
+   "hex.ca.30-4": [
+    "railroad.orange"
+   ],
+   "hex.ca.30-6": [
+    "railroad.orange"
+   ],
+   "hex.ca.29-7": [
+    "railroad.orange"
+   ],
+   "hex.ca.28-8": [
+    "railroad.orange"
+   ],
+   "hex.ca.27-9": [
+    "railroad.orange"
+   ],
+   "hex.ca.26-10": [
+    "railroad.orange"
+   ],
+   "hex.ca.25-11": [
+    "railroad.orange"
+   ],
+   "hex.ca.14-18": [
+    "railroad.red"
+   ],
+   "hex.ca.13-19": [
+    "railroad.red"
+   ],
+   "hex.ca.12-20": [
+    "railroad.red"
+   ],
+   "hex.ca.0-2": [
+    "railroad.yellow"
+   ],
+   "hex.ca.1-1": [
+    "railroad.yellow"
+   ],
+   "hex.ca.2-2": [
+    "railroad.yellow"
+   ],
+   "hex.ca.3-1": [
+    "railroad.yellow"
+   ],
+   "hex.ca.4-2": [
+    "railroad.yellow"
+   ],
+   "hex.ca.5-3": [
+    "railroad.yellow"
+   ],
+   "hex.ca.6-4": [
+    "railroad.yellow"
+   ],
+   "hex.ca.7-5": [
+    "railroad.yellow"
+   ],
+   "hex.ca.8-6": [
+    "railroad.yellow"
+   ],
+   "hex.ca.9-7": [
+    "railroad.yellow"
+   ],
+   "hex.ca.10-8": [
+    "railroad.yellow"
+   ],
+   "hex.ca.10-10": [
+    "railroad.yellow"
+   ],
+   "hex.ca.10-12": [
+    "railroad.yellow"
+   ],
+   "hex.ca.11-13": [
+    "railroad.yellow"
+   ],
+   "hex.ca.11-15": [
+    "railroad.yellow"
+   ],
+   "hex.ca.11-17": [
+    "railroad.yellow"
+   ],
+   "hex.ca.11-19": [
+    "railroad.yellow"
+   ]
+  },
+  "passengers": [
+   "city.ca.arnprior",
+   "city.ca.asbestos",
+   "city.ca.bancroft",
+   "city.ca.barrie",
+   "city.ca.barrys-bay",
+   "city.ca.belleville",
+   "city.ca.blind-river",
+   "city.ca.britt",
+   "city.ca.cartier",
+   "city.ca.chatham",
+   "city.ca.cornwall",
+   "city.ca.goderich",
+   "city.ca.haileybury",
+   "city.ca.hamilton",
+   "city.ca.huntsville",
+   "city.ca.joliette",
+   "city.ca.kingston",
+   "city.ca.kitchener",
+   "city.ca.lindsay",
+   "city.ca.london",
+   "city.ca.maniwaki",
+   "city.ca.massey",
+   "city.ca.mattawa",
+   "city.ca.montreal",
+   "city.ca.niagra-falls",
+   "city.ca.nicolet",
+   "city.ca.north-bay",
+   "city.ca.orangeville",
+   "city.ca.orillia",
+   "city.ca.ottawa",
+   "city.ca.owen-sound",
+   "city.ca.parry-sound",
+   "city.ca.pembroke",
+   "city.ca.peterborough",
+   "city.ca.prescott",
+   "city.ca.quebec-city",
+   "city.ca.saint-jean-sur-richelieu",
+   "city.ca.saint-jerome",
+   "city.ca.sarnia",
+   "city.ca.sault-ste-marie",
+   "city.ca.sherbrooke",
+   "city.ca.simcoe",
+   "city.ca.sorel-tracy",
+   "city.ca.st-thomas",
+   "city.ca.sudbury",
+   "city.ca.sutton",
+   "city.ca.thessalon",
+   "city.ca.thetford-mines",
+   "city.ca.toronto",
+   "city.ca.trois-rivieres",
+   "city.ca.walkerton",
+   "city.ca.windsor"
+  ],
+  "building": {
+   "placed": 0,
+   "usedMountain": false
+  }
+ },
+ "actions": []
+}

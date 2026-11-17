@@ -50,6 +50,7 @@ export async function openScenario(page: Page, name: string) {
     await settled(page)
 }
 
+/** The board, on whichever map the table plays: "Map of the USA", "Map of Canada" and so on. */
 export function board(page: Page): Locator {
     return page.getByRole('group', { name: /^Map of / })
 }

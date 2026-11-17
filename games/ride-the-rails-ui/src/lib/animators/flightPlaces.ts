@@ -4,6 +4,7 @@ import type { RailroadId } from '@tabletop/ride-the-rails'
 import type { BoardGeometry } from '$lib/utils/boardGeometry.js'
 import { findInTable, viewOf } from '$lib/utils/tableScope.js'
 import {
+    CONNECTION_KEY,
     TRANSCONTINENTAL_KEY,
     moneyKey,
     seatCardKey,
@@ -199,4 +200,9 @@ export function seatCardPoint(
 /** Where the Transcontinental's coin lands: the chip in the turn line. */
 export function transcontinentalPoint(board: BoardGeometry, table: Element | undefined): Point {
     return tablePlace(board, table, TRANSCONTINENTAL_KEY) ?? aboveTheBoard(board)
+}
+
+/** R-8: where a connection bonus's coin lands, its chip in the turn line. */
+export function connectionPoint(board: BoardGeometry, table: Element | undefined): Point {
+    return tablePlace(board, table, CONNECTION_KEY) ?? aboveTheBoard(board)
 }
