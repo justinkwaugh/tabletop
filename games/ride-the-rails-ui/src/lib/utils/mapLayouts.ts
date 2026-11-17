@@ -31,12 +31,16 @@ export type MapLayout = {
 export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
     // The title in the open water north-east of Michigan, clear of land from x 1660 to 1940 above
     // y 230; the legend in the open sea south-west of California, clear of land below y 975 from
-    // the board's left edge to x 790.
+    // the board's left edge to x 790. Fitted to a desktop view, the board puts the zoom control in
+    // its bottom-left corner, up to 260 across, and in a view near the board's own shape it reaches
+    // higher than any card that sea holds could clear. So the legend stands right of the control,
+    // from x 284, narrowed to 500 (its widest row's text ends at 425).
     'map.usa': {
         name: 'USA',
         boardLabel: 'Map of the USA',
         title: { x: 1800, y: 118 },
-        legend: { x: 52, y: 1196 }
+        legend: { x: 284, y: 1196 },
+        legendWidth: 500
     },
     // The board prints no title: the title in the open sea north of Perth, clear of land by 72.
     // The legend in the south-west, where the board prints its railroad introduction panel: in the

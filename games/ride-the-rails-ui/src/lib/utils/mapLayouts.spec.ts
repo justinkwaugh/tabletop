@@ -17,12 +17,30 @@ import { boxesOverlap, boxInside } from '$lib/testing/shapeChecks.js'
 // in a 2 px border with 8 × 4 padding.
 const ZOOM_CONTROL = { width: 108, height: 36 }
 
-// The views the whole board is fitted to: the desktop's (its fitted scale) and a 375 × 812 phone's
-// zoomed fully out.
-const FITTED_VIEWS: readonly (readonly [string, RectangleDimensions])[] = [
-    ['desktop', DESKTOP_BOARD_VIEW],
-    ['phone', { width: 330, height: 493 }]
+// The board views the platform gives from a phone to a 1440 × 900 window, as measured: the board's
+// width is the game column's on a 375 × 812 or 390 × 844 phone, and what the sidebar leaves at
+// 1280 × 900 (and the desktop view the fitted scale is set by), 1366 × 768 and 1440 × 900.
+const VIEW_WIDTHS: readonly (readonly [string, number])[] = [
+    ['375 × 812 phone', 330],
+    ['390 × 844 phone', 343],
+    ['1280 × 900 window', 936],
+    ['desktop view', DESKTOP_BOARD_VIEW.width],
+    ['1366 × 768 window', 1022],
+    ['1440 × 900 window', 1096]
 ]
+// Its height is what the header and the panels round it leave: from a phone's under its tallest
+// action panel to a 900 px window's with no action area under the board. A building turn at
+// 1440 × 900 leaves 611, the desktop view 564.
+const VIEW_HEIGHTS = { shortest: 380, tallest: 649 }
+
+// The whole board is fitted to every one of those views (a phone's zoomed fully out).
+const FITTED_VIEWS: readonly (readonly [string, RectangleDimensions])[] = VIEW_WIDTHS.flatMap(
+    ([name, width]) =>
+        Array.from({ length: VIEW_HEIGHTS.tallest - VIEW_HEIGHTS.shortest + 1 }, (_, step) => {
+            const height = VIEW_HEIGHTS.shortest + step
+            return [`${name}, ${width} × ${height}`, { width, height }] as const
+        })
+)
 
 /**
  * The zoom control's box in board units with the whole board fitted to the view: the board stands
@@ -61,30 +79,31 @@ describe('each map’s sea layout', () => {
             expect(boxesOverlap(titleBox(layout), legendBox(mapId))).toBe(false)
         })
 
-        it(`keeps ${mapId}’s title and legend clear of the zoom control, the board fitted`, () => {
-            for (const [viewName, view] of FITTED_VIEWS) {
+        it(`keeps ${mapId}’s title and legend clear of the zoom control, the board fitted to every view from a phone’s to 1440 × 900’s`, () => {
+            const under = FITTED_VIEWS.flatMap(([viewName, view]) => {
                 const control = zoomControlBox(geometry, view)
-                for (const [what, box] of boxes) {
-                    expect(boxesOverlap(box, control), `${what} on the ${viewName}`).toBe(false)
-                }
-            }
+                return boxes
+                    .filter(([, box]) => boxesOverlap(box, control))
+                    .map(([what]) => `${what} on the ${viewName}`)
+            })
+            expect(under).toEqual([])
         })
     }
 
-    it('keeps the USA’s title and legend where they were', () => {
+    it('keeps the USA’s title where it was, its legend on the same line right of the zoom control', () => {
         expect(MAP_LAYOUTS['map.usa']).toMatchObject({
             name: 'USA',
             boardLabel: 'Map of the USA',
             title: { x: 1800, y: 118 },
-            legend: { x: 52, y: 1196 }
+            legend: { x: 284, y: 1196 }
         })
-        expect(legendBox('map.usa')).toEqual({ x: 52, y: 992, width: 610, height: 204 })
+        expect(legendBox('map.usa')).toEqual({ x: 284, y: 992, width: 500, height: 204 })
     })
 
-    it('narrows a legend only where its open sea is too narrow for the usual card', () => {
+    it('narrows a legend only where its open sea, or the zoom control, leaves too little room for the usual card', () => {
         expect(Object.fromEntries(MAP_IDS.map((mapId) => [mapId, legendBox(mapId).width]))).toEqual(
             {
-                'map.usa': START_LEGEND.width,
+                'map.usa': 500,
                 'map.au': 400,
                 'map.ca': 440,
                 'map.fr': 400,
