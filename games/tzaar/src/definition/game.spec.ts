@@ -522,3 +522,36 @@ describe('random playouts', () => {
         expect(state.turnManager.series.length).toBeLessThanOrEqual(2)
     })
 })
+
+describe('submitted coordinates', () => {
+    // The key a space is stored under folds fractions onto other spaces: {0.5, 1} reads the
+    // stack on {-1, 1}, and {1.5, 0} the one on {-2, 0}, which is not in line with it.
+    it('rejects a capture between fractional coordinates that alias real spaces', () => {
+        const game = createGame()
+        const from = spaceName({ q: -1, r: 1 })
+        const to = spaceName({ q: -2, r: 0 })
+        const state = position(game, { ...BLACK_KIT, A1: 'A', A2: 'T', [from]: 'R', [to]: 'a' })
+        const real = new HydratedTzaarGameState(state)
+        expect(real.captures(W).some((move) => spaceName(move.from) === from)).toBe(false)
+        const forged = {
+            ...base(game, W),
+            type: ActionType.Capture,
+            from: { q: 0.5, r: 1 },
+            to: { q: 1.5, r: 0 }
+        }
+        expect(() => execute(game, state, forged)).toThrow()
+    })
+
+    it('places no piece between spaces in a tournament', () => {
+        const game = createGame({ version: TzaarVersion.Tournament })
+        const state = start(game)
+        const place = placeAction(game, W, 'E4', PieceKind.Tott)
+        for (const coords of [
+            { q: 0, r: -1.5 },
+            { q: 0.25, r: 1 }
+        ]) {
+            const forged: PlacePiece = { ...place, coords }
+            expect(() => execute(game, state, forged)).toThrow()
+        }
+    })
+})

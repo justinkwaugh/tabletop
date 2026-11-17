@@ -19,7 +19,11 @@ export const DIRECTIONS: readonly AxialCoordinates[] = ClockwiseFlatHexDirection
 
 const CENTRE: AxialCoordinates = { q: 0, r: 0 }
 
+// Submitted coordinates can be any number, and fractions pass the distance test.
 export function isSpace(coords: AxialCoordinates): boolean {
+    if (!Number.isInteger(coords.q) || !Number.isInteger(coords.r)) {
+        return false
+    }
     const distance = distanceAxial(coords, CENTRE)
     return distance > 0 && distance <= BOARD_RADIUS
 }
