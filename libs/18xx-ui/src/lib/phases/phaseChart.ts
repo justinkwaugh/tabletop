@@ -24,7 +24,7 @@ export type PhaseChartData = {
         rustNote?: string
         /** What the game ties to buying this train, beside its badge in the roster. */
         marks?: readonly TrainMark[]
-        /** The trains this one may be traded in for, at what price, in a title with upgrades. */
+        /** The trains this one may be traded in for, and what each trade costs. */
         upgrades?: readonly TrainUpgrade[]
     }[]
     notes: readonly string[]
@@ -105,12 +105,21 @@ export function certificateRemaining(
 export function trainRosterRows(trains: PhaseChartData['trains']): TrainRosterRow[] {
     const rustsWith = (first: ChartTrain, second: ChartTrain) =>
         first.rustPhaseId === second.rustPhaseId && first.rustNote === second.rustNote
-    const upgradesKey = (train: ChartTrain) =>
-        (train.upgrades ?? []).map(({ definitionId, price }) => `${definitionId}:${price}`).join()
+    const upgradesMatch = (first: ChartTrain, second: ChartTrain) => {
+        const [these, those] = [first.upgrades ?? [], second.upgrades ?? []]
+        return (
+            these.length === those.length &&
+            these.every(
+                (upgrade, index) =>
+                    upgrade.definitionId === those[index].definitionId &&
+                    upgrade.price === those[index].price
+            )
+        )
+    }
     const sharesRow = (first: ChartTrain, second: ChartTrain) =>
         first.supplyId === second.supplyId &&
         first.price === second.price &&
-        upgradesKey(first) === upgradesKey(second) &&
+        upgradesMatch(first, second) &&
         rustsWith(first, second)
     const rows = trains
         .filter((train) => trains.find((face) => sharesRow(face, train)) === train)
@@ -138,7 +147,7 @@ export function createPhaseChart({
     omittedPhaseIds = [],
     omittedTrainIds = [],
     permanentTrainIds = [],
-    upgrades
+    trainUpgrades
 }: {
     phases: PhaseTable
     depot: TrainDepot
@@ -150,8 +159,8 @@ export function createPhaseChart({
     omittedPhaseIds?: readonly string[]
     omittedTrainIds?: readonly string[]
     permanentTrainIds?: readonly string[]
-    /** Each train's upgrades, for a title whose train table lists their costs (1894). */
-    upgrades?: (trainId: string) => readonly TrainUpgrade[]
+    /** The trains each train may be traded in for, for a title that lists them in the roster. */
+    trainUpgrades?: (trainId: string) => readonly TrainUpgrade[]
 }): PhaseChartData {
     return {
         phases: phases.phases
@@ -178,7 +187,7 @@ export function createPhaseChart({
                           rustPhaseId,
                           rustTrainIds: rustPhaseId ? phases.phase(rustPhaseId).startedBy : [],
                           rustNote: rustNotes[train.id],
-                          ...(upgrades ? { upgrades: upgrades(train.id) } : {})
+                          upgrades: trainUpgrades?.(train.id)
                       }
                   })
         ),

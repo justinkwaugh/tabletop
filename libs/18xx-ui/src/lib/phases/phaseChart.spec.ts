@@ -236,7 +236,7 @@ it('lists the upgrades a title gives its trains on their roster rows', () => {
     const chart = createPhaseChart({
         phases,
         depot,
-        upgrades: (trainId) => (trainId === '4' ? [{ definitionId: '8', price: 650 }] : [])
+        trainUpgrades: (trainId) => (trainId === '4' ? [{ definitionId: '8', price: 650 }] : [])
     })
     expect(chart.trains.map((train) => [train.id, train.upgrades])).toEqual([
         ['2', []],
