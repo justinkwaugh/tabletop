@@ -7,7 +7,8 @@ import {
     litHexes,
     moneyOf,
     openScenario,
-    pressHex
+    pressHex,
+    settled
 } from './helpers.js'
 
 // R-8: each expansion map's table renders, its building offer lights the legal hexes, and a
@@ -77,6 +78,118 @@ test('Canada: no pick is offered across an impassable side (R-8.3)', async ({ pa
     await pressHex(page, litHexAt(page, 'hex.ca.9-23'))
     await expect.poll(() => trackIn(page, 'hex.ca.9-23')).toEqual(['railroad.purple'])
     await expect.poll(() => litHexIds(page)).not.toContain('hex.ca.9-23')
+})
+
+/** The screen point a little inside `cityHexId` from the middle of the side it shares with `otherHexId`. */
+function sidePoint(page: Page, cityHexId: string, otherHexId: string) {
+    return board(page).evaluate(
+        (svg, [cityId, otherId]) => {
+            const corners = (id: string) => {
+                const hit = svg.querySelector(`g.hits [data-hex-id="${id}"]`)
+                const points = hit?.getAttribute('points')?.trim().split(/\s+/) ?? []
+                return points.map((pair) => pair.split(',').map(Number))
+            }
+            const city = corners(cityId ?? '')
+            const shared = corners(otherId ?? '').filter(([x, y]) =>
+                city.some(
+                    ([cx, cy]) => Math.hypot((cx ?? 0) - (x ?? 0), (cy ?? 0) - (y ?? 0)) < 0.5
+                )
+            )
+            const centre = city.reduce(
+                ([sx, sy], [x, y]) => [sx + (x ?? 0) / city.length, sy + (y ?? 0) / city.length],
+                [0, 0]
+            )
+            const mid = shared.reduce(
+                ([sx, sy], [x, y]) => [sx + (x ?? 0) / 2, sy + (y ?? 0) / 2],
+                [0, 0]
+            )
+            // 2.5 units in from the side: on the line and on the city's band.
+            if (!(svg instanceof SVGSVGElement)) throw new Error('the board is not an SVG')
+            const toward = Math.hypot(centre[0] - mid[0], centre[1] - mid[1])
+            const screen = new DOMPoint(
+                mid[0] + ((centre[0] - mid[0]) / toward) * 2.5,
+                mid[1] + ((centre[1] - mid[1]) / toward) * 2.5
+            ).matrixTransform(svg.getScreenCTM() ?? undefined)
+            return { shared: shared.length, x: screen.x, y: screen.y }
+        },
+        [cityHexId, otherHexId]
+    )
+}
+
+/** What is drawn at a screen point, top first, each shape named by its layer. */
+function drawnAt(page: Page, x: number, y: number) {
+    return board(page).evaluate(
+        (svg, [px, py]) => {
+            // Every shape takes the hit test for this read only, so the stack is the paint order.
+            const style = document.createElement('style')
+            style.textContent = '[data-map-board] * { pointer-events: visiblePainted !important; }'
+            document.head.append(style)
+            const stack = document.elementsFromPoint(px ?? 0, py ?? 0)
+            style.remove()
+            const layers: [string, string][] = [
+                ['[data-impassable-sides]', 'impassable'],
+                ['g.hits', 'hits'],
+                ['g.picks', 'picks'],
+                ['g.flights', 'flights'],
+                ['[data-start-band]', 'band'],
+                ['g.cities', 'city'],
+                ['g.scrim', 'scrim'],
+                ['g.ground', 'ground']
+            ]
+            return stack
+                .filter((element) => element !== svg && svg.contains(element))
+                .map(
+                    (element) =>
+                        layers.find(([selector]) => element.closest(selector))?.[1] ??
+                        element.tagName
+                )
+        },
+        [x, y]
+    )
+}
+
+test('Canada: an impassable side is drawn over the banded city beside it (R-8.3)', async ({
+    page
+}) => {
+    await openScenario(page, 'Canada toronto')
+    await settled(page)
+    // Québec City's orange and black band runs along its impassable south-west side. The phone's
+    // board rests zoomed in, so it is zoomed out until that side is on screen.
+    const zoomOut = page.getByRole('button', { name: 'Zoom out', exact: true })
+    const view = page.viewportSize()
+    const onBoard = async () => {
+        const { x, y } = await sidePoint(page, 'hex.ca.30-4', 'hex.ca.29-5')
+        if (!view || x < 0 || y < 0 || x > view.width || y > view.height) return false
+        return page.evaluate(
+            ([px, py]) =>
+                document.elementFromPoint(px ?? 0, py ?? 0)?.closest('[data-map-board]') !== null,
+            [x, y]
+        )
+    }
+    for (let step = 0; step < 6 && !(await onBoard()); step++) {
+        if (test.info().project.use.hasTouch) await zoomOut.tap()
+        else await zoomOut.click()
+        await settled(page)
+    }
+    await expect.poll(onBoard).toBe(true)
+    const side = await sidePoint(page, 'hex.ca.30-4', 'hex.ca.29-5')
+    expect(side.shared).toBe(2)
+
+    // Under the hit targets, the line is the topmost thing drawn there, over the band and scrim.
+    const drawn = (await drawnAt(page, side.x, side.y)).filter(
+        (layer) => !['hits', 'picks', 'flights'].includes(layer)
+    )
+    expect(drawn[0]).toBe('impassable')
+    expect(drawn).toContain('band')
+    expect(drawn.indexOf('band')).toBeGreaterThan(drawn.lastIndexOf('impassable'))
+
+    // It takes no presses: the hex's own hit target is still what a press there finds.
+    await expect(board(page).locator('[data-impassable-sides]')).toHaveCSS('pointer-events', 'none')
+    const pressed = await page.evaluate(
+        ([px, py]) => document.elementFromPoint(px ?? 0, py ?? 0)?.getAttribute('data-hex-id'),
+        [side.x, side.y]
+    )
+    expect(pressed).toBe('hex.ca.30-4')
 })
 
 test('France: Paris lights with its $10, and nothing crosses the estuary (R-8.4)', async ({

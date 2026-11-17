@@ -157,9 +157,10 @@ The board is **one SVG** (`docs/phone-rendering.md`, One board surface). Back to
 10. **Scrim**: one path, the land's outline with holes at the lit hexes (even-odd fill). It is a plain translucent fill, not an opacity or filter effect, and never covers the sea.
 11. The start legend, above the scrim so it is never dimmed.
 12. Staged route: its line, the cubes it rides drawn again, the start passenger grown in the middle of its hex, and the link count on the last city.
-13. Picks: the picked ring, the journey start's ring, marks and chevrons (the board offer).
-14. Flight layer: travelling locomotives, passengers and coins.
-15. Hit targets: transparent hex shapes carrying hex ids, the only map elements that take presses.
+13. Impassable sides (Canada, France): a red line on a pale casing along each, over every piece drawn below and the scrim, so no band, cube or dark hex hides one. It takes no presses.
+14. Picks: the picked ring, the journey start's ring, marks and chevrons (the board offer).
+15. Flight layer: travelling locomotives, passengers and coins.
+16. Hit targets: transparent hex shapes carrying hex ids, the only map elements that take presses.
 
 The board holds nothing but the map and what stands in its sea: the railroad cards, the round tickets and the Transcontinental chip are HTML outside the scaling (The table). Popups (the railroad buttons, and the map's Ride button) are HTML in the `Floater` against a reference point at the hex, outside the SVG, so their text stays crisp at any zoom (`docs/phone-rendering.md`, HTML text under zoom). The view's moves (the building zoom, the Riding pan and the phone's rest) follow from the `ScalingWrapper`'s `overlay` snippet (`components/BoardViewFollower.svelte`). Rings, marks and chevrons are sized by `viewScale()` so they stay readable at any zoom. The board draws no seat initials: the claimant in the Transcontinental chip is HTML outside the scaling (The table), at a fixed screen size. No SVG or CSS filters, masks or endless animations on the board.
 

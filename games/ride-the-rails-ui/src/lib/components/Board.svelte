@@ -13,6 +13,7 @@
     import FlightLayer from './board/FlightLayer.svelte'
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
+    import ImpassableLayer from './board/ImpassableLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
     import LinkRingLayer from './board/LinkRingLayer.svelte'
     import PassengerLayer from './board/PassengerLayer.svelte'
@@ -92,6 +93,8 @@
     <!-- Above the scrim: the legend is never dimmed. -->
     <StartLegend mapId={gameSession.gameState.mapId} />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />
+    <!-- Over every drawn piece and the scrim, so no band, cube or dark hex hides a side. -->
+    <ImpassableLayer />
     <PickLayer {views} {viewScale} {journeyFrom} />
     <FlightLayer />
     <HitLayer {views} />

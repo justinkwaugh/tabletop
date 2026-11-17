@@ -201,7 +201,7 @@ describe('the long-distance hexes (R-8.2)', () => {
 describe('impassable sides (R-8.3, R-8.4)', () => {
     const near = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) < 0.5
 
-    it('draws a channel on exactly the map’s impassable sides: Canada’s 18, France’s 7', () => {
+    it('finds exactly the map’s impassable sides: Canada’s 18, France’s 7', () => {
         const counts = Object.fromEntries(
             MAP_IDS.map((mapId) => [mapId, impassableSides(boardGeometry(mapId)).length])
         )
@@ -219,7 +219,7 @@ describe('impassable sides (R-8.3, R-8.4)', () => {
         }
     })
 
-    it('lays each channel along the side its two hexes share, a whole side long', () => {
+    it('lays each side’s line along the side its two hexes share, a whole side long', () => {
         for (const mapId of ['map.ca', 'map.fr'] as const) {
             const geometry = boardGeometry(mapId)
             for (const { pair, from, to } of impassableSides(geometry)) {

@@ -22,6 +22,7 @@ Canada, round 4 with three seats, Build. Red from Montréal and Blue from Windso
 
 - Toronto, which has no limit, is drawn as Chicago is, its three cubes small in a row, its "$3/$2" pill below them and its "6" in the lake.
 - Hamilton lights for Purple; the hex past the impassable side, though empty, does not.
+- Every impassable side is a red line over the board's pieces: Québec City's south-west side and Montréal's south side run over their bands.
 
 ## Australia perth chain
 

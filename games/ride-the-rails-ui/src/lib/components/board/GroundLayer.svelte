@@ -9,9 +9,7 @@
         alpsHatchPath,
         ENTRY_RING,
         entryRingSides,
-        HOURGLASS,
-        IMPASSABLE_CHANNEL,
-        impassableSides
+        HOURGLASS
     } from '$lib/utils/terrainMarks.js'
 
     const gameSession = getGameSession()
@@ -39,16 +37,9 @@
     const ALPS = $derived(HEXES.filter((hex) => hex.alps))
     const ALPS_HATCH_PATH = $derived(alpsHatchPath(board))
     const LONG_DISTANCE = $derived(HEXES.filter((hex) => hex.longDistance))
-    // R-8.3, R-8.4: each impassable side as a water channel, one path for the edges and one for the
-    // water, on the ground under the bands and cubes.
     // R-8.4: the ring of entry hexes round Paris, its outside edged in navy.
     const ENTRY_RING_PATH = $derived(
         entryRingSides(board)
-            .map(({ from, to }) => `M${pointText(from)}L${pointText(to)}`)
-            .join('')
-    )
-    const CHANNELS = $derived(
-        impassableSides(board)
             .map(({ from, to }) => `M${pointText(from)}L${pointText(to)}`)
             .join('')
     )
@@ -189,22 +180,6 @@
             stroke-linecap="round"
             data-entry-ring
         ></path>
-    {/if}
-    {#if CHANNELS}
-        <g data-impassable-sides>
-            <path
-                d={CHANNELS}
-                stroke="var(--rtr-river-edge)"
-                stroke-width={IMPASSABLE_CHANNEL.edgeWidth}
-                stroke-linecap="round"
-            ></path>
-            <path
-                d={CHANNELS}
-                stroke="var(--rtr-sea)"
-                stroke-width={IMPASSABLE_CHANNEL.waterWidth}
-                stroke-linecap="round"
-            ></path>
-        </g>
     {/if}
     {#if FRAME}
         <rect

@@ -118,10 +118,12 @@ export const HOURGLASS = {
 } as const
 
 /**
- * R-8.3, R-8.4: an impassable side (a river, an estuary, a lake shore) as a water channel along
- * the side: the sea's colour on a deeper edge, so it reads on cream and on the sea alike.
+ * R-8.3, R-8.4: an impassable side (a river, an estuary, a lake shore) as a red line along the
+ * whole side, drawn over the board's pieces. `width` is the red's: wider than a start band, so it
+ * reads across one, and about 1.4 px at the phone's whole-board fit. `casing` is the pale rim
+ * either side of it, which parts the red from a black band, a Red cube or an orange band.
  */
-export const IMPASSABLE_CHANNEL = { edgeWidth: 9, waterWidth: 4.6 } as const
+export const IMPASSABLE_LINE = { width: 8, casing: 2 } as const
 
 export type ImpassableSide = { pair: ImpassablePair; from: Point; to: Point }
 
@@ -146,6 +148,13 @@ export function impassableSides(geometry: BoardGeometry): ImpassableSide[] {
         assert(shared.length === 2 && from && to, `${a} and ${b} share no side`)
         return { pair, from, to }
     })
+}
+
+/** Every impassable side of the map as one path, a segment a side. */
+export function impassablePath(geometry: BoardGeometry): string {
+    return impassableSides(geometry)
+        .map(({ from, to }) => `M${pointText(from)}L${pointText(to)}`)
+        .join('')
 }
 
 /** R-8.4: the ring of entry hexes round Paris: its outside edged in navy. */
