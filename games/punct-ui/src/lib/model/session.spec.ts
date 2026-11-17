@@ -32,6 +32,7 @@ import {
 } from '@tabletop/punct'
 import { PunctGameColorizer } from '$lib/definitions/colorizer.js'
 import { UiDefinition } from '$lib/definitions/definition.js'
+import { StagedMotion } from '$lib/animators/stagedMotion.svelte.js'
 import { PunctGameSession } from './session.svelte.js'
 
 const engine = new GameEngine(PunctRuntime)
@@ -395,5 +396,54 @@ describe('The reserve on the cards', () => {
         expect(session.inReserve(WHITE, PieceKind.Triangle)).toBe(triangles - 1)
         await settled(session.confirm())
         expect(session.inReserve(WHITE, PieceKind.Triangle)).toBe(triangles - 1)
+    })
+})
+
+describe('The piece hovering where you put it', () => {
+    async function hoverFollowing(session: PunctGameSession) {
+        const motion = new StagedMotion()
+        session.stagedFollowers.add((staged, board, released) =>
+            motion.follow(staged, board, released)
+        )
+        disposals.push(() => motion.clear())
+        await Promise.resolve()
+        return motion
+    }
+
+    it('is drawn as the kind you chose next when you put it somewhere else', async () => {
+        const session = await sessionFor(startedGame())
+        session.chooseKind(PieceKind.Triangle)
+        const first = session.entryCells[0]
+        session.chooseSpace(first)
+        const motion = await hoverFollowing(session)
+        expect(motion.hover?.pose.kind).toBe(PieceKind.Triangle)
+
+        // Each a tap of its own, as the player makes them.
+        session.chooseKind(PieceKind.StraightEnd)
+        await Promise.resolve()
+        const other = session.entryCells.find((cell) => !sameCoordinates(cell, first))
+        if (other === undefined) throw Error('A straight end fits somewhere else')
+        session.chooseSpace(other)
+        await Promise.resolve()
+        expect(session.staged?.kind).toBe(PieceKind.StraightEnd)
+        expect(motion.hover?.pose.kind).toBe(PieceKind.StraightEnd)
+    })
+
+    it('is drawn as the kind you chose next where it stands', async () => {
+        const session = await sessionFor(startedGame())
+        session.chooseKind(PieceKind.StraightEnd)
+        const stays = session.entryCells.find((cell) =>
+            session.gameState
+                .entriesOf(WHITE, PieceKind.Triangle)
+                .some((entry) => sameCoordinates(entry.punct, cell))
+        )
+        if (stays === undefined) throw Error('Both kinds fit some space')
+        session.chooseSpace(stays)
+        const motion = await hoverFollowing(session)
+
+        session.chooseKind(PieceKind.Triangle)
+        await Promise.resolve()
+        expect(session.staged?.kind).toBe(PieceKind.Triangle)
+        expect(motion.hover?.pose.kind).toBe(PieceKind.Triangle)
     })
 })

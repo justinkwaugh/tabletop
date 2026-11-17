@@ -68,7 +68,7 @@ export class StagedMotion {
         }
         const current = this.hover
         const moved = staged.from !== undefined
-        if (current === undefined || current.piece.id !== piece.id || this.leaving) {
+        if (current === undefined || !this.samePiece(current.piece, piece) || this.leaving) {
             const origin = moved ? board.pieceById(piece.id) : undefined
             if (origin === undefined) {
                 this.drop(piece)
@@ -166,6 +166,12 @@ export class StagedMotion {
         this.leaving = true
     }
 
+    // A new piece is staged with the board's next id whatever kind you choose, so another kind is
+    // another piece, with a pose of its own.
+    private samePiece(a: PlacedPiece, b: PlacedPiece): boolean {
+        return a.id === b.id && a.kind === b.kind
+    }
+
     private restingAt(piece: PlacedPiece): PieceAt {
         const plan = VIEW.plan(piece.punct)
         const base = VIEW.levelBase(piece.level)
@@ -186,7 +192,7 @@ export class StagedMotion {
     ): PiecePose {
         const current = this.hover
         const pose =
-            current !== undefined && current.piece.id === piece.id
+            current !== undefined && this.samePiece(current.piece, piece)
                 ? current.pose
                 : new PiecePose(piece.kind, piece.id, at)
         pose.set(at)
