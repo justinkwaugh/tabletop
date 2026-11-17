@@ -111,11 +111,6 @@ export function placeRsrHome(state: HydratedState1861): boolean {
     return RsrStations.placeKept(state, StPetersburgLocationId)
 }
 
-/** Moscow's grey tile takes an RSR station at once, unless it has one there (§7.4). */
-export function placeRsrMoscowStation(state: HydratedState1861): boolean {
-    return RsrStations.placeKept(state, MoscowLocationId)
-}
-
 /**
  * The RSR's train when trainless: the cheapest from the bank, borrowing for it; otherwise the
  * next new train while it can pay for one from its treasury (§10.10, GTG §8.13).

@@ -2,12 +2,7 @@ import { LoanSettlements, PhaseNationalisation } from '@tabletop/18xx'
 import { CnId } from './companies.js'
 import { LoanRules1867 } from './loans.js'
 import { MontrealLocationId } from './map.js'
-import {
-    CnStations,
-    cnMontrealStationDue,
-    nationalise1867,
-    placeCnMontrealStation
-} from './national.js'
+import { CnStations, cnMontrealStationDue, nationalise1867 } from './national.js'
 import { EndingRules1867, OperatingRules1867, PhaseRules1867 } from './operating.js'
 import { PrivateCatalog1867, PrivateIds1867 } from './privates.js'
 import { requireState1867, type StateHandler1867 } from './state.js'
@@ -39,10 +34,9 @@ export const PhaseNationalisation1867 = new PhaseNationalisation({
     privateIds: PrivateIds1867,
     privateFaceValue: (privateId) => PrivateCatalog1867.definition(privateId).faceValue,
     nationalise: (state, companyId, operatingCompanyId) =>
-        nationalise1867(requireState1867(state), companyId, operatingCompanyId),
-    // At the start of phase 8 the CN places its station kept for Montreal (GTG §8.13).
-    placeReservedStations: (state) =>
-        placeCnMontrealStation(requireState1867(state)) ? [MontrealLocationId] : []
+        nationalise1867(requireState1867(state), companyId, operatingCompanyId)
+    // The CN's Montreal station comes only with the grey tile, not at phase 8 as GTG §8.13 adds:
+    // the designer rules the All-Aboard text definitive (AAG §7.4).
 })
 
 /** Interest and repayments as a company comes to buy trains; unpaid interest nationalises (GTG §8.10). */
@@ -52,7 +46,7 @@ export const LoanSettlements1867 = new LoanSettlements(LoanRules1867, (state, co
 
 export const NationalActions1867 = CnStations.actions()
 
-/** Montreal's grey tile gives the CN its station there at once (GTG §8.13). */
+/** Montreal's grey tile gives the CN its station there at once (AAG §7.4). */
 export function placesMontrealStation(handler: StateHandler1867): StateHandler1867 {
     return CnStations.placesKeptStation(handler, (state) =>
         cnMontrealStationDue(state) ? MontrealLocationId : undefined

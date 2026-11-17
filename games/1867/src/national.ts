@@ -94,12 +94,7 @@ export function nationalise1867(
     return details
 }
 
-/** Montreal's grey tile gives the CN its station there at once, unless it has one (GTG §8.13). */
+/** Montreal's grey tile gives the CN its station there at once, unless it has one (AAG §7.4). */
 export function cnMontrealStationDue(state: HydratedState1867): boolean {
     return CnStations.keptStationDue(state, MontrealLocationId, MontrealGreyTileId)
-}
-
-/** Places the CN's Montreal station, unless it has one there (GTG §8.13). */
-export function placeCnMontrealStation(state: HydratedState1867): boolean {
-    return CnStations.placeKept(state, MontrealLocationId)
 }

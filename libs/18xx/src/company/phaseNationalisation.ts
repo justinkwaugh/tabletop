@@ -145,7 +145,7 @@ export interface PhaseNationalisationRules {
     /** What the final phase's start does to the national company before the nationalisations. */
     finalPhaseBegins?(state: State): void
     /** Places the national company's reserved stations as the final phase begins, naming where. */
-    placeReservedStations(state: State): string[]
+    placeReservedStations?(state: State): string[]
 }
 
 /** A national railway title's phase effects, trainless decisions and nationalised finishers. */
@@ -237,7 +237,7 @@ export class PhaseNationalisation {
                     trainlessMajorIds.push(companyId)
             }
         const nationalStationLocationIds =
-            phaseId === phases.final ? rules.placeReservedStations(state) : []
+            phaseId === phases.final ? (rules.placeReservedStations?.(state) ?? []) : []
         return {
             ...(nationalStarted ? { nationalStarted: true as const } : {}),
             ...(nationalStationLocationIds.length ? { nationalStationLocationIds } : {}),

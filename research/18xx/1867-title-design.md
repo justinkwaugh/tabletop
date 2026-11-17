@@ -25,7 +25,7 @@ mechanisms the two share out of `games/1861` into the family and built 1867 on t
 | Majors started in a stock round: an unconnected city in an empty hex, or any empty hex if none; never Toronto              | §7.4, ruling A8         | Family `UnconnectedCityHomes` (`connectedWhereNone`, `wholeHex`)                |
 | Column market, one row above the map                                                                                       | §4                      | Title market on family `createLinearStockMarketSpaces`                          |
 | The CN never operates: from phase 4 to 7 it exports the next train at the end of every operating round                     | §8.13                   | Family `OperatingRules.trainsToExport`                                          |
-| The CN's station in Toronto from setup, one kept for Montreal (placed with the grey tile, or at phase 8)                   | §2.H, §8.13, ruling A10 | New family `NationalStations`                                                   |
+| The CN's station in Toronto from setup, one kept for Montreal (placed with the grey tile)                                  | §2.H, §8.13, ruling A10 | New family `NationalStations`                                                   |
 | Nationalisation: a space and two a loan; money to the bank, trains out of play, the CN takes stations                      | §10.1                   | Family `nationaliseCompany` (`stepsPerLoan: 2`, no national id, trains removed) |
 | Phase 8 trade-in: a major gives a train for half its face value off a train from the yard                                  | ruling A6               | Family `TrainRules.exchangePrice`                                               |
 | Timmins doubled with Toronto, Montreal or Quebec                                                                           | §8.8.2                  | Connection bonus                                                                |
@@ -89,8 +89,10 @@ From `/workspace/artassets/1867/rulings.md`; the numbers are that file's.
   "cannot trace a legal route to another city") is read as no track to any other revenue centre,
   town and off-board included: a legal route is any two revenue centres, as the 1861 rules forum
   reads it (BGG thread 1051637, uncontradicted by the designer).
-- A9, A10: the CN holds one station a hex, absorbs in operating order, places its Montreal
-  station with the grey tile (and at phase 8 if it still has none there, as 1861's RSR does).
+- A9, A10: the CN holds one station a hex, absorbs in operating order, and places its Montreal
+  station only with the grey tile (AAG §7.4), the owner's choice of 2026-11-17 for both titles:
+  not at phase 8 as GTG §8.13 adds. If Montreal never turns grey, the CN has a station there
+  only by taking over a nationalised company's.
 - A13–A18: brown cities take the most exits; Montreal keeps every city's edge connections; the
   yellow triangles and the Granby lock are enforced; Ottawa upgrades as a Y city until its grey O.
 - A22: minor start price half the bid, at most $135; minors never pass $165.
@@ -105,9 +107,7 @@ From `/workspace/artassets/1867/rulings.md`; the numbers are that file's.
 2. **Two players** (A30, open question 7): built with the GTG §16 setup written for 1861S
    ($420, limit 21, 70%, 3×2/2×3/1×4/1×5/1×6/1×7 removed, two privates removed). The designer
    has not tested it in 1867 and suspects two 6s (or 7s) must stay. Keep, change, or drop 2p.
-3. **Montreal station at phase 8** (open question 4): if Montreal is not yet grey and has no free
-   space, the CN places nothing there.
-4. **1861 major start in a hex with a station elsewhere**: 1867's designer ruling (A8) treats a
+3. **1861 major start in a hex with a station elsewhere**: 1867's designer ruling (A8) treats a
    hex's cities as one for majors; 1861 still checks the city only. The ruling may apply to 1861.
 
 ## Not built

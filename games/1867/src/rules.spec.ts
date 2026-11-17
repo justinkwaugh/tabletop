@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import { getCompany, homeStationId, type StationPosition } from '@tabletop/18xx'
 import {
     auctionMinor,
@@ -10,10 +11,12 @@ import {
     setCash
 } from '../test/kit.js'
 import { CnId } from './companies.js'
+import { CnMontrealStationId } from './national.js'
 import { EndingRules1867, OperatingRules1867, TrainRules1867 } from './operating.js'
 import { CompanyRules1867, StockRules1867 } from './stock.js'
 import { TileSet1867 } from './tiles.js'
 import { TrackRules1867 } from './track.js'
+import { TrainDepot1867 } from './trains.js'
 
 const at = (positions: readonly StationPosition[], locationId: string, nodeId: string) =>
     positions.some((position) => position.locationId === locationId && position.nodeId === nodeId)
@@ -207,6 +210,30 @@ describe('1867 Canadian National', () => {
         expect(
             TrainRules1867.exchangePrice(game.hydrated, 'CPR', '8', { definitionId: '2+2' })
         ).toBe(700)
+    })
+    it('keeps its Montreal station for the grey tile, placing none as phase 8 begins (AAG §7.4)', () => {
+        const game = operating('AE', { locationId: 'E17', nodeId: 'city' })
+        edit(game, (state) => {
+            state.phaseId = '7'
+            state.trainInventory.trains = state.trainInventory.trains.filter(
+                (train) => train.status !== 'depot' || train.definitionId === '8'
+            )
+            setCash(state, 'AE', 2000)
+        })
+        finishTurn(game, 'AE')
+        const eight = TrainDepot1867.nextTrain(game.state.trainInventory, '8')
+        assertExists(eight, 'The 8-train is in the depot')
+        game.act('BuyTrain', {
+            companyId: 'AE',
+            trainId: eight.id,
+            definitionId: '8',
+            expectedPrice: TrainDepot1867.trainDefinition('8').price
+        })
+        expect(game.state.phaseId).toBe('8')
+        expect(getCompany(game.state, 'AE').closed).toBe(true)
+        expect(
+            game.state.stations.find((station) => station.id === CnMontrealStationId)?.status
+        ).toBe('available')
     })
 })
 

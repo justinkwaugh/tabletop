@@ -2,13 +2,7 @@ import { LoanSettlements, PhaseNationalisation, nextOperatingCompany } from '@ta
 import { RsrId } from './companies.js'
 import { LoanRules1861 } from './loans.js'
 import { MoscowLocationId, StPetersburgLocationId } from './map.js'
-import {
-    RsrStations,
-    nationalise1861,
-    placeRsrHome,
-    placeRsrMoscowStation,
-    rsrOperates
-} from './national.js'
+import { RsrStations, nationalise1861, placeRsrHome, rsrOperates } from './national.js'
 import { EndingRules1861, OperatingRules1861, PhaseRules1861 } from './operating.js'
 import { PrivateCatalog1861, PrivateIds1861 } from './privates.js'
 import { requireState1861, type HydratedState1861, type StateHandler1861 } from './state.js'
@@ -56,14 +50,11 @@ export const PhaseNationalisation1861 = new PhaseNationalisation({
                 (id) => id !== RsrId || set.completedCompanyIds.includes(id)
             )
     },
-    // The RSR places its reserved stations still in hand (GTG §8.13, §11).
-    placeReservedStations(state) {
-        const title = requireState1861(state)
-        return [
-            ...(placeRsrHome(title) ? [StPetersburgLocationId] : []),
-            ...(placeRsrMoscowStation(title) ? [MoscowLocationId] : [])
-        ]
-    }
+    // The RSR places its St. Petersburg station if it never operated (GTG §11). Its Moscow
+    // station comes only with the grey tile, not at phase 8 as GTG §8.13 adds: the designer rules
+    // the All-Aboard text definitive (§7.4).
+    placeReservedStations: (state) =>
+        placeRsrHome(requireState1861(state)) ? [StPetersburgLocationId] : []
 })
 
 /** Interest and repayments as a company comes to buy trains; unpaid interest nationalises (§10.8). */
