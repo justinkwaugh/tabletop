@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAP_IDS, type MapId } from '@tabletop/ride-the-rails'
-import { boardGeometry, hexBox } from './boardGeometry.js'
+import type { BoundingBox, RectangleDimensions } from '@tabletop/common'
+import { boardGeometry, DESKTOP_BOARD_VIEW, hexBox, type BoardGeometry } from './boardGeometry.js'
 import {
     legendBox,
     legendCubeX,
@@ -11,6 +12,32 @@ import {
     titleBox
 } from './mapLayouts.js'
 import { boxesOverlap, boxInside } from '$lib/testing/shapeChecks.js'
+
+// The platform's zoom control, at the board view's bottom-left corner: three 24 px buttons 8 apart
+// in a 2 px border with 8 × 4 padding.
+const ZOOM_CONTROL = { width: 108, height: 36 }
+
+// The views the whole board is fitted to: the desktop's (its fitted scale) and a 375 × 812 phone's
+// zoomed fully out.
+const FITTED_VIEWS: readonly (readonly [string, RectangleDimensions])[] = [
+    ['desktop', DESKTOP_BOARD_VIEW],
+    ['phone', { width: 330, height: 493 }]
+]
+
+/**
+ * The zoom control's box in board units with the whole board fitted to the view: the board stands
+ * at the view's top, centred across it, and the control in the view's bottom-left corner.
+ */
+function zoomControlBox(geometry: BoardGeometry, view: RectangleDimensions): BoundingBox {
+    const scale = Math.min(view.width / geometry.width, view.height / geometry.height, 1)
+    const left = (view.width - geometry.width * scale) / 2
+    return {
+        x: -left / scale,
+        y: (view.height - ZOOM_CONTROL.height) / scale,
+        width: ZOOM_CONTROL.width / scale,
+        height: ZOOM_CONTROL.height / scale
+    }
+}
 
 describe('each map’s sea layout', () => {
     for (const mapId of MAP_IDS) {
@@ -33,6 +60,15 @@ describe('each map’s sea layout', () => {
         it(`keeps ${mapId}’s title and legend apart`, () => {
             expect(boxesOverlap(titleBox(layout), legendBox(mapId))).toBe(false)
         })
+
+        it(`keeps ${mapId}’s title and legend clear of the zoom control, the board fitted`, () => {
+            for (const [viewName, view] of FITTED_VIEWS) {
+                const control = zoomControlBox(geometry, view)
+                for (const [what, box] of boxes) {
+                    expect(boxesOverlap(box, control), `${what} on the ${viewName}`).toBe(false)
+                }
+            }
+        })
     }
 
     it('keeps the USA’s title and legend where they were', () => {
@@ -49,7 +85,7 @@ describe('each map’s sea layout', () => {
         expect(Object.fromEntries(MAP_IDS.map((mapId) => [mapId, legendBox(mapId).width]))).toEqual(
             {
                 'map.usa': START_LEGEND.width,
-                'map.au': START_LEGEND.width,
+                'map.au': 400,
                 'map.ca': 440,
                 'map.fr': 400,
                 'map.de': 480

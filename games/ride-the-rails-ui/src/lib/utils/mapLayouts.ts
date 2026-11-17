@@ -40,12 +40,14 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
     },
     // The board prints no title: the title in the open sea north of Perth, clear of land by 72.
     // The legend in the south-west, where the board prints its railroad introduction panel: in the
-    // sea south of Adelaide, clear of land by 40.
+    // open sea south of the west coast, narrowed to 400 for its two rows, as France's, and raised
+    // clear of the zoom control in the fitted board's bottom-left corner.
     'map.au': {
         name: 'Australia',
         boardLabel: 'Map of Australia',
         title: { x: 200, y: 118 },
-        legend: { x: 40, y: 1256 }
+        legend: { x: 40, y: 1180 },
+        legendWidth: 400
     },
     // The board prints no title: the title in the open water south of Sherbrooke, clear of land
     // by 200. The legend towards the south-west, where the board prints its railroad introduction
