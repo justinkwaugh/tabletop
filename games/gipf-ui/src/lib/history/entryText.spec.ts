@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { entrySegments, type Segment } from './entryText.js'
-import type { HistoryEntry } from './historyEntries.js'
+import type { MoveEntry } from './historyEntries.js'
 
 function read(segments: Segment[]): string {
     return segments
@@ -20,7 +20,7 @@ function read(segments: Segment[]): string {
 const span = { id: 'a', firstIndex: 0, lastIndex: 1, playerId: 'w' }
 const row = { from: { q: -3, r: 1 }, to: { q: 0, r: 1 }, returned: 4, captured: 2, capturedGipf: 1 }
 
-const push: HistoryEntry = {
+const push: MoveEntry = {
     ...span,
     kind: 'push',
     gipf: false,
