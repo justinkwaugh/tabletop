@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
 import { MAP_IDS, boardMap, hexIdToAxial, type MapId } from '@tabletop/ride-the-rails'
 import { boardGeometry, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
-import { CAPACITY_MARK, capacityMarks, START_BAND_WIDTH, startBandSpans } from './cityMarks.js'
+import {
+    CAPACITY_MARK,
+    capacityMarks,
+    MEEPLE,
+    MEEPLE_EXTENT,
+    PASSENGER_SCALE,
+    START_BAND_WIDTH,
+    startBandSpans
+} from './cityMarks.js'
 import { passengerSpot } from './passengerLayout.js'
 import { insetCellPoints } from './pickMarks.js'
 import { trackSlots } from './trackLayout.js'
@@ -116,12 +124,13 @@ describe('limit marks inside a hex (R-4.1.4, R-8)', () => {
         }
     })
 
-    it('keeps every USA capacity mark in the sea, where it was', () => {
+    it('keeps every USA capacity mark in the sea where it was, Chicago’s 6 further out', () => {
         const marks = capacityMarks(boardGeometry('map.usa'))
         expect(marks.every((mark) => !mark.inHex)).toBe(true)
         const tenth = (value: number) => Math.round(value * 10) / 10
         expect(marks.map((mark) => [mark.cityId, tenth(mark.x), tenth(mark.y)])).toEqual([
-            ['city.usa.chicago', 1490.1, 328.3],
+            // Out past the passenger's head, which stands in the hex above Chicago's cubes.
+            ['city.usa.chicago', 1493.6, 322.3],
             ['city.usa.new-york', 2099.8, 440],
             ['city.usa.philadelphia', 1995.9, 500],
             ['city.usa.baltimore', 1926.6, 620],
@@ -197,6 +206,44 @@ describe('limit marks in the sea beside a hex that opens on water (R-4.1.4, R-8)
                     expect(apart, `${label} ${other.hexId}`).toBeGreaterThanOrEqual(
                         CAPACITY_MARK.side + CAPACITY_MARK.gap
                     )
+                }
+            }
+        }
+    })
+
+    it('keeps every limit mark, in the sea or in a hex, clear of every waiting passenger', () => {
+        // The meeple as its head, a disc, over a box from the head's middle down, arms out.
+        for (const mapId of MAP_IDS) {
+            const marks = marksOf(mapId)
+            for (const city of boardMap(mapId).cities) {
+                const spot = passengerSpot(city.id, false)
+                const head = {
+                    x: spot.x,
+                    y: spot.y + MEEPLE.head.cy * PASSENGER_SCALE,
+                    r: (MEEPLE.head.r + MEEPLE.edgeWidth / 2) * PASSENGER_SCALE
+                }
+                const body = {
+                    x: spot.x + MEEPLE_EXTENT.left * PASSENGER_SCALE,
+                    y: head.y,
+                    width: (MEEPLE_EXTENT.right - MEEPLE_EXTENT.left) * PASSENGER_SCALE,
+                    height: (MEEPLE_EXTENT.bottom - MEEPLE.head.cy) * PASSENGER_SCALE
+                }
+                for (const mark of marks) {
+                    const box = centredBox({
+                        ...mark,
+                        width: CAPACITY_MARK.side,
+                        height: CAPACITY_MARK.side
+                    })
+                    const nearest = {
+                        x: Math.min(Math.max(head.x, box.x), box.x + box.width),
+                        y: Math.min(Math.max(head.y, box.y), box.y + box.height)
+                    }
+                    const label = `${city.id} and the "${mark.text}" of ${mark.hexId}`
+                    expect(
+                        Math.hypot(nearest.x - head.x, nearest.y - head.y),
+                        label
+                    ).toBeGreaterThan(head.r)
+                    expect(boxesOverlap(body, box), label).toBe(false)
                 }
             }
         }

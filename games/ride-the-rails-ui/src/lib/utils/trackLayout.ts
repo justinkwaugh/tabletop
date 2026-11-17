@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import {
     hexCapacity,
     isCityHex,
@@ -9,7 +9,7 @@ import {
     type Track
 } from '@tabletop/ride-the-rails'
 import { hexCells, hexCenter, hexFrameOf } from './boardGeometry.js'
-import { CUBE_UNIT } from './cubeShape.js'
+import { CUBE_EDGE_WIDTH, CUBE_UNIT } from './cubeShape.js'
 import type { TrackSlot, TrackSlotLayout, TrackSlotOffsets } from './hexFrame.js'
 
 export type { TrackSlot, TrackSlotLayout } from './hexFrame.js'
@@ -89,6 +89,25 @@ export function trackSlots(hexId: HexId, held?: number): TrackSlot[] {
         x: center.x + offset.x,
         y: center.y + offset.y
     }))
+}
+
+/**
+ * The top of the highest cube the hex's own cell can ever hold, its edge included, from that
+ * cell's centre: a city's row in every city, higher in one with no limit (R-4.1.3), whose small
+ * cubes stand a top row from four railroads. Berlin's second cell is left out.
+ */
+export function highestCubeTop(hexId: HexId): number {
+    const [own, ...others] = hexCells(hexId)
+    assertExists(own, `Hex ${hexId} covers no cell`)
+    const from = (slot: TrackSlot, center: Point) =>
+        Math.hypot(slot.x - center.x, slot.y - center.y)
+    const tops = Array.from({ length: MOST_LOCOMOTIVES_IN_A_HEX }, (_, index) =>
+        trackSlots(hexId, index + 1)
+    )
+        .flat()
+        .filter((slot) => others.every((cell) => from(slot, own.center) <= from(slot, cell.center)))
+        .map((slot) => slot.y - own.center.y - slot.height / 2 - CUBE_EDGE_WIDTH / 2)
+    return Math.min(...tops)
 }
 
 /** The slot of the hex's cube at this place in the hex's placement order, of `held` cubes. */

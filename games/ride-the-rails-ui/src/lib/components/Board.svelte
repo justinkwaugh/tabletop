@@ -46,6 +46,8 @@
               : BUILD_PICK
     )
     const views = $derived(litHexViews(offer, gameSession.gameState.track, context))
+    // The lit hexes, holes in the pick's scrim; none without a scrim.
+    const scrimHoles: ReadonlySet<HexId> = $derived(new Set(offer.scrim?.holes ?? []))
     // A hex's lone cube stands aside for a ghost cube drawn beside it (locomotivePieces).
     const standAside: ReadonlySet<HexId> = $derived(
         BOARD_LOOK.litRailroads === 'ghost-cube'
@@ -86,10 +88,13 @@
     <CityLayer />
     <StartCueLayer />
     <BonusLayer />
-    <PassengerLayer startCityId={stagedRoute.startCityId} />
     <TrackLayer {standAside} />
+    <!-- Over the cubes: a passenger stands above its own and its head reaches the hex above. -->
+    <PassengerLayer startCityId={stagedRoute.startCityId} {scrimHoles} cities="unlit" />
     <LineLayer lastJourney={gameSession.lastJourney} />
     <ScrimLayer {offer} />
+    <!-- Above the scrim: a lit city's passenger, whose head stands outside its hex's hole. -->
+    <PassengerLayer startCityId={stagedRoute.startCityId} {scrimHoles} cities="lit" />
     <!-- Above the scrim: the legend is never dimmed. -->
     <StartLegend mapId={gameSession.gameState.mapId} />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />

@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/common'
-import { USA_CITIES, boardMap, cityById } from '@tabletop/ride-the-rails'
+import { MAP_IDS, USA_CITIES, boardMap, cityById, type CityId } from '@tabletop/ride-the-rails'
 import { buildState, FLAT_FIXTURE_MAP } from '@tabletop/ride-the-rails/testing'
 import { cityPieces } from './boardPieces.js'
 import { MIN_RESTING_HEX_PX } from './boardFocus.js'
-import { boardGeometry, geometryOf, HEX_SIZE, HEX_WIDTH } from './boardGeometry.js'
+import {
+    boardGeometry,
+    geometryOf,
+    hexCells,
+    hexFrameOf,
+    HEX_SIZE,
+    HEX_WIDTH
+} from './boardGeometry.js'
 import { hexFrame, type HexFrame } from './hexFrame.js'
 import {
     boxesOverlap,
@@ -23,8 +30,8 @@ import {
     FIVE_RING,
     fiveRing,
     hexagonPoint,
-    PASSENGER_HEAD_TOP,
     PASSENGER_SCALE,
+    passengerFeet,
     passengerOffset,
     MEEPLE,
     MEEPLE_EXTENT,
@@ -35,8 +42,13 @@ import {
     startBandSeparators,
     startBandSpans
 } from './cityMarks.js'
+import { CUBE_EDGE_WIDTH } from './cubeShape.js'
+import { MOST_LOCOMOTIVES_IN_A_HEX, trackSlots } from './trackLayout.js'
 
 const POINTY = hexFrame(HexOrientation.Pointy)
+
+/** Every city on every map. */
+const ALL_CITIES = MAP_IDS.flatMap((mapId) => boardMap(mapId).cities)
 
 describe('the $5 pill', () => {
     it('is green with a white amount while the bonus is to be had', () => {
@@ -284,41 +296,101 @@ describe('the passenger’s size on the board', () => {
         expect(withEdge.height).toBeCloseTo(35.04, 5)
     })
 
-    it('keeps its head’s top where it was, −35.3 from the hex’s centre, and grows down', () => {
-        expect(PASSENGER_HEAD_TOP).toBe(-35.3)
-        expect(withEdge.y).toBeCloseTo(-35.3, 5)
+    it('stands its feet 12.5 above the hex’s centre, its head 35 higher, in the hex above', () => {
         expect(offset.x).toBe(14.4)
-        // Its feet reach down to the cubes' middle row, above the hex's centre.
-        expect(withEdge.y + withEdge.height).toBeLessThan(0)
+        expect(passengerFeet('city.usa.denver')).toBe(-12.5)
+        expect(withEdge.y + withEdge.height).toBeCloseTo(-12.5, 5)
+        expect(withEdge.y).toBeCloseTo(-12.5 - withEdge.height, 5)
+        expect(withEdge.y).toBeCloseTo(-47.54, 5)
+        // Above a pointy hex's top corner and a flat hex's top edge alike.
+        expect(withEdge.y).toBeLessThan(-HEX_SIZE)
     })
 
-    it('stands inside its hex’s box either way up', () => {
-        for (const frame of FRAMES) {
-            const hexBox =
-                frame.orientation === HexOrientation.Pointy
-                    ? centredBox({ x: 0, y: 0, width: HEX_WIDTH, height: 2 * HEX_SIZE })
-                    : centredBox({ x: 0, y: 0, width: 2 * HEX_SIZE, height: HEX_WIDTH })
-            expect(boxInside(fillOnly, hexBox), frame.orientation).toBe(true)
+    it('stands every passenger the same way, its head top the feet’s line less its height', () => {
+        for (const city of ALL_CITIES) {
+            const at = passengerOffset(city.id)
+            expect(at.x, city.id).toBe(14.4)
+            expect(at.y + MEEPLE_EXTENT.bottom * PASSENGER_SCALE, city.id).toBeCloseTo(
+                passengerFeet(city.id),
+                5
+            )
+            expect(at.y + MEEPLE_EXTENT.top * PASSENGER_SCALE, city.id).toBeCloseTo(
+                passengerFeet(city.id) - withEdge.height,
+                5
+            )
         }
-        // On a pointy hex its edge too; a flat hex's top edge is lower than a pointy hex's point.
-        const pointy = centredBox({ x: 0, y: 0, width: HEX_WIDTH, height: 2 * HEX_SIZE })
-        expect(boxInside(withEdge, pointy)).toBe(true)
     })
 
-    it('keeps its head and arms clear of a city’s cubes, its legs behind the right one', () => {
-        // The meeple down to the underside of its arms, its edge included.
-        const upper = {
-            ...withEdge,
-            height: (MEEPLE.armBottomY + MEEPLE.edgeWidth / 2 - MEEPLE_EXTENT.top) * PASSENGER_SCALE
+    it('stands 1 above the highest cube each city can hold: higher in the cities with no limit', () => {
+        const feet = (cityId: CityId) => passengerFeet(cityId)
+        // Every city whose cubes stand in one row, pointy and flat, Berlin's two cells included.
+        for (const cityId of [
+            'city.usa.denver',
+            'city.usa.new-york',
+            'city.au.perth',
+            'city.ca.montreal',
+            'city.fr.caen',
+            'city.de.berlin'
+        ] as const) {
+            expect(feet(cityId), cityId).toBe(-12.5)
         }
-        for (const frame of FRAMES) {
-            const { byLayout, lone } = frame.trackSlots
-            const slots = [...byLayout.city, ...(lone.city ? [lone.city] : [])]
-            for (const slot of slots) {
-                expect(boxesOverlap(upper, centredBox(slot)), frame.orientation).toBe(false)
+        // Chicago's small cubes stand a top row from four railroads, higher on a flat hex.
+        expect(feet('city.usa.chicago')).toBe(-17)
+        expect(feet('city.fr.paris')).toBe(-18.5)
+        expect(feet('city.ca.toronto')).toBe(-18.5)
+        expect(feet('city.usa.chicago') - withEdge.height).toBeCloseTo(-52.04, 5)
+        expect(feet('city.fr.paris') - withEdge.height).toBeCloseTo(-53.54, 5)
+    })
+
+    it('clears every cube its hex can hold, one to six, edges included, pointy and flat', () => {
+        const orientations = new Set<string>()
+        for (const city of ALL_CITIES) {
+            const at = passengerOffset(city.id)
+            const [own, ...others] = hexCells(city.hexId)
+            if (!own) throw new Error(`${city.id} covers no cell`)
+            orientations.add(hexFrameOf(city.hexId).orientation)
+            const figure = {
+                x: at.x + MEEPLE_EXTENT.left * PASSENGER_SCALE,
+                y: at.y + MEEPLE_EXTENT.top * PASSENGER_SCALE,
+                width: withEdge.width,
+                height: withEdge.height
             }
-            const right = byLayout.city.reduce((a, b) => (b.x > a.x ? b : a))
-            expect(boxesOverlap(withEdge, centredBox(right)), frame.orientation).toBe(true)
+            for (let held = 1; held <= MOST_LOCOMOTIVES_IN_A_HEX; held++) {
+                for (const slot of trackSlots(city.hexId, held)) {
+                    // Berlin's second cell holds cubes too; the passenger stands in its own.
+                    const near = (center: Point) => Math.hypot(slot.x - center.x, slot.y - center.y)
+                    if (others.some((cell) => near(cell.center) < near(own.center))) continue
+                    const cube = centredBox({
+                        x: slot.x - own.center.x,
+                        y: slot.y - own.center.y,
+                        width: slot.width + CUBE_EDGE_WIDTH,
+                        height: slot.height + CUBE_EDGE_WIDTH
+                    })
+                    const label = `${city.id} holding ${held}`
+                    expect(boxesOverlap(figure, cube), label).toBe(false)
+                    // A unit of the cube's colour shows between them.
+                    expect(cube.y - (figure.y + figure.height), label).toBeGreaterThanOrEqual(
+                        1 - 1e-9
+                    )
+                }
+            }
+        }
+        expect([...orientations].sort()).toEqual(
+            [HexOrientation.Flat, HexOrientation.Pointy].sort()
+        )
+    })
+
+    it('stands within its hex’s width, its feet inside the hex, either way up', () => {
+        for (const frame of FRAMES) {
+            const hexagon = frameHexagon(frame.cornerAngles, HEX_SIZE)
+            const halfWidth = frame.orientation === HexOrientation.Pointy ? HEX_WIDTH / 2 : HEX_SIZE
+            expect(fillOnly.x + fillOnly.width, frame.orientation).toBeLessThan(halfWidth)
+            for (const x of [fillOnly.x, fillOnly.x + fillOnly.width]) {
+                expect(
+                    insideConvexPolygon({ x, y: withEdge.y + withEdge.height }, hexagon),
+                    frame.orientation
+                ).toBe(true)
+            }
         }
     })
 })

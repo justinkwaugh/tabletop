@@ -1,9 +1,10 @@
 import { assertExists, type Point } from '@tabletop/common'
-import type { CityId, HexId, RailroadId } from '@tabletop/ride-the-rails'
+import { cityById, type CityId, type HexId, type RailroadId } from '@tabletop/ride-the-rails'
 import { HEX_SIZE, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
 import type { CityBonusMark } from './boardPieces.js'
 import type { HexFrame } from './hexFrame.js'
 import { HEX_LIMIT_MARK_AT, hexLimitMarks } from './terrainMarks.js'
+import { highestCubeTop } from './trackLayout.js'
 
 // Art plan, City marks: every mark is placed from its hex's centre, in board units, and turned to
 // the way up its map's hexes stand (`hexFrame`).
@@ -154,7 +155,7 @@ export const MOUNTAIN_PEAK = { path: 'M-9 0 L-3 -8 L1 -3 L4 -6 L9 0 Z', scale: 1
 // The capacity marks.
 
 /** A white outline of a cube, its side and gap from its city's hex edge in board units. */
-export const CAPACITY_MARK = { side: 20, gap: 6, chicagoExtra: 9 } as const
+export const CAPACITY_MARK = { side: 20, gap: 6, chicagoExtra: 16 } as const
 
 export type CapacityMarkView = {
     /** The hex it limits: its city's own hex, or another hex that holds one locomotive (R-8). */
@@ -199,7 +200,8 @@ export function capacityMarks(
                 CAPACITY_MARK.side + CAPACITY_MARK.gap
         )
     const seaSpot = (hexId: HexId, text: string): Point | undefined => {
-        // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
+        // A 6 in the sea (Chicago's, Toronto's) stands further out, clear of the passenger's head,
+        // which a city with no limit stands higher, above its top row of small cubes.
         const distance =
             HEX_WIDTH / 2 +
             CAPACITY_MARK.gap +
@@ -338,16 +340,30 @@ export function fiveRing(bonus: CityBonusMark | undefined, frame: HexFrame): Fiv
 /** The passenger's scale on the board, from its own units, large enough to see across the map. */
 export const PASSENGER_SCALE = 2.4
 
-/**
- * The top of a passenger's head from the hex's centre, its edge included: where it stood at 1.5.
- * The figure grows down from it, so its head and arms stay above the cubes, which keep their
- * places in every hex and are drawn over it: where a city holds two railroads the right-hand cube
- * covers its legs.
- */
-export const PASSENGER_HEAD_TOP = -35.3
+/** How far a passenger's feet, their edge included, stand above the highest cube its hex can hold. */
+const PASSENGER_CUBE_CLEARANCE = 1
 
-export function passengerOffset(_cityId: CityId): Point {
-    return PASSENGER_OFFSET
+/**
+ * The line a city's passenger stands on from its hex's centre, its feet's edge included: just above
+ * the top of the highest cube the city can ever hold (`highestCubeTop`), so no cube covers it. The
+ * figure is taller than the room above the cubes, so its head stands in the hex above, over that
+ * hex's cubes where it reaches them (Board.svelte draws the passengers after the cubes). Every city
+ * stands it on the same line, 12.5 above the centre, either way up, but those with no limit, whose
+ * top row of small cubes reaches higher: Chicago 17, Paris and Toronto 18.5.
+ */
+export function passengerFeet(cityId: CityId): number {
+    return highestCubeTop(cityById(cityId).hexId) - PASSENGER_CUBE_CLEARANCE
+}
+
+/** How far right of its hex's centre a passenger stands, over the right-hand cube's place. */
+const PASSENGER_OFFSET_X = 14.4
+
+/** Where a city's passenger stands from its hex's centre: right of the middle, on its feet's line. */
+export function passengerOffset(cityId: CityId): Point {
+    return {
+        x: PASSENGER_OFFSET_X,
+        y: passengerFeet(cityId) - MEEPLE_EXTENT.bottom * PASSENGER_SCALE
+    }
 }
 
 /** A picked journey start lifts its passenger slightly, in the passenger's own units. */
@@ -359,8 +375,8 @@ export const START_PASSENGER_SCALE = 2.8
 /**
  * Art plan, Passenger: a classic meeple in its own units, centred on the origin, one flat shape: a
  * round head, arms out and legs apart, in natural wood with a dark edge. About the pawn it
- * replaced in height (14.6) and at most a tenth wider (10.5 against 9.7), so it stands where the
- * pawn stood and clears the cubes, the "1" and the bonus pill alike.
+ * replaced in height (14.6) and at most a tenth wider (10.5 against 9.7). It stands above the cubes,
+ * well clear of the bonus pill below them.
  */
 export const MEEPLE = {
     path:
@@ -384,9 +400,3 @@ export const MEEPLE = {
 
 /** The meeple's extent in its own units, its edge included. */
 export const MEEPLE_EXTENT = { left: -5.25, right: 5.25, top: -7.65, bottom: 6.95 } as const
-
-/** Where a city's passenger stands from the hex's centre: up and right, its head at the top. */
-const PASSENGER_OFFSET: Point = {
-    x: 14.4,
-    y: PASSENGER_HEAD_TOP - MEEPLE_EXTENT.top * PASSENGER_SCALE
-}
