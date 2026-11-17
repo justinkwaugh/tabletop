@@ -41,9 +41,7 @@ describe('pullOuts', () => {
     })
 
     it('slides a ring with two open sides out between them, clear of its neighbours', () => {
-        // C2 after the ring at its upper right went and the one at its lower right was never
-        // there: its other four sides hold rings, so on the table it can only slide straight
-        // right, through the gap.
+        // C2 with only its upper and lower right sides open, as in the report.
         const ring = { q: -1, r: 2 }
         const neighbours = [
             { q: -1, r: 1 },
