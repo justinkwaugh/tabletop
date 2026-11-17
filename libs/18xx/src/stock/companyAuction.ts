@@ -58,6 +58,11 @@ export interface CompanyAuctionRules {
     increment: number
     /** The most a player can bid; a player who cannot reach the minimum leaves the auction. */
     maximumBid(state: CompanyAuctionState, playerId: string): number
+    /**
+     * What a player can put toward a bid before the title's limits on it, where more than cash
+     * counts, as 1817's privates do.
+     */
+    biddingPower?(state: CompanyAuctionState, playerId: string): number
     /** Whether the player could pay this exact amount and form a company with it now. */
     formable(state: CompanyAuctionState, playerId: string, amount: number): boolean
     homes(state: CompanyAuctionState, companyId: string): StationPosition[]

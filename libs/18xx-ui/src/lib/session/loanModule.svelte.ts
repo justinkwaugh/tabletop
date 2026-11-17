@@ -4,17 +4,23 @@ import {
     TakeLoan,
     companyLoans,
     isPayInterest,
+    loanRate,
+    loansOutstanding,
     loansRemaining,
     nextOperatingCompany,
     type EighteenXXState,
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
+import { loanRateTableView } from '../loans/loanRateTable.js'
 
 export type LoanSession = ModuleSession<EighteenXXState, Pick<EighteenXXTitleRules, 'loanRules'>>
 
 export class LoanModule {
-    constructor(private readonly session: LoanSession) {}
+    constructor(
+        private readonly session: LoanSession,
+        private readonly operatingRoundInProgress: () => boolean
+    ) {}
 
     /** The title's loans, where they are in this game. */
     rules = $derived.by(() => {
@@ -25,11 +31,21 @@ export class LoanModule {
     rate = $derived.by(() => {
         const rules = this.rules
         return rules
-            ? (this.session.state.interestRate ?? rules.rate(this.session.state))
+            ? (this.session.state.interestRate ?? loanRate(this.session.state, rules))
             : undefined
     })
     /** The rate the next operating round would fix, from the loans now outstanding. */
-    nextRate = $derived.by(() => this.rules?.rate(this.session.state))
+    nextRate = $derived.by(() =>
+        this.rules ? loanRate(this.session.state, this.rules) : undefined
+    )
+    /** The title's printed rate table, where its rate rises with the loans outstanding. */
+    rateTable = $derived.by(() => {
+        const table = this.rules?.rate
+        if (!table || typeof table === 'function') return undefined
+        const state = this.session.state
+        const roundRate = this.operatingRoundInProgress() ? state.interestRate : undefined
+        return loanRateTableView(table, loansOutstanding(state), roundRate)
+    })
     /** Loans the bank can still lend. */
     remaining = $derived.by(() =>
         this.rules ? loansRemaining(this.session.state, this.rules) : undefined

@@ -126,6 +126,15 @@ describe('company auctions', () => {
         expect(play.treasury('AS')).toBe(170)
     })
 
+    it('counts cash and privates as bidding power past the most a bid may be', () => {
+        const play = trading((state) => {
+            giveCash(state, 'alex', 380)
+            givePrivate(state, 'OBC', 'alex')
+        })
+        expect(EighteenSeventeenCompanyAuction.biddingPower?.(play.state, 'alex')).toBe(450)
+        expect(EighteenSeventeenCompanyAuction.maximumBid(play.state, 'alex')).toBe(400)
+    })
+
     it('accepts only bids its bidder can pay from cash and privates', () => {
         const play = trading((state) => {
             giveCash(state, 'alex', 50)

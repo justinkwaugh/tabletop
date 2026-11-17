@@ -10,6 +10,7 @@ import {
 import { Compile } from 'typebox/compile'
 import { settleCashPayments } from '../finance/cashPayments.js'
 import { controllingOwner } from '../finance/finance.js'
+import { loanRate } from '../loans/loans.js'
 import { EighteenXXInitializer } from '../game/eighteenXXInitializer.js'
 import type {
     EighteenXXRuntimeSchema,
@@ -133,7 +134,8 @@ export class ScenarioInitializer<
             privateIncomePaid: true,
             completed: false
         }
-        if (this.titleRules.loanRules) state.interestRate = this.titleRules.loanRules.rate(state)
+        if (this.titleRules.loanRules)
+            state.interestRate = loanRate(state, this.titleRules.loanRules)
         state.trackStep = { companyId, lays: [], completed: false }
         state.machineState = 'LayingTrack'
         for (const home of new StationPlacement(state, stationRules).homePlacements())

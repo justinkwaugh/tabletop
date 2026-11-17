@@ -1,7 +1,7 @@
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { cashOwnedBy, getCompany, type EighteenXXState } from '@tabletop/18xx'
+import { cashOwnedBy, getCompany, loanRate, type EighteenXXState } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenSeventeenLoanRules,
@@ -51,15 +51,19 @@ function toLoanStep(play: ExamplePlay) {
 describe('the interest rate', () => {
     it('is 5% for each five loans in the game, rounded up, from 5% to 70%', () => {
         const rate = (loans: number) =>
-            EighteenSeventeenLoanRules.rate(
+            loanRate(
                 operating((state) => {
                     if (loans) setLoans(state, 'BA', loans)
-                }).state
+                }).state,
+                EighteenSeventeenLoanRules
             )
         expect(rate(0)).toBe(5)
         expect(rate(5)).toBe(5)
         expect(rate(6)).toBe(10)
         expect(rate(7)).toBe(10)
+        expect(rate(65)).toBe(65)
+        expect(rate(66)).toBe(70)
+        expect(rate(70)).toBe(70)
     })
 
     it('is fixed when an operating round starts', () => {

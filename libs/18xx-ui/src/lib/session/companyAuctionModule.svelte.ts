@@ -110,6 +110,11 @@ export class CompanyAuctionModule {
             : { shareCount: this.shareCount, privateIds: this.contributedPrivateIds }
     )
 
+    /** What the player can put toward a bid for a company, before the title's limits on it. */
+    biddingPower(playerId: string): number | undefined {
+        return this.model?.terms.biddingPower?.(this.session.state, playerId)
+    }
+
     openingReason(amount: number): string | undefined {
         const model = this.model
         const companyId = this.selectedCompanyId

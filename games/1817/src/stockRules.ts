@@ -193,6 +193,13 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     buyOwedStations(state, formation.companyId)
 }
 
+function biddingPower(state: CompanyAuctionState, playerId: string): number {
+    return (
+        finiteCashOwnedBy(state, { kind: 'player', playerId }) +
+        privateValue(playerPrivateIds(state, playerId))
+    )
+}
+
 export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
     openingBid: 100,
     increment: 5,
@@ -203,12 +210,9 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
             EighteenSeventeenStockRules.certificateLimit(state, player)
         )
             return 0
-        return Math.min(
-            MaximumCompanyBid,
-            finiteCashOwnedBy(state, { kind: 'player', playerId }) +
-                privateValue(playerPrivateIds(state, playerId))
-        )
+        return Math.min(MaximumCompanyBid, biddingPower(state, playerId))
     },
+    biddingPower,
     formable: (state, playerId, amount) =>
         someContributionFits(state, playerId, amount, playerPrivateIds(state, playerId), 0),
     homes(state, companyId) {

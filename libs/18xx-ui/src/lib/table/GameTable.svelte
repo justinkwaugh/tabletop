@@ -76,6 +76,7 @@
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
     import MarketLegend from '../stock/MarketLegend.svelte'
+    import LoanRateTable from '../loans/LoanRateTable.svelte'
     import { marketGeometry, marketLowerRightSpace } from '../stock/marketTokenLayout.js'
     import BoardInset from '../maps/BoardInset.svelte'
     import BoardFocus from './BoardFocus.svelte'
@@ -985,6 +986,7 @@
                     zones={session.presentation.marketZones}
                     ledge={session.presentation.marketLedge}
                 />
+                {#if session.loans.rateTable}<LoanRateTable view={session.loans.rateTable} />{/if}
                 {#if boardInformation && corner}<div
                         class="market-corner"
                         style:left={`${corner.x}px`}
@@ -1450,17 +1452,24 @@
                                     expandable={true}
                                     allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
                                 >
-                                    <StockMarketScene
-                                        cell={session.presentation.marketCell}
-                                        animation={session.marketAnimation}
-                                        appearances={session.mapView.stations}
-                                        renderScale={2}
-                                        chart={session.stockMarketChart}
-                                        market={session.gameState.stockMarket}
-                                        companyName={(companyId) => session.companyName(companyId)}
-                                        zones={session.presentation.marketZones}
-                                        ledge={session.presentation.marketLedge}
-                                    />
+                                    <div class="market-with-loans">
+                                        <StockMarketScene
+                                            cell={session.presentation.marketCell}
+                                            animation={session.marketAnimation}
+                                            appearances={session.mapView.stations}
+                                            renderScale={2}
+                                            chart={session.stockMarketChart}
+                                            market={session.gameState.stockMarket}
+                                            companyName={(companyId) =>
+                                                session.companyName(companyId)}
+                                            zones={session.presentation.marketZones}
+                                            ledge={session.presentation.marketLedge}
+                                        />
+                                        {#if session.loans.rateTable}<LoanRateTable
+                                                view={session.loans.rateTable}
+                                                renderScale={2}
+                                            />{/if}
+                                    </div>
                                 </ScalingWrapper>
                             </div>
                             {#if !session.presentation.hideMarketLegend && (session.presentation.marketZones?.length || session.presentation.marketLedge)}<MarketLegend
@@ -2022,6 +2031,9 @@
     }
     .board-market {
         position: relative;
+    }
+    .market-with-loans {
+        width: max-content;
     }
     .market-corner,
     .board-depot,

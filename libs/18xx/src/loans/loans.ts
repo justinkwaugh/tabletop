@@ -67,6 +67,31 @@ export const InterestDefault = Type.Object(
 )
 export type InterestDefault = Type.Static<typeof InterestDefault>
 
+/**
+ * A printed interest table: its rows lend ``loansPerRow`` loans each, in order, at the rows'
+ * ``rates``, and the rate is the row the loans outstanding have reached (1817).
+ */
+export type LoanRateTable = { loansPerRow: number; rates: readonly number[] }
+
+/** The table's row the loans outstanding have reached; its first row before any are taken. */
+export function loanRateTableRow(table: LoanRateTable, outstanding: number): number {
+    return Math.min(
+        table.rates.length - 1,
+        Math.max(0, Math.ceil(outstanding / table.loansPerRow) - 1)
+    )
+}
+
+export function loanRateTableRate(table: LoanRateTable, outstanding: number): number {
+    return table.rates[loanRateTableRow(table, outstanding)]
+}
+
+/** The percentage rate the operating round about to start would fix. */
+export function loanRate(state: LoanState, rules: LoanRules): number {
+    return typeof rules.rate === 'function'
+        ? rules.rate(state)
+        : loanRateTableRate(rules.rate, loansOutstanding(state))
+}
+
 export interface LoanRules {
     market: StockMarketChart
     /** Whether the title's loans are in this game, as 1849's only with its Bonds variant; always unless given. */
@@ -78,8 +103,11 @@ export interface LoanRules {
     /** Loans in the bank at the start of the game. */
     supply: number
     capacity(state: LoanState, companyId: string): number
-    /** The percentage rate fixed for the operating round about to start. */
-    rate(state: LoanState): number
+    /**
+     * The percentage rate fixed for the operating round about to start, or the printed table it
+     * follows, where it rises with the loans outstanding (1817).
+     */
+    rate: ((state: LoanState) => number) | LoanRateTable
     takeMove?: LoanMarketMove
     repayMove?: LoanMarketMove
     /** The title's consequence when a company cannot pay interest after borrowing all it can. */
@@ -210,7 +238,7 @@ export function takeLoan(state: LoanState, rules: LoanRules, companyId: string):
 
 /** The interest one loan pays in a round. */
 export function loanInterest(state: LoanState, rules: LoanRules): number {
-    return ((state.interestRate ?? rules.rate(state)) * rules.value) / 100
+    return ((state.interestRate ?? loanRate(state, rules)) * rules.value) / 100
 }
 
 /**

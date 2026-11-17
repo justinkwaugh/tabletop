@@ -2,10 +2,11 @@ import { EighteenSeventeenMap, EighteenSeventeenTileSet } from '@tabletop/1817'
 import { towardTileEdge, type MapViewDefinition } from '@tabletop/18xx-ui'
 
 export const EighteenSeventeenMapView: MapViewDefinition = {
-    // The market's tall cells span the map's width 16 units above its top row, as in 1846, and
-    // the depot nestles in the notch below New York's row, both 12 map units clear of every hex.
+    // The market's tall cells and the loan table below them span the map's width 16 units above
+    // its top row, as in 1846, and the depot nestles in the notch below New York's row, both 12
+    // map units clear of every hex.
     boardAreas: {
-        market: { x: -26, y: -244, width: 1308, height: 178 },
+        market: { x: -26, y: -338, width: 1308, height: 272 },
         depot: { x: 922, y: 438, width: 381, height: 187 }
     },
     map: EighteenSeventeenMap,

@@ -29,8 +29,9 @@ export const EighteenSeventeenPresentation: TitlePresentation<EighteenSeventeenS
     gameFacts: eighteenSeventeenGameFacts,
     companyColumns: EighteenSeventeenCompanyColumns,
     companyFacts: eighteenSeventeenCompanyFacts,
-    marketCell: { width: 30, height: 96 },
+    marketCell: { width: 30, height: 110 },
     marketZones: EighteenSeventeenMarketZones,
+    biddingPowerShown: (state) => state.operatingSet === undefined,
     titleRounds: [
         {
             name: 'Merger round',

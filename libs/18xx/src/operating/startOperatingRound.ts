@@ -14,7 +14,7 @@ import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { privateOwner, type FinancialState, type Owner } from '../finance/finance.js'
 import type { TrainState } from '../trains/train.js'
 import type { MapStateData } from '../map/mapState.js'
-import type { LoanRules, LoanState } from '../loans/loans.js'
+import { loanRate, type LoanRules, type LoanState } from '../loans/loans.js'
 import {
     OperatingSet,
     nextOperatingCompany,
@@ -93,7 +93,7 @@ export class HydratedStartOperatingRound
         set.companyOrder = this.#rules.companyOrder(state)
         set.completedCompanyIds = []
         set.privateIncomePaid = true
-        if (this.#loanRules) state.interestRate = this.#loanRules.rate(state)
+        if (this.#loanRules) state.interestRate = loanRate(state, this.#loanRules)
         this.metadata = {
             operatingSet: structuredClone(set),
             payments,

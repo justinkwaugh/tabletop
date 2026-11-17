@@ -52,6 +52,9 @@
     }
     const stockRoundActive = $derived(session.gameState.machineState === 'StockRound')
     const passOrderPositions = $derived(session.passing === 'pass-order')
+    const biddingPowerShown = $derived(
+        !!session.presentation.biddingPowerShown?.(session.gameState)
+    )
     const players = $derived([
         ...playersWithBankruptLast(session.gameState).map((playerId) => ({
             id: `player:${playerId}`,
@@ -63,6 +66,9 @@
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
             reserved: session.reservedCash(playerId),
+            biddingPower: biddingPowerShown
+                ? session.companyAuction.biddingPower(playerId)
+                : undefined,
             certs: session.playerCertificates(playerId),
             ...session.portfolio(
                 { kind: 'player', playerId },
@@ -82,6 +88,7 @@
                 bankrupt: false,
                 liquidity: undefined,
                 reserved: 0,
+                biddingPower: undefined,
                 certs: undefined,
                 ...session.portfolio({ kind: 'company', companyId })
             }
@@ -325,6 +332,12 @@
                     </dl>
                 {/each}
             </div>
+            {#if player.biddingPower !== undefined}<p
+                    class="bidding-power"
+                    title="What this player can put toward a bid for a company"
+                >
+                    Bidding power <strong>{money(player.biddingPower)}</strong>
+                </p>{/if}
             {#if player.playerId && session.bidBoxes.available}
                 {@const bids = session.bidBoxes.playerBids(player.playerId)}
                 {#if bids.length}
@@ -790,6 +803,19 @@
         padding: 2px 5px;
         font-size: 10px;
         white-space: nowrap;
+    }
+    .bidding-power {
+        margin: 0;
+        padding: 4px 10px 5px;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: var(--rail-surface-inset, #1b232d);
+        color: var(--rail-muted, #887664);
+        font-size: 12px;
+        text-align: center;
+    }
+    .bidding-power strong {
+        color: var(--rail-text, #302c27);
+        font-weight: 650;
     }
     .stats {
         display: flex;

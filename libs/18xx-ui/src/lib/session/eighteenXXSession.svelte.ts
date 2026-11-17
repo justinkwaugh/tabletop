@@ -63,6 +63,7 @@ import {
     type AwaitedDecisionNames
 } from '../table/awaitedDecision.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
+import { operatingRoundInProgress } from '../table/roundHeading.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
@@ -463,7 +464,9 @@ export class EighteenXXSession<
     }
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
-    readonly loans = new LoanModule(this.moduleSession)
+    readonly loans = new LoanModule(this.moduleSession, () =>
+        operatingRoundInProgress<State>(this.gameState, this.presentation.titleRounds)
+    )
     readonly accessRights = new AccessRightsModule(this.moduleSession)
     readonly stationReturn = new StationReturnModule(this.moduleSession)
     readonly cashCrisis = new CashCrisisModule(this.moduleSession)

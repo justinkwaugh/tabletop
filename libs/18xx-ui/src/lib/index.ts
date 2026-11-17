@@ -204,6 +204,9 @@ export {
     marketGeometry
 } from './stock/marketTokenLayout.js'
 
+export { LoanRateTableHeight } from './loans/loanRateTable.js'
+export { operatingRoundInProgress } from './table/roundHeading.js'
+
 export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'

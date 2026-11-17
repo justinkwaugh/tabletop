@@ -282,6 +282,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     marketLedge?: MarketLedge
     /** Leaves the zones and ledge out of a legend below the market; each space's tooltip still names its zone. */
     hideMarketLegend?: true
+    /**
+     * Whether player cards show the most each player may bid for a company, where a bid may
+     * count more than cash, as 1817's privates count toward it.
+     */
+    biddingPowerShown?(state: State): boolean
     /** Leaves the cost off a company's remaining station tokens, when stations are paid for another way, such as at flotation. */
     hideStationCosts?: true
     /**

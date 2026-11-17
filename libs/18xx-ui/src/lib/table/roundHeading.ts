@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type GameState } from '@tabletop/common'
 import type { EighteenXXState } from '@tabletop/18xx'
 import type { TitleRound } from '../session/titlePresentation.js'
 
@@ -43,6 +43,19 @@ export function roundLabel(heading: RoundHeading): string {
 
 export function roundTitle(heading: RoundHeading): string {
     return heading.number ? `${heading.name} ${heading.number}` : heading.name
+}
+
+/** Whether an operating round is under way, rather than a stock round or a round of the title's own. */
+export function operatingRoundInProgress<
+    State extends GameState & Pick<EighteenXXState, 'stockRound' | 'operatingSet'>
+>(state: State, titleRounds: readonly Pick<TitleRound<State>, 'inProgress'>[] = []): boolean {
+    const set = state.operatingSet
+    return (
+        state.stockRound.completed &&
+        !!set &&
+        !set.completed &&
+        !titleRounds.some((round) => round.inProgress(state))
+    )
 }
 
 export function currentRoundHeading(

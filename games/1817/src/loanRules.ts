@@ -3,9 +3,9 @@ import { assertExists } from '@tabletop/common'
 import {
     controllingOwner,
     finiteCashOwnedBy,
-    loansOutstanding,
     settleCashPayments,
     type CashPayment,
+    type LoanRateTable,
     type LoanRules
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
@@ -13,21 +13,18 @@ import { liquidate } from './liquidation.js'
 import { LoanSharkId, companyHolding } from './privateHolders.js'
 
 const LoanSharkInterest = 10
-const RateStep = 5
-const LoansPerStep = 5
-const MaximumRate = 70
+// 5% for each five loans taken in the game, rounded up, from 5% to 70%.
+const RateTable: LoanRateTable = {
+    loansPerRow: 5,
+    rates: Array.from({ length: 14 }, (_, row) => 5 * (row + 1))
+}
 
 export const EighteenSeventeenLoanRules: LoanRules = {
     market: EighteenSeventeenMarket,
     value: 100,
-    supply: (MaximumRate / RateStep) * LoansPerStep,
+    supply: RateTable.rates.length * RateTable.loansPerRow,
     capacity: (state, companyId) => corporationShareCount(state, companyId),
-    // 5% for each five loans taken in the game, rounded up, from 5% to 70%.
-    rate: (state) =>
-        Math.min(
-            MaximumRate,
-            Math.max(RateStep, RateStep * Math.ceil(loansOutstanding(state) / LoansPerStep))
-        ),
+    rate: RateTable,
     // The Loan Shark's company pays $10 more each round for the rest of the game.
     extraInterest: (state, companyId) =>
         companyHolding(state, LoanSharkId) === companyId ? LoanSharkInterest : 0,
