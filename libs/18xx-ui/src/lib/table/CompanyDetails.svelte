@@ -40,6 +40,7 @@
     import { multiShareMark } from '../finance/multiShareCertificates.js'
     import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
     import RemainingStationTokens from './RemainingStationTokens.svelte'
+    import { sessionStationTokens } from './stationTokens.js'
     import { shareSourceName } from '../stock/purchaseSources.js'
     let {
         session,
@@ -113,6 +114,10 @@
     const compactMarks = $derived(marks.filter((mark) => mark.compact))
     const rosterMarks = $derived(marks.filter((mark) => !mark.compact))
     const stationCosts = $derived(!session.presentation.hideStationCosts)
+    // Three priced token groups leave a narrow card's name too little room beside them.
+    const tokensBelowName = $derived(
+        vertical && stationCosts && sessionStationTokens(session, company.id).groups.length > 2
+    )
     const titleFacts = $derived(
         session.presentation.companyFacts?.(session.gameState, company.id) ?? []
     )
@@ -205,6 +210,7 @@
     class="company-detail"
     class:vertical
     class:trains-under-stations={vertical && !stationCosts}
+    class:tokens-below-name={tokensBelowName}
     class:wide-fill={layout === 'wide-fill'}
     class:unavailable
     class:tradable={!!tradeLabel}
@@ -606,6 +612,14 @@
     }
     .vertical .header-summary {
         padding-left: 0;
+    }
+    .tokens-below-name header {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+    .tokens-below-name .header-summary {
+        flex-basis: 100%;
+        padding-left: 39px;
     }
     .vertical .detail-columns {
         grid-template-columns: minmax(0, 1fr);

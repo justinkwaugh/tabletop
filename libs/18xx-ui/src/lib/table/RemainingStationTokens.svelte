@@ -1,6 +1,6 @@
 <script lang="ts">
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import { remainingStationTokens } from './stationTokens.js'
+    import { sessionStationTokens } from './stationTokens.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
@@ -14,11 +14,7 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const stationCosts = $derived(!session.presentation.hideStationCosts)
-    const tokens = $derived(
-        remainingStationTokens(session.gameState, companyId, (stationId) =>
-            session.stations.placementCost(stationId)
-        )
-    )
+    const tokens = $derived(sessionStationTokens(session, companyId))
     const remainingStations = $derived(tokens.remaining)
     const tokenGroups = $derived(tokens.groups)
     const counted = $derived(tokens.counted)

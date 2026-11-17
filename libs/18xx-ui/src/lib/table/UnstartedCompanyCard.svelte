@@ -3,7 +3,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PlaceLink from '../places/PlaceLink.svelte'
     import RemainingStationTokens from './RemainingStationTokens.svelte'
-    import { remainingStationTokens } from './stationTokens.js'
+    import { sessionStationTokens } from './stationTokens.js'
     import type { UnstartedCompanyHome } from '../session/titlePresentation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
@@ -18,12 +18,7 @@
         wide?: boolean
     } = $props()
     // Two or more token groups beside the name leave no room for "Not started" beside them too.
-    const crowded = $derived(
-        !wide &&
-            remainingStationTokens(session.gameState, company.id, (stationId) =>
-                session.stations.placementCost(stationId)
-            ).groups.length > 1
-    )
+    const crowded = $derived(!wide && sessionStationTokens(session, company.id).groups.length > 1)
 </script>
 
 <article

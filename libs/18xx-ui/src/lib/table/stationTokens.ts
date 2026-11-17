@@ -1,4 +1,5 @@
 import { neutralStation, placeableStations, type StationState } from '@tabletop/18xx'
+import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
 /**
  * A company's station tokens not yet on the map, its own and the neutral ones it holds, and the
@@ -25,4 +26,11 @@ export function remainingStationTokens(
     }
     groups.sort((a, b) => Number(a.neutral) - Number(b.neutral) || a.cost - b.cost)
     return { remaining, groups, counted: groups.some((group) => group.count > 1) }
+}
+
+/** A company's station tokens not yet on the map, priced as the session shows them. */
+export function sessionStationTokens(session: EighteenXXSessionView, companyId: string) {
+    return remainingStationTokens(session.gameState, companyId, (stationId) =>
+        session.stations.placementCost(stationId)
+    )
 }
