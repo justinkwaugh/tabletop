@@ -112,11 +112,12 @@ its owner: convert it, merge it with other connected minors, or pass.
    price, at least R100 and at most R200. Owners of the other minors answer the proposal; any refusal ends it.
 2. **Stations.** Where the merging minors have more than two placed stations, or two in one hex,
    the director-to-be chooses the two (in different hexes) that become the major's.
-3. **Shareholders' purchases.** Each minor becomes one share. From the active minor's owner
-   clockwise, each player with a share buys any number of treasury shares in one go (at most 60%,
-   within the certificate limit). The first player to hold two shares directs the company, and
-   anyone who then holds more than the director takes over. If nobody would hold two shares, the
-   proposal lapses and nothing changes.
+3. **Shareholders' purchases.** Each minor becomes one share. The player with the most shares
+   directs, even with one; a tie goes to the owner of the merging minor earliest in operating
+   order. From the director clockwise, each player with a share buys any number of treasury
+   shares in one go (at most 60%, within the certificate limit), and anyone who then holds more
+   than the director takes over. If nobody would hold two shares, the proposal lapses and nothing
+   changes.
 4. **Formation.** Assets (cash, trains, privates, loans) move to the major; minors close; the
    director's certificate goes to the director; the purchases are paid to the treasury.
 5. **Open purchases.** Every player, the director first, may buy one treasury share.
@@ -249,9 +250,12 @@ Confirmed by the designer or the GTG text:
 Decided by the owner on 2026-11-14, after comparing the GTG edition and the designer's posts:
 
 - Mergers worth less than R100 are illegal (the designer's 2021 ruling).
-- The first player to hold two shares directs a merged company; the active minor's owner buys
-  first; anyone who then holds more than the director takes over (GTG §3.3, §9.2C). The director
-  still chooses the stations before the share purchases (the research engine's order).
+- The director still chooses the stations before the share purchases (the research engine's
+  order).
+- Changed by the owner on 2026-11-17, with 1867: the merger order is the designer's (AAG §12.3,
+  ruled definitive over GTG §9.2C). The player with the most shares directs, ties going to the
+  owner of the merging minor earliest in operating order; the director buys first; anyone who
+  then holds more than the director takes over.
 - A company that cannot pay its interest pays none of it and is nationalised; its loans are
   repaid from its cash and the RSR takes the rest (GTG §8.10, §10.1).
 - The RSR keeps v2.0's station limit: six outside Moscow and St. Petersburg, plus those two.

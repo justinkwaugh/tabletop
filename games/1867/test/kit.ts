@@ -1,3 +1,4 @@
+import { trainsOwnedBy } from '@tabletop/18xx'
 import { titleTestKit, type Table as TitleTable } from '../../../libs/18xx/test/titleTestKit.js'
 import { Definition } from '../src/definition/gameDefinition.js'
 import { Map1867 } from '../src/map.js'
@@ -76,4 +77,35 @@ export function edit(game: Table, change: (state: State1867) => void): void {
     const state = structuredClone(game.state)
     change(state)
     game.state = state
+}
+
+/** Plays the operating turns, each company running nothing and buying the cheapest train. */
+export function operateRound(game: Table): void {
+    while (game.state.machineState !== 'MergerRound' && game.state.machineState !== 'StockRound') {
+        const valid = game.valid()
+        const companyId =
+            game.state.trackStep?.companyId ??
+            game.state.stationStep?.companyId ??
+            game.state.routeStep?.companyId ??
+            game.state.trainPurchaseStep?.companyId ??
+            ''
+        if (valid.includes('FinishTrack')) game.act('FinishTrack', { companyId })
+        else if (valid.includes('FinishStations')) game.act('FinishStations', { companyId })
+        else if (valid.includes('RunTrains')) game.act('RunTrains', { companyId, routes: [] })
+        else if (valid.includes('DistributeEarnings'))
+            game.act('DistributeEarnings', { companyId, choice: 'half-pay' })
+        else if (
+            valid.includes('BuyTrain') &&
+            !trainsOwnedBy(game.state, { kind: 'company', companyId }).length
+        ) {
+            const train = game.state.trainInventory.trains.find((entry) => entry.status === 'depot')
+            if (!train) throw new Error('No train left')
+            game.act('BuyTrain', {
+                companyId,
+                trainId: train.id,
+                definitionId: train.definitionId,
+                expectedPrice: TrainDepot1867.trainDefinition(train.definitionId).price
+            })
+        } else game.act('FinishOperatingTurn', { companyId })
+    }
 }

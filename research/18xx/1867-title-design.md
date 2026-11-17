@@ -76,6 +76,10 @@ updated. **1861 needs a logic major at its next release.** No other title's cont
 
 From `/workspace/artassets/1867/rulings.md`; the numbers are that file's.
 
+- A1–A2: merger order, the owner's choice of 2026-11-17 for both titles. The player with the
+  most shares directs, even with one, a tie going to the owner of the merging minor earliest in
+  operating order; the director buys first and a larger holding takes over (AAG §12.3, 1861
+  §12.3), not GTG §9.2C's active owner first.
 - A6: phase 8 trade-in at 50% of the old train's face value, the new train from the yard, the old
   one to the bank pool, allowed at the train limit. AAG calls it an upgrade, so the new train must
   cost more than the old one: an 8 is never traded for another 8 (or a 5+5E for an 8). Only in phase 8 (AAG "In Phase 8 (only)"),
@@ -97,18 +101,13 @@ From `/workspace/artassets/1867/rulings.md`; the numbers are that file's.
 
 ## Questions for the owner
 
-1. **Merger order** (A1–A2, open question 1). The designer rules the AAG order definitive: the
-   player with the most shares directs (ties to the earliest-operating minor's owner) and buys
-   first. Both titles follow the order chosen for 1861 on 2026-11-14 (GTG §9.2C: the active
-   minor's owner first, the first to two shares directs). The merger round is shared, so one
-   choice moves both titles.
-2. **Merger floor** (A27): $100 (designer 2021, the 1861 choice, built) or $70 (designer 2022).
-3. **Two players** (A30, open question 7): built with the GTG §16 setup written for 1861S
+1. **Merger floor** (A27): $100 (designer 2021, the 1861 choice, built) or $70 (designer 2022).
+2. **Two players** (A30, open question 7): built with the GTG §16 setup written for 1861S
    ($420, limit 21, 70%, 3×2/2×3/1×4/1×5/1×6/1×7 removed, two privates removed). The designer
    has not tested it in 1867 and suspects two 6s (or 7s) must stay. Keep, change, or drop 2p.
-4. **Montreal station at phase 8** (open question 4): if Montreal is not yet grey and has no free
+3. **Montreal station at phase 8** (open question 4): if Montreal is not yet grey and has no free
    space, the CN places nothing there.
-5. **1861 major start in a hex with a station elsewhere**: 1867's designer ruling (A8) treats a
+4. **1861 major start in a hex with a station elsewhere**: 1867's designer ruling (A8) treats a
    hex's cities as one for majors; 1861 still checks the city only. The ruling may apply to 1861.
 
 ## Not built

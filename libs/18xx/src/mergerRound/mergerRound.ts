@@ -256,7 +256,7 @@ export class MergerRounds {
         const preview: MergerPreview = {
             marketSpaceId: space.id,
             price: space.price,
-            directorId: this.firstDirector(state, this.ownerOf(state, request.minorId), shares),
+            directorId: this.firstDirector(state, minorIds, shares),
             allotments: shares
         }
         return preview
@@ -464,7 +464,7 @@ export class MergerRounds {
                 const round = rounds.requireRound(state)
                 const minorIds = rounds.operatingOrderOf(state, this.minorIds)
                 const shares = rounds.baseAllotments(state, this.kind, minorIds)
-                const directorId = rounds.firstDirector(state, this.playerId, shares)
+                const directorId = rounds.firstDirector(state, minorIds, shares)
                 const proposal: MergerProposal = {
                     kind: this.kind,
                     minorId: this.minorId,
@@ -756,35 +756,29 @@ export class MergerRounds {
     }
 
     /**
-     * The minors are exchanged for shares from the active minor's owner clockwise; the first
-     * player to hold the director's shares is director. Until anyone does, the active minor's
-     * owner decides (GTG §9.2C).
+     * The player with the most shares directs, even with only one; a tie goes to the owner of
+     * the merging minor earliest in operating order. The designer rules the All-Aboard text
+     * definitive over Grand Trunk's §9.2C (1861 §12.3, 1867 AAG §12.3).
      */
     private firstDirector(
         state: State,
-        activeOwnerId: string,
+        minorIds: readonly string[],
         shares: readonly ShareAllotment[]
     ): string {
-        return (
-            this.clockwiseFrom(state, activeOwnerId).find(
-                (playerId) =>
-                    (shares.find((entry) => entry.playerId === playerId)?.shares ?? 0) >=
-                    this.rules.directorShares
-            ) ?? activeOwnerId
-        )
+        const most = Math.max(...shares.map((entry) => entry.shares))
+        const directorId = minorIds
+            .map((minorId) => this.ownerOf(state, minorId))
+            .find((playerId) =>
+                shares.some((entry) => entry.playerId === playerId && entry.shares === most)
+            )
+        assertExists(directorId, 'A merging minor’s owner holds the most shares')
+        return directorId
     }
 
-    /**
-     * After a purchase the buyer directs if no one yet holds the director's shares and they do,
-     * or if they now hold more than the director (GTG §3.3, §9.2C).
-     */
+    /** A buyer who comes to hold more shares than the director takes over (1861 §12.3). */
     private directorAfterPurchase(proposal: MergerProposal, buyerId: string): string {
         const held = (playerId: string) => this.shareTotal(proposal, playerId)
-        const director = proposal.directorId
-        const bought = held(buyerId)
-        const needed = this.rules.directorShares
-        if (held(director) < needed) return bought >= needed ? buyerId : director
-        return bought > held(director) ? buyerId : director
+        return held(buyerId) > held(proposal.directorId) ? buyerId : proposal.directorId
     }
 
     /** Whether some player could come to hold the director's shares. */
@@ -830,11 +824,9 @@ export class MergerRounds {
 
     private beginShareholders(state: State, proposal: MergerProposal): void {
         proposal.stage = 'shareholders'
-        proposal.pendingPlayerIds = this.clockwiseFrom(
-            state,
-            this.ownerOf(state, proposal.minorId)
-        ).filter((playerId) =>
-            proposal.allotments.some((entry) => entry.playerId === playerId && entry.shares > 0)
+        proposal.pendingPlayerIds = this.clockwiseFrom(state, proposal.directorId).filter(
+            (playerId) =>
+                proposal.allotments.some((entry) => entry.playerId === playerId && entry.shares > 0)
         )
     }
 

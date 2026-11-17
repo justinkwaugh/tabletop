@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { getCompany, homeStationId, type StationPosition } from '@tabletop/18xx'
-import { auctionMinor, edit, finishStockRound, kit, opened, setCash } from '../test/kit.js'
+import {
+    auctionMinor,
+    edit,
+    finishStockRound,
+    kit,
+    opened,
+    operateRound,
+    setCash
+} from '../test/kit.js'
 import { CnId } from './companies.js'
 import { EndingRules1867, OperatingRules1867, TrainRules1867 } from './operating.js'
 import { CompanyRules1867, StockRules1867 } from './stock.js'
+import { TileSet1867 } from './tiles.js'
 import { TrackRules1867 } from './track.js'
 
 const at = (positions: readonly StationPosition[], locationId: string, nodeId: string) =>
@@ -225,5 +234,45 @@ describe('1867 Canadian National privates', () => {
         })
         expect(OperatingRules1867.privateIncome?.(game.hydrated, 'SCT')).toBe(0)
         expect(OperatingRules1867.privateIncome?.(game.hydrated, 'QB')).toBe(25)
+    })
+})
+
+describe('1867 merger round', () => {
+    // The designer rules the All-Aboard order definitive over GTG §9.2C (AAG §12.3).
+    it('makes the earliest minor’s owner director on a tie, buying first; a larger holding takes over', () => {
+        const game = opened(3)
+        const later = game.player
+        auctionMinor(game, 'BO', { locationId: 'D16', nodeId: 'city' }, 100)
+        const earlier = game.player
+        auctionMinor(game, 'AE', { locationId: 'E15', nodeId: 'city' }, 140)
+        finishStockRound(game)
+        edit(game, (state) => {
+            state.phaseId = '3'
+            state.tileInventory = TileSet1867.createInventory(kit.trackAlong(['D16', 'E15']))
+        })
+        operateRound(game)
+        expect(game.state.machineState).toBe('MergerRound')
+        // AE, the dearer minor, operated first and is offered first; its owner passes.
+        expect(game.player).toBe(earlier)
+        game.act('PassMerger', { minorId: 'AE' })
+        expect(game.player).toBe(later)
+        game.act('ProposeMerger', {
+            kind: 'merge',
+            minorId: 'BO',
+            minorIds: ['BO', 'AE'],
+            majorId: 'CPR'
+        })
+        game.act('AnswerMerger', { accept: true })
+        // One share each: the tie goes to AE's owner, who directs and buys first.
+        expect(game.state.mergerRound?.proposal).toMatchObject({
+            stage: 'shareholders',
+            directorId: earlier
+        })
+        expect(game.player).toBe(earlier)
+        game.act('BuyMergerShares', { shares: 1 })
+        expect(game.player).toBe(later)
+        game.act('BuyMergerShares', { shares: 2 })
+        expect(game.state.mergerRound?.proposal?.directorId).toBe(later)
+        expect(getCompany(game.state, 'CPR').started).toBe(true)
     })
 })
