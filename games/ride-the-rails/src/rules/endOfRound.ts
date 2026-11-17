@@ -30,7 +30,8 @@ export function turnOrderByMoney(state: HydratedRideTheRailsGameState): string[]
 export const ROUND_END_PASSENGER_CITY: Readonly<Record<MapId, CityId | null>> = {
     'map.usa': null,
     'map.au': null,
-    'map.ca': null
+    'map.ca': null,
+    'map.fr': 'city.fr.paris'
 }
 
 // R-8: the city a passenger is placed in at the end of the round, if any.

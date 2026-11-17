@@ -389,3 +389,60 @@ describe('Canada (R-8.3)', () => {
         })
     })
 })
+
+describe('France (R-8.4)', () => {
+    const state = emptyBoard('map.fr')
+    const RED_BLUE_BLACK = [
+        'city.fr.lille',
+        'city.fr.valenciennes',
+        'city.fr.sedan',
+        'city.fr.metz'
+    ]
+
+    it('starts Red and Blue in the Red/Blue/Black cities', () => {
+        expect(startCityIds(state, 'railroad.red')).toEqual(RED_BLUE_BLACK)
+        expect(startCityIds(state, 'railroad.blue')).toEqual(RED_BLUE_BLACK)
+    })
+
+    it('never starts Red and Blue in the same city, which holds one locomotive', () => {
+        const redInLille = buildState({
+            mapId: 'map.fr',
+            round: 6,
+            phase: PhaseName.Build,
+            shares: { p1: ALL_SHARES },
+            track: { 'hex.fr.15-1': ['railroad.red'] }
+        })
+        expect(placementTest(redInLille, 'p1', 'railroad.blue', 'hex.fr.15-1')).toEqual({
+            legal: false,
+            reason: 'hex-at-capacity'
+        })
+        expect(startCityIds(redInLille, 'railroad.blue')).toEqual(RED_BLUE_BLACK.slice(1))
+    })
+
+    it('starts Orange, Yellow and Purple each in the cities printed in its colour', () => {
+        expect(startCityIds(state, 'railroad.orange')).toEqual([
+            'city.fr.dunkerque',
+            'city.fr.cherbourg',
+            'city.fr.le-havre',
+            'city.fr.brest'
+        ])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual([
+            'city.fr.bordeaux',
+            'city.fr.toulouse',
+            'city.fr.marseille'
+        ])
+        expect(startCityIds(state, 'railroad.purple')).toEqual([
+            'city.fr.strasbourg',
+            'city.fr.paris',
+            'city.fr.basel',
+            'city.fr.geneve',
+            'city.fr.lyon'
+        ])
+    })
+
+    it('starts Black in any city with room (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.fr').cities.map((city) => city.id)
+        )
+    })
+})

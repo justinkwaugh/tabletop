@@ -7,6 +7,7 @@ import {
     USA_CITIES,
     USA_HEXES,
     cityById,
+    type BonusId,
     type CityId,
     type HexId,
     type RailroadId
@@ -138,6 +139,27 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             tone: 'cost',
             text: '−1',
             spoken: 'lowers the limit by 1'
+        })
+    })
+
+    it('draws an expansion city’s bonus as a coin, as Chicago’s, and a connection bonus in gold, named (R-8)', () => {
+        const cityBonuses: readonly BonusId[] = [
+            'bonus.au.perth',
+            'bonus.au.brisbane',
+            'bonus.ca.toronto',
+            'bonus.fr.paris'
+        ]
+        for (const bonusId of cityBonuses) {
+            expect(markView({ kind: 'bonus', bonusId, amount: 10 })).toEqual({
+                tone: 'coin',
+                text: '$10',
+                spoken: '$10'
+            })
+        }
+        expect(markView({ kind: 'bonus', bonusId: 'bonus.ca.intercolonial', amount: 8 })).toEqual({
+            tone: 'gold',
+            text: '$8',
+            spoken: '$8 Intercolonial'
         })
     })
 

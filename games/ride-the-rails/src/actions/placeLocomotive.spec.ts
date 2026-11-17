@@ -481,3 +481,22 @@ describe('Canada (R-8.3)', () => {
         expect(hydrated(after).getPlayerState('p1').money).toBe(18)
     })
 })
+
+describe('France (R-8.4)', () => {
+    const PARIS: HexId = 'hex.fr.13-13'
+
+    it('pays Paris’s $10 for a start there', () => {
+        const { after, processed } = place(
+            building({ mapId: 'map.fr', track: {} }),
+            'railroad.purple',
+            PARIS
+        )
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: true,
+                bonuses: [{ bonusId: 'bonus.fr.paris', amount: 10, cityId: 'city.fr.paris' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(20)
+    })
+})

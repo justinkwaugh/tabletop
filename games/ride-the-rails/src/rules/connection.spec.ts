@@ -105,3 +105,26 @@ describe('Canada (R-8.3)', () => {
         expect(citiesConnected(map, round, [MONTREAL, SAINT_JEAN])).toBe(true)
     })
 })
+
+describe('France (R-8.4)', () => {
+    const map = boardMap('map.fr')
+    const LE_HAVRE: CityId = 'city.fr.le-havre'
+    const CAEN: CityId = 'city.fr.caen'
+
+    it('joins no cities across an estuary', () => {
+        const across: Track = {
+            'hex.fr.8-6': ['railroad.orange'],
+            'hex.fr.8-8': ['railroad.orange']
+        }
+        expect(citiesConnected(map, across, [LE_HAVRE, CAEN])).toBe(false)
+    })
+
+    it('joins them round it', () => {
+        const round: Track = {
+            'hex.fr.8-6': ['railroad.orange'],
+            'hex.fr.9-7': ['railroad.orange'],
+            'hex.fr.8-8': ['railroad.orange']
+        }
+        expect(citiesConnected(map, round, [LE_HAVRE, CAEN])).toBe(true)
+    })
+})

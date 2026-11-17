@@ -78,5 +78,8 @@ export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadInt
     // R-8.2: the USA's rounds; each railroad starts in a city printed in its colour.
     'map.au': PRINTED_COLOUR_INTRODUCTIONS,
     // R-8.3: as on Australia.
-    'map.ca': PRINTED_COLOUR_INTRODUCTIONS
+    'map.ca': PRINTED_COLOUR_INTRODUCTIONS,
+    // R-8.4: as on Australia. Red and Blue start in the Red/Blue/Black cities, each holding one, so
+    // never in the same one.
+    'map.fr': PRINTED_COLOUR_INTRODUCTIONS
 }

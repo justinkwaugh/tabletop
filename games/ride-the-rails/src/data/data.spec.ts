@@ -163,9 +163,14 @@ describe('bonuses (R-4.3)', () => {
 
 describe('tables keyed by map id (R-8)', () => {
     it('keys every table by the same map ids', () => {
-        expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual(['map.usa', 'map.au', 'map.ca'])
-        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa', 'map.au', 'map.ca'])
-        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au', 'map.ca'])
+        expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual([
+            'map.usa',
+            'map.au',
+            'map.ca',
+            'map.fr'
+        ])
+        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa', 'map.au', 'map.ca', 'map.fr'])
+        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au', 'map.ca', 'map.fr'])
     })
 })
 
@@ -316,6 +321,46 @@ describe('Canada (R-8.3)', () => {
             name: 'Canada',
             description:
                 'No mountains; impassable sides block track; Toronto has no limit, $3 a placement and $2 a start; the Intercolonial pays $8.'
+        })
+    })
+})
+
+describe('France (R-8.4)', () => {
+    it('introduces the railroads as Australia does: the USA’s rounds, printed colours, Black anywhere', () => {
+        expect(RAILROAD_INTRODUCTIONS['map.fr']).toEqual(RAILROAD_INTRODUCTIONS['map.au'])
+    })
+
+    it('prints 8 / 5 / 4 for 3 / 4 / 5 players, mountain −1, no railroad exempt', () => {
+        expect(PLACEMENT_LIMITS['map.fr']).toEqual({
+            byPlayerCount: [
+                { playerCount: 3, limit: 8 },
+                { playerCount: 4, limit: 5 },
+                { playerCount: 5, limit: 4 }
+            ],
+            mountainReduction: 1
+        })
+        expect(placementLimit('map.fr', 3, true)).toBe(7)
+        expect(placementLimit('map.fr', 4, true)).toBe(4)
+        expect(placementLimit('map.fr', 5, true)).toBe(3)
+    })
+
+    it('limits a railroad to two Red/Blue/Black cities and one Paris entry hex', () => {
+        expect(GROUP_LIMITS['map.fr']).toEqual([
+            { group: 'red-blue-black', perRailroad: 2 },
+            { group: 'paris-entry', perRailroad: 1 }
+        ])
+    })
+
+    it('has Paris Travels: Paris takes a passenger at the end of a round it has none', () => {
+        expect(ROUND_END_PASSENGER_CITY['map.fr']).toBe('city.fr.paris')
+    })
+
+    it('is listed for game creation as France, with what it changes', () => {
+        expect(MAP_KEY_OF['map.fr']).toBe('fr')
+        expect(MAP_DETAILS['map.fr']).toEqual({
+            name: 'France',
+            description:
+                'Paris $10 inside a ring of six one-locomotive entry hexes, and a new passenger there each round it has none; estuaries that track cannot cross.'
         })
     })
 })

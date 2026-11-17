@@ -45,6 +45,14 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
         boardLabel: 'Map of Canada',
         title: { x: 1800, y: 780 },
         legend: { x: 1240, y: 1100 }
+    },
+    // The board prints no title. The title in the Bay of Biscay, clear of land by 74; the legend
+    // in the Channel north of Cherbourg, the one open water wide enough, clear of land by 58.
+    'map.fr': {
+        name: 'France',
+        boardLabel: 'Map of France',
+        title: { x: 160, y: 1520 },
+        legend: { x: 16, y: 120 }
     }
 }
 

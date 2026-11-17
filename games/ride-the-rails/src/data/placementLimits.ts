@@ -44,6 +44,15 @@ export const PLACEMENT_LIMITS: Readonly<Record<MapId, MapPlacementLimits>> = {
             { playerCount: 5, limit: 4 }
         ],
         mountainReduction: 0
+    },
+    // R-8.4: the board's reminder strip.
+    'map.fr': {
+        byPlayerCount: [
+            { playerCount: 3, limit: 8 },
+            { playerCount: 4, limit: 5 },
+            { playerCount: 5, limit: 4 }
+        ],
+        mountainReduction: 1
     }
 }
 
@@ -75,9 +84,13 @@ export type GroupLimit = {
 }
 
 // R-4.1.4, R-4.2.5: a railroad holds at most two East Coast cities, a start counted; R-8: an
-// expansion map adds its own row.
+// expansion map adds its own row (R-8.4: two Red/Blue/Black cities, one Paris entry hex).
 export const GROUP_LIMITS: Readonly<Record<MapId, readonly GroupLimit[]>> = {
     'map.usa': [{ group: 'east-coast', perRailroad: 2 }],
     'map.au': [],
-    'map.ca': []
+    'map.ca': [],
+    'map.fr': [
+        { group: 'red-blue-black', perRailroad: 2 },
+        { group: 'paris-entry', perRailroad: 1 }
+    ]
 }

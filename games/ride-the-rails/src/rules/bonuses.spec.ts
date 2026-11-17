@@ -605,3 +605,53 @@ describe('Canada (R-8.3)', () => {
         })
     })
 })
+
+describe('France (R-8.4)', () => {
+    const PARIS: HexId = 'hex.fr.13-13'
+    const NORTH_OF_PARIS: HexId = 'hex.fr.13-11'
+    const SOUTH_OF_PARIS: HexId = 'hex.fr.13-15'
+    const PARIS_PAYMENT = { bonusId: 'bonus.fr.paris', amount: 10, cityId: 'city.fr.paris' }
+
+    it('lists Paris, and no Transcontinental', () => {
+        expect(BONUS_RULES['map.fr'].map((rule) => rule.bonus)).toEqual(BONUSES['map.fr'])
+        expect(BONUSES['map.fr']).toEqual([
+            { id: 'bonus.fr.paris', printedName: 'Paris', amount: 10 }
+        ])
+    })
+
+    it('pays $10 for a railroad’s start in Paris', () => {
+        expect(place({ mapId: 'map.fr' }, 'railroad.purple', PARIS)).toEqual({
+            isStart: true,
+            bonuses: [PARIS_PAYMENT]
+        })
+        expect(place({ mapId: 'map.fr' }, 'railroad.black', PARIS)).toEqual({
+            isStart: true,
+            bonuses: [PARIS_PAYMENT]
+        })
+    })
+
+    it('pays $10 for every later placement there, whatever already stands in Paris', () => {
+        const track = trackOf(
+            ['railroad.red', [NORTH_OF_PARIS]],
+            ['railroad.blue', [SOUTH_OF_PARIS]],
+            ['railroad.purple', [PARIS]],
+            ['railroad.black', [PARIS]]
+        )
+        expect(place({ mapId: 'map.fr', track }, 'railroad.red', PARIS)).toEqual({
+            isStart: false,
+            bonuses: [PARIS_PAYMENT]
+        })
+        expect(place({ mapId: 'map.fr', track }, 'railroad.blue', PARIS)).toEqual({
+            isStart: false,
+            bonuses: [PARIS_PAYMENT]
+        })
+    })
+
+    it('pays nothing for a placement in another city or an entry hex', () => {
+        expect(place({ mapId: 'map.fr' }, 'railroad.purple', 'hex.fr.18-28').bonuses).toEqual([])
+        const track = trackOf(['railroad.purple', [PARIS]])
+        expect(
+            place({ mapId: 'map.fr', track }, 'railroad.purple', NORTH_OF_PARIS).bonuses
+        ).toEqual([])
+    })
+})

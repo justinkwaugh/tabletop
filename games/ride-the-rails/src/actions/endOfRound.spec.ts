@@ -1,5 +1,6 @@
 import { ActionSource, createAction } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import type { CityId } from '../data/boardMap.js'
 import { PhaseName } from '../definition/phases.js'
 import { RideTheRailsRuntime } from '../definition/runtime.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
@@ -161,5 +162,31 @@ describe('EndRound (R-2.5)', () => {
             expect(state.dehydrate().players).toEqual(players)
             expect(state.track).toEqual({ 'hex.usa.6-60': ['railroad.red'] })
         })
+    })
+})
+
+describe('France (R-8.4): Paris Travels', () => {
+    function franceAtEndOf(round: number, passengers: CityId[]) {
+        return buildState({ mapId: 'map.fr', round, phase: PhaseName.Ride, passengers })
+    }
+
+    it('places a passenger in Paris at the end of the round when it has none', () => {
+        const state = franceAtEndOf(2, ['city.fr.lille', 'city.fr.lyon'])
+        const action = endRound(state)
+        expect(state.passengers).toEqual(['city.fr.lille', 'city.fr.lyon', 'city.fr.paris'])
+        expect(action.metadata?.passengerPlacedIn).toBe('city.fr.paris')
+    })
+
+    it('places none while Paris still holds its passenger', () => {
+        const state = franceAtEndOf(2, ['city.fr.lyon', 'city.fr.paris'])
+        const action = endRound(state)
+        expect(state.passengers).toEqual(['city.fr.lyon', 'city.fr.paris'])
+        expect(action.metadata).not.toHaveProperty('passengerPlacedIn')
+    })
+
+    it('round-trips the placed passenger through the hydrator', () => {
+        const action = endRound(franceAtEndOf(3, []))
+        const hydrated = RideTheRailsRuntime.hydrator.hydrateAction(action.dehydrate())
+        expect(hydrated.dehydrate()).toEqual(action.dehydrate())
     })
 })

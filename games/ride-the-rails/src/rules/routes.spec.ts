@@ -309,3 +309,20 @@ describe('Canada (R-8.3)', () => {
         ])
     })
 })
+
+describe('France (R-8.4)', () => {
+    const ACROSS_THE_ESTUARY: readonly HexId[] = ['hex.fr.8-6', 'hex.fr.8-8']
+    const ROUND_IT: readonly HexId[] = ['hex.fr.8-6', 'hex.fr.9-7', 'hex.fr.8-8']
+    const track = trackOf([RED, ACROSS_THE_ESTUARY], [BLUE, ROUND_IT])
+    const state = buildState({ mapId: 'map.fr', playerCount: 3, phase: PhaseName.Ride, track })
+
+    it('makes no link across an estuary: Le Havre and Caen are not adjacent', () => {
+        expect(isLink(track, link(RED, ACROSS_THE_ESTUARY))).toBe(false)
+        expect(journeyRefusal(state, [link(RED, ACROSS_THE_ESTUARY)])).toBe('not-a-link')
+    })
+
+    it('makes a link round it, through the hex east of both', () => {
+        expect(isLink(track, link(BLUE, ROUND_IT))).toBe(true)
+        expect(journeyCities([link(BLUE, ROUND_IT)])).toEqual(['city.fr.le-havre', 'city.fr.caen'])
+    })
+})

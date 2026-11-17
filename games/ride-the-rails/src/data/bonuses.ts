@@ -9,6 +9,7 @@ export type BonusId =
     | 'bonus.au.brisbane'
     | 'bonus.ca.toronto'
     | 'bonus.ca.intercolonial'
+    | 'bonus.fr.paris'
 
 export type FixedBonus = {
     readonly id: BonusId
@@ -94,9 +95,17 @@ export const INTERCOLONIAL_BONUS: ConnectionBonus = {
     cityIds: ['city.ca.sault-ste-marie', 'city.ca.windsor', 'city.ca.quebec-city']
 }
 
+// R-8.4: $10 for each placement in Paris, a start included.
+export const PARIS_BONUS: FixedBonus = {
+    id: 'bonus.fr.paris',
+    printedName: 'Paris',
+    amount: 10
+}
+
 // R-4.3; R-8: an expansion map adds its own row.
 export const BONUSES: Readonly<Record<MapId, readonly BonusDefinition[]>> = {
     'map.usa': [CHICAGO_BONUS, FIVE_DOLLAR_BONUS, TRANSCONTINENTAL_BONUS],
     'map.au': [PERTH_BONUS, BRISBANE_BONUS],
-    'map.ca': [TORONTO_BONUS, INTERCOLONIAL_BONUS]
+    'map.ca': [TORONTO_BONUS, INTERCOLONIAL_BONUS],
+    'map.fr': [PARIS_BONUS]
 }

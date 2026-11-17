@@ -1,20 +1,21 @@
 import * as Type from 'typebox'
 
-// R-8: the USA, Australia and Canada; 'map.fr' and 'map.de' are reserved for the other maps.
-export const MAP_IDS = ['map.usa', 'map.au', 'map.ca'] as const
+// R-8: the USA, Australia, Canada and France; 'map.de' is reserved for Germany.
+export const MAP_IDS = ['map.usa', 'map.au', 'map.ca', 'map.fr'] as const
 
 export const MapId = Type.Enum(MAP_IDS)
 export type MapId = Type.Static<typeof MapId>
 
 // The key a map's hex and city ids carry, `hex.<key>.…` and `city.<key>.…`; one per map id.
-export const MAP_KEYS = ['usa', 'au', 'ca'] as const
+export const MAP_KEYS = ['usa', 'au', 'ca', 'fr'] as const
 
 export type MapKey = (typeof MAP_KEYS)[number]
 
 export const MAP_KEY_OF: Readonly<Record<MapId, MapKey>> = {
     'map.usa': 'usa',
     'map.au': 'au',
-    'map.ca': 'ca'
+    'map.ca': 'ca',
+    'map.fr': 'fr'
 }
 
 export type MapDetails = {
@@ -36,5 +37,10 @@ export const MAP_DETAILS: Readonly<Record<MapId, MapDetails>> = {
         name: 'Canada',
         description:
             'No mountains; impassable sides block track; Toronto has no limit, $3 a placement and $2 a start; the Intercolonial pays $8.'
+    },
+    'map.fr': {
+        name: 'France',
+        description:
+            'Paris $10 inside a ring of six one-locomotive entry hexes, and a new passenger there each round it has none; estuaries that track cannot cross.'
     }
 }

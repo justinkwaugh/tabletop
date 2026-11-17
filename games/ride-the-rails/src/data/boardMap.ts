@@ -28,8 +28,9 @@ export type CityCapacity = 1 | 2 | 'unlimited'
 // R-4.1.4, R-8: an Alps hex holds none.
 export type HexCapacity = 0 | CityCapacity
 
-// The printed groups a map's rules name: the coasts of the USA (R-4.1.4, R-4.2, R-4.3.3).
-export type HexGroup = 'east-coast' | 'west-coast'
+// The printed groups a map's rules name: the coasts of the USA (R-4.1.4, R-4.2, R-4.3.3); France's
+// Red/Blue/Black cities and the entry hexes round Paris (R-8.4).
+export type HexGroup = 'east-coast' | 'west-coast' | 'red-blue-black' | 'paris-entry'
 
 export type City = {
     id: CityId
@@ -79,6 +80,7 @@ export type MapDefinition = {
 
 const NON_CITY_CAPACITY = 2
 const LONG_DISTANCE_CAPACITY = 1
+const PARIS_ENTRY_CAPACITY = 1
 const ALPS_CAPACITY = 0
 
 export class BoardMap {
@@ -157,7 +159,8 @@ export class BoardMap {
         return adjacent
     }
 
-    // R-4.1.4, R-8: a city's printed capacity; an Alps hex none, a long-distance hex one, else two.
+    // R-4.1.4, R-8: a city's printed capacity; an Alps hex none, a long-distance hex or a Paris entry
+    // hex one, else two.
     capacity(hexId: HexId): HexCapacity {
         const hex = this.hex(hexId)
         switch (hex.terrain) {
@@ -169,7 +172,9 @@ export class BoardMap {
                 return LONG_DISTANCE_CAPACITY
             case 'plain':
             case 'mountain':
-                return NON_CITY_CAPACITY
+                return (hex.groups ?? []).includes('paris-entry')
+                    ? PARIS_ENTRY_CAPACITY
+                    : NON_CITY_CAPACITY
         }
     }
 

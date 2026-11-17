@@ -6,6 +6,8 @@ import type { HexId } from '../data/hexes.js'
 // exercised before any flat map is printed. The id types know only the USA's key, so the fixture
 // borrows it; it is never registered, and only its own `BoardMap` reads it (the UI's board
 // geometry specs build their flat board from it).
+// Some of its ids are the USA's too: a spec builds the fixture's geometry from the fixture, never
+// through a global id lookup.
 //
 //   col:     0     1     2     3
 //   drow 0  0-0         2-0

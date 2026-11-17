@@ -663,3 +663,87 @@ describe('Canada (R-8.3)', () => {
         )
     })
 })
+
+describe('France (R-8.4)', () => {
+    const LILLE: HexId = 'hex.fr.15-1'
+    const VALENCIENNES: HexId = 'hex.fr.17-3'
+    const SEDAN: HexId = 'hex.fr.19-7'
+    const PARIS: HexId = 'hex.fr.13-13'
+    const NORTH_OF_PARIS: HexId = 'hex.fr.13-11'
+    const NORTH_WEST_OF_PARIS: HexId = 'hex.fr.12-12'
+    const LE_HAVRE: HexId = 'hex.fr.8-6'
+    const CAEN: HexId = 'hex.fr.8-8'
+    const SOUTH_EAST_OF_LE_HAVRE: HexId = 'hex.fr.9-7'
+
+    function france(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
+        return building({
+            mapId: 'map.fr',
+            shares: {
+                p1: {
+                    'railroad.red': 1,
+                    'railroad.blue': 1,
+                    'railroad.orange': 1,
+                    'railroad.purple': 1,
+                    'railroad.black': 1
+                }
+            },
+            track: {},
+            ...recipe
+        })
+    }
+
+    it('allows 8, 5 and 4 placements for 3, 4 and 5 players, one fewer once a mountain is used', () => {
+        expect([3, 4, 5].map((playerCount) => placementsLeft(france({ playerCount })))).toEqual([
+            8, 5, 4
+        ])
+        expect(placementsLeft(france({ building: { placed: 0, usedMountain: true } }))).toBe(7)
+    })
+
+    it('lets a railroad hold at most two of the Red/Blue/Black cities, a start counted', () => {
+        const state = france({
+            track: { [LILLE]: ['railroad.red'], [VALENCIENNES]: ['railroad.red'] }
+        })
+        expect(groupHexesHeld(state.track, 'railroad.red', 'red-blue-black')).toBe(2)
+        expect(placementTest(state, 'p1', 'railroad.red', SEDAN)).toEqual(
+            refused('group-limit-reached')
+        )
+        expect(placementTest(state, 'p1', 'railroad.blue', SEDAN)).toEqual({
+            legal: true,
+            isStart: true
+        })
+    })
+
+    it('holds one locomotive in each Red/Blue/Black city', () => {
+        const state = france({ track: { [LILLE]: ['railroad.red'] } })
+        expect(placementTest(state, 'p1', 'railroad.blue', LILLE)).toEqual(
+            refused('hex-at-capacity')
+        )
+    })
+
+    it('lets a railroad hold only one of the Paris entry hexes, each holding one locomotive', () => {
+        const state = france({ track: { [PARIS]: ['railroad.purple', 'railroad.black'] } })
+        expect(placementTest(state, 'p1', 'railroad.purple', NORTH_OF_PARIS)).toEqual(LEGAL)
+        const entered = france({
+            track: {
+                [PARIS]: ['railroad.purple', 'railroad.black'],
+                [NORTH_OF_PARIS]: ['railroad.purple']
+            }
+        })
+        expect(groupHexesHeld(entered.track, 'railroad.purple', 'paris-entry')).toBe(1)
+        expect(placementTest(entered, 'p1', 'railroad.purple', NORTH_WEST_OF_PARIS)).toEqual(
+            refused('group-limit-reached')
+        )
+        expect(placementTest(entered, 'p1', 'railroad.black', NORTH_OF_PARIS)).toEqual(
+            refused('hex-at-capacity')
+        )
+        expect(placementTest(entered, 'p1', 'railroad.black', NORTH_WEST_OF_PARIS)).toEqual(LEGAL)
+    })
+
+    it('builds no track across an estuary', () => {
+        const state = france({ track: { [LE_HAVRE]: ['railroad.orange'] } })
+        expect(placementTest(state, 'p1', 'railroad.orange', CAEN)).toEqual(
+            refused('not-adjacent-or-start')
+        )
+        expect(placementTest(state, 'p1', 'railroad.orange', SOUTH_EAST_OF_LE_HAVRE)).toEqual(LEGAL)
+    })
+})
