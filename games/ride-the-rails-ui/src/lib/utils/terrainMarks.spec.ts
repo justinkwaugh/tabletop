@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
-import { MAP_IDS, boardMap, type MapId } from '@tabletop/ride-the-rails'
+import { MAP_IDS, boardMap, hexIdToAxial, type MapId } from '@tabletop/ride-the-rails'
 import { boardGeometry, type BoardGeometry } from './boardGeometry.js'
 import { capacityMarks } from './cityMarks.js'
 import {
@@ -8,7 +8,8 @@ import {
     alpsHatchPath,
     HEX_LIMIT_MARK,
     HOURGLASS,
-    hexLimitMarks
+    hexLimitMarks,
+    impassableSides
 } from './terrainMarks.js'
 import { insideConvexPolygon, reachPastConvex } from '$lib/testing/shapeChecks.js'
 
@@ -186,6 +187,52 @@ describe('the long-distance hexes (R-8.2)', () => {
             }
             const mark = hexLimitMarks(geometry).find((found) => found.hexId === hex.id)
             expect(mark?.y ?? Infinity).toBeLessThan(center.y + at.y - half.y)
+        }
+    })
+})
+
+describe('impassable sides (R-8.3, R-8.4)', () => {
+    const near = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) < 0.5
+
+    it('draws a channel on exactly the map’s impassable sides: Canada’s 18, France’s 7', () => {
+        const counts = Object.fromEntries(
+            MAP_IDS.map((mapId) => [mapId, impassableSides(boardGeometry(mapId)).length])
+        )
+        expect(counts).toEqual({
+            'map.usa': 0,
+            'map.au': 0,
+            'map.ca': 18,
+            'map.fr': 7,
+            'map.de': 0
+        })
+        for (const mapId of ['map.ca', 'map.fr'] as const) {
+            expect(impassableSides(boardGeometry(mapId)).map((side) => side.pair)).toEqual(
+                boardMap(mapId).impassable
+            )
+        }
+    })
+
+    it('lays each channel along the side its two hexes share, a whole side long', () => {
+        for (const mapId of ['map.ca', 'map.fr'] as const) {
+            const geometry = boardGeometry(mapId)
+            for (const { pair, from, to } of impassableSides(geometry)) {
+                const [a, b] = pair
+                const corners = (hexId: typeof a) =>
+                    geometry.map.hasHex(hexId)
+                        ? geometry.place(hexId).cells.flatMap((cell) => cell.vertices)
+                        : geometry.cellAt(hexIdToAxial(geometry.orientation, hexId)).vertices
+                for (const end of [from, to]) {
+                    expect(
+                        corners(a).some((corner) => near(corner, end)),
+                        `${a} ${end.x}`
+                    ).toBe(true)
+                    expect(
+                        corners(b).some((corner) => near(corner, end)),
+                        `${b} ${end.x}`
+                    ).toBe(true)
+                }
+                expect(Math.abs(Math.hypot(to.x - from.x, to.y - from.y) - 40)).toBeLessThan(0.1)
+            }
         }
     })
 })

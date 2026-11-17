@@ -1,5 +1,5 @@
-import type { Point } from '@tabletop/common'
-import type { HexId } from '@tabletop/ride-the-rails'
+import { assert, type Point } from '@tabletop/common'
+import { hexIdToAxial, type HexId, type ImpassablePair } from '@tabletop/ride-the-rails'
 import type { BoardGeometry } from './boardGeometry.js'
 
 // Art plan, Expansion boards: the marks the expansion maps' boards add inside their hexes, in board
@@ -116,3 +116,34 @@ export const HOURGLASS = {
     glassOpacity: 0.8,
     sand: 'M-2.2 5.2H2.2L0 2.6Z'
 } as const
+
+/**
+ * R-8.3, R-8.4: an impassable side (a river, an estuary, a lake shore) as a water channel along
+ * the side: the sea's colour on a deeper edge, so it reads on cream and on the sea alike.
+ */
+export const IMPASSABLE_CHANNEL = { edgeWidth: 9, waterWidth: 4.6 } as const
+
+export type ImpassableSide = { pair: ImpassablePair; from: Point; to: Point }
+
+const SAME_CORNER = 0.5
+
+/**
+ * R-8: every printed impassable side of the map, in its table's order: the side the two hexes'
+ * cells share, the second of them a cell off the board where the side runs along the shore.
+ */
+export function impassableSides(geometry: BoardGeometry): ImpassableSide[] {
+    const corners = (hexId: HexId) =>
+        geometry.map.hasHex(hexId)
+            ? geometry.place(hexId).cells.flatMap((cell) => cell.vertices)
+            : geometry.cellAt(hexIdToAxial(geometry.orientation, hexId)).vertices
+    return geometry.map.impassable.map((pair) => {
+        const [a, b] = pair
+        const others = corners(b)
+        const shared = corners(a).filter((corner) =>
+            others.some((other) => Math.hypot(other.x - corner.x, other.y - corner.y) < SAME_CORNER)
+        )
+        const [from, to] = shared
+        assert(shared.length === 2 && from && to, `${a} and ${b} share no side`)
+        return { pair, from, to }
+    })
+}

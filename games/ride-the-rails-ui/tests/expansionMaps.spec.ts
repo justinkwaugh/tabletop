@@ -53,3 +53,27 @@ test('Australia: a long-distance placement ends the turn (R-8.2)', async ({ page
     await expect.poll(() => trackIn(page, 'hex.au.2-12')).toEqual(['railroad.orange'])
     await expect.poll(() => activePlayerId(page)).not.toBe('p1')
 })
+
+test('Canada: no pick is offered across an impassable side (R-8.3)', async ({ page }) => {
+    await openScenario(page, 'Canada toronto')
+    await expect(page.getByRole('group', { name: 'Map of Canada' })).toBeVisible()
+    await expect(board(page).locator('[data-impassable-sides] path')).toHaveCount(2)
+    await expect(board(page).locator('g.bonuses [data-bonus-text="$3/$2"]')).toHaveCount(1)
+    expect(await trackIn(page, 'hex.ca.11-21')).toEqual([
+        'railroad.blue',
+        'railroad.red',
+        'railroad.purple'
+    ])
+
+    // Purple stands in the hex beside Toronto: Hamilton, across a side open to it, lights; the
+    // hex past its impassable south side does not, though nothing else stands there.
+    const lit = await litHexIds(page)
+    expect(lit).toContain('hex.ca.9-23')
+    expect(lit).toContain('hex.ca.10-22')
+    expect(lit).not.toContain('hex.ca.10-24')
+    expect(await trackIn(page, 'hex.ca.10-24')).toEqual([])
+
+    await pressHex(page, litHexAt(page, 'hex.ca.9-23'))
+    await expect.poll(() => trackIn(page, 'hex.ca.9-23')).toEqual(['railroad.purple'])
+    await expect.poll(() => litHexIds(page)).not.toContain('hex.ca.9-23')
+})

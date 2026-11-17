@@ -45,13 +45,16 @@ describe('each map’s sea layout', () => {
         expect(legendBox('map.usa')).toEqual({ x: 52, y: 992, width: 610, height: 204 })
     })
 
-    it('narrows only Germany’s legend, whose North Sea is too narrow for the usual card', () => {
-        for (const mapId of MAP_IDS) {
-            expect([mapId, legendBox(mapId).width]).toEqual([
-                mapId,
-                mapId === 'map.de' ? 480 : START_LEGEND.width
-            ])
-        }
+    it('narrows a legend only where its open sea is too narrow for the usual card', () => {
+        expect(Object.fromEntries(MAP_IDS.map((mapId) => [mapId, legendBox(mapId).width]))).toEqual(
+            {
+                'map.usa': START_LEGEND.width,
+                'map.au': START_LEGEND.width,
+                'map.ca': 440,
+                'map.fr': START_LEGEND.width,
+                'map.de': 480
+            }
+        )
     })
 
     it('sets the rows’ text past the widest row’s cubes, where the USA’s two always stood', () => {
@@ -70,12 +73,14 @@ describe('each map’s sea layout', () => {
     })
 
     it('stands each expansion map’s legend where its board prints the introduction panel', () => {
+        // Its middle in the board's lower left quarter: the open sea nearest the printed panel.
         const southWest = (mapId: MapId) => {
             const { width, height } = boardGeometry(mapId)
             const box = legendBox(mapId)
-            return box.x + box.width <= width / 2 && box.y >= height / 2
+            return box.x + box.width / 2 <= width / 2 && box.y + box.height / 2 >= height / 2
         }
         expect(southWest('map.au')).toBe(true)
+        expect(southWest('map.ca')).toBe(true)
     })
 
     it('writes one legend row per start rule, Red and Blue sharing theirs', () => {

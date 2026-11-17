@@ -1,10 +1,16 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { hexCenter, hexPoints } from '$lib/utils/boardGeometry.js'
+    import { hexCenter, hexPoints, pointText } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK, CITY_CENTRE_INSET, hexPaint } from '$lib/utils/boardLook.js'
     import { MOUNTAIN_PEAK } from '$lib/utils/cityMarks.js'
     import { insetCellPoints } from '$lib/utils/pickMarks.js'
-    import { ALPS_HATCH, alpsHatchPath, HOURGLASS } from '$lib/utils/terrainMarks.js'
+    import {
+        ALPS_HATCH,
+        alpsHatchPath,
+        HOURGLASS,
+        IMPASSABLE_CHANNEL,
+        impassableSides
+    } from '$lib/utils/terrainMarks.js'
 
     const gameSession = getGameSession()
 
@@ -31,6 +37,13 @@
     const ALPS = $derived(HEXES.filter((hex) => hex.alps))
     const ALPS_HATCH_PATH = $derived(alpsHatchPath(board))
     const LONG_DISTANCE = $derived(HEXES.filter((hex) => hex.longDistance))
+    // R-8.3, R-8.4: each impassable side as a water channel, one path for the edges and one for the
+    // water, on the ground under the bands and cubes.
+    const CHANNELS = $derived(
+        impassableSides(board)
+            .map(({ from, to }) => `M${pointText(from)}L${pointText(to)}`)
+            .join('')
+    )
     // BOARD_LOOK.cityCentre 'cream-inset': every city's middle in the plains' cream, its grey a rim,
     // in each of its cells.
     const CITY_CENTRES = $derived(
@@ -159,6 +172,22 @@
             <path d={HOURGLASS.sand} fill="var(--rtr-ink)"></path>
         </g>
     {/each}
+    {#if CHANNELS}
+        <g data-impassable-sides>
+            <path
+                d={CHANNELS}
+                stroke="var(--rtr-river-edge)"
+                stroke-width={IMPASSABLE_CHANNEL.edgeWidth}
+                stroke-linecap="round"
+            ></path>
+            <path
+                d={CHANNELS}
+                stroke="var(--rtr-sea)"
+                stroke-width={IMPASSABLE_CHANNEL.waterWidth}
+                stroke-linecap="round"
+            ></path>
+        </g>
+    {/if}
     {#if FRAME}
         <rect
             x={x + FRAME.width / 2}

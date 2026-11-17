@@ -124,6 +124,11 @@ describe('a flat map (the fixture, R-8)', () => {
         )
     })
 
+    it('keeps the printed impassable sides as the map lists them, for the board to draw (R-8)', () => {
+        expect(FLAT_FIXTURE_MAP.impassable).toEqual(FLAT_FIXTURE_DEFINITION.impassable)
+        expect(FLAT_FIXTURE_MAP.impassable.length).toBeGreaterThan(0)
+    })
+
     it('gives a two-cell hex the neighbours of both its cells, once each, and never itself', () => {
         expect(FLAT_FIXTURE_MAP.cellsOf(GAMMA_HEX)).toEqual([
             { q: 2, r: 1 },

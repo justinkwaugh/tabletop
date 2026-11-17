@@ -2,6 +2,7 @@ import {
     assertExists,
     calculateHexGeometry,
     HexOrientation,
+    type AxialCoordinates,
     type BoundingBox,
     type HexGeometry,
     type Point,
@@ -64,6 +65,8 @@ export type BoardGeometry = {
     /** The land's outline as one SVG path: every side no two of its hexes share. */
     readonly landPath: string
     place(hexId: HexId): HexPlace
+    /** A cell of the board's grid, on the map or off it, placed as the map's cells are. */
+    cellAt(cell: AxialCoordinates): HexGeometry
     station(cityId: CityId): Station
 }
 
@@ -210,14 +213,15 @@ export function geometryOf(map: BoardMap): BoardGeometry {
         y: BOARD_MARGIN - unplacedBounds.y
     }
     const placed = (point: Point): Point => ({ x: point.x + origin.x, y: point.y + origin.y })
+    const placedCell = (cell: HexGeometry): HexGeometry => ({
+        center: placed(cell.center),
+        vertices: cell.vertices.map(placed),
+        boundingBox: { ...cell.boundingBox, ...placed(cell.boundingBox) }
+    })
 
     const places: ReadonlyMap<HexId, HexPlace> = new Map(
         [...unplaced].map(([hexId, unplacedCells]): [HexId, HexPlace] => {
-            const cells = unplacedCells.map((cell) => ({
-                center: placed(cell.center),
-                vertices: cell.vertices.map(placed),
-                boundingBox: { ...cell.boundingBox, ...placed(cell.boundingBox) }
-            }))
+            const cells = unplacedCells.map(placedCell)
             const [first] = cells
             assertExists(first, `Hex ${hexId} covers no cell`)
             const [outline] =
@@ -268,6 +272,7 @@ export function geometryOf(map: BoardMap): BoardGeometry {
             .map(closedPath)
             .join(''),
         place,
+        cellAt: (cell) => placedCell(calculateHexGeometry(definition, cell)),
         station: (cityId) => {
             const city = map.city(cityId)
             return stationAt(city, place(city.hexId).center)

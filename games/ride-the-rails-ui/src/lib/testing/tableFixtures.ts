@@ -365,6 +365,14 @@ const AU_RED_COWRA = line(['Goulburn', 'Cowra'], { mapId: AU })
 /** The long-distance hexes from Adelaide to Perth, in the order a railroad enters them. */
 export const AU_PERTH_CHAIN = ['hex.au.3-13', 'hex.au.2-12', 'hex.au.1-13'] as const
 
+// R-8.3, Canada: Red from Montréal and Blue from Windsor both into Toronto, and Purple from Toronto
+// into the hex beside it whose south side is impassable.
+const CA: MapId = 'map.ca'
+const CA_RED_TORONTO = line(['Montréal', 'Toronto'], { start: true, mapId: CA })
+const CA_BLUE_TORONTO = line(['Windsor', 'Toronto'], { start: true, mapId: CA })
+/** The hex beside Toronto and the one past its impassable south side. */
+export const CA_IMPASSABLE_PAIR = ['hex.ca.10-22', 'hex.ca.10-24'] as const
+
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
     shares: SHARE_ROUND_ONE,
@@ -376,6 +384,54 @@ const EAST_COAST_ROUND: PlayedRound = {
 }
 
 export const TABLE_FIXTURES: readonly TableFixture[] = [
+    // R-8.3: Canada in round 4. Red, Blue and Purple stand in Toronto; Purple runs on beside it,
+    // where an impassable side parts that hex from the one south of it.
+    {
+        slug: 'canada-toronto',
+        name: 'Canada toronto',
+        recipe: {
+            mapId: CA,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: BLUE },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, CA_RED_TORONTO.slice(0, 7)]] },
+                        { playerId: 'p2', runs: [[BLUE, CA_BLUE_TORONTO.slice(0, 7)]] },
+                        { playerId: 'p3', runs: [[BLUE, CA_BLUE_TORONTO.slice(7)]] }
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: RED, p3: RED },
+                    builds: [{ playerId: 'p2', runs: [[RED, CA_RED_TORONTO.slice(7)]] }],
+                    journeys: { p1: 2, p2: 2, p3: 2 }
+                },
+                {
+                    shares: { p1: YELLOW, p2: BLUE, p3: ORANGE },
+                    builds: [
+                        {
+                            playerId: 'p1',
+                            runs: [[YELLOW, [cityHexId('Sault Ste. Marie', CA)]]]
+                        }
+                    ],
+                    journeys: { p1: 6, p2: 0, p3: 2 }
+                },
+                {
+                    shares: { p3: PURPLE, p1: PURPLE, p2: PURPLE },
+                    builds: [
+                        {
+                            playerId: 'p2',
+                            runs: [[PURPLE, [cityHexId('Toronto', CA), CA_IMPASSABLE_PAIR[0]]]]
+                        }
+                    ]
+                }
+            ],
+            phase: PhaseName.Build,
+            currentPlayerId: 'p1',
+            carried: [cityIdOf('Montréal', CA), cityIdOf('Windsor', CA)]
+        }
+    },
     // R-8.2: Australia in round 4. Orange stands in the chain's first long-distance hex, so Ada's
     // Orange placement in the next, her turn's first, ends her turn; Blue runs past the Alps over
     // the mountains.

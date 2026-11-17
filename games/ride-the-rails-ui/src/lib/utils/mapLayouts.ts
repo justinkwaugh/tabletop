@@ -47,13 +47,16 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
         title: { x: 200, y: 118 },
         legend: { x: 40, y: 1256 }
     },
-    // The board prints no title. The title in the open water south of Sherbrooke, the legend in
-    // the open water south of Kingston, each clear of land by 200 or more.
+    // The board prints no title: the title in the open water south of Sherbrooke, clear of land
+    // by 200. The legend towards the south-west, where the board prints its railroad introduction
+    // panel: in Lake Erie's open water south of Niagara, clear of land by 46. Two rows need less
+    // than the usual card.
     'map.ca': {
         name: 'Canada',
         boardLabel: 'Map of Canada',
         title: { x: 1800, y: 780 },
-        legend: { x: 1240, y: 1100 }
+        legend: { x: 712, y: 1136 },
+        legendWidth: 440
     },
     // The board prints no title. The title in the Bay of Biscay, clear of land by 74; the legend
     // in the Channel north of Cherbourg, the one open water wide enough, clear of land by 58.

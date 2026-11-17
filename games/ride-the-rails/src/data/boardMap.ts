@@ -95,6 +95,8 @@ export class BoardMap {
     // In the map table's order.
     readonly cities: readonly City[]
     readonly citiesWithoutSetupPassenger: readonly CityId[]
+    // R-8: the printed impassable sides, as the map lists them, for the board to draw.
+    readonly impassable: readonly ImpassablePair[]
 
     private readonly hexesById: ReadonlyMap<string, Hex>
     private readonly citiesById: ReadonlyMap<string, City>
@@ -110,6 +112,7 @@ export class BoardMap {
         )
         this.cities = definition.cities
         this.citiesWithoutSetupPassenger = definition.citiesWithoutSetupPassenger
+        this.impassable = definition.impassable
         this.hexesById = new Map(this.hexes.map((hex) => [hex.id, hex]))
         this.citiesById = new Map(this.cities.map((city) => [city.id, city]))
         this.order = new Map(this.hexes.map((hex, index) => [hex.id, index]))
