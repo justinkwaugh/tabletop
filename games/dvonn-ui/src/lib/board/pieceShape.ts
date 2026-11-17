@@ -360,6 +360,9 @@ export const CONTACT_SHADE = 0.55
 // Light falls straight down a stack's hole, so where the board shows through, it lies in only
 // this share of the shade around the stack.
 export const HOLE_SHADE = 0.4
+// Seen between the pieces down a hole: the shade between its far walls, as light in a tall stack
+// as in a short one.
+export const HOLE_GAP_SHADE = 0.85 * HOLE_SHADE
 
 // How dark the board is down a hole, under shades (opacities) laid one over another.
 export function holeFloor(...shades: number[]): number {

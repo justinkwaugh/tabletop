@@ -60,11 +60,21 @@ test('a move cuts stacks off, and Undo takes it back with the stack chosen', asy
 test('the gaps between pieces down a hole are as light in a tall stack as in a short one', async ({
     page
 }) => {
-    // Stacks from one to ten high on the board, and tallies of three and ten on the cards.
     await openScenario(page, 'Midgame')
-    const shades = await page
-        .locator('path.hole-shadow')
-        .evaluateAll((paths) => paths.map((path) => path.getAttribute('fill-opacity')))
-    expect(shades.length).toBeGreaterThan(0)
-    expect(new Set(shades)).toEqual(new Set([shades[0]]))
+    // Each stack on the first card's tally, as its height (one look image a piece) and the shade
+    // between the pieces down its hole.
+    const stacks = await page
+        .locator('svg.tally')
+        .first()
+        .locator(':scope > g')
+        .evaluateAll((groups) =>
+            groups.map((group) => ({
+                height: group.querySelectorAll('image').length,
+                shade: group.querySelector('path.hole-shadow')?.getAttribute('fill-opacity')
+            }))
+        )
+    const short = stacks.find((stack) => stack.height <= 3)
+    const tall = stacks.find((stack) => stack.height === 10)
+    expect(short?.shade).toBeDefined()
+    expect(tall?.shade).toBe(short?.shade)
 })
