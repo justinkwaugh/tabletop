@@ -344,9 +344,9 @@
     }
     .upgrades {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 2px 8px;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
     }
     .upgrade {
         display: inline-flex;
