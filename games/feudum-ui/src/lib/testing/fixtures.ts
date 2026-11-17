@@ -699,6 +699,40 @@ export const Fixtures = {
             return { host, seat: first(host) }
         }
     },
+    /** R-1.1, R-3.6.1 Two rounds of Migrate stand all three of the seat's pawns on the map. */
+    'cards-migrate-all-on': {
+        build: async () => {
+            const plans = seats(
+                {
+                    goods: Plain,
+                    character: 'alchemist',
+                    on: 'outpost',
+                    hand: ['migrate', 'tax', 'guild', 'harvest']
+                },
+                { goods: Plain, character: 'knight' },
+                { goods: Plain, character: 'knight' }
+            )
+            const host = await atCards(plans)
+            const seat = first(host)
+            const migrate = async (pawn: number, character: Character) => {
+                await othersForfeitUntil(host, seat)
+                const { spaceId } = new HydratedFeudumGameState(host.state).getPlayerState(seat)
+                    .pawns[0]
+                assertExists(spaceId, 'R-1.4.7 The first pawn stands where it was placed')
+                await host.send(seat, {
+                    type: ActionType.Migrate,
+                    pawn,
+                    onto: { character, spaceId }
+                })
+                await forfeitRound(host)
+                await finalise(host, plans)
+            }
+            await migrate(2, 'merchant')
+            await migrate(3, 'monk')
+            await othersForfeitUntil(host, seat)
+            return { host, seat }
+        }
+    },
     'cards-improve-town': {
         arranged:
             'R-3.9 The seal: every way to one runs through a guild board or a Harvest with beads.',

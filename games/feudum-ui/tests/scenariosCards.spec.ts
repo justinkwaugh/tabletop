@@ -106,6 +106,19 @@ scenario('S14 R-3.6 Migrate off', 'cards-migrate', async (table) => {
     await expect(table.panel().locator('[data-cards="hand"] [data-row]')).toHaveCount(0)
 })
 
+scenario(
+    'S14 R-3.6.1 Migrate with every pawn on the map',
+    'cards-migrate-all-on',
+    async (table) => {
+        await table.press(table.card('Migrate'))
+        // No pawn waits in supply, so no space lights and the line says so; each pawn may go off.
+        await expect(table.flowLine()).toHaveText('No pawn in supply.')
+        expect(Object.values(await table.litChips())).toEqual(['off', 'off', 'off'])
+        await table.pressPick('pawn:p1:3')
+        expect(await table.piecesNamed('pawn:p1')).toHaveLength(2)
+    }
+)
+
 scenario('S15 R-3.9 Improve to a feudum', 'cards-improve-town', async (table) => {
     await table.press(table.card('Improve'))
     expect(await table.litChips()).toEqual({ [Forest3]: 'town to feudum · 1 seal' })

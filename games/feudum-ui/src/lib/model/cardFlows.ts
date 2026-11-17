@@ -308,19 +308,20 @@ const MigrateLine = 'Pick a space.'
 const HarvestLine = 'Pick a farm.'
 const ConquerLine = 'Pick a place.'
 
-/** R-3.6.1 Why no pawn in supply may come onto the board, in the logic's words. */
+/**
+ * R-3.6.1 Why no pawn may come onto the board, in the logic's words: with none in supply, any pawn
+ * asked for draws its "no pawn in supply".
+ */
 function reasonNoneEnter(
     { state, playerId, input }: FlowInput,
     pawnsOff: readonly PawnNumber[]
 ): string | undefined {
-    const [first] = pawnsOff
-    return first === undefined
-        ? undefined
-        : reasonMigrateRefused(state, playerId, {
-              ...input,
-              pawn: first,
-              onto: { character: 'farmer', spaceId: StartingSpaceIds[0] }
-          })
+    const [first = state.getPlayerState(playerId).pawns[0].n] = pawnsOff
+    return reasonMigrateRefused(state, playerId, {
+        ...input,
+        pawn: first,
+        onto: { character: 'farmer', spaceId: StartingSpaceIds[0] }
+    })
 }
 
 /** R-3.6 */
