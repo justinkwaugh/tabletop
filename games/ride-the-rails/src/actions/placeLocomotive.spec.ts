@@ -18,6 +18,7 @@ import {
     undoRun,
     type StateRecipe
 } from '../testing/fixtures.js'
+import { intercolonialOneShort } from '../testing/intercolonial.js'
 import { HydratedPlaceLocomotive } from './placeLocomotive.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
@@ -448,5 +449,35 @@ describe('Australia (R-8.2)', () => {
     it('takes back a long-distance placement and the end of the turn it made (R-5)', () => {
         const run = place(australia(), 'railroad.orange', LONG_DISTANCE_NEXT_TO_ADELAIDE)
         expect(undoRun(run)).toEqual(run.before)
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    const TORONTO: HexId = 'hex.ca.11-21'
+    const NORTH_OF_TORONTO: HexId = 'hex.ca.11-19'
+
+    it('pays Toronto’s $3 for a placement there that is no start', () => {
+        const state = building({
+            mapId: 'map.ca',
+            track: { [NORTH_OF_TORONTO]: ['railroad.red'], [TORONTO]: ['railroad.purple'] }
+        })
+        const { after, processed } = place(state, 'railroad.red', TORONTO)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: false,
+                bonuses: [{ bonusId: 'bonus.ca.toronto', amount: 3, cityId: 'city.ca.toronto' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(13)
+    })
+
+    it('pays and claims the Intercolonial once, to the first placement that joins its cities', () => {
+        const { track, railroadId, hexId } = intercolonialOneShort()
+        const { after, processed } = place(building({ mapId: 'map.ca', track }), railroadId, hexId)
+        expect(processed[0]).toMatchObject({
+            metadata: { bonuses: [{ bonusId: 'bonus.ca.intercolonial', amount: 8 }] }
+        })
+        expect(after.connectionClaim).toEqual({ playerId: 'p1', amount: 8 })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(18)
     })
 })

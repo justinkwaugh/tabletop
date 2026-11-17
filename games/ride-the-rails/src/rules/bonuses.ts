@@ -2,7 +2,9 @@ import {
     BRISBANE_BONUS,
     CHICAGO_BONUS,
     FIVE_DOLLAR_BONUS,
+    INTERCOLONIAL_BONUS,
     PERTH_BONUS,
+    TORONTO_BONUS,
     TRANSCONTINENTAL_BONUS,
     type BonusDefinition,
     type BonusId,
@@ -143,7 +145,9 @@ export const BONUS_RULES: Readonly<Record<MapId, readonly BonusRule[]>> = {
         TRANSCONTINENTAL_RULE
     ],
     // R-8.2: no Transcontinental.
-    'map.au': [everyPlacementRule(PERTH_BONUS), everyPlacementRule(BRISBANE_BONUS)]
+    'map.au': [everyPlacementRule(PERTH_BONUS), everyPlacementRule(BRISBANE_BONUS)],
+    // R-8.3: no Transcontinental.
+    'map.ca': [startPricedRule(TORONTO_BONUS), connectionRule(INTERCOLONIAL_BONUS)]
 }
 
 // R-4.3, R-3.2.5: every bonus a placement pays, in table order.

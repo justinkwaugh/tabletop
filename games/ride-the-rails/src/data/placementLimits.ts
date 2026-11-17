@@ -35,6 +35,15 @@ export const PLACEMENT_LIMITS: Readonly<Record<MapId, MapPlacementLimits>> = {
             { playerCount: 5, limit: 4 }
         ],
         mountainReduction: 2
+    },
+    // R-8.3: no mountains, so nothing lowers the limit.
+    'map.ca': {
+        byPlayerCount: [
+            { playerCount: 3, limit: 7 },
+            { playerCount: 4, limit: 5 },
+            { playerCount: 5, limit: 4 }
+        ],
+        mountainReduction: 0
     }
 }
 
@@ -69,5 +78,6 @@ export type GroupLimit = {
 // expansion map adds its own row.
 export const GROUP_LIMITS: Readonly<Record<MapId, readonly GroupLimit[]>> = {
     'map.usa': [{ group: 'east-coast', perRailroad: 2 }],
-    'map.au': []
+    'map.au': [],
+    'map.ca': []
 }

@@ -1,6 +1,7 @@
 export * from './data/hexes.js'
 export * from './data/usaMap.js'
 export * from './data/australiaMap.js'
+export * from './data/canadaMap.js'
 export * from './data/boardMap.js'
 export * from './data/boardMaps.js'
 export * from './definition/actions.js'

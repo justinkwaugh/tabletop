@@ -29,7 +29,8 @@ export function turnOrderByMoney(state: HydratedRideTheRailsGameState): string[]
 // has none; R-8: an expansion map adds its own row.
 export const ROUND_END_PASSENGER_CITY: Readonly<Record<MapId, CityId | null>> = {
     'map.usa': null,
-    'map.au': null
+    'map.au': null,
+    'map.ca': null
 }
 
 // R-8: the city a passenger is placed in at the end of the round, if any.

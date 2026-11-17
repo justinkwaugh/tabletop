@@ -163,9 +163,9 @@ describe('bonuses (R-4.3)', () => {
 
 describe('tables keyed by map id (R-8)', () => {
     it('keys every table by the same map ids', () => {
-        expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual(['map.usa', 'map.au'])
-        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa', 'map.au'])
-        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au'])
+        expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual(['map.usa', 'map.au', 'map.ca'])
+        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa', 'map.au', 'map.ca'])
+        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au', 'map.ca'])
     })
 })
 
@@ -238,7 +238,7 @@ describe('every per-map table (R-8)', () => {
 
 describe('Australia (R-8.2)', () => {
     it('brings the railroads in by the USA’s rounds, each starting in a city of its printed colour and Black in any city', () => {
-        const rounds = (mapId: 'map.usa' | 'map.au') =>
+        const rounds = (mapId: 'map.usa' | 'map.au' | 'map.ca') =>
             RAILROAD_INTRODUCTIONS[mapId].map(({ railroadId, availableFromRound }) => [
                 railroadId,
                 availableFromRound
@@ -284,6 +284,38 @@ describe('Australia (R-8.2)', () => {
             name: 'Australia',
             description:
                 'The Alps take no track; long-distance hexes hold one locomotive and end the turn; Perth $50, Brisbane $20.'
+        })
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    it('introduces the railroads as Australia does: the USA’s rounds, printed colours, Black anywhere', () => {
+        expect(RAILROAD_INTRODUCTIONS['map.ca']).toEqual(RAILROAD_INTRODUCTIONS['map.au'])
+    })
+
+    it('prints 7 / 5 / 4 for 3 / 4 / 5 players, and has no mountain to lower them', () => {
+        expect(PLACEMENT_LIMITS['map.ca'].byPlayerCount).toEqual([
+            { playerCount: 3, limit: 7 },
+            { playerCount: 4, limit: 5 },
+            { playerCount: 5, limit: 4 }
+        ])
+        expect(placementLimit('map.ca', 3, false)).toBe(7)
+        expect(placementLimit('map.ca', 4, false)).toBe(5)
+        expect(placementLimit('map.ca', 5, false)).toBe(4)
+        expect(BOARD_MAPS['map.ca'].hexes.some((hex) => hex.terrain === 'mountain')).toBe(false)
+    })
+
+    it('has no group limit and no Paris Travels', () => {
+        expect(GROUP_LIMITS['map.ca']).toEqual([])
+        expect(ROUND_END_PASSENGER_CITY['map.ca']).toBe(null)
+    })
+
+    it('is listed for game creation as Canada, with what it changes', () => {
+        expect(MAP_KEY_OF['map.ca']).toBe('ca')
+        expect(MAP_DETAILS['map.ca']).toEqual({
+            name: 'Canada',
+            description:
+                'No mountains; impassable sides block track; Toronto has no limit, $3 a placement and $2 a start; the Intercolonial pays $8.'
         })
     })
 })

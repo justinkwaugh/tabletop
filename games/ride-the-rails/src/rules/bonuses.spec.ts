@@ -14,6 +14,7 @@ import type {
 } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
 import { buildState } from '../testing/fixtures.js'
+import { intercolonialOneShort, WINDSOR } from '../testing/intercolonial.js'
 import {
     ALPHA,
     ALPHA_HEX,
@@ -520,5 +521,81 @@ describe('Australia (R-8.2)', () => {
 
     it('pays nothing for a placement in another city', () => {
         expect(place({ mapId: 'map.au' }, 'railroad.red', 'hex.au.31-15').bonuses).toEqual([])
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    const TORONTO: HexId = 'hex.ca.11-21'
+    const NORTH_OF_TORONTO: HexId = 'hex.ca.11-19'
+    const INTERCOLONIAL = { bonusId: 'bonus.ca.intercolonial', amount: 8 }
+
+    function toronto(amount: number): BonusPayment {
+        return { bonusId: 'bonus.ca.toronto', amount, cityId: 'city.ca.toronto' }
+    }
+
+    it('lists Toronto and the Intercolonial, and no Transcontinental', () => {
+        expect(BONUS_RULES['map.ca'].map((rule) => rule.bonus)).toEqual(BONUSES['map.ca'])
+        expect(BONUSES['map.ca']).toEqual([
+            { id: 'bonus.ca.toronto', printedName: 'Toronto', startAmount: 2, buildInAmount: 3 },
+            {
+                id: 'bonus.ca.intercolonial',
+                printedName: 'Intercolonial',
+                amount: 8,
+                cityIds: ['city.ca.sault-ste-marie', 'city.ca.windsor', 'city.ca.quebec-city']
+            }
+        ])
+    })
+
+    it('pays $2 for a railroad’s start in Toronto', () => {
+        expect(place({ mapId: 'map.ca' }, 'railroad.purple', TORONTO)).toEqual({
+            isStart: true,
+            bonuses: [toronto(2)]
+        })
+        expect(place({ mapId: 'map.ca' }, 'railroad.black', TORONTO)).toEqual({
+            isStart: true,
+            bonuses: [toronto(2)]
+        })
+    })
+
+    it('pays $3 for any other placement there, however many railroads it holds', () => {
+        const track = trackOf(
+            ['railroad.red', [NORTH_OF_TORONTO]],
+            ['railroad.purple', [TORONTO]],
+            ['railroad.black', [TORONTO]],
+            ['railroad.blue', [TORONTO]]
+        )
+        expect(place({ mapId: 'map.ca', track }, 'railroad.red', TORONTO)).toEqual({
+            isStart: false,
+            bonuses: [toronto(3)]
+        })
+    })
+
+    describe('the Intercolonial', () => {
+        const { track, railroadId, hexId } = intercolonialOneShort()
+        const placement = { railroadId, hexId, isStart: false }
+
+        it('pays $8 to the placement that first joins Sault Ste. Marie, Windsor and Québec City, through links of any railroads', () => {
+            expect(place({ mapId: 'map.ca', track }, railroadId, hexId)).toEqual({
+                isStart: false,
+                bonuses: [INTERCOLONIAL]
+            })
+        })
+
+        it('pays nothing while a city is still apart', () => {
+            const { [WINDSOR]: _windsor, ...apart } = track
+            expect(place({ mapId: 'map.ca', track: apart }, railroadId, hexId).bonuses).toEqual([])
+        })
+
+        it('pays nothing once claimed, or for a placement after the cities are joined', () => {
+            expect(
+                placementBonuses('map.ca', placement, track, undefined, {
+                    playerId: 'p2',
+                    amount: 8
+                })
+            ).toEqual([])
+            const joined: Track = { ...track, [hexId]: [railroadId] }
+            const later = { railroadId: 'railroad.blue', hexId, isStart: false } as const
+            expect(placementBonuses('map.ca', later, joined, undefined)).toEqual([])
+        })
     })
 })

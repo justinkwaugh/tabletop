@@ -363,3 +363,29 @@ describe('Australia (R-8.2)', () => {
         })
     })
 })
+
+describe('Canada (R-8.3)', () => {
+    const state = emptyBoard('map.ca')
+
+    it('starts each coloured railroad in the one city printed in its colour, Yellow only in Sault Ste. Marie', () => {
+        expect(startCityIds(state, 'railroad.red')).toEqual(['city.ca.montreal'])
+        expect(startCityIds(state, 'railroad.blue')).toEqual(['city.ca.windsor'])
+        expect(startCityIds(state, 'railroad.orange')).toEqual(['city.ca.quebec-city'])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual(['city.ca.sault-ste-marie'])
+        expect(startCityIds(state, 'railroad.purple')).toEqual(['city.ca.toronto'])
+    })
+
+    it('starts Black in any city with room (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.ca').cities.map((city) => city.id)
+        )
+    })
+
+    it('refuses Yellow a start anywhere but Sault Ste. Marie', () => {
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.ca.0-2')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.ca.11-21')).toEqual({
+            legal: false,
+            reason: 'not-adjacent-or-start'
+        })
+    })
+})

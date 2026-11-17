@@ -1,6 +1,6 @@
 # Ride the Rails rule interpretations
 
-The implementation follows the 2020 Capstone rulebook, on the USA and Australia maps. The rules themselves live in the logic package's code (`src/rules`, `src/stateHandlers`, `src/actions`, `src/data`); this file keeps no copy of them. It records the section labels the code cites, the readings where the rulebook leaves a question open, and the implementation's own conventions.
+The implementation follows the 2020 Capstone rulebook, on the USA, Australia and Canada maps. The rules themselves live in the logic package's code (`src/rules`, `src/stateHandlers`, `src/actions`, `src/data`); this file keeps no copy of them. It records the section labels the code cites, the readings where the rulebook leaves a question open, and the implementation's own conventions.
 
 ## Section labels
 
@@ -13,7 +13,7 @@ Code comments and spec names cite the rulebook's topics as `R-<section>`. A thir
 - **R-5** Information and taking back.
 - **R-6** Game end and scoring.
 - **R-7** Component text.
-- **R-8** Maps: R-8.1 USA, R-8.2 Australia. R-8.3 to R-8.5 are the other expansion maps, not implemented.
+- **R-8** Maps: R-8.1 USA, R-8.2 Australia, R-8.3 Canada. R-8.4 and R-8.5 are the other expansion maps, not implemented.
 
 ## Readings
 
@@ -21,7 +21,7 @@ Where the rulebook is silent or could be read two ways, the code takes these rea
 
 - **Map.** A game has a map option, chosen at creation, the USA by default. A game that names no map plays the USA.
 - **Players.** 3 to 5; there is no 2- or 6-player mode.
-- **Passengers.** One per city at setup, except in the cities a map leaves empty (Perth and Brisbane). The USA takes 51 and Australia 52, no more than the box's 52, so the supply never runs short.
+- **Passengers.** One per city at setup, except in the cities a map leaves empty (Perth and Brisbane). The USA takes 51, Australia and Canada 52 each, no more than the box's 52, so the supply never runs short.
 - **Turn-order ties** (R-2.5). Players tied on money reverse their relative order from the round just played.
 - **No journey possible** (R-3.3.1). A player with no passenger they can carry on a legal journey passes by itself, a System Action, and earns nothing. No journey for one player means none for anyone, so every later player passes in the same cascade and the round ends.
 - **Locomotive supply** (R-1.1, R-3.1, R-3.2). Shares and track draw on the same 27 locomotives of a colour. An empty railroad can't be taken as a share or built; a player with no railroad left to take skips the share by itself.
@@ -40,6 +40,12 @@ Where the rulebook is silent or could be read two ways, the code takes these rea
     - A long-distance hex holds one locomotive. A placement there must be the turn's first, and it ends the turn.
     - Perth and Brisbane, at the ends of the long-distance chains, hold one locomotive each and take no passenger at setup. A journey may end there but never starts there.
     - The board prints their bonuses in dollars: every placement into Perth pays $50 and into Brisbane $20, a start included. Each holds one locomotive, so each pays once.
+- **Canada** (R-8.3).
+    - The railroads arrive and start as on Australia. There is no Transcontinental.
+    - Limits 7 / 5 / 4 by player count. There are no mountains.
+    - Toronto has no limit, one locomotive of each railroad. A railroad's start there pays $2, and every other placement there $3.
+    - The Intercolonial, $8, is paid once, to the first player whose placement joins Sault Ste. Marie, Windsor and Québec City through complete links of any railroads, so the railroad changes only in cities.
+    - No track is built across an impassable side, and no link crosses one: the two hexes are not adjacent. Two of the 18 sides lie along the shore east of Cornwall, between a hex and water, so they part no hexes.
 
 ## Conventions
 
@@ -57,7 +63,7 @@ Hexes are pointy-topped in horizontal rows, alternate rows offset by half a hex.
 
 A flat-topped map (the expansions) runs the other way: `hex.<map>.<col>-<drow>`, columns counted from the west, `drow` the doubled row with the same parity as the column, and the neighbours of (c, d) are (c, d±2) and (c±1, d±1). On either orientation a map's hexes are in reading order, north to south and then west to east. A hex printed over two cells keeps one id, and its neighbours are those of both cells; two hexes an impassable side parts are not adjacent.
 
-Australia's hexes are `hex.au.<col>-<drow>`: column 0 is Perth's, and the top half-row is drow 1, where the odd columns begin. Its cities and bonuses are `city.au.<name>` and `bonus.au.<name>` in kebab case, without punctuation (`city.au.st-arnaud`); names keep the board's spelling (Pinaroo, Wyalongo).
+Australia's hexes are `hex.au.<col>-<drow>`: column 0 is Perth's, and the top half-row is drow 1, where the odd columns begin. Its cities and bonuses are `city.au.<name>` and `bonus.au.<name>` in kebab case, without punctuation (`city.au.st-arnaud`); names keep the board's spelling (Pinaroo, Wyalongo). Canada's are `hex.ca.<col>-<drow>` from Sault Ste. Marie's column, the top half-row again drow 1, and `city.ca.<name>` without accents (`city.ca.quebec-city`); names keep the board's spelling (Niagra Falls, Sault Ste. Marie, Montréal). Both maps are transcribed from the printed boards into `src/data/australiaMap.ts` and `src/data/canadaMap.ts`.
 
 ## Known deviations
 

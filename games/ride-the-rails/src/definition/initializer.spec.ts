@@ -13,7 +13,8 @@ import { MachineState } from './states.js'
 // R-1.3.2: the passengers each map takes at setup, one per city but those it leaves empty.
 const SETUP_PASSENGERS: Readonly<Record<MapId, number>> = {
     'map.usa': 51,
-    'map.au': 52
+    'map.au': 52,
+    'map.ca': 52
 }
 
 function gameFor(playerCount: number): Game {

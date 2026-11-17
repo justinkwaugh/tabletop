@@ -591,3 +591,75 @@ describe('Australia (R-8.2)', () => {
         ).toEqual(refused('hex-at-capacity'))
     })
 })
+
+describe('Canada (R-8.3)', () => {
+    const MONTREAL: HexId = 'hex.ca.24-10'
+    const SOUTH_OF_MONTREAL: HexId = 'hex.ca.24-12'
+    const SOUTH_EAST_OF_MONTREAL: HexId = 'hex.ca.25-11'
+    const NORTH_EAST_OF_HAMILTON: HexId = 'hex.ca.10-22'
+    const SOUTH_EAST_OF_HAMILTON: HexId = 'hex.ca.10-24'
+    const TORONTO: HexId = 'hex.ca.11-21'
+
+    function canada(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
+        return building({
+            mapId: 'map.ca',
+            shares: { p1: { 'railroad.red': 1, 'railroad.black': 1 } },
+            track: { [MONTREAL]: ['railroad.red'] },
+            ...recipe
+        })
+    }
+
+    it('allows 7, 5 and 4 placements for 3, 4 and 5 players', () => {
+        expect([3, 4, 5].map((playerCount) => placementsLeft(canada({ playerCount })))).toEqual([
+            7, 5, 4
+        ])
+        const seventh = canada({ building: { placed: 6, usedMountain: false } })
+        expect(placementTest(seventh, 'p1', 'railroad.red', SOUTH_EAST_OF_MONTREAL)).toEqual(LEGAL)
+        const eighth = canada({ building: { placed: 7, usedMountain: false } })
+        expect(placementTest(eighth, 'p1', 'railroad.red', SOUTH_EAST_OF_MONTREAL)).toEqual(
+            refused('over-placement-limit')
+        )
+    })
+
+    it('builds no track across an impassable side', () => {
+        const state = canada()
+        expect(placementTest(state, 'p1', 'railroad.red', SOUTH_OF_MONTREAL)).toEqual(
+            refused('not-adjacent-or-start')
+        )
+        expect(placementTest(state, 'p1', 'railroad.red', SOUTH_EAST_OF_MONTREAL)).toEqual(LEGAL)
+        const nearHamilton = canada({ track: { [NORTH_EAST_OF_HAMILTON]: ['railroad.red'] } })
+        expect(placementTest(nearHamilton, 'p1', 'railroad.red', SOUTH_EAST_OF_HAMILTON)).toEqual(
+            refused('not-adjacent-or-start')
+        )
+        expect(
+            legalPlacements(state, 'p1').filter(
+                ({ railroadId, hexId }) =>
+                    railroadId === 'railroad.red' && hexId === SOUTH_OF_MONTREAL
+            )
+        ).toEqual([])
+    })
+
+    it('takes any number of railroads in Toronto, one locomotive of each', () => {
+        const state = canada({
+            shares: { p1: { 'railroad.black': 1, 'railroad.red': 1 } },
+            track: {
+                [TORONTO]: [
+                    'railroad.purple',
+                    'railroad.blue',
+                    'railroad.orange',
+                    'railroad.black'
+                ],
+                'hex.ca.11-19': ['railroad.red']
+            }
+        })
+        expect(placementTest(state, 'p1', 'railroad.red', TORONTO)).toEqual(LEGAL)
+        expect(placementTest(state, 'p1', 'railroad.black', 'hex.ca.10-20')).toEqual(LEGAL)
+        const again = canada({
+            shares: { p1: { 'railroad.black': 1 } },
+            track: { [TORONTO]: ['railroad.black'], 'hex.ca.10-20': ['railroad.black'] }
+        })
+        expect(placementTest(again, 'p1', 'railroad.black', TORONTO)).toEqual(
+            refused('railroad-in-hex')
+        )
+    })
+})

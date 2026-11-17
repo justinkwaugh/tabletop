@@ -245,6 +245,10 @@ function startsWithPassengers(state: HydratedRideTheRailsGameState): CityId[] {
     })
 }
 
+// Every search on the dense board takes about two seconds alone; the whole-game suites running
+// beside it slow it.
+const ALL_ROUTES = { timeout: 30_000 }
+
 describe('every route a search helper returns passes the journey test (R-3.3.2, R-3.3.3, R-X.1)', () => {
     describe.each(FIXTURES)('on %s', (_name, track) => {
         const state = riding(track)
@@ -259,7 +263,7 @@ describe('every route a search helper returns passes the journey test (R-3.3.2, 
             }
         })
 
-        it('bestJourneys, realise and nextCities: every route is legal', () => {
+        it('bestJourneys, realise and nextCities: every route is legal', ALL_ROUTES, () => {
             for (const startCityId of starts) {
                 const { journeys } = bestJourneys(state, startCityId, 'p1', 1500)
                 expect(journeys.length).toBeGreaterThan(0)

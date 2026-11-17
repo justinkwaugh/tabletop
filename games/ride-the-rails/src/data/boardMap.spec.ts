@@ -193,6 +193,26 @@ describe('a flat map (the fixture, R-8)', () => {
         ).toThrow(/share no side/)
     })
 
+    it('accepts a printed side along the board’s edge, between a hex and a cell off it, which parts nothing (R-8)', () => {
+        const edged = new BoardMap({
+            ...FLAT_FIXTURE_DEFINITION,
+            impassable: [...FLAT_FIXTURE_DEFINITION.impassable, ['hex.usa.3-1', 'hex.usa.4-2']]
+        })
+        expect(edged.adjacentHexIds('hex.usa.3-1')).toEqual(
+            FLAT_FIXTURE_MAP.adjacentHexIds('hex.usa.3-1')
+        )
+    })
+
+    it('refuses an impassable side between two cells off the board', () => {
+        expect(
+            () =>
+                new BoardMap({
+                    ...FLAT_FIXTURE_DEFINITION,
+                    impassable: [['hex.usa.5-1', 'hex.usa.5-3']]
+                })
+        ).toThrow(/off/)
+    })
+
     it('refuses a city without its city hex', () => {
         expect(
             () =>

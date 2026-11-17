@@ -289,3 +289,23 @@ describe('Australia (R-8.2)', () => {
         )
     })
 })
+
+describe('Canada (R-8.3)', () => {
+    const ACROSS_THE_SIDE: readonly HexId[] = ['hex.ca.24-10', 'hex.ca.24-12', 'hex.ca.25-13']
+    const ROUND_IT: readonly HexId[] = ['hex.ca.24-10', 'hex.ca.25-11', 'hex.ca.25-13']
+    const track = trackOf([RED, ACROSS_THE_SIDE], [BLUE, ROUND_IT])
+    const state = buildState({ mapId: 'map.ca', playerCount: 3, phase: PhaseName.Ride, track })
+
+    it('makes no link across an impassable side', () => {
+        expect(isLink(track, link(RED, ACROSS_THE_SIDE))).toBe(false)
+        expect(journeyRefusal(state, [link(RED, ACROSS_THE_SIDE)])).toBe('not-a-link')
+    })
+
+    it('makes a link round it, through Montréal’s open south-east side', () => {
+        expect(isLink(track, link(BLUE, ROUND_IT))).toBe(true)
+        expect(journeyCities([link(BLUE, ROUND_IT)])).toEqual([
+            'city.ca.montreal',
+            'city.ca.saint-jean-sur-richelieu'
+        ])
+    })
+})

@@ -20,7 +20,7 @@ export const CityId = Type.TemplateLiteral([
 export type CityId = Type.Static<typeof CityId>
 
 // A bonus a city prints; the line and connection bonuses belong to no one city.
-export type CityBonusId = Exclude<BonusId, 'bonus.usa.transcontinental'>
+export type CityBonusId = Exclude<BonusId, 'bonus.usa.transcontinental' | 'bonus.ca.intercolonial'>
 
 // R-4.1.4: how many railroads a city holds.
 export type CityCapacity = 1 | 2 | 'unlimited'
@@ -60,6 +60,8 @@ export type CityHex = HexBase & { terrain: 'city'; cityId: CityId }
 export type Hex = TerrainHex | CityHex
 
 // Two hexes a printed impassable side parts: not adjacent for building, links or bonuses (R-8).
+// A side printed along the board's edge lies between a hex and a cell off the board, and parts
+// nothing.
 export type ImpassablePair = readonly [HexId, HexId]
 
 // One map as printed. The rules read it through `BoardMap`; per-map rule tables sit beside the
@@ -226,9 +228,25 @@ export class BoardMap {
             }
             return [...found]
         }
+        // Whether the hex shares a side with a cell off the board, one no hex covers.
+        const touchesOffBoard = (hexId: HexId, cellId: HexId) =>
+            !owners.has(cellId) &&
+            this.cellsOf(hexId).some((cell) =>
+                neighbourCellIds(this.orientation, this.key, cell).includes(cellId)
+            )
         const parted = new Set<string>()
         for (const [a, b] of impassable) {
-            assert(touching(a).includes(b), `${a} and ${b} share no side on ${this.id}`)
+            assert(
+                this.hexesById.has(a) || this.hexesById.has(b),
+                `${a} and ${b} are both off ${this.id}`
+            )
+            const [hexId, other] = this.hexesById.has(a) ? [a, b] : [b, a]
+            assert(
+                this.hexesById.has(other)
+                    ? touching(hexId).includes(other)
+                    : touchesOffBoard(hexId, other),
+                `${a} and ${b} share no side on ${this.id}`
+            )
             parted.add(`${a}|${b}`).add(`${b}|${a}`)
         }
         return new Map(

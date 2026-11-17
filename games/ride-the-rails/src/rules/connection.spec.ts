@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import type { CityId } from '../data/boardMap.js'
+import { boardMap } from '../data/boardMaps.js'
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
 import type { Track } from '../model/gameState.js'
@@ -77,5 +79,29 @@ describe('a connection of named cities (R-8)', () => {
             [ALPHA_HEX, 'hex.usa.0-4', 'hex.usa.0-6', 'hex.usa.1-7', GAMMA_HEX]
         ])
         expect(citiesConnected(FLAT_FIXTURE_MAP, track, [ALPHA, GAMMA])).toBe(true)
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    const map = boardMap('map.ca')
+    const MONTREAL: CityId = 'city.ca.montreal'
+    const SAINT_JEAN: CityId = 'city.ca.saint-jean-sur-richelieu'
+
+    it('joins no cities across an impassable side', () => {
+        const across: Track = {
+            'hex.ca.24-10': ['railroad.red'],
+            'hex.ca.24-12': ['railroad.red'],
+            'hex.ca.25-13': ['railroad.red']
+        }
+        expect(citiesConnected(map, across, [MONTREAL, SAINT_JEAN])).toBe(false)
+    })
+
+    it('joins them round it', () => {
+        const round: Track = {
+            'hex.ca.24-10': ['railroad.red'],
+            'hex.ca.25-11': ['railroad.red'],
+            'hex.ca.25-13': ['railroad.red']
+        }
+        expect(citiesConnected(map, round, [MONTREAL, SAINT_JEAN])).toBe(true)
     })
 })

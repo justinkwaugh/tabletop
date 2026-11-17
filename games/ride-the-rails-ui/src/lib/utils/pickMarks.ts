@@ -80,11 +80,14 @@ export function markView(mark: OfferMark): MarkView {
         case 'bonus.usa.chicago':
         case 'bonus.au.perth':
         case 'bonus.au.brisbane':
+        case 'bonus.ca.toronto':
             return { tone: 'coin', text, spoken: text }
         case 'bonus.usa.five-dollar':
             return { tone: 'five', text, spoken: text }
         case 'bonus.usa.transcontinental':
             return { tone: 'gold', text, spoken: `${text} Transcontinental` }
+        case 'bonus.ca.intercolonial':
+            return { tone: 'gold', text, spoken: `${text} Intercolonial` }
     }
 }
 
