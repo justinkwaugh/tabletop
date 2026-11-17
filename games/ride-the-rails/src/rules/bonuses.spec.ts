@@ -79,7 +79,13 @@ function place(setup: Setup, railroadId: RailroadId, hexId: HexId): Placed {
     const placement = { railroadId, hexId, isStart: verdict.isStart }
     return {
         isStart: verdict.isStart,
-        bonuses: placementBonuses(state.mapId, placement, state.track, state.transcontinental)
+        bonuses: placementBonuses(
+            state.mapId,
+            placement,
+            state.track,
+            state.transcontinental,
+            state.connectionClaim
+        )
     }
 }
 
@@ -595,7 +601,7 @@ describe('Canada (R-8.3)', () => {
             ).toEqual([])
             const joined: Track = { ...track, [hexId]: [railroadId] }
             const later = { railroadId: 'railroad.blue', hexId, isStart: false } as const
-            expect(placementBonuses('map.ca', later, joined, undefined)).toEqual([])
+            expect(placementBonuses('map.ca', later, joined, undefined, undefined)).toEqual([])
         })
     })
 })

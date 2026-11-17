@@ -120,7 +120,13 @@ function offeredPlacement(
     state: HydratedRideTheRailsGameState,
     placement: LegalPlacement
 ): OfferedPlacement {
-    const bonuses = placementBonuses(state.mapId, placement, state.track, state.transcontinental)
+    const bonuses = placementBonuses(
+        state.mapId,
+        placement,
+        state.track,
+        state.transcontinental,
+        state.connectionClaim
+    )
     return { railroadId: placement.railroadId, isStart: placement.isStart, bonuses }
 }
 

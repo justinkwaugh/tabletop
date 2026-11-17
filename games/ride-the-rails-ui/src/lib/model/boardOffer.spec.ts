@@ -15,7 +15,11 @@ import {
     type Shares,
     type Track
 } from '@tabletop/ride-the-rails'
-import { buildState, type StateRecipe } from '@tabletop/ride-the-rails/testing'
+import {
+    buildState,
+    intercolonialOneShort,
+    type StateRecipe
+} from '@tabletop/ride-the-rails/testing'
 import { EMPTY_BOARD_OFFER, boardOffer, placementOffer, type OfferedHex } from './boardOffer.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
@@ -208,6 +212,27 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
             transcontinental: { playerId: 'p2', amount: 8 }
         })
         expect(offeredAt(placementOffer(claimed, 'p1'), 'hex.usa.9-31')?.marks).toEqual([])
+    })
+
+    it('offers the Intercolonial only while it is unclaimed, as the engine pays it (R-8.3)', () => {
+        const { track, railroadId, hexId } = intercolonialOneShort()
+        const recipe: StateRecipe = {
+            mapId: 'map.ca',
+            round: 6,
+            shares: { p1: EVERY_SHARE },
+            track
+        }
+        const bonusesOf = (state: ReturnType<typeof building>) =>
+            offeredAt(placementOffer(state, 'p1'), hexId)?.placements.find(
+                (placement) => placement.railroadId === railroadId
+            )?.bonuses
+        expect(bonusesOf(building(recipe))).toEqual([
+            { bonusId: 'bonus.ca.intercolonial', amount: 8 }
+        ])
+
+        const claimed = building(recipe)
+        claimed.connectionClaim = { playerId: 'p2', amount: 8 }
+        expect(bonusesOf(claimed)).toEqual([])
     })
 
     it('marks a mountain −1 until a mountain is used this turn (R-3.2.4)', () => {

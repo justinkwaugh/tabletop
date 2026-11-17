@@ -156,7 +156,7 @@ export function placementBonuses(
     placement: LegalPlacement,
     trackBefore: Track,
     transcontinental: TranscontinentalClaim | undefined,
-    connectionClaim?: ConnectionClaim
+    connectionClaim: ConnectionClaim | undefined
 ): BonusPayment[] {
     const context = {
         map: boardMap(mapId),
