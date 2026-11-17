@@ -9,7 +9,8 @@
         alpsHatchPath,
         ENTRY_RING,
         entryRingSides,
-        HOURGLASS
+        HOURGLASS,
+        hourglassSpots
     } from '$lib/utils/terrainMarks.js'
 
     const gameSession = getGameSession()
@@ -24,8 +25,7 @@
             paint: hexPaint(hex.id),
             // R-8.2: the Alps carry a mountain's peak too.
             mountain: hex.terrain === 'mountain' || hex.terrain === 'alps',
-            alps: hex.terrain === 'alps',
-            longDistance: hex.terrain === 'long-distance'
+            alps: hex.terrain === 'alps'
         }))
     )
     // Plains first, on their grid; mountains and cities over them, so their pale edges show whole.
@@ -33,10 +33,10 @@
     const PATCHES = $derived(HEXES.filter((hex) => hex.paint.edge !== 'var(--rtr-hex-edge)'))
     const MOUNTAINS = $derived(HEXES.filter((hex) => hex.mountain))
     // R-8.2: the Alps' hatch over their fill, their pale edges drawn again over it; an hourglass in
-    // each long-distance hex.
+    // each long-distance hex and city (Perth, Brisbane), where a placement ends the turn.
     const ALPS = $derived(HEXES.filter((hex) => hex.alps))
     const ALPS_HATCH_PATH = $derived(alpsHatchPath(board))
-    const LONG_DISTANCE = $derived(HEXES.filter((hex) => hex.longDistance))
+    const HOURGLASSES = $derived(hourglassSpots(board))
     // R-8.4: the ring of entry hexes round Paris, its outside edged in navy.
     const ENTRY_RING_PATH = $derived(
         entryRingSides(board)
@@ -149,11 +149,8 @@
             aria-hidden="true"
         ></path>
     {/each}
-    {#each LONG_DISTANCE as hex (hex.hexId)}
-        <g
-            transform="translate({hex.center.x + HOURGLASS.at.x} {hex.center.y + HOURGLASS.at.y})"
-            data-hourglass={hex.hexId}
-        >
+    {#each HOURGLASSES as hourglass (hourglass.hexId)}
+        <g transform="translate({hourglass.x} {hourglass.y})" data-hourglass={hourglass.hexId}>
             <path
                 d={HOURGLASS.frame}
                 stroke="var(--rtr-ink)"

@@ -36,11 +36,25 @@ function litHexIds(page: Page): Promise<string[]> {
     )
 }
 
+/** Australia's long-distance hexes, then Perth's and Brisbane's (R-8.2). */
+const LONG_DISTANCE = [
+    'hex.au.2-12',
+    'hex.au.1-13',
+    'hex.au.3-13',
+    'hex.au.34-8',
+    'hex.au.0-12',
+    'hex.au.34-6'
+]
+
 test('Australia: a long-distance placement ends the turn (R-8.2)', async ({ page }) => {
     await openScenario(page, 'Australia perth chain')
     await expect(page.getByRole('group', { name: 'Map of Australia' })).toBeVisible()
     await expect(board(page).locator('[data-alps-hatch]')).toHaveCount(1)
-    await expect(board(page).locator('[data-hourglass]')).toHaveCount(4)
+    // An hourglass in each of the four long-distance hexes, and in Perth and Brisbane.
+    await expect(board(page).locator('[data-hourglass]')).toHaveCount(6)
+    for (const hexId of LONG_DISTANCE) {
+        await expect(board(page).locator(`[data-hourglass="${hexId}"]`), hexId).toHaveCount(1)
+    }
     // Every long-distance hex has a side on the sea, so its 1 stands there, as Perth's does.
     await expect(board(page).locator('[data-limit-in-hex]')).toHaveCount(0)
     await expect(board(page).locator('[data-limit-in-sea]')).toHaveCount(6)
@@ -52,6 +66,13 @@ test('Australia: a long-distance placement ends the turn (R-8.2)', async ({ page
     expect(lit).not.toContain('hex.au.1-13')
     expect(lit.length).toBeGreaterThan(3)
     expect(await activePlayerId(page)).toBe('p1')
+    // Its name says the placement ends the turn; no other lit hex's does.
+    await expect(litHexAt(page, 'hex.au.2-12')).toHaveAccessibleName(
+        /: place Orange, ends the turn$/
+    )
+    for (const hexId of lit.filter((id) => !LONG_DISTANCE.includes(id))) {
+        await expect(litHexAt(page, hexId), hexId).not.toHaveAccessibleName(/ends the turn/)
+    }
 
     await pressHex(page, litHexAt(page, 'hex.au.2-12'))
     await expect.poll(() => trackIn(page, 'hex.au.2-12')).toEqual(['railroad.orange'])

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
 import { MAP_IDS, boardMap, hexIdToAxial, type MapId } from '@tabletop/ride-the-rails'
+import { buildState } from '@tabletop/ride-the-rails/testing'
 import { boardGeometry, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
 import {
+    BONUS_PILL,
+    bonusPill,
     CAPACITY_MARK,
     capacityMarks,
     MEEPLE,
@@ -14,6 +17,8 @@ import {
 import { passengerSpot } from './passengerLayout.js'
 import { insetCellPoints } from './pickMarks.js'
 import { trackSlots } from './trackLayout.js'
+import { cityPieces } from './boardPieces.js'
+import { CUBE_EDGE_WIDTH } from './cubeShape.js'
 import { legendBox, MAP_LAYOUTS, titleBox } from './mapLayouts.js'
 import {
     ALPS_HATCH,
@@ -24,9 +29,11 @@ import {
     entryRingSides,
     HOURGLASS,
     hexLimitMarks,
+    hourglassSpots,
     impassableSides
 } from './terrainMarks.js'
 import {
+    boxCorners,
     boxesOverlap,
     boxInside,
     centredBox,
@@ -333,25 +340,93 @@ describe('the Alps (R-8.2)', () => {
 })
 
 describe('the long-distance hexes (R-8.2)', () => {
-    it('stands the hourglass at the bottom of the hex, wholly inside it, below where an in-hex 1 stands', () => {
-        const geometry = boardGeometry('map.au')
+    const geometry = boardGeometry('map.au')
+    const { half } = HOURGLASS
+    const hourglassBox = (spot: Point) =>
+        centredBox({ ...spot, width: half.x * 2, height: half.y * 2 })
+
+    it('stands an hourglass, the turn ending there, in each long-distance hex and in Perth and Brisbane, and on no other map', () => {
         const longDistance = geometry.map.hexes.filter((hex) => hex.terrain === 'long-distance')
         expect(longDistance).toHaveLength(4)
+        const cities = boardMap('map.au').longDistanceCities.map(
+            (cityId) => boardMap('map.au').city(cityId).hexId
+        )
+        expect(cities).toEqual(['hex.au.0-12', 'hex.au.34-6'])
+        expect(hourglassSpots(geometry).map((spot) => spot.hexId)).toEqual(
+            geometry.map.hexes
+                .filter((hex) => hex.terrain === 'long-distance' || cities.includes(hex.id))
+                .map((hex) => hex.id)
+        )
+        for (const mapId of MAP_IDS.filter((id) => id !== 'map.au')) {
+            expect(hourglassSpots(boardGeometry(mapId)), mapId).toEqual([])
+        }
+    })
+
+    it('stands the hourglass at the bottom of the hex, wholly inside it, below where an in-hex 1 stands', () => {
+        const longDistance = geometry.map.hexes.filter((hex) => hex.terrain === 'long-distance')
         for (const hex of longDistance) {
             const { center, cells } = geometry.place(hex.id)
             const corners = cells[0]?.vertices ?? []
-            const { half, at } = HOURGLASS
-            for (const corner of [
-                { x: -half.x, y: -half.y },
-                { x: half.x, y: -half.y },
-                { x: half.x, y: half.y },
-                { x: -half.x, y: half.y }
-            ]) {
-                const point = { x: center.x + at.x + corner.x, y: center.y + at.y + corner.y }
-                expect(insideConvexPolygon(point, corners), hex.id).toBe(true)
+            const spot = hourglassSpots(geometry).find((found) => found.hexId === hex.id)
+            expect(spot, hex.id).toEqual({ hexId: hex.id, x: center.x, y: center.y + 24 })
+            if (!spot) continue
+            for (const corner of boxCorners(hourglassBox(spot))) {
+                expect(insideConvexPolygon(corner, corners), hex.id).toBe(true)
             }
             const mark = hexLimitMarks(geometry).find((found) => found.hexId === hex.id)
-            expect(mark?.y ?? Infinity).toBeLessThan(center.y + at.y - half.y)
+            expect(mark?.y ?? Infinity).toBeLessThan(spot.y - half.y)
+        }
+    })
+
+    it('stands Perth’s and Brisbane’s hourglass inside the city, clear of its pill, its cube, its 1 in the sea and any passenger’s head', () => {
+        const pieces = cityPieces(buildState({ mapId: 'map.au' }))
+        const marks = capacityMarks(geometry, MAP_LAYOUTS['map.au'].limitMarksInHex)
+        for (const cityId of boardMap('map.au').longDistanceCities) {
+            const city = pieces.find((piece) => piece.cityId === cityId)
+            if (!city?.bonus) throw new Error(`${cityId} has no bonus`)
+            const spot = hourglassSpots(geometry).find((found) => found.hexId === city.hexId)
+            if (!spot) throw new Error(`${cityId} has no hourglass`)
+            const box = hourglassBox(spot)
+            const corners = geometry.place(city.hexId).cells[0]?.vertices ?? []
+            for (const corner of boxCorners(box)) {
+                expect(insideConvexPolygon(corner, corners), cityId).toBe(true)
+            }
+            const pill = centredBox({
+                ...bonusPillSpot(city.hexId),
+                width: bonusPill(city.bonus).width + BONUS_PILL.strokeWidth,
+                height: BONUS_PILL.height + BONUS_PILL.strokeWidth
+            })
+            expect(boxesOverlap(box, pill), `${cityId} pill`).toBe(false)
+            // The one locomotive it holds, its edge included.
+            for (const slot of trackSlots(city.hexId, 1)) {
+                const cube = centredBox({
+                    ...slot,
+                    width: slot.width + CUBE_EDGE_WIDTH,
+                    height: slot.height + CUBE_EDGE_WIDTH
+                })
+                expect(boxesOverlap(box, cube), `${cityId} cube`).toBe(false)
+            }
+            for (const mark of marks) {
+                const square = centredBox({
+                    ...mark,
+                    width: CAPACITY_MARK.side,
+                    height: CAPACITY_MARK.side
+                })
+                expect(boxesOverlap(box, square), `${cityId} and the 1 of ${mark.hexId}`).toBe(
+                    false
+                )
+            }
+            // Every waiting passenger's head, the hex below's included, which stands in this hex.
+            for (const other of boardMap('map.au').cities) {
+                const passenger = passengerSpot(other.id, false)
+                const head = centredBox({
+                    x: passenger.x,
+                    y: passenger.y + MEEPLE.head.cy * PASSENGER_SCALE,
+                    width: (MEEPLE.head.r * 2 + MEEPLE.edgeWidth) * PASSENGER_SCALE,
+                    height: (MEEPLE.head.r * 2 + MEEPLE.edgeWidth) * PASSENGER_SCALE
+                })
+                expect(boxesOverlap(box, head), `${cityId} and ${other.id}'s head`).toBe(false)
+            }
         }
     })
 })

@@ -5,6 +5,7 @@ import {
     boardMap,
     hexIdToAxial,
     hexOrder,
+    isLongDistance,
     railroadsIn,
     cityIn,
     type BoardMap,
@@ -234,7 +235,18 @@ export type PickContext =
 
 export const BUILD_PICK: PickContext = { kind: 'build' }
 
-/** "Chicago: place Orange or Black, $2"; "Dallas: place Yellow or start Black, $5". */
+/**
+ * R-8.2: a placement in a long-distance hex, or in Perth or Brisbane, ends the turn. The board says
+ * so with the hourglass alone, so the lit hex's and the popup buttons' names say it in words.
+ */
+function endsTheTurn(hexId: HexId): string {
+    return isLongDistance(hexId) ? ', ends the turn' : ''
+}
+
+/**
+ * "Chicago: place Orange or Black, $2"; "Dallas: place Yellow or start Black, $5"; "Perth: place
+ * Orange, $50, ends the turn".
+ */
 export function litHexLabel(hex: OfferedHex, context: PickContext = BUILD_PICK): string {
     const place = placeName(hex.hexId)
     const railroads = railroadNames(hex.placements.map((placement) => placement.railroadId))
@@ -255,7 +267,7 @@ export function litHexLabel(hex: OfferedHex, context: PickContext = BUILD_PICK):
             : [])
     ].join(' or ')
     const marks = hex.marks.map((mark) => `, ${markView(mark).spoken}`).join('')
-    return `${place}: ${effects}${marks}`
+    return `${place}: ${effects}${marks}${endsTheTurn(hex.hexId)}`
 }
 
 function pickedHexId(offer: BoardOffer, context: PickContext): HexId | undefined {
@@ -454,7 +466,7 @@ export function buildChoice(track: Track, popup: BuildPopup): RailroadChoice {
             return {
                 railroadId: chip.railroadId,
                 // The label opens with "Start" already; nothing is written on the button.
-                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(modifiers)}`,
+                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(modifiers)}${endsTheTurn(popup.hexId)}`,
                 pills: chipPills(modifiers),
                 mountain: fewerPlacements(modifiers.limitChange) !== undefined
             }

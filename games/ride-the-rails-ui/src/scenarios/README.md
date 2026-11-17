@@ -28,7 +28,7 @@ Canada, round 4 with three seats, Build. Red from Montréal and Blue from Windso
 
 Australia, round 4 with three seats, Build. Orange started in Adelaide and stands in the first long-distance hex of the chain to Perth; Blue runs from Melbourne past the Alps over four mountains; Red runs west from Sydney. Ada holds Red, Orange, Yellow and Purple and builds first.
 
-- The Alps are hatched; the four long-distance hexes are ochre with a "1" and an hourglass; Perth and Brisbane carry their gold pills, "$50" and "$20".
+- The Alps are hatched; the four long-distance hexes are ochre with a "1" and an hourglass; Perth and Brisbane carry their gold pills, "$50" and "$20", and an hourglass at the top. The lit long-distance hex's name ends ", ends the turn".
 - The chain's next hex lights for Orange; the one past it does not. An Orange placement there, the turn's first, ends Ada's turn.
 
 ## First share

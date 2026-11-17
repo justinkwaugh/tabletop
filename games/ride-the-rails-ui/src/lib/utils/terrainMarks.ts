@@ -105,10 +105,12 @@ export function alpsHatchPath(geometry: BoardGeometry): string {
 /**
  * R-8.2: a long-distance hex's hourglass, the turn ending there, at the bottom of the hex below
  * its 1: an inked frame round a pale glass, sand in its lower bulb. In its own units round its
- * middle, `half` its reach each way.
+ * middle, `half` its reach each way. A long-distance city (Perth, Brisbane) ends the turn too, but
+ * its pill holds the bottom of the hex, so its hourglass stands at the top, above its one cube.
  */
 export const HOURGLASS = {
     at: { x: 0, y: 24 },
+    cityAt: { x: 0, y: -22 },
     half: { x: 5.9, y: 7.9 },
     frame: 'M-5 -7H5M-5 7H5',
     frameWidth: 1.8,
@@ -117,6 +119,19 @@ export const HOURGLASS = {
     glassOpacity: 0.8,
     sand: 'M-2.2 5.2H2.2L0 2.6Z'
 } as const
+
+export type HourglassSpot = Point & { hexId: HexId }
+
+/** R-8.2: the hourglass of every long-distance hex and city on the map, in the map's order. */
+export function hourglassSpots(geometry: BoardGeometry): HourglassSpot[] {
+    return geometry.map.hexes
+        .filter((hex) => geometry.map.isLongDistance(hex.id))
+        .map((hex) => {
+            const { center } = geometry.place(hex.id)
+            const at = hex.terrain === 'city' ? HOURGLASS.cityAt : HOURGLASS.at
+            return { hexId: hex.id, x: center.x + at.x, y: center.y + at.y }
+        })
+}
 
 /**
  * R-8.3, R-8.4: an impassable side (a river, an estuary, a lake shore) as a red line along the

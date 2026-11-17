@@ -486,3 +486,74 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
         ])
     })
 })
+
+describe('a long-distance placement ends the turn (R-8.2)', () => {
+    const australia = boardMap('map.au')
+    const longDistanceHexes = australia.hexes.filter((hex) => hex.terrain === 'long-distance')
+    const perth = australia.city('city.au.perth')
+    const brisbane = australia.city('city.au.brisbane')
+    const adelaide = australia.cities.find((city) => city.name === 'Adelaide')
+    assertExists(adelaide)
+
+    it('ends a lit long-distance hex’s, Perth’s and Brisbane’s name with ", ends the turn"', () => {
+        expect(longDistanceHexes).toHaveLength(4)
+        for (const hex of longDistanceHexes) {
+            const name = litHexLabel(offered(hex.id, [ORANGE]))
+            expect(name, hex.id).toBe(`${placeName(hex.id)}: place Orange, ends the turn`)
+        }
+        const perthName = litHexLabel({
+            ...offered(perth.hexId, [ORANGE]),
+            marks: [{ kind: 'bonus', bonusId: 'bonus.au.perth', amount: 50 }]
+        })
+        expect(perthName).toBe('Perth: place Orange, $50, ends the turn')
+        expect(litHexLabel(offered(brisbane.hexId, [PURPLE]))).toBe(
+            'Brisbane: place Purple, ends the turn'
+        )
+        // Any other hex says nothing of the turn, nor does a journey's link into Perth.
+        expect(litHexLabel(offered(adelaide.hexId, [ORANGE]))).toBe('Adelaide: place Orange')
+        expect(
+            litHexLabel(offered(perth.hexId, [ORANGE]), {
+                kind: 'journey-extend',
+                startHexId: adelaide.hexId,
+                choosingHexId: undefined
+            })
+        ).toBe('Perth: link by Orange')
+    })
+
+    it('ends each popup button’s name in a long-distance hex, Perth or Brisbane with ", ends the turn"', () => {
+        const orange = {
+            railroadId: ORANGE,
+            isStart: false,
+            bonuses: [],
+            limitChange: 0,
+            supplyLeft: 8
+        }
+        const yellow = { ...orange, railroadId: YELLOW, supplyLeft: 17 }
+        const [hex] = longDistanceHexes
+        assertExists(hex)
+        expect(
+            buildChoice({}, { hexId: hex.id, chips: [orange, yellow] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Orange, 8 left, ends the turn', 'Place Yellow, 17 left, ends the turn'])
+        const paysPerth = {
+            ...orange,
+            bonuses: [{ bonusId: 'bonus.au.perth' as const, amount: 50 }]
+        }
+        expect(
+            buildChoice({}, { hexId: perth.hexId, chips: [paysPerth] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Orange, 8 left, pays $50, ends the turn'])
+        expect(
+            buildChoice({}, { hexId: brisbane.hexId, chips: [yellow] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Yellow, 17 left, ends the turn'])
+        expect(
+            buildChoice({}, { hexId: adelaide.hexId, chips: [orange] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Orange, 8 left'])
+    })
+})
