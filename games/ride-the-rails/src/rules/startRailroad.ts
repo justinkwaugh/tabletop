@@ -2,7 +2,7 @@ import { assertExists } from '@tabletop/common'
 import { hexCoordinates, type HexId } from '../data/hexes.js'
 import { RAILROAD_INTRODUCTIONS, type RailroadId, type StartRule } from '../data/railroads.js'
 import type { City, CityId } from '../data/boardMap.js'
-import { boardMap, cityIn } from '../data/boardMaps.js'
+import { boardMap, cityIn, isLongDistance } from '../data/boardMaps.js'
 import type { MapId } from '../data/maps.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { hasTrack, railroadsIn } from './track.js'
@@ -23,6 +23,12 @@ export function isEastCoastCity(city: City): boolean {
 
 export function isWestCoastCity(city: City): boolean {
     return city.groups.includes('west-coast')
+}
+
+// R-8.2: no railroad starts in a long-distance city (Perth, Brisbane): none prints a start colour
+// there, and Black's start rule leaves it out.
+export function noRailroadStartsIn(city: City): boolean {
+    return isLongDistance(city.hexId)
 }
 
 // R-4.2.3: the occupied cities lowest in dcol, every city tied with the third included,
@@ -91,6 +97,9 @@ export function cityFitsStartRule(
         // R-4.2.5: any city with room, which the placement test checks.
         case 'any-city':
             return true
+        // R-8.2: as any-city, but never a long-distance city.
+        case 'any-city-but-long-distance':
+            return !noRailroadStartsIn(city)
         // R-4.2, R-8: an expansion map's introduction panel starts a railroad in a city printed in
         // its colour.
         case 'printed-colour':

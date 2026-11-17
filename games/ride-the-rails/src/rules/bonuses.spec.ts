@@ -504,11 +504,14 @@ describe('Australia (R-8.2)', () => {
         })
     })
 
-    it('pays a start there too, which only Black may make', () => {
-        expect(place({ mapId: 'map.au' }, 'railroad.black', PERTH)).toEqual({
-            isStart: true,
-            bonuses: [PERTH_PAYMENT]
-        })
+    it('pays no start there: no railroad starts in Perth or Brisbane, Black included', () => {
+        const state = building({ mapId: 'map.au' })
+        for (const hexId of [PERTH, BRISBANE]) {
+            expect(placementTest(state, 'p1', 'railroad.black', hexId), hexId).toEqual({
+                legal: false,
+                reason: 'not-adjacent-or-start'
+            })
+        }
     })
 
     it('pays each once: Perth and Brisbane hold one locomotive', () => {

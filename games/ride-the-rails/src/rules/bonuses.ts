@@ -56,8 +56,8 @@ function bonusCity({ map, placement }: BonusContext, bonusId: BonusId): City | u
     return city?.bonus === bonusId ? city : undefined
 }
 
-// R-4.3.1, R-8: every placement in the city, a start included (Chicago; on their maps, Perth,
-// Brisbane, Paris and Berlin).
+// R-4.3.1, R-8: every placement in the city, a start included (Chicago; on their maps, Paris and
+// Berlin; Perth and Brisbane, where no railroad starts).
 export function everyPlacementRule(bonus: FixedBonus): BonusRule {
     return {
         bonus,

@@ -5,7 +5,7 @@ import { HexId } from '../data/hexes.js'
 import { lowersLimit } from '../data/placementLimits.js'
 import { RailroadId } from '../data/railroads.js'
 import { CityId } from '../data/boardMap.js'
-import { boardMap, hexById } from '../data/boardMaps.js'
+import { boardMap, isLongDistance } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { claimOf, placementBonuses, type BonusPayment } from '../rules/bonuses.js'
@@ -114,7 +114,7 @@ export class HydratedPlaceLocomotive
         assertExists(state.building, 'A placement needs a building turn')
         state.building = recordPlacement(state.building, {
             chargesMountain: lowersLimit(state.mapId, this.railroadId, this.hexId),
-            hex: hexById(this.hexId)
+            longDistance: isLongDistance(this.hexId)
         })
     }
 

@@ -1,6 +1,11 @@
 <script lang="ts">
     import type { Point } from '@tabletop/common'
-    import type { HexId, RailroadId } from '@tabletop/ride-the-rails'
+    import {
+        cityById,
+        noRailroadStartsIn,
+        type HexId,
+        type RailroadId
+    } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCells, hexCenter, hexOutline } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
@@ -43,6 +48,9 @@
             ...city,
             center: hexCenter(city.hexId),
             outline: twinOutline(city.hexId, hexCenter(city.hexId)),
+            // R-8.2: no railroad starts in a long-distance city (Perth, Brisbane), so it has no
+            // band, only the city's own rim.
+            startless: noRailroadStartsIn(cityById(city.cityId)),
             bandColours: bandColours(
                 city.startColours,
                 cues.filter((cue) => cue.hexId === city.hexId).map((cue) => cue.railroadId)
@@ -57,7 +65,7 @@
 <g class="cities" aria-hidden="true">
     {#each cities as city (city.cityId)}
         <g transform="translate({city.center.x} {city.center.y})" data-city-marks={city.cityId}>
-            {#if BOARD_LOOK.startMark === 'band'}
+            {#if BOARD_LOOK.startMark === 'band' && !city.startless}
                 <StartBand
                     startColours={city.bandColours}
                     frame={gameSession.boardFrame.hexFrame}

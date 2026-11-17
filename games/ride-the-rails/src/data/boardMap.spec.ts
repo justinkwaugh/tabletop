@@ -170,6 +170,26 @@ describe('a flat map (the fixture, R-8)', () => {
         expect(FLAT_FIXTURE_MAP.capacity('hex.usa.0-0')).toBe(2)
     })
 
+    it('takes a long-distance hex and a long-distance city as long-distance, and nothing else (R-8)', () => {
+        expect(FLAT_FIXTURE_MAP.isLongDistance(LONG_DISTANCE_HEX)).toBe(true)
+        expect(FLAT_FIXTURE_MAP.isLongDistance(BETA_HEX)).toBe(false)
+        expect(FLAT_FIXTURE_MAP.isLongDistance('hex.usa.0-0')).toBe(false)
+        const beta = new BoardMap({
+            ...FLAT_FIXTURE_DEFINITION,
+            longDistanceCities: ['city.usa.beta']
+        })
+        expect(beta.isLongDistance(BETA_HEX)).toBe(true)
+        expect(beta.isLongDistance(ALPHA_HEX)).toBe(false)
+        expect(beta.isLongDistance(LONG_DISTANCE_HEX)).toBe(true)
+    })
+
+    it('refuses a long-distance city the map does not have', () => {
+        expect(
+            () =>
+                new BoardMap({ ...FLAT_FIXTURE_DEFINITION, longDistanceCities: ['city.usa.delta'] })
+        ).toThrow(/not on/)
+    })
+
     it('finds a city by its hex, and none in a terrain hex', () => {
         expect(FLAT_FIXTURE_MAP.cityIn(GAMMA_HEX)?.name).toBe('Gamma')
         expect(FLAT_FIXTURE_MAP.cityIn(MOUNTAIN_HEX)).toBeUndefined()

@@ -37,6 +37,7 @@ export type StartRule =
     | 'chicago-or-westernmost'
     | 'west-coast'
     | 'any-city'
+    | 'any-city-but-long-distance'
     | 'printed-colour'
     | 'printed-colour-or-berlin'
 
@@ -47,7 +48,7 @@ export type RailroadIntroduction = {
 }
 
 // R-1.4, R-8: on every expansion map the railroads arrive in the USA's rounds. Each starts in a
-// city printed in its colour, Black in any city with room (R-4.2.5).
+// city printed in its colour, Black in any city with room (R-4.2.5), but on Australia (below).
 const PRINTED_COLOUR_INTRODUCTIONS: readonly RailroadIntroduction[] = [
     { railroadId: 'railroad.red', availableFromRound: 1, startRule: 'printed-colour' },
     { railroadId: 'railroad.blue', availableFromRound: 1, startRule: 'printed-colour' },
@@ -75,8 +76,20 @@ export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadInt
         { railroadId: 'railroad.purple', availableFromRound: 4, startRule: 'west-coast' },
         { railroadId: 'railroad.black', availableFromRound: 5, startRule: 'any-city' }
     ],
-    // R-8.2: the USA's rounds; each railroad starts in a city printed in its colour.
-    'map.au': PRINTED_COLOUR_INTRODUCTIONS,
+    // R-8.2: the USA's rounds; each railroad starts in a city printed in its colour, Black in any
+    // city with room but Perth and Brisbane, the long-distance cities, where no railroad starts.
+    'map.au': [
+        { railroadId: 'railroad.red', availableFromRound: 1, startRule: 'printed-colour' },
+        { railroadId: 'railroad.blue', availableFromRound: 1, startRule: 'printed-colour' },
+        { railroadId: 'railroad.orange', availableFromRound: 2, startRule: 'printed-colour' },
+        { railroadId: 'railroad.yellow', availableFromRound: 3, startRule: 'printed-colour' },
+        { railroadId: 'railroad.purple', availableFromRound: 4, startRule: 'printed-colour' },
+        {
+            railroadId: 'railroad.black',
+            availableFromRound: 5,
+            startRule: 'any-city-but-long-distance'
+        }
+    ],
     // R-8.3: as on Australia.
     'map.ca': PRINTED_COLOUR_INTRODUCTIONS,
     // R-8.4: as on Australia. Red and Blue start in the Red/Blue/Black cities, each holding one, so

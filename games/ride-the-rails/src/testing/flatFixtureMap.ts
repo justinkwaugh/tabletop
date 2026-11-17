@@ -90,7 +90,8 @@ export const FLAT_FIXTURE_DEFINITION: MapDefinition = {
     hexes: FIXTURE_HEXES,
     cities: FIXTURE_CITIES,
     impassable: [['hex.usa.0-4', LONG_DISTANCE_HEX]],
-    citiesWithoutSetupPassenger: ['city.usa.gamma']
+    citiesWithoutSetupPassenger: ['city.usa.gamma'],
+    longDistanceCities: []
 }
 
 export const FLAT_FIXTURE_MAP = new BoardMap(FLAT_FIXTURE_DEFINITION)

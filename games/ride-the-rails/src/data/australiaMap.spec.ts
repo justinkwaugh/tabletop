@@ -245,6 +245,29 @@ describe('Australia map (R-8.2)', () => {
                 )
             ).toEqual(['hex.au.34-8', 'hex.au.2-12', 'hex.au.1-13', 'hex.au.3-13'])
         })
+
+        it('marks Perth and Brisbane, which close the chains, as its long-distance cities, and no other map any', () => {
+            expect(boardMap('map.au').longDistanceCities).toEqual([PERTH, BRISBANE])
+            for (const mapId of ['map.usa', 'map.ca', 'map.fr', 'map.de'] as const) {
+                expect(boardMap(mapId).longDistanceCities, mapId).toEqual([])
+            }
+        })
+
+        it('takes the four long-distance hexes, Perth and Brisbane as long-distance, and nothing else', () => {
+            const map = boardMap('map.au')
+            expect(
+                AUSTRALIA_HEXES.filter((hex) => map.isLongDistance(hex.id))
+                    .map((hex) => hex.id)
+                    .sort()
+            ).toEqual(
+                [perth, brisbane, 'hex.au.34-8', 'hex.au.2-12', 'hex.au.1-13', 'hex.au.3-13'].sort()
+            )
+        })
+
+        it('prints no start colour in a long-distance city', () => {
+            expect(cityById(PERTH).startColours).toEqual([])
+            expect(cityById(BRISBANE).startColours).toEqual([])
+        })
     })
 
     describe('capacity (R-4.1.4, R-8.2)', () => {

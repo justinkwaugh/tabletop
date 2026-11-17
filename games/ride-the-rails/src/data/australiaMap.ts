@@ -576,7 +576,8 @@ export const AUSTRALIA_HEXES: readonly Hex[] = flatMapHexes(
     AUSTRALIA_CITIES
 )
 
-// R-8.2: the Australia map, flat-topped. Perth and Brisbane take no passenger at setup.
+// R-8.2: the Australia map, flat-topped. Perth and Brisbane, the long-distance cities, take no
+// passenger at setup.
 export const AUSTRALIA_MAP: MapDefinition = {
     id: 'map.au',
     key: 'au',
@@ -584,5 +585,6 @@ export const AUSTRALIA_MAP: MapDefinition = {
     hexes: AUSTRALIA_HEXES,
     cities: AUSTRALIA_CITIES,
     impassable: [],
-    citiesWithoutSetupPassenger: ['city.au.perth', 'city.au.brisbane']
+    citiesWithoutSetupPassenger: ['city.au.perth', 'city.au.brisbane'],
+    longDistanceCities: ['city.au.perth', 'city.au.brisbane']
 }

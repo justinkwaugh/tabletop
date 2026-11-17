@@ -450,8 +450,8 @@ describe('legal placements (R-3.2, R-4.1, R-4.2)', () => {
 })
 
 describe('long-distance hexes (R-8, Australia)', () => {
-    const longDistance = FLAT_FIXTURE_MAP.hex(LONG_DISTANCE_HEX)
-    const plain = FLAT_FIXTURE_MAP.hex('hex.usa.0-0')
+    const longDistance = FLAT_FIXTURE_MAP.isLongDistance(LONG_DISTANCE_HEX)
+    const plain = FLAT_FIXTURE_MAP.isLongDistance('hex.usa.0-0')
 
     it('takes a long-distance hex only as the turn’s first placement', () => {
         expect(longDistanceRefusal({ placed: 0, usedMountain: false }, longDistance)).toBe(
@@ -566,6 +566,42 @@ describe('Australia (R-8.2)', () => {
             refused('long-distance-ended-turn')
         )
         expect(hasLegalPlacement(state, 'p1')).toBe(false)
+    })
+
+    describe('Perth and Brisbane, the long-distance cities', () => {
+        const PERTH: HexId = 'hex.au.0-12'
+        const PERTH_CHAIN_END: HexId = 'hex.au.1-13'
+        const BRISBANE: HexId = 'hex.au.34-6'
+        const BRISBANE_CHAIN_END: HexId = 'hex.au.34-8'
+        const chainEnds = (recipe: StateRecipe = {}) =>
+            australia({
+                track: {
+                    [SYDNEY]: ['railroad.red'],
+                    [ADELAIDE]: ['railroad.orange'],
+                    [PERTH_CHAIN_END]: ['railroad.orange'],
+                    [BRISBANE_CHAIN_END]: ['railroad.red']
+                },
+                ...recipe
+            })
+
+        it('takes a placement in Perth or Brisbane as the turn’s first', () => {
+            expect(placementTest(chainEnds(), 'p1', 'railroad.orange', PERTH)).toEqual(LEGAL)
+            expect(placementTest(chainEnds(), 'p1', 'railroad.red', BRISBANE)).toEqual(LEGAL)
+        })
+
+        it('refuses a placement in Perth or Brisbane after another placement that turn', () => {
+            const later = chainEnds({ building: { placed: 1, usedMountain: false } })
+            expect(placementTest(later, 'p1', 'railroad.orange', PERTH)).toEqual(
+                refused('long-distance-not-first')
+            )
+            expect(placementTest(later, 'p1', 'railroad.red', BRISBANE)).toEqual(
+                refused('long-distance-not-first')
+            )
+            const offered = legalPlacements(later, 'p1').map((placement) => placement.hexId)
+            expect(offered).not.toContain(PERTH)
+            expect(offered).not.toContain(BRISBANE)
+            expect(offered.length).toBeGreaterThan(0)
+        })
     })
 
     it('never takes a locomotive in the Alps', () => {

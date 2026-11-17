@@ -104,7 +104,7 @@ describe('each map’s sea layout', () => {
         expect(Object.fromEntries(MAP_IDS.map((mapId) => [mapId, legendBox(mapId).width]))).toEqual(
             {
                 'map.usa': 500,
-                'map.au': 400,
+                'map.au': 520,
                 'map.ca': 440,
                 'map.fr': 400,
                 'map.de': 480
@@ -150,5 +150,22 @@ describe('each map’s sea layout', () => {
             { railroadIds: ['railroad.purple'], text: 'A West Coast city' },
             { railroadIds: ['railroad.black'], text: 'Any city with room' }
         ])
+    })
+
+    it('leaves Perth and Brisbane, by name from the map, out of Australia’s Black row (R-8.2)', () => {
+        const printed = ['railroad.red', 'railroad.blue', 'railroad.orange', 'railroad.yellow']
+        expect(legendRows('map.au')).toEqual([
+            { railroadIds: [...printed, 'railroad.purple'], text: 'A city of its colour' },
+            {
+                railroadIds: ['railroad.black'],
+                text: 'Any city with room but Perth and Brisbane'
+            }
+        ])
+        for (const mapId of ['map.ca', 'map.fr', 'map.de'] as const) {
+            expect(legendRows(mapId).at(-1), mapId).toEqual({
+                railroadIds: ['railroad.black'],
+                text: 'Any city with room'
+            })
+        }
     })
 })

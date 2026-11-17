@@ -575,5 +575,6 @@ export const USA_MAP: MapDefinition = {
     hexes: USA_HEXES,
     cities: USA_CITIES,
     impassable: [],
-    citiesWithoutSetupPassenger: []
+    citiesWithoutSetupPassenger: [],
+    longDistanceCities: []
 }

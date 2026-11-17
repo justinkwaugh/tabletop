@@ -1,6 +1,7 @@
 import type { BoundingBox, Point } from '@tabletop/common'
 import {
     RAILROAD_INTRODUCTIONS,
+    boardMap,
     type CityId,
     type MapId,
     type RailroadId,
@@ -44,14 +45,15 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
     },
     // The board prints no title: the title in the open sea north of Perth, clear of land by 72.
     // The legend in the south-west, where the board prints its railroad introduction panel: in the
-    // open sea south of the west coast, narrowed to 400 for its two rows, as France's, and raised
-    // clear of the zoom control in the fitted board's bottom-left corner.
+    // open sea south of the west coast, narrowed to 520 for its two rows (Black's, naming Perth and
+    // Brisbane, ends at 453), and raised clear of the zoom control in the fitted board's
+    // bottom-left corner.
     'map.au': {
         name: 'Australia',
         boardLabel: 'Map of Australia',
         title: { x: 200, y: 118 },
         legend: { x: 40, y: 1180 },
-        legendWidth: 400
+        legendWidth: 520
     },
     // The board prints no title: the title in the open water south of Sherbrooke, clear of land
     // by 200. The legend towards the south-west, where the board prints its railroad introduction
@@ -125,8 +127,10 @@ export const START_LEGEND = {
     cube: 18
 } as const
 
+type NamedStartRule = Exclude<StartRule, 'any-city-but-long-distance'>
+
 // R-4.2.1 to R-4.2.5, R-8: each start rule in the legend's words.
-const START_RULE_TEXT: Readonly<Record<StartRule, string>> = {
+const START_RULE_TEXT: Readonly<Record<NamedStartRule, string>> = {
     'east-coast-apart': 'Different East Coast cities',
     'east-coast-or-chicago': 'An East Coast city or Chicago',
     'chicago-or-westernmost': 'Chicago or the 3 westernmost developed cities',
@@ -134,6 +138,17 @@ const START_RULE_TEXT: Readonly<Record<StartRule, string>> = {
     'any-city': 'Any city with room',
     'printed-colour': 'A city of its colour',
     'printed-colour-or-berlin': 'A city of its colour, or Berlin'
+}
+
+// R-8.2: a rule that leaves out the map's long-distance cities names them, from the map's data
+// ("Any city with room but Perth and Brisbane").
+function startRuleText(mapId: MapId, rule: StartRule): string {
+    if (rule !== 'any-city-but-long-distance') return START_RULE_TEXT[rule]
+    const map = boardMap(mapId)
+    const names = map.longDistanceCities.map((cityId) => map.city(cityId).name)
+    const last = names.pop() ?? ''
+    const listed = names.length > 0 ? `${names.join(', ')} and ${last}` : last
+    return `${START_RULE_TEXT['any-city']} but ${listed}`
 }
 
 export type LegendRow = { railroadIds: readonly RailroadId[]; text: string }
@@ -147,7 +162,10 @@ export function legendRows(mapId: MapId): LegendRow[] {
     for (const { railroadId, startRule } of RAILROAD_INTRODUCTIONS[mapId]) {
         rows.set(startRule, [...(rows.get(startRule) ?? []), railroadId])
     }
-    return [...rows].map(([rule, railroadIds]) => ({ railroadIds, text: START_RULE_TEXT[rule] }))
+    return [...rows].map(([rule, railroadIds]) => ({
+        railroadIds,
+        text: startRuleText(mapId, rule)
+    }))
 }
 
 const LEGEND_CUBE_GAP = 4

@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { HexId } from '../data/hexes.js'
-import type { RailroadId } from '../data/railroads.js'
+import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import { PhaseName } from '../definition/phases.js'
 import { USA_CITIES } from '../data/usaMap.js'
 import type { Track } from '../model/gameState.js'
 import { boardMap, cityById } from '../data/boardMaps.js'
-import type { MapId } from '../data/maps.js'
+import { MAP_IDS, type MapId } from '../data/maps.js'
 import { buildState } from '../testing/fixtures.js'
-import { placementTest, startCityIds } from './placement.js'
+import { legalPlacements, placementTest, startCityIds } from './placement.js'
 import { ALPHA, BETA, FLAT_FIXTURE_MAP, GAMMA } from '../testing/flatFixtureMap.js'
-import { cityFitsStartRule, westernmostOccupiedCities } from './startRailroad.js'
+import {
+    cityFitsStartRule,
+    noRailroadStartsIn,
+    westernmostOccupiedCities
+} from './startRailroad.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -324,6 +328,17 @@ describe('start rules by printed colour (R-4.2, R-8)', () => {
         expect(cityFitsStartRule('west-coast', chicago ?? alpha, 'railroad.yellow', {})).toBe(false)
         expect(cityFitsStartRule('any-city', alpha, 'railroad.black', {})).toBe(true)
     })
+
+    it('any-city-but-long-distance: starts Black in any city but a long-distance one (R-8.2)', () => {
+        const perth = boardMap('map.au').city('city.au.perth')
+        const brisbane = boardMap('map.au').city('city.au.brisbane')
+        const adelaide = boardMap('map.au').city('city.au.adelaide')
+        const rule = 'any-city-but-long-distance'
+        expect(cityFitsStartRule(rule, adelaide, 'railroad.black', {})).toBe(true)
+        expect(cityFitsStartRule(rule, perth, 'railroad.black', {})).toBe(false)
+        expect(cityFitsStartRule(rule, brisbane, 'railroad.black', {})).toBe(false)
+        expect(cityFitsStartRule('any-city', perth, 'railroad.black', {})).toBe(true)
+    })
 })
 
 function emptyBoard(mapId: MapId) {
@@ -349,10 +364,35 @@ describe('Australia (R-8.2)', () => {
         expect(startCityIds(state, 'railroad.purple')).toHaveLength(51)
     })
 
-    it('starts Black in any city with room, Perth and Brisbane included (R-4.2.5)', () => {
+    it('starts Black in any city with room but Perth and Brisbane (R-4.2.5)', () => {
         expect(startCityIds(state, 'railroad.black')).toEqual(
-            boardMap('map.au').cities.map((city) => city.id)
+            boardMap('map.au')
+                .cities.map((city) => city.id)
+                .filter((cityId) => cityId !== 'city.au.perth' && cityId !== 'city.au.brisbane')
         )
+        expect(startCityIds(state, 'railroad.black')).toHaveLength(52)
+    })
+
+    it('names Perth and Brisbane, of every map’s cities, as where no railroad starts', () => {
+        const startless = MAP_IDS.flatMap((mapId) =>
+            boardMap(mapId)
+                .cities.filter((city) => noRailroadStartsIn(city))
+                .map((city) => city.id)
+        )
+        expect(startless).toEqual(['city.au.brisbane', 'city.au.perth'])
+    })
+
+    it('starts no railroad in Perth or Brisbane: no offer there, and a start refused with a reason', () => {
+        const offered = legalPlacements(state, 'p1').map((placement) => placement.hexId)
+        for (const hexId of ['hex.au.0-12', 'hex.au.34-6'] as const) {
+            expect(offered, hexId).not.toContain(hexId)
+            for (const railroadId of RAILROAD_IDS) {
+                expect(placementTest(state, 'p1', railroadId, hexId), railroadId).toEqual({
+                    legal: false,
+                    reason: 'not-adjacent-or-start'
+                })
+            }
+        }
     })
 
     it('refuses Yellow a start anywhere but Wagga Wagga', () => {

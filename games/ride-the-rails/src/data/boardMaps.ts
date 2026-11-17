@@ -97,6 +97,11 @@ export function hexCapacity(hexId: HexId): HexCapacity {
     return mapOfHex(hexId).capacity(hexId)
 }
 
+// R-8.2: a long-distance hex or city (Perth, Brisbane).
+export function isLongDistance(hexId: HexId): boolean {
+    return mapOfHex(hexId).isLongDistance(hexId)
+}
+
 export function groupsOf(hexId: HexId): readonly HexGroup[] {
     return mapOfHex(hexId).groupsOf(hexId)
 }

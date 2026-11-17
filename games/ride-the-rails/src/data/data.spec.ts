@@ -5,7 +5,8 @@ import {
     RAILROAD_IDS,
     RAILROAD_INTRODUCTIONS,
     RAILROADS,
-    RailroadId
+    RailroadId,
+    type RailroadIntroduction
 } from './railroads.js'
 import {
     chargesMountain,
@@ -248,8 +249,18 @@ describe('every per-map table (R-8)', () => {
     })
 })
 
+// Australia's introductions with Black starting in any city with room, Perth and Brisbane's
+// exception aside.
+function blackAnywhere(introductions: readonly RailroadIntroduction[]): RailroadIntroduction[] {
+    return introductions.map((introduction) =>
+        introduction.startRule === 'any-city-but-long-distance'
+            ? { ...introduction, startRule: 'any-city' }
+            : introduction
+    )
+}
+
 describe('Australia (R-8.2)', () => {
-    it('brings the railroads in by the USA’s rounds, each starting in a city of its printed colour and Black in any city', () => {
+    it('brings the railroads in by the USA’s rounds, each starting in a city of its printed colour and Black in any city but the long-distance ones', () => {
         const rounds = (mapId: 'map.usa' | 'map.au' | 'map.ca') =>
             RAILROAD_INTRODUCTIONS[mapId].map(({ railroadId, availableFromRound }) => [
                 railroadId,
@@ -267,7 +278,7 @@ describe('Australia (R-8.2)', () => {
             ['railroad.orange', 'printed-colour'],
             ['railroad.yellow', 'printed-colour'],
             ['railroad.purple', 'printed-colour'],
-            ['railroad.black', 'any-city']
+            ['railroad.black', 'any-city-but-long-distance']
         ])
     })
 
@@ -301,8 +312,10 @@ describe('Australia (R-8.2)', () => {
 })
 
 describe('Canada (R-8.3)', () => {
-    it('introduces the railroads as Australia does: the USA’s rounds, printed colours, Black anywhere', () => {
-        expect(RAILROAD_INTRODUCTIONS['map.ca']).toEqual(RAILROAD_INTRODUCTIONS['map.au'])
+    it('introduces the railroads as Australia does, but Black in any city with room: the USA’s rounds, printed colours', () => {
+        expect(RAILROAD_INTRODUCTIONS['map.ca']).toEqual(
+            blackAnywhere(RAILROAD_INTRODUCTIONS['map.au'])
+        )
     })
 
     it('prints 7 / 5 / 4 for 3 / 4 / 5 players, and has no mountain to lower them', () => {
@@ -333,8 +346,10 @@ describe('Canada (R-8.3)', () => {
 })
 
 describe('France (R-8.4)', () => {
-    it('introduces the railroads as Australia does: the USA’s rounds, printed colours, Black anywhere', () => {
-        expect(RAILROAD_INTRODUCTIONS['map.fr']).toEqual(RAILROAD_INTRODUCTIONS['map.au'])
+    it('introduces the railroads as Australia does, but Black in any city with room: the USA’s rounds, printed colours', () => {
+        expect(RAILROAD_INTRODUCTIONS['map.fr']).toEqual(
+            blackAnywhere(RAILROAD_INTRODUCTIONS['map.au'])
+        )
     })
 
     it('prints 8 / 5 / 4 for 3 / 4 / 5 players, mountain −1, no railroad exempt', () => {

@@ -88,6 +88,51 @@ test('Australia: a long-distance hex’s 1 stands in the sea beside it, over no 
     }
 })
 
+test('Australia: Perth and Brisbane draw no start band, as no railroad starts there (R-8.2)', async ({
+    page
+}) => {
+    await openScenario(page, 'Australia perth chain')
+    await settled(page)
+    for (const cityId of ['city.au.perth', 'city.au.brisbane']) {
+        const city = board(page).locator(`[data-city-marks="${cityId}"]`)
+        await expect(city, cityId).toHaveCount(1)
+        await expect(city.locator('[data-start-band]'), cityId).toHaveCount(0)
+        await expect(city.locator('[data-band-colour]'), cityId).toHaveCount(0)
+    }
+    // A city printed in Purple and Black keeps its band.
+    const brokenHill = board(page).locator('[data-city-marks="city.au.broken-hill"]')
+    await expect(brokenHill.locator('[data-band-colour]')).toHaveCount(2)
+    const lit = await litHexIds(page)
+    expect(lit).not.toContain('hex.au.0-12')
+    expect(lit).not.toContain('hex.au.34-6')
+})
+
+for (const [map, scenario] of [
+    ['the USA', 'First share'],
+    ['Australia', 'Australia perth chain'],
+    ['Canada', 'Canada toronto'],
+    ['France', 'France paris ring'],
+    ['Germany', 'Germany berlin']
+] as const) {
+    test(`${map}: the start legend holds its rows inside its card`, async ({ page }) => {
+        await openScenario(page, scenario)
+        const overflow = await board(page)
+            .locator('[data-start-legend]')
+            .evaluate((legend) => {
+                const card = legend.querySelector('rect')?.getBBox()
+                if (!card) return ['no card']
+                return [...legend.querySelectorAll('text')].flatMap((text) => {
+                    const box = text.getBBox()
+                    // The card's padding, 16, stays clear on the right as on the left.
+                    return box.x + box.width <= card.x + card.width - 16
+                        ? []
+                        : [`${text.textContent} ends at ${box.x + box.width}`]
+                })
+            })
+        expect(overflow).toEqual([])
+    })
+}
+
 test('Canada: no pick is offered across an impassable side (R-8.3)', async ({ page }) => {
     await openScenario(page, 'Canada toronto')
     await expect(page.getByRole('group', { name: 'Map of Canada' })).toBeVisible()

@@ -79,6 +79,9 @@ export type MapDefinition = {
     readonly impassable: readonly ImpassablePair[]
     // R-1.3.2: every city takes a passenger at setup but these.
     readonly citiesWithoutSetupPassenger: readonly CityId[]
+    // R-8.2: the cities that close a long-distance chain (Perth and Brisbane). A placement there
+    // follows a long-distance hex's rule, and no railroad starts there.
+    readonly longDistanceCities: readonly CityId[]
 }
 
 const NON_CITY_CAPACITY = 2
@@ -95,6 +98,7 @@ export class BoardMap {
     // In the map table's order.
     readonly cities: readonly City[]
     readonly citiesWithoutSetupPassenger: readonly CityId[]
+    readonly longDistanceCities: readonly CityId[]
     // R-8: the printed impassable sides, as the map lists them, for the board to draw.
     readonly impassable: readonly ImpassablePair[]
 
@@ -112,6 +116,7 @@ export class BoardMap {
         )
         this.cities = definition.cities
         this.citiesWithoutSetupPassenger = definition.citiesWithoutSetupPassenger
+        this.longDistanceCities = definition.longDistanceCities
         this.impassable = definition.impassable
         this.hexesById = new Map(this.hexes.map((hex) => [hex.id, hex]))
         this.citiesById = new Map(this.cities.map((city) => [city.id, city]))
@@ -184,6 +189,15 @@ export class BoardMap {
         }
     }
 
+    // R-8.2: a long-distance hex, or a long-distance city's: a placement there must be the turn's
+    // first, and it ends the turn.
+    isLongDistance(hexId: HexId): boolean {
+        const hex = this.hex(hexId)
+        return hex.terrain === 'city'
+            ? this.longDistanceCities.includes(hex.cityId)
+            : hex.terrain === 'long-distance'
+    }
+
     // R-1.3.2, R-8: the cities that take a passenger at setup, in the map table's order.
     setupPassengerCityIds(): CityId[] {
         return this.cities
@@ -213,7 +227,10 @@ export class BoardMap {
                 `${hex.id} names a city ${this.id} does not have`
             )
         }
-        for (const cityId of definition.citiesWithoutSetupPassenger) {
+        for (const cityId of [
+            ...definition.citiesWithoutSetupPassenger,
+            ...definition.longDistanceCities
+        ]) {
             assert(this.citiesById.has(cityId), `${cityId} is not on ${this.id}`)
         }
     }

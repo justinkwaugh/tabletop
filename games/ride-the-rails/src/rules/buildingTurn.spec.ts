@@ -15,17 +15,17 @@ describe('the building turn record (R-3.2.3, R-3.2.4, R-8)', () => {
     it('counts a placement, and marks the mountain only when the placement charges it', () => {
         const plain = recordPlacement(OPENED, {
             chargesMountain: false,
-            hex: FLAT_FIXTURE_MAP.hex('hex.usa.0-0')
+            longDistance: FLAT_FIXTURE_MAP.isLongDistance('hex.usa.0-0')
         })
         expect(plain).toEqual({ placed: 1, usedMountain: false })
         const mountain = recordPlacement(plain, {
             chargesMountain: true,
-            hex: FLAT_FIXTURE_MAP.hex(MOUNTAIN_HEX)
+            longDistance: FLAT_FIXTURE_MAP.isLongDistance(MOUNTAIN_HEX)
         })
         expect(mountain).toEqual({ placed: 2, usedMountain: true })
         const exempt = recordPlacement(OPENED, {
             chargesMountain: false,
-            hex: FLAT_FIXTURE_MAP.hex(MOUNTAIN_HEX)
+            longDistance: FLAT_FIXTURE_MAP.isLongDistance(MOUNTAIN_HEX)
         })
         expect(exempt).toEqual({ placed: 1, usedMountain: false })
     })
@@ -34,14 +34,14 @@ describe('the building turn record (R-3.2.3, R-3.2.4, R-8)', () => {
         expect(
             recordPlacement(OPENED, {
                 chargesMountain: false,
-                hex: FLAT_FIXTURE_MAP.hex(LONG_DISTANCE_HEX)
+                longDistance: FLAT_FIXTURE_MAP.isLongDistance(LONG_DISTANCE_HEX)
             })
         ).toEqual({ placed: 1, usedMountain: false, usedLongDistance: true })
         expect(
             'usedLongDistance' in
                 recordPlacement(OPENED, {
                     chargesMountain: false,
-                    hex: FLAT_FIXTURE_MAP.hex('hex.usa.0-0')
+                    longDistance: FLAT_FIXTURE_MAP.isLongDistance('hex.usa.0-0')
                 })
         ).toBe(false)
     })

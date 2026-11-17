@@ -590,5 +590,6 @@ export const GERMANY_MAP: MapDefinition = {
     hexes: GERMANY_HEXES,
     cities: GERMANY_CITIES,
     impassable: [],
-    citiesWithoutSetupPassenger: []
+    citiesWithoutSetupPassenger: [],
+    longDistanceCities: []
 }

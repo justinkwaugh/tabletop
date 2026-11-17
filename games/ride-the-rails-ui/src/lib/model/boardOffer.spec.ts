@@ -156,6 +156,52 @@ describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
             ])
         }
     })
+
+    describe('Perth and Brisbane, the long-distance cities (R-8.2)', () => {
+        const PERTH: HexId = 'hex.au.0-12'
+        const BRISBANE: HexId = 'hex.au.34-6'
+        const chainEnds = (placed: number) =>
+            building({
+                mapId: 'map.au',
+                round: 5,
+                shares: { p1: EVERY_SHARE },
+                track: {
+                    'hex.au.4-14': ['railroad.orange'],
+                    'hex.au.1-13': ['railroad.orange'],
+                    'hex.au.34-8': ['railroad.red']
+                },
+                building: { placed, usedMountain: false }
+            })
+
+        it('lights them as the turn’s first placement, by the railroads beside them', () => {
+            const offered = placementOffer(chainEnds(0), 'p1')
+            expect(offeredAt(offered, PERTH)?.placements).toEqual([
+                expect.objectContaining({ railroadId: 'railroad.orange', isStart: false })
+            ])
+            expect(offeredAt(offered, BRISBANE)?.placements).toEqual([
+                expect.objectContaining({ railroadId: 'railroad.red', isStart: false })
+            ])
+        })
+
+        it('never lights them once a placement is made this turn', () => {
+            const offered = placementOffer(chainEnds(1), 'p1')
+            expect(offeredAt(offered, PERTH)).toBeUndefined()
+            expect(offeredAt(offered, BRISBANE)).toBeUndefined()
+            expect(offered.length).toBeGreaterThan(0)
+        })
+
+        it('never lights them as a start, Black’s included', () => {
+            const state = building({
+                mapId: 'map.au',
+                round: 5,
+                shares: { p1: holding('railroad.black') }
+            })
+            const offered = placementOffer(state, 'p1')
+            expect(offered).toHaveLength(52)
+            expect(offeredAt(offered, PERTH)).toBeUndefined()
+            expect(offeredAt(offered, BRISBANE)).toBeUndefined()
+        })
+    })
 })
 
 describe('the marks (R-4.3, R-3.2.4)', () => {

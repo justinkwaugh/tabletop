@@ -1,6 +1,5 @@
 import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
-import type { Hex } from '../data/boardMap.js'
 import type { BuildingTurn, HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { hasLegalPlacement, placementsLeft } from './placement.js'
 
@@ -33,16 +32,16 @@ export function buildingTurnEnd(
 }
 
 // R-3.2.3, R-3.2.4, R-8: the turn's record once a placement is made; the long-distance mark is
-// written only when the placement is in a long-distance hex.
+// written only when the placement is in a long-distance hex, Perth or Brisbane.
 export function recordPlacement(
     building: BuildingTurn,
-    { chargesMountain, hex }: { chargesMountain: boolean; hex: Hex }
+    { chargesMountain, longDistance }: { chargesMountain: boolean; longDistance: boolean }
 ): BuildingTurn {
     return {
         ...building,
         placed: building.placed + 1,
         usedMountain: building.usedMountain || chargesMountain,
-        ...(hex.terrain === 'long-distance' ? { usedLongDistance: true } : {})
+        ...(longDistance ? { usedLongDistance: true } : {})
     }
 }
 

@@ -1,12 +1,12 @@
 import { assertExists } from '@tabletop/common'
-import type { CityId, Hex, HexGroup } from '../data/boardMap.js'
+import type { CityId, HexGroup } from '../data/boardMap.js'
 import {
     adjacentHexIds,
     boardMap,
     groupsOf,
-    hexById,
     hexCapacity,
-    isHexId
+    isHexId,
+    isLongDistance
 } from '../data/boardMaps.js'
 import type { HexId } from '../data/hexes.js'
 import type { MapId } from '../data/maps.js'
@@ -57,16 +57,16 @@ export function placementsLeft(state: HydratedRideTheRailsGameState): number {
     return limit - building.placed
 }
 
-// R-8 (Australia): a long-distance hex takes the turn's first placement only, and that placement
-// ends the turn.
+// R-8.2: a long-distance hex, Perth or Brisbane takes the turn's first placement only, and that
+// placement ends the turn.
 export function longDistanceRefusal(
     building: BuildingTurn,
-    hex: Hex
+    longDistance: boolean
 ): PlacementRefusal | undefined {
     if (building.usedLongDistance) {
         return 'long-distance-ended-turn'
     }
-    if (hex.terrain === 'long-distance' && building.placed > 0) {
+    if (longDistance && building.placed > 0) {
         return 'long-distance-not-first'
     }
     return undefined
@@ -179,7 +179,7 @@ function hexRefusal(
         return 'over-placement-limit'
     }
     return (
-        longDistanceRefusal(currentBuildingTurn(state), hexById(hexId)) ??
+        longDistanceRefusal(currentBuildingTurn(state), isLongDistance(hexId)) ??
         roomRefusal(state.mapId, state.track, railroadId, hexId, held)
     )
 }

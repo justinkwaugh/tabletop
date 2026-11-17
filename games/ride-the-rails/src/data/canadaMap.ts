@@ -579,5 +579,6 @@ export const CANADA_MAP: MapDefinition = {
     hexes: CANADA_HEXES,
     cities: CANADA_CITIES,
     impassable: CANADA_IMPASSABLE,
-    citiesWithoutSetupPassenger: []
+    citiesWithoutSetupPassenger: [],
+    longDistanceCities: []
 }

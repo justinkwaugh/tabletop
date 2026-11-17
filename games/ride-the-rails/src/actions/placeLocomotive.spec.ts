@@ -401,6 +401,8 @@ describe('Australia (R-8.2)', () => {
     const LONG_DISTANCE_NEXT_TO_ADELAIDE: HexId = 'hex.au.3-13'
     const PERTH_CHAIN_END: HexId = 'hex.au.1-13'
     const PERTH: HexId = 'hex.au.0-12'
+    const BRISBANE_CHAIN_END: HexId = 'hex.au.34-8'
+    const BRISBANE: HexId = 'hex.au.34-6'
 
     function australia(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
         return building({
@@ -430,21 +432,72 @@ describe('Australia (R-8.2)', () => {
         expect(after.building).toEqual({ placed: 0, usedMountain: false })
     })
 
-    it('pays Perth’s $50 to the placement that builds into it', () => {
-        const state = australia({
+    const atPerthsChainEnd = (recipe: StateRecipe = {}) =>
+        australia({
             track: {
                 [ADELAIDE]: ['railroad.orange'],
-                [PERTH_CHAIN_END]: ['railroad.orange']
-            }
+                [PERTH_CHAIN_END]: ['railroad.orange'],
+                [BRISBANE_CHAIN_END]: ['railroad.red']
+            },
+            ...recipe
         })
-        const { after, processed } = place(state, 'railroad.orange', PERTH)
+
+    it('pays Perth’s $50 to the turn’s first placement, which builds into it and ends the turn', () => {
+        const { after, processed } = place(atPerthsChainEnd(), 'railroad.orange', PERTH)
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.PlaceLocomotive,
+            ActionType.FinishBuilding
+        ])
         expect(processed[0]).toMatchObject({
             metadata: {
                 isStart: false,
                 bonuses: [{ bonusId: 'bonus.au.perth', amount: 50, cityId: 'city.au.perth' }]
             }
         })
+        expect(processed[1]).toMatchObject({
+            source: ActionSource.System,
+            playerId: 'p1',
+            metadata: { reason: 'long-distance', placed: 1 }
+        })
         expect(hydrated(after).getPlayerState('p1').money).toBe(60)
+        expect(after.activePlayerIds).toEqual(['p2'])
+    })
+
+    it('pays Brisbane’s $20 to the turn’s first placement, which builds into it and ends the turn', () => {
+        const { after, processed } = place(atPerthsChainEnd(), 'railroad.red', BRISBANE)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: false,
+                bonuses: [{ bonusId: 'bonus.au.brisbane', amount: 20, cityId: 'city.au.brisbane' }]
+            }
+        })
+        expect(processed[1]).toMatchObject({ metadata: { reason: 'long-distance', placed: 1 } })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(30)
+        expect(after.activePlayerIds).toEqual(['p2'])
+    })
+
+    it('refuses a placement into Perth or Brisbane after another placement that turn', () => {
+        const later = atPerthsChainEnd({ building: { placed: 1, usedMountain: false } })
+        expect(placeAction('railroad.orange', PERTH).verdict(later)).toEqual({
+            legal: false,
+            reason: 'long-distance-not-first'
+        })
+        expect(placeAction('railroad.red', BRISBANE).verdict(later)).toEqual({
+            legal: false,
+            reason: 'long-distance-not-first'
+        })
+    })
+
+    it('refuses Black a start in Perth or Brisbane: no railroad starts there', () => {
+        for (const hexId of [PERTH, BRISBANE]) {
+            expect(placeAction('railroad.black', hexId).verdict(australia()), hexId).toEqual({
+                legal: false,
+                reason: 'not-adjacent-or-start'
+            })
+            expect(() => placeAction('railroad.black', hexId).apply(australia())).toThrow(
+                /not-adjacent-or-start/
+            )
+        }
     })
 
     it('takes back a long-distance placement and the end of the turn it made (R-5)', () => {

@@ -28,18 +28,18 @@ Where the rulebook is silent or could be read two ways, the code takes these rea
 - **Shares** (R-3.1). No cap on shares of one railroad.
 - **$5 cities** (R-4.3.2). The bonus goes with the first locomotive placed in the city, so a railroad starting there uses it up without earning it.
 - **Yellow** (R-4.2.3), on the USA. One start, in Chicago or in one of the three westernmost cities holding track. Westernmost is the lowest `dcol` at the moment Yellow would start, every city tied with the third included; a city among them that can't take Yellow still counts. A westernmost city must hold exactly one locomotive for Yellow to start there.
-- **Black** (R-4.2.5). Any city with room for it, Chicago included. An East Coast start counts toward Black's two East Coast cities.
+- **Black** (R-4.2.5). Any city with room for it, Chicago included, except where a map says otherwise. An East Coast start counts toward Black's two East Coast cities.
 - **Transcontinental** (R-4.3.3). The line needs two or more railroads, which connect only where both have a locomotive in the same hex; a line may pass a hex more than once. The higher price applies when some line the placement completes changes railroad only in city hexes.
 - **Links** (R-3.3.2). A link runs between two cities with no city between them, so a railroad's track through a city is two links, and a route changes railroad only in a city.
 - **Taking back** (R-5). A player may take back any of their own actions until the next player acts.
 - **Ties at the end** (R-6.2). Players tied for the most money share the win.
 - **Australia** (R-8.2).
-    - The railroads arrive in the USA's rounds (R-1.4). Each starts in a city printed in its colour, Black in any city with room (R-4.2). There is no Transcontinental.
+    - The railroads arrive in the USA's rounds (R-1.4). Each starts in a city printed in its colour (R-4.2). No railroad starts in Perth or Brisbane; Black starts in any other city with room. There is no Transcontinental.
     - Limits 8 / 5 / 4 by player count. A mountain placement lowers the turn's limit by two, once a turn.
     - The Alps take no locomotive.
-    - A long-distance hex holds one locomotive. A placement there must be the turn's first, and it ends the turn.
+    - A long-distance hex holds one locomotive. A placement in a long-distance hex, or in Perth or Brisbane, must be the turn's first, and it ends the turn.
     - Perth and Brisbane, at the ends of the long-distance chains, hold one locomotive each and take no passenger at setup. A journey may end there but never starts there.
-    - The board prints their bonuses in dollars: every placement into Perth pays $50 and into Brisbane $20, a start included. Each holds one locomotive, so each pays once.
+    - The board prints their bonuses in dollars: every placement into Perth pays $50 and into Brisbane $20. Each holds one locomotive, so each pays once.
 - **Canada** (R-8.3).
     - The railroads arrive and start as on Australia. There is no Transcontinental.
     - Limits 7 / 5 / 4 by player count. There are no mountains.

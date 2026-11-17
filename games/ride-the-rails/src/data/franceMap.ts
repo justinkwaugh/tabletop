@@ -575,5 +575,6 @@ export const FRANCE_MAP: MapDefinition = {
     hexes: FRANCE_HEXES,
     cities: FRANCE_CITIES,
     impassable: FRANCE_IMPASSABLE,
-    citiesWithoutSetupPassenger: []
+    citiesWithoutSetupPassenger: [],
+    longDistanceCities: []
 }
