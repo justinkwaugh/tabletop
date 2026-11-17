@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/1832",
-    "version": "13.7.1",
+    "version": "13.8.0",
     "private": true,
     "type": "module",
     "exports": {
