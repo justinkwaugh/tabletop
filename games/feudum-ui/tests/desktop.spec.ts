@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { settled } from './helpers.js'
+import { StarPath } from '../src/lib/utils/pieceShapes.js'
 import { openFixture } from './scenarioTable.js'
 
 /**
@@ -397,6 +398,13 @@ test.describe('a 1440 px desk', () => {
         await expect(mine).toHaveAttribute('data-leading', '')
         await expect(page.locator('[data-score-leader]')).toHaveCount(2)
         await expect(page.locator(`[data-seat-panel="${seat}"] [data-score-leader]`)).toHaveCount(1)
+        // The lead is a small star, so the start player leading shows one crown, by its name.
+        for (const mark of await page.locator('[data-score-leader] path').all()) {
+            await expect(mark).toHaveAttribute('d', StarPath)
+        }
+        await expect(
+            page.locator(`[data-seat-panel="${seat}"] [data-start-player-crown]`)
+        ).toHaveCount(1)
         const name = await page.locator(`[data-seat-panel="${seat}"] .name`).textContent()
         await expect(mine).toHaveAccessibleName(`${name}: 1 vp, leading`)
         await expect(
