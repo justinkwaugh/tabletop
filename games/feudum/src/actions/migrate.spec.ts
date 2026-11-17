@@ -35,6 +35,14 @@ function offBoard(state: HydratedFeudumGameState, playerId: string): void {
     pawn.character = undefined
 }
 
+/** R-1.1 Every pawn the seat has stands on the map. */
+function allOnBoard(state: HydratedFeudumGameState, playerId: string): void {
+    for (const pawn of state.getPlayerState(playerId).pawns) {
+        pawn.spaceId ??= HOME
+        pawn.character ??= 'farmer'
+    }
+}
+
 function turnFoodIn(state: HydratedFeudumGameState, playerId: string): void {
     const { goods } = state.getPlayerState(playerId)
     state.supply.haversack.food += goods.food
@@ -189,6 +197,19 @@ describe('Migrate onto the board: R-3.6.1 (S13)', () => {
                 onto: { character: 'monk', spaceId: HOME }
             })
         ).toBe('That pawn is already on the board.')
+    })
+
+    it('R-3.6.1 with every pawn on the map, refuses entering as no pawn in supply; one may go off', () => {
+        const { table, playerId } = tableWith(allOnBoard)
+        const state = table.hydrated()
+        expect(migrateOffers(state, playerId).pawnsOff).toEqual([])
+        expect(
+            reasonMigrateRefused(state, playerId, {
+                pawn: 2,
+                onto: { character: 'monk', spaceId: HOME }
+            })
+        ).toBe('No pawn in supply.')
+        expect(reasonMigrateRefused(state, playerId, { pawn: 2, onto: 'off' })).toBeUndefined()
     })
 
     it('R-3.6.1 refuses without food, with the reason', () => {
