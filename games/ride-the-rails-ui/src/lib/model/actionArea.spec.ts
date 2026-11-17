@@ -24,6 +24,7 @@ import {
     latestJourney,
     latestShare,
     linksAndFareText,
+    mountainCost,
     mountainNote,
     placedCount,
     placedText,
@@ -123,6 +124,21 @@ describe('build panel (R-3.2.1, R-3.2.4)', () => {
         expect(placedText(progress)).toBe('3 of 4 placed')
         expect(mountainNote(progress)).toBe('Mountain used: limit 4')
         expect(endBuildingLabel(progress)).toBe('Done')
+    })
+
+    it('reads the map’s mountain cost: −2 on Australia, the limit 6 once a mountain is used (R-8.2)', () => {
+        const progress = buildProgress(
+            buildState({
+                mapId: 'map.au',
+                playerCount: 3,
+                phase: PhaseName.Build,
+                building: { placed: 2, usedMountain: true }
+            })
+        )
+        assertExists(progress)
+        expect(placedText(progress)).toBe('2 of 6 placed')
+        expect(mountainCost(progress)).toBe('−2')
+        expect(mountainNote(progress)).toBe('Mountain used: limit 6')
     })
 
     it('has no progress outside a building turn', () => {
