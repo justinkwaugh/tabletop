@@ -118,6 +118,12 @@ export class GipfPotentialsGameSession extends GameSession<
         this.preferences.set({ centreMark: !this.centreMark })
     }
 
+    pieceBadges: boolean = $derived(this.preferences.values.pieceBadges)
+
+    togglePieceBadges() {
+        this.preferences.set({ pieceBadges: !this.pieceBadges })
+    }
+
     kindsInPlay: PotentialKind[] = $derived.by(() => {
         const counts = potentialsFromConfig(this.game.config)
         return POTENTIAL_KINDS.filter((kind) => counts[kind] > 0)

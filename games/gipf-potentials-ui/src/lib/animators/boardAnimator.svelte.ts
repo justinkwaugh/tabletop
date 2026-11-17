@@ -30,6 +30,7 @@ import {
     type MoveChange,
     type PushChange
 } from '$lib/board/boardChange.js'
+import { stackBadge } from '$lib/board/badge.js'
 import { PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE, skidAt, skidDuration } from '$lib/board/hop.js'
 import {
@@ -83,7 +84,13 @@ const BOUNCES = {
     ]
 }
 
-export type DrawnStack = { key: number; coords: AxialCoordinates; discs: BoardDisc[] }
+// `badge` is the top piece's kind, when it shows one.
+export type DrawnStack = {
+    key: number
+    coords: AxialCoordinates
+    discs: BoardDisc[]
+    badge?: string
+}
 
 export type Entering = { discs: BoardDisc[]; dot: AxialCoordinates }
 
@@ -95,6 +102,10 @@ type StackNodes = {
     whole?: SVGGElement
     body?: SVGGElement
     shadow?: SVGGElement
+    // The kind badge is drawn over the marks, so it is moved beside the stack: its outer node
+    // slides with the whole and its inner one rises and falls with the top piece.
+    badge?: SVGGElement
+    badgeBody?: SVGGElement
     discs: Map<number, SVGGElement>
     creases: Map<number, SVGGElement>
 }
@@ -157,7 +168,10 @@ export class BoardAnimator implements MoveInterrupter {
         return nodes
     }
 
-    stack(key: number, part: 'whole' | 'body' | 'shadow'): Attachment<SVGGElement> {
+    stack(
+        key: number,
+        part: 'whole' | 'body' | 'shadow' | 'badge' | 'badgeBody'
+    ): Attachment<SVGGElement> {
         return (node) => {
             const nodes = this.nodesOf(key)
             nodes[part] = node
@@ -208,6 +222,7 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     // By `display`: a copy hidden by `visibility` still paints any part setting its own.
+    // A stack's body and its badge each have a copy.
     occluder(stack: DrawnStack): Attachment<SVGUseElement> {
         return (node) => {
             node.style.display = 'none'
@@ -320,8 +335,9 @@ export class BoardAnimator implements MoveInterrupter {
             return before.flatMap((stack) => {
                 if (covered && sameCoordinates(stack.coords, change.to)) return [covered]
                 if (!sameCoordinates(stack.coords, change.from)) return [stack]
+                // The piece the potential leaves is a basic one.
                 const discs = stack.discs.slice(0, -1)
-                return discs.length > 0 ? [{ ...stack, discs }] : []
+                return discs.length > 0 ? [{ ...stack, discs, badge: undefined }] : []
             })
         }
         if (change.kind === 'discs') {
@@ -335,8 +351,13 @@ export class BoardAnimator implements MoveInterrupter {
         }
         const regained = this.regainedAt(change)
         if (regained !== undefined) {
-            const discs = discsOf(to.board.stackAt(CENTRE))
-            const piece = { key: coordinatesToNumber(regained), coords: regained, discs }
+            const units = to.board.stackAt(CENTRE)
+            const piece = {
+                key: coordinatesToNumber(regained),
+                coords: regained,
+                discs: discsOf(units),
+                badge: stackBadge(units)
+            }
             return [...before.filter((stack) => !sameCoordinates(stack.coords, regained)), piece]
         }
         return before
@@ -401,10 +422,12 @@ export class BoardAnimator implements MoveInterrupter {
         at = 0
     ) {
         for (const coords of spots) {
-            const node = this.stackNodes.get(coordinatesToNumber(coords))?.whole
-            if (node === undefined) continue
-            timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
-            touched.push(node)
+            const nodes = this.stackNodes.get(coordinatesToNumber(coords))
+            if (nodes?.whole === undefined) continue
+            for (const node of nodes.badge ? [nodes.whole, nodes.badge] : [nodes.whole]) {
+                timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
+                touched.push(node)
+            }
         }
     }
 
@@ -443,21 +466,31 @@ export class BoardAnimator implements MoveInterrupter {
         if (nodes === undefined) return
         const total = nodes.discs.size
         const ease = 'power1.out'
+        // The top piece is always among what lifts, so its badge goes too.
+        const badge = nodes.badgeBody ? [nodes.badgeBody] : []
         if (count >= total && nodes.body && nodes.shadow) {
             const { body, shadow } = nodes
-            touched.push(body, shadow)
-            timeline.add(tweenPose(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }), at)
-            timeline.to(body, { opacity: 0, duration, ease: fade }, at)
+            touched.push(shadow)
+            for (const node of [body, ...badge]) {
+                touched.push(node)
+                timeline.add(
+                    tweenPose(node, { scale: LIFT_OFF.scale, y: rise, duration, ease }),
+                    at
+                )
+                timeline.to(node, { opacity: 0, duration, ease: fade }, at)
+            }
             timeline.to(shadow, { opacity: 0, duration, ease }, at)
             timeline.add(tweenPose(shadow, { scale: LIFT_OFF.shadow, duration, ease }), at)
             return
         }
-        for (let index = total - count; index < total; index++) {
-            const disc = nodes.discs.get(index)
-            if (disc === undefined) continue
-            touched.push(disc)
-            timeline.add(tweenPose(disc, { y: rise, duration, ease }), at)
-            timeline.to(disc, { opacity: 0, duration, ease: fade }, at)
+        const lifted = Array.from({ length: count }, (_, index) =>
+            nodes.discs.get(total - count + index)
+        )
+        for (const node of [...lifted, ...badge]) {
+            if (node === undefined) continue
+            touched.push(node)
+            timeline.add(tweenPose(node, { y: rise, duration, ease }), at)
+            timeline.to(node, { opacity: 0, duration, ease: fade }, at)
         }
         const crease = nodes.creases.get(total - count - 1)
         if (crease) {
@@ -510,6 +543,11 @@ export class BoardAnimator implements MoveInterrupter {
                 touched.push(crease)
                 dropCrease(timeline, crease, index - 1 - from, 0, timing)
             }
+        }
+        // The badge drops with the new top piece.
+        if (nodes.badgeBody && from + count === nodes.discs.size) {
+            touched.push(nodes.badgeBody)
+            dropDisc(timeline, nodes.badgeBody, count - 1, 0, timing)
         }
     }
 
@@ -622,6 +660,10 @@ export class BoardAnimator implements MoveInterrupter {
                 dropCrease(timeline, crease, index - 1, drop.at, drop.timing)
             }
         })
+        if (nodes.badgeBody) {
+            touched.push(nodes.badgeBody)
+            dropDisc(timeline, nodes.badgeBody, cover.length - 1, drop.at, drop.timing)
+        }
     }
 
     private skid(move: MoveChange, spaces: number, startLift: number, timeline: Timeline) {
@@ -768,7 +810,8 @@ export class BoardAnimator implements MoveInterrupter {
         return state.board.stacks.map((stack) => ({
             key: coordinatesToNumber(stack.coords),
             coords: stack.coords,
-            discs: discsOf(stack.units)
+            discs: discsOf(stack.units),
+            badge: stackBadge(stack.units)
         }))
     }
 
