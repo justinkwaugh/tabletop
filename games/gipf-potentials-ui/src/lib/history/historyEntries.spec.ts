@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource } from '@tabletop/common'
+import {
+    ActionSource,
+    assert,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction
+} from '@tabletop/common'
 import {
     ActionType,
     PieceKind,
@@ -11,7 +17,7 @@ import {
     type RemoveRow,
     type SkipExtraMove
 } from '@tabletop/gipf-potentials'
-import { historyEntries } from './historyEntries.js'
+import { historyEntries, type HistoryEntry, type PlayEntry } from './historyEntries.js'
 import { entrySegments } from './entryText.js'
 
 let count = 0
@@ -30,6 +36,11 @@ const text = (segments: ReturnType<typeof entrySegments>) =>
                   : `[${segment.discs.join('+')}]`
         )
         .join('')
+
+function play(entry: HistoryEntry | undefined): PlayEntry {
+    assert(entry !== undefined && entry.kind !== 'call', 'A move entry')
+    return entry
+}
 
 describe('history entries', () => {
     const push: PushPiece = {
@@ -85,7 +96,7 @@ describe('history entries', () => {
 
     it('gives each move an entry, with its player’s rows after it', () => {
         expect(entries.map((entry) => entry.kind)).toEqual(['push', 'push', 'move', 'skip'])
-        expect(entries[1].takings).toEqual([
+        expect(play(entries[1]).takings).toEqual([
             {
                 from: pointAt('E2'),
                 to: pointAt('E5'),
@@ -98,15 +109,17 @@ describe('history entries', () => {
     })
 
     it('says what each move did, with the spaces inside the text', () => {
-        expect(text(entrySegments(entries[0]))).toBe(
+        expect(text(entrySegments(play(entries[0])))).toBe(
             ' pushed [basic+zertz] from 0,4 to 0,3, moving 2, a TAMSK piece onto E5'
         )
-        expect(text(entrySegments(entries[1], true))).toBe(
+        expect(text(entrySegments(play(entries[1]), true))).toBe(
             ' pushed [tamsk] from -4,2 to -3,2 as an extra move, taking row 0,3–0,0'
         )
-        expect(text(entrySegments(entries[1]))).toContain('(1 back, captured 2 incl. 1 GIPF)')
-        expect(text(entrySegments(entries[2]))).toBe(' covered with [dvonn] from -1,-1 onto -1,-2')
-        expect(text(entrySegments(entries[3]))).toBe(' gave up the extra move')
+        expect(text(entrySegments(play(entries[1])))).toContain('(1 back, captured 2 incl. 1 GIPF)')
+        expect(text(entrySegments(play(entries[2])))).toBe(
+            ' covered with [dvonn] from -1,-1 onto -1,-2'
+        )
+        expect(text(entrySegments(play(entries[3])))).toBe(' gave up the extra move')
     })
 
     it('names the potentials a plain piece gave up', () => {
@@ -122,10 +135,10 @@ describe('history entries', () => {
             }
         }
         const [entry] = historyEntries([plain])
-        expect(text(entrySegments(entry))).toContain(
+        expect(text(entrySegments(play(entry)))).toContain(
             ', giving up 2 [zertz], 4 [yinsh] and 1 [punct]'
         )
-        expect(text(entrySegments(entry, true))).not.toContain('giving up')
+        expect(text(entrySegments(play(entry), true))).not.toContain('giving up')
     })
 
     it('names the rows of GIPF-pieces a player left standing', () => {
@@ -143,13 +156,41 @@ describe('history entries', () => {
             metadata: { left: [{ from: pointAt('E5'), to: pointAt('E2') }] }
         }
         const [entry] = historyEntries([pushGipf, leave])
-        expect(text(entrySegments(entry))).toBe(
+        expect(text(entrySegments(play(entry)))).toBe(
             ' pushed [basic+basic] from 0,4 to 0,3, moving 3, then left 0,3–0,0 standing'
         )
-        expect(text(entrySegments(entry, true))).toBe(
+        expect(text(entrySegments(play(entry), true))).toBe(
             ' pushed [basic+basic] from 0,4 to 0,3, leaving row 0,3–0,0 standing'
         )
         const [alone] = historyEntries([leave])
-        expect(text(entrySegments(alone, true))).toBe(' left row 0,3–0,0 standing')
+        expect(text(entrySegments(play(alone), true))).toBe(' left row 0,3–0,0 standing')
+    })
+    const call: CallGameAction = {
+        id: 'call',
+        gameId: 'g',
+        source: ActionSource.System,
+        type: CALL_GAME_ACTION_TYPE,
+        call: {
+            kind: GameCallKind.Conceded,
+            initiatorPlayerId: 'b',
+            declaredWinnerId: 'w',
+            approvingPlayerIds: ['b'],
+            decliningPlayerIds: []
+        }
+    }
+
+    it('gives a called game its own entry after the last move', () => {
+        expect(historyEntries([push, extra, row, call])).toMatchObject([
+            { kind: 'push', firstIndex: 0, lastIndex: 0 },
+            { kind: 'push', firstIndex: 1, lastIndex: 2 },
+            { kind: 'call', firstIndex: 3, lastIndex: 3, action: call }
+        ])
+    })
+
+    it('keeps a call apart from a push whose rows are still to take', () => {
+        expect(historyEntries([push, call])).toMatchObject([
+            { kind: 'push', firstIndex: 0, lastIndex: 0, takings: [] },
+            { kind: 'call', firstIndex: 1, lastIndex: 1, action: call }
+        ])
     })
 })
