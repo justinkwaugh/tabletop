@@ -108,6 +108,6 @@
         ></rect>
     {/if}
     {#if chip && drawsChip}
-        <PickChip {chip} y={-height / 2 - 24} />
+        <PickChip {chip} y={-height / 2 - 24} press={pickable ? press : undefined} />
     {/if}
 </g>

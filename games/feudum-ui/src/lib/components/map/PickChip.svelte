@@ -1,8 +1,17 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import LocationDisc from '$lib/components/pieces/LocationDisc.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
     import type { BoardChip, ChipArt } from '$lib/model/boardOffer.js'
+    import {
+        ChipGap,
+        ChipHeight,
+        ChipPieceSize,
+        ChipStepWidth,
+        chipLayout,
+        type PlacedArt
+    } from '$lib/model/spaceChips.js'
 
     /**
      * Contract, Pick conventions: a short note on a target. Rose carries a cost or a threat, amber
@@ -10,39 +19,42 @@
      * art shows its pieces (a disc, the arrow of a step, a good or seal with its count) in place of
      * the words, which stay its accessible name.
      */
-    let { chip, y = 0 }: { chip: BoardChip; y?: number } = $props()
+    let {
+        chip,
+        y = 0,
+        press
+    }: {
+        chip: BoardChip
+        y?: number
+        /** A press on the chip is a press on its target, where that target may be pressed now. */
+        press?: () => void
+    } = $props()
 
-    const Height = 34
-    const CharWidth = 13.5
-    const PieceSize = 24
-    const StepWidth = 18
-    const Gap = 4
-    const Padding = 10
+    const Height = ChipHeight
+    const PieceSize = ChipPieceSize
+    const StepWidth = ChipStepWidth
+    const Gap = ChipGap
 
-    type Placed = ChipArt & { readonly x: number; readonly text?: string }
+    type Placed = ChipArt & PlacedArt
 
-    /** Each piece's place from the chip's left edge, and the width they take. */
-    let drawn = $derived.by(() => {
-        let x = Padding
-        const pieces = (chip.art ?? []).map((art): Placed => {
-            const at = x
-            if (art.kind === 'step') {
-                x += StepWidth + Gap
-                return { ...art, x: at }
-            }
-            if (art.kind === 'disc') {
-                x += PieceSize + Gap
-                return { ...art, x: at }
-            }
-            const text = String(art.count)
-            x += PieceSize + Gap + text.length * CharWidth + Gap
-            return { ...art, x: at, text }
-        })
-        return { pieces, width: x - Gap + Padding }
+    let layout = $derived(chipLayout(chip))
+    let drawn = $derived({
+        pieces: (chip.art ?? []).map((art, index): Placed => ({ ...art, ...layout.pieces[index] }))
     })
-    let width = $derived(chip.art ? drawn.width : 20 + chip.label.length * CharWidth)
+    let width = $derived(layout.width)
     let rose = $derived(chip.tone === 'rose')
     let ink = $derived(rose ? 'var(--feudum-danger)' : 'var(--feudum-accent)')
+
+    /**
+     * The chip's own listener, not one delegated to the page: a touch browser aims a tap at the
+     * nearest thing that answers a press, and a delegated listener leaves the chip looking deaf.
+     */
+    function answers(onPress: () => void): Attachment<SVGRectElement> {
+        return (node) => {
+            node.addEventListener('click', onPress)
+            return () => node.removeEventListener('click', onPress)
+        }
+    }
 </script>
 
 <g
@@ -103,5 +115,21 @@
             fill={ink}
             style:font-family="var(--feudum-font-text)">{chip.label}</text
         >
+    {/if}
+    {#if press}
+        <!-- A pointer on the chip reaches its target; the target's own press stays its button. -->
+        <rect
+            x={-width / 2}
+            y={-Height / 2}
+            {width}
+            height={Height}
+            rx={Height / 2}
+            fill="transparent"
+            aria-hidden="true"
+            pointer-events="all"
+            cursor="pointer"
+            data-chip-press
+            {@attach answers(press)}
+        ></rect>
     {/if}
 </g>

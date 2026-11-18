@@ -1,6 +1,6 @@
 import { expect, type Locator } from '@playwright/test'
 import { ActionType } from '@tabletop/feudum'
-import { scenario } from './scenarioTable.js'
+import { scenario, type ScenarioTable } from './scenarioTable.js'
 
 /** The contract's card play scenarios, on the real table at both widths. */
 
@@ -116,6 +116,89 @@ scenario(
         expect(Object.values(await table.litChips())).toEqual(['off', 'off', 'off'])
         await table.pressPick('pawn:p1:3')
         expect(await table.piecesNamed('pawn:p1')).toHaveLength(2)
+    }
+)
+
+/** Where each chip stands on the page, by its target. */
+async function chipBoxes(table: ScenarioTable, targets: readonly string[]) {
+    await table.boardAtRest()
+    return Promise.all(
+        targets.map(async (target) => {
+            const box = await table.chip(target).boundingBox()
+            expect(box, target).not.toBeNull()
+            return { target, box: box ?? { x: 0, y: 0, width: 0, height: 0 } }
+        })
+    )
+}
+
+/**
+ * Each chip whole and on top, none over another, and each target's own press still on top at its
+ * centre: so every chip reads, and each pawn takes its press, from its chip or from itself.
+ */
+async function expectEachClear(table: ScenarioTable, targets: readonly string[]) {
+    const boxes = await chipBoxes(table, targets)
+    for (const [index, { target, box }] of boxes.entries()) {
+        for (const other of boxes.slice(index + 1)) {
+            const meets =
+                box.x < other.box.x + other.box.width &&
+                other.box.x < box.x + box.width &&
+                box.y < other.box.y + other.box.height &&
+                other.box.y < box.y + box.height
+            expect(meets, `${target} meets ${other.target}`).toBe(false)
+        }
+    }
+    const onTop = await table.page.evaluate((names) => {
+        const topAt = (element: Element | null) => {
+            const rect = element?.getBoundingClientRect()
+            return rect
+                ? document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+                : null
+        }
+        return names.map((name) => {
+            const chip = document.querySelector(`[data-board-surface] [data-chip-of="${name}"]`)
+            const press = document.querySelector(
+                `[data-board-surface] [data-pick="${name}"] [role="button"]`
+            )
+            return {
+                name,
+                chip: !!chip && chip.contains(topAt(chip.querySelector('[data-chip]'))),
+                press: !press || press === topAt(press)
+            }
+        })
+    }, targets)
+    expect(onTop).toEqual(targets.map((name) => ({ name, chip: true, press: true })))
+}
+
+scenario('S14 R-3.6 Migrate with two pawns on one space', 'cards-migrate-two-on', async (table) => {
+    await table.press(table.card('Migrate'))
+    const chips = await table.litChips()
+    const pawns = Object.keys(chips).filter((target) => target.startsWith('pawn:p1:'))
+    expect(pawns.map((pawn) => chips[pawn])).toEqual(['off', 'off'])
+    const [shared] = Object.keys(chips).filter((target) => chips[target] === '1 food')
+    expect(shared).toBeDefined()
+    await expectEachClear(table, [...pawns, shared ?? ''])
+    // A press on the second pawn's own chip takes that pawn off.
+    const [, second = ''] = pawns
+    await table.press(table.chip(second))
+    expect(await table.piecesNamed('pawn:p1')).toHaveLength(1)
+    await expect(table.page.locator(`[data-board-surface] [data-world="${second}"]`)).toHaveCount(0)
+})
+
+scenario(
+    'S14 R-3.6 Migrate with three pawns on one space',
+    'cards-migrate-all-on',
+    async (table) => {
+        await table.press(table.card('Migrate'))
+        const pawns = Object.keys(await table.litChips())
+        expect(pawns).toHaveLength(3)
+        await expectEachClear(table, pawns)
+        // The middle pawn's chip takes the middle pawn off, and no other.
+        const [, middle = ''] = pawns
+        await table.press(table.chip(middle))
+        expect(await table.piecesNamed('pawn:p1')).toHaveLength(2)
+        await expect(
+            table.page.locator(`[data-board-surface] [data-world="${middle}"]`)
+        ).toHaveCount(0)
     }
 )
 
