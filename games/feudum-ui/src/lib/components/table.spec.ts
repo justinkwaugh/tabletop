@@ -88,6 +88,57 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
         expect(layers.escape()).toBe(false)
     })
 
+    it('Contract, Desk layout: one guild side at a time; its button again, or Escape, closes it', () => {
+        const layers = new TableLayers()
+        layers.toggleGuildSide('west')
+        expect(layers.guildSide).toBe('west')
+        layers.toggleGuildSide('east')
+        expect(layers.guildSide).toBe('east')
+        layers.toggleGuildSide('east')
+        expect(layers.guildSide).toBeUndefined()
+        layers.toggleGuildSide('west')
+        layers.closeGuildSide()
+        expect(layers.guildSide).toBeUndefined()
+
+        layers.toggleGuildSide('west')
+        layers.enlarge({}, () => Bead)
+        expect(layers.escape()).toBe(true)
+        expect(layers.guildSide).toBe('west')
+        expect(layers.escape()).toBe(true)
+        expect(layers.guildSide).toBeUndefined()
+        expect(layers.escape()).toBe(false)
+    })
+
+    it('Contract, Pick framing: a pick wholly on one side opens it once; one in both sides opens nothing; the map’s closes it', () => {
+        const layers = new TableLayers()
+        layers.followGuildPick('guild:merchant', 'west')
+        expect(layers.guildSide).toBe('west')
+        // Closed by hand, the same pick leaves it closed.
+        layers.closeGuildSide()
+        layers.followGuildPick('guild:merchant', 'west')
+        expect(layers.guildSide).toBeUndefined()
+        // A new pick on the other side opens that one.
+        layers.followGuildPick('guild:knight', 'east')
+        expect(layers.guildSide).toBe('east')
+        // A pick in both sides opens nothing and keeps the side as it is.
+        layers.followGuildPick('guild:knight guild:merchant', 'keep')
+        expect(layers.guildSide).toBe('east')
+        layers.closeGuildSide()
+        layers.followGuildPick('guild:knight guild:merchant guild:monk', 'keep')
+        expect(layers.guildSide).toBeUndefined()
+        // A pick on the map closes it, and so does a pick's end.
+        layers.toggleGuildSide('west')
+        layers.followGuildPick('space:a', undefined)
+        expect(layers.guildSide).toBeUndefined()
+        layers.toggleGuildSide('west')
+        layers.followGuildPick(undefined, undefined)
+        expect(layers.guildSide).toBeUndefined()
+        // With no pick it is a look, and nothing closes it.
+        layers.toggleGuildSide('east')
+        layers.followGuildPick(undefined, undefined)
+        expect(layers.guildSide).toBe('east')
+    })
+
     it('R-4.3.1 A stack view names epochs and counts: nothing of a landscape reaches it', async () => {
         const host = new FeudumHost(3)
         const state = new HydratedFeudumGameState(structuredClone(host.state))

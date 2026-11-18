@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { GuildById, GuildIds, MarketSpaces } from '@tabletop/feudum'
-import { createGame, playToHands, settled } from './helpers.js'
+import { createGame, playToHands, pressGuildArea, settled } from './helpers.js'
 
 /**
  * The printed board under the pieces and the presses, where the folder holds it: each panel's print
@@ -59,19 +59,18 @@ async function openFunction(page: Page, scene: string, guild: string, fn: RegExp
         .click()
     await settled(page)
     if ((await page.locator('[data-board-popup]').count()) === 0) {
-        await page.locator(`[data-board-surface] [data-pick="guild:${guild}"]`).click()
+        await pressGuildArea(page, guild)
     }
     await page.locator('[data-board-popup] button').filter({ hasText: fn }).first().click()
     await settled(page)
 }
 
-/** Whether the folder holds the printed panels: their image draws in place of the plate. */
-async function printed(page: Page) {
-    return (
-        (await page
-            .locator('[data-board-surface] svg[aria-label$="guild panel"] > image')
-            .count()) > 0
-    )
+/**
+ * Whether the folder holds the printed panels, so their image draws in place of the plate. Read from
+ * the folder: a desk draws no guild area at rest, so the page can't say.
+ */
+function printed(): boolean {
+    return existsSync(new URL('../src/lib/art/supplied/board.guild.merchant.webp', import.meta.url))
 }
 
 test('R-3.1 each printed card fills its face, and at standard size carries no name plate over its print', async ({
@@ -102,33 +101,50 @@ test('R-3.1 each printed card fills its face, and at standard size carries no na
 
 test('S71 each printed seat piece stands centred where the drawn piece stood', async ({ page }) => {
     await openTable(page, 'guildPick')
-    const prints = page.locator('[data-board-surface] svg[role="img"] > image[href*="piece."]')
-    test.skip((await prints.count()) === 0, 'no printed pieces in the folder')
+    const prints = page.locator(
+        ['[data-board-surface]', '[data-guild-view]']
+            .map((holder) => `${holder} svg[role="img"] > image[href*="piece."]`)
+            .join(', ')
+    )
     const seen = { marker: 0, disc: 0 }
-    for (let index = 0; index < (await prints.count()); index++) {
-        const image = prints.nth(index)
-        const token = image.locator('xpath=..')
-        const box = await boxOf(token)
-        const print = await boxOf(image)
-        const at = centre(print)
-        const middle = centre(box)
-        expect(Math.abs(at.x - middle.x)).toBeLessThanOrEqual(1)
-        expect(Math.abs(at.y - middle.y)).toBeLessThanOrEqual(1)
-        expect(print.width).toBeLessThanOrEqual(box.width + 0.5)
-        expect(print.height).toBeLessThanOrEqual(box.height + 0.5)
-        await expect(token.locator('text')).toHaveCount(0)
-        // A seat's piece names the seat; a dummy Knight row's names its colour (R-1.4-H1); discs
-        // sharing a score space each name every disc there.
-        await expect(token).toHaveAttribute(
-            'aria-label',
-            /^((.+'s|red|blue|yellow|green|purple) (influence marker|player disc|reeve)|Player discs: .+)$/
-        )
-        const href = (await image.getAttribute('href')) ?? ''
-        for (const kind of ['marker', 'disc'] as const) {
-            if (href.includes(`piece.${kind}.`)) {
-                seen[kind]++
+    const check = async () => {
+        for (let index = 0; index < (await prints.count()); index++) {
+            const image = prints.nth(index)
+            const token = image.locator('xpath=..')
+            const box = await boxOf(token)
+            const print = await boxOf(image)
+            const at = centre(print)
+            const middle = centre(box)
+            expect(Math.abs(at.x - middle.x)).toBeLessThanOrEqual(1)
+            expect(Math.abs(at.y - middle.y)).toBeLessThanOrEqual(1)
+            expect(print.width).toBeLessThanOrEqual(box.width + 0.5)
+            expect(print.height).toBeLessThanOrEqual(box.height + 0.5)
+            await expect(token.locator('text')).toHaveCount(0)
+            // A seat's piece names the seat; a dummy Knight row's names its colour (R-1.4-H1); discs
+            // sharing a score space each name every disc there.
+            await expect(token).toHaveAttribute(
+                'aria-label',
+                /^((.+'s|red|blue|yellow|green|purple) (influence marker|player disc|reeve)|Player discs: .+)$/
+            )
+            const href = (await image.getAttribute('href')) ?? ''
+            for (const kind of ['marker', 'disc'] as const) {
+                if (href.includes(`piece.${kind}.`)) {
+                    seen[kind]++
+                }
             }
         }
+    }
+    // On a desk the guild tracks' markers stand behind the side buttons: each side in turn.
+    const sides = page.locator('[data-guild-side]')
+    if ((await sides.count()) === 0) {
+        test.skip((await prints.count()) === 0, 'no printed pieces in the folder')
+        await check()
+    }
+    for (const side of await sides.all()) {
+        await side.click()
+        await settled(page)
+        test.skip((await prints.count()) === 0, 'no printed pieces in the folder')
+        await check()
     }
     expect(seen.marker).toBeGreaterThan(0)
     expect(seen.disc).toBeGreaterThan(0)
@@ -138,10 +154,17 @@ test('R-1.3 each printed panel fills its guild area; a desk draws no ring print'
     page
 }) => {
     await openTable(page, 'guildPick')
-    test.skip(!(await printed(page)), 'no printed board in the folder')
+    test.skip(!printed(), 'no printed board in the folder')
     const surface = page.locator('[data-board-surface]')
+    // A desk's guild areas stand behind its side buttons: each side in turn.
     for (const guild of GuildIds) {
-        const frame = panelImage(surface, guild)
+        const side = ['alchemist', 'merchant', 'farmer'].includes(guild) ? 'west' : 'east'
+        if ((await page.locator(`[data-guild-view="${side}"]`).count()) === 0) {
+            await page.locator(`[data-guild-side="${side}"]`).click()
+            await settled(page)
+        }
+        const frame = panelImage(page.locator('[data-guild-view]'), guild)
+        await expect(frame.locator('> image')).toBeVisible()
         expectSameBox(await boxOf(frame.locator('> image')), await boxOf(frame))
     }
     const ring = surface.locator('svg[aria-label="The board\'s edge"]')
@@ -151,7 +174,7 @@ test('R-1.3 each printed panel fills its guild area; a desk draws no ring print'
 test('R-1.3 on a phone the printed ring fills the whole board', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await openTable(page, 'guildPick')
-    test.skip(!(await printed(page)), 'no printed board in the folder')
+    test.skip(!printed(), 'no printed board in the folder')
     const ring = page.locator('[data-board-surface] svg[aria-label="The board\'s edge"]')
     const pieces = await ring.locator('[data-ring-piece]').evaluateAll((all) =>
         all.map((piece) => {
@@ -175,7 +198,7 @@ test('R-4.6.2 on the printed market in the trade picker, each good stands in the
     page
 }) => {
     await openFunction(page, 'merchantTrade', 'merchant', /^\s*Trade/)
-    test.skip(!(await printed(page)), 'no printed board in the folder')
+    test.skip(!printed(), 'no printed board in the folder')
     const area = page.locator('[data-upright-guild="merchant"]')
     const panel = await boxOf(panelImage(area, 'merchant').locator('> image'))
     let seen = 0
@@ -196,7 +219,7 @@ test('R-4.6.3 on the printed Knight panel, each row’s markers stand in its pre
     page
 }) => {
     await openFunction(page, 'knightPush', 'knight', /^\s*Push/)
-    test.skip(!(await printed(page)), 'no printed board in the folder')
+    test.skip(!printed(), 'no printed board in the folder')
     const area = page.locator('[data-bench-area="knight"]')
     const panel = await boxOf(panelImage(area, 'knight').locator('> image'))
     const rows = area.locator('[data-bench-place^="row:"]')
@@ -218,7 +241,7 @@ test('R-4.6.3 on the printed rosary in the trade picker, every bead lies on the 
     page
 }) => {
     await openFunction(page, 'monkTrade', 'monk', /^\s*Trade/)
-    test.skip(!(await printed(page)), 'no printed board in the folder')
+    test.skip(!printed(), 'no printed board in the folder')
     const area = page.locator('[data-upright-guild="monk"]')
     const panel = await boxOf(panelImage(area, 'monk').locator('> image'))
     const beads = area.locator('[data-world^="bead:"]')

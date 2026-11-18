@@ -136,7 +136,10 @@ scenario('S44 R-4.6.3, R-4.2.4 Knight trade and tame', 'guild-knight-trade', asy
     const [deploy] = Object.keys(await table.litChips())
     const flights = await table.flightsOf(() => table.pressPick(deploy ?? ''))
     expect(flights.filter((flight) => flight === "markers: Ana's influence marker")).toHaveLength(3)
-    expect(flights).toContain('board: knight:blue:4')
+    // The Knight's row moves on a phone's board; a desk's stands behind the East guilds button.
+    if (table.phone) {
+        expect(flights).toContain('board: knight:blue:4')
+    }
     await expect(header(table)).toHaveCount(0)
     await expect(
         table.page.locator('[data-board-surface]').getByRole('img', { name: "Ana's behemoth" })
@@ -165,18 +168,19 @@ scenario('S45 R-4.6.5, R-5-H1 Noble pull picks', 'guild-noble-pull', async (tabl
 })
 
 scenario('S46 R-4.6.3 Monk trade', 'guild-monk-trade', async (table) => {
+    const rosary = () => table.countInGuildSide('east', '[data-motion^="bead:"]')
+    const beads = await rosary()
+    expect(beads).toBeGreaterThan(0)
     await openFunction(table, 'monk', 'Trade')
     await expect(bench(table).locator('[data-bench-role="lit"]')).toHaveCount(2)
     await expect(benchPrimary(table)).toHaveText("Draw a bead · can't be undone")
-    const rosary = table.page.locator('[data-board-surface] [data-motion^="bead:"]')
-    const beads = await rosary.count()
     const flights = await table.flightsOf(() => table.press(benchPrimary(table)))
     expect(flights).toEqual(expect.arrayContaining(['seals: bead +2', 'seals: bead +5']))
     await expect(table.panel()).toContainText('kept bead +2')
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-supply-bead]')).toHaveAttribute('data-supply-bead', '2')
     await table.closeSeatPanel()
-    await expect(rosary).toHaveCount(beads - 1)
+    await expect.poll(rosary).toBe(beads - 1)
 })
 
 scenario('S47 R-3.16.3 Feast', 'guild-feast', async (table) => {

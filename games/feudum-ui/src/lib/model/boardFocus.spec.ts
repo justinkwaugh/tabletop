@@ -4,24 +4,29 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     BoardHeight,
-    DeskBoardArea,
     GuildAreas,
     MapArea,
-    railOverRect
+    railOverRect,
+    standingsStripHeight
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 import {
     BoardFocus,
     ChooserInset,
-    DeskRowClear,
+    deskMapAtRest,
     deskRestScaleOf,
     deskScaledHeight,
+    deskViewHeight,
     litAreasOf,
     pickFrameOf,
     pickFrameScale,
     PickFrameZoom,
     rectOfArea,
     restScaleOf,
+    SideButtonGap,
+    SideButtonWidth,
+    SideGutter,
+    guildSideFollowing,
     ZoomRowBand,
     type BoardFocusSetting,
     type BoardRect,
@@ -135,90 +140,72 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     })
 })
 
-describe('Contract, Zoom row: a desk focuses the board from the zoom row', () => {
-    const Desk = { width: 1576, height: 600 }
-    const deskFocus = (setting: Partial<BoardFocusSetting> = {}) =>
-        focusOn({ desk: () => Desk, restScale: () => deskRestScaleOf(1576, 600, 4), ...setting })
-    const inContent = (rect: BoardRect) => ({
-        ...rect,
-        x: rect.x - DeskBoardArea.x,
-        y: rect.y - DeskBoardArea.y
+describe('Contract, Desk layout: the map between the West and East guild buttons', () => {
+    it('each button is 36 px wide with 4 px to the map', () => {
+        expect(SideButtonWidth).toBe(36)
+        expect(SideButtonGap).toBe(4)
+        expect(SideGutter).toBe(40)
     })
 
-    it('rests on the whole board, and Whole board is the fit', () => {
-        const { focus, calls } = deskFocus()
-        expect(focus.chosen).toBe('board')
-        expect(focus.shown).toBe('board')
-        focus.choose('map')
-        focus.choose('board')
-        expect(calls.fits).toBe(1)
-        expect(focus.shown).toBe('board')
+    it('a desk fits the map, its strip and the band, between the two gutters', () => {
+        expect(deskScaledHeight(4)).toBeCloseTo(
+            MapArea.height + standingsStripHeight(4) + ZoomRowBand,
+            5
+        )
+        expect(deskRestScaleOf(1096, 2000, 4)).toBeCloseTo((1096 - 80) / MapArea.width, 5)
+        expect(deskRestScaleOf(1096, 400, 4)).toBeCloseTo(400 / deskScaledHeight(4), 5)
+        expect(deskRestScaleOf(4000, 4000, 4)).toBe(1)
     })
 
-    it('settling at rest leaves the wrapper its own fit', () => {
-        const { focus, calls } = deskFocus()
-        focus.settle()
-        expect(calls.fits).toBe(0)
-        expect(calls.focused).toEqual([])
+    it('the view is that shape at the column’s width', () => {
+        expect(deskViewHeight(1096, 4)).toBeCloseTo((1016 * deskScaledHeight(4)) / MapArea.width, 5)
+        expect(deskViewHeight(60, 4)).toBe(0)
     })
 
-    it('frames each area at the largest scale the view allows with the zoom row clear', () => {
-        for (const area of ['map', 'west', 'east'] as const) {
-            const { focus, calls } = deskFocus()
-            focus.choose(area)
-            expect(focus.shown).toBe(area)
-            const framed = calls.focused[0]
-            const rect = inContent(rectOfArea(area))
-            expect(framed?.rect.x).toBeCloseTo(rect.x, 5)
-            expect(framed?.rect.y).toBeCloseTo(rect.y, 5)
-            expect(framed?.rect.width).toBeCloseTo(rect.width, 5)
-            // The view shows the area at the scale that fits above the row, the row's height under it.
-            const scale = Math.min(
-                (Desk.width - 24) / rect.width,
-                (Desk.height - 24 - DeskRowClear) / rect.height,
-                framed?.maxScale ?? 0
-            )
-            expect(framed?.rect.height).toBeCloseTo(rect.height + DeskRowClear / scale, 5)
-            const wrapperScale = Math.min(
-                (Desk.width - 24) / (framed?.rect.width ?? 1),
-                (Desk.height - 24) / (framed?.rect.height ?? 1),
-                framed?.maxScale ?? 0
-            )
-            expect(wrapperScale).toBeCloseTo(scale, 5)
+    it('the content’s gutters bring the wrapper’s own fit to the rest, the map between the buttons', () => {
+        for (const [width, height] of [
+            [1096, 2000],
+            [1096, 400],
+            [4000, 4000]
+        ] as const) {
+            const rest = deskMapAtRest({ width, height }, 4, false)
+            const content = MapArea.width + 2 * rest.gutter
+            const fit = Math.min(width / content, height / deskScaledHeight(4), 1)
+            expect(fit).toBeCloseTo(rest.scale, 5)
+            expect(rest.x).toBeCloseTo(SideGutter, 5)
+            expect(rest.y).toBe(0)
+            expect(rest.width).toBeCloseTo(MapArea.width * rest.scale, 5)
+            expect(rest.height).toBeCloseTo(MapArea.height * rest.scale, 5)
         }
     })
 
-    it('a pick in view frames nothing; one the chosen area leaves out is framed as on a phone', () => {
-        const map: PickFrame = { ...frameA, holds: ['map'] }
-        const guild: PickFrame = { ...frameB, holds: ['west'], area: 'west' }
-        const resting = deskFocus()
-        resting.focus.follow(map)
-        resting.focus.follow(guild)
-        expect(resting.calls.focused).toEqual([])
-        expect(resting.focus.shown).toBe('board')
-        const onMap = deskFocus()
-        onMap.focus.choose('map')
-        onMap.focus.follow(map)
-        expect(onMap.calls.focused).toHaveLength(1)
-        onMap.focus.follow(guild)
-        expect(onMap.calls.focused).toHaveLength(2)
-        expect(onMap.calls.focused[1]?.rect.x).toBeCloseTo(frameB.rect.x - DeskBoardArea.x, 5)
-        expect(onMap.focus.shown).toBe('west')
-        onMap.focus.follow(undefined)
-        expect(onMap.focus.shown).toBe('map')
-        expect(onMap.calls.focused).toHaveLength(3)
+    it('an unmeasured view, or one narrower than the buttons, keeps no gutter', () => {
+        expect(deskMapAtRest({ width: 0, height: 0 }, 4, false)).toMatchObject({
+            width: 0,
+            gutter: 0
+        })
+        expect(deskMapAtRest({ width: 60, height: 600 }, 4, false).gutter).toBe(0)
     })
 
-    it('a track pick stands on the map', () => {
-        const { focus, calls } = deskFocus()
-        focus.choose('map')
-        focus.follow({ ...frameA, holds: ['tracks'] })
-        expect(calls.focused).toHaveLength(1)
+    it('in full screen the content stands centred, and the map with it', () => {
+        const rest = deskMapAtRest({ width: 1424, height: 820 }, 4, true)
+        const content = (MapArea.width + 2 * rest.gutter) * rest.scale
+        expect(rest.x).toBeCloseTo((1424 - content) / 2 + SideGutter, 5)
+        expect(rest.y).toBeCloseTo((820 - deskScaledHeight(4) * rest.scale) / 2, 5)
     })
+})
 
-    it('a desk rests at a contain fit of the board, its strip and the band', () => {
-        expect(deskRestScaleOf(1576, 2000, 4)).toBeCloseTo(1576 / DeskBoardArea.width, 5)
-        expect(deskRestScaleOf(1576, 400, 4)).toBeCloseTo(400 / deskScaledHeight(4), 5)
+describe('Contract, Pick framing: a desk opens a guild side only for a pick wholly on it', () => {
+    it('targets on one side open it; both sides keep it as it is; the map, a track or a mix close it', () => {
+        expect(guildSideFollowing({ ...frameA, holds: ['west'], area: 'west' })).toBe('west')
+        expect(guildSideFollowing({ ...frameA, holds: ['east'], area: 'east' })).toBe('east')
+        expect(guildSideFollowing({ ...frameA, holds: ['west', 'east'], area: 'west' })).toBe(
+            'keep'
+        )
+        expect(guildSideFollowing({ ...frameA, holds: ['map', 'west'] })).toBeUndefined()
+        expect(guildSideFollowing({ ...frameA, holds: ['map'] })).toBeUndefined()
+        expect(guildSideFollowing({ ...frameA, holds: ['tracks'] })).toBeUndefined()
+        expect(guildSideFollowing(undefined)).toBeUndefined()
     })
 })
 

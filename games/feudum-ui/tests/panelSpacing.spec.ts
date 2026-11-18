@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { settled } from './helpers.js'
+import { pressGuildArea, settled } from './helpers.js'
 import { openFixture, ScenarioTable } from './scenarioTable.js'
 
 /**
@@ -71,12 +71,7 @@ async function openTrade(page: Page, scene: string, guild: string, card = /^Guil
         await press(page, replay.first())
     }
     if ((await popup(page).count()) === 0) {
-        await press(
-            page,
-            page
-                .locator(`[data-board-surface] [data-pick="guild:${guild}"] [role="button"]`)
-                .first()
-        )
+        await pressGuildArea(page, guild, (target) => press(page, target))
     }
     await press(
         page,

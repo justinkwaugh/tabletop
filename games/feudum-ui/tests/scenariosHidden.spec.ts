@@ -147,14 +147,16 @@ scenario('S58 R-5-H1, R-4.6.5 Seals for everyone', 'seals-noble-push', async (ta
     await expect(held.getByRole('img', { name: "king's seal" })).toHaveCount(1)
     expect(await held.innerText()).not.toMatch(/\+\d/)
     await table.closeSeatPanel()
-    await expect(table.page.locator('[data-board-surface] [data-motion^="seal:"]')).toHaveCount(3)
+    // The Noble's scrolls and the Monk's rosary: on a phone's board, behind a desk's East button.
+    const sealCount = () => table.countInGuildSide('east', '[data-motion^="seal:"]')
+    const beadCount = () => table.countInGuildSide('east', '[data-motion^="bead:"]')
+    expect(await sealCount()).toBe(3)
 
     await table.showSeat('p1')
     const shownTo = await table.seatPanel('p2')
     await expect(shownTo.locator('[data-seals]')).toHaveAttribute('data-seals', '1')
     await table.closeSeatPanel()
-    const rosary = table.page.locator('[data-board-surface] [data-motion^="bead:"]')
-    const before = await rosary.count()
+    const before = await beadCount()
 
     await table.press(table.card('Guild'))
     await table.pressPick('guild:noble')
@@ -169,20 +171,29 @@ scenario('S58 R-5-H1, R-4.6.5 Seals for everyone', 'seals-noble-push', async (ta
     const flights = await table.flightsOf(() => table.press(send))
     // Both seals leave the scrolls in the one Action, and fly to the rosary.
     expect(flights.filter((flight) => flight.startsWith('seals: '))).toHaveLength(2)
-    expect(flights).toEqual(
-        expect.arrayContaining([
-            'board: seal:guild.noble.scroll.r1c3',
-            'board: seal:guild.noble.scroll.r2c2'
-        ])
-    )
+    // On a phone's board the seals leave their scrolls; a desk's stand behind its East button.
+    if (table.phone) {
+        expect(flights).toEqual(
+            expect.arrayContaining([
+                'board: seal:guild.noble.scroll.r1c3',
+                'board: seal:guild.noble.scroll.r2c2'
+            ])
+        )
+    }
 
     // One Action names both values; every seat's table reads the same rosary and the same line.
-    await expect(rosary).toHaveCount(before + 2)
-    await expect(table.page.locator('[data-board-surface] [data-motion^="seal:"]')).toHaveCount(1)
-    const beads = async () =>
-        (await rosary.evaluateAll((all) => all.map((bead) => bead.getAttribute('data-motion'))))
-            .map(String)
-            .sort()
+    await expect.poll(beadCount).toBe(before + 2)
+    expect(await sealCount()).toBe(1)
+    const beads = () =>
+        table.readInGuildSide('east', async (scope) =>
+            (
+                await table.page
+                    .locator(`${scope} [data-motion^="bead:"]`)
+                    .evaluateAll((all) => all.map((bead) => bead.getAttribute('data-motion')))
+            )
+                .map(String)
+                .sort()
+        )
     const pushLine = async () =>
         (await logText(table)).match(/flipped seals to [^<"]*/)?.[0] ?? 'no line'
     const seen = { beads: await beads(), line: await pushLine() }

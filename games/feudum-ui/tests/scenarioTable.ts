@@ -34,7 +34,11 @@ export class ScenarioTable {
     readonly primary = () => this.panel().locator('[data-primary]')
     readonly undo = () => this.page.getByRole('button', { name: 'Undo', exact: true })
     readonly popup = () => this.page.locator('[data-board-popup]')
-    readonly lit = () => this.page.locator('[data-board-surface] [data-pick-role="lit"]')
+    /** What is lit on the board, and on a desk in the open guild side. */
+    readonly lit = () =>
+        this.page.locator(
+            '[data-board-surface] [data-pick-role="lit"], [data-guild-view] [data-pick-role="lit"]'
+        )
     readonly count = () => this.panel().locator('[data-hand-count]')
 
     readonly turnLine = () => this.panel().locator('[data-turn-line]')
@@ -79,11 +83,52 @@ export class ScenarioTable {
             )
     }
 
-    /** Which of the board's pieces now stand, of those named so. */
-    piecesNamed(prefix: string): Promise<string[]> {
-        return this.page
-            .locator(`[data-world^="${prefix}"]`)
-            .evaluateAll((pieces) => pieces.map((piece) => piece.getAttribute('data-world') ?? ''))
+    /** Which of the board's pieces now stand, of those named so; on a desk a rank in its guild's side. */
+    async piecesNamed(prefix: string): Promise<string[]> {
+        const drawn = () =>
+            this.page
+                .locator(`[data-world^="${prefix}"]`)
+                .evaluateAll((pieces) =>
+                    pieces.map((piece) => piece.getAttribute('data-world') ?? '')
+                )
+        if (this.phone || !prefix.startsWith('rank:')) {
+            return drawn()
+        }
+        // On a desk a guild's ranks stand on its track, behind its side's button.
+        const guild = prefix.slice('rank:guild.'.length).split('.')[0] ?? ''
+        const side = guildSideOf(`guild:${guild}`)
+        const seen = new Set<string>()
+        await this.throughGuildSides(guild && side ? [side] : ['west', 'east'], async () => {
+            for (const piece of await drawn()) {
+                seen.add(piece)
+            }
+        })
+        return [...seen]
+    }
+
+    /**
+     * How many of these a guild side's areas draw: on a phone's board, on a desk in that side,
+     * opened by its button to count and left as it was found.
+     */
+    async countInGuildSide(side: 'west' | 'east', selector: string): Promise<number> {
+        return this.readInGuildSide(side, (scope) =>
+            this.page.locator(`${scope} ${selector}`).count()
+        )
+    }
+
+    /** What `read` finds in a guild side's areas, given where they stand, as `countInGuildSide`. */
+    async readInGuildSide<T>(
+        side: 'west' | 'east',
+        read: (scope: string) => Promise<T>
+    ): Promise<T> {
+        if (this.phone) {
+            return read('[data-board-surface]')
+        }
+        let found: T | undefined
+        await this.throughGuildSides([side], async () => {
+            found = await read('[data-guild-view]')
+        })
+        return found as T
     }
 
     /** Where a piece of the board stands now: its world placement. */
@@ -128,18 +173,38 @@ export class ScenarioTable {
         return this.panel().locator(`[data-row^="${label}"]`).locator('button').first()
     }
 
-    /** A board target, at rest: what a seat presses, once the board has framed it. */
+    /**
+     * A board target, at rest: what a seat presses, once the board has framed it. On a desk a guild
+     * area stands in its open side, behind its button.
+     */
     pick(target: string): Locator {
+        if (!this.phone && guildSideOf(target)) {
+            return this.page.locator(`[data-guild-view] [data-pick="${target}"]`)
+        }
         return this.page.locator(`[data-board-surface] [data-pick="${target}"]`)
     }
 
-    /** A target's chip: in its pick, or, for a space, in the chip layer over the pieces. */
+    /**
+     * A target's chip: in its pick, or, for a space, in the chip layer over the pieces; on a desk a
+     * guild area's stands upright at its head in the open side.
+     */
     chip(target: string): Locator {
         return this.page.locator(
-            [`[data-pick="${target}"]`, `[data-chip-of="${target}"]`]
-                .map((holder) => `[data-board-surface] ${holder} [data-chip]`)
-                .join(', ')
+            [
+                ...[`[data-pick="${target}"]`, `[data-chip-of="${target}"]`].map(
+                    (holder) => `[data-board-surface] ${holder} [data-chip]`
+                ),
+                `[data-guild-view] [data-chip-of="${target}"] [data-chip]`
+            ].join(', ')
         )
+    }
+
+    /** On a desk, opens a guild side by its button, unless it is open already. */
+    async openGuildSide(side: 'west' | 'east'): Promise<void> {
+        if ((await this.page.locator(`[data-guild-view="${side}"]`).count()) === 0) {
+            await this.press(this.page.locator(`[data-guild-side="${side}"]`))
+        }
+        await expect(this.page.locator(`[data-guild-view="${side}"]`)).toBeVisible()
     }
 
     popupRow(label: string): Locator {
@@ -161,9 +226,17 @@ export class ScenarioTable {
         await this.settled()
     }
 
-    /** A target on the board: on the phone a pick frames it first, so it waits for the board. */
+    /**
+     * A target on the board: on the phone a pick frames it first, so it waits for the board. On a
+     * desk a guild area is pressed in its side, opened by its button when the pick left it closed.
+     */
     async pressPick(target: string): Promise<void> {
-        await this.boardAtRest()
+        const side = guildSideOf(target)
+        if (!this.phone && side) {
+            await this.openGuildSide(side)
+        } else {
+            await this.boardAtRest()
+        }
         await this.press(this.pick(target).locator('[role="button"]').first())
     }
 
@@ -193,17 +266,65 @@ export class ScenarioTable {
         await this.settled()
     }
 
-    /** Spaces lit at this moment, and each chip they carry, by target. */
+    /**
+     * Targets lit at this moment, and each chip they carry, by target. On a desk the guild areas
+     * stand behind their buttons, so each side whose button carries a dot is opened to read it, and
+     * the sides are left as they were found.
+     */
     async litChips(): Promise<Record<string, string>> {
+        if (this.phone) {
+            return this.litChipsShown()
+        }
+        const dotted: ('west' | 'east')[] = []
+        for (const side of ['west', 'east'] as const) {
+            if (
+                (await this.page.locator(`[data-guild-side="${side}"] [data-lit-dot]`).count()) > 0
+            ) {
+                dotted.push(side)
+            }
+        }
+        const read: Record<string, string> = {}
+        await this.throughGuildSides(dotted, async () => {
+            Object.assign(read, await this.litChipsShown())
+        })
+        return read
+    }
+
+    /**
+     * On a desk, reads what is drawn now and then in each of these guild sides, opened by its
+     * button in turn; the sides are left as they were found.
+     */
+    private async throughGuildSides(
+        sides: readonly ('west' | 'east')[],
+        read: () => Promise<void>
+    ): Promise<void> {
+        const view = this.page.locator('[data-guild-view]')
+        const found = (await view.count()) > 0 ? await view.getAttribute('data-guild-view') : null
+        await read()
+        for (const side of sides) {
+            await this.openGuildSide(side)
+            await read()
+        }
+        const last = sides.at(-1)
+        if (last && found === null) {
+            await this.press(this.page.locator(`[data-guild-side="${last}"]`))
+        } else if (last && found !== last && (found === 'west' || found === 'east')) {
+            await this.openGuildSide(found)
+        }
+    }
+
+    /** What `litChips` reads, of what is drawn now. */
+    private async litChipsShown(): Promise<Record<string, string>> {
         return Object.fromEntries(
             await this.lit().evaluateAll((picks) =>
                 picks.map((pick) => {
                     const target = pick.getAttribute('data-pick') ?? ''
-                    // A space's chip stands in the chip layer, over the pieces on it.
+                    // A space's chip stands in the chip layer, over the pieces on it; an open guild
+                    // area's at its head.
                     const chip =
                         pick.querySelector('[data-chip]') ??
                         pick
-                            .closest('[data-board-surface]')
+                            .closest('[data-board-surface], [data-guild-view]')
                             ?.querySelector(`[data-chip-of="${target}"] [data-chip]`)
                     // A chip drawn as art is named by its words, not its pieces.
                     return [
@@ -313,6 +434,15 @@ export class ScenarioTable {
             return seen instanceof Map ? [...seen.values()].map(String).sort() : []
         })
     }
+}
+
+/** A guild area's side of the board, for a guild target; none for any other. */
+function guildSideOf(target: string): 'west' | 'east' | undefined {
+    const [kind, guild] = target.split(':')
+    if (kind !== 'guild') {
+        return undefined
+    }
+    return ['alchemist', 'merchant', 'farmer'].includes(guild ?? '') ? 'west' : 'east'
 }
 
 /** Opens a named fixture on the page. A name that is no fixture throws here, with the loader's words. */

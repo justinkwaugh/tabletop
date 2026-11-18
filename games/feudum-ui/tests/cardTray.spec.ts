@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { settled, shot } from './helpers.js'
+import { pressGuildArea, settled, shot } from './helpers.js'
 
 /**
  * Contract, Playing a card: the picked card's tray fits what it holds, and the hand's cards keep
@@ -98,7 +98,7 @@ test('Playing a card: the trade picker’s tray still takes the line’s room', 
     await openTable(page, 'merchantTrade')
     await pressCard(page, /^Guild/)
     if ((await page.locator('[data-board-popup]').count()) === 0) {
-        await page.locator('[data-board-surface] [data-pick="guild:merchant"]').click()
+        await pressGuildArea(page, 'merchant')
     }
     await page
         .locator('[data-board-popup] button')

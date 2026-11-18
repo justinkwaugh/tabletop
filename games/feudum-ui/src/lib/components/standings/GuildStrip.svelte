@@ -2,8 +2,8 @@
     import type { GuildStandingsView } from '$lib/model/guildStandings.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
-        DeskBoardArea,
         GuildAreas,
+        MapArea,
         StandingsStrip,
         StripRailScale,
         StripRailWidth,
@@ -14,7 +14,7 @@
     import GuildRail from './GuildRail.svelte'
 
     /**
-     * Contract, Guild standings: on a desk the six rails stand in one strip under the board, in board
+     * Contract, Guild standings: on a desk the six rails stand in one strip under the map, in board
      * units so they scale with it: the West guilds' then the East's, each in its area's order down
      * its edge, spelled out so nothing needs a hover.
      */
@@ -42,7 +42,7 @@
 
 <div
     class="strip"
-    style="width:{DeskBoardArea.width}px;height:{height}px;padding-top:{StandingsStrip.gap}px;gap:{StandingsStrip.gap}px"
+    style="width:{MapArea.width}px;height:{height}px;padding-top:{StandingsStrip.gap}px;gap:{StandingsStrip.gap}px"
     data-guild-strip
 >
     {#each rows as row, index (row.guild)}

@@ -15,6 +15,7 @@
     import Board from '$lib/components/Board.svelte'
     import ActionArea from '$lib/components/table/ActionArea.svelte'
     import FocusChooser from '$lib/components/table/FocusChooser.svelte'
+    import GuildSides from '$lib/components/table/GuildSides.svelte'
     import BoardCorner from '$lib/components/table/BoardCorner.svelte'
     import Header from '$lib/components/table/Header.svelte'
     import ScoreLine from '$lib/components/table/ScoreLine.svelte'
@@ -27,8 +28,9 @@
         BoardFocus,
         ChooserInset,
         CoverBelowScale,
-        deskRestScaleOf,
+        deskMapAtRest,
         deskScaledHeight,
+        deskViewHeight,
         litAreasOf,
         pickFrameOf,
         restScaleOf,
@@ -37,7 +39,7 @@
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { FeudumGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
-    import { DeskBoardArea } from '$lib/utils/boardGeometry.js'
+    import { MapArea } from '$lib/utils/boardGeometry.js'
 
     let {
         gameSession
@@ -62,22 +64,14 @@
     let viewSize = $state({ width: 0, height: 0 })
 
     /**
-     * Contract, Board focus: never read for an offer. A phone's chooser stands over the board; a
-     * desk's is in the zoom row, rests on the whole board and frames a pick its view leaves out.
+     * Contract, Board focus: never read for an offer. A phone's chooser stands over the board. A desk
+     * has one view, the map at the wrapper's own fit, its guilds behind the side buttons.
      */
     const focus = new BoardFocus({
         view: () => wrapper,
-        restScale: () =>
-            phone.phone
-                ? restScaleOf(viewSize.width, viewSize.height)
-                : deskRestScaleOf(
-                      viewSize.width,
-                      viewSize.height,
-                      feudumSession.gameState.players.length
-                  ),
+        restScale: () => restScaleOf(viewSize.width, viewSize.height),
         sideways: () => phone.sideways,
-        animate: () => !phone.reducedMotion,
-        desk: () => (phone.phone ? undefined : viewSize)
+        animate: () => !phone.reducedMotion
     })
 
     /**
@@ -90,14 +84,19 @@
                 feudumSession.handPanel?.set !== undefined)
     )
 
+    let seats = $derived(feudumSession.gameState.players.length)
+
     /**
-     * Contract, Supply: on a desk the board's view is as tall as the board, the standings' strip
-     * and the zoom row's band at the column's width, so the row stands under the strip; where the
-     * action area leaves less (the hand tray), it gives way and the wrapper fits it all to the
-     * height left. A phone's view takes the column's height.
+     * Contract, Supply: on a desk the board's view is as tall as the map, the standings' strip and
+     * the zoom row's band at the column's width less the side buttons, so the row stands under the
+     * strip; where the action area leaves less (the hand tray), it gives way and the wrapper fits it
+     * all to the height left. Until the column is measured it takes the map's shape. A phone's view
+     * takes the column's height.
      */
     let deskView = $derived(
-        `aspect-ratio:${DeskBoardArea.width} / ${deskScaledHeight(feudumSession.gameState.players.length)}`
+        viewSize.width > 0
+            ? `height:${deskViewHeight(viewSize.width, seats)}px`
+            : `aspect-ratio:${MapArea.width} / ${deskScaledHeight(seats)}`
     )
 
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
@@ -116,7 +115,9 @@
             const { clientWidth: width, clientHeight: height } = viewport
             if (width !== viewSize.width || height !== viewSize.height) {
                 viewSize = { width, height }
-                focus.settle()
+                if (phone.phone) {
+                    focus.settle()
+                }
             }
         }
         // The next frame: refitting inside the observer's own delivery would resize what it watches.
@@ -143,6 +144,12 @@
     }
 
     /**
+     * Contract, Desk layout: where the map rests between the side buttons. The content carries a
+     * gutter each side of it, so the wrapper's own fit leaves the buttons their room.
+     */
+    let deskRest = $derived(deskMapAtRest(viewSize, seats, expanded))
+
+    /**
      * Contract, Coexistence and precedence: Escape closes one layer at a time, and only with none
      * open does it reach the wrapper, to leave full screen. Taken on the way down, before the dialog.
      */
@@ -161,15 +168,7 @@
 <svelte:window onkeydowncapture={onEscape} />
 
 {#snippet deskRow()}
-    <!-- Contract, Supply: the desk's zoom row goes on with the focus buttons and ends with the scores. -->
-    <FocusChooser
-        {focus}
-        lit={litAreas}
-        frame={pickFrame}
-        turned={false}
-        desk
-        onTracks={() => feudumSession.layers.openTracks()}
-    />
+    <!-- Contract, Supply: the desk's zoom row ends with the scores. -->
     <ScoreLine />
 {/snippet}
 
@@ -229,16 +228,25 @@
                         expandable
                         onManualViewChange={() => focus.handMoved()}
                     >
-                        <Board
-                            desk={!phone.phone}
-                            rails={phone.phone
-                                ? focus.shown === 'west' || focus.shown === 'east'
-                                    ? focus.shown
-                                    : undefined
-                                : 'strip'}
-                        />
-                        <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
-                        <div class="block" style:height="{ZoomRowBand}px" data-zoom-row-band></div>
+                        <div
+                            style:padding-inline={phone.phone ? undefined : `${deskRest.gutter}px`}
+                            data-board-content
+                        >
+                            <Board
+                                desk={!phone.phone}
+                                rails={phone.phone
+                                    ? focus.shown === 'west' || focus.shown === 'east'
+                                        ? focus.shown
+                                        : undefined
+                                    : 'strip'}
+                            />
+                            <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
+                            <div
+                                class="block"
+                                style:height="{ZoomRowBand}px"
+                                data-zoom-row-band
+                            ></div>
+                        </div>
                         {#snippet overlay(viewport)}
                             <div class="contents" {@attach measureView(viewport)}>
                                 {#if phone.phone}
@@ -249,6 +257,8 @@
                                         turned={phone.sideways}
                                         onTracks={() => feudumSession.layers.openTracks()}
                                     />
+                                {:else}
+                                    <GuildSides rest={deskRest} lit={litAreas} frame={pickFrame} />
                                 {/if}
                             </div>
                             <BoardCorner row={phone.phone ? undefined : deskRow} />

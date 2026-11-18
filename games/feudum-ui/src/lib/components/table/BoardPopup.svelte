@@ -24,9 +24,14 @@
     const dice = $derived(popup.choices.every(({ art }) => art?.kind === 'die'))
     const discs = $derived(popup.choices.every(({ art }) => art?.kind === 'disc'))
 
-    /** Under an open bench its own guild area is the anchor; the board's is covered. */
+    /**
+     * Under an open bench its own guild area is the anchor; the board's is covered. On a desk a guild
+     * area is the anchor in its open side; a side closed by hand hides the popup until it opens again.
+     */
     const reference = $derived(
-        `${gameSession.benchCovers ? '[data-bench]' : '[data-board-surface]'} [data-pick="${popup.anchor}"]`
+        gameSession.benchCovers
+            ? `[data-bench] [data-pick="${popup.anchor}"]`
+            : `[data-board-surface] [data-pick="${popup.anchor}"], [data-guild-view] [data-pick-anchor="${popup.anchor}"]`
     )
 
     /** The shared Floater names its role a tooltip; this holds choices. */

@@ -103,7 +103,7 @@ async function expectStripInOrder(table: ScenarioTable) {
 }
 
 scenario(
-    'S75 R-4.5, R-4.7 Guild standings stand in a strip under the board on a desk; a phone opens them from the Guilds chip',
+    'S75 R-4.5, R-4.7 Guild standings stand in a strip under the map on a desk; a phone opens them from the Guilds chip',
     'standings-five-seats',
     async (table) => {
         if (!table.phone) {
@@ -112,11 +112,13 @@ scenario(
             await expect(column.locator('[data-seat-panel]').first()).toBeVisible()
             await expect(railsOf(table)).toHaveCount(0)
             await expectPlaces(stripOf(table), 6)
-            // The board takes the column's whole width; the strip stands under it, as wide.
+            // The map takes the column's width between the guild buttons, or the height it has; the
+            // strip stands under it, as wide.
             const surface = await rect(table.page.locator('[data-board-surface]'))
             const view = await rect(table.page.locator('[data-board-view]'))
             const strip = await rect(stripOf(table))
-            expect(Math.abs(surface.width - view.width)).toBeLessThan(2)
+            expect(surface.width).toBeLessThanOrEqual(view.width - 80 + 2)
+            expect(Math.abs(surface.x - view.x - 40)).toBeLessThan(1)
             expect(strip.y).toBeGreaterThanOrEqual(surface.y + surface.height)
             expect(strip.y - (surface.y + surface.height)).toBeLessThan(24)
             expect(Math.abs(strip.x - surface.x)).toBeLessThan(2)

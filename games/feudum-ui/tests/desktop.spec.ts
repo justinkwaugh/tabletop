@@ -52,6 +52,15 @@ async function reach(target: Locator) {
     }, Target)
 }
 
+/** On a desk, opens the side a guild area stands on, unless a pick opened it already. */
+async function openSideOf(page: Page, guild: string) {
+    const side = ['alchemist', 'merchant', 'farmer'].includes(guild) ? 'west' : 'east'
+    if ((await page.locator(`[data-guild-view="${side}"]`).count()) === 0) {
+        await page.locator(`[data-guild-side="${side}"]`).click()
+        await settled(page)
+    }
+}
+
 async function openFunction(page: Page, scene: string, guild: string, fn: RegExp) {
     await page.goto('/')
     await page.addScriptTag({
@@ -68,7 +77,8 @@ async function openFunction(page: Page, scene: string, guild: string, fn: RegExp
         .click()
     await settled(page)
     if ((await page.locator('[data-board-popup]').count()) === 0) {
-        await page.locator(`[data-board-surface] [data-pick="guild:${guild}"]`).click()
+        await openSideOf(page, guild)
+        await page.locator(`[data-guild-view] [data-pick="guild:${guild}"]`).click()
         await settled(page)
     }
     await page.locator('[data-board-popup] button').filter({ hasText: fn }).first().click()
@@ -83,24 +93,15 @@ async function rect(target: Locator) {
     return box
 }
 
-/** Where a rect in board units stands on screen, by the board's own viewBox, and at what scale. */
-async function areaOnScreen(
-    page: Page,
-    area: { x: number; y: number; width: number; height: number }
-) {
-    return page.locator('[data-board-surface]').evaluate((svg, wanted) => {
-        const box = svg.getBoundingClientRect()
-        const view = (svg as SVGSVGElement).viewBox.baseVal
-        const scale = box.width / view.width
-        return {
-            x: box.x + (wanted.x - view.x) * scale,
-            y: box.y + (wanted.y - view.y) * scale,
-            width: wanted.width * scale,
-            height: wanted.height * scale,
-            scale
-        }
-    }, area)
-}
+/** A desk's guild button: "West guilds" or "East guilds". */
+const sideButton = (page: Page, side: 'West' | 'East') =>
+    page.getByRole('button', { name: `${side} guilds`, exact: true })
+
+/** The guilds an open side shows, in order. */
+const openGuilds = (page: Page, side: 'west' | 'east') =>
+    page
+        .locator(`[data-guild-view="${side}"] [data-open-guild]`)
+        .evaluateAll((areas) => areas.map((area) => area.getAttribute('data-open-guild')))
 
 test.describe('a 1440 px desk', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
@@ -153,14 +154,16 @@ test.describe('a 1440 px desk', () => {
         await expect(page.locator('[data-margin-layer], [data-layer="margin"]')).toHaveCount(0)
 
         // The board is its own height: the frame reaches past the surface's foot, the desk drawing the
-        // board inside its ring, and the board fills the view one way.
+        // map inside the board, and the map fills the view between the guild buttons one way.
         const surface = await rect(page.locator('[data-board-surface]'))
         const frame = await rect(page.locator('[data-board-surface] > svg').first())
         const row = await rect(page.locator('[data-board-row]'))
         const view = await rect(page.locator('[data-board-view]'))
         expect(frame.y + frame.height).toBeGreaterThanOrEqual(surface.y + surface.height - 1)
         expect(Math.abs(row.height - surface.height)).toBeLessThan(1)
-        expect(Math.max(row.width / view.width, row.height / view.height)).toBeGreaterThan(0.97)
+        expect(Math.max(row.width / (view.width - 80), row.height / view.height)).toBeGreaterThan(
+            0.97
+        )
 
         const key = await rect(page.locator('[data-symbol-key-toggle]'))
         const toggle = page.getByRole('button', { name: 'Supply' })
@@ -208,125 +211,59 @@ test.describe('a 1440 px desk', () => {
         const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
         const key = await rect(page.locator('[data-symbol-key-toggle]'))
         const stripFoot = strip.y + strip.height
-        // The row stands in the band under the strip: below it, and no further down than the band.
+        // The row stands in the band under the strip: below it, and no further down than the band,
+        // 128 board units scaled with the map.
+        const scale = (await rect(page.locator('[data-board-surface]'))).width / 1598
         expect(zoom.y).toBeGreaterThanOrEqual(stripFoot)
-        expect(key.y + key.height - stripFoot).toBeLessThan(64)
+        expect(key.y + key.height - stripFoot).toBeLessThan(128 * scale + 2)
         // The board's view ends with the band, so the row is the last thing in it.
         expect(Math.abs(view.y + view.height - (key.y + key.height))).toBeLessThan(8)
-        // The board still takes the column's width.
+        // The map takes the column's width less the two guild buttons and their gaps, or a few
+        // pixels less where the column's height binds first.
         const surface = await rect(page.locator('[data-board-surface]'))
-        expect(Math.abs(surface.width - view.width)).toBeLessThan(2)
+        expect(surface.width).toBeLessThanOrEqual(view.width - 80 + 1)
+        expect(surface.width).toBeGreaterThan(view.width - 80 - 12)
     })
 
-    test('Contract, Supply: the zoom row’s focus buttons frame each area as large as fits, Whole board the rest', async ({
-        page
-    }) => {
-        await openFixture(page, 'seats-four-mid-game')
-        await settled(page)
-        const chooser = page.getByRole('group', { name: 'Focus the board' })
-        const chip = (name: string) => chooser.getByRole('button', { name, exact: true })
-        const names = ['Whole board', 'Map', 'West guilds', 'East guilds']
-        await expect(chooser.getByRole('button')).toHaveText(names)
-        // One row with the zoom buttons, Key and Supply, after Supply.
-        const supply = await rect(page.locator('[data-supply-toggle]'))
-        const keyReach = await reach(page.locator('[data-symbol-key-toggle]'))
-        for (const name of names) {
-            const box = await rect(chip(name))
-            expect(Math.abs(box.y + box.height / 2 - (supply.y + supply.height / 2))).toBeLessThan(
-                4
-            )
-            expect(box.x).toBeGreaterThan(supply.x + supply.width)
-            expect(box.height).toBeCloseTo(supply.height, 0)
-            expect((await reach(chip(name))).down).toBeGreaterThanOrEqual(keyReach.down)
-        }
-        await expect(chip('Whole board')).toHaveAttribute('aria-pressed', 'true')
-        const view = await rect(page.locator('[data-board-view]'))
-        const restWidth = (await rect(page.locator('[data-board-surface]'))).width
-        expect(Math.abs(restWidth - view.width)).toBeLessThan(2)
-
-        // Each area at the largest scale that fits, whole in the view and clear of the row.
-        const rowTop = supply.y
-        const areas = {
-            Map: { x: 452, y: 60, width: 1598, height: 833 },
-            // Each guild column with its rails over the map's inner edge.
-            'West guilds': { x: 62, y: 62, width: 566, height: 828.7 },
-            'East guilds': { x: 1874, y: 62, width: 565, height: 828.7 }
-        }
-        for (const [name, area] of Object.entries(areas)) {
-            await chip(name).click()
-            await settled(page)
-            await expect(chip(name)).toHaveAttribute('aria-pressed', 'true')
-            await expect(chip('Whole board')).toHaveAttribute('aria-pressed', 'false')
-            const shown = await areaOnScreen(page, area)
-            expect(shown.x).toBeGreaterThanOrEqual(view.x - 1)
-            expect(shown.x + shown.width).toBeLessThanOrEqual(view.x + view.width + 1)
-            expect(shown.y).toBeGreaterThanOrEqual(view.y - 1)
-            expect(shown.y + shown.height).toBeLessThanOrEqual(rowTop + 1)
-            const fits = Math.min(
-                (view.width - 24) / area.width,
-                (view.y + view.height - 44 - 12 - (view.y + 12)) / area.height,
-                1
-            )
-            expect(Math.abs(shown.scale - fits)).toBeLessThan(0.03)
-        }
-        // Zoom still works inside a focus.
-        const before = (await rect(page.locator('[data-board-surface]'))).width
-        await page.getByRole('button', { name: 'Zoom in' }).click()
-        await settled(page)
-        expect((await rect(page.locator('[data-board-surface]'))).width).toBeGreaterThan(before)
-
-        await chip('Whole board').click()
-        await settled(page)
-        await expect(chip('Whole board')).toHaveAttribute('aria-pressed', 'true')
-        const back = await rect(page.locator('[data-board-surface]'))
-        expect(Math.abs(back.width - restWidth)).toBeLessThan(2)
-    })
-
-    test('Contract, Supply: a pick the chosen area leaves out is framed; at Whole board nothing moves', async ({
-        page
-    }) => {
-        await openFixture(page, 'cards-migrate')
-        await settled(page)
-        const chooser = page.getByRole('group', { name: 'Focus the board' })
-        const surface = page.locator('[data-board-surface]')
-        const restWidth = (await rect(surface)).width
-        const migrate = panel(page)
-            .locator('[data-cards="hand"] [data-row="Migrate"] button')
-            .first()
-        await migrate.click()
-        await settled(page)
-        const lit = page.locator('[data-board-surface] [data-pick-role="lit"]')
-        await expect(lit.first()).toBeAttached()
-        expect(Math.abs((await rect(surface)).width - restWidth)).toBeLessThan(2)
-        await migrate.click()
-        await settled(page)
-
-        await chooser.getByRole('button', { name: 'West guilds', exact: true }).click()
-        await settled(page)
-        await migrate.click()
-        await settled(page)
-        await expect(lit.first()).toBeAttached()
-        const view = await rect(page.locator('[data-board-view]'))
-        for (const target of await lit.all()) {
-            const box = await rect(target)
-            expect(box.x).toBeGreaterThanOrEqual(view.x)
-            expect(box.x + box.width).toBeLessThanOrEqual(view.x + view.width)
-        }
-        await expect(chooser.locator('[aria-pressed="true"]')).toHaveCount(0)
-    })
-
-    test('Contract, Desk layout: the desk board is the map and the guild areas, with no score track and no ring raster', async ({
+    test('Contract, Desk layout: the board view is the map alone, with no score track and no ring raster, a West and an East guilds button at its sides', async ({
         page
     }) => {
         await openFixture(page, 'seats-four-mid-game')
         await settled(page)
         const surface = page.locator('[data-board-surface]')
-        expect(await surface.getAttribute('viewBox')).toBe('60 60 2380 833')
-        const box = await rect(surface)
-        expect(box.width / box.height).toBeCloseTo(2380 / 833, 1)
-        expect(
-            Math.abs(box.width - (await rect(page.locator('[data-board-view]'))).width)
-        ).toBeLessThan(2)
+        expect(await surface.getAttribute('viewBox')).toBe('452 60 1598 833')
+        const map = await rect(surface)
+        const view = await rect(page.locator('[data-board-view]'))
+        // The freed width goes to the map: about 1016 x 530 at 1440 x 900.
+        expect(Math.abs(map.width - 1016)).toBeLessThan(12)
+        expect(Math.abs(map.height - 530)).toBeLessThan(8)
+        const west = await rect(sideButton(page, 'West'))
+        const east = await rect(sideButton(page, 'East'))
+        for (const button of [west, east]) {
+            expect(Math.abs(button.width - 36)).toBeLessThan(1)
+            expect(Math.abs(button.height - map.height)).toBeLessThan(1.5)
+            expect(Math.abs(button.y - map.y)).toBeLessThan(1)
+        }
+        expect(Math.abs(west.x - view.x)).toBeLessThan(1)
+        expect(Math.abs(map.x - (west.x + west.width) - 4)).toBeLessThan(1)
+        expect(Math.abs(east.x - (map.x + map.width) - 4)).toBeLessThan(1)
+        // The labels run up the West button and down the East one.
+        const turns = await Promise.all(
+            ['West', 'East'].map((side) =>
+                page
+                    .locator(`[data-guild-side="${side.toLowerCase()}"] [data-side-label]`)
+                    .evaluate((label) => {
+                        const style = getComputedStyle(label)
+                        return `${style.writingMode} ${style.transform}`
+                    })
+            )
+        )
+        expect(turns[0]).toMatch(/^vertical-rl matrix\(-1, [^,]+, [^,]+, -1, 0, 0\)$/)
+        expect(turns[1]).toBe('vertical-rl none')
+        for (const side of ['West', 'East'] as const) {
+            await expect(sideButton(page, side)).toHaveAttribute('aria-expanded', 'false')
+        }
+        // No score track and no ring print: the scores are the seat panels' and the zoom row's.
         await expect(page.locator('[data-score-space], [data-score-ring]')).toHaveCount(0)
         const ringImages = await page.evaluate(
             () =>
@@ -335,9 +272,156 @@ test.describe('a 1440 px desk', () => {
                 ).length
         )
         expect(ringImages).toBe(0)
-        // The standings' strip runs the board's width.
+        // One view: no guild area on the board and no focus buttons.
+        await expect(page.locator('[data-board-surface] [data-guild]')).toHaveCount(0)
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+        await expect(page.getByRole('group', { name: 'Focus the board' })).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Whole board', exact: true })).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Map', exact: true })).toHaveCount(0)
+        // The standings' strip stands under the map, across its width.
         const strip = await rect(page.locator('[data-guild-strip]'))
-        expect(Math.abs(strip.width - box.width)).toBeLessThan(2)
+        expect(Math.abs(strip.x - map.x)).toBeLessThan(2)
+        expect(Math.abs(strip.width - map.width)).toBeLessThan(2)
+        expect(strip.y).toBeGreaterThanOrEqual(map.y + map.height - 1)
+        // Zoom and pan still work on the map, and the buttons stay at its rest.
+        await page.getByRole('button', { name: 'Zoom in' }).click()
+        await settled(page)
+        expect((await rect(surface)).width).toBeGreaterThan(map.width)
+        expect(await rect(sideButton(page, 'West'))).toEqual(west)
+    })
+
+    test('Contract, Desk layout: a guild button opens its three areas upright over the map; again, Escape or the scrim closes it', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        const map = await rect(page.locator('[data-board-surface]'))
+        const west = sideButton(page, 'West')
+        const east = sideButton(page, 'East')
+
+        await west.click()
+        await settled(page)
+        await expect(west).toHaveAttribute('aria-expanded', 'true')
+        const westView = page.locator('[data-guild-view="west"]')
+        await expect(westView).toBeVisible()
+        const view = await rect(westView)
+        expect(Math.abs(view.x - map.x)).toBeLessThan(1)
+        expect(Math.abs(view.width - map.width)).toBeLessThan(1)
+        expect(Math.abs(view.height - map.height)).toBeLessThan(1)
+        expect(await openGuilds(page, 'west')).toEqual(['alchemist', 'merchant', 'farmer'])
+        let last: { x: number; y: number; width: number; height: number } | undefined
+        for (const guild of ['alchemist', 'merchant', 'farmer']) {
+            const area = westView.locator(`[data-open-guild="${guild}"]`)
+            const box = await rect(area)
+            // As large as the map's box allows: about 320 x 452 at 1440 x 900, 2.5 times the board's.
+            expect(Math.abs(box.width - 320)).toBeLessThan(6)
+            expect(Math.abs(box.height - 452)).toBeLessThan(8)
+            expect(box.x).toBeGreaterThanOrEqual(map.x)
+            expect(box.x + box.width).toBeLessThanOrEqual(map.x + map.width)
+            expect(box.y).toBeGreaterThanOrEqual(map.y)
+            expect(box.y + box.height).toBeLessThanOrEqual(map.y + map.height)
+            if (last) {
+                expect(box.x).toBeGreaterThan(last.x + last.width)
+                expect(Math.abs(box.y - last.y)).toBeLessThan(1)
+            }
+            last = box
+            // Upright: a west area turned a quarter clockwise, and live with its state.
+            await expect(area.locator('[data-upright-turned]')).toHaveAttribute(
+                'style',
+                /rotate\(90deg\)/
+            )
+            await expect(area.locator(`[data-guild="${guild}"]`)).toBeVisible()
+        }
+
+        await east.click()
+        await settled(page)
+        await expect(west).toHaveAttribute('aria-expanded', 'false')
+        await expect(east).toHaveAttribute('aria-expanded', 'true')
+        await expect(westView).toHaveCount(0)
+        expect(await openGuilds(page, 'east')).toEqual(['knight', 'noble', 'monk'])
+        await expect(
+            page.locator('[data-guild-view="east"] [data-upright-turned]').first()
+        ).toHaveAttribute('style', /rotate\(-90deg\)/)
+
+        await page.keyboard.press('Escape')
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+        await expect(east).toHaveAttribute('aria-expanded', 'false')
+
+        await west.click()
+        await west.click()
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+
+        await west.click()
+        await page.locator('[data-guild-scrim]').click({ position: { x: 4, y: 4 } })
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+
+        // Keyboard reachable.
+        await west.focus()
+        await page.keyboard.press('Enter')
+        await expect(westView).toBeVisible()
+
+        // A press on a guild's print enlarges it, over the view; Escape closes the card first.
+        await westView
+            .locator('[data-enlarge="Merchant guild"]')
+            .click({ position: { x: 12, y: 12 } })
+        await expect(page.locator('[data-enlarged]')).toHaveAttribute('data-enlarged', 'guild')
+        await page.keyboard.press('Escape')
+        await expect(page.locator('[data-enlarged]')).toHaveCount(0)
+        await expect(westView).toBeVisible()
+    })
+
+    test('Contract, Pick framing: a pick wholly in the West guilds opens them, lit; closing leaves the dot', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-pick-west')
+        await settled(page)
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+        await panel(page)
+            .getByRole('button', { name: /^Guild/ })
+            .first()
+            .click()
+        await settled(page)
+        const westView = page.locator('[data-guild-view="west"]')
+        await expect(westView).toBeVisible()
+        await expect(sideButton(page, 'West')).toHaveAttribute('aria-expanded', 'true')
+        // The Farmer offers this seat no function: the Alchemist and the Merchant light.
+        const lit = westView.locator('[data-pick-role="lit"]')
+        await expect(lit).toHaveCount(2)
+        await expect(sideButton(page, 'West').locator('[data-lit-dot]')).toHaveCount(1)
+        await expect(sideButton(page, 'East').locator('[data-lit-dot]')).toHaveCount(0)
+
+        await page.keyboard.press('Escape')
+        await expect(westView).toHaveCount(0)
+        await expect(sideButton(page, 'West').locator('[data-lit-dot]')).toHaveCount(1)
+
+        // Opened again, a lit area is pressed there and its popup stands beside it.
+        await sideButton(page, 'West').click()
+        await settled(page)
+        await westView.locator('[data-pick="guild:merchant"] [role="button"]').click()
+        await settled(page)
+        const popup = page.locator('[data-board-popup="guild:merchant"]')
+        await expect(popup).toBeVisible()
+        const merchant = await rect(westView.locator('[data-open-guild="merchant"]'))
+        expect((await rect(popup)).x).toBeGreaterThanOrEqual(merchant.x + merchant.width - 2)
+    })
+
+    test('Contract, Pick framing: a pick in both sides opens nothing and dots each side', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-pick')
+        await settled(page)
+        await panel(page)
+            .getByRole('button', { name: /^Guild/ })
+            .first()
+            .click()
+        await settled(page)
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+        for (const side of ['West', 'East'] as const) {
+            await expect(sideButton(page, side).locator('[data-lit-dot]')).toHaveCount(1)
+        }
+        await sideButton(page, 'East').click()
+        await settled(page)
+        await expect(page.locator('[data-guild-view="east"] [data-pick-role="lit"]')).toHaveCount(3)
     })
 
     test('Contract, Supply and Seat panel: the scores in the zoom row and the seat panels, the leader marked, a score flying to its panel', async ({
@@ -354,15 +438,15 @@ test.describe('a 1440 px desk', () => {
         expect(
             await entries.evaluateAll((all) => all.map((one) => one.getAttribute('data-score-of')))
         ).toEqual(seats)
-        // In the zoom row, after the focus buttons, inside the view.
+        // In the zoom row, after Supply, inside the view.
         const lineBox = await rect(line)
-        const east = await rect(page.locator('[data-focus-chip="east"]'))
+        const supply = await rect(page.locator('[data-supply-toggle]'))
         const view = await rect(page.locator('[data-board-view]'))
-        expect(lineBox.x).toBeGreaterThan(east.x + east.width)
+        expect(lineBox.x).toBeGreaterThan(supply.x + supply.width)
         expect(lineBox.x + lineBox.width).toBeLessThanOrEqual(view.x + view.width)
-        expect(Math.abs(lineBox.y + lineBox.height / 2 - (east.y + east.height / 2))).toBeLessThan(
-            4
-        )
+        expect(
+            Math.abs(lineBox.y + lineBox.height / 2 - (supply.y + supply.height / 2))
+        ).toBeLessThan(4)
         await expect(page.locator('[data-score-leader]')).toHaveCount(0)
 
         const seat = seats[0] ?? ''
@@ -498,20 +582,26 @@ for (const viewport of [
             const key = await rect(page.locator('[data-symbol-key-toggle]'))
             expect(strip.y + strip.height).toBeLessThanOrEqual(zoom.y)
             expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)
-            // R-1.2 Whole: smaller, the board keeps its shape.
+            // R-1.2 Whole: smaller, the map keeps its shape, the guild buttons at its sides.
             const surface = await rect(page.locator('[data-board-surface]'))
-            expect(surface.width / surface.height).toBeCloseTo(2380 / 833, 1)
+            expect(surface.width / surface.height).toBeCloseTo(1598 / 833, 1)
+            const east = await rect(page.locator('[data-guild-side="east"]'))
+            expect(Math.abs(east.height - surface.height)).toBeLessThan(1.5)
+            expect(Math.abs(east.x - (surface.x + surface.width) - 4)).toBeLessThan(1)
         })
 
-        test('R-3.2 in card play the board is back at the column’s full width, and the column holds it all', async ({
+        test('R-3.2 in card play the map is back at the column’s full width between the guild buttons, or its full height, and the column holds it all', async ({
             page
         }) => {
             await openFixture(page, 'seats-four-mid-game')
             await settled(page)
             const surface = await rect(page.locator('[data-board-surface]'))
             const view = await rect(page.locator('[data-board-view]'))
-            expect(Math.abs(surface.width - view.width)).toBeLessThan(2)
             const column = await columnOf(page)
+            // The width binds, or the column's height does and the view reaches its foot.
+            const across = Math.abs(surface.width - (view.width - 80)) < 2
+            const down = Math.abs(view.y + view.height - column.foot) < 2
+            expect(across || down).toBe(true)
             expect(column.over).toBeLessThanOrEqual(1)
             const key = await rect(page.locator('[data-symbol-key-toggle]'))
             expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)

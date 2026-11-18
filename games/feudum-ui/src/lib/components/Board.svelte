@@ -9,19 +9,17 @@
     import { guildStandingsOf } from '$lib/model/guildStandings.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { takesTradePicker } from '$lib/model/tradePicker.js'
-    import { BoardHeight, BoardWidth, DeskBoardArea } from '$lib/utils/boardGeometry.js'
+    import { BoardHeight, BoardWidth, MapArea } from '$lib/utils/boardGeometry.js'
 
     /**
      * Contract, Guild standings: where the guild rails stand. In one strip under the board on a
      * desk; on a phone only in a guild column's view, over the map's inner edge; none otherwise.
-     * Contract, Desk layout: a desk draws only the map and the guild areas (`desk`), with no score
-     * ring and none of its print; a phone draws the whole board.
+     * Contract, Desk layout: a desk draws only the map (`desk`), its guild areas behind the side
+     * buttons (`GuildSides`) and no score ring or its print; a phone draws the whole board.
      */
     let { rails, desk = false }: { rails?: 'strip' | 'west' | 'east'; desk?: boolean } = $props()
 
-    let drawn = $derived(
-        desk ? DeskBoardArea : { x: 0, y: 0, width: BoardWidth, height: BoardHeight }
-    )
+    let drawn = $derived(desk ? MapArea : { x: 0, y: 0, width: BoardWidth, height: BoardHeight })
 
     let gameSession = getGameSession()
     let chrome = $derived(gameSession.boardChrome)
@@ -64,10 +62,12 @@
                 />
             {/snippet}
         </MapLayers>
-        <!-- Under the bench the board's own guild areas keep their state and take no presses, by key either. -->
-        <g data-layer="guilds" visibility={guildsCovered ? 'hidden' : undefined}>
-            <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
-        </g>
+        {#if !desk}
+            <!-- Under the bench the board's own guild areas keep their state and take no presses, by key either. -->
+            <g data-layer="guilds" visibility={guildsCovered ? 'hidden' : undefined}>
+                <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
+            </g>
+        {/if}
         <g data-layer="tracks"
             ><TrackLayers state={gameSession.gameState} {paintOf} {chrome} ring={!desk} /></g
         >

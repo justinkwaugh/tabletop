@@ -1188,6 +1188,17 @@ export const Fixtures = {
     'guild-pick': {
         build: () => atGuild(seats(guildSeat('merchant'), plain, plain))
     },
+    'guild-pick-west': {
+        arranged:
+            'R-3.16.2 The East guilds marked used this round, so the Guild card lights the West guilds alone.',
+        build: async () => {
+            const { host, seat } = await atGuild(seats(guildSeat('merchant'), plain, plain))
+            host.edit((state) => {
+                state.getPlayerState(seat).guildsUsed = ['knight', 'noble', 'monk']
+            })
+            return { host, seat }
+        }
+    },
     'guild-pick-repeat': {
         build: async () => {
             const host = await atCards(
