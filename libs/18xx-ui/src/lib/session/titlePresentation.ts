@@ -132,6 +132,11 @@ export type MarketZone = {
     label?: string
     /** Drawn as one group, a little apart from the spaces on either side of it. */
     setApart?: true
+    /**
+     * Colours the value on a company's card while its price stands in the zone, for zones whose
+     * rules apply to the company there, such as freedom from the certificate limit.
+     */
+    marksCompanyValue?: true
 }
 
 /**

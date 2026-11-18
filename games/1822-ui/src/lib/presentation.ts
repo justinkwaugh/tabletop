@@ -207,7 +207,8 @@ export const Presentation1822: TitlePresentation<State1822> = {
         {
             color: MarketZoneColors1822.noLimit,
             name: 'No certificate limit',
-            description: 'Certificates of companies valued here do not count against the limit.'
+            description: 'Certificates of companies valued here do not count against the limit.',
+            marksCompanyValue: true
         },
         {
             color: MarketZoneColors1822.end,

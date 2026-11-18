@@ -1,4 +1,4 @@
-import type { StockMarket, StockMarketChart, TitleNames } from '@tabletop/18xx'
+import type { StockMarket, StockMarketChart, StockMarketSpace, TitleNames } from '@tabletop/18xx'
 
 export type CompanyNameVariants = {
     full: string
@@ -51,12 +51,20 @@ export const NoParCompanyPricePresentation: CompanyPricePresentation = {
     label: 'Value'
 }
 
+export function companyMarketSpace(
+    chart: StockMarketChart,
+    market: StockMarket,
+    companyId: string
+): StockMarketSpace | undefined {
+    return market.stacks.some((stack) => stack.companyIds.includes(companyId))
+        ? chart.companySpace(market, companyId)
+        : undefined
+}
+
 export function companySharePrice(
     chart: StockMarketChart,
     market: StockMarket,
     companyId: string
 ): number | undefined {
-    return market.stacks.some((stack) => stack.companyIds.includes(companyId))
-        ? chart.companySpace(market, companyId).price
-        : undefined
+    return companyMarketSpace(chart, market, companyId)?.price
 }

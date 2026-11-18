@@ -103,18 +103,21 @@ export const Presentation1880: TitlePresentation<State1880> = {
             color: 'yellow',
             name: '+5',
             description: 'A company starting its turn here adds ¥50 to its income.',
+            marksCompanyValue: true,
             marks: ['+5']
         },
         {
             color: 'orange',
             name: '+10',
             description: 'A company starting its turn here adds ¥100 to its income.',
+            marksCompanyValue: true,
             marks: ['+10']
         },
         {
             color: 'peach',
             name: '+15',
             description: 'A company starting its turn here adds ¥150 to its income.',
+            marksCompanyValue: true,
             fill: { kind: 'solid', color: '#f3c9a8' },
             marks: ['+15']
         },
@@ -122,6 +125,7 @@ export const Presentation1880: TitlePresentation<State1880> = {
             color: 'olive',
             name: '+20',
             description: 'A company starting its turn here adds ¥200 to its income.',
+            marksCompanyValue: true,
             fill: { kind: 'solid', color: '#c9c98a' },
             marks: ['+20']
         },
@@ -129,6 +133,7 @@ export const Presentation1880: TitlePresentation<State1880> = {
             color: 'green',
             name: '+40',
             description: 'The top of the chart: a company starting its turn here adds ¥400.',
+            marksCompanyValue: true,
             marks: ['+40']
         }
     ],

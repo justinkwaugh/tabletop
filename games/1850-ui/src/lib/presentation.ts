@@ -89,18 +89,21 @@ export const Presentation1850: TitlePresentation<State1850> = {
         {
             color: 'yellow',
             name: 'Yellow',
-            description: 'Shares do not count toward the certificate limit.'
+            description: 'Shares do not count toward the certificate limit.',
+            marksCompanyValue: true
         },
         {
             color: 'green',
             name: 'Green',
-            description: 'Shares do not count toward the limit and may exceed 60%.'
+            description: 'Shares do not count toward the limit and may exceed 60%.',
+            marksCompanyValue: true
         },
         {
             color: 'brown',
             name: 'Brown',
             description:
-                'As green, and a player may buy every open-market share of one company in a turn.'
+                'As green, and a player may buy every open-market share of one company in a turn.',
+            marksCompanyValue: true
         },
         { color: 'black', name: 'Closed', description: 'A company entering it closes.' }
     ],

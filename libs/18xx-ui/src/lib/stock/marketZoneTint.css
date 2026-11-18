@@ -1,0 +1,11 @@
+/* Shared so a company's value always matches the market space it stands on. */
+.market-zone-tint {
+    --market-solid-ink: #253b35;
+    --market-tint-dark: color-mix(
+        in oklab,
+        oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
+        var(--rail-surface-raised, #2b3744)
+    );
+    --market-tint: light-dark(var(--market-color), var(--market-tint-dark));
+    --market-tint-ink: light-dark(var(--market-solid-ink), #ebe6dcd9);
+}

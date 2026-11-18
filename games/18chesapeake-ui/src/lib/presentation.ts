@@ -41,7 +41,8 @@ export const PresentationChesapeake: TitlePresentation = {
         {
             color: 'yellow',
             name: 'Yellow',
-            description: 'Shares here do not count toward the certificate limit.'
+            description: 'Shares here do not count toward the certificate limit.',
+            marksCompanyValue: true
         }
     ]
 }
@@ -52,17 +53,20 @@ export const OffTheRailsMarketZones: readonly MarketZone[] = [
     {
         color: 'yellow',
         name: 'Yellow',
-        description: 'Shares here do not count toward the certificate limit.'
+        description: 'Shares here do not count toward the certificate limit.',
+        marksCompanyValue: true
     },
     {
         color: 'orange',
         name: 'Orange',
-        description: 'Free of the certificate limit; a player may hold more than 60%.'
+        description: 'Free of the certificate limit; a player may hold more than 60%.',
+        marksCompanyValue: true
     },
     {
         color: 'brown',
         name: 'Brown',
-        description: 'As orange, and several shares may be bought in one turn.'
+        description: 'As orange, and several shares may be bought in one turn.',
+        marksCompanyValue: true
     },
     {
         color: 'red',
