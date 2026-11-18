@@ -128,7 +128,9 @@ A reserved city slot without a token shows the reserving company's token in its 
 colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
-own. A marker whose art is a local line shows its label beside two linked circles while
+own. A town or junction whose every track the layout prints as a spike or pier draws no
+marker either, and stays a stop that can be selected; a route started at such a town shows
+its start ring at the stop, the same size however many tracks reach it. A marker whose art is a local line shows its label beside two linked circles while
 the hex has no tile, drawn above track with a halo in the hex's colour. It sits near
 the foot of the hex, or, when its art is `above`, just over the hex's stops: above a
 name curved over a city, below a straight name printed across the top, or above the

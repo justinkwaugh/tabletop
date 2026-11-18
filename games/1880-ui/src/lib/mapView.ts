@@ -115,6 +115,22 @@ function stubTrack(edge: number): TileLayout['printedTrack'] {
 const DoubleBoomtownIds = ['H8', 'N4']
 const PrintedOOIds = ['D12', 'F4', 'N12', 'I9']
 
+/**
+ * The hexes whose stop only starts or ends a route (§X Operating Trains) print arrows rather than
+ * track: the off-board areas holding a foreign investor, and the harbours, which print no town.
+ */
+const RouteEndLayouts: Readonly<Record<string, TileLayout>> = Object.fromEntries(
+    Map1880.definition.locations.flatMap(({ id, preprintedTile: { nodes, paths } }) => {
+        const arrows = paths.filter((path) => path.terminus)
+        if (!arrows.length) return []
+        const layout: TileLayout = {
+            nodePositions: Object.fromEntries(nodes.map((node) => [node.id, { x: 0, y: 0 }])),
+            printedPaths: Object.fromEntries(arrows.map((path) => [path.id, 'spike']))
+        }
+        return [[id, layout]]
+    })
+)
+
 export const MapView1880: MapViewDefinition = {
     map: Map1880,
     tileSet: TileSet1880,
@@ -162,6 +178,7 @@ export const MapView1880: MapViewDefinition = {
         ),
         ...Object.fromEntries(DoubleBoomtownIds.map((id) => [id, DoubleBoomtown])),
         ...Object.fromEntries(PrintedOOIds.map((id) => [id, PrintedOO])),
+        ...RouteEndLayouts,
         // Beijing's four printed cities near their starting sections, at full size; the B in
         // the centre and the cities' one shared revenue on an open side.
         F8: citiesAt(

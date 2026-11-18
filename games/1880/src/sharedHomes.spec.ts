@@ -5,25 +5,19 @@ import {
     rotateTileFace,
     type TileRotation
 } from '@tabletop/18xx'
-import { edit, opened } from '../test/kit.js'
+import { edit, opened, placeTile, type Table } from '../test/kit.js'
 import { StationRules1880 } from './stations.js'
-import { TileSet1880, tileFace1880 } from './tiles.js'
+import { tileFace1880 } from './tiles.js'
 
 /** Puts a tile on the QSR's home hex, its reservations following as the family maps them. */
-function upgradeShenyang(
-    game: ReturnType<typeof opened>,
-    from: string,
-    to: string,
-    rotation: TileRotation
-) {
+function upgradeShenyang(game: Table, from: string, to: string, rotation: TileRotation) {
     const [mapping] = replacementMappings(
         tileFace1880(from),
         rotateTileFace(tileFace1880(to), rotation)
     )
     expect(mapping).toBeDefined()
+    placeTile(game, 'D12', to, rotation)
     edit(game, (state) => {
-        const [piece] = TileSet1880.availablePieces(state.tileInventory, to)
-        state.tileInventory.placements.D12 = { pieceId: piece.id, definitionId: to, rotation }
         state.stationReservations = state.stationReservations.map((reservation) =>
             reservation.locationId === 'D12'
                 ? { ...reservation, nodeId: mapping?.[reservation.nodeId] ?? reservation.nodeId }
@@ -32,7 +26,7 @@ function upgradeShenyang(
     })
 }
 
-const open = (game: ReturnType<typeof opened>, nodeId: string, companyId = 'BCR') =>
+const open = (game: Table, nodeId: string, companyId = 'BCR') =>
     new StationPlacement(game.hydrated, StationRules1880).openSlots(companyId, 'D12', nodeId)
 
 describe('the QSR’s home before it is placed (§X; R61)', () => {
