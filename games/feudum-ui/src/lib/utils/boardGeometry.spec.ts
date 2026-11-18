@@ -112,6 +112,8 @@ import {
     scrollBox,
     vesselForSaleBox,
     vesselForSaleSize,
+    guildAreaAt,
+    uprightPoint,
     type GuildBoxRect
 } from './boardGeometry.js'
 import {
@@ -843,5 +845,49 @@ describe('On the printed panels, every part stands on its printed space (R-1.3)'
         for (const place of Object.values(PrintedCounts)) {
             expect(within(place, GuildBox, 8)).toBe(true)
         }
+    })
+})
+
+describe('R-1.2.3 a guild area stood upright off the board', () => {
+    const box = { x: 100, y: 50, width: 314, height: 443 }
+    const scale = box.height / GuildAreaWidth
+
+    it('finds the area a point of the board lies in, and none on the map', () => {
+        for (const guild of GuildIds) {
+            const { x, y } = GuildAreas[guild]
+            expect(guildAreaAt({ x: x + 10, y: y + 10 })).toBe(guild)
+        }
+        expect(guildAreaAt({ x: MapArea.x + 400, y: MapArea.y + 300 })).toBeUndefined()
+    })
+
+    it("keeps the area's centre at the box's centre", () => {
+        for (const guild of GuildIds) {
+            const { x, y } = GuildAreas[guild]
+            const centre = uprightPoint(
+                guild,
+                { x: x + GuildAreaWidth / 2, y: y + GuildAreaHeight / 2 },
+                box
+            )
+            expect(centre.x).toBeCloseTo(box.x + box.width / 2)
+            expect(centre.y).toBeCloseTo(box.y + box.height / 2)
+        }
+    })
+
+    it('turns a west area a quarter clockwise: its left edge to the top, its top to the right', () => {
+        const { x, y } = GuildAreas.merchant
+        const left = uprightPoint('merchant', { x, y: y + GuildAreaHeight / 2 }, box)
+        expect(left.x).toBeCloseTo(box.x + box.width / 2)
+        expect(left.y).toBeCloseTo(box.y + box.height / 2 - (GuildAreaWidth / 2) * scale)
+        const top = uprightPoint('merchant', { x: x + GuildAreaWidth / 2, y }, box)
+        expect(top.x).toBeCloseTo(box.x + box.width / 2 + (GuildAreaHeight / 2) * scale)
+    })
+
+    it('turns an east area a quarter counter-clockwise: its left edge to the bottom, its top to the left', () => {
+        const { x, y } = GuildAreas.knight
+        const left = uprightPoint('knight', { x, y: y + GuildAreaHeight / 2 }, box)
+        expect(left.x).toBeCloseTo(box.x + box.width / 2)
+        expect(left.y).toBeCloseTo(box.y + box.height / 2 + (GuildAreaWidth / 2) * scale)
+        const top = uprightPoint('knight', { x: x + GuildAreaWidth / 2, y }, box)
+        expect(top.x).toBeCloseTo(box.x + box.width / 2 - (GuildAreaHeight / 2) * scale)
     })
 })

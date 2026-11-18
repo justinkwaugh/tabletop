@@ -2,7 +2,7 @@ import { tick } from 'svelte'
 import { prefersReducedMotion } from 'svelte/motion'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
-import type { HydratedFeudumGameState } from '@tabletop/feudum'
+import type { GuildId, HydratedFeudumGameState } from '@tabletop/feudum'
 import type { Point } from '$lib/utils/boardGeometry.js'
 import {
     planBoardMotion,
@@ -98,6 +98,8 @@ export class BoardAnimator {
     tokens: readonly MotionToken[] = $state.raw([])
 
     private surface: MotionSurface | undefined
+    /** Contract, Desk layout: each guild area an open side stands upright, its own svg. */
+    private readonly areas = new Map<GuildId, MotionSurface>()
     private generation = 0
     private steps = 0
     private readonly poses = new Map<MotionElement, Pose>()
@@ -112,6 +114,21 @@ export class BoardAnimator {
                 if (this.surface === surface) {
                     this.settle()
                     this.surface = undefined
+                }
+            }
+        }
+    }
+
+    /**
+     * A desk's open side mounts each upright guild area's svg here, so what moves inside the area moves
+     * there, in the board's own units, turned as the area is.
+     */
+    readonly attachArea = (surface: MotionSurface, guild: GuildId) => {
+        this.areas.set(guild, surface)
+        return {
+            destroy: () => {
+                if (this.areas.get(guild) === surface) {
+                    this.areas.delete(guild)
                 }
             }
         }
@@ -134,9 +151,11 @@ export class BoardAnimator {
         }
         // A desk's board draws no score ring: its scores fly to the seats instead.
         const scoreRing = this.surface.querySelector('[data-score-ring]') !== null
+        // A good to or from an open side's area crosses out of the board's svg: the flight layer's.
+        const apart = [...this.areas.keys()]
         const built = action
-            ? planBoardMotion({ from, to, action, flightRoom, scoreRing })
-            : planDirect({ from, to }, scoreRing)
+            ? planBoardMotion({ from, to, action, flightRoom, scoreRing, apart })
+            : planDirect({ from, to }, scoreRing, apart)
         const plan = this.withOwnTokens(built)
         const flightsAt = built.flightsAt ?? 0
         const generation = this.generation
@@ -302,8 +321,13 @@ export class BoardAnimator {
         }
     }
 
+    /** An open side's areas first: a token placed in one is drawn there and on the board's svg. */
     private resolve(target: MotionTarget) {
-        const element = this.surface?.querySelector(selectorOf(target))
+        const selector = selectorOf(target)
+        const element =
+            [...this.areas.values()]
+                .map((area) => area.querySelector(selector))
+                .find((found) => found !== null) ?? this.surface?.querySelector(selector)
         if (!element) {
             return undefined
         }

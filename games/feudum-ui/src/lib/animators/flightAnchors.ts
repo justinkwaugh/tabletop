@@ -1,5 +1,13 @@
+import { GuildIds, type GuildId } from '@tabletop/feudum'
+import type { GuildsApart } from './boardPlan.js'
 import type { FlightEnd, SeatPart } from './flightPlan.js'
-import { BoardWidth, type Point } from '$lib/utils/boardGeometry.js'
+import {
+    BoardWidth,
+    GuildAreaWidth,
+    guildAreaAt,
+    uprightPoint,
+    type Point
+} from '$lib/utils/boardGeometry.js'
 
 /** All a flight does to the piece it copies: hide it, and show it again. */
 export interface HideableSource {
@@ -19,6 +27,8 @@ export interface FlightStage {
     locate(end: FlightEnd): StagePlace
     /** Contract, Animation plan: where the board draws no score ring, a score flies to its seat. */
     readonly scoresFly?: () => boolean
+    /** Contract, Desk layout: the guild areas an open side shows, stood upright over the map. */
+    readonly guildsApart?: () => GuildsApart
 }
 
 const CopySmallest = 14
@@ -110,6 +120,16 @@ export class DomFlightStage implements FlightStage {
     readonly scoresFly = () =>
         this.layer.ownerDocument.querySelector('[data-board-surface] [data-score-ring]') === null
 
+    readonly guildsApart = (): GuildsApart =>
+        GuildIds.filter((guild) => this.openArea(guild) !== null)
+
+    /** A guild area stood upright in a desk's open side, if its side is open. */
+    private openArea(guild: GuildId): Element | null {
+        return this.layer.ownerDocument.querySelector(
+            `[data-open-guild="${guild}"] [data-upright-area]`
+        )
+    }
+
     locate(end: FlightEnd): StagePlace {
         const origin = this.layer.getBoundingClientRect()
         const relative = ({ x, y }: Point) => ({ x: x - origin.left, y: y - origin.top })
@@ -161,6 +181,11 @@ export class DomFlightStage implements FlightStage {
         end: Extract<FlightEnd, { kind: 'board' }>,
         relative: (point: Point) => Point
     ): StagePlace {
+        const guild = guildAreaAt(end.point)
+        const area = guild ? this.openArea(guild) : null
+        if (guild && area) {
+            return this.locateInOpenArea(guild, area, end, relative)
+        }
         const surface = this.layer.ownerDocument.querySelector('[data-board-surface]')
         const piece = end.piece ? surface?.querySelector(`[data-motion="${end.piece}"]`) : undefined
         const rect = surface?.getBoundingClientRect()
@@ -192,6 +217,28 @@ export class DomFlightStage implements FlightStage {
         return {
             ...relative(kept),
             size: Math.max(CopySmallest, end.size * scale),
+            ...(end.hide && piece && isDrawable(piece) ? { source: piece } : {})
+        }
+    }
+
+    /**
+     * Contract, Desk layout: an end in a guild area that an open side shows stands at its place in the
+     * upright area, turned as the area is: its own piece where it has one, else its point.
+     */
+    private locateInOpenArea(
+        guild: GuildId,
+        area: Element,
+        end: Extract<FlightEnd, { kind: 'board' }>,
+        relative: (point: Point) => Point
+    ): StagePlace {
+        const box = area.getBoundingClientRect()
+        const piece = end.piece ? area.querySelector(`[data-motion="${end.piece}"]`) : null
+        const pieceRect = piece?.getBoundingClientRect()
+        const seen = pieceRect && pieceRect.width + pieceRect.height > 0 ? pieceRect : undefined
+        const onScreen = seen ? centreOf(seen) : uprightPoint(guild, end.point, box)
+        return {
+            ...relative(onScreen),
+            size: Math.max(CopySmallest, (end.size * box.height) / GuildAreaWidth),
             ...(end.hide && piece && isDrawable(piece) ? { source: piece } : {})
         }
     }

@@ -120,9 +120,10 @@ export class FlightAnimator {
             return { flights: [], seconds: 0 }
         }
         const scoreFlights = this.layer.scoresFly?.() ?? false
+        const apart = this.layer.guildsApart?.() ?? []
         return action
-            ? planFlights({ ...change, scoreFlights })
-            : planDirectFlights({ from, to, viewerId, scoreFlights })
+            ? planFlights({ ...change, scoreFlights, apart })
+            : planDirectFlights({ from, to, viewerId, scoreFlights, apart })
     }
 
     async play(plan: FlightPlan, animationContext: AnimationContext, startsAt: number) {

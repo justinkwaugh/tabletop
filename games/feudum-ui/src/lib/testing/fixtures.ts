@@ -586,6 +586,18 @@ async function migratedOnto(characters: readonly Character[]) {
     return { host, seat }
 }
 
+/** R-4.6.3, R-4.2.4 Four markers in the first seat's Knight row, its pawns on three spaces. */
+async function knightTradeTable() {
+    const { host, seat } = await atGuild(seats(guildSeat('farmer'), plain, plain))
+    host.edit((state) => {
+        threePawns(state, seat)
+        const markers = state.guilds.knight.rows.map((row) => row.markers)
+        markers[seatRowIndex(state, seat)] = 4
+        setRowMarkers(state, markers)
+    })
+    return { host, seat }
+}
+
 /** R-6.3 The lifts that tie the first two seats at the top, from a game played out without them. */
 async function tyingLifts(): Promise<number[]> {
     const played = await gameEnding([0, 0, 0])
@@ -1248,15 +1260,21 @@ export const Fixtures = {
     'guild-knight-trade': {
         arranged:
             "R-4.6.3, R-4.2.4 Four markers in the seat's Knight row, and pawns on three spaces for the behemoth to choose from: krud barrels fill a row from two to three to six, only pulls and pushes of single markers bring one back to four, and Migrates spread pawns over rounds.",
+        build: knightTradeTable
+    },
+    /** R-4.6.3, R-4.2.4 The Knight trade's table, as the next seat sees it. */
+    'guild-knight-trade-watched': {
+        arranged: "R-4.6.3, R-4.2.4 As the Knight trade's table.",
         build: async () => {
-            const { host, seat } = await atGuild(seats(guildSeat('farmer'), plain, plain))
-            host.edit((state) => {
-                threePawns(state, seat)
-                const markers = state.guilds.knight.rows.map((row) => row.markers)
-                markers[seatRowIndex(state, seat)] = 4
-                setRowMarkers(state, markers)
-            })
-            return { host, seat }
+            const { host } = await knightTradeTable()
+            return { host, seat: second(host) }
+        }
+    },
+    /** R-4.6.3 The first seat about to play its Guild card for a Merchant trade, as the next sees it. */
+    'guild-merchant-trade-watched': {
+        build: async () => {
+            const { host } = await atGuild(seats(guildSeat('merchant'), plain, plain))
+            return { host, seat: second(host) }
         }
     },
     'guild-noble-pull': {
