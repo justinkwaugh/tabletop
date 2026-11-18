@@ -67,9 +67,11 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 ...(action.remove === undefined ? {} : { removedAt: action.remove }),
                 claimed: claimed.map((ring) => ({
                     ...ring,
-                    seed: sameCoordinates(ring.coords, action.coords)
-                        ? seed
-                        : seedAt(seeds, ring.coords)
+                    seed:
+                        ring.marbleSeed ??
+                        (sameCoordinates(ring.coords, action.coords)
+                            ? seed
+                            : seedAt(seeds, ring.coords))
                 }))
             })
         } else if (isCapture(action)) {
@@ -83,7 +85,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                     lastIndex: index,
                     playerId: action.playerId,
                     jumper: metadata.jumper,
-                    jumperSeed: seedAt(seeds, action.from),
+                    jumperSeed: metadata.jumperSeed ?? seedAt(seeds, action.from),
                     path: [action.from],
                     captured: []
                 }
@@ -93,7 +95,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             chain.path.push(action.to)
             chain.captured.push({
                 color: metadata.captured,
-                seed: seedAt(seeds, metadata.over)
+                seed: metadata.capturedSeed ?? seedAt(seeds, metadata.over)
             })
             if (!metadata.continues) {
                 chain = undefined

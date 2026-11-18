@@ -8,7 +8,7 @@
     import StagedMarble from './StagedMarble.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
-    import { placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
+    import { marbleSeed, placementSeed } from '$lib/board/marbleSeeds.js'
     import {
         includesCoords,
         RING_MID_RADIUS,
@@ -300,7 +300,7 @@
                 >
                     {@render marble(
                         ring.marble,
-                        seedAt(animator.seeds, ring.coords),
+                        marbleSeed(ring, animator.seeds),
                         animator.marble(coordinatesToNumber(ring.coords)),
                         animator.marbleShadow(coordinatesToNumber(ring.coords))
                     )}

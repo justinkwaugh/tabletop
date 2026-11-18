@@ -24,7 +24,13 @@ import {
 import type { MoveInterrupter, ZertzGameSession } from '$lib/model/session.svelte.js'
 import { inferJump } from '$lib/board/inferJump.js'
 import { ringExits, type RingExit } from '$lib/board/pullOut.js'
-import { applyToSeeds, marbleSeedsAfter, seedAt, type MarbleSeeds } from '$lib/board/marbleSeeds.js'
+import {
+    applyToSeeds,
+    marbleSeed,
+    marbleSeedsAfter,
+    placementSeed,
+    type MarbleSeeds
+} from '$lib/board/marbleSeeds.js'
 import {
     DROP,
     dropMarble,
@@ -265,7 +271,9 @@ export class BoardAnimator implements MoveInterrupter {
         this.seeds = seedsDuring
         // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
-            placement && forward ? this.placedOn(from.board.rings, placement) : from.board.rings
+            placement && forward
+                ? this.placedOn(from.board.rings, placement, from.actionCount)
+                : from.board.rings
         const removedRings = before.filter((ring) => !to.board.hasRing(ring.coords))
         const { view } = this.session
         const layout = view.frame(to.setup).positions
@@ -285,7 +293,7 @@ export class BoardAnimator implements MoveInterrupter {
             // Staged before its state lands, so it keeps the specks it had.
             if (undone !== undefined) {
                 const { color, coords } = undone
-                returned = { color, coords, seed: seedAt(seedsBefore, coords) }
+                returned = { color, coords, seed: this.seedOn(from, coords, seedsBefore) }
             }
             const returning = to.board.rings.filter((ring) => !from.board.hasRing(ring.coords))
             const jump = inferJump(from.board.rings, to.board.rings)
@@ -302,7 +310,13 @@ export class BoardAnimator implements MoveInterrupter {
                 ])
                 // A restaged marble whose ring was claimed comes back with its group.
                 const restaged = returned
-                    ? [{ coords: returned.coords, marble: returned.color }]
+                    ? [
+                          {
+                              coords: returned.coords,
+                              marble: returned.color,
+                              marbleSeed: returned.seed
+                          }
+                      ]
                     : []
                 this.rings = [
                     ...this.withMarbles(from.board.rings, appearing),
@@ -324,7 +338,7 @@ export class BoardAnimator implements MoveInterrupter {
                 for (const ring of appearing) this.drop(ring.coords, timeline, QUICK_DROP)
             }
             if (jump !== undefined) {
-                const seed = seedAt(seedsBefore, jump.from)
+                const seed = this.seedOn(from, jump.from, seedsBefore)
                 await this.jump(jump.from, jump.to, jump.color, seed, timeline, FALLBACK_DURATION)
             }
             for (const ring of removedRings) {
@@ -361,7 +375,7 @@ export class BoardAnimator implements MoveInterrupter {
                     action.from,
                     action.to,
                     action.metadata.jumper,
-                    seedAt(seedsBefore, action.from),
+                    this.seedOn(from, action.from, seedsBefore),
                     timeline,
                     JUMP.duration
                 )
@@ -634,9 +648,18 @@ export class BoardAnimator implements MoveInterrupter {
         )
     }
 
-    private placedOn(rings: Ring[], { coords, color }: PlaceMarble): Ring[] {
+    private placedOn(rings: Ring[], { coords, color }: PlaceMarble, actionIndex: number): Ring[] {
+        const marbleSeed = placementSeed(coords, actionIndex)
         return rings.map((ring) =>
-            sameCoordinates(ring.coords, coords) ? { ...ring, marble: color } : ring
+            sameCoordinates(ring.coords, coords) ? { ...ring, marble: color, marbleSeed } : ring
         )
+    }
+
+    private seedOn(
+        state: HydratedZertzGameState,
+        coords: AxialCoordinates,
+        legacy: MarbleSeeds
+    ): number {
+        return marbleSeed(state.board.ringAt(coords) ?? { coords }, legacy)
     }
 }

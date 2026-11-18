@@ -7,7 +7,7 @@ import {
     type Capture,
     type PlaceMarble
 } from '@tabletop/zertz'
-import { marbleSeedsAfter, placementSeed, seedAt } from './marbleSeeds.js'
+import { marbleSeed, marbleSeedsAfter, placementSeed, seedAt } from './marbleSeeds.js'
 
 const base = { gameId: 'game', playerId: 'p1', source: ActionSource.User }
 
@@ -82,5 +82,19 @@ describe('marbleSeedsAfter', () => {
         const seeds = marbleSeedsAfter(actions, 8)
         expect(seeds.has(coordinatesToNumber({ q: 1, r: 0 }))).toBe(false)
         expect(seedAt(seeds, { q: 0, r: 0 })).toBe(placementSeed({ q: 0, r: 0 }, 7))
+    })
+})
+
+describe('marbleSeed', () => {
+    const legacy = marbleSeedsAfter([place(0, 0)])
+
+    it('takes the seed the marble carries in the state', () => {
+        const ring = { coords: { q: 0, r: 0 }, marble: MarbleColor.Grey, marbleSeed: 42 }
+        expect(marbleSeed(ring, legacy)).toBe(42)
+    })
+
+    it('reads a marble placed before the state kept seeds from its actions', () => {
+        const ring = { coords: { q: 0, r: 0 }, marble: MarbleColor.Grey }
+        expect(marbleSeed(ring, legacy)).toBe(placementSeed({ q: 0, r: 0 }, 0))
     })
 })

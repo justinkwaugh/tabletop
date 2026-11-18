@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import { ActionSource, assert, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     MarbleColor,
@@ -171,5 +171,18 @@ describe('historyEntries', () => {
         const actions = [{ ...placement('a', 'p1', MarbleColor.White, true), index: 12 }]
         const [entry] = historyEntries(actions)
         expect(entry.kind === 'placement' && entry.seed).toBe(placementSeed({ q: 0, r: 0 }, 12))
+    })
+
+    it('names captured and claimed marbles by the seeds their actions recorded', () => {
+        const jumped = jump('j', 'p2', MarbleColor.Black, false, { q: 0, r: 0 }, { q: 2, r: 0 })
+        assert(jumped.metadata)
+        jumped.metadata = { ...jumped.metadata, jumperSeed: 7, capturedSeed: 8 }
+        const placed = placement('a', 'p1', MarbleColor.White, true, [], [MarbleColor.Grey])
+        assert(placed.metadata)
+        placed.metadata.claimedOnRemoving[0].marbleSeed = 9
+        const [claim, capture] = historyEntries([placed, jumped])
+        expect(claim.kind === 'placement' && claim.claimed[0].seed).toBe(9)
+        expect(capture.kind === 'capture' && capture.jumperSeed).toBe(7)
+        expect(capture.kind === 'capture' && capture.captured[0].seed).toBe(8)
     })
 })

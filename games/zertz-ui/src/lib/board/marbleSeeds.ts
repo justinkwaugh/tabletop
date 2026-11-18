@@ -4,12 +4,15 @@ import {
     type AxialCoordinates,
     type GameAction
 } from '@tabletop/common'
-import { isCapture, isPlaceMarble } from '@tabletop/zertz'
+import { isCapture, isPlaceMarble, placementSeed, type Ring } from '@tabletop/zertz'
 
-// Seeded by ring and action number, so two marbles placed on one ring at different times differ.
+export { placementSeed } from '@tabletop/zertz'
 
-export function placementSeed(coords: AxialCoordinates, index: number): number {
-    return coordinatesToNumber(coords) + 7919 * (index + 1)
+// A marble carries its seed in the state. Only a marble placed before the state kept seeds, in a
+// game begun before then, has none; the rest of this file reads its seed from the actions that
+// placed and moved it, and can go once no such game is left.
+export function marbleSeed(ring: Ring, legacy: MarbleSeeds): number {
+    return ring.marbleSeed ?? seedAt(legacy, ring.coords)
 }
 
 export type MarbleSeeds = ReadonlyMap<number, number>
