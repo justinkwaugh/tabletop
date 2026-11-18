@@ -561,11 +561,12 @@ async function columnOf(page: Page) {
     })
 }
 
-for (const viewport of [
-    { width: 1280, height: 800 },
-    { width: 1440, height: 900 },
-    { width: 1920, height: 1080 }
-]) {
+for (const { handLayout, ...viewport } of [
+    { width: 1280, height: 800, handLayout: 'strip' },
+    { width: 1440, height: 900, handLayout: 'strip' },
+    { width: 1850, height: 880, handLayout: 'column' },
+    { width: 1920, height: 1080, handLayout: 'column' }
+] as const) {
     test.describe(`a ${viewport.width} x ${viewport.height} desk`, () => {
         test.use({ viewport })
 
@@ -577,10 +578,26 @@ for (const viewport of [
             await settled(page)
             const column = await columnOf(page)
             expect(column.over).toBeLessThanOrEqual(1)
-            const strip = await rect(page.locator('[data-guild-strip]'))
             const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
             const key = await rect(page.locator('[data-symbol-key-toggle]'))
-            expect(strip.y + strip.height).toBeLessThanOrEqual(zoom.y)
+            // The shrink applies in either layout: the strip under the map, or, where the height
+            // left binds the map, the side column, its six standings over the zoom row.
+            const side = page.locator('[data-desk-column]')
+            await expect(page.locator('[data-board-view]')).toHaveAttribute(
+                'data-desk-layout',
+                handLayout
+            )
+            if (handLayout === 'column') {
+                const box = await rect(side)
+                expect(box.y + box.height).toBeLessThanOrEqual(zoom.y)
+                const rails = await columnRails(page)
+                expect(rails).toHaveLength(6)
+                expect(rails.at(-1)!.box.bottom).toBeLessThanOrEqual(box.y + box.height + 0.5)
+                expect((await overflowOf(page)).side).toBe(0)
+            } else {
+                const strip = await rect(page.locator('[data-guild-strip]'))
+                expect(strip.y + strip.height).toBeLessThanOrEqual(zoom.y)
+            }
             expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)
             // R-1.2 Whole: smaller, the map keeps its shape, the guild buttons at its sides.
             const surface = await rect(page.locator('[data-board-surface]'))
@@ -634,3 +651,200 @@ for (const viewport of [
         })
     })
 }
+
+/** Whether anything runs past the page, the game column or the side column, which would scroll. */
+async function overflowOf(page: Page) {
+    const column = await columnOf(page)
+    const rest = await page.evaluate(() => {
+        const root = document.documentElement
+        const side = document.querySelector('[data-desk-column]')
+        return {
+            down: root.scrollHeight - window.innerHeight,
+            across: root.scrollWidth - window.innerWidth,
+            side: side ? side.scrollHeight - side.clientHeight : 0
+        }
+    })
+    return { ...rest, column: column.over }
+}
+
+/** Which layout the desk shows, read over several frames so a flicker between the two shows. */
+async function layoutsOver(page: Page, frames: number) {
+    return page.evaluate(async (count) => {
+        const seen = new Set<string>()
+        for (let frame = 0; frame < count; frame += 1) {
+            await new Promise((done) => requestAnimationFrame(done))
+            seen.add(
+                document.querySelector('[data-desk-column]')
+                    ? 'column'
+                    : document.querySelector('[data-guild-strip]')
+                      ? 'strip'
+                      : 'none'
+            )
+        }
+        return [...seen]
+    }, frames)
+}
+
+/** The standings in the side column, in the page's order, with their boxes. */
+async function columnRails(page: Page) {
+    return page.locator('[data-desk-column] [data-guild-rail]').evaluateAll((rails) =>
+        rails.map((rail) => ({
+            guild: rail.getAttribute('data-guild-rail'),
+            box: rail.getBoundingClientRect().toJSON() as DOMRect
+        }))
+    )
+}
+
+test.describe('a 1850 x 880 desk, where the map’s height binds', () => {
+    test.use({ viewport: { width: 1850, height: 880 } })
+
+    test('Contract, Desk layout: the standings and the zoom row stand in a column right of the East button, and the map grows to the width left', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-pick')
+        await settled(page)
+        await expect(page.locator('[data-guild-strip]')).toHaveCount(0)
+        const side = page.locator('[data-desk-column]')
+        await expect(side).toBeVisible()
+        const map = await rect(page.locator('[data-board-surface]'))
+        const view = await rect(page.locator('[data-board-view]'))
+        const panelBox = await rect(page.locator('[data-turn-controls]'))
+        const east = await rect(sideButton(page, 'East'))
+        const box = await rect(side)
+        // About 1162 x 606: the room's width less the two buttons, the gap and the column; it was
+        // 1007 x 525 with the strip under it.
+        expect(Math.abs(map.width - 1162)).toBeLessThan(4)
+        expect(Math.abs(map.height - 606)).toBeLessThan(3)
+        expect(Math.abs(map.y - view.y)).toBeLessThan(1)
+        expect(Math.abs(east.height - map.height)).toBeLessThan(1.5)
+        // The board view stays left-aligned with the panel, and ends with the column.
+        expect(Math.abs(view.x - panelBox.x)).toBeLessThan(1)
+        expect(Math.abs(box.x - (east.x + east.width) - 8)).toBeLessThan(1.5)
+        expect(Math.abs(box.width - 256)).toBeLessThan(1)
+        expect(Math.abs(view.x + view.width - (box.x + box.width))).toBeLessThan(1)
+        // Top to bottom: the six standings one a row, West then East, as the strip orders them.
+        const rails = await columnRails(page)
+        expect(rails.map(({ guild }) => guild)).toEqual([
+            'alchemist',
+            'merchant',
+            'farmer',
+            'knight',
+            'noble',
+            'monk'
+        ])
+        for (const [index, { box: rail }] of rails.entries()) {
+            expect(rail.x).toBeGreaterThanOrEqual(box.x - 0.5)
+            expect(rail.right).toBeLessThanOrEqual(box.x + box.width + 0.5)
+            if (index > 0) {
+                expect(rail.y).toBeGreaterThanOrEqual(rails[index - 1]!.box.bottom - 0.5)
+            }
+        }
+        // Then the score line, then Key, Supply and the zoom buttons along the column's foot.
+        const score = await rect(page.locator('[data-score-line]'))
+        const key = await rect(page.locator('[data-symbol-key-toggle]'))
+        const supply = await rect(page.locator('[data-supply-toggle]'))
+        const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
+        expect(score.y).toBeGreaterThanOrEqual(rails.at(-1)!.box.bottom - 0.5)
+        expect(key.y).toBeGreaterThanOrEqual(score.y + score.height - 0.5)
+        for (const part of [score, key, supply, zoom]) {
+            expect(part.x).toBeGreaterThanOrEqual(box.x - 0.5)
+            expect(part.x + part.width).toBeLessThanOrEqual(box.x + box.width + 0.5)
+        }
+        expect(supply.x).toBeGreaterThan(key.x)
+        expect(zoom.x).toBeGreaterThan(supply.x + supply.width)
+        expect(Math.abs(key.y + key.height - (view.y + view.height))).toBeLessThan(1)
+        // Nothing runs past the page, the game column or the side column.
+        expect(await overflowOf(page)).toEqual({ down: 0, across: 0, side: 0, column: 0 })
+    })
+
+    test('Contract, Desk layout: with five seats the standings stand two a row in the column, West left and East right, and nothing scrolls', async ({
+        page
+    }) => {
+        await openFixture(page, 'standings-five-seats')
+        await settled(page)
+        const box = await rect(page.locator('[data-desk-column]'))
+        const map = await rect(page.locator('[data-board-surface]'))
+        // About 1074 x 560: a column of two 170 px standings a row is wider.
+        expect(Math.abs(map.width - 1074)).toBeLessThan(4)
+        expect(Math.abs(box.width - 344)).toBeLessThan(1)
+        const rails = await columnRails(page)
+        const at = (guild: string) => rails.find((rail) => rail.guild === guild)!.box
+        for (const [west, east] of [
+            ['alchemist', 'knight'],
+            ['merchant', 'noble'],
+            ['farmer', 'monk']
+        ] as const) {
+            expect(Math.abs(at(west).y - at(east).y)).toBeLessThan(0.5)
+            expect(at(east).x).toBeGreaterThan(at(west).right - 0.5)
+        }
+        expect(at('merchant').y).toBeGreaterThanOrEqual(at('alchemist').bottom - 0.5)
+        expect(at('farmer').y).toBeGreaterThanOrEqual(at('merchant').bottom - 0.5)
+        // At their own size, each holding its five seats' lines.
+        expect(Math.abs(at('alchemist').width - 170)).toBeLessThan(1)
+        const score = await rect(page.locator('[data-score-line]'))
+        expect(score.y).toBeGreaterThanOrEqual(at('farmer').bottom - 0.5)
+        expect(await page.locator('[data-desk-column] [data-score-of]').count()).toBe(5)
+        expect(await overflowOf(page)).toEqual({ down: 0, across: 0, side: 0, column: 0 })
+    })
+
+    test('Contract, Desk layout: one layout per size, kept frame after frame, and back to the strip where the column would not enlarge the map', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-pick')
+        await settled(page)
+        expect(await layoutsOver(page, 20)).toEqual(['column'])
+        await page.setViewportSize({ width: 1920, height: 1080 })
+        await settled(page)
+        expect(await layoutsOver(page, 20)).toEqual(['strip'])
+        await page.setViewportSize({ width: 1850, height: 880 })
+        await settled(page)
+        expect(await layoutsOver(page, 20)).toEqual(['column'])
+    })
+
+    test('Contract, Desk layout: in the column a guild side still opens over the map’s box, and Key opens its card inside the view', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-pick')
+        await settled(page)
+        const map = await rect(page.locator('[data-board-surface]'))
+        await sideButton(page, 'West').click()
+        await settled(page)
+        const open = await rect(page.locator('[data-guild-view="west"]'))
+        expect(Math.abs(open.x - map.x)).toBeLessThan(1)
+        expect(Math.abs(open.width - map.width)).toBeLessThan(1)
+        await expect(page.locator('[data-desk-column]')).toBeVisible()
+        await page.keyboard.press('Escape')
+        await settled(page)
+        await page.locator('[data-symbol-key-toggle]').click()
+        const card = await rect(page.locator('#feudum-symbol-key'))
+        const view = await rect(page.locator('[data-board-view]'))
+        expect(card.x).toBeGreaterThanOrEqual(view.x - 0.5)
+        expect(card.x + card.width).toBeLessThanOrEqual(view.x + view.width + 0.5)
+        expect(card.y).toBeGreaterThanOrEqual(view.y - 0.5)
+        expect(card.y + card.height).toBeLessThanOrEqual(
+            (await rect(page.locator('[data-symbol-key-toggle]'))).y + 0.5
+        )
+    })
+})
+
+test.describe('a 1440 x 900 desk, where the map’s width binds', () => {
+    test.use({ viewport: { width: 1440, height: 900 } })
+
+    test('Contract, Desk layout: no column; the strip stands under the map, the zoom row at the view’s lower left, as before, and nothing scrolls', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        await expect(page.locator('[data-desk-column]')).toHaveCount(0)
+        await expect(page.locator('[data-guild-strip]')).toBeVisible()
+        const map = await rect(page.locator('[data-board-surface]'))
+        const view = await rect(page.locator('[data-board-view]'))
+        expect(Math.abs(map.width - 1011)).toBeLessThan(2)
+        expect(Math.abs(map.height - 527)).toBeLessThan(2)
+        expect(Math.abs(view.width - 1096)).toBeLessThan(1)
+        const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
+        expect(zoom.x).toBeLessThan(view.x + 60)
+        expect(await layoutsOver(page, 20)).toEqual(['strip'])
+        expect(await overflowOf(page)).toEqual({ down: 0, across: 0, side: 0, column: 0 })
+    })
+})

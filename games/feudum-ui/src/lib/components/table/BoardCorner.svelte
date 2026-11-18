@@ -12,8 +12,10 @@
      * Contract, Symbol key: "Key" opens the table's vocabulary; a second press or Escape closes it.
      * Contract, Supply: "Supply" opens the general supply's counts; Escape, or a press anywhere,
      * on the card or off it, closes it. On a desk the rest of the zoom row follows them (`row`).
+     * Contract, Desk layout: with the side column the row stands at the view's lower-right corner
+     * instead, along the column's foot, the zoom buttons last (`end`).
      */
-    let { row }: { row?: Snippet } = $props()
+    let { row, end = false }: { row?: Snippet; end?: boolean } = $props()
 
     const gameSession = getGameSession()
 
@@ -65,7 +67,7 @@
 
 <svelte:window onkeydown={closeOnEscape} onpointerdown={closeOnPress} />
 
-<div class="layer" onwheel={keepWheelOnCard}>
+<div class="layer" class:end onwheel={keepWheelOnCard}>
     {#if open === 'key'}
         <div
             class="card"
@@ -136,6 +138,11 @@
         z-index: 10;
     }
 
+    /* With the side column: at the lower-right corner, the zoom buttons there, Key and Supply before them. */
+    .layer.end {
+        align-items: flex-end;
+    }
+
     .card {
         display: flex;
         flex-direction: column;
@@ -152,6 +159,17 @@
         gap: 0.25rem;
         margin-left: 7.25rem;
         margin-right: 0.25rem;
+    }
+
+    .end .card {
+        margin-right: 0.25rem;
+        margin-left: 0;
+    }
+
+    .end .toggles {
+        justify-content: flex-end;
+        margin-right: 7.25rem;
+        margin-left: 0.25rem;
     }
 
     .toggle {

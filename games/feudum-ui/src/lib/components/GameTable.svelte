@@ -17,6 +17,7 @@
     import FocusChooser from '$lib/components/table/FocusChooser.svelte'
     import GuildSides from '$lib/components/table/GuildSides.svelte'
     import BoardCorner from '$lib/components/table/BoardCorner.svelte'
+    import DeskColumn from '$lib/components/table/DeskColumn.svelte'
     import Header from '$lib/components/table/Header.svelte'
     import ScoreLine from '$lib/components/table/ScoreLine.svelte'
     import SeatStrip from '$lib/components/table/SeatStrip.svelte'
@@ -28,6 +29,9 @@
         BoardFocus,
         ChooserInset,
         CoverBelowScale,
+        deskColumnBox,
+        deskColumnOf,
+        deskColumnViewWidth,
         deskMapAtRest,
         deskScaledHeight,
         deskViewHeight,
@@ -62,6 +66,10 @@
 
     let wrapper = $state<ScalingWrapper>()
     let viewSize = $state({ width: 0, height: 0 })
+    /** A desk's room: the game column's width and the height the panel leaves the board. */
+    let room = $state({ width: 0, height: 0 })
+    /** The wrapper shows full screen only as its dialog becoming modal (`watchExpansion`). */
+    let expanded = $state(false)
 
     /**
      * Contract, Board focus: never read for an offer. A phone's chooser stands over the board. A desk
@@ -87,17 +95,34 @@
     let seats = $derived(feudumSession.gameState.players.length)
 
     /**
-     * Contract, Supply: on a desk the board's view is as tall as the map, the standings' strip and
-     * the zoom row's band at the column's width less the side buttons, so the row stands under the
-     * strip; where the action area leaves less (the hand tray), it gives way and the wrapper fits it
-     * all to the height left. Until the column is measured it takes the map's shape. A phone's view
-     * takes the column's height.
+     * Contract, Desk layout: where the map's height binds, the standings and the zoom row stand in a
+     * column right of the East button. The room alone decides it, so each size has one layout; in full
+     * screen the wrapper's own view is the room.
      */
-    let deskView = $derived(
-        viewSize.width > 0
-            ? `height:${deskViewHeight(viewSize.width, seats)}px`
-            : `aspect-ratio:${MapArea.width} / ${deskScaledHeight(seats)}`
+    let pageColumn = $derived(
+        phone.phone || !(room.width > 0) ? undefined : deskColumnOf(room, seats)
     )
+    let column = $derived(
+        phone.phone ? undefined : expanded ? deskColumnOf(viewSize, seats) : pageColumn
+    )
+
+    /**
+     * Contract, Supply: on a desk the board's view is as tall as the map, the standings' strip and
+     * the zoom row's band at the room's width less the side buttons, so the row stands under the
+     * strip; where the action area leaves less (the hand tray), it gives way and the wrapper fits it
+     * all to the height left. With the side column it takes the room's height and ends with the
+     * column. Until the room is measured it takes the map's shape. A phone's view takes the column's
+     * height.
+     */
+    let deskView = $derived.by(() => {
+        if (!(room.width > 0)) {
+            return `aspect-ratio:${MapArea.width} / ${deskScaledHeight(seats)}`
+        }
+        if (pageColumn) {
+            return `width:${deskColumnViewWidth(room, seats, pageColumn)}px;height:${room.height}px`
+        }
+        return `height:${Math.min(deskViewHeight(room.width, seats), room.height)}px`
+    })
 
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
     let pickFrame = $derived(
@@ -127,8 +152,26 @@
         return () => observer.disconnect()
     }
 
-    /** The wrapper shows full screen only as its dialog becoming modal. */
-    let expanded = $state(false)
+    /**
+     * The room is measured, never the view in it, so the view's own size never feeds back. Whole
+     * pixels, rounded down, so a view sized from it never runs past it.
+     */
+    const measureRoom: Attachment<HTMLElement> = (node) => {
+        const read = () => {
+            const box = node.getBoundingClientRect()
+            const width = Math.floor(box.width)
+            const height = Math.floor(box.height)
+            if (width !== room.width || height !== room.height) {
+                room = { width, height }
+            }
+        }
+        const observer = new ResizeObserver(() => requestAnimationFrame(read))
+        observer.observe(node)
+        read()
+        return () => observer.disconnect()
+    }
+
+    /** Full screen is the wrapper's dialog becoming modal. */
     const watchExpansion: Attachment<HTMLElement> = (node) => {
         const dialog = node.closest('dialog')
         if (!dialog) {
@@ -145,9 +188,10 @@
 
     /**
      * Contract, Desk layout: where the map rests between the side buttons. The content carries a
-     * gutter each side of it, so the wrapper's own fit leaves the buttons their room.
+     * gutter each side of it, and the column's room on the right, so the wrapper's own fit leaves the
+     * buttons and the column their room.
      */
-    let deskRest = $derived(deskMapAtRest(viewSize, seats, expanded))
+    let deskRest = $derived(deskMapAtRest(viewSize, seats, expanded, column))
 
     /**
      * Contract, Coexistence and precedence: Escape closes one layer at a time, and only with none
@@ -214,65 +258,90 @@
                         {@render turnControls()}
                     {/if}
                 </div>
-                <div
-                    class="board-view relative grow-0 overflow-hidden"
-                    style={phone.phone ? 'flex:1;' : deskView}
-                    data-board-view
-                >
-                    <ScalingWrapper
-                        bind:this={wrapper}
-                        justify={phone.phone ? 'center' : 'left'}
-                        controls="bottom-left"
-                        coverBelowScale={CoverBelowScale}
-                        insetTop={phone.phone ? ChooserInset : 0}
-                        expandable
-                        onManualViewChange={() => focus.handMoved()}
+                <div class="board-room" {@attach measureRoom} data-board-room>
+                    <div
+                        class="board-view relative grow-0 overflow-hidden"
+                        style={phone.phone ? 'flex:1;' : deskView}
+                        data-board-view
+                        data-desk-layout={phone.phone ? undefined : column ? 'column' : 'strip'}
                     >
-                        <div
-                            style:padding-inline={phone.phone ? undefined : `${deskRest.gutter}px`}
-                            data-board-content
+                        <ScalingWrapper
+                            bind:this={wrapper}
+                            justify={phone.phone ? 'center' : 'left'}
+                            controls={column ? 'bottom-right' : 'bottom-left'}
+                            coverBelowScale={CoverBelowScale}
+                            insetTop={phone.phone ? ChooserInset : 0}
+                            expandable
+                            onManualViewChange={() => focus.handMoved()}
                         >
-                            <Board
-                                desk={!phone.phone}
-                                rails={phone.phone
-                                    ? focus.shown === 'west' || focus.shown === 'east'
-                                        ? focus.shown
-                                        : undefined
-                                    : 'strip'}
-                            />
-                            <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
                             <div
-                                class="block"
-                                style:height="{ZoomRowBand}px"
-                                data-zoom-row-band
-                            ></div>
-                        </div>
-                        {#snippet overlay(viewport)}
-                            <div class="contents" {@attach measureView(viewport)}>
-                                {#if phone.phone}
-                                    <FocusChooser
-                                        {focus}
-                                        lit={litAreas}
-                                        frame={pickFrame}
-                                        turned={phone.sideways}
-                                        onTracks={() => feudumSession.layers.openTracks()}
-                                    />
-                                {:else}
-                                    <GuildSides rest={deskRest} lit={litAreas} frame={pickFrame} />
+                                style:padding-left={phone.phone
+                                    ? undefined
+                                    : `${deskRest.gutter}px`}
+                                style:padding-right={phone.phone
+                                    ? undefined
+                                    : `${deskRest.trail}px`}
+                                data-board-content
+                            >
+                                <Board
+                                    desk={!phone.phone}
+                                    rails={phone.phone
+                                        ? focus.shown === 'west' || focus.shown === 'east'
+                                            ? focus.shown
+                                            : undefined
+                                        : column
+                                          ? undefined
+                                          : 'strip'}
+                                />
+                                {#if !column}
+                                    <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
+                                    <div
+                                        class="block"
+                                        style:height="{ZoomRowBand}px"
+                                        data-zoom-row-band
+                                    ></div>
                                 {/if}
                             </div>
-                            <BoardCorner row={phone.phone ? undefined : deskRow} />
-                        {/snippet}
-                        {#snippet toolbar()}
-                            <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
-                            <div {@attach watchExpansion}>
-                                {#if expanded}
-                                    {@render turnControls()}
-                                    <TableOverlays />
-                                {/if}
-                            </div>
-                        {/snippet}
-                    </ScalingWrapper>
+                            {#snippet overlay(viewport)}
+                                <div class="contents" {@attach measureView(viewport)}>
+                                    {#if phone.phone}
+                                        <FocusChooser
+                                            {focus}
+                                            lit={litAreas}
+                                            frame={pickFrame}
+                                            turned={phone.sideways}
+                                            onTracks={() => feudumSession.layers.openTracks()}
+                                        />
+                                    {:else}
+                                        <GuildSides
+                                            rest={deskRest}
+                                            lit={litAreas}
+                                            frame={pickFrame}
+                                        />
+                                        {#if column}
+                                            <DeskColumn
+                                                box={deskColumnBox(viewSize, column)}
+                                                {column}
+                                            />
+                                        {/if}
+                                    {/if}
+                                </div>
+                                <BoardCorner
+                                    row={phone.phone || column ? undefined : deskRow}
+                                    end={column !== undefined}
+                                />
+                            {/snippet}
+                            {#snippet toolbar()}
+                                <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
+                                <div {@attach watchExpansion}>
+                                    {#if expanded}
+                                        {@render turnControls()}
+                                        <TableOverlays />
+                                    {/if}
+                                </div>
+                            {/snippet}
+                        </ScalingWrapper>
+                    </div>
                 </div>
                 {#if phone.upright && !expanded}
                     <SeatStrip />
@@ -291,13 +360,23 @@
     }
 
     /*
-     * A desk's board view: its own shape at the column's width, no taller, and shorter where the
-     * action area leaves less height; nothing is reserved for the tallest action area.
+     * A desk's room: the game column's height under the panel, whatever the board view in it takes.
+     * The view is its own shape at the room's width, no taller, and shorter where the action area
+     * leaves less height; nothing is reserved for the tallest action area. With the side column it
+     * is the room's height, and only as wide as the map, the buttons and the column.
      */
-    .feudum-table:not([data-phone]) .board-view {
-        flex: 0 1 auto;
+    .feudum-table:not([data-phone]) .board-room {
+        flex: 1 1 0;
         width: 100%;
         min-height: 0;
+    }
+
+    .feudum-table:not([data-phone]) .board-view {
+        width: 100%;
+    }
+
+    [data-phone] .board-room {
+        display: contents;
     }
 
     /* The column's height is the action area's measure, in the page and in full screen alike. */
