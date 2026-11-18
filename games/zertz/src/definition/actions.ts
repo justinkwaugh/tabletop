@@ -1,4 +1,5 @@
 export enum ActionType {
     PlaceMarble = 'placeMarble',
-    Capture = 'capture'
+    Capture = 'capture',
+    SetAutoJump = 'setAutoJump'
 }

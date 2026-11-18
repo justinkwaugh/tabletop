@@ -63,7 +63,8 @@ export const SETUP_RULES: Record<ZertzSetup, SetupRules> = {
 
 export type ZertzGameConfig = Type.Static<typeof ZertzGameConfig>
 export const ZertzGameConfig = Type.Object({
-    setup: Type.Optional(Type.Enum(ZertzSetup))
+    setup: Type.Optional(Type.Enum(ZertzSetup)),
+    autoJump: Type.Optional(Type.Boolean())
 })
 
 const standardDescription =
@@ -94,6 +95,15 @@ export const ZertzGameConfigOptions: GameConfigOptions = [
             }
         ],
         alwaysShow: true
+    },
+    {
+        id: 'autoJump',
+        type: ConfigOptionType.Boolean,
+        name: 'Auto-jump for both players',
+        description:
+            // Names the board chip by its glyph, so a player can find it in the game.
+            'Jumps with only one choice are made at once for both players. Otherwise each player can turn it on in the game with the 🤖↷● chip beside A1.',
+        default: false
     }
 ]
 
@@ -104,4 +114,8 @@ export class ZertzConfigurator extends BaseConfigurator {
 
 export function setupFromConfig(config: GameConfig): ZertzSetup {
     return Object.values(ZertzSetup).find((setup) => setup === config.setup) ?? ZertzSetup.Standard
+}
+
+export function autoJumpFromConfig(config: GameConfig): boolean {
+    return config.autoJump === true
 }
