@@ -127,6 +127,7 @@ it('builds the tabbed layout for a title, with Chat and Game info only where the
         'Player Aid',
         'Depot',
         'Stats',
+        'Entities',
         'Game info'
     ])
     const hotseat = tabbedTableLayout({ board: false, chat: false, gameInformation: false })
