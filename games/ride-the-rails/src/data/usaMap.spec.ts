@@ -1,15 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { hexCoordinates } from './hexes.js'
-import {
-    adjacentHexIds,
-    isUsaHex,
-    usaCity,
-    usaHex,
-    USA_CITIES,
-    USA_HEXES,
-    type City,
-    type CityId
-} from './usaMap.js'
+import type { City, CityId } from './boardMap.js'
+import { adjacentHexIds, cityById, hexById, isHexId } from './boardMaps.js'
+import { USA_CITIES, USA_HEXES } from './usaMap.js'
 
 // usaMap.ts, Cities: id, printed name, hex, start colours, capacity, bonus
 const PRINTED_CITIES: readonly (readonly [string, string, string, string, string, string])[] = [
@@ -195,7 +188,7 @@ describe('USA map (R-8.1)', () => {
         })
 
         it('gives Chicago no limit at hex.usa.5-43 (R-4.1.4)', () => {
-            const chicago = usaCity('city.usa.chicago')
+            const chicago = cityById('city.usa.chicago')
             expect(chicago.hexId).toBe('hex.usa.5-43')
             expect(chicago.capacity).toBe('unlimited')
         })
@@ -211,7 +204,7 @@ describe('USA map (R-8.1)', () => {
         it('gives the four West Coast cities the west-coast group and Purple (R-4.2.4, R-4.3.3)', () => {
             expect(citiesWithGroup('west-coast')).toEqual(WEST_COAST_CITIES)
             for (const cityId of WEST_COAST_CITIES) {
-                expect(usaCity(cityId).startColours).toContain('railroad.purple')
+                expect(cityById(cityId).startColours).toContain('railroad.purple')
             }
         })
 
@@ -232,7 +225,7 @@ describe('USA map (R-8.1)', () => {
     describe('integrity', () => {
         it('puts every city on a city hex that names it', () => {
             for (const city of USA_CITIES) {
-                expect(usaHex(city.hexId)).toMatchObject({ terrain: 'city', cityId: city.id })
+                expect(hexById(city.hexId)).toMatchObject({ terrain: 'city', cityId: city.id })
             }
         })
 
@@ -240,7 +233,7 @@ describe('USA map (R-8.1)', () => {
             for (const hex of USA_HEXES) {
                 if (hex.terrain === 'city') {
                     expect(USA_CITIES.filter((city) => city.hexId === hex.id)).toEqual([
-                        usaCity(hex.cityId)
+                        cityById(hex.cityId)
                     ])
                 }
             }
@@ -257,7 +250,7 @@ describe('USA map (R-8.1)', () => {
     describe('adjacency (R-4.1.2, rules-interpretations.md, Ids and coordinates)', () => {
         it('returns only hexes that exist', () => {
             for (const hex of USA_HEXES) {
-                expect(adjacentHexIds(hex.id).every(isUsaHex)).toBe(true)
+                expect(adjacentHexIds(hex.id).every(isHexId)).toBe(true)
             }
         })
 

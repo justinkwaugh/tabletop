@@ -147,7 +147,7 @@ test('Every city bands its start colours with Black, the pills at its foot, the 
     ).toHaveCount(51)
     // R-4.3: Chicago's $2 and each $5 untaken are pills of their own, not part of the city's marks.
     const bonuses = board(page).locator('g.bonuses [data-bonus]')
-    await expect(board(page).locator('g.bonuses [data-bonus="chicago"]')).toHaveText('$2')
+    await expect(board(page).locator('g.bonuses [data-bonus="coin"]')).toHaveText('$2')
     const fives = board(page).locator('g.bonuses [data-bonus="five"]')
     expect(await fives.count()).toBeGreaterThan(0)
     for (const text of await fives.allTextContents()) expect(text).toBe('$5')

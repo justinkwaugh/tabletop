@@ -1,33 +1,32 @@
 import { assertExists } from '@tabletop/common'
-import type { HexId } from '../data/hexes.js'
-import { placementLimit } from '../data/placementLimits.js'
-import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
+import type { CityId, HexGroup } from '../data/boardMap.js'
 import {
     adjacentHexIds,
-    cityIn,
-    type CityId,
-    USA_CITIES,
-    USA_HEXES,
-    usaHex,
-    type CityCapacity
-} from '../data/usaMap.js'
+    boardMap,
+    groupsOf,
+    hexCapacity,
+    isHexId,
+    isLongDistance
+} from '../data/boardMaps.js'
+import type { HexId } from '../data/hexes.js'
+import type { MapId } from '../data/maps.js'
+import { GROUP_LIMITS, lowersLimit, placementLimit } from '../data/placementLimits.js'
+import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import type { BuildingTurn, HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { hasSupply } from './supply.js'
-import { isEastCoastCity, mayStartIn } from './startRailroad.js'
+import { mayStartIn } from './startRailroad.js'
 import { hasTrackIn, railroadsIn } from './track.js'
-
-const EAST_COAST_CITIES_PER_RAILROAD = 2
-
-const NON_CITY_CAPACITY = 2
 
 // The placement test's clauses in order; the first that fails is the reason.
 export type PlacementRefusal =
     | 'no-share'
     | 'empty-supply'
     | 'over-placement-limit'
+    | 'long-distance-ended-turn'
+    | 'long-distance-not-first'
     | 'railroad-in-hex'
     | 'hex-at-capacity'
-    | 'east-coast-cities-held'
+    | 'group-limit-reached'
     | 'not-adjacent-or-start'
 
 export type PlacementVerdict =
@@ -39,11 +38,16 @@ export type LegalPlacement = {
     isStart: boolean
 }
 
-// R-3.2.3, R-3.2.4: one less once this turn has a mountain placement, this one included.
-export function withinPlacementLimit(state: HydratedRideTheRailsGameState, hexId: HexId): boolean {
+// R-3.2.3, R-3.2.4: one less once this turn has a placement that lowers the limit, this one
+// included; R-8: a map may exempt a railroad from its mountain cost.
+export function withinPlacementLimit(
+    state: HydratedRideTheRailsGameState,
+    railroadId: RailroadId,
+    hexId: HexId
+): boolean {
     const building = currentBuildingTurn(state)
-    const usesMountain = building.usedMountain || usaHex(hexId).terrain === 'mountain'
-    return building.placed + 1 <= placementLimit(state.mapId, state.players.length, usesMountain)
+    const lowered = building.usedMountain || lowersLimit(state.mapId, railroadId, hexId)
+    return building.placed + 1 <= placementLimit(state.mapId, state.players.length, lowered)
 }
 
 // R-3.2.3, R-3.2.4: what the limit leaves this turn, before any further mountain placement.
@@ -53,9 +57,19 @@ export function placementsLeft(state: HydratedRideTheRailsGameState): number {
     return limit - building.placed
 }
 
-// R-4.1.4: 2 locomotives, 1 in an East Coast city, no limit in Chicago.
-export function hexCapacity(hexId: HexId): CityCapacity {
-    return cityIn(hexId)?.capacity ?? NON_CITY_CAPACITY
+// R-8.2: a long-distance hex, Perth or Brisbane takes the turn's first placement only, and that
+// placement ends the turn.
+export function longDistanceRefusal(
+    building: BuildingTurn,
+    longDistance: boolean
+): PlacementRefusal | undefined {
+    if (building.usedLongDistance) {
+        return 'long-distance-ended-turn'
+    }
+    if (longDistance && building.placed > 0) {
+        return 'long-distance-not-first'
+    }
+    return undefined
 }
 
 export function hasRoomIn(track: Track, hexId: HexId): boolean {
@@ -63,11 +77,24 @@ export function hasRoomIn(track: Track, hexId: HexId): boolean {
     return capacity === 'unlimited' || railroadsIn(track, hexId).length < capacity
 }
 
-// R-4.1.4, R-4.2.5: the East Coast cities holding this railroad's track, a start included.
-export function eastCoastCitiesHeld(track: Track, railroadId: RailroadId): number {
-    return USA_CITIES.filter(
-        (city) => isEastCoastCity(city) && hasTrackIn(track, city.hexId, railroadId)
+// R-4.1.4, R-4.2.5, R-8: the hexes of a group holding this railroad's track, a start included.
+export function groupHexesHeld(track: Track, railroadId: RailroadId, group: HexGroup): number {
+    return Object.entries(track).filter(
+        ([hexId, railroadIds]) =>
+            isHexId(hexId) && railroadIds.includes(railroadId) && groupsOf(hexId).includes(group)
     ).length
+}
+
+// The hexes of each group the railroad holds, counted once a clause asks.
+type GroupHoldings = (group: HexGroup) => number
+
+function groupHoldings(track: Track, railroadId: RailroadId): GroupHoldings {
+    const counted = new Map<HexGroup, number>()
+    return (group) => {
+        const held = counted.get(group) ?? groupHexesHeld(track, railroadId, group)
+        counted.set(group, held)
+        return held
+    }
 }
 
 // R-4.1.2
@@ -75,7 +102,7 @@ export function isAdjacentToOwnTrack(track: Track, railroadId: RailroadId, hexId
     return adjacentHexIds(hexId).some((adjacent) => hasTrackIn(track, adjacent, railroadId))
 }
 
-// The placement test: R-3.2.2, R-1.1, R-3.2.3, R-3.2.4, R-4.1.3, R-4.1.4, R-4.1.1, R-4.1.2,
+// The placement test: R-3.2.2, R-1.1, R-3.2.3, R-3.2.4, R-8, R-4.1.3, R-4.1.4, R-4.1.1, R-4.1.2,
 // R-4.2. A placement adjacent to the railroad's own track is never a start (R-4.1.2, R-4.2.3).
 export function placementTest(
     state: HydratedRideTheRailsGameState,
@@ -85,12 +112,12 @@ export function placementTest(
 ): PlacementVerdict {
     const refusal =
         railroadRefusal(state, playerId, railroadId) ??
-        hexRefusal(state, railroadId, hexId, () => eastCoastCitiesHeld(state.track, railroadId))
+        hexRefusal(state, railroadId, hexId, groupHoldings(state.track, railroadId))
     return refusal ? { legal: false, reason: refusal } : startOrAdjacency(state, railroadId, hexId)
 }
 
 // Every placement that passes the placement test, by railroad in R-1.4 order, then by hex in
-// map order (row, then dcol).
+// the map's reading order.
 export function legalPlacements(
     state: HydratedRideTheRailsGameState,
     playerId: string
@@ -104,7 +131,7 @@ export function hasLegalPlacement(state: HydratedRideTheRailsGameState, playerId
 }
 
 // The placement test on every hex, the clauses about the railroad alone (share, supply, the
-// East Coast cities it holds) checked once per railroad.
+// group hexes it holds) checked once per railroad.
 function* placementsPassing(
     state: HydratedRideTheRailsGameState,
     playerId: string
@@ -113,9 +140,9 @@ function* placementsPassing(
         if (railroadRefusal(state, playerId, railroadId)) {
             continue
         }
-        const held = eastCoastCitiesHeld(state.track, railroadId)
-        for (const hex of USA_HEXES) {
-            if (hexRefusal(state, railroadId, hex.id, () => held)) {
+        const held = groupHoldings(state.track, railroadId)
+        for (const hex of boardMap(state.mapId).hexes) {
+            if (hexRefusal(state, railroadId, hex.id, held)) {
                 continue
             }
             const verdict = startOrAdjacency(state, railroadId, hex.id)
@@ -141,25 +168,29 @@ function railroadRefusal(
     return undefined
 }
 
-// R-3.2.3, R-3.2.4, R-4.1.3, R-4.1.4: the clauses about this hex, in order.
+// R-3.2.3, R-3.2.4, R-8, R-4.1.3, R-4.1.4: the clauses about this hex, in order.
 function hexRefusal(
     state: HydratedRideTheRailsGameState,
     railroadId: RailroadId,
     hexId: HexId,
-    eastCoastHeld: () => number
+    held: GroupHoldings
 ): PlacementRefusal | undefined {
-    if (!withinPlacementLimit(state, hexId)) {
+    if (!withinPlacementLimit(state, railroadId, hexId)) {
         return 'over-placement-limit'
     }
-    return roomRefusal(state.track, railroadId, hexId, eastCoastHeld)
+    return (
+        longDistanceRefusal(currentBuildingTurn(state), isLongDistance(hexId)) ??
+        roomRefusal(state.mapId, state.track, railroadId, hexId, held)
+    )
 }
 
-// R-4.1.3, R-4.1.4: the clauses about the track already in the hex, in order.
+// R-4.1.3, R-4.1.4, R-8: the clauses about the track already in the hex, in order.
 function roomRefusal(
+    mapId: MapId,
     track: Track,
     railroadId: RailroadId,
     hexId: HexId,
-    eastCoastHeld: () => number
+    held: GroupHoldings
 ): PlacementRefusal | undefined {
     if (hasTrackIn(track, hexId, railroadId)) {
         return 'railroad-in-hex'
@@ -167,10 +198,11 @@ function roomRefusal(
     if (!hasRoomIn(track, hexId)) {
         return 'hex-at-capacity'
     }
-    if (isEastCoastHex(hexId) && eastCoastHeld() >= EAST_COAST_CITIES_PER_RAILROAD) {
-        return 'east-coast-cities-held'
-    }
-    return undefined
+    const groups = groupsOf(hexId)
+    const full = GROUP_LIMITS[mapId].some(
+        ({ group, perRailroad }) => groups.includes(group) && held(group) >= perRailroad
+    )
+    return full ? 'group-limit-reached' : undefined
 }
 
 // R-4.2: the cities where the railroad could start now, in the map table's order: those with room
@@ -181,14 +213,16 @@ export function startCityIds(
     state: HydratedRideTheRailsGameState,
     railroadId: RailroadId
 ): CityId[] {
-    const held = eastCoastCitiesHeld(state.track, railroadId)
-    return USA_CITIES.filter((city) => {
-        if (roomRefusal(state.track, railroadId, city.hexId, () => held)) {
-            return false
-        }
-        const verdict = startOrAdjacency(state, railroadId, city.hexId)
-        return verdict.legal && verdict.isStart
-    }).map((city) => city.id)
+    const held = groupHoldings(state.track, railroadId)
+    return boardMap(state.mapId)
+        .cities.filter((city) => {
+            if (roomRefusal(state.mapId, state.track, railroadId, city.hexId, held)) {
+                return false
+            }
+            const verdict = startOrAdjacency(state, railroadId, city.hexId)
+            return verdict.legal && verdict.isStart
+        })
+        .map((city) => city.id)
 }
 
 // R-4.1.1, R-4.1.2, R-4.2: next to the railroad's own track, or else a start.
@@ -207,8 +241,7 @@ function startOrAdjacency(
 }
 
 export function isEastCoastHex(hexId: HexId): boolean {
-    const city = cityIn(hexId)
-    return city !== undefined && isEastCoastCity(city)
+    return groupsOf(hexId).includes('east-coast')
 }
 
 function currentBuildingTurn(state: HydratedRideTheRailsGameState): BuildingTurn {

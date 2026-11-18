@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
     CHICAGO_BONUS,
     FIVE_DOLLAR_BONUS,
+    GREATER_GERMANY_BONUS,
+    INTERCOLONIAL_BONUS,
     PhaseName,
+    TORONTO_BONUS,
     TRANSCONTINENTAL_BONUS,
-    usaCity,
+    cityById,
     type HexId,
     type RailroadId
 } from '@tabletop/ride-the-rails'
@@ -13,6 +16,7 @@ import { hexCenter } from '$lib/utils/boardGeometry.js'
 import {
     OUTLINE_TOTAL,
     bonusCoins,
+    claimedConnection,
     claimedLine,
     moneyAfterEach,
     outlineStep,
@@ -49,8 +53,8 @@ describe('the flight plan', () => {
     })
 
     it('flies the Chicago and $5 coins from their city and leaves the Transcontinental to its own flight (R-3.2.5, R-4.3)', () => {
-        const chicago = usaCity('city.usa.chicago')
-        const coins = bonusCoins(CHICAGO, [
+        const chicago = cityById('city.usa.chicago')
+        const coins = bonusCoins('map.usa', CHICAGO, [
             { bonusId: CHICAGO_BONUS.id, amount: CHICAGO_BONUS.amount, cityId: chicago.id },
             { bonusId: FIVE_DOLLAR_BONUS.id, amount: FIVE_DOLLAR_BONUS.amount },
             { bonusId: TRANSCONTINENTAL_BONUS.id, amount: 8 }
@@ -66,6 +70,36 @@ describe('the flight plan', () => {
             10 + CHICAGO_BONUS.amount,
             10 + CHICAGO_BONUS.amount + FIVE_DOLLAR_BONUS.amount
         ])
+    })
+
+    it('leaves a connection bonus to its own flight, as the Transcontinental (R-8)', () => {
+        const toronto = cityById('city.ca.toronto')
+        const coins = bonusCoins('map.ca', toronto.hexId, [
+            { bonusId: TORONTO_BONUS.id, amount: TORONTO_BONUS.buildInAmount, cityId: toronto.id },
+            { bonusId: INTERCOLONIAL_BONUS.id, amount: INTERCOLONIAL_BONUS.amount }
+        ])
+        expect(coins.map((coin) => coin.amount)).toEqual([TORONTO_BONUS.buildInAmount])
+        expect(coins[0].from).toEqual(hexCenter(toronto.hexId))
+    })
+
+    it('joins the link cities only for the transition that claims the connection bonus (R-8)', () => {
+        const open = (mapId: 'map.ca' | 'map.de' | 'map.usa') =>
+            buildState({ mapId, phase: PhaseName.Build })
+        const claimed = (mapId: 'map.ca' | 'map.de') => {
+            const state = open(mapId)
+            state.connectionClaim = { playerId: 'p1' }
+            return state
+        }
+        expect(claimedConnection(open('map.ca'), claimed('map.ca'))).toEqual(
+            INTERCOLONIAL_BONUS.cityIds
+        )
+        expect(claimedConnection(open('map.de'), claimed('map.de'))).toEqual(
+            GREATER_GERMANY_BONUS.cityIds
+        )
+        expect(claimedConnection(open('map.ca'), open('map.ca'))).toBeUndefined()
+        expect(claimedConnection(claimed('map.ca'), claimed('map.ca'))).toBeUndefined()
+        expect(claimedConnection(claimed('map.ca'), open('map.ca'))).toBeUndefined()
+        expect(claimedConnection(open('map.usa'), open('map.usa'))).toBeUndefined()
     })
 
     it('draws the line only for the transition that claims the Transcontinental (R-4.3.3)', () => {

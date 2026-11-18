@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isPlaceLocomotive } from '../actions/placeLocomotive.js'
 import type { HexId } from '../data/hexes.js'
-import { usaCity } from '../data/usaMap.js'
+import { cityById } from '../data/boardMaps.js'
 import { CURRENT_RIDE_THE_RAILS_REVISION } from '../model/gameState.js'
 import { placementTest } from '../rules/placement.js'
 import { buildState, hydrated, runAction } from '../testing/fixtures.js'
@@ -46,8 +46,8 @@ describe('revision 1 (R-X.3)', () => {
     })
 
     it('R-4.2.3: lets Yellow start once, in Chicago or a westernmost city, not in both', () => {
-        const chicago = usaCity('city.usa.chicago').hexId
-        const seattle = usaCity('city.usa.seattle').hexId
+        const chicago = cityById('city.usa.chicago').hexId
+        const seattle = cityById('city.usa.seattle').hexId
         const before = buildState({
             phase: PhaseName.Build,
             shares: { p1: { 'railroad.yellow': 1 } },

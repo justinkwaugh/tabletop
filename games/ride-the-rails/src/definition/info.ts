@@ -1,7 +1,8 @@
 import type { GameInfo } from '@tabletop/common'
+import { RideTheRailsConfigurator } from './config.js'
 import { GAME_VERSION } from './version.js'
 
-// R-1.2: three to five players, as printed. R-8: the USA map only, so no creation options.
+// R-1.2: three to five players, as printed. R-8: the map is chosen at creation.
 export const RideTheRailsInfo: GameInfo = {
     id: 'ride-the-rails',
     metadata: {
@@ -15,5 +16,6 @@ export const RideTheRailsInfo: GameInfo = {
         defaultPlayerCount: 4,
         version: GAME_VERSION,
         beta: false
-    }
+    },
+    configurator: new RideTheRailsConfigurator()
 }

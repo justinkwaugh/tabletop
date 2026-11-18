@@ -62,8 +62,8 @@ function bandedCities(page: Page, railroadId: string): Promise<string[]> {
         )
 }
 
-/** A city's own bonus pills on the map: "$2" for Chicago, "$5" for each $5 city not yet taken. */
-function bonusPills(page: Page, kind: 'chicago' | 'five') {
+/** A city's own bonus pills on the map: a gold "$2" for Chicago, "$5" for each $5 city not yet taken. */
+function bonusPills(page: Page, kind: 'coin' | 'five') {
     return board(page).locator(`g.bonuses [data-bonus="${kind}"]`)
 }
 
@@ -251,12 +251,12 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     // lit hex is not marked again.
     const chicago = litHex(page, 'Chicago: start Black, $2')
     await expect(chicago).toBeVisible()
-    await expect(bonusPills(page, 'chicago')).toHaveCount(1)
+    await expect(bonusPills(page, 'coin')).toHaveCount(1)
     await expect(marks(page, '$2')).toHaveCount(0)
     const flyers = await flyersDuring(page, () => pressHex(page, chicago))
     expect(flyers).toContain('coin $2')
     expect(await moneyOf(page, 'p1')).toBe(money + 2)
-    await expect(bonusPills(page, 'chicago')).toHaveCount(1)
+    await expect(bonusPills(page, 'coin')).toHaveCount(1)
     await undo(page)
     expect(await moneyOf(page, 'p1')).toBe(money)
 
@@ -298,19 +298,29 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await openScenario(page, 'Transcontinental in reach')
     expect(await activePlayerId(page)).toBe('p1')
     const money = (await moneyOf(page, 'p1')) ?? 0
-    // The Transcontinental's chip in the turn line shows the terms while open. Once claimed it is
-    // a button that shows or hides the claimed line, and says the claim in its description.
-    const chip = page.getByRole('img', { name: /^Transcontinental: / })
+    // The Transcontinental's chip in the turn line shows the terms while open and the claim once
+    // claimed. Pressed, it explains the bonus; once claimed its description holds the button that
+    // shows or hides the claimed line.
+    const chip = page.getByRole('button', { name: /^Transcontinental: / })
     const toggle = page.getByRole('button', { name: /^(Show|Hide) the Transcontinental line$/ })
+    const description = page.locator('[data-bonus-description="bonus.usa.transcontinental"]')
+    const explain = async () => {
+        if ((await chip.getAttribute('aria-expanded')) !== 'true') await chip.click()
+        await expect(description).toBeVisible()
+    }
     const claimed = async (text: string) => {
-        await expect(chip).toHaveCount(0)
-        await expect(toggle).toHaveAccessibleDescription(`Transcontinental: ${text}`)
+        await expect(chip).toHaveAccessibleName(`Transcontinental: ${text}`)
+        await explain()
+        await expect(description).toContainText(`${text.replace('claimed', 'Claimed')}.`)
     }
     const unclaimed = async () => {
-        await expect(toggle).toHaveCount(0)
         await expect(chip).toHaveAccessibleName(
             'Transcontinental: unclaimed, $12 when every switch is in a city, $8 otherwise'
         )
+        await explain()
+        await expect(toggle).toHaveCount(0)
+        await chip.click()
+        await expect(description).toHaveCount(0)
     }
     const goldLine = board(page).locator('g.lines polyline[stroke="var(--rtr-gold)"]')
     const lineFlyer = page.locator('[data-flyer="line:transcontinental"]')
@@ -333,7 +343,8 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await settled(page)
     expect(await moneyOf(page, 'p1')).toBe(money + 12)
     await claimed('claimed by Ada for $12')
-    // Once its claim has played, the line is no longer drawn; the chip turns it on and off.
+    // Once its claim has played, the line is no longer drawn; the button in the chip's
+    // description turns it on and off, and the description stays open meanwhile.
     await expect(lineFlyer).toHaveCount(0)
     await lineShown(false)
     await toggle.click()
@@ -342,6 +353,9 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await lineShown(false)
     await toggle.click()
     await lineShown(true)
+    // The description stands over the board's north-east; Escape puts it away.
+    await page.keyboard.press('Escape')
+    await expect(description).toHaveCount(0)
     // Paid once: no hex offers it again.
     expect((await litLabels(page)).filter((label) => label.includes('Transcontinental'))).toEqual(
         []

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
-import type { CityId } from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type { Track } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
+import { boardMap } from '../data/boardMaps.js'
 import { buildState } from '../testing/fixtures.js'
 import {
     isLegalJourney,
@@ -248,5 +249,80 @@ describe('whether a journey exists (R-3.3.1)', () => {
             [BLUE, KANSAS_CITY_TO_SAINT_LOUIS.slice(2)]
         )
         expect(journeyExists(riding(track))).toBe(false)
+    })
+})
+
+describe('Australia (R-8.2)', () => {
+    const ADELAIDE_TO_PERTH: readonly HexId[] = [
+        'hex.au.4-14',
+        'hex.au.3-13',
+        'hex.au.2-12',
+        'hex.au.1-13',
+        'hex.au.0-12'
+    ]
+    const NEWCASTLE_TO_BRISBANE: readonly HexId[] = ['hex.au.33-9', 'hex.au.34-8', 'hex.au.34-6']
+    const ORANGE: RailroadId = 'railroad.orange'
+    const track = trackOf([ORANGE, ADELAIDE_TO_PERTH], [RED, NEWCASTLE_TO_BRISBANE])
+    const state = buildState({ mapId: 'map.au', playerCount: 3, phase: PhaseName.Ride, track })
+
+    it('sets no passenger in Perth or Brisbane', () => {
+        expect(state.passengers).toEqual(boardMap('map.au').setupPassengerCityIds().toSorted())
+        expect(state.passengers).not.toContain('city.au.perth')
+        expect(state.passengers).not.toContain('city.au.brisbane')
+    })
+
+    it('lets a journey end in Perth or Brisbane', () => {
+        expect(journeyRefusal(state, [link(ORANGE, ADELAIDE_TO_PERTH)])).toBe(undefined)
+        expect(journeyRefusal(state, [link(RED, NEWCASTLE_TO_BRISBANE)])).toBe(undefined)
+        expect(journeyCities([link(ORANGE, ADELAIDE_TO_PERTH)])).toEqual([
+            'city.au.adelaide',
+            'city.au.perth'
+        ])
+    })
+
+    it('never lets one start there', () => {
+        expect(journeyRefusal(state, [link(ORANGE, ADELAIDE_TO_PERTH.toReversed())])).toBe(
+            'no-passenger'
+        )
+        expect(journeyRefusal(state, [link(RED, NEWCASTLE_TO_BRISBANE.toReversed())])).toBe(
+            'no-passenger'
+        )
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    const ACROSS_THE_SIDE: readonly HexId[] = ['hex.ca.24-10', 'hex.ca.24-12', 'hex.ca.25-13']
+    const ROUND_IT: readonly HexId[] = ['hex.ca.24-10', 'hex.ca.25-11', 'hex.ca.25-13']
+    const track = trackOf([RED, ACROSS_THE_SIDE], [BLUE, ROUND_IT])
+    const state = buildState({ mapId: 'map.ca', playerCount: 3, phase: PhaseName.Ride, track })
+
+    it('makes no link across an impassable side', () => {
+        expect(isLink(track, link(RED, ACROSS_THE_SIDE))).toBe(false)
+        expect(journeyRefusal(state, [link(RED, ACROSS_THE_SIDE)])).toBe('not-a-link')
+    })
+
+    it('makes a link round it, through Montréal’s open south-east side', () => {
+        expect(isLink(track, link(BLUE, ROUND_IT))).toBe(true)
+        expect(journeyCities([link(BLUE, ROUND_IT)])).toEqual([
+            'city.ca.montreal',
+            'city.ca.saint-jean-sur-richelieu'
+        ])
+    })
+})
+
+describe('France (R-8.4)', () => {
+    const ACROSS_THE_ESTUARY: readonly HexId[] = ['hex.fr.8-6', 'hex.fr.8-8']
+    const ROUND_IT: readonly HexId[] = ['hex.fr.8-6', 'hex.fr.9-7', 'hex.fr.8-8']
+    const track = trackOf([RED, ACROSS_THE_ESTUARY], [BLUE, ROUND_IT])
+    const state = buildState({ mapId: 'map.fr', playerCount: 3, phase: PhaseName.Ride, track })
+
+    it('makes no link across an estuary: Le Havre and Caen are not adjacent', () => {
+        expect(isLink(track, link(RED, ACROSS_THE_ESTUARY))).toBe(false)
+        expect(journeyRefusal(state, [link(RED, ACROSS_THE_ESTUARY)])).toBe('not-a-link')
+    })
+
+    it('makes a link round it, through the hex east of both', () => {
+        expect(isLink(track, link(BLUE, ROUND_IT))).toBe(true)
+        expect(journeyCities([link(BLUE, ROUND_IT)])).toEqual(['city.fr.le-havre', 'city.fr.caen'])
     })
 })

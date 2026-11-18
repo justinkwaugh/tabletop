@@ -127,7 +127,7 @@ for (const width of [1440, 1024]) {
                 startOverflows: start ? start.scrollWidth > start.clientWidth : true,
                 end: box(undo.parentElement),
                 tickets: box(document.querySelector('[role="list"][aria-label="Rounds"]')),
-                chip: box(document.querySelector('[role="img"][aria-label^="Transcontinental"]')),
+                chip: box(document.querySelector('button[aria-label^="Transcontinental"]')),
                 undo: box(undo)
             }
         })

@@ -1,0 +1,245 @@
+{
+ "game": {
+  "id": "scenario-australia-perth-chain",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "ride-the-rails",
+  "deleted": false,
+  "name": "Australia perth chain",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p1",
+    "name": "Ada",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p2",
+    "name": "Ben",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p3",
+    "name": "Cora",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "map": "map.au"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-01-05T12:00:00.000Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-01-05T12:00:00.000Z",
+  "updatedAt": "2026-01-05T12:00:00.000Z",
+  "lastActionAt": "2026-01-05T12:00:00.000Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "state-australia-perth-chain",
+  "gameId": "scenario-australia-perth-chain",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 6
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 0
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p1",
+    "color": "pink",
+    "money": 6,
+    "shares": {
+     "railroad.red": 1,
+     "railroad.orange": 1,
+     "railroad.yellow": 1,
+     "railroad.purple": 1
+    }
+   },
+   {
+    "playerId": "p2",
+    "color": "gray",
+    "money": 12,
+    "shares": {
+     "railroad.blue": 3,
+     "railroad.red": 1
+    }
+   },
+   {
+    "playerId": "p3",
+    "color": "green",
+    "money": 18,
+    "shares": {
+     "railroad.red": 1,
+     "railroad.orange": 1,
+     "railroad.yellow": 1,
+     "railroad.purple": 1
+    }
+   }
+  ],
+  "machineState": "Building",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p1",
+    "p2",
+    "p3"
+   ],
+   "turnCounts": {
+    "p1": 0,
+    "p2": 0,
+    "p3": 0
+   }
+  },
+  "rideTheRailsRevision": 1,
+  "mapId": "map.au",
+  "roundManager": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 4
+    }
+   ]
+  },
+  "phaseManager": {
+   "series": [
+    {
+     "type": "phase",
+     "start": 0,
+     "name": "build"
+    }
+   ]
+  },
+  "track": {
+   "hex.au.31-15": [
+    "railroad.red"
+   ],
+   "hex.au.30-16": [
+    "railroad.red"
+   ],
+   "hex.au.29-17": [
+    "railroad.red"
+   ],
+   "hex.au.28-16": [
+    "railroad.red"
+   ],
+   "hex.au.17-29": [
+    "railroad.blue"
+   ],
+   "hex.au.18-28": [
+    "railroad.blue"
+   ],
+   "hex.au.19-29": [
+    "railroad.blue"
+   ],
+   "hex.au.27-17": [
+    "railroad.red"
+   ],
+   "hex.au.26-16": [
+    "railroad.red"
+   ],
+   "hex.au.26-14": [
+    "railroad.red"
+   ],
+   "hex.au.4-14": [
+    "railroad.orange"
+   ],
+   "hex.au.20-30": [
+    "railroad.blue"
+   ],
+   "hex.au.21-29": [
+    "railroad.blue"
+   ],
+   "hex.au.22-30": [
+    "railroad.blue"
+   ],
+   "hex.au.3-13": [
+    "railroad.orange"
+   ]
+  },
+  "passengers": [
+   "city.au.adelaide",
+   "city.au.albury",
+   "city.au.ararat",
+   "city.au.bairnsdale",
+   "city.au.ballarat",
+   "city.au.benanee",
+   "city.au.bendigo",
+   "city.au.bombala",
+   "city.au.bordertown",
+   "city.au.broken-hill",
+   "city.au.canberra",
+   "city.au.condobolin",
+   "city.au.cootamundra",
+   "city.au.cowra",
+   "city.au.deniliquin",
+   "city.au.dubbo",
+   "city.au.echuca",
+   "city.au.geelong",
+   "city.au.goulburn",
+   "city.au.griffith",
+   "city.au.hay",
+   "city.au.ivanhoe",
+   "city.au.kingston",
+   "city.au.lithgow",
+   "city.au.loxton",
+   "city.au.menindee",
+   "city.au.mildura",
+   "city.au.morea",
+   "city.au.mount-gambier",
+   "city.au.mudgee",
+   "city.au.murray-bridge",
+   "city.au.muswellbrook",
+   "city.au.narrandera",
+   "city.au.newcastle",
+   "city.au.orange",
+   "city.au.orbost",
+   "city.au.parkes",
+   "city.au.patchewollock",
+   "city.au.peterborough",
+   "city.au.pinaroo",
+   "city.au.port-albert",
+   "city.au.roto",
+   "city.au.st-arnaud",
+   "city.au.swan-hill",
+   "city.au.wagga-wagga",
+   "city.au.wangaratta",
+   "city.au.warrnambool",
+   "city.au.wonthaggi",
+   "city.au.wyalongo",
+   "city.au.yaapeet"
+  ],
+  "building": {
+   "placed": 0,
+   "usedMountain": false
+  }
+ },
+ "actions": []
+}

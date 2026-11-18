@@ -1,4 +1,5 @@
-import { CHICAGO_BONUS, cityIn, usaHex, type HexId } from '@tabletop/ride-the-rails'
+import { cityIn, groupsOf, hexById, type HexId } from '@tabletop/ride-the-rails'
+import { printsStartColours } from './cityMarks.js'
 
 /**
  * The board's look, one pick for each of twelve questions. The look is chosen here: to switch a
@@ -99,6 +100,14 @@ export const BOARD_LOOK: BoardLook = {
     journeyStart: 'ring-only'
 }
 
+/**
+ * The scrim's fill: the paper's ink at 25%, or deeper with BOARD_LOOK.litHex 'deep-scrim'. The
+ * scrim layer lays it over the land; an unlit city's passenger, drawn above the scrim and the
+ * impassable sides, lays it over itself.
+ */
+export const SCRIM_FILL =
+    BOARD_LOOK.litHex === 'deep-scrim' ? 'var(--rtr-scrim-deep)' : 'var(--rtr-scrim)'
+
 export type HexPaint = {
     fill: string
     /** The hex's edge: a thin warm grid round plain land, a pale line round a patch. */
@@ -122,13 +131,20 @@ function patch(fill: string): HexPaint {
 
 /** A hex's fill and edge in a hex colouring scheme. */
 export function hexPaint(hexId: HexId, scheme: HexFillScheme = BOARD_LOOK.hexFill): HexPaint {
-    const hex = usaHex(hexId)
-    if (hex.terrain === 'mountain') return patch('var(--rtr-mountain)')
+    const hex = hexById(hexId)
+    // R-8.2: the Alps are mountains no track enters, their hatch drawn over the fill.
+    if (hex.terrain === 'mountain' || hex.terrain === 'alps') return patch('var(--rtr-mountain)')
+    if (hex.terrain === 'long-distance') return patch('var(--rtr-long-haul)')
     const city = cityIn(hexId)
+    // R-8.4: the entry hexes round Paris, tinted pale navy on the plains' grid.
+    if (!city && groupsOf(hexId).includes('paris-entry')) {
+        return { ...PLAIN_PAINT, fill: 'var(--rtr-entry)' }
+    }
     if (!city || scheme === 'terrain') return PLAIN_PAINT
     if (scheme === 'city-tint') return patch('var(--rtr-hex-city)')
-    // R-4.1.4, R-4.2: Chicago, which has no limit, apart; then the cities with printed starts.
-    if (city.bonus === CHICAGO_BONUS.id) return patch('var(--rtr-hex-chicago)')
-    if (city.startColours.length > 0) return patch('var(--rtr-hex-start-city)')
+    // R-4.1.4, R-4.2, R-8: a city with no limit (Chicago, Toronto, Paris, Berlin) apart; then the
+    // cities with printed starts.
+    if (city.capacity === 'unlimited') return patch('var(--rtr-hex-chicago)')
+    if (printsStartColours(city.startColours)) return patch('var(--rtr-hex-start-city)')
     return patch('var(--rtr-hex-city)')
 }

@@ -1,56 +1,33 @@
 <script lang="ts">
-    import { USA_CITIES, USA_HEXES } from '@tabletop/ride-the-rails'
-    import { HEX_SIZE, HEX_WIDTH, hexCenter } from '$lib/utils/boardGeometry.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { CAPACITY_MARK, capacityMarks } from '$lib/utils/cityMarks.js'
+    import { MAP_LAYOUTS } from '$lib/utils/mapLayouts.js'
+    import { HEX_LIMIT_MARK } from '$lib/utils/terrainMarks.js'
 
-    const SIDE = 20
-    const GAP = 6
-    const CHICAGO_EXTRA = 9
+    const gameSession = getGameSession()
 
-    // R-4.1.3, R-4.1.4: the cities with a printed limit other than two: an East Coast city holds a
-    // single locomotive, Chicago any number, and so at most six, one per railroad.
-    const limited = USA_CITIES.flatMap((city) =>
-        city.capacity === 1
-            ? [{ city, text: '1' }]
-            : city.capacity === 'unlimited'
-              ? [{ city, text: '6' }]
-              : []
+    // Displayed Game State: the shown state's map's cities with a limit of their own, and its other
+    // hexes that hold one locomotive.
+    const board = $derived(gameSession.boardFrame)
+    const marks = $derived(
+        capacityMarks(board, MAP_LAYOUTS[board.mapId].limitMarksInHex).map((mark) => ({
+            ...mark,
+            key: mark.cityId ?? mark.hexId
+        }))
     )
-
-    const landCenters = USA_HEXES.map((hex) => hexCenter(hex.id))
-
-    // The sides of a hex, towards each neighbour, east first, then round by the north.
-    const SIDES = [0, -60, -120, 180, 120, 60].map((degrees) => (degrees * Math.PI) / 180)
-
-    function isWater(x: number, y: number): boolean {
-        return !landCenters.some((land) => Math.hypot(land.x - x, land.y - y) < HEX_SIZE / 2)
-    }
-
-    // Each mark stands in the water just past the first side of its city with no land beyond.
-    const marks = limited.map(({ city, text }) => {
-        const center = hexCenter(city.hexId)
-        const side =
-            SIDES.find((angle) =>
-                isWater(
-                    center.x + Math.cos(angle) * HEX_WIDTH,
-                    center.y + Math.sin(angle) * HEX_WIDTH
-                )
-            ) ?? 0
-        // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
-        const distance = HEX_WIDTH / 2 + GAP + SIDE / 2 + (text === '6' ? CHICAGO_EXTRA : 0)
-        return {
-            cityId: city.id,
-            text,
-            x: center.x + Math.cos(side) * distance,
-            y: center.y + Math.sin(side) * distance
-        }
-    })
+    const seaMarks = $derived(marks.filter((mark) => !mark.inHex))
+    const inHexMarks = $derived(marks.filter((mark) => mark.inHex))
+    const SIDE = CAPACITY_MARK.side
+    const INSIDE = HEX_LIMIT_MARK.side
 </script>
 
-<!-- R-4.1.3, R-4.1.4: beside each city with its own limit, in the water, a white outline of a cube
-     with the most locomotives it holds: 1 on the East Coast, 6 at Chicago. -->
+<!-- R-4.1.3, R-4.1.4, R-8: beside each hex with a limit of its own, in the water, a white outline of
+     a cube with the most locomotives it holds: 1 on the East Coast and beside Australia's
+     long-distance hexes, 6 at Chicago. Where no side of the hex opens on water, the same mark inked
+     on a pale ground inside the hex. -->
 <g class="capacity-marks" aria-hidden="true" data-capacity-marks>
-    {#each marks as mark (mark.cityId)}
-        <g transform="translate({mark.x} {mark.y})">
+    {#each seaMarks as mark (mark.key)}
+        <g transform="translate({mark.x} {mark.y})" data-limit-in-sea={mark.key}>
             <rect
                 x={-SIDE / 2}
                 y={-SIDE / 2}
@@ -67,6 +44,28 @@
                 text-anchor="middle"
                 font-size="15"
                 fill="var(--rtr-white)">{mark.text}</text
+            >
+        </g>
+    {/each}
+    {#each inHexMarks as mark (mark.key)}
+        <g transform="translate({mark.x} {mark.y})" data-limit-in-hex={mark.key}>
+            <rect
+                x={-INSIDE / 2}
+                y={-INSIDE / 2}
+                width={INSIDE}
+                height={INSIDE}
+                rx={HEX_LIMIT_MARK.radius}
+                fill="var(--rtr-white)"
+                fill-opacity={HEX_LIMIT_MARK.groundOpacity}
+                stroke="var(--rtr-ink)"
+                stroke-width={HEX_LIMIT_MARK.strokeWidth}
+            ></rect>
+            <text
+                class="rtr-serif"
+                y={HEX_LIMIT_MARK.baseline}
+                text-anchor="middle"
+                font-size={HEX_LIMIT_MARK.fontSize}
+                fill="var(--rtr-ink)">{mark.text}</text
             >
         </g>
     {/each}

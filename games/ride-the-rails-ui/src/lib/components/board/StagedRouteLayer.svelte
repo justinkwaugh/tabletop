@@ -96,6 +96,7 @@
             fill="var(--rtr-ink)"
             stroke="var(--rtr-white)"
             stroke-width="2.2"
+            data-keep-clear
         ></circle>
         <text
             x={last.x}

@@ -7,7 +7,9 @@ import {
 } from '../data/bonuses.js'
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
-import { USA_CITIES, usaCity, usaHex, type CityId } from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
+import { cityById, hexById } from '../data/boardMaps.js'
+import { USA_CITIES } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import type { RideTheRailsGameState } from '../model/gameState.js'
 import { currentRoundNumber } from '../rules/endOfRound.js'
@@ -31,8 +33,8 @@ const DENVER: CityId = 'city.usa.denver'
 const KANSAS_CITY: CityId = 'city.usa.kansas-city'
 const DALLAS: CityId = 'city.usa.dallas'
 
-const DENVER_HEX = usaCity(DENVER).hexId
-const KANSAS_CITY_HEX = usaCity(KANSAS_CITY).hexId
+const DENVER_HEX = cityById(DENVER).hexId
+const KANSAS_CITY_HEX = cityById(KANSAS_CITY).hexId
 // A plain hex next to Denver, on its east side.
 const EAST_OF_DENVER: HexId = 'hex.usa.8-24'
 
@@ -89,11 +91,11 @@ function sameEntry(bonus: PaidBonus, entry: Entry): boolean {
 
 // R-4.3.1, R-4.3.2, read straight from the board before the placement.
 function cityBonusesDue(before: RideTheRailsGameState, placement: Placement): PaidBonus[] {
-    const hex = usaHex(placement.action.hexId)
+    const hex = hexById(placement.action.hexId)
     if (hex.terrain !== 'city') {
         return []
     }
-    const city = usaCity(hex.cityId)
+    const city = cityById(hex.cityId)
     if (city.bonus === CHICAGO_BONUS.id) {
         return [{ bonusId: CHICAGO_BONUS.id, amount: CHICAGO_BONUS.amount, cityId: city.id }]
     }
@@ -378,7 +380,7 @@ describe('the sweep boards (R-4.3.3)', () => {
 describe('Chicago in a real game (R-4.3.1)', () => {
     it('pays a railroad that starts in Chicago', () => {
         const starts = placementsOf(gameOf('four players')).filter(
-            ({ action, isStart }) => isStart && action.hexId === usaCity(CHICAGO).hexId
+            ({ action, isStart }) => isStart && action.hexId === cityById(CHICAGO).hexId
         )
         expect(starts.map(({ action, bonuses }) => [action.railroadId, bonuses])).toEqual([
             [ORANGE, [{ bonusId: CHICAGO_BONUS.id, amount: 2, cityId: CHICAGO }]]

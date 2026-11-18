@@ -8,12 +8,14 @@ import {
 import {
     ActionType,
     PhaseName,
-    USA_CITIES,
     adjacentHexIds,
+    boardMap,
     turnOrderByMoney,
-    usaHex,
+    hexById,
+    type City,
     type CityId,
     type HexId,
+    type MapId,
     type HydratedRideTheRailsGameState,
     type RailroadId,
     type RideTheRailsGameState,
@@ -57,6 +59,8 @@ export type PlayedRound = {
 
 export type TableRecipe = {
     playerCount: number
+    /** The map the game is created on; the USA when absent, as a game stored before maps did. */
+    mapId?: MapId
     /** Every round up to the current one, which may be part played. */
     rounds: readonly PlayedRound[]
     phase: PhaseName
@@ -73,16 +77,18 @@ export type TableFixture = {
 
 const FIXED_DATE = new Date('2026-01-05T12:00:00Z')
 
-function cityHexId(name: string): HexId {
-    const city = USA_CITIES.find((candidate) => candidate.name === name)
-    assertExists(city, `No city ${name}`)
-    return city.hexId
+function cityNamed(name: string, mapId: MapId): City {
+    const city = boardMap(mapId).cities.find((candidate) => candidate.name === name)
+    assertExists(city, `No city ${name} on ${mapId}`)
+    return city
 }
 
-function cityIdOf(name: string): CityId {
-    const city = USA_CITIES.find((candidate) => candidate.name === name)
-    assertExists(city, `No city ${name}`)
-    return city.id
+function cityHexId(name: string, mapId: MapId = 'map.usa'): HexId {
+    return cityNamed(name, mapId).hexId
+}
+
+function cityIdOf(name: string, mapId: MapId = 'map.usa'): CityId {
+    return cityNamed(name, mapId).id
 }
 
 /**
@@ -99,7 +105,7 @@ export function walk(from: HexId, to: HexId, mountains = false): HexId[] {
             break
         }
         for (const next of adjacentHexIds(hexId)) {
-            const terrain = usaHex(next).terrain
+            const terrain = hexById(next).terrain
             const passable =
                 next === to || terrain === 'plain' || (mountains && terrain === 'mountain')
             if (passable && !seen.has(next)) {
@@ -117,15 +123,21 @@ export function walk(from: HexId, to: HexId, mountains = false): HexId[] {
     return path
 }
 
-/** A railroad's run through the named cities, the first being where it already is or starts. */
-export function line(names: readonly string[], options: { start?: boolean } = {}): HexId[] {
-    const hexIds = names.map(cityHexId)
+/**
+ * A railroad's run through the named cities of the map (the USA's unless named), the first being
+ * where it already is or starts; `mountains` lets it cross them.
+ */
+export function line(
+    names: readonly string[],
+    options: { start?: boolean; mapId?: MapId; mountains?: boolean } = {}
+): HexId[] {
+    const hexIds = names.map((name) => cityHexId(name, options.mapId))
     const [first, ...rest] = hexIds
     assertExists(first, 'A line names a city')
     const walked: HexId[] = []
     let at = first
     for (const next of rest) {
-        walked.push(...walk(at, next))
+        walked.push(...walk(at, next, options.mountains))
         at = next
     }
     return options.start ? [first, ...walked] : walked
@@ -155,12 +167,14 @@ function withShare(position: Position, playerId: string, railroadId: RailroadId)
 // R-3.2: one seat's building turn, each placement an engine action that pays its own bonuses.
 function playBuildingTurn(
     position: Position,
-    playerCount: number,
+    recipe: TableRecipe,
     round: number,
     turnOrder: readonly string[],
     turn: BuildingTurn
 ): void {
+    const { playerCount, mapId } = recipe
     let state = buildState({
+        ...(mapId ? { mapId } : {}),
         playerCount,
         round,
         phase: PhaseName.Build,
@@ -188,6 +202,11 @@ function playBuildingTurn(
     if (state.transcontinental) {
         position.transcontinental = { ...state.transcontinental }
     }
+    // The next turn's state is built from the position, which keeps no connection claim (R-8).
+    assert(
+        state.connectionClaim === undefined,
+        `${turn.playerId}'s building turn in round ${round} claims the connection bonus`
+    )
     for (const player of state.players) {
         position.money[player.playerId] = player.money
     }
@@ -199,7 +218,7 @@ export type RoundRecord = { turnOrder: string[]; money: Record<string, number> }
 // Every round played through the engine. Round 1 keeps the assigned starting order (R-1.3.7);
 // each end of round sets the next round's order by money (R-2.5.1).
 function playRounds(recipe: TableRecipe): { position: Position; records: RoundRecord[] } {
-    const { playerCount, rounds } = recipe
+    const { playerCount, rounds, mapId } = recipe
     const playerIds = fixturePlayerIds(playerCount)
     const position = emptyPosition(playerIds)
     const records: RoundRecord[] = []
@@ -208,6 +227,7 @@ function playRounds(recipe: TableRecipe): { position: Position; records: RoundRe
         if (index > 0) {
             turnOrder = turnOrderByMoney(
                 buildState({
+                    ...(mapId ? { mapId } : {}),
                     playerCount,
                     round: index,
                     phase: PhaseName.Ride,
@@ -220,7 +240,7 @@ function playRounds(recipe: TableRecipe): { position: Position; records: RoundRe
             withShare(position, playerId, railroadId)
         }
         for (const turn of round.builds) {
-            playBuildingTurn(position, playerCount, index + 1, turnOrder, turn)
+            playBuildingTurn(position, recipe, index + 1, turnOrder, turn)
         }
         for (const [playerId, money] of Object.entries(round.journeys ?? {})) {
             position.money[playerId] = (position.money[playerId] ?? 0) + money
@@ -237,22 +257,26 @@ export function roundRecords(recipe: TableRecipe): RoundRecord[] {
 
 /** The recipe's position: every round played through the engine, then the current turn opened. */
 export function tableState(recipe: TableRecipe): HydratedRideTheRailsGameState {
-    const { playerCount, rounds, phase } = recipe
+    const { playerCount, rounds, phase, mapId } = recipe
     const { position, records } = playRounds(recipe)
     const carried = new Set(recipe.carried ?? [])
     return buildState({
+        ...(mapId ? { mapId } : {}),
         playerCount,
         round: rounds.length,
         phase,
         ...(recipe.currentPlayerId ? { currentPlayerId: recipe.currentPlayerId } : {}),
         turnOrder: records.at(-1)?.turnOrder ?? fixturePlayerIds(playerCount),
         ...position,
-        passengers: USA_CITIES.map((city) => city.id).filter((cityId) => !carried.has(cityId))
+        // R-1.3.2, R-8: every city that takes a passenger at setup, less those carried away.
+        passengers: boardMap(mapId ?? 'map.usa')
+            .setupPassengerCityIds()
+            .filter((cityId) => !carried.has(cityId))
     })
 }
 
-function namedGame(playerCount: number): Game {
-    const game = createGame(playerCount)
+function namedGame(playerCount: number, mapId: MapId | undefined): Game {
+    const game = createGame(playerCount, undefined, mapId)
     const { startedGame } = engine.startGame(
         {
             ...game,
@@ -276,7 +300,7 @@ function positionSetUp(fixture: TableFixture): PositionSetUp<RideTheRailsGameSta
     return {
         slug: fixture.slug,
         name: fixture.name,
-        game: namedGame(fixture.recipe.playerCount),
+        game: namedGame(fixture.recipe.playerCount, fixture.recipe.mapId),
         // A fixed id keeps the written file the same from one run to the next.
         state: { ...tableState(fixture.recipe).dehydrate(), id: `state-${fixture.slug}` }
     }
@@ -331,6 +355,65 @@ const YELLOW_MILWAUKEE = line(['Chicago', 'Milwaukee'], { start: true })
 const ORANGE_DES_MOINES = line(['Chicago', 'Des Moines'])
 const SHARED_HEX = ORANGE_DES_MOINES[0] ?? cityHexId('Chicago')
 const YELLOW_SAINT_LOUIS = [SHARED_HEX, ...walk(SHARED_HEX, cityHexId('Saint Louis'))]
+// Chicago's other links: Orange on to Detroit, and Yellow from Chicago to Cincinnati.
+const ORANGE_DETROIT = line(['Chicago', 'Detroit'])
+const YELLOW_CINCINNATI = line(['Chicago', 'Cincinnati'], { start: true })
+// And Yellow on from Chicago to Saint Louis, south-west of the city.
+const YELLOW_CHICAGO_SAINT_LOUIS = line(['Chicago', 'Saint Louis'])
+
+// R-8.2, Australia: Red from Sydney, Blue from Melbourne along the Alps over four mountains, and
+// Orange from Adelaide into the first long-distance hex of the chain to Perth.
+const AU: MapId = 'map.au'
+const AU_RED_SYDNEY = line(['Sydney', 'Goulburn'], { start: true, mapId: AU })
+const AU_BLUE_ALPS = [
+    cityHexId('Melbourne', AU),
+    ...walk(cityHexId('Melbourne', AU), cityHexId('Bairnsdale', AU), true)
+]
+const AU_RED_COWRA = line(['Goulburn', 'Cowra'], { mapId: AU })
+/** The long-distance hexes from Adelaide to Perth, in the order a railroad enters them. */
+const AU_PERTH_CHAIN = ['hex.au.3-13', 'hex.au.2-12', 'hex.au.1-13'] as const
+
+// R-8.3, Canada: Red from Montréal and Blue from Windsor both into Toronto, and Purple from Toronto
+// into the hex beside it whose south side is impassable.
+const CA: MapId = 'map.ca'
+const CA_RED_TORONTO = line(['Montréal', 'Toronto'], { start: true, mapId: CA })
+const CA_BLUE_TORONTO = line(['Windsor', 'Toronto'], { start: true, mapId: CA })
+/** The hex beside Toronto and the one past its impassable south side. */
+const CA_IMPASSABLE_PAIR = ['hex.ca.10-22', 'hex.ca.10-24'] as const
+
+// R-8.4, France: Red from Lille into the entry hex north of Paris, Blue from Sedan to Reims, and
+// Orange started in Le Havre, which the Seine's estuary parts from Caen.
+const FR: MapId = 'map.fr'
+const FR_PARIS_NORTH: HexId = 'hex.fr.13-11'
+const FR_RED_TO_PARIS = [cityHexId('Lille', FR), ...walk(cityHexId('Lille', FR), FR_PARIS_NORTH)]
+const FR_BLUE_REIMS = line(['Sedan', 'Reims'], { start: true, mapId: FR })
+
+// R-8.5, Germany: Red from Leipzig and Blue from Dresden both into Berlin, Purple started there,
+// and Orange started in München beside a mountain (hex.de.14-50).
+const DE: MapId = 'map.de'
+const DE_RED_BERLIN = line(['Leipzig', 'Berlin'], { start: true, mapId: DE })
+const DE_BLUE_BERLIN = line(['Dresden', 'Berlin'], { start: true, mapId: DE })
+
+// R-8.3, R-8.5: each railroad starts in a city printed in its colour and runs to the next link city.
+const CANADA: MapId = 'map.ca'
+const GERMANY: MapId = 'map.de'
+// Canada: Blue from Windsor and Red from Montréal into Toronto, Orange from Québec City to Montréal,
+// and Yellow from Sault Ste. Marie towards Toronto, whose last hex joins the three link cities.
+const BLUE_WINDSOR_TORONTO = line(['Windsor', 'Toronto'], { start: true, mapId: CANADA })
+const RED_MONTREAL_TORONTO = line(['Montréal', 'Toronto'], { start: true, mapId: CANADA })
+const ORANGE_QUEBEC_MONTREAL = line(['Québec City', 'Montréal'], { start: true, mapId: CANADA })
+const YELLOW_SAULT_TORONTO = line(['Sault Ste. Marie', 'Toronto'], { start: true, mapId: CANADA })
+// Germany: Red from Köln to Hamburg, Blue from Dresden to Berlin, Orange from München through the
+// mountains to Dresden (R-8.5: no mountain cost for Orange), and Yellow from Hamburg towards
+// Berlin, whose last hex joins the five link cities.
+const RED_KOLN_HAMBURG = line(['Köln', 'Hamburg'], { start: true, mapId: GERMANY })
+const BLUE_DRESDEN_BERLIN = line(['Dresden', 'Berlin'], { start: true, mapId: GERMANY })
+const ORANGE_MUNCHEN_DRESDEN = line(['München', 'Dresden'], {
+    start: true,
+    mapId: GERMANY,
+    mountains: true
+})
+const YELLOW_HAMBURG_BERLIN = line(['Hamburg', 'Berlin'], { start: true, mapId: GERMANY })
 
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
@@ -343,6 +426,162 @@ const EAST_COAST_ROUND: PlayedRound = {
 }
 
 export const TABLE_FIXTURES: readonly TableFixture[] = [
+    // R-8.5: Germany in round 4. Red, Blue and Purple stand in Berlin, one city over two cells;
+    // Orange in München lights the mountain beside it, which costs its turn nothing.
+    {
+        slug: 'germany-berlin',
+        name: 'Germany berlin',
+        recipe: {
+            mapId: DE,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, DE_RED_BERLIN.slice(0, 4)]] },
+                        { playerId: 'p2', runs: [[BLUE, DE_BLUE_BERLIN.slice(0, 4)]] },
+                        { playerId: 'p3', runs: [[RED, DE_RED_BERLIN.slice(4)]] }
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 1 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: BLUE, p3: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, [cityHexId('München', DE)]]] },
+                        { playerId: 'p2', runs: [[BLUE, DE_BLUE_BERLIN.slice(4)]] }
+                    ],
+                    journeys: { p1: 2, p2: 1, p3: 2 }
+                },
+                {
+                    shares: { p2: RED, p3: YELLOW, p1: YELLOW },
+                    builds: [],
+                    journeys: { p1: 4, p2: 0, p3: 3 }
+                },
+                {
+                    shares: { p3: PURPLE, p1: PURPLE, p2: PURPLE },
+                    builds: [{ playerId: 'p2', runs: [[PURPLE, [cityHexId('Berlin', DE)]]] }]
+                }
+            ],
+            phase: PhaseName.Build,
+            currentPlayerId: 'p1',
+            carried: [cityIdOf('Leipzig', DE), cityIdOf('Dresden', DE)]
+        }
+    },
+    // R-8.4: France in round 2. Red stands in the entry hex north of Paris, so Paris lights with
+    // its $10; Orange in Le Havre lights round it, never across the estuary to Caen.
+    {
+        slug: 'france-paris-ring',
+        name: 'France paris ring',
+        recipe: {
+            mapId: FR,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, FR_RED_TO_PARIS.slice(0, 4)]] },
+                        { playerId: 'p2', runs: [[BLUE, FR_BLUE_REIMS]] },
+                        { playerId: 'p3', runs: [[RED, FR_RED_TO_PARIS.slice(4)]] }
+                    ],
+                    journeys: { p1: 2, p2: 1, p3: 4 }
+                },
+                {
+                    shares: { p3: ORANGE, p1: ORANGE, p2: ORANGE },
+                    builds: [{ playerId: 'p2', runs: [[ORANGE, [cityHexId('Le Havre', FR)]]] }]
+                }
+            ],
+            phase: PhaseName.Build,
+            currentPlayerId: 'p1',
+            carried: [cityIdOf('Lille', FR)]
+        }
+    },
+    // R-8.3: Canada in round 4. Red, Blue and Purple stand in Toronto; Purple runs on beside it,
+    // where an impassable side parts that hex from the one south of it.
+    {
+        slug: 'canada-toronto',
+        name: 'Canada toronto',
+        recipe: {
+            mapId: CA,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: BLUE },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, CA_RED_TORONTO.slice(0, 7)]] },
+                        { playerId: 'p2', runs: [[BLUE, CA_BLUE_TORONTO.slice(0, 7)]] },
+                        { playerId: 'p3', runs: [[BLUE, CA_BLUE_TORONTO.slice(7)]] }
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: RED, p3: RED },
+                    builds: [{ playerId: 'p2', runs: [[RED, CA_RED_TORONTO.slice(7)]] }],
+                    journeys: { p1: 2, p2: 2, p3: 2 }
+                },
+                {
+                    shares: { p1: YELLOW, p2: BLUE, p3: ORANGE },
+                    builds: [
+                        {
+                            playerId: 'p1',
+                            runs: [[YELLOW, [cityHexId('Sault Ste. Marie', CA)]]]
+                        }
+                    ],
+                    journeys: { p1: 6, p2: 0, p3: 2 }
+                },
+                {
+                    shares: { p3: PURPLE, p1: PURPLE, p2: PURPLE },
+                    builds: [
+                        {
+                            playerId: 'p2',
+                            runs: [[PURPLE, [cityHexId('Toronto', CA), CA_IMPASSABLE_PAIR[0]]]]
+                        }
+                    ]
+                }
+            ],
+            phase: PhaseName.Build,
+            currentPlayerId: 'p1',
+            carried: [cityIdOf('Montréal', CA), cityIdOf('Windsor', CA)]
+        }
+    },
+    // R-8.2: Australia in round 4. Orange stands in the chain's first long-distance hex, so Ada's
+    // Orange placement in the next, her turn's first, ends her turn; Blue runs past the Alps over
+    // the mountains.
+    {
+        slug: 'australia-perth-chain',
+        name: 'Australia perth chain',
+        recipe: {
+            mapId: AU,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, AU_RED_SYDNEY]] },
+                        { playerId: 'p2', runs: [[BLUE, AU_BLUE_ALPS.slice(0, 3)]] },
+                        { playerId: 'p3', runs: [[RED, AU_RED_COWRA]] }
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: BLUE, p3: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, [cityHexId('Adelaide', AU)]]] },
+                        { playerId: 'p2', runs: [[BLUE, AU_BLUE_ALPS.slice(3)]] }
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                {
+                    shares: { p1: YELLOW, p2: RED, p3: YELLOW },
+                    // A long-distance hex takes only a turn's first placement, and ends the turn.
+                    builds: [{ playerId: 'p1', runs: [[ORANGE, [AU_PERTH_CHAIN[0]]]] }],
+                    journeys: { p1: 2, p2: 4, p3: 6 }
+                },
+                { shares: { p3: PURPLE, p2: BLUE, p1: PURPLE }, builds: [] }
+            ],
+            phase: PhaseName.Build,
+            carried: [cityIdOf('Sydney', AU), cityIdOf('Melbourne', AU)]
+        }
+    },
     // Scenario 1: the last seat in turn order takes the game's first share (R-2.2, R-3.1).
     {
         slug: 'first-share',
@@ -742,6 +981,74 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             carried: [cityIdOf('Albany'), cityIdOf('Baltimore'), cityIdOf('Philadelphia')]
         }
     },
+    // The map's Ride button beside a crowded city: round 3, Ride, Ada first. Orange runs from
+    // Chicago to Milwaukee and on its other side to Detroit, and Yellow from Chicago to Cincinnati,
+    // so a journey from Milwaukee into Chicago has Detroit lit east of the city and Cincinnati
+    // below it.
+    {
+        slug: 'crowded-chicago',
+        name: 'Crowded chicago',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                { ...EAST_COAST_ROUND, journeys: { p1: 2, p2: 3, p3: 4, p4: 5 } },
+                {
+                    shares: { p4: ORANGE, p3: ORANGE, p2: RED, p1: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_DETROIT]] }
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 5, p4: 5 }
+                },
+                {
+                    shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
+                    builds: [{ playerId: 'p2', runs: [[YELLOW, YELLOW_CINCINNATI]] }]
+                }
+            ],
+            phase: PhaseName.Ride,
+            carried: [
+                cityIdOf('Albany'),
+                cityIdOf('Washington'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Chicago')
+            ]
+        }
+    },
+    // Crowded chicago with Yellow on to Saint Louis as well, so a journey from Milwaukee into
+    // Chicago also has Saint Louis lit south-west of the city: on a phone's whole map no place
+    // beside Chicago is clear for the map's Ride button.
+    {
+        slug: 'ringed-chicago',
+        name: 'Ringed chicago',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                { ...EAST_COAST_ROUND, journeys: { p1: 2, p2: 3, p3: 4, p4: 5 } },
+                {
+                    shares: { p4: ORANGE, p3: ORANGE, p2: RED, p1: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_DETROIT]] }
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 5, p4: 5 }
+                },
+                {
+                    shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
+                    builds: [
+                        { playerId: 'p2', runs: [[YELLOW, YELLOW_CINCINNATI]] },
+                        { playerId: 'p4', runs: [[YELLOW, YELLOW_CHICAGO_SAINT_LOUIS]] }
+                    ]
+                }
+            ],
+            phase: PhaseName.Ride,
+            carried: [
+                cityIdOf('Albany'),
+                cityIdOf('Washington'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Chicago')
+            ]
+        }
+    },
     // Scenario 19: round 6's last journey. Cora's ride from Saint Louis brings her level with Ada,
     // and the two share the win (R-6.2).
     {
@@ -801,6 +1108,110 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                 cityIdOf('Chicago'),
                 cityIdOf('Des Moines')
             ]
+        }
+    },
+    // R-8.3: Yellow's last hex into Toronto joins Sault Ste. Marie, Windsor and Québec City, the
+    // Intercolonial's link cities, for the first time.
+    {
+        slug: 'canada-link-in-reach',
+        name: 'Canada link in reach',
+        recipe: {
+            playerCount: 4,
+            mapId: CANADA,
+            rounds: [
+                {
+                    shares: { p1: BLUE, p2: RED, p3: BLUE, p4: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[BLUE, BLUE_WINDSOR_TORONTO.slice(0, 5)]] },
+                        { playerId: 'p2', runs: [[RED, RED_MONTREAL_TORONTO.slice(0, 5)]] },
+                        { playerId: 'p3', runs: [[BLUE, BLUE_WINDSOR_TORONTO.slice(5, 10)]] },
+                        { playerId: 'p4', runs: [[RED, RED_MONTREAL_TORONTO.slice(5, 10)]] }
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4, p4: 5 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: ORANGE, p3: RED, p4: ORANGE },
+                    builds: [
+                        {
+                            playerId: 'p1',
+                            runs: [
+                                [BLUE, BLUE_WINDSOR_TORONTO.slice(10)],
+                                [ORANGE, ORANGE_QUEBEC_MONTREAL.slice(0, 2)]
+                            ]
+                        },
+                        { playerId: 'p2', runs: [[ORANGE, ORANGE_QUEBEC_MONTREAL.slice(2, 7)]] },
+                        { playerId: 'p3', runs: [[RED, RED_MONTREAL_TORONTO.slice(10)]] },
+                        { playerId: 'p4', runs: [[ORANGE, ORANGE_QUEBEC_MONTREAL.slice(7)]] }
+                    ],
+                    journeys: { p1: 3, p2: 6, p3: 3, p4: 6 }
+                },
+                {
+                    shares: { p1: YELLOW, p2: YELLOW, p3: YELLOW, p4: YELLOW },
+                    builds: [
+                        { playerId: 'p1', runs: [[YELLOW, YELLOW_SAULT_TORONTO.slice(0, 5)]] },
+                        { playerId: 'p2', runs: [[YELLOW, YELLOW_SAULT_TORONTO.slice(5, 10)]] },
+                        { playerId: 'p3', runs: [[YELLOW, YELLOW_SAULT_TORONTO.slice(10, 15)]] },
+                        { playerId: 'p4', runs: [[YELLOW, YELLOW_SAULT_TORONTO.slice(15, -1)]] }
+                    ],
+                    journeys: { p1: 4, p2: 4, p3: 4, p4: 4 }
+                },
+                { shares: { p4: ORANGE, p3: BLUE, p2: RED, p1: YELLOW }, builds: [] }
+            ],
+            phase: PhaseName.Build
+        }
+    },
+    // R-8.5: Yellow's last hex into Berlin joins Hamburg, Köln, Dresden and München to it, Greater
+    // Germany's link cities, for the first time.
+    {
+        slug: 'germany-link-in-reach',
+        name: 'Germany link in reach',
+        recipe: {
+            playerCount: 4,
+            mapId: GERMANY,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED, p4: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, RED_KOLN_HAMBURG.slice(0, 5)]] },
+                        { playerId: 'p2', runs: [[BLUE, BLUE_DRESDEN_BERLIN.slice(0, 5)]] },
+                        { playerId: 'p3', runs: [[RED, RED_KOLN_HAMBURG.slice(5, 10)]] },
+                        { playerId: 'p4', runs: [[RED, RED_KOLN_HAMBURG.slice(10, 15)]] }
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4, p4: 5 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: ORANGE, p3: ORANGE, p4: ORANGE },
+                    builds: [
+                        {
+                            playerId: 'p1',
+                            runs: [
+                                [RED, RED_KOLN_HAMBURG.slice(15)],
+                                [ORANGE, ORANGE_MUNCHEN_DRESDEN.slice(0, 4)]
+                            ]
+                        },
+                        {
+                            playerId: 'p2',
+                            runs: [
+                                [BLUE, BLUE_DRESDEN_BERLIN.slice(5)],
+                                [ORANGE, ORANGE_MUNCHEN_DRESDEN.slice(4, 7)]
+                            ]
+                        },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_MUNCHEN_DRESDEN.slice(7, 12)]] },
+                        { playerId: 'p4', runs: [[ORANGE, ORANGE_MUNCHEN_DRESDEN.slice(12)]] }
+                    ],
+                    journeys: { p1: 5, p2: 2, p3: 5, p4: 5 }
+                },
+                {
+                    shares: { p1: YELLOW, p2: YELLOW, p3: YELLOW, p4: YELLOW },
+                    builds: [
+                        { playerId: 'p1', runs: [[YELLOW, YELLOW_HAMBURG_BERLIN.slice(0, 5)]] },
+                        { playerId: 'p2', runs: [[YELLOW, YELLOW_HAMBURG_BERLIN.slice(5, -1)]] }
+                    ],
+                    journeys: { p1: 4, p2: 4, p3: 4, p4: 4 }
+                },
+                { shares: { p4: RED, p3: BLUE, p2: PURPLE, p1: YELLOW }, builds: [] }
+            ],
+            phase: PhaseName.Build
         }
     }
 ]

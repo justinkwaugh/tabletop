@@ -7,7 +7,7 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { CityId } from '../data/usaMap.js'
+import { CityId } from '../data/boardMap.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { isRidingPlayer } from '../rules/riding.js'

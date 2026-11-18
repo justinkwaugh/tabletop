@@ -7,7 +7,7 @@ import {
     RAILROAD_IDS,
     RAILROAD_INTRODUCTIONS,
     supplyOf,
-    usaCity,
+    cityById,
     type HexId
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
@@ -27,9 +27,9 @@ afterEach(() => {
     disposeSessions()
 })
 
-const NEW_YORK: HexId = usaCity('city.usa.new-york').hexId
-const PITTSBURGH: HexId = usaCity('city.usa.pittsburgh').hexId
-const CHICAGO: HexId = usaCity('city.usa.chicago').hexId
+const NEW_YORK: HexId = cityById('city.usa.new-york').hexId
+const PITTSBURGH: HexId = cityById('city.usa.pittsburgh').hexId
+const CHICAGO: HexId = cityById('city.usa.chicago').hexId
 
 describe('the railroad cards', () => {
     const state = buildState({

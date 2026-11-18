@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { HexId } from '../data/hexes.js'
-import type { RailroadId } from '../data/railroads.js'
+import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import { PhaseName } from '../definition/phases.js'
 import { USA_CITIES } from '../data/usaMap.js'
 import type { Track } from '../model/gameState.js'
+import { boardMap, cityById } from '../data/boardMaps.js'
+import { MAP_IDS, type MapId } from '../data/maps.js'
 import { buildState } from '../testing/fixtures.js'
-import { placementTest, startCityIds } from './placement.js'
-import { westernmostOccupiedCities } from './startRailroad.js'
+import { legalPlacements, placementTest, startCityIds } from './placement.js'
+import { ALPHA, BETA, FLAT_FIXTURE_MAP, GAMMA } from '../testing/flatFixtureMap.js'
+import {
+    cityFitsStartRule,
+    noRailroadStartsIn,
+    westernmostOccupiedCities
+} from './startRailroad.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -289,5 +296,244 @@ describe('the cities a railroad may start in now (R-4.2)', () => {
                 )
             }
         }
+    })
+})
+
+// R-4.2, R-8: the expansion maps start a railroad in a city printed in its colour.
+describe('start rules by printed colour (R-4.2, R-8)', () => {
+    const alpha = FLAT_FIXTURE_MAP.city(ALPHA)
+    const beta = FLAT_FIXTURE_MAP.city(BETA)
+    const gamma = FLAT_FIXTURE_MAP.city(GAMMA)
+
+    it('printed-colour: starts a railroad only in a city printing its colour', () => {
+        expect(cityFitsStartRule('printed-colour', alpha, 'railroad.red', {})).toBe(true)
+        expect(cityFitsStartRule('printed-colour', alpha, 'railroad.blue', {})).toBe(false)
+        expect(cityFitsStartRule('printed-colour', beta, 'railroad.blue', {})).toBe(true)
+        expect(cityFitsStartRule('printed-colour', gamma, 'railroad.red', {})).toBe(false)
+    })
+
+    it('printed-colour-or-berlin: starts a railroad in a city printing its colour, as printed-colour', () => {
+        expect(cityFitsStartRule('printed-colour-or-berlin', alpha, 'railroad.red', {})).toBe(true)
+        expect(cityFitsStartRule('printed-colour-or-berlin', alpha, 'railroad.blue', {})).toBe(
+            false
+        )
+        expect(cityFitsStartRule('printed-colour-or-berlin', gamma, 'railroad.purple', {})).toBe(
+            false
+        )
+    })
+
+    it('keeps the USA starts on their own rules, whatever colours the cities print', () => {
+        const chicago = USA_CITIES.find((city) => city.id === 'city.usa.chicago')
+        expect(chicago?.startColours).toContain('railroad.yellow')
+        expect(cityFitsStartRule('west-coast', chicago ?? alpha, 'railroad.yellow', {})).toBe(false)
+        expect(cityFitsStartRule('any-city', alpha, 'railroad.black', {})).toBe(true)
+    })
+
+    it('any-city-but-long-distance: starts Black in any city but a long-distance one (R-8.2)', () => {
+        const perth = boardMap('map.au').city('city.au.perth')
+        const brisbane = boardMap('map.au').city('city.au.brisbane')
+        const adelaide = boardMap('map.au').city('city.au.adelaide')
+        const rule = 'any-city-but-long-distance'
+        expect(cityFitsStartRule(rule, adelaide, 'railroad.black', {})).toBe(true)
+        expect(cityFitsStartRule(rule, perth, 'railroad.black', {})).toBe(false)
+        expect(cityFitsStartRule(rule, brisbane, 'railroad.black', {})).toBe(false)
+        expect(cityFitsStartRule('any-city', perth, 'railroad.black', {})).toBe(true)
+    })
+})
+
+function emptyBoard(mapId: MapId) {
+    return buildState({ mapId, round: 6, phase: PhaseName.Build, shares: { p1: ALL_SHARES } })
+}
+
+describe('Australia (R-8.2)', () => {
+    const state = emptyBoard('map.au')
+
+    it('starts Red, Blue, Orange and Yellow each in the one city printed in its colour, Yellow only in Wagga Wagga', () => {
+        expect(startCityIds(state, 'railroad.red')).toEqual(['city.au.sydney'])
+        expect(startCityIds(state, 'railroad.blue')).toEqual(['city.au.melbourne'])
+        expect(startCityIds(state, 'railroad.orange')).toEqual(['city.au.adelaide'])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual(['city.au.wagga-wagga'])
+    })
+
+    it('starts Purple in every city printed Purple', () => {
+        expect(startCityIds(state, 'railroad.purple')).toEqual(
+            boardMap('map.au')
+                .cities.filter((city) => city.startColours.includes('railroad.purple'))
+                .map((city) => city.id)
+        )
+        expect(startCityIds(state, 'railroad.purple')).toHaveLength(51)
+    })
+
+    it('starts Black in any city with room but Perth and Brisbane (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.au')
+                .cities.map((city) => city.id)
+                .filter((cityId) => cityId !== 'city.au.perth' && cityId !== 'city.au.brisbane')
+        )
+        expect(startCityIds(state, 'railroad.black')).toHaveLength(52)
+    })
+
+    it('names Perth and Brisbane, of every map’s cities, as where no railroad starts', () => {
+        const startless = MAP_IDS.flatMap((mapId) =>
+            boardMap(mapId)
+                .cities.filter((city) => noRailroadStartsIn(city))
+                .map((city) => city.id)
+        )
+        expect(startless).toEqual(['city.au.brisbane', 'city.au.perth'])
+    })
+
+    it('starts no railroad in Perth or Brisbane: no offer there, and a start refused with a reason', () => {
+        const offered = legalPlacements(state, 'p1').map((placement) => placement.hexId)
+        for (const hexId of ['hex.au.0-12', 'hex.au.34-6'] as const) {
+            expect(offered, hexId).not.toContain(hexId)
+            for (const railroadId of RAILROAD_IDS) {
+                expect(placementTest(state, 'p1', railroadId, hexId), railroadId).toEqual({
+                    legal: false,
+                    reason: 'not-adjacent-or-start'
+                })
+            }
+        }
+    })
+
+    it('refuses Yellow a start anywhere but Wagga Wagga', () => {
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.au.22-18')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.au.31-15')).toEqual({
+            legal: false,
+            reason: 'not-adjacent-or-start'
+        })
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    const state = emptyBoard('map.ca')
+
+    it('starts each coloured railroad in the one city printed in its colour, Yellow only in Sault Ste. Marie', () => {
+        expect(startCityIds(state, 'railroad.red')).toEqual(['city.ca.montreal'])
+        expect(startCityIds(state, 'railroad.blue')).toEqual(['city.ca.windsor'])
+        expect(startCityIds(state, 'railroad.orange')).toEqual(['city.ca.quebec-city'])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual(['city.ca.sault-ste-marie'])
+        expect(startCityIds(state, 'railroad.purple')).toEqual(['city.ca.toronto'])
+    })
+
+    it('starts Black in any city with room (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.ca').cities.map((city) => city.id)
+        )
+    })
+
+    it('refuses Yellow a start anywhere but Sault Ste. Marie', () => {
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.ca.0-2')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.ca.11-21')).toEqual({
+            legal: false,
+            reason: 'not-adjacent-or-start'
+        })
+    })
+})
+
+describe('France (R-8.4)', () => {
+    const state = emptyBoard('map.fr')
+    const RED_BLUE_BLACK = [
+        'city.fr.lille',
+        'city.fr.valenciennes',
+        'city.fr.sedan',
+        'city.fr.metz'
+    ]
+
+    it('starts Red and Blue in the Red/Blue/Black cities', () => {
+        expect(startCityIds(state, 'railroad.red')).toEqual(RED_BLUE_BLACK)
+        expect(startCityIds(state, 'railroad.blue')).toEqual(RED_BLUE_BLACK)
+    })
+
+    it('never starts Red and Blue in the same city, which holds one locomotive', () => {
+        const redInLille = buildState({
+            mapId: 'map.fr',
+            round: 6,
+            phase: PhaseName.Build,
+            shares: { p1: ALL_SHARES },
+            track: { 'hex.fr.15-1': ['railroad.red'] }
+        })
+        expect(placementTest(redInLille, 'p1', 'railroad.blue', 'hex.fr.15-1')).toEqual({
+            legal: false,
+            reason: 'hex-at-capacity'
+        })
+        expect(startCityIds(redInLille, 'railroad.blue')).toEqual(RED_BLUE_BLACK.slice(1))
+    })
+
+    it('starts Orange, Yellow and Purple each in the cities printed in its colour', () => {
+        expect(startCityIds(state, 'railroad.orange')).toEqual([
+            'city.fr.dunkerque',
+            'city.fr.cherbourg',
+            'city.fr.le-havre',
+            'city.fr.brest'
+        ])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual([
+            'city.fr.bordeaux',
+            'city.fr.toulouse',
+            'city.fr.marseille'
+        ])
+        expect(startCityIds(state, 'railroad.purple')).toEqual([
+            'city.fr.strasbourg',
+            'city.fr.paris',
+            'city.fr.basel',
+            'city.fr.geneve',
+            'city.fr.lyon'
+        ])
+    })
+
+    it('starts Black in any city with room (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.fr').cities.map((city) => city.id)
+        )
+    })
+})
+
+describe('Germany (R-8.5)', () => {
+    const state = emptyBoard('map.de')
+
+    it('starts Red and Blue in the Red/Blue/Black cities, Orange and Yellow in their colour’s', () => {
+        const redBlueBlack = ['city.de.essen', 'city.de.leipzig', 'city.de.dresden', 'city.de.koln']
+        expect(startCityIds(state, 'railroad.red')).toEqual(redBlueBlack)
+        expect(startCityIds(state, 'railroad.blue')).toEqual(redBlueBlack)
+        expect(startCityIds(state, 'railroad.orange')).toEqual([
+            'city.de.stuttgart',
+            'city.de.freiburg',
+            'city.de.munchen'
+        ])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual(['city.de.kiel', 'city.de.hamburg'])
+    })
+
+    it('starts Purple in Kassel, Erfurt or Berlin, and nowhere else', () => {
+        expect(startCityIds(state, 'railroad.purple')).toEqual([
+            'city.de.berlin',
+            'city.de.kassel',
+            'city.de.erfurt'
+        ])
+        expect(placementTest(state, 'p1', 'railroad.purple', 'hex.de.19-17')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.purple', 'hex.de.9-27')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.purple', 'hex.de.13-29')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.purple', 'hex.de.17-19')).toEqual(NO_START)
+    })
+
+    it('reads Berlin as a Purple start whatever its print, and no other city off Purple’s colour', () => {
+        const berlin = cityById('city.de.berlin')
+        const unprinted = { ...berlin, startColours: [] }
+        expect(
+            cityFitsStartRule('printed-colour-or-berlin', unprinted, 'railroad.purple', {})
+        ).toBe(true)
+        expect(cityFitsStartRule('printed-colour', unprinted, 'railroad.purple', {})).toBe(false)
+        expect(
+            cityFitsStartRule(
+                'printed-colour-or-berlin',
+                cityById('city.de.potsdam'),
+                'railroad.purple',
+                {}
+            )
+        ).toBe(false)
+    })
+
+    it('starts Black in any city with room (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.de').cities.map((city) => city.id)
+        )
     })
 })

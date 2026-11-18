@@ -5,7 +5,7 @@ import {
     PhaseName,
     RAILROAD_IDS,
     USA_CITIES,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type RailroadId
@@ -42,7 +42,7 @@ const KANSAS_CITY_TO_SAINT_LOUIS: HexId[] = [
 afterEach(() => disposeSessions())
 
 function hexOf(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 async function settled(session: RideTheRailsGameSession) {
@@ -63,7 +63,7 @@ describe('the cities on the map (R-4.1.4, R-4.3)', () => {
         const pieces = cityPieces(buildState())
         const single = pieces.filter((piece) => piece.capacityMark === '×1')
         expect(single).toHaveLength(6)
-        expect(single.every((piece) => usaCity(piece.cityId).groups.includes('east-coast'))).toBe(
+        expect(single.every((piece) => cityById(piece.cityId).groups.includes('east-coast'))).toBe(
             true
         )
         expect(
@@ -82,9 +82,24 @@ describe('the cities on the map (R-4.1.4, R-4.3)', () => {
             taken: true
         })
         expect(cityPieces(buildState()).find((piece) => piece.cityId === CHICAGO)?.bonus).toEqual({
-            kind: 'chicago',
-            amount: 2
+            kind: 'coin',
+            text: '$2'
         })
+    })
+
+    it('gives each expansion city its printed bonus as one gold pill, Toronto’s two prices in one (R-8)', () => {
+        const bonuses = (['map.au', 'map.ca', 'map.fr', 'map.de'] as const).flatMap((mapId) =>
+            cityPieces(buildState({ mapId })).flatMap((piece) =>
+                piece.bonus ? [[piece.name, piece.bonus]] : []
+            )
+        )
+        expect(bonuses).toEqual([
+            ['Brisbane', { kind: 'coin', text: '$20' }],
+            ['Perth', { kind: 'coin', text: '$50' }],
+            ['Toronto', { kind: 'coin', text: '$3/$2' }],
+            ['Paris', { kind: 'coin', text: '$10' }],
+            ['Berlin', { kind: 'coin', text: '$3' }]
+        ])
     })
 
     it('marks the coast cities as the Transcontinental ends, and passengers from the state (R-4.3.3, R-3.3.1)', () => {

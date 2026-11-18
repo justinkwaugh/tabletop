@@ -2,12 +2,13 @@ import { ActionSource, latestPlayerUndoTarget } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { hexIdAt, type HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, USA_HEXES, usaHex } from '../data/usaMap.js'
+import { adjacentHexIds, hexById } from '../data/boardMaps.js'
+import { USA_HEXES } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
-import { legalPlacements, placementTest, startCityIds } from '../rules/placement.js'
+import { legalPlacements, placementsLeft, placementTest, startCityIds } from '../rules/placement.js'
 import { westernmostOccupiedCities } from '../rules/startRailroad.js'
 import {
     buildState,
@@ -17,6 +18,8 @@ import {
     undoRun,
     type StateRecipe
 } from '../testing/fixtures.js'
+import { greaterGermanyOneShort } from '../testing/greaterGermany.js'
+import { intercolonialOneShort } from '../testing/intercolonial.js'
 import { HydratedPlaceLocomotive } from './placeLocomotive.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
@@ -103,7 +106,7 @@ function trackOf(...runs: [RailroadId, HexId[]][]): Track {
 }
 
 function plainNextTo(hexId: HexId): HexId {
-    const plain = adjacentHexIds(hexId).find((adjacent) => usaHex(adjacent).terrain === 'plain')
+    const plain = adjacentHexIds(hexId).find((adjacent) => hexById(adjacent).terrain === 'plain')
     if (!plain) {
         throw new Error(`No plain hex next to ${hexId}`)
     }
@@ -390,5 +393,209 @@ describe('Undo of a placement (R-5)', () => {
         )
         expect(undoRun(second)).toEqual(first.after)
         expect(undoRun(first)).toEqual(first.before)
+    })
+})
+
+describe('Australia (R-8.2)', () => {
+    const ADELAIDE: HexId = 'hex.au.4-14'
+    const LONG_DISTANCE_NEXT_TO_ADELAIDE: HexId = 'hex.au.3-13'
+    const PERTH_CHAIN_END: HexId = 'hex.au.1-13'
+    const PERTH: HexId = 'hex.au.0-12'
+    const BRISBANE_CHAIN_END: HexId = 'hex.au.34-8'
+    const BRISBANE: HexId = 'hex.au.34-6'
+
+    function australia(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
+        return building({
+            mapId: 'map.au',
+            track: { [ADELAIDE]: ['railroad.orange'] },
+            ...recipe
+        })
+    }
+
+    it('ends the turn with a long-distance placement, the reason long-distance, though placements are left', () => {
+        const { after, processed } = place(
+            australia(),
+            'railroad.orange',
+            LONG_DISTANCE_NEXT_TO_ADELAIDE
+        )
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.PlaceLocomotive,
+            ActionType.FinishBuilding
+        ])
+        expect(processed[1]).toMatchObject({
+            source: ActionSource.System,
+            playerId: 'p1',
+            metadata: { reason: 'long-distance', placed: 1 }
+        })
+        expect(after.track[LONG_DISTANCE_NEXT_TO_ADELAIDE]).toEqual(['railroad.orange'])
+        expect(after.activePlayerIds).toEqual(['p2'])
+        expect(after.building).toEqual({ placed: 0, usedMountain: false })
+    })
+
+    const atPerthsChainEnd = (recipe: StateRecipe = {}) =>
+        australia({
+            track: {
+                [ADELAIDE]: ['railroad.orange'],
+                [PERTH_CHAIN_END]: ['railroad.orange'],
+                [BRISBANE_CHAIN_END]: ['railroad.red']
+            },
+            ...recipe
+        })
+
+    it('pays Perth’s $50 to the turn’s first placement, which builds into it and ends the turn', () => {
+        const { after, processed } = place(atPerthsChainEnd(), 'railroad.orange', PERTH)
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.PlaceLocomotive,
+            ActionType.FinishBuilding
+        ])
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: false,
+                bonuses: [{ bonusId: 'bonus.au.perth', amount: 50, cityId: 'city.au.perth' }]
+            }
+        })
+        expect(processed[1]).toMatchObject({
+            source: ActionSource.System,
+            playerId: 'p1',
+            metadata: { reason: 'long-distance', placed: 1 }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(60)
+        expect(after.activePlayerIds).toEqual(['p2'])
+    })
+
+    it('pays Brisbane’s $20 to the turn’s first placement, which builds into it and ends the turn', () => {
+        const { after, processed } = place(atPerthsChainEnd(), 'railroad.red', BRISBANE)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: false,
+                bonuses: [{ bonusId: 'bonus.au.brisbane', amount: 20, cityId: 'city.au.brisbane' }]
+            }
+        })
+        expect(processed[1]).toMatchObject({ metadata: { reason: 'long-distance', placed: 1 } })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(30)
+        expect(after.activePlayerIds).toEqual(['p2'])
+    })
+
+    it('refuses a placement into Perth or Brisbane after another placement that turn', () => {
+        const later = atPerthsChainEnd({ building: { placed: 1, usedMountain: false } })
+        expect(placeAction('railroad.orange', PERTH).verdict(later)).toEqual({
+            legal: false,
+            reason: 'long-distance-not-first'
+        })
+        expect(placeAction('railroad.red', BRISBANE).verdict(later)).toEqual({
+            legal: false,
+            reason: 'long-distance-not-first'
+        })
+    })
+
+    it('refuses Black a start in Perth or Brisbane: no railroad starts there', () => {
+        for (const hexId of [PERTH, BRISBANE]) {
+            expect(placeAction('railroad.black', hexId).verdict(australia()), hexId).toEqual({
+                legal: false,
+                reason: 'not-adjacent-or-start'
+            })
+            expect(() => placeAction('railroad.black', hexId).apply(australia())).toThrow(
+                /not-adjacent-or-start/
+            )
+        }
+    })
+
+    it('takes back a long-distance placement and the end of the turn it made (R-5)', () => {
+        const run = place(australia(), 'railroad.orange', LONG_DISTANCE_NEXT_TO_ADELAIDE)
+        expect(undoRun(run)).toEqual(run.before)
+    })
+})
+
+describe('Canada (R-8.3)', () => {
+    const TORONTO: HexId = 'hex.ca.11-21'
+    const NORTH_OF_TORONTO: HexId = 'hex.ca.11-19'
+
+    it('pays Toronto’s $3 for a placement there that is no start', () => {
+        const state = building({
+            mapId: 'map.ca',
+            track: { [NORTH_OF_TORONTO]: ['railroad.red'], [TORONTO]: ['railroad.purple'] }
+        })
+        const { after, processed } = place(state, 'railroad.red', TORONTO)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: false,
+                bonuses: [{ bonusId: 'bonus.ca.toronto', amount: 3, cityId: 'city.ca.toronto' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(13)
+    })
+
+    it('pays and claims the Intercolonial once, to the first placement that joins its cities', () => {
+        const { track, railroadId, hexId } = intercolonialOneShort()
+        const { after, processed } = place(building({ mapId: 'map.ca', track }), railroadId, hexId)
+        expect(processed[0]).toMatchObject({
+            metadata: { bonuses: [{ bonusId: 'bonus.ca.intercolonial', amount: 8 }] }
+        })
+        expect(after.connectionClaim).toEqual({ playerId: 'p1' })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(18)
+    })
+})
+
+describe('France (R-8.4)', () => {
+    const PARIS: HexId = 'hex.fr.13-13'
+
+    it('pays Paris’s $10 for a start there', () => {
+        const { after, processed } = place(
+            building({ mapId: 'map.fr', track: {} }),
+            'railroad.purple',
+            PARIS
+        )
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: true,
+                bonuses: [{ bonusId: 'bonus.fr.paris', amount: 10, cityId: 'city.fr.paris' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(20)
+    })
+})
+
+describe('Germany (R-8.5)', () => {
+    const STUTTGART: HexId = 'hex.de.8-46'
+    const MOUNTAIN_NORTH_OF_STUTTGART: HexId = 'hex.de.8-44'
+    const BERLIN: HexId = 'hex.de.19-17'
+
+    function germany(track: Track) {
+        return building({ mapId: 'map.de', track, building: { placed: 0, usedMountain: false } })
+    }
+
+    it('leaves the limit and the turn’s mountain charge alone for Orange’s mountain placement', () => {
+        const state = germany({ [STUTTGART]: ['railroad.orange', 'railroad.red'] })
+        const { after } = place(state, 'railroad.orange', MOUNTAIN_NORTH_OF_STUTTGART)
+        expect(after.building).toEqual({ placed: 1, usedMountain: false })
+        expect(placementsLeft(hydrated(after))).toBe(7)
+    })
+
+    it('spends the charge, once, for another railroad’s mountain placement', () => {
+        const state = germany({ [STUTTGART]: ['railroad.orange', 'railroad.red'] })
+        const { after } = place(state, 'railroad.red', MOUNTAIN_NORTH_OF_STUTTGART)
+        expect(after.building).toEqual({ placed: 1, usedMountain: true })
+        expect(placementsLeft(hydrated(after))).toBe(6)
+    })
+
+    it('pays Berlin’s $3 for a start there', () => {
+        const { after, processed } = place(germany({}), 'railroad.purple', BERLIN)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: true,
+                bonuses: [{ bonusId: 'bonus.de.berlin', amount: 3, cityId: 'city.de.berlin' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(13)
+    })
+
+    it('pays and claims Greater Germany once, to the first placement that joins its five cities', () => {
+        const { track, railroadId, hexId } = greaterGermanyOneShort()
+        const { after, processed } = place(germany(track), railroadId, hexId)
+        expect(processed[0]).toMatchObject({
+            metadata: { bonuses: [{ bonusId: 'bonus.de.greater-germany', amount: 12 }] }
+        })
+        expect(after.connectionClaim).toEqual({ playerId: 'p1' })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(22)
     })
 })

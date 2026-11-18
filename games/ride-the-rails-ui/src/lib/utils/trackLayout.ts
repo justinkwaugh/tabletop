@@ -1,4 +1,4 @@
-import { assertExists, type Point, type RectangleDimensions } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import {
     hexCapacity,
     isCityHex,
@@ -8,74 +8,26 @@ import {
     type RailroadId,
     type Track
 } from '@tabletop/ride-the-rails'
-import { hexCenter } from './boardGeometry.js'
-import { CUBE_UNIT } from './cubeShape.js'
+import { hexCells, hexCenter, hexFrameOf } from './boardGeometry.js'
+import { CUBE_EDGE_WIDTH, CUBE_UNIT } from './cubeShape.js'
+import type { TrackSlot, TrackSlotLayout, TrackSlotOffsets } from './hexFrame.js'
 
-export type TrackSlot = Point & RectangleDimensions
-
-export type TrackSlotLayout = 'open-hex' | 'city' | 'east-coast-city' | 'chicago'
+export type { TrackSlot, TrackSlotLayout } from './hexFrame.js'
 
 // R-4.1.3: one cube per railroad, so a hex with no limit never holds more than the six railroads.
 export const MOST_LOCOMOTIVES_IN_A_HEX = RAILROAD_IDS.length
 
-function slot(x: number, y: number, width: number): TrackSlot {
-    return { x, y, width, height: width }
-}
-
-// Art plan, Cube slots: every cube one size and in the same places but Chicago's, which holds six;
-// each wholly inside its hex and apart from the next. A city's marks sit above them.
-const CUBE_WIDTH = 26
-const COLUMN_X = 16.8
-const TRACK_Y = 2
-const CHICAGO_WIDTH = 16
-const CHICAGO_ROWS_Y = [-7.5, 9.5] as const
-const CHICAGO_COLUMN_X = 19.6
-
-// R-4.1.4: two cubes side by side, one in an East Coast city, Chicago two rows of three, the back
-// row first.
-const SLOT_OFFSETS: Readonly<Record<TrackSlotLayout, readonly TrackSlot[]>> = {
-    'open-hex': [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
-    city: [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
-    'east-coast-city': [slot(0, TRACK_Y, CUBE_WIDTH)],
-    chicago: CHICAGO_ROWS_Y.flatMap((y) =>
-        [-CHICAGO_COLUMN_X, 0, CHICAGO_COLUMN_X].map((x) => slot(x, y, CHICAGO_WIDTH))
-    )
-}
-
-// A hex holding one cube stands it in the middle; a second moves it aside into the first slot.
-const LONE_CUBE: Partial<Record<TrackSlotLayout, TrackSlot>> = {
-    'open-hex': slot(0, TRACK_Y, CUBE_WIDTH),
-    city: slot(0, TRACK_Y, CUBE_WIDTH)
-}
-
-// Chicago's cubes by how many it holds, in placement order: one full size in the middle, two side
-// by side like any city, then smaller: three straight across, then those three up a row with the
-// fourth below in the middle, the fifth splitting the bottom row in two, the sixth making two rows
-// of three.
-const [TOP_ROW_Y, BOTTOM_ROW_Y] = CHICAGO_ROWS_Y
-const CHICAGO_ROW = [-CHICAGO_COLUMN_X, 0, CHICAGO_COLUMN_X]
-const CHICAGO_HALF_X = CHICAGO_COLUMN_X / 2
-const CHICAGO_LAYOUTS: Readonly<Record<number, readonly TrackSlot[]>> = {
-    1: [slot(0, TRACK_Y, CUBE_WIDTH)],
-    2: [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
-    3: CHICAGO_ROW.map((x) => slot(x, TRACK_Y, CHICAGO_WIDTH)),
-    4: [
-        ...CHICAGO_ROW.map((x) => slot(x, TOP_ROW_Y, CHICAGO_WIDTH)),
-        slot(0, BOTTOM_ROW_Y, CHICAGO_WIDTH)
-    ],
-    5: [
-        ...CHICAGO_ROW.map((x) => slot(x, TOP_ROW_Y, CHICAGO_WIDTH)),
-        slot(-CHICAGO_HALF_X, BOTTOM_ROW_Y, CHICAGO_WIDTH),
-        slot(CHICAGO_HALF_X, BOTTOM_ROW_Y, CHICAGO_WIDTH)
-    ]
-}
-
-function layoutOffsets(layout: TrackSlotLayout, held: number | undefined): readonly TrackSlot[] {
+// Art plan, Cube slots: the slots of the hex's frame (`hexFrame`), placed from its centre.
+function layoutOffsets(
+    slots: TrackSlotOffsets,
+    layout: TrackSlotLayout,
+    held: number | undefined
+): readonly TrackSlot[] {
     if (layout === 'chicago') {
-        return (held === undefined ? undefined : CHICAGO_LAYOUTS[held]) ?? SLOT_OFFSETS.chicago
+        return (held === undefined ? undefined : slots.chicago[held]) ?? slots.byLayout.chicago
     }
-    const lone = held === 1 ? LONE_CUBE[layout] : undefined
-    return lone ? [lone] : SLOT_OFFSETS[layout]
+    const lone = held === 1 ? slots.lone[layout] : undefined
+    return lone ? [lone] : slots.byLayout[layout]
 }
 
 export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
@@ -85,15 +37,77 @@ export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
     return isCityHex(hexId) ? 'city' : 'open-hex'
 }
 
+// R-8.5: how many of a twin city's cubes each of its two cells holds, by how many it holds.
+const TWIN_SHARES: Readonly<Record<number, readonly [number, number]>> = {
+    1: [1, 0],
+    2: [1, 1],
+    3: [2, 1],
+    4: [2, 2],
+    5: [3, 2],
+    6: [3, 3]
+}
+
+/**
+ * R-8.5: a city over two cells (Berlin) holds its cubes in turn in each cell, its own first: one
+ * each full size, two each full size, then Chicago's small size at five or six.
+ */
+function twinSlots(hexId: HexId, held: number): TrackSlot[] {
+    const cells = hexCells(hexId)
+    const { twinCell } = hexFrameOf(hexId).trackSlots
+    const shares = TWIN_SHARES[held] ?? TWIN_SHARES[MOST_LOCOMOTIVES_IN_A_HEX] ?? [0, 0]
+    const small = held >= 5
+    const cellSlots = (count: number): readonly TrackSlot[] =>
+        count >= 3
+            ? twinCell.three
+            : count === 2
+              ? small
+                  ? twinCell.smallTwo
+                  : twinCell.two
+              : twinCell.one
+    const [own, second] = cells.map((cell, index) =>
+        cellSlots(shares[index] ?? 0).map((offset) => ({
+            ...offset,
+            x: cell.center.x + offset.x,
+            y: cell.center.y + offset.y
+        }))
+    )
+    return Array.from({ length: shares[0] + shares[1] }, (_, index) => {
+        const slot = index % 2 === 0 ? own?.[index / 2] : second?.[(index - 1) / 2]
+        assertExists(slot, `Hex ${hexId} has no twin slot ${index}`)
+        return slot
+    })
+}
+
 /** The hex's slots when it holds `held` cubes: a lone cube stands in the middle; Chicago's
- * cubes regroup as they arrive (CHICAGO_LAYOUTS). */
+ * cubes regroup as they arrive (CHICAGO_LAYOUTS); a city over two cells alternates them. */
 export function trackSlots(hexId: HexId, held?: number): TrackSlot[] {
+    if (hexCells(hexId).length > 1) return twinSlots(hexId, held ?? MOST_LOCOMOTIVES_IN_A_HEX)
     const center = hexCenter(hexId)
-    return layoutOffsets(trackSlotLayout(hexId), held).map((offset) => ({
+    const slots = hexFrameOf(hexId).trackSlots
+    return layoutOffsets(slots, trackSlotLayout(hexId), held).map((offset) => ({
         ...offset,
         x: center.x + offset.x,
         y: center.y + offset.y
     }))
+}
+
+/**
+ * The top of the highest cube the hex's own cell can ever hold, its edge included, from that
+ * cell's centre: a city's row in every city, higher in one with no limit (R-4.1.3), whose small
+ * cubes stand a top row from four railroads. Berlin's second cell is left out.
+ */
+export function highestCubeTop(hexId: HexId): number {
+    const [own, ...others] = hexCells(hexId)
+    assertExists(own, `Hex ${hexId} covers no cell`)
+    const from = (slot: TrackSlot, center: Point) =>
+        Math.hypot(slot.x - center.x, slot.y - center.y)
+    const tops = Array.from({ length: MOST_LOCOMOTIVES_IN_A_HEX }, (_, index) =>
+        trackSlots(hexId, index + 1)
+    )
+        .flat()
+        .filter((slot) => others.every((cell) => from(slot, own.center) <= from(slot, cell.center)))
+        .map((slot) => slot.y - own.center.y - slot.height / 2 - CUBE_EDGE_WIDTH / 2)
+    return Math.min(...tops)
 }
 
 /** The slot of the hex's cube at this place in the hex's placement order, of `held` cubes. */
