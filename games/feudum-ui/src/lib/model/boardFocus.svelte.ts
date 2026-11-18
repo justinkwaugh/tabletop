@@ -17,7 +17,9 @@ import {
     StackCentres,
     VoyageSpaces,
     railOverRect,
+    StandingsStrip,
     standingsStripHeight,
+    stripRailDrawingHeight,
     westGuild,
     type Point
 } from '$lib/utils/boardGeometry.js'
@@ -82,13 +84,111 @@ export function deskScaledHeight(seats: number): number {
     return MapArea.height + standingsStripHeight(seats) + ZoomRowBand
 }
 
-/** A desk's rest: the map, the standings' strip and the band contained between the gutters. */
-export function deskRestScaleOf(viewWidth: number, viewHeight: number, seats: number): number {
+/** A width and a height in screen pixels: a view, or the room the game column leaves it. */
+export interface Size {
+    readonly width: number
+    readonly height: number
+}
+
+/**
+ * Contract, Desk layout: the side column. Where the map's height binds, the guild standings and the
+ * zoom row leave the space under the map and stand in a column right of the East button: the six
+ * standings, the score line, then Key, Supply and the zoom buttons along its foot. One standing a row
+ * the column is as wide as that row; two a row, as wide as two standings at their own size.
+ */
+export interface DeskColumn {
+    readonly perRow: 1 | 2
+    readonly width: number
+}
+
+/** The gap between the East button and the column. */
+export const DeskColumnGap = 8
+/** The column's width with one standing a row: the zoom buttons, Key and Supply in one row. */
+export const DeskColumnWidth = 256
+/** Between two standings in the column, down and across. */
+export const DeskColumnRailGap = 4
+/** The zoom row at the column's foot, the zoom buttons' height. */
+export const DeskZoomRow = 36
+/** The gaps over the zoom row and over the score line. */
+export const DeskColumnSpacing = 6
+/** The column's score line: two seats a line, each line this tall, within its padding and frame. */
+export const DeskScoreLineRow = 24
+export const DeskScoreLineFrame = 12
+/** One standing a row while they keep this much of their own size; else two a row. */
+export const MinColumnRailScale = 0.85
+
+/** The column's height under its standings: the score line, the zoom row and their gaps. */
+export function deskColumnFoot(seats: number): number {
+    const scoreLine = Math.ceil(seats / 2) * DeskScoreLineRow + DeskScoreLineFrame
+    return DeskZoomRow + 2 * DeskColumnSpacing + scoreLine
+}
+
+/**
+ * The scale the column draws its standings at in this height: their own size where it fits, else as
+ * large as fits, never larger. Each standing has a line per seat (`stripRailDrawingHeight`).
+ */
+export function columnRailScale(height: number, seats: number, perRow: 1 | 2): number {
+    const rows = GuildIds.length / perRow
+    const room = height - (rows - 1) * DeskColumnRailGap
+    return Math.max(0, Math.min(1, room / (rows * stripRailDrawingHeight(seats))))
+}
+
+/** Screen pixels right of the East button's gutter: the column and its gap, if any. */
+function besideOf(column: DeskColumn | undefined): number {
+    return column ? DeskColumnGap + column.width : 0
+}
+
+/**
+ * A desk's rest: with the strip, the map, the strip and the band contained between the gutters; with
+ * the column, the map alone between the gutters and the column.
+ */
+export function deskRestScaleOf(
+    viewWidth: number,
+    viewHeight: number,
+    seats: number,
+    column?: DeskColumn
+): number {
     return Math.min(
-        (viewWidth - 2 * SideGutter) / MapArea.width,
-        viewHeight / deskScaledHeight(seats),
+        (viewWidth - 2 * SideGutter - besideOf(column)) / MapArea.width,
+        viewHeight / (column ? MapArea.height : deskScaledHeight(seats)),
         1
     )
+}
+
+/**
+ * Contract, Desk layout: whether a desk stands its standings and zoom row in a column beside the map,
+ * and how. Only the room decides it, the game column's width and the height the panel leaves it, never
+ * the board view's own size, so each size has one layout and it never flips back and forth. The column
+ * is taken only where its map comes out larger than the strip's: where the map's height binds and the
+ * column fits in the width it leaves. One standing a row while they keep `MinColumnRailScale`.
+ */
+export function deskColumnOf(room: Size, seats: number): DeskColumn | undefined {
+    const one = columnRailScale(room.height - deskColumnFoot(seats), seats, 1)
+    const column: DeskColumn =
+        one >= MinColumnRailScale
+            ? { perRow: 1, width: DeskColumnWidth }
+            : { perRow: 2, width: 2 * StandingsStrip.drawing.width + DeskColumnRailGap }
+    const strip = deskRestScaleOf(room.width, room.height, seats)
+    const beside = deskRestScaleOf(room.width, room.height, seats, column)
+    return beside > strip ? column : undefined
+}
+
+/**
+ * The board view's width with the column, in the page: the buttons, the map at its rest in the room
+ * and the column, so the view ends with the column and the zoom buttons stand at its foot. Rounded up,
+ * so the room's height, where it binds, stays what binds the wrapper's fit.
+ */
+export function deskColumnViewWidth(room: Size, seats: number, column: DeskColumn): number {
+    const scale = Math.max(0, deskRestScaleOf(room.width, room.height, seats, column))
+    return Math.min(
+        room.width,
+        Math.ceil(MapArea.width * scale + 2 * SideGutter + besideOf(column))
+    )
+}
+
+/** The column's box in the view: at its right edge, the view's full height. */
+export function deskColumnBox(view: Size, column: DeskColumn): BoardRect {
+    return { x: view.width - column.width, y: 0, width: column.width, height: view.height }
 }
 
 /** Contract, Supply: the desk view's height at the column's width, before it gives way. */
@@ -96,38 +196,48 @@ export function deskViewHeight(viewWidth: number, seats: number): number {
     return (Math.max(0, viewWidth - 2 * SideGutter) * deskScaledHeight(seats)) / MapArea.width
 }
 
-/** Where a desk's map rests in its view, in screen pixels, and the gutter that holds it there. */
+/** Where a desk's map rests in its view, in screen pixels, and the gutters that hold it there. */
 export interface DeskRest extends BoardRect {
     readonly scale: number
-    /** Board units of empty content each side of the map: a gutter at the rest's scale. */
+    /** Board units of empty content left of the map: a gutter at the rest's scale. */
     readonly gutter: number
+    /** Board units of empty content right of it: the gutter, and the column's room if any. */
+    readonly trail: number
 }
 
 /**
  * The map at a desk's rest. The content carries a gutter each side, so the wrapper's own contain fit
  * is the rest and leaves the buttons their room beside the map: at the view's left in the page, the
- * content centred in full screen, as the wrapper places it.
+ * content centred in full screen, as the wrapper places it. With the column the content also carries
+ * the column's room on the right; in full screen it is as wide as the view, so the column stands at
+ * the view's right edge and the map is centred in the room left of it.
  */
 export function deskMapAtRest(
-    view: { readonly width: number; readonly height: number },
+    view: Size,
     seats: number,
-    centred: boolean
+    centred: boolean,
+    column?: DeskColumn
 ): DeskRest {
-    const scale = deskRestScaleOf(view.width, view.height, seats)
+    const scale = deskRestScaleOf(view.width, view.height, seats, column)
     if (!(scale > 0)) {
         // Not measured yet, or narrower than the two buttons: no map to stand beside.
-        return { x: SideGutter, y: 0, width: 0, height: 0, scale: 0, gutter: 0 }
+        return { x: SideGutter, y: 0, width: 0, height: 0, scale: 0, gutter: 0, trail: 0 }
     }
     const width = MapArea.width * scale
-    const left = centred ? Math.max(0, (view.width - width - 2 * SideGutter) / 2) : 0
-    const top = centred ? Math.max(0, (view.height - deskScaledHeight(seats) * scale) / 2) : 0
+    const beside = besideOf(column)
+    const left = centred ? Math.max(0, (view.width - width - 2 * SideGutter - beside) / 2) : 0
+    const fitted = column ? MapArea.height : deskScaledHeight(seats)
+    const top = centred ? Math.max(0, (view.height - fitted * scale) / 2) : 0
+    // The wrapper centres the strip's content itself; the column's fills the view, its slack inside.
+    const inset = column ? left : 0
     return {
         x: left + SideGutter,
         y: top,
         width,
         height: MapArea.height * scale,
         scale,
-        gutter: SideGutter / scale
+        gutter: (SideGutter + inset) / scale,
+        trail: (SideGutter + inset + beside) / scale
     }
 }
 

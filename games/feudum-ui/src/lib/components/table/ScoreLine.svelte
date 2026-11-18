@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { DeskScoreLineRow } from '$lib/model/boardFocus.svelte.js'
     import { scoreLineOf, scoreWords } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { StarPath } from '$lib/utils/pieceShapes.js'
@@ -6,8 +7,11 @@
     /**
      * Contract, Supply: the desk's score line, at the zoom row's end, since a desk's board draws no
      * score ring: every seat in turn order, its colour, name and score, the leader marked. For looking
-     * only: it offers no target and changes no offer.
+     * only: it offers no target and changes no offer. In the side column (`stacked`) it stands over
+     * the zoom row, two seats a line.
      */
+    let { stacked = false }: { stacked?: boolean } = $props()
+
     const gameSession = getGameSession()
 
     let seats = $derived(
@@ -15,7 +19,13 @@
     )
 </script>
 
-<ul class="line" aria-label="Scores" data-score-line>
+<ul
+    class="line"
+    class:stacked
+    style:grid-auto-rows={stacked ? `${DeskScoreLineRow}px` : undefined}
+    aria-label="Scores"
+    data-score-line
+>
     {#each seats as seat (seat.playerId)}
         {@const words = `${seat.name}: ${scoreWords(seat.score, seat.leading)}`}
         {@const paint = gameSession.paintOf(seat.playerId)}
@@ -69,6 +79,18 @@
         font-size: 0.875rem;
         list-style: none;
         pointer-events: auto;
+    }
+
+    /* In the side column: two seats a line, as many lines as the seats need, its frame 12 px tall. */
+    .line.stacked {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 0.5rem;
+        row-gap: 0;
+        flex: none;
+        height: auto;
+        margin: 0;
+        padding: 4px 0.5rem;
     }
 
     .seat {

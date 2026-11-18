@@ -7,12 +7,22 @@ import {
     GuildAreas,
     MapArea,
     railOverRect,
-    standingsStripHeight
+    StandingsStrip,
+    standingsStripHeight,
+    stripRailDrawingHeight
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 import {
     BoardFocus,
     ChooserInset,
+    columnRailScale,
+    DeskColumnGap,
+    DeskColumnWidth,
+    deskColumnBox,
+    deskColumnFoot,
+    deskColumnOf,
+    deskColumnViewWidth,
+    MinColumnRailScale,
     deskMapAtRest,
     deskRestScaleOf,
     deskScaledHeight,
@@ -192,6 +202,118 @@ describe('Contract, Desk layout: the map between the West and East guild buttons
         const content = (MapArea.width + 2 * rest.gutter) * rest.scale
         expect(rest.x).toBeCloseTo((1424 - content) / 2 + SideGutter, 5)
         expect(rest.y).toBeCloseTo((820 - deskScaledHeight(4) * rest.scale) / 2, 5)
+    })
+})
+
+describe('Contract, Desk layout: where the map’s height binds, the standings and the zoom row stand in a column beside it', () => {
+    /** The room under the panel on desks of 1850 x 880, 1440 x 900 and 1920 x 1080. */
+    const wide = { width: 1506, height: 702 }
+    const desk = { width: 1096, height: 722 }
+    const tall = { width: 1576, height: 902 }
+    /** The map's width beside the column at 1506 px across: less the buttons, the gap, the column. */
+    const besideWidth = 1506 - 2 * SideGutter - DeskColumnGap - DeskColumnWidth
+
+    function stripMap(room: { width: number; height: number }, seats: number) {
+        const height = Math.min(deskViewHeight(room.width, seats), room.height)
+        return deskMapAtRest({ width: room.width, height }, seats, false)
+    }
+
+    it('a height-bound desk takes the column, and its map grows into the width the strip left empty', () => {
+        const column = deskColumnOf(wide, 3)
+        expect(column).toEqual({ perRow: 1, width: DeskColumnWidth })
+        const view = { width: deskColumnViewWidth(wide, 3, column!), height: wide.height }
+        const rest = deskMapAtRest(view, 3, false, column)
+        expect(rest.width).toBeCloseTo(besideWidth, 5)
+        expect(rest.height).toBeCloseTo((besideWidth * MapArea.height) / MapArea.width, 5)
+        expect(rest.width).toBeGreaterThan(stripMap(wide, 3).width + 150)
+    })
+
+    it('a width-bound desk keeps the strip under the map, as does one where the column would not make the map larger', () => {
+        for (const seats of [3, 4, 5]) {
+            expect(deskColumnOf(desk, seats)).toBeUndefined()
+            expect(deskColumnOf({ width: 936, height: 622 }, seats)).toBeUndefined()
+            expect(deskColumnOf(tall, seats)).toBeUndefined()
+        }
+    })
+
+    it('one layout per size: the column only while its map is the larger, on either side of the threshold', () => {
+        // Down: at 1506 px across, three seats' strip reaches the column's map width at this height.
+        const down = (besideWidth * deskScaledHeight(3)) / MapArea.width
+        expect(deskColumnOf({ width: 1506, height: Math.floor(down) - 1 }, 3)).toBeDefined()
+        expect(deskColumnOf({ width: 1506, height: Math.ceil(down) + 1 }, 3)).toBeUndefined()
+        // Across: at 702 px tall the strip's map is height-bound; the column's catches it here.
+        const strip = stripMap(wide, 3).width
+        const across = strip + 2 * SideGutter + DeskColumnGap + DeskColumnWidth
+        expect(deskColumnOf({ width: Math.floor(across) - 1, height: 702 }, 3)).toBeUndefined()
+        expect(deskColumnOf({ width: Math.ceil(across) + 1, height: 702 }, 3)).toBeDefined()
+        // The room alone decides it, so asking again gives the same answer.
+        expect(deskColumnOf(wide, 3)).toEqual(deskColumnOf(wide, 3))
+    })
+
+    it('the standings stand one a row while they keep 0.85 of their own size; five seats at 880 px tall stand two a row', () => {
+        expect(MinColumnRailScale).toBe(0.85)
+        expect(deskColumnOf(wide, 4)).toEqual({ perRow: 1, width: DeskColumnWidth })
+        expect(columnRailScale(wide.height - deskColumnFoot(4), 4, 1)).toBeGreaterThanOrEqual(0.85)
+        expect(columnRailScale(wide.height - deskColumnFoot(5), 5, 1)).toBeLessThan(0.85)
+        expect(deskColumnOf(wide, 5)).toEqual({
+            perRow: 2,
+            width: 2 * StandingsStrip.drawing.width + 4
+        })
+        expect(columnRailScale(wide.height - deskColumnFoot(5), 5, 2)).toBe(1)
+    })
+
+    it('a standing is drawn at its own size where the column has room, and smaller to fit, never larger', () => {
+        const own = stripRailDrawingHeight(3)
+        expect(columnRailScale(2000, 3, 1)).toBe(1)
+        expect(columnRailScale(3 * own + 2 * 4, 3, 2)).toBeCloseTo(1, 5)
+        const height = 300
+        const scale = columnRailScale(height, 3, 1)
+        expect(6 * own * scale + 5 * 4).toBeCloseTo(height, 5)
+        expect(columnRailScale(0, 3, 1)).toBe(0)
+    })
+
+    it('the view ends with the column, so the zoom buttons stand at its foot, and the gutters bring the wrapper’s fit to the rest', () => {
+        for (const room of [wide, { width: 1506, height: 600 }, { width: 1800, height: 500 }]) {
+            const column = deskColumnOf(room, 3)!
+            const width = deskColumnViewWidth(room, 3, column)
+            expect(width).toBeLessThanOrEqual(room.width)
+            const view = { width, height: room.height }
+            const rest = deskMapAtRest(view, 3, false, column)
+            const content = MapArea.width + rest.gutter + rest.trail
+            const fit = Math.min(width / content, room.height / MapArea.height, 1)
+            expect(fit).toBeCloseTo(rest.scale, 5)
+            expect(rest.x).toBeCloseTo(SideGutter, 5)
+            expect(rest.y).toBe(0)
+            const box = deskColumnBox(view, column)
+            expect(box).toEqual({
+                x: width - column.width,
+                y: 0,
+                width: column.width,
+                height: room.height
+            })
+            const gap = box.x - (rest.x + rest.width + SideGutter)
+            expect(gap).toBeGreaterThanOrEqual(DeskColumnGap - 1e-6)
+            expect(gap).toBeLessThan(DeskColumnGap + 1)
+        }
+    })
+
+    it('in full screen the column stands at the view’s right edge, the map centred in the room left of it', () => {
+        const view = { width: 1834, height: 700 }
+        const column = deskColumnOf(view, 3)!
+        const rest = deskMapAtRest(view, 3, true, column)
+        const box = deskColumnBox(view, column)
+        expect(box.x + box.width).toBe(view.width)
+        const left = rest.x - SideGutter
+        const right = box.x - DeskColumnGap - (rest.x + rest.width + SideGutter)
+        expect(left).toBeGreaterThan(0)
+        expect(left).toBeCloseTo(right, 5)
+        expect((MapArea.width + rest.gutter + rest.trail) * rest.scale).toBeCloseTo(view.width, 5)
+        expect(rest.y).toBeCloseTo((view.height - MapArea.height * rest.scale) / 2, 5)
+    })
+
+    it('the strip’s rest is as it was: a gutter each side, the same', () => {
+        const rest = deskMapAtRest({ width: 1096, height: 722 }, 4, false)
+        expect(rest.trail).toBeCloseTo(rest.gutter, 5)
     })
 })
 
