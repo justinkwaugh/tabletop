@@ -61,6 +61,8 @@ export const seatPieceAsset = (kind: SeatPieceKind, colour: PrintedColour) =>
     `piece.${kind}.${colour}` as const
 /** A guild's printed panel, as it lies on the board: the ground its area's state stands on. */
 export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
+/** The face off a guild's print, cut round and upright, for a desk's side button. */
+export const guildFaceAsset = (guild: GuildId) => `face.${guild}` as const
 
 /** A feudum's disc is told by its guild's icon; the other kinds have one face each. */
 export function locationAsset(kind: LocationKind, guild?: GuildId) {
@@ -93,6 +95,7 @@ export const AssetIds = [
     MapAsset,
     ...RingParts.map(({ part }) => ringPartAsset(part)),
     ...GuildIds.map(guildPanelAsset),
+    ...GuildIds.map(guildFaceAsset),
     SealAsset,
     TargetAsset,
     WritBackAsset,

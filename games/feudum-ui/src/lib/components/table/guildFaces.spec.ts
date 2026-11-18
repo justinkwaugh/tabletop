@@ -3,30 +3,26 @@ import { existsSync } from 'node:fs'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
 import { GuildIds } from '@tabletop/feudum'
-import { GuildBox } from '$lib/utils/boardGeometry.js'
-import { PrintedFaceRadius, PrintedFaces } from '$lib/utils/printedGuilds.js'
+import { GuildBox, uprightTurn } from '$lib/utils/boardGeometry.js'
+import { PrintedFaceRadius, PrintedFaces, printedFaceTurn } from '$lib/utils/printedGuilds.js'
 import GuildFaces from './GuildFaces.svelte'
 
-const suppliedHere = existsSync(
-    new URL('../../art/supplied/board.guild.merchant.webp', import.meta.url)
-)
+const facesHere = existsSync(new URL('../../art/supplied/face.merchant.webp', import.meta.url))
 
-/** Each face drawn, in order: its guild, its view box and its print's turn. */
+/** Each face drawn, in order: its guild, its file, its alt text and its size. */
 function facesIn(markup: string) {
     const attribute = (tag: string, name: string) =>
         tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1]
-    return [...markup.matchAll(/<svg([^>]*)>(.*?)<\/svg>/gs)].map(([, svg, inside]) => {
-        const image = inside.match(/<image([^>]*)>/)?.[1] ?? ''
-        return {
-            guild: attribute(svg, 'data-guild-face'),
-            viewBox: attribute(svg, 'viewBox'),
-            href: attribute(image, 'href'),
-            turn: attribute(image, 'transform')?.match(/^rotate\(([^)]+)\)$/)?.[1]
-        }
-    })
+    return [...markup.matchAll(/<img([^>]*)>/g)].map(([, img]) => ({
+        guild: attribute(img, 'data-guild-face'),
+        src: attribute(img, 'src'),
+        alt: attribute(img, 'alt'),
+        width: attribute(img, 'width'),
+        height: attribute(img, 'height')
+    }))
 }
 
-describe('Contract, Desk layout: a guild button shows the faces off its side’s prints', () => {
+describe('Contract, Desk layout: a guild button shows its side’s faces, each a small file cut from its print', () => {
     it('each face is cut whole from its print', () => {
         for (const guild of GuildIds) {
             const { x, y } = PrintedFaces[guild]
@@ -37,36 +33,42 @@ describe('Contract, Desk layout: a guild button shows the faces off its side’s
         }
     })
 
-    describe.skipIf(!suppliedHere)('with the guild prints', () => {
-        it('West: the Alchemist, Merchant and Farmer top to bottom, each print turned a quarter clockwise about its face', () => {
-            const faces = facesIn(render(GuildFaces, { props: { side: 'west' } }).body)
-            expect(faces.map(({ guild }) => guild)).toEqual(['alchemist', 'merchant', 'farmer'])
-            for (const { guild, viewBox, href, turn } of faces) {
-                const { x, y } = PrintedFaces[guild as keyof typeof PrintedFaces]
-                const r = PrintedFaceRadius
-                expect(viewBox).toBe(`${x - r} ${y - r} ${2 * r} ${2 * r}`)
-                expect(href).toContain(`board.guild.${guild}`)
-                expect(turn).toBe(`90 ${x} ${y}`)
+    it('each face is cut upright, turned as the open side turns its print', () => {
+        for (const guild of GuildIds) {
+            expect(printedFaceTurn(guild)).toBe(uprightTurn(guild))
+        }
+    })
+
+    describe.skipIf(!facesHere)('with the face files', () => {
+        it('West: the Alchemist, Merchant and Farmer top to bottom; East: the Knight, Noble and Monk, each its own 36 px face file', () => {
+            for (const [side, order] of [
+                ['west', ['alchemist', 'merchant', 'farmer']],
+                ['east', ['knight', 'noble', 'monk']]
+            ] as const) {
+                const faces = facesIn(render(GuildFaces, { props: { side } }).body)
+                expect(faces.map(({ guild }) => guild)).toEqual(order)
+                for (const { guild, src, width, height } of faces) {
+                    expect(src).toMatch(new RegExp(`face\\.${guild}\\.webp`))
+                    expect([width, height]).toEqual(['36', '36'])
+                }
             }
         })
 
-        it('East: the Knight, Noble and Monk top to bottom, each turned a quarter counter-clockwise', () => {
-            const faces = facesIn(render(GuildFaces, { props: { side: 'east' } }).body)
-            expect(faces.map(({ guild }) => guild)).toEqual(['knight', 'noble', 'monk'])
-            for (const { guild, href, turn } of faces) {
-                const { x, y } = PrintedFaces[guild as keyof typeof PrintedFaces]
-                expect(href).toContain(`board.guild.${guild}`)
-                expect(turn).toBe(`-90 ${x} ${y}`)
+        it('no face draws its whole print, so the prints stay unloaded at rest', () => {
+            for (const side of ['west', 'east'] as const) {
+                const markup = render(GuildFaces, { props: { side } }).body
+                expect(markup).not.toContain('board.guild')
+                expect(markup).not.toContain('<image')
             }
         })
 
-        it('the faces are decoration: hidden from assistive technology, with no name of their own', () => {
+        it('the faces are decoration: empty alt text inside a group hidden from assistive technology', () => {
             const markup = render(GuildFaces, { props: { side: 'west' } }).body
             expect(markup).toMatch(
                 /^(?:<!--[^>]*-->)*<span[^>]*\saria-hidden="true"[^>]*\sdata-guild-faces="west"/
             )
             expect(markup).not.toMatch(/aria-label|<title|role="img"/)
-            expect(markup.match(/<image/g)).toHaveLength(3)
+            expect(facesIn(markup).map(({ alt }) => alt)).toEqual(['', '', ''])
         })
     })
 })
