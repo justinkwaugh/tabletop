@@ -22,8 +22,10 @@
 
 {#snippet presidency(change: PresidencyChange)}
     <p class="presidency">
-        President: {session.ownerName(change.previous)} → {session.ownerName(change.next)}. Exchange
-        the president’s certificate for {change.exchangedCertificateIds.length} ordinary certificates.
+        {session.terms.president}: {session.ownerName(change.previous)} → {session.ownerName(
+            change.next
+        )}. Exchange the {session.terms.presidentWord}’s certificate for {change
+            .exchangedCertificateIds.length} ordinary certificates.
     </p>
 {/snippet}
 <section class="trading" aria-label="Stock trading">
@@ -124,7 +126,9 @@
                         </p>
                         {#if sale.presidency}{@render presidency(sale.presidency)}{/if}
                     {/each}
-                {:else}<p role="alert">{session.stock.selectedSaleResult?.reason}</p>{/if}
+                {:else}<p role="alert">
+                        {session.terms.reword(session.stock.selectedSaleResult?.reason ?? '')}
+                    </p>{/if}
                 <div class="buttons">
                     <button onclick={() => session.stock.cancel()} disabled={session.busy}
                         >Back</button
@@ -156,7 +160,7 @@
                         <span
                             >{choice.result.details
                                 ? `Sell for ${choice.result.details.proceeds}`
-                                : choice.result.reason}</span
+                                : session.terms.reword(choice.result.reason ?? '')}</span
                         >
                     </button>
                 {/each}
@@ -188,7 +192,7 @@
                             <span
                                 >{choice.result.details
                                     ? `Buy for ${choice.result.details.price}`
-                                    : choice.result.reason}</span
+                                    : session.terms.reword(choice.result.reason ?? '')}</span
                             >
                         </button>
                     {/each}
@@ -230,8 +234,10 @@
                     <li>
                         {session.ownerName(trade.metadata.buyer)} started {session.actionCompanyName(
                             trade.companyId
-                        )} at {trade.metadata.parPrice}, paying {trade.metadata.price} for the president’s
-                        certificate.
+                        )} at {trade.metadata.parPrice},
+                        {session.terms.reword(
+                            `paying ${trade.metadata.price} for the president’s certificate.`
+                        )}
                     </li>
                 {:else if isFloatCompany(trade) && trade.metadata}
                     <li>

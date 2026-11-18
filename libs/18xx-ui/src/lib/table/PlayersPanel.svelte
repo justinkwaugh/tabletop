@@ -69,7 +69,7 @@
             biddingPower: biddingPowerShown
                 ? session.companyAuction.biddingPower(playerId)
                 : undefined,
-            certs: session.playerCertificates(playerId),
+            certs: session.noCertificateLimit ? undefined : session.playerCertificates(playerId),
             ...session.portfolio(
                 { kind: 'player', playerId },
                 !!session.presentation.minorsAsPrivates
@@ -437,7 +437,7 @@
                                             >
                                             {#if entry.president}<span
                                                     class="compact-mark"
-                                                    aria-label="President"
+                                                    aria-label={session.terms.president}
                                                     >{session.presidentMark(entry.company.id)}</span
                                                 >{/if}
                                             {#if mark}<span
@@ -488,7 +488,9 @@
                                             entry.company.id
                                         ]}
                                         class:president={entry.president}
-                                        title={entry.president ? 'President' : undefined}
+                                        title={entry.president
+                                            ? session.terms.president
+                                            : undefined}
                                     >
                                         <td class="token"
                                             ><button
@@ -511,6 +513,7 @@
                                                     name={session.companyName(entry.company.id)}
                                                     president={entry.president}
                                                     label={session.presidentMark(entry.company.id)}
+                                                    title={session.terms.president}
                                                 />{#if mark}<CertificateBadge
                                                         label={mark.label}
                                                         title={mark.title}

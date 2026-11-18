@@ -10,6 +10,8 @@ export type TitleStockPanel<Panel extends string> = {
     available(): boolean
     /** Whether the panel stays open whatever was chosen, such as while acting for a company. */
     held?(): boolean
+    /** What is picked inside the panel, which goes when the panel closes so Undo never finds it. */
+    selection?: Pick<LocalSelection, 'clear'>
 }
 
 /**
@@ -39,18 +41,24 @@ export class TitleStockPanels<Panel extends string> implements LocalSelection {
             }))
     }
     choose(panel: Panel): void {
+        if (panel === this.#chosen && panel === this.open) return
         this.stock.chooseMenu(undefined)
         this.#chosen = panel
+        this.clearClosedSelections()
     }
     hasManual(): boolean {
         return !!this.#chosen
     }
     undo(): boolean {
         if (!this.#chosen) return false
-        this.#chosen = undefined
+        this.clear()
         return true
     }
     clear(): void {
         this.#chosen = undefined
+        this.clearClosedSelections()
+    }
+    private clearClosedSelections(): void {
+        for (const panel of this.panels) if (panel.id !== this.open) panel.selection?.clear()
     }
 }

@@ -8,6 +8,7 @@
     import {
         certificateRemaining,
         marketCertificates,
+        phaseName,
         trainRosterRows,
         type PhaseChartData,
         type PhaseChartDepotState
@@ -38,6 +39,7 @@
         bank?: { cash: Cash['amount']; broken: boolean }
     } = $props()
     const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
+    const namePhase = (phaseId: string) => phaseName(chart, phaseId)
     const rosterRows = $derived(trainRosterRows(chart.trains))
     const openMarket = $derived(marketCertificates(depotState))
     const showsUpgrades = $derived(chart.trains.some((train) => train.upgrades?.length))
@@ -63,7 +65,7 @@
                             >
                                 <th scope="row"
                                     ><TrainBadge
-                                        name={phase.id}
+                                        name={namePhase(phase.id)}
                                         color={phaseColors[phase.id]}
                                     /></th
                                 >
@@ -97,7 +99,11 @@
                                     </span></td
                                 >
                                 <td class="phase-notes"
-                                    ><PhaseText text={phase.notes ?? ''} {phaseColors} /></td
+                                    ><PhaseText
+                                        text={phase.notes ?? ''}
+                                        {phaseColors}
+                                        phaseName={namePhase}
+                                    /></td
                                 >
                             </tr>
                         {/each}
@@ -108,7 +114,7 @@
         {#if onBoard && currentPhase}<div class="phase-summary">
                 <span class="summary-item"
                     ><span class="summary-label">Phase</span><TrainBadge
-                        name={currentPhase.id}
+                        name={namePhase(currentPhase.id)}
                         color={phaseColors[currentPhase.id]}
                     /></span
                 >
@@ -229,10 +235,10 @@
         {#each [...new Set(chart.trains.flatMap( (train) => (train.rustNote ? [train.rustNote] : []) ))] as note (note)}<p
             >
                 <span class="rust-mark">*</span>
-                <PhaseText text={note} {phaseColors} />
+                <PhaseText text={note} {phaseColors} phaseName={namePhase} />
             </p>{/each}
         {#if !depotOnly}{#each chart.notes as note, index (index)}<p>
-                    <PhaseText text={note} {phaseColors} />
+                    <PhaseText text={note} {phaseColors} phaseName={namePhase} />
                 </p>{/each}{/if}
     </div>
 </div>

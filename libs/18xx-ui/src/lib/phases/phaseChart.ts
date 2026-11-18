@@ -9,6 +9,8 @@ export type PhaseChartDepotState = {
 export type PhaseChartData = {
     phases: {
         id: string
+        /** What the rulebook calls the phase, where that is not its train. */
+        name?: string
         tileColors: readonly string[]
         operatingRounds: number
         trainLimit: number
@@ -47,6 +49,24 @@ export type DepotCertificate = {
 }
 
 type ChartTrain = PhaseChartData['trains'][number]
+
+export function phaseName(chart: Pick<PhaseChartData, 'phases'>, phaseId: string): string {
+    return chart.phases.find((phase) => phase.id === phaseId)?.name ?? phaseId
+}
+
+export function numberedPhaseLabel(phaseIds: readonly string[]): string {
+    return `Phase ${phaseIds.join(' → ')}`
+}
+
+export function phaseLabel(
+    chart: Pick<PhaseChartData, 'phases'>,
+    phaseIds: readonly string[]
+): string {
+    const names = phaseIds.map((phaseId) => phaseName(chart, phaseId))
+    return names.some((name, index) => name !== phaseIds[index])
+        ? `${names.join(' → ')} phase`
+        : numberedPhaseLabel(phaseIds)
+}
 
 export type TrainRosterRow = {
     /** The faces of one certificate that cost the same and rust together. */
@@ -145,6 +165,7 @@ export function createPhaseChart({
     rustNotes = {},
     rustPhases = {},
     phaseNotes = {},
+    phaseNames,
     notes = [],
     omittedPhaseIds = [],
     omittedTrainIds = [],
@@ -157,6 +178,8 @@ export function createPhaseChart({
     rustNotes?: Readonly<Record<string, string>>
     rustPhases?: Readonly<Record<string, string>>
     phaseNotes?: Readonly<Record<string, string>>
+    /** What the rulebook calls the phases, where that is not their trains. */
+    phaseNames?: Readonly<Record<string, string>>
     notes?: readonly string[]
     /** Phases and trains a variant leaves out, and trains it makes permanent. */
     omittedPhaseIds?: readonly string[]
@@ -172,6 +195,7 @@ export function createPhaseChart({
             .filter(({ id }) => !omittedPhaseIds.includes(id))
             .map(({ id, tileColors, operatingRounds, trainLimit }) => ({
                 id,
+                ...(phaseNames?.[id] ? { name: phaseNames[id] } : {}),
                 tileColors,
                 operatingRounds,
                 trainLimit,

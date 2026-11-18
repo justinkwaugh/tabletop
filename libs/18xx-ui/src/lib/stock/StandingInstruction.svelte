@@ -149,14 +149,16 @@
             {@const ignored = ignoredStopsText(instructions.mine.instruction.ignoredStops)}
             <span class="summary"
                 >{stockInstructionText(instructions.mine.instruction, names)}{#if ignored}<span
-                        class="ignored">{` · ${ignored}`}</span
+                        class="ignored">{` · ${session.terms.reword(ignored)}`}</span
                     >{/if}</span
             >
             {#if instructions.warning}<span class="warning" role="status"
-                    >Stops next turn: {stopReasonText(
-                        instructions.warning,
-                        names,
-                        session.presentation.instructionStopText
+                    >Stops next turn: {session.terms.reword(
+                        stopReasonText(
+                            instructions.warning,
+                            names,
+                            session.presentation.instructionStopText
+                        )
                     )}</span
                 >{#if warningStop}<button
                         class="link"
@@ -171,14 +173,16 @@
             <span class="tray notice" role="status"
                 ><StopNotice
                     subject={stockInstructionKindLabel(instructions.lastStop.instruction.kind)}
-                    reason={stopReasonText(
-                        instructions.lastStop.stopReason,
-                        names,
-                        session.presentation.instructionStopText
+                    reason={session.terms.reword(
+                        stopReasonText(
+                            instructions.lastStop.stopReason,
+                            names,
+                            session.presentation.instructionStopText
+                        )
                     )}
                     keepGoing={resumableStop
                         ? {
-                              ignoring: ignorableStopNoun[resumableStop],
+                              ignoring: session.terms.reword(ignorableStopNoun[resumableStop]),
                               resume: () => void instructions.keepGoing()
                           }
                         : undefined}
@@ -307,7 +311,7 @@
 
 {#snippet help()}
     <HelpPopover label="When a standing instruction stops">
-        <StopConditions choice={stopChoice} {disabled} />
+        <StopConditions choice={stopChoice} {disabled} reword={session.terms.reword} />
     </HelpPopover>
 {/snippet}
 

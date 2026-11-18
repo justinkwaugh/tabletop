@@ -42,11 +42,11 @@
         }
         return [...groups.values()]
     })
-    const SourceLabels: Readonly<Record<TrainSource, string>> = {
-        depot: 'Depot',
+    const SourceLabels: Readonly<Record<TrainSource, string>> = $derived({
+        depot: session.terms.depot,
         mine: 'My companies',
         others: 'Other companies'
-    }
+    })
 </script>
 
 {#snippet trainChoice(

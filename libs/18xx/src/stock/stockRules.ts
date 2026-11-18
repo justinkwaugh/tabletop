@@ -148,6 +148,9 @@ export function purchaseOwnershipCeiling(
     return Math.floor((rules.ownershipLimit(state, companyId, buyer) * shareCount) / 100)
 }
 
+/** The certificate limit of a title that has none. */
+export const NoCertificateLimit = Number.MAX_SAFE_INTEGER
+
 export function certificateLimitAllows(
     state: StockState,
     owner: Owner,

@@ -10,7 +10,7 @@
         declineLabel = 'Decline'
     }: {
         label: string
-        children: Snippet
+        children?: Snippet
         disabled: boolean
         onAccept: () => void
         onDecline: () => void
@@ -20,7 +20,7 @@
 </script>
 
 <div class="response" aria-label={label}>
-    <div class="summary">{@render children()}</div>
+    {#if children}<div class="summary">{@render children()}</div>{/if}
     <div class="controls">
         <button class="action-button" {disabled} onclick={onAccept}>{acceptLabel}</button>
         <button class="action-button" {disabled} onclick={onDecline}>{declineLabel}</button>

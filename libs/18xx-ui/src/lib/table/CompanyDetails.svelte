@@ -5,6 +5,7 @@
     import {
         companySharePrice,
         DefaultCompanyPricePresentation,
+        shownParPrice,
         type CompanyPricePresentation
     } from './companyPresentation.js'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
@@ -108,6 +109,7 @@
     const marketPrice = $derived(
         companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
     )
+    const parPrice = $derived(shownParPrice(pricePresentation, gameState, company))
     const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const marks = $derived(session.presentation.companyMarks?.(gameState, company.id) ?? [])
@@ -333,9 +335,9 @@
                                     company.id,
                                     entry.poolId
                                 )
-                                    ? 'Holds the president’s certificate'
+                                    ? `Holds the ${session.terms.presidentWord}’s certificate`
                                     : company.president && sameOwner(entry.owner, company.president)
-                                      ? 'President'
+                                      ? session.terms.president
                                       : undefined}
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
@@ -362,6 +364,7 @@
                                             )}
                                             president={!!presidency}
                                             label={session.presidentMark(company.id)}
+                                            title={session.terms.president}
                                         />{@render multiShareBadge(entry)}</th
                                     >
                                     {#if numberedShares}<td
@@ -474,8 +477,8 @@
 {#snippet prices()}
     <div class="prices">
         {@render cashValue()}
-        {#if pricePresentation.showPar && company.parPrice !== undefined}<div>
-                <span>Par</span><strong>{company.parPrice}</strong>
+        {#if pricePresentation.showPar && parPrice !== undefined}<div>
+                <span>Par</span><strong>{parPrice}</strong>
             </div>{/if}
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>

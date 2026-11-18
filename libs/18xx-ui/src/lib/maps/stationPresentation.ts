@@ -1,7 +1,7 @@
 import type { TerrainIconName } from './terrainIcons.js'
 import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
-import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
+import type { Company, StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
 import type {
     BoardArtwork,
     MapMarkerArt,
@@ -74,6 +74,11 @@ export type MapViewDefinition = {
     /** How a neutral station prints, such as 1882's white markers that keep a city open. */
     neutralStation?: StationAppearance
     /**
+     * How a closed company's stations still on the map print, such as 1828's blocking stations;
+     * a closed company's token elsewhere keeps its own look.
+     */
+    closedCompanyStation?: StationAppearance
+    /**
      * Station spaces the board prints held beyond its homes, by company or by a shared station's
      * source, shown until a token stands there, such as a joint token's city.
      */
@@ -95,6 +100,8 @@ export type MapViewDefinition = {
     terrainIcons?: Readonly<Record<string, TerrainIconName>>
     /** Baseline of a location's name, by location id; names otherwise print across the top. */
     namePositions?: Readonly<Record<string, Point>>
+    /** How far a location's name stands from the top of its hex, in its usual type, by location id. */
+    nameOffsets?: Readonly<Record<string, Point>>
     /**
      * Each city's own name, by location id then city node id, curved over that city in place of
      * the location's name where the style curves names.
@@ -125,6 +132,8 @@ export type MapViewDefinition = {
     terrainPositions?: Readonly<Record<string, Point>>
     /** Locations whose terrain cost stands under its symbols, where a row has no room beside track. */
     terrainCostsBelow?: readonly string[]
+    /** Locations whose terrain symbols stand under the cost, where the row is too wide. */
+    terrainSymbolsBelow?: readonly string[]
     /**
      * Whether a hex's terrain cost stays printed on the tiles laid over it, as where the cost is
      * paid again on every upgrade; each tile shows it in its own clear space.
@@ -194,7 +203,7 @@ export type MapViewDefinition = {
      * the board is fitted to the hexes without one.
      */
     boardTiles?: Readonly<Record<string, BoardTile>>
-    /** Hexside border widths by kind, such as a heavier impassable border; 3 otherwise. */
+    /** Hexside border widths by kind, over the default of 5 for impassable sides and 3 for others. */
     borderWidths?: Readonly<Record<string, number>>
     /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */
     labelsReplaceNames?: true
@@ -221,12 +230,20 @@ export function withPlayedMarkerArt(
 }
 
 /** How a map view prints stations: by company, shared, and neutral. */
-export type StationViews = Pick<MapViewDefinition, 'stations' | 'sharedStations' | 'neutralStation'>
+export type StationViews = Pick<
+    MapViewDefinition,
+    'stations' | 'sharedStations' | 'neutralStation' | 'closedCompanyStation'
+>
 
-/** The placed stations as map tokens. */
+/** The placed stations as map tokens; the companies say which are closed. */
 export function stationMapTokens(
-    state: StationState,
-    { stations: appearances, sharedStations: shared = {}, neutralStation }: StationViews
+    state: StationState & { companies?: readonly Pick<Company, 'id' | 'closed'>[] },
+    {
+        stations: appearances,
+        sharedStations: shared = {},
+        neutralStation,
+        closedCompanyStation
+    }: StationViews
 ): MapToken[] {
     return state.stations.flatMap((station) => {
         if (station.status !== 'placed') return []
@@ -240,8 +257,16 @@ export function stationMapTokens(
             neutralStation && state.neutralStations?.some((entry) => entry.stationId === station.id)
                 ? neutralStation
                 : undefined
+        const closed =
+            closedCompanyStation &&
+            state.companies?.some((company) => company.id === station.companyId && company.closed)
+                ? closedCompanyStation
+                : undefined
         const appearance =
-            neutral ?? (access && shared[access.sourceId]) ?? appearances[station.companyId]
+            neutral ??
+            closed ??
+            (access && shared[access.sourceId]) ??
+            appearances[station.companyId]
         assertExists(appearance, `Missing station appearance: ${station.companyId}`)
         return [{ id: station.id, ...station.position, ...appearance }]
     })

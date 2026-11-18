@@ -7,6 +7,7 @@
     const canUse = $derived(session.privateActions.powersAvailable)
     const buying = $derived(!!session.privateActions.purchaseSource)
     const usingPowers = $derived(session.privateActions.selection === 'powers')
+    const titleAction = $derived(session.titlePrivateAction)
 
     // Each button toggles: pressing the open one returns to where the player was.
     function choose(powers: boolean) {
@@ -16,7 +17,7 @@
     }
 </script>
 
-{#if canBuy || canUse}
+{#if canBuy || canUse || titleAction}
     <div class="private-actions">
         {#if canBuy}<button
                 class:quiet={onlyOthersSell}
@@ -28,6 +29,11 @@
                 aria-pressed={usingPowers}
                 disabled={!session.decisions.canResolve}
                 onclick={() => choose(true)}>Use privates</button
+            >{/if}
+        {#if titleAction}<button
+                aria-pressed={titleAction.pressed}
+                disabled={session.busy}
+                onclick={() => titleAction.press()}>{titleAction.label}</button
             >{/if}
     </div>
 {/if}

@@ -1,9 +1,7 @@
 <script lang="ts">
     import CertificateBadge from './CertificateBadge.svelte'
-    let { label = 'P' }: { label?: string } = $props()
+    let { label, title }: { label: string; title: string } = $props()
+    const shares = $derived(label.slice(1))
 </script>
 
-<CertificateBadge
-    {label}
-    title={label === 'P' ? 'President' : `President, ${label.slice(1)} shares`}
-/>
+<CertificateBadge {label} title={shares ? `${title}, ${shares} shares` : title} />

@@ -199,7 +199,11 @@ export class MapModule {
         this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
     )
     displayedTokens = $derived.by(() => {
-        if (this.landedLayStations) return stationMapTokens(this.landedLayStations, this.view())
+        if (this.landedLayStations)
+            return stationMapTokens(
+                { ...this.landedLayStations, companies: this.companies },
+                this.view()
+            )
         return this.stations.preview
             ? stationMapTokens(this.stations.displayState, this.view())
             : this.tokens

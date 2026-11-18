@@ -52,7 +52,8 @@ export function recordTurnPurchase(
     rules: StockRules,
     purchase: StockTurnPurchase
 ): void {
-    if (recordsTurnPurchases(rules)) (state.stockTurnPurchases ??= []).push(purchase)
+    if (recordsTurnPurchases(rules))
+        state.stockTurnPurchases = [...(state.stockTurnPurchases ?? []), purchase]
 }
 
 /** Whether the title keeps a turn's purchases. */

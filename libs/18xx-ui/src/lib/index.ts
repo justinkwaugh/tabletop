@@ -39,6 +39,7 @@ export {
 export { revenueBadgeHalfWidth } from './tiles/revenueBadge.js'
 export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
+export { default as PresidentBadge } from './finance/PresidentBadge.svelte'
 export { ownerPortfolio } from './finance/ownerPortfolio.js'
 export { withDraftedCompanies, type DraftedCompany } from './finance/draftedCompanies.js'
 
@@ -74,6 +75,7 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 export { default as GameTable } from './table/GameTable.svelte'
 export {
     companyNameVariants,
+    DefaultCompanyPricePresentation,
     NoParCompanyPricePresentation,
     shortCompanyName,
     type CompanyNameVariants,
@@ -111,6 +113,7 @@ export type {
     PlaceConnection,
     PrivateTokenPresentation,
     TitleFact,
+    TitlePrivateAction,
     LoanTerms,
     TitleOperatingStep,
     TitlePresentation,
@@ -125,6 +128,12 @@ export { tileSymbolMarkup } from './tiles/tileSymbols.js'
 export { counted } from './presentation/count.js'
 export { InstructedRunSolver } from './session/instructedRunSolver.js'
 export { currencyAffixes, moneyFormat, type MoneyFormat } from './presentation/money.js'
+export {
+    DefaultTableTerms,
+    tableTerms,
+    type ResolvedTableTerms,
+    type TableTerms
+} from './presentation/tableTerms.js'
 export { clickedBackdrop } from './presentation/modalDialog.js'
 export { svgDataUrl } from './presentation/svgDataUrl.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
@@ -230,6 +239,8 @@ export { actionForHistoryStep } from './table/actionForHistoryStep.js'
 
 export { default as AutomaticRoutes } from './routes/AutomaticRoutes.svelte'
 export { default as ProjectedRun } from './routes/ProjectedRun.svelte'
+export { default as TrainRunTable } from './routes/TrainRunTable.svelte'
+export { routeColor } from './routes/routePresentation.js'
 export { default as RunInstructions } from './routes/RunInstructions.svelte'
 export { RouteSolveQueue, type QueuedRouteWorker } from './routes/routeSolveQueue.js'
 export { default as StationBuilding } from './maps/StationBuilding.svelte'

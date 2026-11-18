@@ -11,6 +11,7 @@ export function presidentTrainFundingRules(options: {
     repeatSales?: TrainFundingRules['repeatSales']
     stockRules: Pick<StockRules, 'ownershipLimit' | 'charters'>
     protectsPresidency: TrainFundingRules['protectsPresidency']
+    permitsSale?: TrainFundingRules['permitsSale']
     /** What the title records of each sale, such as shares its president may protect. */
     afterShareSale?: TrainFundingRules['afterShareSale']
     /** When the president may help buy a train the company does not need. */
@@ -31,6 +32,7 @@ export function presidentTrainFundingRules(options: {
         issuanceTerms: () => undefined,
         saleTerms: options.saleTerms,
         protectsPresidency: options.protectsPresidency,
+        permitsSale: options.permitsSale,
         voluntaryFunding: options.voluntaryFunding,
         requiredSaleShares(state, seller, companyId) {
             const company = getCompany(state, companyId)

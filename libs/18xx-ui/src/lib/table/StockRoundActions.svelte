@@ -209,7 +209,7 @@
                                                 {#if choice.certificate.president || choice.certificate.shares !== 1}<small
                                                         >{choice.certificate.shares} shares{choice
                                                             .certificate.president
-                                                            ? ' · President'
+                                                            ? ` · ${session.terms.president}`
                                                             : ''}</small
                                                     >{/if}
                                             </span>
@@ -294,7 +294,7 @@
                                 <div
                                     class="choices start-size-choices"
                                     role="group"
-                                    aria-label="President’s certificate"
+                                    aria-label={session.terms.presidentCertificate}
                                 >
                                     {#each session.stock.presidentShareSizes as size (size.shares)}
                                         <button

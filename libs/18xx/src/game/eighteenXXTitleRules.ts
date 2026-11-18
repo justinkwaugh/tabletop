@@ -1,3 +1,4 @@
+import type { StepAction } from './stepAction.js'
 import type { TitleNames } from './titleNames.js'
 import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import type { ActionDefinition } from '../actions/actionDefinition.js'
@@ -96,6 +97,11 @@ export interface EighteenXXTitleRules<
     transferRules: TransferRules
     privatePowerRules: PrivatePowerRules
     outOfTurnPrivatePowers?: boolean
+    /**
+     * A title's own ways of exchanging a private, allowed wherever the family's exchange is. The
+     * title then lists every exchange itself, so the family's exchange controls stay away.
+     */
+    privateExchangeActions?: readonly StepAction<State>[]
     trackRules: TrackRules
     /** The family operating steps the title runs, in order; all of them unless given. */
     operatingSteps?: readonly OperatingStepState[]

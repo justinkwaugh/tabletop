@@ -11,11 +11,11 @@ import { auctionLotName } from './auctionHistory.js'
 export function describeLastAction(
     session: EighteenXXSessionView,
     action: GameAction,
-    describeAction?: TitleActionDescription
+    describeAction?: TitleActionDescription,
+    companyName: (id: string) => string = (id) => session.companyName(id)
 ): HistoryDescription {
     const gameState = session.gameState
     const money = session.presentation.money
-    const companyName = (id: string) => session.companyName(id)
     if (isOfferAuctionLot(action) || isBidOnAuctionLot(action)) {
         const lot = session.auctionLotsFor(gameState).find((lot) => lot.id === action.lotId)
         assert(lot, 'Recorded auction requires its lot')
@@ -38,7 +38,8 @@ export function describeLastAction(
             placeReference,
             (id) => session.poolName(id),
             { charters: session.charters, multiShare: session.presentation.multiShareCertificate },
-            session.presentation.runSubsidyName
+            session.presentation.runSubsidyName,
+            session.historyWording
         )
     return describeAction?.(action, { companyName, place: placeReference }, shared) ?? shared()
 }

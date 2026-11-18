@@ -209,7 +209,8 @@ export function createEighteenXXRuntime<
             options.privateRules,
             rules,
             companyRules,
-            options.outOfTurnPrivatePowers === true
+            options.outOfTurnPrivatePowers === true,
+            options.privateExchangeActions
         )
     const allowsCompanyDecisions = (handler: Handler): Handler =>
         new CompanyDecisionsHandler<State>(

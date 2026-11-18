@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { capitalized } from '../presentation/words.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import { sessionStationTokens } from './stationTokens.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -21,10 +22,11 @@
     const appearance = (neutral: boolean) =>
         (neutral ? session.mapView.neutralStation : undefined) ??
         session.mapView.stations[companyId]
-    const label = (neutral: boolean) => (neutral ? 'Neutral station token' : 'Station token')
+    const tokenWord = $derived(session.terms.stationToken)
+    const label = (neutral: boolean) => (neutral ? `Neutral ${tokenWord}` : capitalized(tokenWord))
 </script>
 
-<div class="remaining-tokens" role="group" aria-label="Remaining station tokens">
+<div class="remaining-tokens" role="group" aria-label={`Remaining ${tokenWord}s`}>
     {#if !vertical}
         {#each remainingStations as station (station.id)}
             {@const cost = session.stations.placementCost(station.id)}
@@ -43,8 +45,8 @@
             <div
                 class="token-cost"
                 aria-label={stationCosts
-                    ? `${group.count} ${group.neutral ? 'neutral ' : ''}station tokens, ${money(group.cost)} each`
-                    : `${group.count} ${group.neutral ? 'neutral ' : ''}station tokens`}
+                    ? `${group.count} ${group.neutral ? 'neutral ' : ''}${tokenWord}s, ${money(group.cost)} each`
+                    : `${group.count} ${group.neutral ? 'neutral ' : ''}${tokenWord}s`}
             >
                 <div class="token-count">
                     {#if counted}<span>{group.count}</span>{/if}<CompanyToken
@@ -55,7 +57,7 @@
                 {#if stationCosts}<span class="token-price">{group.cost}</span>{/if}
             </div>
         {:else}
-            <div class="token-count exhausted" aria-label="0 station tokens remaining">
+            <div class="token-count exhausted" aria-label={`0 ${tokenWord}s remaining`}>
                 <span>0</span><CompanyToken
                     appearance={session.mapView.stations[companyId]}
                     size={20}

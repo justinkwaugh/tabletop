@@ -13,6 +13,15 @@ import { PendingParFields } from '../company/pendingPar.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 
+/** A row of lots of one printed price, and how far its sale has come. */
+export type AuctionPriceRow = {
+    price: number
+    lotIds: string[]
+    status: 'sold' | 'open' | 'later'
+    remaining: number
+    unbid: number
+}
+
 export const AuctionLot = Type.Object(
     { id: Type.String(), name: Type.String(), price: Type.Integer({ minimum: 1 }) },
     { additionalProperties: false }
@@ -79,6 +88,18 @@ export interface WaterfallAuctionRules<State extends AuctionState = AuctionState
      * after the last player who bought a lot on their turn.
      */
     firstStockPlayer?: 'after-last-actor' | 'after-last-purchase'
+    /**
+     * Lots of one price form a row, listed left to right, as 1828's (§6.1, §6.2): a player buys
+     * only from the cheapest row still selling, and in a row of several only the one lot without
+     * a bid once every other has one; the row's bids resolve, left to right, once each of its
+     * lots has a bid. Without rows the first lot is bought and its bids resolve at once.
+     */
+    priceRows?: true
+    /**
+     * Whether a lot holds one bid only, a higher bid releasing the earlier bidder's, so that it is
+     * never contested, as 1828's $250 privates (§6.1).
+     */
+    singleBid?(lotId: string): boolean
     award(state: State, award: AuctionAward): void
     incomePayments(state: State): CashPayment[]
     /**
@@ -158,13 +179,60 @@ export class ReserveBidAuction {
         if (this.rules.firstBidAtPrice && !bids.length) return this.price(lotId)
         return Math.max(this.price(lotId), ...bids) + this.rules.increment
     }
+    /**
+     * The cheapest row of lots still selling, left to right: the first lot alone without price
+     * rows.
+     */
+    private openRow(): string[] {
+        const remaining = this.auction.remainingLotIds
+        if (!this.rules.priceRows || !remaining.length) return remaining.slice(0, 1)
+        const price = this.printedPrice(remaining[0])
+        return remaining.filter((lotId) => this.printedPrice(lotId) === price)
+    }
+    /**
+     * The lots by printed price, cheapest first, where the auction sells them in rows. The open
+     * row is the one being auctioned, which all passing can make a dearer row (§6.1).
+     */
+    priceRows(): AuctionPriceRow[] {
+        if (!this.rules.priceRows) return []
+        const selling = this.auction.bidding?.lotId ?? this.openRow()[0]
+        const openPrice = selling === undefined ? undefined : this.printedPrice(selling)
+        const prices = [...new Set(this.lots.map((lot) => lot.price))]
+        return prices.map((price) => {
+            const lotIds = this.lots.filter((lot) => lot.price === price).map((lot) => lot.id)
+            const remaining = lotIds.filter((id) => this.auction.remainingLotIds.includes(id))
+            return {
+                price,
+                lotIds,
+                status: !remaining.length ? 'sold' : price === openPrice ? 'open' : 'later',
+                remaining: remaining.length,
+                unbid: remaining.filter((id) => !this.hasBid(id)).length
+            }
+        })
+    }
+    private printedPrice(lotId: string): number {
+        const lot = this.lots.find((lot) => lot.id === lotId)
+        assertExists(lot, 'Unknown auction lot')
+        return lot.price
+    }
+    private hasBid(lotId: string): boolean {
+        return this.auction.reservations.some((bid) => bid.lotId === lotId)
+    }
+    /** The lots a player may only buy at their price, never bid on. */
+    buyOnlyLotIds(): string[] {
+        const row = this.openRow()
+        return row.filter(
+            (lotId) =>
+                !this.hasBid(lotId) && row.every((other) => other === lotId || this.hasBid(other))
+        )
+    }
     canPurchase(playerId: string, lotId: string): boolean {
         return (
             !this.auction.completed &&
             !this.auction.bidding &&
             !this.resolution() &&
             playerId === this.playerId &&
-            this.auction.remainingLotIds[0] === lotId &&
+            this.buyOnlyLotIds().includes(lotId) &&
             this.availableCash(playerId) >= this.price(lotId)
         )
     }
@@ -181,7 +249,8 @@ export class ReserveBidAuction {
             bidding
                 ? bidding.lotId !== lotId ||
                   !bidding.auction.participants.some((p) => p.playerId === playerId && !p.passed)
-                : !this.auction.remainingLotIds.slice(1).includes(lotId)
+                : !this.auction.remainingLotIds.includes(lotId) ||
+                  this.buyOnlyLotIds().includes(lotId)
         )
             return false
         return (
@@ -200,8 +269,9 @@ export class ReserveBidAuction {
             bidding.auction = auction.dehydrate()
             bidding.playerId = this.nextBidder(playerId)
         } else {
+            const single = this.rules.singleBid?.(lotId) === true
             this.auction.reservations = this.auction.reservations.filter(
-                (bid) => bid.playerId !== playerId || bid.lotId !== lotId
+                (bid) => bid.lotId !== lotId || (!single && bid.playerId !== playerId)
             )
             this.auction.reservations.push({ playerId, lotId, amount })
             this.advanceOuterTurn()
@@ -249,8 +319,11 @@ export class ReserveBidAuction {
             }
             return undefined
         }
-        const lotId = this.auction.remainingLotIds[0]
-        const bids = this.auction.reservations.filter((bid) => bid.lotId === lotId)
+        const row = this.openRow()
+        const lotId = row[0]
+        const bids = row.every((id) => this.hasBid(id))
+            ? this.auction.reservations.filter((bid) => bid.lotId === lotId)
+            : []
         if (bids.length === 1)
             return {
                 kind: 'award',

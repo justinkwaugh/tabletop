@@ -31,7 +31,11 @@ export const PrivateExchangeDetails = Type.Object(
         companyId: Type.String(),
         shares: Type.Integer({ minimum: 1 }),
         exemptOwnershipLimit: Type.Boolean(),
-        stockAction: Type.Union([Type.Literal('additional'), Type.Literal('none')]),
+        stockAction: Type.Union([
+            Type.Literal('additional'),
+            Type.Literal('none'),
+            Type.Literal('purchase')
+        ]),
         presidency: Type.Optional(PresidencyChange)
     },
     { additionalProperties: false }
@@ -71,6 +75,12 @@ export function evaluatePrivateExchange(
         (state.machineState !== 'StockRound' || state.activePlayerIds[0] !== request.playerId)
     )
         return { reason: 'Exchange during your own stock turn.' }
+    if (
+        terms.stockAction === 'purchase' &&
+        state.machineState === 'StockRound' &&
+        state.stockRound.turn.bought
+    )
+        return { reason: 'The turn’s purchase has been made.' }
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
     if (!certificate || certificate.kind !== 'share' || sameOwner(certificate.owner, owner))
         return { reason: 'This share is unavailable.' }

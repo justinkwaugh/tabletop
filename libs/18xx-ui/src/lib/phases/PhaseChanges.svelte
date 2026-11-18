@@ -67,11 +67,14 @@
     {#if change}
         <h2 class="phase">
             Phase <TrainBadge
-                name={change.event.fromPhaseId}
+                name={session.phaseName(change.event.fromPhaseId)}
                 color={phaseColors[change.event.fromPhaseId]}
             />
             <span aria-label="to">→</span>
-            <TrainBadge name={change.event.toPhaseId} color={phaseColors[change.event.toPhaseId]} />
+            <TrainBadge
+                name={session.phaseName(change.event.toPhaseId)}
+                color={phaseColors[change.event.toPhaseId]}
+            />
         </h2>
         {#if consequences.length}<p class="event">
                 {#each consequences as consequence, index (index)}

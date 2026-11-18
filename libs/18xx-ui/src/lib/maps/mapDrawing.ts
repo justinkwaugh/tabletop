@@ -213,6 +213,7 @@ type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
 type RevenueCaption = Extract<RevenueAnnotation, { kind: 'caption' }>
 const RevenueRadius = 8.7
 const TokenRadius = 10.5
+const DefaultBorderWidths: Readonly<Record<string, number>> = { impassable: 5 }
 export const TokenTabReach = 18
 // Between a station circle and the baseline of the name curved over it.
 const NameArcGap = 2.2
@@ -273,6 +274,8 @@ export type MapDrawnLocation = {
     terrainPosition: Point
     /** Whether the terrain cost stands under its symbols rather than after them. */
     terrainCostBelow?: true
+    /** Whether the terrain symbols stand under the cost, the position being the cost's. */
+    terrainSymbolsBelow?: true
     /** Whether the location's terrain cost is drawn: on the printed hex, or kept on a laid tile. */
     terrainShown: boolean
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
@@ -452,10 +455,11 @@ export function createMapDrawing(
         revenueStack,
         terrainCostPrefix = '',
         terrainIcons = DefaultTerrainIcons,
-        borderWidths = {},
+        borderWidths: viewBorderWidths = {},
         printedReservations = [],
         sharedStations = {},
         namePositions = {},
+        nameOffsets = {},
         cityNames = {},
         namesBelow = [],
         nameTurns = {},
@@ -466,6 +470,7 @@ export function createMapDrawing(
         sharedCityLayouts = {},
         terrainPositions = {},
         terrainCostsBelow = [],
+        terrainSymbolsBelow = [],
         terrainKeptOnTiles = false,
         bonusArrows = []
     }: Pick<
@@ -494,6 +499,7 @@ export function createMapDrawing(
         | 'printedReservations'
         | 'sharedStations'
         | 'namePositions'
+        | 'nameOffsets'
         | 'cityNames'
         | 'namesBelow'
         | 'nameTurns'
@@ -504,6 +510,7 @@ export function createMapDrawing(
         | 'sharedCityLayouts'
         | 'terrainPositions'
         | 'terrainCostsBelow'
+        | 'terrainSymbolsBelow'
         | 'terrainKeptOnTiles'
         | 'bonusArrows'
     > = {}
@@ -590,7 +597,11 @@ export function createMapDrawing(
                 ? offboardNames
                 : undefined)
         const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
-        const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
+        const nameOffset = nameOffsets[location.id]
+        const nameBaseline = namePositions[location.id] ?? {
+            x: nameOffset?.x ?? 0,
+            y: -35 + (nameOffset?.y ?? 0)
+        }
         const nameRows = nameLines[location.id] ?? splitName(location.name ?? '', 18 / nameScale)
         const townRing = (location.markers ?? []).some((marker) => {
             const art = markerArt[marker.id]
@@ -770,6 +781,8 @@ export function createMapDrawing(
         const terrainCostBelow =
             (laidTerrain ? laidTerrain.costBelow : terrainCostsBelow.includes(location.id)) ||
             undefined
+        const terrainSymbolBelow =
+            (!laidTerrain && terrainSymbolsBelow.includes(location.id)) || undefined
         const divides = (edge: TileEdge) =>
             isOffboard(location) && isOffboard(map.neighbor(location.id, edge))
         return {
@@ -799,6 +812,7 @@ export function createMapDrawing(
             nameArcs,
             terrainPosition: terrainRow,
             ...(terrainCostBelow ? { terrainCostBelow } : {}),
+            ...(terrainSymbolBelow ? { terrainSymbolsBelow: terrainSymbolBelow } : {}),
             terrainShown,
             localLineAboveY,
             ...(placement && markers.some((marker) => hasOnTileLine(markerArt[marker.id]))
@@ -848,7 +862,7 @@ export function createMapDrawing(
                                       location.terrain,
                                       terrainCostPrefix,
                                       terrainRow,
-                                      terrainCostBelow
+                                      terrainCostBelow || terrainSymbolBelow
                                   )
                               ]
                             : []),
@@ -900,7 +914,7 @@ export function createMapDrawing(
         bonusArrows: drawnArrows,
         terrainCostPrefix,
         terrainIcons,
-        borderWidths,
+        borderWidths: { ...DefaultBorderWidths, ...viewBorderWidths },
         printedReservations,
         sharedStations,
         bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {
@@ -1019,7 +1033,7 @@ function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFa
 
 export const CaptionFontSize = 5
 export const TerrainNoteDrop = 12
-/** How far a cost standing under its terrain symbols drops below them. */
+/** How far the lower of a stacked terrain cost and its symbols drops below the upper. */
 export const TerrainCostDrop = 11
 export const NoticeFontSize = 9
 export const NoticeY = 24
@@ -1154,10 +1168,10 @@ function terrainBox(
     terrain: NonNullable<MapLocation['terrain']>,
     costPrefix: string,
     row: Point,
-    costBelow = false
+    stacked = false
 ): Obstacle {
     const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
-    return costBelow
+    return stacked
         ? box(
               { x: row.x, y: row.y + TerrainCostDrop / 2 },
               Math.max(widths.icons, widths.cost) / 2,

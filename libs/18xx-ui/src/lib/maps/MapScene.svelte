@@ -375,14 +375,18 @@
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
                             {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
                             {@const iconWidth = widths.icons}
-                            {@const labelWidth = entry.terrainCostBelow ? 0 : widths.cost}
+                            {@const stacked = entry.terrainCostBelow || entry.terrainSymbolsBelow}
+                            {@const labelWidth = stacked ? 0 : widths.cost}
                             <g
                                 data-map-terrain
                                 transform={`translate(${entry.terrainPosition.x - (iconWidth + labelWidth) / 2} ${entry.terrainPosition.y})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
                                     {@const icon = terrainIcon(kind, scene.terrainIcons)}
-                                    <g transform={`translate(${index * 19} 0)`} stroke="none">
+                                    <g
+                                        transform={`translate(${index * 19} ${entry.terrainSymbolsBelow ? TerrainCostDrop : 0})`}
+                                        stroke="none"
+                                    >
                                         {#if icon}
                                             <path d={icon.path} fill={icon.fill}></path>
                                         {:else if kind === 'water'}
@@ -409,10 +413,10 @@
                                         {/if}
                                     </g>
                                 {/each}
-                                {#if entry.terrainCostBelow}
+                                {#if stacked}
                                     <text
                                         x={iconWidth / 2}
-                                        y={4 + TerrainCostDrop}
+                                        y={entry.terrainCostBelow ? 4 + TerrainCostDrop : 4}
                                         font-size="10"
                                         font-weight="750">{cost}</text
                                     >
@@ -435,7 +439,7 @@
                                     x={entry.terrainPosition.x}
                                     y={entry.terrainPosition.y +
                                         TerrainNoteDrop +
-                                        (entry.terrainCostBelow ? TerrainCostDrop : 0)}
+                                        (stacked ? TerrainCostDrop : 0)}
                                     font-size="7"
                                     font-weight="750"
                                     fill={terrainIcon(terrain.kinds[0], scene.terrainIcons)?.fill ??

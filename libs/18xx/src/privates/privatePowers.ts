@@ -26,7 +26,10 @@ export interface PrivateTrackTerms {
      */
     together?: true
     terrainDiscount?: number
-    /** What the lay itself costs, beyond its terrain, such as a construction company's charge. */
+    /**
+     * What the lay itself costs, beyond its terrain, such as a construction company's charge; added
+     * to the ordinary lay's cost where the lay counts as one, as 1828's D&H fee (§13.2.2.4).
+     */
     layFee?: number
     /**
      * Records a lay beside the ordinary lays in the turn's track step, for a title whose
@@ -113,7 +116,7 @@ export function privateTrackConstruction(
 ): TrackConstruction {
     const trackStep =
         terms.countsAsOrdinaryLay && state.trackStep?.companyId === terms.companyId
-            ? state.trackStep
+            ? { ...state.trackStep, completed: false }
             : { companyId: terms.companyId, lays: [], completed: false }
     const discount = terms.terrainDiscount ?? 0
     const { colors } = terms
@@ -122,7 +125,12 @@ export function privateTrackConstruction(
         {
             ...rules,
             allowance: terms.countsAsOrdinaryLay
-                ? rules.allowance
+                ? (allowanceState, color, upgrade) => {
+                      const allowed = rules.allowance(allowanceState, color, upgrade)
+                      return 'cost' in allowed
+                          ? { cost: allowed.cost + (terms.layFee ?? 0) }
+                          : allowed
+                  }
                 : () => ({ cost: terms.layFee ?? 0 }),
             restriction: (_state, request) =>
                 terms.locationIds.includes(request.locationId) &&

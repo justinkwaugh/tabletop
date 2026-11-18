@@ -250,7 +250,6 @@ export const MapView1833NE: MapViewDefinition = {
         Object.entries(OffboardPrinting).flatMap(([id, { name }]) => (name ? [[id, name]] : []))
     ),
     labelsReplaceNames: true,
-    borderWidths: { impassable: 5 },
     // Providence prints its river cost at the top and its label low, clear of its track.
     terrainPositions: { F25: { x: 0, y: -28 } },
     hideLocationNames: Object.keys(OffboardPrinting).filter((id) => !OffboardPrinting[id].name),

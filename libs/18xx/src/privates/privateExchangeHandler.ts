@@ -9,7 +9,10 @@ import {
     type MachineStateHandler
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import { actingOperatingCompany } from '../operating/operatingSet.js'
+import { actingOperatingCompany, nextOperatingCompany } from '../operating/operatingSet.js'
+import { leaveOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
+import { BetweenCompaniesState } from '../operating/operatingSteps.js'
+import type { StepAction } from '../game/stepAction.js'
 import { FloatCompany, isFloatCompany } from '../company/floatCompany.js'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
@@ -23,15 +26,19 @@ import {
 import type { PrivateState, PrivateRules } from './privateRules.js'
 
 export class PrivateExchangeHandler<
-    State extends HydratedGameState & PrivateState & FormationState
+    State extends HydratedGameState & PrivateState & FormationState & OperatingTurnState
 > implements MachineStateHandler<HydratedAction, State> {
     constructor(
         private readonly handler: MachineStateHandler<HydratedAction, State>,
         private readonly rules: PrivateRules,
         private readonly stockRules: StockRules,
         private readonly companyRules: CompanyRules,
-        private readonly outOfTurnExchanges: boolean
+        private readonly outOfTurnExchanges: boolean,
+        private readonly titleExchanges: readonly StepAction<State>[] = []
     ) {}
+    private titleExchange(action: HydratedAction): StepAction<State> | undefined {
+        return this.titleExchanges.find((entry) => entry.type === action.type)
+    }
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const pending = nextCompanyToFloat(context.gameState, this.companyRules)
         if (pending)
@@ -40,6 +47,8 @@ export class PrivateExchangeHandler<
                 action.source === ActionSource.System &&
                 action.companyId === pending.companyId
             )
+        const titleExchange = this.titleExchange(action)
+        if (titleExchange) return titleExchange.isValid(action, context.gameState)
         if (isExchangePrivate(action))
             return (
                 action.source === ActionSource.User &&
@@ -73,17 +82,27 @@ export class PrivateExchangeHandler<
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
         if (nextCompanyToFloat(state, this.companyRules)) return []
+        const titleExchanges = this.titleExchanges
+            .filter((entry) => entry.available(state, playerId))
+            .map((entry) => entry.type)
         if (!state.activePlayerIds.includes(playerId))
-            return this.outOfTurnExchanges &&
+            return [
+                ...(this.outOfTurnExchanges &&
                 outOfTurnExchangeOffers(state, playerId, this.rules, this.stockRules).length
-                ? ['ExchangePrivateOutOfTurn']
-                : []
+                    ? ['ExchangePrivateOutOfTurn']
+                    : []),
+                ...titleExchanges
+            ]
         const ordinary = this.ordinaryActor(state, playerId)
             ? this.handler.validActionsForPlayer(playerId, context)
             : []
-        return privateExchangeOffers(state, playerId, this.rules, this.stockRules).length
-            ? [...ordinary, 'ExchangePrivate']
-            : ordinary
+        return [
+            ...ordinary,
+            ...(privateExchangeOffers(state, playerId, this.rules, this.stockRules).length
+                ? ['ExchangePrivate']
+                : []),
+            ...titleExchanges
+        ]
     }
     /** The turn's own actor: its first active player, or any receiver of the operating company. */
     private ordinaryActor(state: State, playerId: string): boolean {
@@ -117,10 +136,21 @@ export class PrivateExchangeHandler<
         this.handler.enter(context)
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
+        const state = context.gameState
+        if (isFloatCompany(action) && this.floatTookTheTurn(state)) {
+            leaveOperatingTurn(state)
+            return BetweenCompaniesState
+        }
         return isExchangePrivate(action) ||
             isExchangePrivateOutOfTurn(action) ||
-            isFloatCompany(action)
-            ? context.gameState.machineState
+            isFloatCompany(action) ||
+            this.titleExchange(action)
+            ? state.machineState
             : this.handler.onAction(action, context)
+    }
+    /** A company floated into the round ahead of the one whose track step had opened. */
+    private floatTookTheTurn(state: State): boolean {
+        const stepCompanyId = state.trackStep?.companyId
+        return !!stepCompanyId && stepCompanyId !== nextOperatingCompany(state)
     }
 }

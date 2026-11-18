@@ -10,6 +10,7 @@
         rounds,
         children,
         phaseColors,
+        phaseLabel,
         newestFirst = false,
         historyComplete = true,
         onJump,
@@ -27,6 +28,7 @@
         rounds: HistoryRound[]
         children: Snippet<[HistoryRound]>
         phaseColors: Readonly<Record<string, string>>
+        phaseLabel: (phaseIds: readonly string[]) => string
         newestFirst?: boolean
         historyComplete?: boolean
         onOrderChange: (newestFirst: boolean) => void
@@ -150,7 +152,7 @@
                     style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}
                     onclick={() => scrollToRound(round.id)}
                 >
-                    <strong>{round.label}</strong><span>Phase {round.phases.join(' → ')}</span>
+                    <strong>{round.label}</strong><span>{phaseLabel(round.phases)}</span>
                 </button>
             {:else}<div class="empty">No rounds yet.</div>{/each}
         </nav>
@@ -196,7 +198,7 @@
                                     aria-label="Operating order"
                                     >{@render orderContent(round.operatingOrder)}</span
                                 >{/if}
-                            <span class="round-phase">Phase {round.phases.join(' → ')}</span>
+                            <span class="round-phase">{phaseLabel(round.phases)}</span>
                         </h3>
                     {/snippet}
                     {#if !newestFirst}{@render divider()}{/if}

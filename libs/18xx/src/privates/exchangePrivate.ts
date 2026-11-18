@@ -9,6 +9,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { recordStockAction } from '../stock/stockRoundRules.js'
+import { markTurnPurchase } from '../stock/sharePurchase.js'
 import type { StockRules } from '../stock/stockRules.js'
 import {
     PrivateExchangeDetails,
@@ -71,8 +72,9 @@ function applyExchange(
         details.exemptOwnershipLimit,
         stockRules
     )
-    if (state.machineState === 'StockRound' && details.stockAction === 'additional')
-        recordStockAction(state, request.playerId, stockRules.round)
+    if (state.machineState !== 'StockRound' || details.stockAction === 'none') return
+    if (details.stockAction === 'purchase') markTurnPurchase(state)
+    recordStockAction(state, request.playerId, stockRules.round)
 }
 
 export class HydratedExchangePrivate

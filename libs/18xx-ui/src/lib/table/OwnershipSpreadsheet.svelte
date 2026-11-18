@@ -9,6 +9,7 @@
     import {
         companySharePrice,
         DefaultCompanyPricePresentation,
+        shownParPrice,
         type CompanyPricePresentation
     } from './companyPresentation.js'
     import { assert, assertExists, type GameAction } from '@tabletop/common'
@@ -181,12 +182,12 @@
               : 'bank'
     }
     const firstPoolId = $derived(ipoPoolId ? 'ipo' : 'market')
-    const poolColumnLabels: Readonly<Record<string, string>> = {
+    const poolColumnLabels: Readonly<Record<string, string>> = $derived({
         ipo: 'IPO',
-        market: 'Market',
+        market: session.terms.marketPool,
         treasury: 'Treas.',
         exchange: 'Exch.'
-    }
+    })
     const portfolioColumnLabels = $derived(
         new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
@@ -306,8 +307,13 @@
         assertExists(first, 'A sortable column needs a sort direction')
         return first.direction
     }
-    const ownerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
-    type OwnerStatistic = (typeof ownerStatisticKeys)[number]
+    const OwnerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
+    type OwnerStatistic = (typeof OwnerStatisticKeys)[number]
+    const ownerStatisticKeys: readonly OwnerStatistic[] = $derived(
+        session.noCertificateLimit
+            ? OwnerStatisticKeys.filter((key) => key !== 'certs')
+            : OwnerStatisticKeys
+    )
     type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
         label: string
         text: (values: OwnerStatistics) => string
@@ -351,7 +357,7 @@
         pricePresentation.label,
         'Cash',
         'Trains',
-        'Tokens',
+        session.terms.stationTokensHeading,
         ...(loansLabel ? [loansLabel] : []),
         ...earlyTitleColumns.map((column) => column.label),
         'Last run',
@@ -407,7 +413,7 @@
                 : []),
             {
                 id: 'market',
-                name: 'Market',
+                name: session.terms.marketPool,
                 count: (companyId: string) => poolShares(marketPoolId, companyId),
                 sells: inPool(marketPoolId),
                 holder: (): CertificateHolder => ({
@@ -485,7 +491,7 @@
                 company.started &&
                 !company.closed &&
                 (pricePresentation.parWithoutIpoShares || poolShares(ipoPoolId, company.id) > 0)
-                    ? company.parPrice
+                    ? shownParPrice(pricePresentation, session.gameState, company)
                     : undefined,
             stations: session.gameState.stations.filter(
                 (station) => stationPlacer(session.gameState, station) === company.id
@@ -829,7 +835,7 @@
     <span class="share-value" class:president={!!president}
         >{text}{#if president || mark}<span
                 class="badge"
-                aria-label={[president ? 'President' : '', mark?.name ?? '']
+                aria-label={[president ? session.terms.president : '', mark?.name ?? '']
                     .filter(Boolean)
                     .join(', ')}
                 title={mark?.title}>{president ?? ''}{mark?.label ?? ''}</span
@@ -991,7 +997,7 @@
                                     )}
                                     {@render companySortHeader('col', 'Cash', 'cash')}
                                     <th scope="col">Trains</th>
-                                    <th scope="col">Tokens</th>
+                                    <th scope="col">{session.terms.stationTokensHeading}</th>
                                     {#if loansLabel}{@render companySortHeader(
                                             'col',
                                             loansLabel,
@@ -1218,7 +1224,7 @@
                                         ></td>{/each}
                                 </tr>
                                 <tr class="financial-row">
-                                    <th scope="row">Tokens</th>
+                                    <th scope="row">{session.terms.stationTokensHeading}</th>
                                     {#each rows as row (row.company.id)}
                                         <td
                                             class:operating-column={row.company.id ===

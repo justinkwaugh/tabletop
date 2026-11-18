@@ -59,11 +59,14 @@ function solution(revenue: number, pathId = 'edge-0'): RouteSolution {
     }
 }
 
-function projected({
-    machineState = 'LayingTrack',
-    valid = ['FinishTrack'],
-    trains = [train]
-}: { machineState?: string; valid?: string[]; trains?: Train[] } = {}) {
+function projected(
+    {
+        machineState = 'LayingTrack',
+        valid = ['FinishTrack'],
+        trains = [train]
+    }: { machineState?: string; valid?: string[]; trains?: Train[] } = {},
+    projectsRun?: (companyId: string) => boolean
+) {
     const game = $state({
         machineState,
         trackStep: { companyId: TestCompanyId, lays: [], completed: false },
@@ -89,7 +92,7 @@ function projected({
         displayedStationState: { stations: [], stationReservations: [] },
         displayedScene: scene
     })
-    const module = new ProjectedRunModule(session, map, () => snapshot)
+    const module = new ProjectedRunModule(session, map, () => snapshot, projectsRun)
     function request() {
         assertExists(module.request, 'The company projects a run')
         return module.request
@@ -112,6 +115,12 @@ describe('ProjectedRunModule', () => {
         expect(projected({ valid: [] }).module.request).toBeUndefined()
         const { module, game } = projected()
         game.viewingHistory = true
+        expect(module.request).toBeUndefined()
+    })
+
+    it('projects nothing for a company whose title shows no projection', () => {
+        const { module } = projected({}, (companyId) => companyId !== TestCompanyId)
+        expect(module.companyId).toBeUndefined()
         expect(module.request).toBeUndefined()
     })
 

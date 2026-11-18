@@ -37,6 +37,8 @@ export type CompanyPricePresentation = {
     showPar: boolean
     /** Keeps Par in the spreadsheet once the IPO sells out, where par still prices company actions. */
     parWithoutIpoShares?: true
+    /** Whether a company has left its par price behind, as an 1828 system has. */
+    parRetired?: (state: object, companyId: string) => boolean
     label: string
 }
 
@@ -49,6 +51,15 @@ export const DefaultCompanyPricePresentation: CompanyPricePresentation = {
 export const NoParCompanyPricePresentation: CompanyPricePresentation = {
     showPar: false,
     label: 'Value'
+}
+
+/** The par price the table shows for a company, if it still has one. */
+export function shownParPrice(
+    presentation: CompanyPricePresentation,
+    state: object,
+    company: { id: string; parPrice?: number }
+): number | undefined {
+    return presentation.parRetired?.(state, company.id) ? undefined : company.parPrice
 }
 
 export function companySharePrice(

@@ -25,7 +25,8 @@
                     aria-label={`Autorun ${name}`}
                     title={on
                         ? `Stop autorunning ${name}`
-                        : `Run ${name}’s best routes and pay out on its turns, building and buying nothing`}
+                        : (session.presentation.autorunDescription?.(companyId) ??
+                          `Run ${name}’s best routes and pay out on its turns, building and buying nothing`)}
                     onclick={() => (on ? runs.cancel(companyId) : runs.declare(companyId))}
                 >
                     <CompanyToken appearance={session.mapView.stations[companyId]} size={16} />
@@ -43,7 +44,7 @@
                 <span class="notice" role="status"
                     ><StopNotice
                         subject={session.actionCompanyName(companyId)}
-                        reason={runStopText[stopReason]}
+                        reason={session.terms.reword(runStopText[stopReason])}
                         keepGoing={isIgnorableRunStop(stopReason)
                             ? {
                                   ignoring: ignorableRunStops[stopReason].noun,

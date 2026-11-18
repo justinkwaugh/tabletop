@@ -41,6 +41,16 @@ export interface TrainRules {
     trainLimit(state: TrainPurchaseState, companyId: string): number
     countsForLimit?(state: TrainPurchaseState, train: Train): boolean
     /**
+     * The company's trains in groups each held to a limit of its own, as an 1828 system's two
+     * shells (§15.4): it discards from a group over its limit as the limit falls. Without groups
+     * the trains counting for the limit are one group held to ``trainLimit``, which also bounds
+     * every purchase.
+     */
+    trainGroups?(
+        state: TrainPurchaseState,
+        companyId: string
+    ): readonly { trains: readonly Train[]; limit: number }[]
+    /**
      * Whether a train is one a company must own; every train unless the title says, as 1822's
      * permanent 2-trains and Pullmans leave their company still obliged to buy one (§5.5.13).
      */
@@ -109,6 +119,20 @@ export function trainsCountingForLimit(
     return trainsOwnedBy(state, { kind: 'company', companyId }).filter(
         (train) => rules.countsForLimit?.(state, train) ?? true
     )
+}
+/** The trains of the company's first group over its limit, from which it must discard. */
+export function trainsOverLimit(
+    state: TrainPurchaseState,
+    rules: Pick<TrainRules, 'trainLimit' | 'countsForLimit' | 'trainGroups'>,
+    companyId: string
+): Train[] {
+    const groups = rules.trainGroups?.(state, companyId) ?? [
+        {
+            trains: trainsCountingForLimit(state, rules, companyId),
+            limit: rules.trainLimit(state, companyId)
+        }
+    ]
+    return [...(groups.find((group) => group.trains.length > group.limit)?.trains ?? [])]
 }
 export const TrainPurchaseRequest = Type.Object(
     {
