@@ -97,10 +97,8 @@ async function rect(target: Locator) {
 /** A desk's guild button: "West guilds" or "East guilds". */
 /** The two guild buttons, 45 px each, and their 4 px gaps to the map: what the map gives up. */
 const Gutters = 2 * (45 + 4)
-/** The guild prints are in the folder, so the buttons carry their faces. */
-const printed = existsSync(
-    new URL('../src/lib/art/supplied/board.guild.merchant.webp', import.meta.url)
-)
+/** The guild faces are in the folder, so the buttons carry them. */
+const printed = existsSync(new URL('../src/lib/art/supplied/face.merchant.webp', import.meta.url))
 
 const sideButton = (page: Page, side: 'West' | 'East') =>
     page.getByRole('button', { name: `${side} guilds`, exact: true })
@@ -347,11 +345,16 @@ test.describe('a 1440 px desk', () => {
                 'aria-hidden',
                 'true'
             )
+            // Each face is its own small file, decoration with empty alt text.
             expect(
                 await faces.evaluateAll((all) =>
-                    all.map((face) => face.getAttribute('data-guild-face'))
+                    all.map((face) => [
+                        face.getAttribute('data-guild-face'),
+                        face.getAttribute('alt'),
+                        /face\.([a-z]+)\.webp/.exec(face.getAttribute('src') ?? '')?.[1]
+                    ])
                 )
-            ).toEqual(Faces[side])
+            ).toEqual(Faces[side].map((guild) => [guild, '', guild]))
             const rings = await Promise.all(
                 (await button.locator('[data-face-ring]').all()).map((ring) => rect(ring))
             )
@@ -371,6 +374,20 @@ test.describe('a 1440 px desk', () => {
             const foot = box.y + box.height - above
             expect(Math.abs(top - foot)).toBeLessThan(2)
         }
+
+        // At rest no guild print is drawn or fetched: the faces are their own small files.
+        expect(
+            await page.evaluate(() => ({
+                drawn: [...document.querySelectorAll('image, img')].filter((image) =>
+                    (image.getAttribute('href') ?? image.getAttribute('src') ?? '').includes(
+                        'board.guild'
+                    )
+                ).length,
+                fetched: performance
+                    .getEntriesByType('resource')
+                    .filter(({ name }) => name.includes('board.guild')).length
+            }))
+        ).toEqual({ drawn: 0, fetched: 0 })
 
         // Open, the button's edge is light gold and it glows; a keyboard focus ring shows.
         const west = sideButton(page, 'West')

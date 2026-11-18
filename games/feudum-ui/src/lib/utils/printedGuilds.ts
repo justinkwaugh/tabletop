@@ -290,7 +290,8 @@ export const PrintedCounts = {
 
 /**
  * Contract, Desk layout: the face of the figure on each guild's print, as a desk's side button shows
- * it, cut round in a circle of `PrintedFaceRadius`; lying, as the print lies on the board.
+ * it, cut round in a circle of `PrintedFaceRadius`; lying, as the print lies on the board. The face
+ * files are cut here and turned upright by `printedFaceTurn` (`scripts/make-faces.mjs`).
  */
 export const PrintedFaces: Record<GuildId, Point> = {
     alchemist: { x: 241, y: 87.5 },
@@ -301,3 +302,8 @@ export const PrintedFaces: Record<GuildId, Point> = {
     monk: { x: 243, y: 260 }
 }
 export const PrintedFaceRadius = 53
+
+/** The quarter turn that stands a face upright: a west print a quarter clockwise, an east one back. */
+export function printedFaceTurn(guild: GuildId): number {
+    return West.includes(guild) ? 90 : -90
+}
