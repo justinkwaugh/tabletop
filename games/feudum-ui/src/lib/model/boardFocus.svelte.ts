@@ -7,7 +7,6 @@ import {
 import {
     BoardHeight,
     BoardWidth,
-    DeskBoardArea,
     DiscFrame,
     GuildAreaHeight,
     GuildAreas,
@@ -25,13 +24,15 @@ import {
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 
 /**
- * The focus chooser's chips: on a phone Map, West guilds, East guilds and Tracks (contract: Phone
- * layout); on a desk Whole board, Map, West guilds and East guilds (contract: Supply, the zoom row).
+ * The focus chooser's chips, a phone's: Map, West guilds, East guilds and Tracks (contract: Phone
+ * layout). A desk has one view, the map, and the guilds behind its side buttons (Desk layout).
  */
-export type FocusArea = 'board' | 'map' | 'west' | 'east' | 'tracks'
+export type FocusArea = 'map' | 'west' | 'east' | 'tracks'
 export type FramedArea = Exclude<FocusArea, 'tracks'>
 /** Where a pick's targets stand: an area of the board, or a track. */
-export type PlacedArea = Exclude<FocusArea, 'board'>
+export type PlacedArea = FocusArea
+/** A desk's guild side, behind its button. */
+export type GuildSide = 'west' | 'east'
 
 export interface BoardRect {
     readonly x: number
@@ -46,7 +47,7 @@ export interface PickFrame {
     readonly rect: BoardRect
     /** A guild pick's column names its chip; the map's and a track's name none. */
     readonly area?: FramedArea
-    /** Every area its targets stand in, so a desk knows whether its chosen view holds them. */
+    /** Every area its targets stand in, so a desk knows whether one guild side holds them all. */
     readonly holds?: readonly PlacedArea[]
 }
 
@@ -65,17 +66,97 @@ export const ZoomRowBand = 128
 export const ScaledHeight = BoardHeight + ZoomRowBand
 
 /**
- * What it fits on a desk: the board, the guild standings' strip and the band. The board's view is
- * this shape at the column's width, so the zoom row stands right under the strip.
+ * Contract, Desk layout: a guild side's button, its width and its gap to the map in screen pixels.
+ * One stands at each side of the map; the gutter is what each takes from the view's width.
+ */
+export const SideButtonWidth = 36
+export const SideButtonGap = 4
+export const SideGutter = SideButtonWidth + SideButtonGap
+
+/**
+ * What the scaling wrapper fits on a desk: the map, the guild standings' strip and the band. The
+ * board's view is this shape at the column's width less the two gutters, so the zoom row stands
+ * right under the strip.
  */
 export function deskScaledHeight(seats: number): number {
-    return DeskBoardArea.height + standingsStripHeight(seats) + ZoomRowBand
+    return MapArea.height + standingsStripHeight(seats) + ZoomRowBand
 }
+
+/** A desk's rest: the map, the standings' strip and the band contained between the gutters. */
+export function deskRestScaleOf(viewWidth: number, viewHeight: number, seats: number): number {
+    return Math.min(
+        (viewWidth - 2 * SideGutter) / MapArea.width,
+        viewHeight / deskScaledHeight(seats),
+        1
+    )
+}
+
+/** Contract, Supply: the desk view's height at the column's width, before it gives way. */
+export function deskViewHeight(viewWidth: number, seats: number): number {
+    return (Math.max(0, viewWidth - 2 * SideGutter) * deskScaledHeight(seats)) / MapArea.width
+}
+
+/** Where a desk's map rests in its view, in screen pixels, and the gutter that holds it there. */
+export interface DeskRest extends BoardRect {
+    readonly scale: number
+    /** Board units of empty content each side of the map: a gutter at the rest's scale. */
+    readonly gutter: number
+}
+
 /**
- * Contract, Supply: the zoom row's height in screen pixels over a desk view's foot, with the gap
- * above it. A desk's focus frames its area above it, so the row never covers what it chose.
+ * The map at a desk's rest. The content carries a gutter each side, so the wrapper's own contain fit
+ * is the rest and leaves the buttons their room beside the map: at the view's left in the page, the
+ * content centred in full screen, as the wrapper places it.
  */
-export const DeskRowClear = 44
+export function deskMapAtRest(
+    view: { readonly width: number; readonly height: number },
+    seats: number,
+    centred: boolean
+): DeskRest {
+    const scale = deskRestScaleOf(view.width, view.height, seats)
+    if (!(scale > 0)) {
+        // Not measured yet, or narrower than the two buttons: no map to stand beside.
+        return { x: SideGutter, y: 0, width: 0, height: 0, scale: 0, gutter: 0 }
+    }
+    const width = MapArea.width * scale
+    const left = centred ? Math.max(0, (view.width - width - 2 * SideGutter) / 2) : 0
+    const top = centred ? Math.max(0, (view.height - deskScaledHeight(seats) * scale) / 2) : 0
+    return {
+        x: left + SideGutter,
+        y: top,
+        width,
+        height: MapArea.height * scale,
+        scale,
+        gutter: SideGutter / scale
+    }
+}
+
+/** The side a guild area's target stands on; none for any other target. */
+export function guildSideOf(target: BoardTarget): GuildSide | undefined {
+    const [kind, id] = target.split(':')
+    if (kind !== 'guild') {
+        return undefined
+    }
+    return GuildIds.some((guild) => guild === id && westGuild(guild)) ? 'west' : 'east'
+}
+
+/** What a desk's guild side does for a pick new to it: open a side, keep as it is, or close. */
+export type GuildSideFollowing = GuildSide | 'keep' | undefined
+
+/**
+ * Contract, Pick framing: on a desk a pick opens a guild side when every target, and an open popup's
+ * anchor, stands in that side's guild areas. One in both sides opens nothing and keeps a side opened
+ * by hand; one with a target on the map, or a track, closes the side, as the pick's end does.
+ */
+export function guildSideFollowing(frame: PickFrame | undefined): GuildSideFollowing {
+    const holds = frame?.holds ?? []
+    const sides = holds.filter((area): area is GuildSide => area === 'west' || area === 'east')
+    if (sides.length === 0 || sides.length < holds.length) {
+        return undefined
+    }
+    return sides.length === 1 ? sides[0] : 'keep'
+}
+
 /** Contract, Pick framing: how far past its rest a pick may bring the board. */
 export const PickFrameZoom = 2.5
 /** Room in screen pixels round what is framed. */
@@ -110,19 +191,9 @@ function columnOf(area: 'west' | 'east'): BoardRect {
     return unionOf(corners, 0)
 }
 
-/** What a chip frames: the whole board, the map's area and each guild column. */
+/** What a chip frames: the map's area and each guild column. */
 export function rectOfArea(area: FramedArea): BoardRect {
-    switch (area) {
-        case 'board': {
-            return DeskBoardArea
-        }
-        case 'map': {
-            return MapArea
-        }
-        default: {
-            return columnOf(area)
-        }
-    }
+    return area === 'map' ? MapArea : columnOf(area)
 }
 
 /** The scale the board rests at in a view this size, as the scaling wrapper reckons it. */
@@ -131,11 +202,6 @@ export function restScaleOf(viewWidth: number, viewHeight: number): number {
     const down = Math.max(1, viewHeight - ChooserInset) / ScaledHeight
     const contain = Math.min(across, down, 1)
     return contain >= CoverBelowScale ? contain : Math.min(Math.max(across, down), 1)
-}
-
-/** A desk's rest: the board, the standings' strip and the band contained in the view. */
-export function deskRestScaleOf(viewWidth: number, viewHeight: number, seats: number): number {
-    return Math.min(viewWidth / DeskBoardArea.width, viewHeight / deskScaledHeight(seats), 1)
 }
 
 export function pickFrameScale(restScale: number): number {
@@ -194,7 +260,7 @@ function litTargets(offer: BoardOffer): BoardTarget[] {
         .toSorted()
 }
 
-/** Contract, Focus chooser: the areas holding a lit target, each chip's dot. */
+/** Contract, Focus chooser: the areas holding a lit target, each chip's dot and each side button's. */
 export function litAreasOf(
     state: HydratedFeudumGameState,
     offer: BoardOffer
@@ -259,27 +325,13 @@ export interface BoardFocusSetting {
     /** Held sideways the board fits the chosen view by height, not the cover fit. */
     readonly sideways: () => boolean
     readonly animate: () => boolean
-    /** On a desk, the board view's size in screen pixels; a phone has none. */
-    readonly desk?: () => { readonly width: number; readonly height: number } | undefined
-}
-
-/** A desk's chosen area holds a pick when each target stands there; a track stands on the map. */
-function viewHolds(chosen: FramedArea | undefined, holds: readonly PlacedArea[] | undefined) {
-    if (chosen === 'board') {
-        return true
-    }
-    return (
-        chosen !== undefined &&
-        holds !== undefined &&
-        holds.every((area) => (area === 'tracks' ? 'map' : area) === chosen)
-    )
 }
 
 /**
- * Board focus (contract: Shared visual state). The chooser or a map pick opening sets it; a pan or
- * zoom by hand clears it. A pick gives back the chip it found when it closes, unless a hand took
- * the view first. It never changes an offer. A phone rests on the map; a desk on the whole board,
- * frames a pick only where the area it stands on leaves a target out, and keeps the zoom row clear.
+ * A phone's board focus (contract: Shared visual state). The chooser or a map pick opening sets it;
+ * a pan or zoom by hand clears it. A pick gives back the chip it found when it closes, unless a hand
+ * took the view first. It never changes an offer. It rests on the map. A desk has none: its one view
+ * is the map at the wrapper's own fit, which holds every map and track target.
  */
 export class BoardFocus {
     /** The chip the board stands on, until a hand moves it. */
@@ -290,11 +342,7 @@ export class BoardFocus {
     /** The lit set last framed, so a hand's pan stays until the lit set changes. */
     private followedKey: string | undefined
 
-    constructor(private readonly setting: BoardFocusSetting) {
-        if (setting.desk?.()) {
-            this.chosen = 'board'
-        }
-    }
+    constructor(private readonly setting: BoardFocusSetting) {}
 
     /** Which chip reads as chosen: while framed, only a guild column's. */
     get shown(): FramedArea | undefined {
@@ -309,38 +357,14 @@ export class BoardFocus {
         }
     }
 
-    /** The area the board rests on: the whole board on a desk, the map on a phone held upright. */
+    /** The area the board rests on: the map, held upright. */
     private restsOn(area: FramedArea): boolean {
-        if (area === 'board') {
-            return true
-        }
-        return !this.setting.desk?.() && area === 'map' && !this.setting.sideways()
+        return area === 'map' && !this.setting.sideways()
     }
 
-    /**
-     * Frames a rect in board units. A desk draws its part of the board, so the rect moves by that
-     * part's corner; and the zoom row stands over the view's foot, so the rect reaches the row's
-     * height further down at the scale it will be shown, and the area stands whole above the row.
-     */
+    /** Frames a rect in board units. */
     private frame(rect: BoardRect) {
-        const options = this.options()
-        const desk = this.setting.desk?.()
-        if (!desk) {
-            this.setting.view()?.focusRect(rect, options)
-            return
-        }
-        const scale = Math.min(
-            (desk.width - 2 * FramePadding.x) / rect.width,
-            (desk.height - 2 * FramePadding.y - DeskRowClear) / rect.height,
-            options.maxScale
-        )
-        const framed = {
-            x: rect.x - DeskBoardArea.x,
-            y: rect.y - DeskBoardArea.y,
-            width: rect.width,
-            height: rect.height + (scale > 0 ? DeskRowClear / scale : 0)
-        }
-        this.setting.view()?.focusRect(framed, options)
+        this.setting.view()?.focusRect(rect, this.options())
     }
 
     private show(area: FramedArea) {
@@ -353,13 +377,12 @@ export class BoardFocus {
 
     /**
      * Puts the board back on what it stands on, on opening, when the phone turns, or when the view's
-     * size changes with the panel; nothing over a hand's view. A desk at rest keeps the wrapper's
-     * own fit, which follows the view's size.
+     * size changes with the panel; nothing over a hand's view.
      */
     settle() {
         if (this.framed) {
             this.frame(this.framed.rect)
-        } else if (this.chosen && !(this.setting.desk?.() && this.chosen === 'board')) {
+        } else if (this.chosen) {
             this.show(this.chosen)
         }
     }
@@ -375,17 +398,13 @@ export class BoardFocus {
         this.framed = undefined
     }
 
-    /**
-     * Reads the open pick: frames a lit set new to it, and gives the view back when it closes. A
-     * desk frames it only where the chosen area leaves a target out; the whole board leaves none.
-     */
+    /** Reads the open pick: frames a lit set new to it, and gives the view back when it closes. */
     follow(frame: PickFrame | undefined) {
         if (frame?.key === this.followedKey) {
             return
         }
         this.followedKey = frame?.key
-        const inView = frame && this.setting.desk?.() && viewHolds(this.chosen, frame.holds)
-        if (frame && !inView) {
+        if (frame) {
             this.framed = frame
             this.frame(frame.rect)
         } else if (this.framed) {

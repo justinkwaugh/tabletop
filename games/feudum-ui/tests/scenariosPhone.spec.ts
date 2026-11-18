@@ -15,10 +15,10 @@ const Target = 44
 const chip = (table: ScenarioTable, area: string) =>
     table.page.locator(`[data-focus-chip="${area}"]`)
 
-/** A desk has no chip over the board; its zoom row's chooser stays on the whole board. */
-async function expectDeskOnWholeBoard(table: ScenarioTable) {
-    await expect(table.page.locator('[data-focus-chooser="phone"]')).toHaveCount(0)
-    await expect(chip(table, 'board')).toHaveAttribute('aria-pressed', 'true')
+/** A desk has no chooser: its one view is the map, its guilds behind the side buttons. */
+async function expectDeskOnMap(table: ScenarioTable) {
+    await expect(table.page.locator('[data-focus-chooser]')).toHaveCount(0)
+    await expect(table.page.locator('[data-guild-side]')).toHaveCount(2)
 }
 const view = (table: ScenarioTable) => table.page.locator('[data-board-view]')
 const surface = (table: ScenarioTable) => table.page.locator('[data-board-surface]')
@@ -102,12 +102,12 @@ scenario(
         await table.boardAtRest()
         const rest = await boardScale(table)
         if (!table.phone) {
-            // The desk shows the whole board, with no chooser over it.
-            await expectDeskOnWholeBoard(table)
+            // The desk shows the map, with no chooser over it.
+            await expectDeskOnMap(table)
             await table.press(table.card('Move'))
             await expectInView(table, table.lit())
             expect(await boardScale(table)).toBeCloseTo(rest, 3)
-            await expectDeskOnWholeBoard(table)
+            await expectDeskOnMap(table)
             return
         }
         const chips = await table.page
@@ -146,8 +146,16 @@ scenario(
         await table.press(table.card('Guild'))
         await table.boardAtRest()
         if (!table.phone) {
-            await expectDeskOnWholeBoard(table)
-            await expectInView(table, table.page.locator('[data-board-surface] [data-guild]'))
+            // Lit in both sides, the guilds open nothing: each side's button carries the dot.
+            await expectDeskOnMap(table)
+            await expect(table.page.locator('[data-guild-view]')).toHaveCount(0)
+            for (const side of ['west', 'east']) {
+                await expect(
+                    table.page.locator(`[data-guild-side="${side}"] [data-lit-dot]`)
+                ).toHaveCount(1)
+            }
+            await table.openGuildSide('west')
+            await expectInView(table, table.page.locator('[data-guild-view] [data-guild]'))
             return
         }
         await expect(chip(table, 'west')).toHaveAttribute('aria-pressed', 'true')
@@ -290,6 +298,10 @@ scenario(
             dialog.locator('[data-action-panel] [data-cards] [data-row="Guild"] button').first()
         )
         await table.boardAtRest()
+        // On a desk the Merchant stands behind the West guilds button, in the dialog too.
+        if (!table.phone && (await dialog.locator('[data-guild-view="west"]').count()) === 0) {
+            await table.press(dialog.locator('[data-guild-side="west"]'))
+        }
         await table.press(dialog.locator('[data-pick="guild:merchant"] [role="button"]').first())
         await expect(dialog.locator('[data-board-popup]')).toBeVisible()
         await table.press(dialog.locator('[data-board-popup] [data-row^="Pull"] button').first())
@@ -323,7 +335,7 @@ scenario(
         await table.boardAtRest()
         await expect(table.pick('voyage:1')).toHaveAttribute('data-pick-role', 'lit')
         if (!table.phone) {
-            await expectDeskOnWholeBoard(table)
+            await expectDeskOnMap(table)
             await expect(tracksLayer(table)).toHaveCount(0)
             await expectInView(
                 table,

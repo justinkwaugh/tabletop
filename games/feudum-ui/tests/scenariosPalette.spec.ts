@@ -42,7 +42,13 @@ scenario(
     'S71 R-5-H1 Palette: a seal keeps its crown and never a halo, on the board and in a panel',
     'seals-noble-push',
     async (table) => {
-        const seals = table.page.locator('[data-board-surface] [data-motion^="seal:"]')
+        // On a desk the Noble's scrolls stand behind the East guilds button.
+        if (!table.phone) {
+            await table.openGuildSide('east')
+        }
+        const seals = table.page.locator(
+            '[data-board-surface] [data-motion^="seal:"], [data-guild-view] [data-motion^="seal:"]'
+        )
         await expect(seals).toHaveCount(3)
         const panel = await table.seatPanel('p2')
         const held = panel.locator('[data-seals]')

@@ -10,6 +10,7 @@ import type {
     TileEpoch,
     WritId
 } from '@tabletop/feudum'
+import type { GuildSide, GuildSideFollowing } from './boardFocus.svelte.js'
 import type { SeatPaint } from './seatPaint.js'
 
 /** What the enlarged view draws: its owner's props, so a back stays a back (R-4.4.4). */
@@ -71,6 +72,11 @@ export class TableLayers {
     guildsOpen: boolean = $state(false)
     /** Contract, Supply: the writ reference, every writ in the game, for looking. */
     writsOpen: boolean = $state(false)
+    /** Contract, Desk layout: the guild side open over a desk's map, one at a time. */
+    guildSide: GuildSide | undefined = $state(undefined)
+
+    /** The pick last followed, so a side closed by hand stays closed until the pick changes. */
+    private followedPick: string | undefined
 
     /** A site's card: the one pressed open, else the one under a desk pointer. */
     private sitePressed: SpaceId | undefined = $state(undefined)
@@ -156,6 +162,41 @@ export class TableLayers {
         this.writsOpen = true
     }
 
+    /** Its button opens a side, switches from the other, or closes it again. */
+    toggleGuildSide(side: GuildSide): void {
+        if (this.guildSide === side) {
+            this.closeGuildSide()
+            return
+        }
+        this.closeSite()
+        this.guildSide = side
+    }
+
+    closeGuildSide(): void {
+        this.guildSide = undefined
+    }
+
+    /**
+     * Contract, Pick framing: a pick new to it opens the side that holds every target, keeps the
+     * side as it is when its targets stand in both sides, and closes it when one stands on the map
+     * or a track, as the pick's end does (`guildSideFollowing`). The same pick again changes
+     * nothing, so a side closed or opened by hand stays so until the pick changes. With no pick open
+     * a side opened by hand is a look, and stays open.
+     */
+    followGuildPick(key: string | undefined, next: GuildSideFollowing): void {
+        if (key === this.followedPick) {
+            return
+        }
+        this.followedPick = key
+        if (next === 'keep') {
+            return
+        }
+        if (next) {
+            this.closeSite()
+        }
+        this.guildSide = next
+    }
+
     closeSeatOrStack(): void {
         this.openSeatId = undefined
         this.stackView = undefined
@@ -181,6 +222,10 @@ export class TableLayers {
             this.writsOpen
         ) {
             this.closeSeatOrStack()
+            return true
+        }
+        if (this.guildSide) {
+            this.closeGuildSide()
             return true
         }
         if (this.site) {

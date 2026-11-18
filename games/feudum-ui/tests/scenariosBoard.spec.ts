@@ -126,6 +126,8 @@ scenario('S61 R-2.2, R-3.7.5 History View', 'voyage-repeat', async (table) => {
             'card'
         )
     } else {
+        // The Monk's beads stand behind the East guilds button.
+        await table.openGuildSide('east')
         await expectEnlarges(table, table.page.locator('[data-enlarge="bead"]').first(), 'bead')
         await table.press(table.page.locator('[data-seat-column] [data-open-seat-of]').first())
         await expect(seatLayer(table)).toBeVisible()

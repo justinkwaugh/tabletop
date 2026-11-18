@@ -1,5 +1,6 @@
 <script lang="ts">
     import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
+    import { guildSideOf } from '$lib/model/boardFocus.svelte.js'
     import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -53,6 +54,14 @@
     )
     let popup = $derived(gameSession.boardPopup)
     let bench = $derived(gameSession.guildPanel?.bench)
+    /**
+     * Contract, Desk layout: on a desk a popup beside a guild area stands only while its side is
+     * open; closed by hand, the popup waits for it, as its draft does.
+     */
+    let anchorShut = $derived.by(() => {
+        const side = popup && guildSideOf(popup.anchor)
+        return !phone.phone && !gameSession.benchCovers && !!side && layers.guildSide !== side
+    })
     let covered = $derived(
         layers.enlarged !== undefined ||
             layers.openSeatId !== undefined ||
@@ -68,7 +77,7 @@
     {#if bench}
         <BenchLayer {bench} />
     {/if}
-    {#if popup && !covered}
+    {#if popup && !covered && !anchorShut}
         <BoardPopup {popup} />
     {:else if layers.site && !covered && !bench}
         <SiteCardLayer spaceId={layers.site} onClose={() => layers.closeSite()} />

@@ -32,8 +32,30 @@ const result = (page: Page) => page.locator('[data-bench-result]')
 const popup = (page: Page) => page.locator('[data-board-popup]')
 const place = (page: Page, id: string) => page.locator(`[data-bench-place="${id}"]`)
 const undo = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
+/** A guild area's pick: on a phone's board, or on a desk in its open side. */
 const boardGuild = (page: Page, guild: string) =>
-    page.locator(`[data-board-surface] [data-pick="guild:${guild}"]`)
+    page.locator(
+        `[data-board-surface] [data-pick="guild:${guild}"], [data-guild-view] [data-pick="guild:${guild}"]`
+    )
+
+/** On a desk, opens the side a guild area stands behind, unless it is open already. */
+async function openSideOf(page: Page, guild: string) {
+    const side = ['alchemist', 'merchant', 'farmer'].includes(guild) ? 'west' : 'east'
+    const button = page.locator(`[data-guild-side="${side}"]`)
+    if (
+        (await button.count()) > 0 &&
+        (await page.locator(`[data-guild-view="${side}"]`).count()) === 0
+    ) {
+        await button.click()
+        await settled(page)
+    }
+}
+
+/** Presses a guild area where it stands: on the board, or in its side on a desk. */
+async function pressBoardGuild(page: Page, guild: string) {
+    await openSideOf(page, guild)
+    await boardGuild(page, guild).click()
+}
 
 async function openTable(page: Page, scene: string) {
     await page.goto('/')
@@ -62,7 +84,7 @@ async function openFunction(page: Page, scene: string, guild: string, fn: RegExp
     await openTable(page, scene)
     await pressGuildCard(page)
     if ((await popup(page).count()) === 0) {
-        await boardGuild(page, guild).click()
+        await pressBoardGuild(page, guild)
     }
     await popupRow(page, fn).click()
     await settled(page)
@@ -101,8 +123,10 @@ test('S40 R-3.16 guilds light, a used one doesn’t; the popup’s rows; Undo cl
 }) => {
     await openTable(page, 'guildPick')
     await pressGuildCard(page)
-    await expect(boardGuild(page, 'merchant')).toHaveAttribute('data-pick-role', 'lit')
+    await openSideOf(page, 'noble')
     await expect(boardGuild(page, 'noble')).not.toHaveAttribute('data-pick-role', 'lit')
+    await openSideOf(page, 'merchant')
+    await expect(boardGuild(page, 'merchant')).toHaveAttribute('data-pick-role', 'lit')
     await shot(page, 'guild-pick')
     await boardGuild(page, 'merchant').click()
     await expect(popup(page)).toBeVisible()
@@ -118,7 +142,7 @@ test('S40 R-3.16 guilds light, a used one doesn’t; the popup’s rows; Undo cl
     await expect(popup(page)).toHaveCount(0)
     await expect(boardGuild(page, 'merchant')).toHaveAttribute('data-pick-role', 'lit')
     await undo(page).click()
-    await expect(boardGuild(page, 'merchant')).not.toHaveAttribute('data-pick-role', 'lit')
+    await expect(page.locator('[data-pick-role="lit"]')).toHaveCount(0)
 })
 
 test('S41 R-4.6.4 barn left, market right; ghosts, the line, the toggle; Undo; Send', async ({
@@ -171,15 +195,11 @@ test('R-4.6.1 the board’s own guild areas take no press under the bench; Escap
     page
 }) => {
     await openFunction(page, 'merchantPull', 'merchant', /^\s*Pull/)
-    // Hidden, so a key press can't reach them either.
-    await expect(page.locator('[data-board-surface] [data-layer="guilds"]')).toHaveAttribute(
-        'visibility',
-        'hidden'
-    )
-    for (const guild of ['alchemist', 'merchant', 'farmer', 'knight', 'noble', 'monk']) {
-        expect(
-            await onTop(page, page.locator(`[data-board-surface] [data-guild="${guild}"]`))
-        ).toBe('bench')
+    // A desk draws none on its board: no side stays open, and the bench covers both buttons.
+    await expect(page.locator('[data-board-surface] [data-layer="guilds"]')).toHaveCount(0)
+    await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+    for (const side of ['west', 'east']) {
+        expect(await onTop(page, page.locator(`[data-guild-side="${side}"]`))).toBe('bench')
     }
     await page.keyboard.press('Escape')
     await settled(page)
@@ -357,11 +377,10 @@ test('S44 R-4.6.3 a Farmer trade: the header over the map; a farm’s popup keep
     await settled(page)
     await expect(popup(page)).toBeVisible()
     await expect(header(page)).toHaveText('Split.')
-    // Closed down to its header, the bench covers nothing: the board's guilds stay drawn.
-    await expect(page.locator('[data-board-surface] [data-layer="guilds"]')).not.toHaveAttribute(
-        'visibility',
-        'hidden'
-    )
+    // Closed down to its header, the bench covers nothing: the guild buttons stay in reach.
+    for (const side of ['west', 'east']) {
+        expect(await onTop(page, page.locator(`[data-guild-side="${side}"]`))).not.toBe('bench')
+    }
     await shot(page, 'farmer-trade-split')
 })
 
@@ -466,7 +485,7 @@ test('S48 R-4.6.2 a price short of shillings is not drawn, and no cover', async 
     await openTable(page, 'shortOfShillings')
     await pressGuildCard(page)
     if ((await popup(page).count()) === 0) {
-        await boardGuild(page, 'merchant').click()
+        await pressBoardGuild(page, 'merchant')
     }
     await expect(page.locator('[data-row^="Trade"]')).toHaveCount(0)
     await expect(page.locator('[data-action-panel]')).not.toContainText(/cover/i)
@@ -503,7 +522,7 @@ test('S70 R-4.6.3 full screen: the bench and its popup stand inside the dialog, 
     await settled(page)
     await pressGuildCard(page)
     if ((await popup(page).count()) === 0) {
-        await boardGuild(page, 'knight').click()
+        await pressBoardGuild(page, 'knight')
     }
     await popupRow(page, /^\s*Trade/).click()
     await settled(page)
@@ -547,7 +566,8 @@ test('R-1.3 an enlarged guild area stands its print upright: a west guild turned
     await openTable(page, 'guildPick')
     for (const [guild, turn] of Object.entries(UprightTurn)) {
         const name = `${guild.charAt(0).toUpperCase()}${guild.slice(1)} guild`
-        await page.locator(`[data-board-surface] [data-enlarge="${name}"]`).click()
+        await openSideOf(page, guild)
+        await page.locator(`[data-guild-view] [data-enlarge="${name}"]`).click()
         const turned = page.locator(`[data-enlarged-upright="${guild}"] > div`)
         await expect(turned).toBeVisible()
         expect(await turnOf(turned), guild).toBe(turn)
@@ -696,7 +716,8 @@ test('R-1.3 the enlarged and the picked guild areas keep their pieces upright', 
     page
 }) => {
     await openTable(page, 'merchantPush')
-    await page.locator('[data-board-surface] [data-enlarge="Merchant guild"]').click()
+    await openSideOf(page, 'merchant')
+    await page.locator('[data-guild-view] [data-enlarge="Merchant guild"]').click()
     await expectLevel(page.locator('[data-enlarged-upright="merchant"]'))
     await page.keyboard.press('Escape')
     await openFunction(page, 'monkTrade', 'monk', /^\s*Trade/)

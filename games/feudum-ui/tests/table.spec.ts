@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
     createGame,
     playToCards,
@@ -36,6 +36,9 @@ const enlarged = (page: Page) => page.locator('[data-enlarged]')
 const stackLayer = (page: Page) => page.locator('[data-table-layer="stack"]')
 const seatLayer = (page: Page) => page.locator('[data-table-layer="seat"]')
 const popup = (page: Page) => page.locator('[data-board-popup]')
+/** A desk's East guilds button: the Monk's rosary and its beads stand behind it. */
+const eastGuilds = (scope: Page | Locator) =>
+    scope.getByRole('button', { name: 'East guilds', exact: true })
 
 async function pressRow(page: Page, label: string) {
     await panel(page).getByRole('button', { name: label, exact: true }).click()
@@ -44,17 +47,17 @@ async function pressRow(page: Page, label: string) {
 test('the board fits the table beside the panel, and scales down with it', async ({ page }) => {
     await createGame(page)
     await settled(page)
-    // The board fills the table's width; the guild standings stand under it.
+    // The map fills the table's width between the guild buttons; the guild standings stand under it.
     const row = await page.locator('[data-board-row]').boundingBox()
-    expect(row?.x).toBeGreaterThanOrEqual(330)
-    expect((row?.x ?? 0) + (row?.width ?? 0)).toBeLessThanOrEqual(1280)
-    expect(row?.width).toBeGreaterThan(900)
-    expect(row?.width).toBeLessThan(1000)
+    expect(row?.x).toBeGreaterThanOrEqual(330 + 40)
+    expect((row?.x ?? 0) + (row?.width ?? 0)).toBeLessThanOrEqual(1280 - 40)
+    expect(row?.width).toBeGreaterThan(800)
+    expect(row?.width).toBeLessThan(900)
     const box = await board(page).boundingBox()
     // R-1.2 Whole: the aspect stands.
-    // Contract, Supply: nothing under the board, so the surface is the desk board's own proportions,
-    // the map and the guild areas inside the score ring (Desk layout).
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2380 / 833, 1)
+    // Contract, Supply: nothing under the board, so the surface is the map's own proportions (Desk
+    // layout).
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(1598 / 833, 1)
     const noPageScroll = await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth
     )
@@ -69,11 +72,15 @@ test('S59 a stack, a tile in it and a bead enlarge; Escape closes one layer at a
     await playToCards(page)
     const before = await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))
 
+    await eastGuilds(page).click()
     await page.locator('[data-enlarge="bead"]').first().click()
     await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'bead')
     await shot(page, 'enlarged-bead')
     await page.keyboard.press('Escape')
     await expect(enlarged(page)).toHaveCount(0)
+    await expect(page.locator('[data-guild-view="east"]')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-guild-view]')).toHaveCount(0)
 
     await page.locator('[data-open-stack]').first().click()
     await expect(stackLayer(page)).toBeVisible()
@@ -124,6 +131,7 @@ test('S59 a press on the enlarged piece closes it, as a press beside it does; no
     const layer = page.locator('[data-table-layer="enlarged"]')
     const close = layer.getByRole('button', { name: 'Close', exact: true })
 
+    await eastGuilds(page).click()
     await page.locator('[data-enlarge="bead"]').first().click()
     await expect(enlarged(page)).toBeVisible()
     await expect(layer.getByText('Close', { exact: true })).toHaveCount(0)
@@ -169,13 +177,14 @@ for (const viewport of [
     })
 }
 
-test('S59 R-1.3 a press on a guild area on the board enlarges it with its state; a press on it closes it', async ({
+test('S59 R-1.3 a press on a guild area behind its desk button enlarges it with its state; a press on it closes it', async ({
     page
 }) => {
     await createGame(page)
     await playToCards(page)
     const before = await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))
-    const area = board(page).locator('[data-enlarge="Merchant guild"]')
+    await page.getByRole('button', { name: 'West guilds', exact: true }).click()
+    const area = page.locator('[data-guild-view] [data-enlarge="Merchant guild"]')
 
     await area.click({ position: { x: 12, y: 12 } })
     await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'guild')
@@ -297,6 +306,7 @@ test('S61 History View of a turn with a Move offers no choices; enlarge and open
     await settled(page)
     await shot(page, 'history')
 
+    await eastGuilds(page).click()
     await page.locator('[data-enlarge="bead"]').first().click()
     await expect(enlarged(page)).toBeVisible()
     await page.keyboard.press('Escape')
@@ -361,11 +371,15 @@ test('S70 smoke: full screen holds the panel in the toolbar and Escape leaves it
     await settled(page)
     await shot(page, 'full-screen')
 
+    await eastGuilds(modal).click()
     await modal.locator('[data-enlarge="bead"]').first().click()
     await expect(modal.locator('[data-enlarged]')).toBeVisible()
     await shot(page, 'full-screen-enlarged')
     await page.keyboard.press('Escape')
     await expect(enlarged(page)).toHaveCount(0)
+    await expect(modal).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await expect(modal.locator('[data-guild-view]')).toHaveCount(0)
     await expect(modal).toHaveCount(1)
     await page.keyboard.press('Escape')
     await expect(modal).toHaveCount(0)

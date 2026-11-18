@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import type { FeudumGameSession } from '../src/lib/model/session.svelte.js'
 
 declare global {
@@ -107,6 +107,33 @@ export async function playToCards(page: Page) {
     await expect
         .poll(() => stepSetup(page, false), { timeout: 45_000, intervals: [100] })
         .toBe('PlayingCards')
+}
+
+/**
+ * A guild area's pick, pressed where it stands: on a phone's board, or on a desk in its side, opened
+ * by its button when the pick left it closed (contract: Desk layout).
+ */
+export async function pressGuildArea(
+    page: Page,
+    guild: string,
+    press: (target: Locator) => Promise<void> = (target) => target.click()
+): Promise<void> {
+    const side = ['alchemist', 'merchant', 'farmer'].includes(guild) ? 'west' : 'east'
+    const button = page.locator(`[data-guild-side="${side}"]`)
+    const open = page.locator(`[data-guild-view="${side}"]`)
+    if ((await button.count()) > 0 && (await open.count()) === 0) {
+        await press(button)
+        await settled(page)
+    }
+    await press(
+        page
+            .locator(
+                [`[data-board-surface]`, `[data-guild-view]`]
+                    .map((holder) => `${holder} [data-pick="guild:${guild}"] [role="button"]`)
+                    .join(', ')
+            )
+            .first()
+    )
 }
 
 export async function settled(page: Page) {

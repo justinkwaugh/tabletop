@@ -8,7 +8,7 @@ import { atPlayingCards } from '$lib/testing/turnTable.js'
 import {
     BoardHeight,
     BoardWidth,
-    DeskBoardArea,
+    MapArea,
     railOverRect,
     standingsStripHeight
 } from '$lib/utils/boardGeometry.js'
@@ -49,11 +49,11 @@ function railTag(html: string, guild: GuildId): string {
 }
 
 describe('Contract, Guild standings: a rail for each guild (R-4.5)', () => {
-    it('on a desk the six rails stand in one strip under the board, the West guilds then the East, each in its area’s order', async () => {
+    it('on a desk the six rails stand in one strip under the map, across its width, the West guilds then the East, each in its area’s order', async () => {
         const { html, gameState } = await boardOf({ rails: 'strip', desk: true })
         const surface = html.indexOf('data-board-surface')
         const strip = html.match(/<div[^>]*data-guild-strip[^>]*>/)?.[0] ?? ''
-        expect(strip).toContain(`width:${DeskBoardArea.width}px`)
+        expect(strip).toContain(`width:${MapArea.width}px`)
         expect(strip).toContain(`height:${standingsStripHeight(gameState.players.length)}px`)
         expect(html.indexOf('data-guild-strip')).toBeGreaterThan(surface)
         expect(html).not.toContain('data-guild-rails')
@@ -114,17 +114,22 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
         expect(surface).toContain(`viewBox="0 0 ${BoardWidth} ${BoardHeight}"`)
     })
 
-    it('Contract, Desk layout: a desk draws the map and the guild areas alone, with no score ring and no ring print', async () => {
+    it('Contract, Desk layout: a desk draws the map alone, with no guild area, no score ring and no ring print', async () => {
         const { html } = await boardOf({ rails: 'strip', desk: true })
         const surface = html.match(/<svg[^>]*data-board-surface[^>]*>/)?.[0] ?? ''
-        const { x, y, width, height } = DeskBoardArea
+        const { x, y, width, height } = MapArea
         expect(surface).toContain(`width="${width}"`)
         expect(surface).toContain(`height="${height}"`)
         expect(surface).toContain(`viewBox="${x} ${y} ${width} ${height}"`)
         expect(html).not.toContain('data-score-ring')
         expect(html).not.toContain('data-score-space')
         expect(html).not.toContain('board.ring')
-        // A phone keeps the whole board and its ring.
-        expect((await boardOf()).html).toContain('data-score-ring')
+        // The guild areas stand behind the side buttons (GuildSides), not on the desk's board.
+        expect(html).not.toContain('data-layer="guilds"')
+        expect(html).not.toContain('data-guild=')
+        // A phone keeps the whole board, its guild areas and its ring.
+        const phone = (await boardOf()).html
+        expect(phone).toContain('data-score-ring')
+        expect(phone).toContain('data-layer="guilds"')
     })
 })
