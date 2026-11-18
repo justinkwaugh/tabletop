@@ -41,7 +41,7 @@ const scoreOf = async (table: ScenarioTable, of: string): Promise<string | null>
 
 scenario('S32 R-3.14.1 Conquer that asks', 'conquer-asks', async (table) => {
     await table.press(table.card('Conquer'))
-    await expect(table.pick(AnaKnight).locator('[data-chip]')).toHaveText('3 vs 2')
+    await expect(table.chip(AnaKnight)).toHaveText('3 vs 2')
     await table.pressPick(AnaKnight)
     await expect(table.primary()).toHaveText("Conquer Ana's knight · can't be undone")
     await expect(table.primary()).toHaveAccessibleName(
@@ -149,7 +149,7 @@ scenario('S34 R-3.14.1 Defender without Defend', 'conquer-asked-no-defend', asyn
 
 scenario('S35 R-3.14.1 Conquer that does not ask', 'conquer-no-ask', async (table) => {
     await table.press(table.card('Conquer'))
-    await expect(table.pick(AnaKnight).locator('[data-chip]')).toHaveText('3 vs 2')
+    await expect(table.chip(AnaKnight)).toHaveText('3 vs 2')
     await table.pressPick(AnaKnight)
     await expect(table.panel()).toContainText('Add to the attack')
     await expect(addSaltpeter(table)).toBeVisible()

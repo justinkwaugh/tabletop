@@ -553,6 +553,39 @@ async function feedWithFood(host: FeudumHost) {
     }
 }
 
+/**
+ * R-3.6 The first seat Migrates a pawn onto its first pawn's space each round, as each character in
+ * turn, then holds Migrate again; the others forfeit.
+ */
+async function migratedOnto(characters: readonly Character[]) {
+    const plans = seats(
+        {
+            goods: Plain,
+            character: 'alchemist',
+            on: 'outpost',
+            hand: ['migrate', 'tax', 'guild', 'harvest']
+        },
+        { goods: Plain, character: 'knight' },
+        { goods: Plain, character: 'knight' }
+    )
+    const host = await atCards(plans)
+    const seat = first(host)
+    for (const [index, character] of characters.entries()) {
+        await othersForfeitUntil(host, seat)
+        const { spaceId } = new HydratedFeudumGameState(host.state).getPlayerState(seat).pawns[0]
+        assertExists(spaceId, 'R-1.4.7 The first pawn stands where it was placed')
+        await host.send(seat, {
+            type: ActionType.Migrate,
+            pawn: index + 2,
+            onto: { character, spaceId }
+        })
+        await forfeitRound(host)
+        await finalise(host, plans)
+    }
+    await othersForfeitUntil(host, seat)
+    return { host, seat }
+}
+
 /** R-6.3 The lifts that tie the first two seats at the top, from a game played out without them. */
 async function tyingLifts(): Promise<number[]> {
     const played = await gameEnding([0, 0, 0])
@@ -699,39 +732,13 @@ export const Fixtures = {
             return { host, seat: first(host) }
         }
     },
+    /** R-3.6 A round of Migrate stands a second pawn on the first's space; one waits in supply. */
+    'cards-migrate-two-on': {
+        build: () => migratedOnto(['merchant'])
+    },
     /** R-1.1, R-3.6.1 Two rounds of Migrate stand all three of the seat's pawns on the map. */
     'cards-migrate-all-on': {
-        build: async () => {
-            const plans = seats(
-                {
-                    goods: Plain,
-                    character: 'alchemist',
-                    on: 'outpost',
-                    hand: ['migrate', 'tax', 'guild', 'harvest']
-                },
-                { goods: Plain, character: 'knight' },
-                { goods: Plain, character: 'knight' }
-            )
-            const host = await atCards(plans)
-            const seat = first(host)
-            const migrate = async (pawn: number, character: Character) => {
-                await othersForfeitUntil(host, seat)
-                const { spaceId } = new HydratedFeudumGameState(host.state).getPlayerState(seat)
-                    .pawns[0]
-                assertExists(spaceId, 'R-1.4.7 The first pawn stands where it was placed')
-                await host.send(seat, {
-                    type: ActionType.Migrate,
-                    pawn,
-                    onto: { character, spaceId }
-                })
-                await forfeitRound(host)
-                await finalise(host, plans)
-            }
-            await migrate(2, 'merchant')
-            await migrate(3, 'monk')
-            await othersForfeitUntil(host, seat)
-            return { host, seat }
-        }
+        build: () => migratedOnto(['merchant', 'monk'])
     },
     'cards-improve-town': {
         arranged:

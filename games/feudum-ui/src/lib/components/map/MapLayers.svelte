@@ -30,4 +30,4 @@
 {@render underContents?.()}
 <g data-layer="contents"><MapContents {state} {paintOf} {chrome} /></g>
 <g data-layer="pieces"><MapPieces {state} {paintOf} {chrome} /></g>
-<g data-layer="chips"><MapChips {chrome} /></g>
+<g data-layer="chips"><MapChips {state} {chrome} /></g>
