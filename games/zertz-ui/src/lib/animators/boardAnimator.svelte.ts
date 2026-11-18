@@ -41,6 +41,17 @@ import {
 } from './drop.js'
 import { fromToPose, tweenPose } from './svgPose.js'
 
+function sameBoard(from: HydratedZertzGameState, to: HydratedZertzGameState): boolean {
+    const rings = to.board.rings
+    return (
+        from.board.rings.length === rings.length &&
+        from.board.rings.every((ring, index) => {
+            const other = rings[index]
+            return sameCoordinates(ring.coords, other.coords) && ring.marble === other.marble
+        })
+    )
+}
+
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
     'other-action',
@@ -225,7 +236,9 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     private async onGameStateChange({ kind, to, from, action, animationContext }: Step) {
-        if (from === undefined || !ANIMATED_KINDS.has(kind)) {
+        // Turning auto-jump on or off moves nothing, even where it replaces the standing choice; a
+        // jump it makes is a step of its own.
+        if (from === undefined || !ANIMATED_KINDS.has(kind) || sameBoard(from, to)) {
             return
         }
         const presenting = this.session.presentingState

@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
+    import { fade } from 'svelte/transition'
     import {
         DefaultTableLayout,
         DefaultTabs,
@@ -18,12 +19,13 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { ZertzGameSession } from '$lib/model/session.svelte.js'
-    import { setGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { getGameSession, setGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { gameSession }: { gameSession: GameSession<ZertzGameState, HydratedZertzGameState> } =
         $props()
     assert(gameSession instanceof ZertzGameSession, 'ZÈRTZ needs its own game session')
     setGameSession(gameSession)
+    const session = getGameSession()
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -37,6 +39,22 @@
         observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
         read()
         return () => observer.disconnect()
+    }
+
+    // Turning auto-jump on shows nothing on the board until a jump comes up, so a press says
+    // what it did for a moment.
+    const NOTICE_MS = 2000
+    let autoJumpNotice: boolean | undefined = $state()
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined
+
+    async function toggleAutoJump() {
+        const on = await session.toggleAutoJump()
+        if (on === undefined) return
+        autoJumpNotice = on
+        clearTimeout(noticeTimer)
+        noticeTimer = setTimeout(() => {
+            autoJumpNotice = undefined
+        }, NOTICE_MS)
     }
 </script>
 
@@ -119,6 +137,58 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
+                            {#if gameSession.showsAutoJump}
+                                <OverlayToggle
+                                    label="Auto-jump"
+                                    hint={gameSession.autoJump
+                                        ? 'Auto-jump is on: a jump with only one choice is made for you at once, even while you are away. Press to turn it off.'
+                                        : 'Auto-jump is off. Press to have a jump with only one choice made for you at once, even while you are away.'}
+                                    pressed={gameSession.autoJump}
+                                    disabled={!gameSession.canSetAutoJump}
+                                    onToggle={toggleAutoJump}
+                                >
+                                    <!-- A robot head, then a marble hopping over another. -->
+                                    <svg
+                                        width="30"
+                                        height="16"
+                                        viewBox="-8 -8 30.5 16"
+                                        aria-hidden="true"
+                                    >
+                                        <path d="M 0 -5 L 0 -6.6" class="line"></path>
+                                        <circle cx="0" cy="-7" r="1" class="dot"></circle>
+                                        <rect
+                                            x="-5.5"
+                                            y="-5"
+                                            width="11"
+                                            height="9.5"
+                                            rx="2.2"
+                                            class="line"
+                                        ></rect>
+                                        <circle cx="-2.3" cy="-1" r="1.25" class="dot"></circle>
+                                        <circle cx="2.3" cy="-1" r="1.25" class="dot"></circle>
+                                        <path d="M -2 2 L 2 2" class="line"></path>
+                                        <path d="M -7.2 -1.5 L -7.2 1" class="line"></path>
+                                        <path d="M 7.2 -1.5 L 7.2 1" class="line"></path>
+                                        <g transform="translate(15.5 1)">
+                                            <circle cx="0" cy="2.5" r="1.8" class="dot"></circle>
+                                            <path d="M -5.5 2.5 Q 0 -8 5.5 1" class="line"></path>
+                                            <path d="M 2.8 0 L 5.6 1.1 L 6 -1.9" class="line"
+                                            ></path>
+                                        </g>
+                                    </svg>
+                                </OverlayToggle>
+                            {/if}
+                            {#if autoJumpNotice !== undefined}
+                                <div
+                                    class="auto-jump-notice"
+                                    class:on={autoJumpNotice}
+                                    role="status"
+                                    in:fade={{ duration: 150 }}
+                                    out:fade={{ duration: 300 }}
+                                >
+                                    Auto-jump {autoJumpNotice ? 'ON' : 'OFF'}
+                                </div>
+                            {/if}
                             <OverlayToggle
                                 label="Far side"
                                 hint={gameSession.turned
@@ -184,6 +254,28 @@
             width: 260px;
             min-width: 260px;
         }
+    }
+
+    /* Over the chip row, in the auto-jump chip's own ink. */
+    .auto-jump-notice {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 6px);
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--zertz-panel);
+        box-shadow:
+            inset 0 0 0 1px var(--zertz-panel-edge),
+            var(--zertz-panel-shadow);
+        color: var(--zertz-ink-quiet);
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
+    .auto-jump-notice.on {
+        color: var(--zertz-ink);
     }
 
     .fullscreen-water {

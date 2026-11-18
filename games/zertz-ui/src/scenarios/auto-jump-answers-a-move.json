@@ -1,0 +1,327 @@
+{
+    "game": {
+        "id": "scenario-auto-jump-answers-a-move",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "zertz",
+        "deleted": false,
+        "name": "Auto-jump answers a move",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Player 1",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Player 2",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "setup": "Standard",
+            "autoJump": false
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 532582204,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-18T17:54:09.833Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-18T17:54:09.833Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "vpm74AKNLt4FHTYI0j4Pd",
+        "gameId": "scenario-auto-jump-answers-a-move",
+        "seed": 532582204,
+        "prng": {
+            "seed": 532582204,
+            "invocations": 2
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "73aec3ac988e38a3e6da76f0534eba6cd3fb0ebb1ab344b878b47a2aba09fabd",
+            "invocations": 0
+        },
+        "masterSeed": "1895321fb28ad0b31133d2e9c4c2d798",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "red",
+                "captured": {
+                    "white": 0,
+                    "grey": 0,
+                    "black": 0
+                }
+            },
+            {
+                "playerId": "player-2",
+                "color": "blue",
+                "captured": {
+                    "white": 0,
+                    "grey": 0,
+                    "black": 0
+                },
+                "autoJump": true
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "setup": "Standard",
+        "board": {
+            "rings": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "marble": "white",
+                    "marbleSeed": 0
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "marble": "black",
+                    "marbleSeed": 10
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "marble": "black",
+                    "marbleSeed": 6
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    }
+                }
+            ]
+        },
+        "pool": {
+            "white": 5,
+            "grey": 8,
+            "black": 8
+        },
+        "positions": []
+    },
+    "actions": []
+}
