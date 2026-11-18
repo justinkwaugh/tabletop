@@ -63,4 +63,24 @@ describe('marbleSeedsAfter', () => {
         expect(seedAt(seeds, { q: 2, r: 0 })).toBe(coordinatesToNumber({ q: 0, r: 0 }))
         expect(seedAt(seeds, { q: 3, r: 0 })).toBe(coordinatesToNumber({ q: 3, r: 0 }))
     })
+
+    // A hosted game can open with only its latest actions, which still carry their own numbers.
+    it('seeds a marble by its action number when the history starts part way through', () => {
+        const actions = [
+            { ...place(0, 0), index: 7 },
+            { ...place(1, 0), index: 8 }
+        ]
+        const seeds = marbleSeedsAfter(actions)
+        expect(seedAt(seeds, { q: 1, r: 0 })).toBe(placementSeed({ q: 1, r: 0 }, 8))
+    })
+
+    it('stops before the given action count', () => {
+        const actions = [
+            { ...place(0, 0), index: 7 },
+            { ...place(1, 0), index: 8 }
+        ]
+        const seeds = marbleSeedsAfter(actions, 8)
+        expect(seeds.has(coordinatesToNumber({ q: 1, r: 0 }))).toBe(false)
+        expect(seedAt(seeds, { q: 0, r: 0 })).toBe(placementSeed({ q: 0, r: 0 }, 7))
+    })
 })

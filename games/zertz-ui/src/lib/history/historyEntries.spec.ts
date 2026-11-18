@@ -166,4 +166,10 @@ describe('historyEntries', () => {
             captured: [{ color: MarbleColor.Grey, seed: placementSeed({ q: 1, r: 0 }, 1) }]
         })
     })
+
+    it('names a placed marble by its action number when the history starts part way through', () => {
+        const actions = [{ ...placement('a', 'p1', MarbleColor.White, true), index: 12 }]
+        const [entry] = historyEntries(actions)
+        expect(entry.kind === 'placement' && entry.seed).toBe(placementSeed({ q: 0, r: 0 }, 12))
+    })
 })

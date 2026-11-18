@@ -67,9 +67,12 @@ type Step = TransitionStep<HydratedZertzGameState, AnimationContext>
 export class BoardAnimator implements MoveInterrupter {
     // A replay leaves each action's board drawn until the state catches up.
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
+    // A hosted game can open with only its latest actions, so the marbles placed before them are
+    // read again once the rest arrive, which happens only while nothing is moving.
     seeds: MarbleSeeds = $derived.by(() => {
         const { actionCount } = this.session.gameState
-        return untrack(() => marbleSeedsAfter(this.session.actions.slice(0, actionCount)))
+        void this.session.hasCompleteHistory
+        return untrack(() => marbleSeedsAfter(this.session.actions, actionCount))
     })
     flight: Flight | undefined = $state()
     // Until the state lands: your placed marble stays out of the way, and an undone one stands staged.
@@ -251,7 +254,7 @@ export class BoardAnimator implements MoveInterrupter {
         else if (oneForward && steppedTo !== undefined) {
             applyToSeeds(seedsDuring, steppedTo, from.actionCount)
         } else {
-            const ahead = marbleSeedsAfter(this.actionsAhead().slice(0, to.actionCount))
+            const ahead = marbleSeedsAfter(this.actionsAhead(), to.actionCount)
             for (const [key, seed] of ahead) seedsDuring.set(key, seed)
         }
         // A marble leaving its ring is still drawn there until the step hides or lifts it, so it

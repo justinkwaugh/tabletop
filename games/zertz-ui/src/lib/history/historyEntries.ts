@@ -11,7 +11,7 @@ import {
     type MarbleColor,
     type Ring
 } from '@tabletop/zertz'
-import { applyToSeeds, placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
+import { actionNumber, applyToSeeds, placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
 
 type TurnSpan = {
     id: string
@@ -47,9 +47,10 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     let chain: CaptureEntry | undefined
 
     actions.forEach((action, index) => {
+        const number = actionNumber(action, index)
         if (isPlaceMarble(action)) {
             chain = undefined
-            const seed = placementSeed(action.coords, index)
+            const seed = placementSeed(action.coords, number)
             const { metadata } = action
             assertExists(metadata, 'A processed placement has its metadata')
             const claimed = [...metadata.claimedOnPlacing, ...metadata.claimedOnRemoving]
@@ -98,7 +99,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 chain = undefined
             }
         }
-        applyToSeeds(seeds, action, index)
+        applyToSeeds(seeds, action, number)
     })
 
     return entries
