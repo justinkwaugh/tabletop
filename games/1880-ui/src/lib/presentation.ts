@@ -1,6 +1,8 @@
 import {
     BankPoolId1880,
+    BcrId,
     ForeignInvestors1880,
+    MajorIds1880,
     P2Id,
     P3Id,
     P4Id,
@@ -41,10 +43,8 @@ const PoolNames: Readonly<Record<string, string>> = {
 
 /** Every major starts at its printed home; the BCR only from P6 (§VI, §VIII). */
 const Unstarted1880: UnstartedCompanies<State1880> = {
-    onOffer: (_state, companyId) => companyId !== 'BCR',
-    home: (_state, companyId) => ({
-        locationIds: MajorHomes1880[companyId] ? [MajorHomes1880[companyId]] : []
-    })
+    onOffer: (_state, companyId) => companyId !== BcrId && MajorIds1880.includes(companyId),
+    home: (_state, companyId) => ({ locationIds: [MajorHomes1880[companyId]] })
 }
 
 const permitsOf = (state: State1880, companyId: string) =>

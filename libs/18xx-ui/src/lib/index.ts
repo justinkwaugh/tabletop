@@ -72,6 +72,7 @@ export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelt
 export { default as GameEnding } from './ending/GameEnding.svelte'
 
 export { default as GameTable } from './table/GameTable.svelte'
+export { companiesOnOffer } from './table/spreadsheetCompanies.js'
 export {
     companyNameVariants,
     NoParCompanyPricePresentation,
