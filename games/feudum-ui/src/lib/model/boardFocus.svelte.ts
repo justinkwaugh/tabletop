@@ -2,6 +2,7 @@ import {
     EpicVoyageTrack,
     GuildIds,
     MilitaryServiceTrack,
+    Spaces,
     type HydratedFeudumGameState
 } from '@tabletop/feudum'
 import {
@@ -24,6 +25,7 @@ import {
     type Point
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
+import { ChipHeight, chipLayout, spaceChips } from './spaceChips.js'
 
 /**
  * The focus chooser's chips, a phone's: Map, West guilds, East guilds and Tracks (contract: Phone
@@ -273,9 +275,36 @@ export const PickFrameZoom = 2.5
 const FramePadding = { x: 12, y: 12 }
 /** Room in board units round a target's centre, for the piece, its ring and its chip. */
 const TargetRoom = DiscFrame
+/** Room round a chip that a row of chips carries past a target's own room. */
+const ChipRoom = 6
 
 const SpacePoints = new Map<string, Point>(Object.entries(SpaceCentres))
 const StackPoints = new Map<string, Point>(Object.entries(StackCentres))
+
+/** Contract, Pick conventions: the corners of every chip on the map, a row on a shared space whole. */
+function chipCorners(state: HydratedFeudumGameState, offer: BoardOffer): Point[] {
+    return Spaces.flatMap(({ id }) =>
+        spaceChips(state, offer, id).flatMap(({ chip, at }) => {
+            const half = chipLayout(chip).width / 2
+            return [
+                { x: at.x - half, y: at.y - ChipHeight / 2 },
+                { x: at.x + half, y: at.y + ChipHeight / 2 }
+            ]
+        })
+    )
+}
+
+/** The smallest box holding both, where the second holds anything. */
+function enclosing(first: BoardRect, second: BoardRect): BoardRect {
+    if (!(second.width > 0)) {
+        return first
+    }
+    const left = Math.min(first.x, second.x)
+    const top = Math.min(first.y, second.y)
+    const right = Math.max(first.x + first.width, second.x + second.width)
+    const bottom = Math.max(first.y + first.height, second.y + second.height)
+    return { x: left, y: top, width: right - left, height: bottom - top }
+}
 
 function unionOf(points: readonly Point[], room: number): BoardRect {
     const left = Math.min(...points.map(({ x }) => x)) - room
@@ -408,7 +437,8 @@ export function pickFrameOf(
         )
     const onMap = points('map')
     if (onMap.length > 0) {
-        return { key, rect: unionOf(onMap, TargetRoom), holds }
+        const chips = unionOf(chipCorners(state, offer), ChipRoom)
+        return { key, rect: enclosing(unionOf(onMap, TargetRoom), chips), holds }
     }
     for (const area of ['west', 'east'] as const) {
         if (placed.some((place) => place.area === area)) {

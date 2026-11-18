@@ -12,6 +12,7 @@ import {
     stripRailDrawingHeight
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
+import { ChipHeight, chipLayout, spaceChips } from './spaceChips.js'
 import {
     BoardFocus,
     ChooserInset,
@@ -463,6 +464,33 @@ describe('R-4.6.1 what a pick’s offer asks of the board', () => {
         expect(frame?.area).toBeUndefined()
         expect(frame?.rect.width).toBeLessThan(MapArea.width)
         expect([...litAreasOf(stateWith, offer)].toSorted()).toEqual(['east', 'map'])
+    })
+
+    it('R-3.6 a pick frames every chip of the pawns sharing a space whole, as well as the pawns', () => {
+        const player = stateWith.players[0]
+        const placed = player?.pawns.find(({ spaceId }) => spaceId !== undefined)
+        const shared = new HydratedFeudumGameState(structuredClone(host.state))
+        const pawns = shared.getPlayerState(player?.playerId ?? '').pawns
+        for (const pawn of pawns) {
+            pawn.spaceId = placed?.spaceId
+            pawn.character = pawn.character ?? 'merchant'
+        }
+        const off = { kind: 'role', label: 'off', tone: 'amber' } as const
+        const targets = new Map<BoardTarget, { role: 'lit'; chip: typeof off }>(
+            pawns.map(({ n }) => [`pawn:${player?.playerId}:${n}`, { role: 'lit', chip: off }])
+        )
+        const offer: BoardOffer = { targets, dimsRest: true }
+        const frame = pickFrameOf(shared, offer)
+        const chips = spaceChips(shared, offer, placed?.spaceId ?? 'space.sea.1')
+        expect(chips).toHaveLength(3)
+        for (const { chip, at } of chips) {
+            const half = chipLayout(chip).width / 2
+            expect(frame?.rect.x).toBeLessThanOrEqual(at.x - half)
+            expect((frame?.rect.x ?? 0) + (frame?.rect.width ?? 0)).toBeGreaterThanOrEqual(
+                at.x + half
+            )
+            expect(frame?.rect.y).toBeLessThanOrEqual(at.y - ChipHeight / 2)
+        }
     })
 
     it('a frame names every area its targets stand in, so a desk knows whether its view holds them', () => {
