@@ -287,3 +287,17 @@ export const PrintedCounts = {
     purse: { x: 404, y: 42 },
     barn: { x: 236, y: 190 }
 } as const
+
+/**
+ * Contract, Desk layout: the face of the figure on each guild's print, as a desk's side button shows
+ * it, cut round in a circle of `PrintedFaceRadius`; lying, as the print lies on the board.
+ */
+export const PrintedFaces: Record<GuildId, Point> = {
+    alchemist: { x: 241, y: 87.5 },
+    merchant: { x: 236, y: 53.5 },
+    farmer: { x: 236, y: 82.5 },
+    knight: { x: 237.5, y: 279 },
+    noble: { x: 232.5, y: 291.5 },
+    monk: { x: 243, y: 260 }
+}
+export const PrintedFaceRadius = 53

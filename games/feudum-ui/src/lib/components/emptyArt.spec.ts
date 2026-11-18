@@ -9,6 +9,7 @@ import GoodToken from './pieces/GoodToken.svelte'
 import PawnPiece from './pieces/PawnPiece.svelte'
 import SeatToken from './pieces/SeatToken.svelte'
 import TokenText from './pieces/TokenText.svelte'
+import GuildFaces from './table/GuildFaces.svelte'
 import { GuildIconPaths, PawnCube } from '$lib/utils/pieceShapes.js'
 
 vi.mock('$lib/art/suppliedFiles.js', () => ({ suppliedFiles: {} }))
@@ -44,6 +45,14 @@ describe('with the asset folder empty', () => {
         ].join('')
         expect(markup).not.toContain('<image')
         expect(markup).toMatch(/aria-label="iron"/)
+    })
+
+    it('a guild button leaves its faces out: no face and no image', () => {
+        for (const side of ['west', 'east'] as const) {
+            const markup = render(GuildFaces, { props: { side } }).body
+            expect(markup).not.toContain('<image')
+            expect(markup).not.toContain('data-guild-face')
+        }
     })
 
     it('no source reaches into the folder but the one glob', () => {

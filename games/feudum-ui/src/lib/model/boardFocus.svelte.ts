@@ -71,7 +71,7 @@ export const ScaledHeight = BoardHeight + ZoomRowBand
  * Contract, Desk layout: a guild side's button, its width and its gap to the map in screen pixels.
  * One stands at each side of the map; the gutter is what each takes from the view's width.
  */
-export const SideButtonWidth = 36
+export const SideButtonWidth = 45
 export const SideButtonGap = 4
 export const SideGutter = SideButtonWidth + SideButtonGap
 

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { settled } from './helpers.js'
 import { StarPath } from '../src/lib/utils/pieceShapes.js'
@@ -94,6 +95,13 @@ async function rect(target: Locator) {
 }
 
 /** A desk's guild button: "West guilds" or "East guilds". */
+/** The two guild buttons, 45 px each, and their 4 px gaps to the map: what the map gives up. */
+const Gutters = 2 * (45 + 4)
+/** The guild prints are in the folder, so the buttons carry their faces. */
+const printed = existsSync(
+    new URL('../src/lib/art/supplied/board.guild.merchant.webp', import.meta.url)
+)
+
 const sideButton = (page: Page, side: 'West' | 'East') =>
     page.getByRole('button', { name: `${side} guilds`, exact: true })
 
@@ -161,9 +169,9 @@ test.describe('a 1440 px desk', () => {
         const view = await rect(page.locator('[data-board-view]'))
         expect(frame.y + frame.height).toBeGreaterThanOrEqual(surface.y + surface.height - 1)
         expect(Math.abs(row.height - surface.height)).toBeLessThan(1)
-        expect(Math.max(row.width / (view.width - 80), row.height / view.height)).toBeGreaterThan(
-            0.97
-        )
+        expect(
+            Math.max(row.width / (view.width - Gutters), row.height / view.height)
+        ).toBeGreaterThan(0.97)
 
         const key = await rect(page.locator('[data-symbol-key-toggle]'))
         const toggle = page.getByRole('button', { name: 'Supply' })
@@ -221,8 +229,8 @@ test.describe('a 1440 px desk', () => {
         // The map takes the column's width less the two guild buttons and their gaps, or a few
         // pixels less where the column's height binds first.
         const surface = await rect(page.locator('[data-board-surface]'))
-        expect(surface.width).toBeLessThanOrEqual(view.width - 80 + 1)
-        expect(surface.width).toBeGreaterThan(view.width - 80 - 12)
+        expect(surface.width).toBeLessThanOrEqual(view.width - Gutters + 1)
+        expect(surface.width).toBeGreaterThan(view.width - Gutters - 12)
     })
 
     test('Contract, Desk layout: the board view is the map alone, with no score track and no ring raster, a West and an East guilds button at its sides', async ({
@@ -234,13 +242,13 @@ test.describe('a 1440 px desk', () => {
         expect(await surface.getAttribute('viewBox')).toBe('452 60 1598 833')
         const map = await rect(surface)
         const view = await rect(page.locator('[data-board-view]'))
-        // The freed width goes to the map: about 1016 x 530 at 1440 x 900.
-        expect(Math.abs(map.width - 1016)).toBeLessThan(12)
-        expect(Math.abs(map.height - 530)).toBeLessThan(8)
+        // The freed width goes to the map, less the buttons: about 998 x 520 at 1440 x 900.
+        expect(Math.abs(map.width - 998)).toBeLessThan(2)
+        expect(Math.abs(map.height - 520)).toBeLessThan(2)
         const west = await rect(sideButton(page, 'West'))
         const east = await rect(sideButton(page, 'East'))
         for (const button of [west, east]) {
-            expect(Math.abs(button.width - 36)).toBeLessThan(1)
+            expect(Math.abs(button.width - 45)).toBeLessThan(1)
             expect(Math.abs(button.height - map.height)).toBeLessThan(1.5)
             expect(Math.abs(button.y - map.y)).toBeLessThan(1)
         }
@@ -290,6 +298,99 @@ test.describe('a 1440 px desk', () => {
         expect(await rect(sideButton(page, 'West'))).toEqual(west)
     })
 
+    test('Contract, Desk layout: each guild button is wood with a gold edge, its label in the title font, and under it its side’s three faces, upright; the label stays its name', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        const Faces = {
+            west: ['alchemist', 'merchant', 'farmer'],
+            east: ['knight', 'noble', 'monk']
+        } as const
+        for (const [side, name] of [
+            ['west', 'West guilds'],
+            ['east', 'East guilds']
+        ] as const) {
+            const button = page.locator(`[data-guild-side="${side}"]`)
+            await expect(button).toHaveAccessibleName(name)
+            const look = await button.evaluate((element) => {
+                const style = getComputedStyle(element)
+                const label = getComputedStyle(element.querySelector('[data-side-label]')!)
+                return {
+                    wood: style.backgroundImage,
+                    edge: style.borderTopWidth,
+                    corner: style.borderTopLeftRadius,
+                    font: label.fontFamily,
+                    ink: label.color,
+                    shadow: label.textShadow
+                }
+            })
+            expect(look.wood).toMatch(/^linear-gradient\(90deg, /)
+            expect(look.edge).toBe('2px')
+            expect(look.corner).toBe('10px')
+            expect(look.font).toMatch(/^MedievalSharp/)
+            expect(look.ink).toBe('rgb(239, 227, 200)')
+            expect(look.shadow).not.toBe('none')
+
+            const box = await rect(button)
+            const label = await rect(button.locator('[data-side-label]'))
+            const faces = button.locator('[data-guild-face]')
+            if (!printed) {
+                // With no prints the button keeps its wood and label, centred, and draws no face.
+                await expect(faces).toHaveCount(0)
+                const above = label.y - box.y
+                const below = box.y + box.height - (label.y + label.height)
+                expect(Math.abs(above - below)).toBeLessThan(2)
+                continue
+            }
+            await expect(button.locator('[data-guild-faces]')).toHaveAttribute(
+                'aria-hidden',
+                'true'
+            )
+            expect(
+                await faces.evaluateAll((all) =>
+                    all.map((face) => face.getAttribute('data-guild-face'))
+                )
+            ).toEqual(Faces[side])
+            const rings = await Promise.all(
+                (await button.locator('[data-face-ring]').all()).map((ring) => rect(ring))
+            )
+            expect(rings).toHaveLength(3)
+            // Each a 36 px face in its 2 px gold ring, centred across the button: 22 px under the
+            // label, 10 px apart.
+            let above = label.y + label.height
+            for (const [index, ring] of rings.entries()) {
+                expect(Math.abs(ring.width - 40)).toBeLessThan(1)
+                expect(Math.abs(ring.height - 40)).toBeLessThan(1)
+                expect(Math.abs(ring.x + ring.width / 2 - (box.x + box.width / 2))).toBeLessThan(1)
+                expect(Math.abs(ring.y - above - (index === 0 ? 22 : 10))).toBeLessThan(1.5)
+                above = ring.y + ring.height
+            }
+            // The label and the faces stand centred down the button as one group.
+            const top = label.y - box.y
+            const foot = box.y + box.height - above
+            expect(Math.abs(top - foot)).toBeLessThan(2)
+        }
+
+        // Open, the button's edge is light gold and it glows; a keyboard focus ring shows.
+        const west = sideButton(page, 'West')
+        await west.click()
+        await settled(page)
+        const open = await west.evaluate((element) => getComputedStyle(element))
+        expect(open.borderTopColor).toBe('rgb(252, 211, 77)')
+        expect(open.boxShadow).toMatch(/rgb\(252, 211, 77\)/)
+        await page.keyboard.press('Escape')
+        await settled(page)
+        const east = sideButton(page, 'East')
+        await east.focus()
+        const focus = await east.evaluate((element) => ({
+            visible: element.matches(':focus-visible'),
+            outline: getComputedStyle(element).outlineStyle,
+            width: getComputedStyle(element).outlineWidth
+        }))
+        expect(focus).toEqual({ visible: true, outline: 'solid', width: '2px' })
+    })
+
     test('Contract, Desk layout: a guild button opens its three areas upright over the map; again, Escape or the scrim closes it', async ({
         page
     }) => {
@@ -313,9 +414,9 @@ test.describe('a 1440 px desk', () => {
         for (const guild of ['alchemist', 'merchant', 'farmer']) {
             const area = westView.locator(`[data-open-guild="${guild}"]`)
             const box = await rect(area)
-            // As large as the map's box allows: about 320 x 452 at 1440 x 900, 2.5 times the board's.
-            expect(Math.abs(box.width - 320)).toBeLessThan(6)
-            expect(Math.abs(box.height - 452)).toBeLessThan(8)
+            // As large as the map's box allows: about 314 x 444 at 1440 x 900, 2.5 times the board's.
+            expect(Math.abs(box.width - 314)).toBeLessThan(2)
+            expect(Math.abs(box.height - 444)).toBeLessThan(2)
             expect(box.x).toBeGreaterThanOrEqual(map.x)
             expect(box.x + box.width).toBeLessThanOrEqual(map.x + map.width)
             expect(box.y).toBeGreaterThanOrEqual(map.y)
@@ -417,7 +518,21 @@ test.describe('a 1440 px desk', () => {
         await settled(page)
         await expect(page.locator('[data-guild-view]')).toHaveCount(0)
         for (const side of ['West', 'East'] as const) {
-            await expect(sideButton(page, side).locator('[data-lit-dot]')).toHaveCount(1)
+            const dot = sideButton(page, side).locator('[data-lit-dot]')
+            await expect(dot).toHaveCount(1)
+            // The dot stands clear of the label and of every face.
+            const at = await rect(dot)
+            for (const part of await sideButton(page, side)
+                .locator('[data-side-label], [data-face-ring]')
+                .all()) {
+                const box = await rect(part)
+                const apart =
+                    at.y + at.height <= box.y ||
+                    box.y + box.height <= at.y ||
+                    at.x + at.width <= box.x ||
+                    box.x + box.width <= at.x
+                expect(apart).toBe(true)
+            }
         }
         await sideButton(page, 'East').click()
         await settled(page)
@@ -616,7 +731,7 @@ for (const { handLayout, ...viewport } of [
             const view = await rect(page.locator('[data-board-view]'))
             const column = await columnOf(page)
             // The width binds, or the column's height does and the view reaches its foot.
-            const across = Math.abs(surface.width - (view.width - 80)) < 2
+            const across = Math.abs(surface.width - (view.width - Gutters)) < 2
             const down = Math.abs(view.y + view.height - column.foot) < 2
             expect(across || down).toBe(true)
             expect(column.over).toBeLessThanOrEqual(1)
@@ -711,10 +826,10 @@ test.describe('a 1850 x 880 desk, where the map’s height binds', () => {
         const panelBox = await rect(page.locator('[data-turn-controls]'))
         const east = await rect(sideButton(page, 'East'))
         const box = await rect(side)
-        // About 1162 x 606: the room's width less the two buttons, the gap and the column; it was
-        // 1007 x 525 with the strip under it.
-        expect(Math.abs(map.width - 1162)).toBeLessThan(4)
-        expect(Math.abs(map.height - 606)).toBeLessThan(3)
+        // About 1144 x 596: the room's width less the two buttons, the gap and the column; it would
+        // be 1007 x 525 with the strip under it.
+        expect(Math.abs(map.width - 1144)).toBeLessThan(2)
+        expect(Math.abs(map.height - 596)).toBeLessThan(2)
         expect(Math.abs(map.y - view.y)).toBeLessThan(1)
         expect(Math.abs(east.height - map.height)).toBeLessThan(1.5)
         // The board view stays left-aligned with the panel, and ends with the column.
@@ -764,8 +879,8 @@ test.describe('a 1850 x 880 desk, where the map’s height binds', () => {
         await settled(page)
         const box = await rect(page.locator('[data-desk-column]'))
         const map = await rect(page.locator('[data-board-surface]'))
-        // About 1074 x 560: a column of two 170 px standings a row is wider.
-        expect(Math.abs(map.width - 1074)).toBeLessThan(4)
+        // About 1056 x 550: a column of two 170 px standings a row is wider.
+        expect(Math.abs(map.width - 1056)).toBeLessThan(2)
         expect(Math.abs(box.width - 344)).toBeLessThan(1)
         const rails = await columnRails(page)
         const at = (guild: string) => rails.find((rail) => rail.guild === guild)!.box
@@ -839,8 +954,8 @@ test.describe('a 1440 x 900 desk, where the map’s width binds', () => {
         await expect(page.locator('[data-guild-strip]')).toBeVisible()
         const map = await rect(page.locator('[data-board-surface]'))
         const view = await rect(page.locator('[data-board-view]'))
-        expect(Math.abs(map.width - 1011)).toBeLessThan(2)
-        expect(Math.abs(map.height - 527)).toBeLessThan(2)
+        expect(Math.abs(map.width - 998)).toBeLessThan(2)
+        expect(Math.abs(map.height - 520)).toBeLessThan(2)
         expect(Math.abs(view.width - 1096)).toBeLessThan(1)
         const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
         expect(zoom.x).toBeLessThan(view.x + 60)
