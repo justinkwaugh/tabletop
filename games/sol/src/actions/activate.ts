@@ -101,7 +101,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         const awardMetadata = HydratedActivate.applyActivationAward(
             playerState,
             station,
-            HydratedActivate.buildsDoubleSundivers(state, this.playerId)
+            state.sundiverBuildMultiplier(this.playerId)
         )
         Object.assign(this.metadata, awardMetadata)
 
@@ -135,7 +135,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
     static applyActivationAward(
         playerState: HydratedSolPlayerState,
         station: Station,
-        duplicate: boolean = false
+        sundiverBuildMultiplier: number = 1
     ): { energyAdded: number; createdSundiverIds: string[]; momentumAdded: number } {
         const award = BASE_AWARD_PER_RING[station.coords!.row]
         const metadata: {
@@ -151,7 +151,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             case StationType.SundiverFoundry: {
                 playerState.energyCubes -= award
 
-                const buildAmount = duplicate ? 2 * award : award
+                const buildAmount = award * sundiverBuildMultiplier
                 const awardedSundivers = playerState.reserveSundivers.splice(
                     -buildAmount,
                     buildAmount
@@ -167,13 +167,6 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 break
         }
         return metadata
-    }
-
-    static buildsDoubleSundivers(state: HydratedSolGameState, playerId: string): boolean {
-        return (
-            state.activeEffect === EffectType.Duplicate &&
-            state.turnManager.currentTurn()?.playerId === playerId
-        )
     }
 
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {
@@ -202,7 +195,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
         const awardCost = BASE_AWARD_PER_RING[coords.row]
-        const numToBuild = this.buildsDoubleSundivers(state, playerId) ? 2 * awardCost : awardCost
+        const numToBuild = awardCost * state.sundiverBuildMultiplier(playerId)
         const playerState = state.getPlayerState(playerId)
 
         return (

@@ -88,9 +88,7 @@ export class HydratedActivateBonus
             case StationType.SundiverFoundry: {
                 const awardCost = award
                 playerState.energyCubes -= awardCost
-                const numToBuild = HydratedActivate.buildsDoubleSundivers(state, this.playerId)
-                    ? 2 * awardCost
-                    : awardCost
+                const numToBuild = awardCost * state.sundiverBuildMultiplier(this.playerId)
                 const awardedSundivers = playerState.reserveSundivers.splice(
                     -numToBuild,
                     numToBuild
@@ -181,9 +179,7 @@ export class HydratedActivateBonus
         const awardCost =
             BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
 
-        const numToBuild = HydratedActivate.buildsDoubleSundivers(state, playerId)
-            ? 2 * awardCost
-            : awardCost
+        const numToBuild = awardCost * state.sundiverBuildMultiplier(playerId)
         return (
             playerState.energyCubes >= awardCost &&
             playerState.reserveSundivers.length >= numToBuild
