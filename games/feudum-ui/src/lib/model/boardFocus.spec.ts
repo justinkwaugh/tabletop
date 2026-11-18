@@ -151,10 +151,10 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
 })
 
 describe('Contract, Desk layout: the map between the West and East guild buttons', () => {
-    it('each button is 36 px wide with 4 px to the map', () => {
-        expect(SideButtonWidth).toBe(36)
+    it('each button is 45 px wide with 4 px to the map', () => {
+        expect(SideButtonWidth).toBe(45)
         expect(SideButtonGap).toBe(4)
-        expect(SideGutter).toBe(40)
+        expect(SideGutter).toBe(49)
     })
 
     it('a desk fits the map, its strip and the band, between the two gutters', () => {
@@ -162,13 +162,13 @@ describe('Contract, Desk layout: the map between the West and East guild buttons
             MapArea.height + standingsStripHeight(4) + ZoomRowBand,
             5
         )
-        expect(deskRestScaleOf(1096, 2000, 4)).toBeCloseTo((1096 - 80) / MapArea.width, 5)
+        expect(deskRestScaleOf(1096, 2000, 4)).toBeCloseTo((1096 - 98) / MapArea.width, 5)
         expect(deskRestScaleOf(1096, 400, 4)).toBeCloseTo(400 / deskScaledHeight(4), 5)
         expect(deskRestScaleOf(4000, 4000, 4)).toBe(1)
     })
 
     it('the view is that shape at the column’s width', () => {
-        expect(deskViewHeight(1096, 4)).toBeCloseTo((1016 * deskScaledHeight(4)) / MapArea.width, 5)
+        expect(deskViewHeight(1096, 4)).toBeCloseTo((998 * deskScaledHeight(4)) / MapArea.width, 5)
         expect(deskViewHeight(60, 4)).toBe(0)
     })
 
@@ -225,7 +225,7 @@ describe('Contract, Desk layout: where the map’s height binds, the standings a
         const rest = deskMapAtRest(view, 3, false, column)
         expect(rest.width).toBeCloseTo(besideWidth, 5)
         expect(rest.height).toBeCloseTo((besideWidth * MapArea.height) / MapArea.width, 5)
-        expect(rest.width).toBeGreaterThan(stripMap(wide, 3).width + 150)
+        expect(rest.width).toBeGreaterThan(stripMap(wide, 3).width + 130)
     })
 
     it('a width-bound desk keeps the strip under the map, as does one where the column would not make the map larger', () => {
@@ -234,6 +234,20 @@ describe('Contract, Desk layout: where the map’s height binds, the standings a
             expect(deskColumnOf({ width: 936, height: 622 }, seats)).toBeUndefined()
             expect(deskColumnOf(tall, seats)).toBeUndefined()
         }
+    })
+
+    it('the map gives the buttons their width in either layout: about 998 x 520 at 1440 x 900, 1144 x 596 at 1850 x 880, and 1294 x 674 at 1920 x 1080, where the height binds', () => {
+        const strip = stripMap(desk, 4)
+        expect(strip.width).toBeCloseTo(1096 - 2 * 49, 5)
+        expect(Math.round(strip.height)).toBe(520)
+        const column = deskColumnOf(wide, 3)!
+        const view = { width: deskColumnViewWidth(wide, 3, column), height: wide.height }
+        const beside = deskMapAtRest(view, 3, false, column)
+        expect(beside.width).toBeCloseTo(1506 - 2 * 49 - 8 - 256, 5)
+        expect(Math.round(beside.height)).toBe(596)
+        const high = stripMap(tall, 3)
+        expect(Math.round(high.width)).toBe(1294)
+        expect(Math.abs(high.height - 674)).toBeLessThan(1)
     })
 
     it('one layout per size: the column only while its map is the larger, on either side of the threshold', () => {

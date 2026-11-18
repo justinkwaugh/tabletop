@@ -635,6 +635,13 @@ export function westGuild(guild: GuildId): boolean {
     return GuildAreas[guild].x < MapArea.x
 }
 
+/** A side's three guilds down its edge of the board, as the bench and the strip order them. */
+export function guildsDownSide(west: boolean): GuildId[] {
+    return GuildIds.filter((guild) => westGuild(guild) === west).toSorted(
+        (a, b) => GuildAreas[a].y - GuildAreas[b].y
+    )
+}
+
 /**
  * R-1.2.3 The quarter turn, in degrees, that stands a guild area's print upright off the board: the
  * print lies on its side with its top toward the board's nearer edge, so a west print turns

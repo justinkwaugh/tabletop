@@ -75,6 +75,7 @@
     --feudum-shilling: #c9ced6;
     --feudum-wood-piece: #b8864f;
     --feudum-wood-dark: #5b3b1e;
+    --feudum-gilt: #c9a24a;
     --feudum-map-ink: #14110d;
     --feudum-halo: #111111;
     --feudum-dim: #1111118c;
@@ -146,6 +147,7 @@
     --color-feudum-shilling: var(--feudum-shilling);
     --color-feudum-wood-piece: var(--feudum-wood-piece);
     --color-feudum-wood-dark: var(--feudum-wood-dark);
+    --color-feudum-gilt: var(--feudum-gilt);
     --color-feudum-map-ink: var(--feudum-map-ink);
     --color-feudum-halo: var(--feudum-halo);
     --color-feudum-dim: var(--feudum-dim);

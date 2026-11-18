@@ -1,7 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
-    import { GuildIds } from '@tabletop/feudum'
     import OpenGuild from '$lib/components/guilds/OpenGuild.svelte'
     import {
         SideButtonGap,
@@ -14,14 +13,16 @@
         type PickFrame
     } from '$lib/model/boardFocus.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { GuildAreas, GuildBox, westGuild } from '$lib/utils/boardGeometry.js'
+    import { GuildBox, guildsDownSide } from '$lib/utils/boardGeometry.js'
+    import GuildFaces from './GuildFaces.svelte'
 
     /**
      * Contract, Desk layout: a desk's guild areas stand behind two tall buttons at the map's sides,
      * "West guilds" and "East guilds", each the map's height at its rest. A button opens its three
      * areas upright over the map's box, under a dim scrim, as large as the box allows; the button
      * again, Escape or a press on the scrim closes it, and the other button switches. A button's dot
-     * says its side holds a lit target; a pick wholly on one side opens it (Pick framing).
+     * says its side holds a lit target; a pick wholly on one side opens it (Pick framing). A button is
+     * a wooden rod with a gold edge, its label over its side's three faces (`GuildFaces`).
      */
     let {
         rest,
@@ -48,13 +49,7 @@
 
     let open = $derived(layers.guildSide)
     /** Down its edge of the board, as the bench and the strip order them. */
-    let guilds = $derived(
-        open
-            ? GuildIds.filter((guild) => westGuild(guild) === (open === 'west')).toSorted(
-                  (a, b) => GuildAreas[a].y - GuildAreas[b].y
-              )
-            : []
-    )
+    let guilds = $derived(open ? guildsDownSide(open === 'west') : [])
     /** Each area's long side: three side by side, whole inside the box. */
     let long = $derived(
         Math.max(
@@ -92,6 +87,7 @@
             onclick={() => layers.toggleGuildSide(side)}
         >
             <span class="label" data-side-label>{label}</span>
+            <GuildFaces {side} />
             {#if lit.has(side)}
                 <span class="dot" data-lit-dot></span>
             {/if}
@@ -139,31 +135,59 @@
 </div>
 
 <style>
+    /* Wood as the seat panels' rollers turn it, lit across its width; a gold edge round it. */
     .side {
+        --wood: linear-gradient(
+            90deg,
+            var(--feudum-wood-dark),
+            var(--feudum-wood-piece) 50%,
+            var(--feudum-wood-dark)
+        );
         position: absolute;
         z-index: 9;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 22px;
         padding: 0;
-        border: 2px solid var(--feudum-frame);
-        border-radius: 0.5rem;
-        background: var(--feudum-surface-raised);
-        color: var(--feudum-text);
-        font-size: 0.875rem;
-        font-weight: 600;
+        border: 2px solid var(--feudum-gilt);
+        border-radius: 10px;
+        background: var(--wood);
+        box-shadow:
+            inset 0 0 0 2px var(--feudum-wood-dark),
+            0 3px 10px color-mix(in srgb, var(--feudum-halo) 50%, transparent);
         pointer-events: auto;
+    }
+
+    .side:hover {
+        background:
+            linear-gradient(color-mix(in srgb, var(--feudum-parchment) 12%, transparent)),
+            var(--wood);
     }
 
     .side[aria-expanded='true'] {
         border-color: var(--feudum-accent);
-        background: var(--feudum-primary);
+        box-shadow:
+            inset 0 0 0 2px var(--feudum-wood-dark),
+            0 0 0 2px var(--feudum-accent),
+            0 0 14px color-mix(in srgb, var(--feudum-accent) 60%, transparent);
+    }
+
+    .side:focus-visible {
+        outline: 2px solid var(--feudum-accent);
+        outline-offset: 3px;
     }
 
     /* The West's label reads up its button, the East's down. */
     .label {
         writing-mode: vertical-rl;
         white-space: nowrap;
+        font-family: var(--feudum-font-title);
+        font-size: 15px;
+        letter-spacing: 0.06em;
+        color: var(--feudum-parchment);
+        text-shadow: 0 1px 2px var(--feudum-halo);
     }
 
     .west .label {
