@@ -7,7 +7,7 @@ import {
     type AccessRightState
 } from '@tabletop/18xx'
 import { CobourgRailwayId } from './ids.js'
-import { CoalfieldsLocationId, Map1828 } from './map.js'
+import { CoalfieldsLocationId, Map1828, TunnelLocationId } from './map.js'
 import { requireState1828 } from './state.js'
 import { TileSet1828 } from './tiles.js'
 
@@ -22,10 +22,15 @@ export function coalHolders(state: AccessRightState): string[] {
         .map((right) => right.companyId)
 }
 
+/** Whether the tunnel's coal marker is still there: the tunnel is not yet built (§14.3.1.2). */
+export function tunnelHoldsCoal(state: object): boolean {
+    return !requireState1828(state).tileInventory.placements[TunnelLocationId]
+}
+
 /** Coal markers on the Virginia Coalfields, for sale (§16). */
 export function coalfieldsMarkers(state: object): number {
     const title = requireState1828(state)
-    return CoalMarkerCount - coalHolders(title).length - (title.tunnelCoal ? 1 : 0)
+    return CoalMarkerCount - coalHolders(title).length - (tunnelHoldsCoal(title) ? 1 : 0)
 }
 
 /**
@@ -71,7 +76,6 @@ export const AccessRightRules1828: AccessRightRules = {
  */
 export function takeTunnelCoal(state: object, companyId: string): 'taken' | 'returned' {
     const title = requireState1828(state)
-    title.tunnelCoal = false
     if (companyId === CobourgRailwayId || holdsAccessRight(title, companyId, CoalRightId))
         return 'returned'
     title.accessRights = [...(title.accessRights ?? []), { rightId: CoalRightId, companyId }]

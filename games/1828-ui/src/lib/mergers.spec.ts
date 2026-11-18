@@ -35,6 +35,7 @@ describe('failedMerger', () => {
             type: 'FormSystem',
             source: ActionSource.System,
             metadata: {
+                playerId: 'p3',
                 survivorId: 'BO',
                 absorbedId: 'CO',
                 marketSpaceId: '13:7',

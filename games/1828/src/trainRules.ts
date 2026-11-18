@@ -7,7 +7,7 @@ import {
 import { CoalAccess } from './coal.js'
 import { CobourgRailwayId, directorPrivateId } from './ids.js'
 import { Map1828 } from './map.js'
-import { constituents, trainShells } from './systems.js'
+import { constituents, forgetShellTrain, trainShells } from './systems.js'
 import { TileSet1828 } from './tiles.js'
 import { Phases1828, TrainDepot1828, phaseTrainLimit } from './trains.js'
 
@@ -57,6 +57,11 @@ export const TrainRules1828: TrainRules = {
             limit: phaseTrainLimit(state)
         })),
     purchaseLimit: () => 'unlimited',
+    afterTrainsDepart(state, departures) {
+        for (const { owner, trainId } of departures)
+            if (owner?.kind === 'company') forgetShellTrain(state, owner.companyId, trainId)
+        return []
+    },
     // A $250 private closes when its company, or a system it is part of, acquires a train
     // (§13.2.3).
     privatesClosedByPurchase: (state, companyId) =>

@@ -74,6 +74,9 @@ export const StockRoundRules1828: StockRoundRules = {
     // the next stock round follows them (§7.1).
     passing: 'pass-order',
     nextPlayerOrder: (state) => [...state.stockRound.passedPlayerIds],
+    afterRound(state) {
+        delete requireState1828(state).floatedThisStockRound
+    },
     // No shares left in the IPO or the bank pool: a system's treasury share is in neither (§12.2).
     soldOut: (state, companyId) =>
         allSharesHeld(
@@ -93,6 +96,8 @@ export const StockRoundRules1828: StockRoundRules = {
 }
 
 export const StockRules1828: StockRules = {
+    // A standing instruction waits out a merger, which is the turn's action (§7.1).
+    instructions: { held: (state) => !!requireState1828(state).merger },
     market: Market1828,
     charters: Charters1828,
     round: StockRoundRules1828,
@@ -172,7 +177,9 @@ export const CompanyRules1828: CompanyRules = {
         const title = requireState1828(state)
         admitMohawkFloat(title)
         if (state.stockRound.completed) return
-        title.floatedInStockRound[companyId] = state.stockRound.number
+        title.floatedThisStockRound = [
+            ...new Set([...(title.floatedThisStockRound ?? []), companyId])
+        ]
     },
     parAfterAward: true
 }

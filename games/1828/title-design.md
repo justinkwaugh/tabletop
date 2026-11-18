@@ -61,6 +61,12 @@ titles.
 - **No projected run for some companies** (`TitlePresentation.projectsRun`). The C&P pays only
   for a run through the tile just laid, so the projection built from its network would show money
   the rules do not pay.
+- **Action observers** (`EighteenXXTitleRules.actionObservers`). The M&H's timing depends on
+  whether the first share company has begun its turn (§13.2.2.6). A count of actions also counted
+  other players' standing instructions, and a decision handler does not see every action, so the
+  runtime calls an observer with each action a machine state processes.
+- **Held stock instructions** (`StockInstructionRules.held`). A standing purchase must not act in
+  the middle of a merger, which is the turn's action.
 - **Single-bid lots** (`WaterfallAuctionRules.singleBid`). A bid on such a lot drops the other
   bids on it, so it is never contested. Only 1828's $250 privates do this among the researched
   titles.
@@ -205,17 +211,22 @@ like either one would justify revisiting this.
 4. **Only a player who never agreed can make a merger fail** (§7.5.1, §7.5.2.1, §7.5.2.2). The
    acting player and the two directors are not offered a choice that makes it fail, which narrows
    their right to decline a trade-up. Any other holder keeps every choice. The merger fails when
-   no player would hold the director's certificate and a share to donate. Once it cannot form, no
-   more shares are decided (a shared-hex station still to choose is chosen first): nothing changes
-   hands, the table announces the failure through the next player's turn, and the acting player's
-   turn ends as a pass, after any sale already owed.
+   no player holds the director's certificate and a share to donate when the share trading is
+   complete: nothing changes hands, the table announces the failure through the next player's
+   turn, and the acting player's turn ends as a pass, after any sale already owed. The game
+   accepts every choice the rules allow, including one that makes the merger fail; only the table
+   holds these choices back.
 5. **The other director must agree** to a merger of two directors' companies (§7.5.1); a
    refusal returns the turn to the acting player.
-6. **A merger is offered only when it can succeed**: every combination of set-aside choices and
-   of trading up and selling the single shares is tried, with each player's cash and earlier
-   sales. A doomed merger is legal but amounts to a pass; the designer says the failure rule
-   exists "if some bright spark really insists" (BGG thread 2365803). The M&H cannot be exchanged
-   while a merger is under way.
+6. **A merger is offered only when it can succeed.** The game still accepts any merger the rules
+   allow, and a doomed one amounts to a pass; the designer says the failure rule exists "if some
+   bright spark really insists" (BGG thread 2365803). `ProposeMerger` is listed only for one that
+   can work, so a player with nothing else still passes automatically, and once a merger cannot
+   form no more choices are asked. The check runs in the rules, so it is bounded: three pairs
+   settle it; otherwise it needs a player with two pairs and a single who can pay to trade up.
+   Others' set-asides matter only through a swap costing more than the trade-up, which needs the
+   absorbed company priced above the system, and then at most 16 combinations are tried. The M&H
+   cannot be exchanged while a merger is under way.
    If the C&P builds the Virginia Coalfields Tunnel, its coal marker returns to the Coalfields:
    the builder takes it (§14.3.1.2), but only share companies acquire markers (§16.1).
 7. **Shared-hex stations**: in one city the absorbed company's becomes the blocking station; in

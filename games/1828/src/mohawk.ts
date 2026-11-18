@@ -4,9 +4,17 @@ import {
     applySharePurchase,
     applyShareTransfer,
     closePrivate,
+    controllingOwner,
     evaluateCompanyStart,
     getCompany,
+    isChooseHomeStation,
+    isExchangePrivate,
     isOperatingStep,
+    isPlaceHomeStations,
+    isRunInstructionAction,
+    isStockInstructionAction,
+    markTurn,
+    nextOperatingCompany,
     privateOwner,
     recordStockAction,
     recordTurnPurchase,
@@ -18,7 +26,8 @@ import {
     type StepAction
 } from '@tabletop/18xx'
 import * as Type from 'typebox'
-import { MhId } from './ids.js'
+import { CobourgRailwayId, MhId } from './ids.js'
+import { OperatingStartedMark } from './mohawkTiming.js'
 import type { HydratedState1828 } from './state.js'
 import { CompanyRules1828, StockRules1828 } from './stock.js'
 import { Market1828 } from './stockMarket.js'
@@ -228,3 +237,30 @@ export const MohawkActions1828 = [
     ),
     ExchangeMohawkOutOfTurnAction.define((action) => new HydratedExchangeMohawkOutOfTurn(action))
 ]
+
+function isMohawkExchange(action: HydratedAction): boolean {
+    return (
+        isExchangePrivate(action) ||
+        isExchangeMohawkForDirectorship(action) ||
+        isExchangeMohawkForDirectorshipOutOfTurn(action)
+    )
+}
+
+/**
+ * Notes a share company beginning its turn, for the M&H's timing (§13.2.2.6): a home station, or
+ * its director's first act. Standing instructions and the M&H exchange itself are no part of it,
+ * nor is anything another player does.
+ */
+export function notesOperatingStart(state: HydratedState1828, action: HydratedAction): void {
+    const companyId = nextOperatingCompany(state)
+    if (!companyId || companyId === CobourgRailwayId) return
+    const directorActs =
+        state.machineState === 'LayingTrack' &&
+        action.source === ActionSource.User &&
+        action.playerId === controllingOwner(state, companyId)?.playerId &&
+        !isRunInstructionAction(action) &&
+        !isStockInstructionAction(action) &&
+        !isMohawkExchange(action)
+    if (directorActs || isPlaceHomeStations(action) || isChooseHomeStation(action))
+        markTurn(state, OperatingStartedMark)
+}

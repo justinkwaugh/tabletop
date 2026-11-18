@@ -25,12 +25,8 @@ import { Autorouter } from '@tabletop/18xx-autorouter'
 import { AccessRightRules1828, CoalRightId } from '../src/coal.js'
 import { CslId, DhId, EkId } from '../src/companies.js'
 import { cobourgRuns } from '../src/cobourg.js'
-import {
-    mergerChoices,
-    pendingStationChoices,
-    setAsideChoices,
-    singleShareChoices
-} from '../src/merger.js'
+import { offeredMergers, pendingStationChoices } from '../src/merger.js'
+import { setAsideChoices, singleShareChoices } from '../src/mergerOffers.js'
 import { AuctionRules1828 } from '../src/opening.js'
 import { PrivateRules1828, TrainFundingRules1828, TransferRules1828 } from '../src/operating.js'
 import { PrivatePowerRules1828 } from '../src/privatePowers.js'
@@ -263,10 +259,9 @@ export function botMove(game: Table, random: Random): Move {
                         })
                 }
             }
-            if (valid.includes('ProposeMerger') && random.randInt(3) === 0) {
-                const choice = pick(mergerChoices(state, playerId))
-                return move('ProposeMerger', choice)
-            }
+            const mergers = valid.includes('ProposeMerger') ? offeredMergers(state, playerId) : []
+            if (mergers.length && random.randInt(3) === 0)
+                return move('ProposeMerger', pick(mergers))
             if (valid.includes('StartCompany') && random.randInt(2) === 0) {
                 for (const company of state.companies) {
                     const spaces = CompanyRules1828.startMarketSpaces(state, company.id)

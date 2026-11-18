@@ -227,9 +227,7 @@ export function createOpening1828({
     return {
         position,
         titleState: {
-            systems: {},
-            floatedInStockRound: {},
-            tunnelCoal: true
+            systems: {}
         },
         begin: beginWaterfallAuction(AuctionRules1828, startingPositions)
     }

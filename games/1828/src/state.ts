@@ -62,7 +62,6 @@ export type SetAsideShare = Type.Static<typeof SetAsideShare>
  */
 export const Merger1828 = Type.Object(
     {
-        playerId: Id,
         survivorId: Id,
         absorbedId: Id,
         /** ``failed`` lasts only until the acting player's turn ends as a pass (§7.5.2.2). */
@@ -83,15 +82,9 @@ export type Merger1828 = Type.Static<typeof Merger1828>
 export const TitleFields1828 = {
     /** The systems formed, by surviving company (§13.4). */
     systems: Type.Record(Id, System1828),
-    /** The stock round in which each company floated, which governs mergers (§7.5.1). */
-    floatedInStockRound: Type.Record(Id, Type.Integer({ minimum: 1 })),
-    /** The Virginia Coalfields Tunnel's coal marker, still there until the tunnel is built (§4). */
-    tunnelCoal: Type.Boolean(),
-    merger: Type.Optional(Merger1828),
-    /** Where the Cobourg & Peterborough laid its tile this operating round (§13.2.2.5). */
-    cobourgLay: Type.Optional(Id),
-    /** The unparred companies have been removed at the first purple stock round (§17.7). */
-    unparredRemoved: Type.Optional(Type.Literal(true))
+    /** The companies floated in the stock round under way, which governs mergers (§7.5.1). */
+    floatedThisStockRound: Type.Optional(Type.Array(Id, { uniqueItems: true })),
+    merger: Type.Optional(Merger1828)
 }
 
 export const State1828 = composeEighteenXXState(
@@ -125,6 +118,21 @@ function validateTitleState(state: HydratedState1828): void {
             'A system’s second shell is a closed company'
         )
     }
+    for (const [systemId, { shellTrainIds }] of Object.entries(state.systems))
+        assert(
+            shellTrainIds
+                .flat()
+                .every((trainId) =>
+                    state.trainInventory.trains.some(
+                        (train) =>
+                            train.id === trainId &&
+                            train.status === 'owned' &&
+                            train.owner.kind === 'company' &&
+                            train.owner.companyId === systemId
+                    )
+                ),
+            'A system’s shells list only trains it owns'
+        )
     assert(
         !state.merger || state.machineState === 'StockRound',
         'A merger happens in a stock round'
@@ -139,7 +147,7 @@ export const StateDefinition1828 = defineEighteenXXState(State1828, [
 ])
 
 function isState1828(state: object): state is HydratedState1828 {
-    return 'systems' in state && 'tunnelCoal' in state
+    return 'systems' in state
 }
 
 /** A family hook's state, which is always this title's. */

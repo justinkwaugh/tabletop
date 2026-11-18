@@ -9,8 +9,7 @@ import {
 } from '../cobourg.js'
 import { AccessRightRules1828 } from '../coal.js'
 import { MergerActions1828, mergesCompanies } from '../merger.js'
-import { MohawkActions1828, MohawkExchangeSteps } from '../mohawk.js'
-import { notesHomeStations } from '../mohawkTiming.js'
+import { MohawkActions1828, MohawkExchangeSteps, notesOperatingStart } from '../mohawk.js'
 import { Names1828 } from '../names.js'
 import { AuctionRules1828, createOpening1828, startingCash1828 } from '../opening.js'
 import {
@@ -63,13 +62,17 @@ export const TitleRules1828: EighteenXXTitleRules<typeof State1828, HydratedStat
     runInstructionsHeld: cobourgRunHeld,
     decisionHandlers: {
         StockRound: (family) => removesUnparredCompanies(mergesCompanies(family)),
-        OperatingSet: (family) => placesShellTrains(closesCobourg(notesHomeStations(family))),
+        OperatingSet: (family) => placesShellTrains(closesCobourg(family)),
         LayingTrack: (family) => placesErieHome(offersCobourgStation(family)),
         PlacingStation: (family) => offersCobourgStation(family),
         RunningTrains: (family) => runsCobourg(offersCobourgStation(family)),
         DistributingEarnings: (family) => offersCobourgStation(family),
         BuyingTrains: (family) => placesShellTrains(arrangesShells(offersCobourgStation(family))),
         FundingTrain: (family) => placesShellTrains(fundsEmptyShell(family))
+    },
+    actionObservers: {
+        OperatingSet: notesOperatingStart,
+        LayingTrack: notesOperatingStart
     },
     titleActions: [
         ...CobourgActions1828,

@@ -24,8 +24,9 @@ import {
     TitleRules1828,
     constituents,
     isSystem,
-    mergerChoices,
+    offeredMergers,
     mergerPreview,
+    mergerProposerId,
     mergerStep,
     mergerTrading,
     newMerger,
@@ -92,11 +93,12 @@ export class Session1828 extends BaseSession {
         this.localSelections.register(this.mohawkStages, 'first')
     }
 
-    readonly canChooseAction = $derived(
-        this.isPlayable && this.isMyTurn && !this.isViewingHistory && !this.updatingVisibleState
-    )
+    // Whether the decision is this player's, even while their Action is sent or presented: its
+    // panel stays up, the controls locked by `actionsLocked`.
+    private readonly deciding = $derived(this.isPlayable && this.isMyTurn && !this.isViewingHistory)
+    readonly canChooseAction = $derived(this.deciding && !this.busy && !this.updatingVisibleState)
     private can(type: string): boolean {
-        return this.canChooseAction && this.validActionTypes.includes(type)
+        return this.deciding && this.validActionTypes.includes(type)
     }
     readonly actionsLocked = $derived(
         this.busy || this.updatingVisibleState || this.isViewingHistory
@@ -216,10 +218,10 @@ export class Session1828 extends BaseSession {
         await this.applyAction(action)
     }
 
-    /** The mergers the player may start on this stock turn (§7.5.1). */
+    /** The mergers offered on this stock turn: those the rules allow that can succeed (§7.5.1). */
     readonly mergerPairs = $derived(
         this.myPlayer && this.can('ProposeMerger')
-            ? mergerPairs(mergerChoices(this.gameState, this.myPlayer.id))
+            ? mergerPairs(offeredMergers(this.gameState, this.myPlayer.id))
             : []
     )
     readonly mergerPair = $derived.by(() => {
@@ -233,12 +235,11 @@ export class Session1828 extends BaseSession {
     }
     readonly mergerProposal = $derived.by(() => {
         const pair = this.mergerPair
-        const playerId = this.myPlayer?.id
-        if (!pair || !playerId) return undefined
+        if (!pair) return undefined
         const [{ survivorId, absorbedId }] = pair.options
         return {
             pair,
-            preview: mergerPreview(this.gameState, newMerger(playerId, survivorId, absorbedId))
+            preview: mergerPreview(this.gameState, newMerger(survivorId, absorbedId))
         }
     })
     async proposeMerger(survivorId: string, absorbedId: string): Promise<void> {
@@ -250,6 +251,7 @@ export class Session1828 extends BaseSession {
         if (!merger || merger.stage === 'failed') return undefined
         return {
             merger,
+            proposerId: mergerProposerId(this.gameState),
             step: mergerStep(this.gameState, merger),
             preview: mergerPreview(this.gameState, merger)
         }

@@ -27,12 +27,19 @@ export const RemoveUnparredCompanies = RemoveUnparredCompaniesAction.schema
 export type RemoveUnparredCompanies = Type.Static<typeof RemoveUnparredCompanies>
 export const isRemoveUnparredCompanies = RemoveUnparredCompaniesAction.is
 
+function unparredCompanyIds(state: HydratedState1828): string[] {
+    return MajorIds1828.filter((companyId) => {
+        const company = getCompany(state, companyId)
+        return !company.started && !company.closed
+    })
+}
+
 function removalDue(state: HydratedState1828): boolean {
     return (
         state.machineState === 'StockRound' &&
-        !state.unparredRemoved &&
         !state.stockRound.completed &&
-        Phases1828.isAtLeast(state.phaseId, PurplePhaseId)
+        Phases1828.isAtLeast(state.phaseId, PurplePhaseId) &&
+        unparredCompanyIds(state).length > 0
     )
 }
 
@@ -49,10 +56,7 @@ class HydratedRemoveUnparredCompanies
     declare metadata?: RemoveUnparredCompanies['metadata']
     apply(state: HydratedState1828): void {
         assert(this.source === ActionSource.System && removalDue(state), 'No removal is due')
-        const companyIds = MajorIds1828.filter((companyId) => {
-            const company = getCompany(state, companyId)
-            return !company.started && !company.closed
-        })
+        const companyIds = unparredCompanyIds(state)
         const mapState = new RailwayMapState(Map1828, TileSet1828, state.tileInventory)
         const blocking: Station[] = []
         for (const companyId of companyIds) {
@@ -87,7 +91,6 @@ class HydratedRemoveUnparredCompanies
         state.stationReservations = state.stationReservations.filter(
             (reservation) => !companyIds.includes(reservation.companyId)
         )
-        state.unparredRemoved = true
         this.metadata = { companyIds, blockingStationIds: blocking.map((station) => station.id) }
     }
 }

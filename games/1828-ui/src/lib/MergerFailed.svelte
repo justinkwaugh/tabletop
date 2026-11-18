@@ -16,7 +16,7 @@
         {session.companyInitials(second)}
     </p>
     <p>{merger.failure}</p>
-    {#if merger.playerId}<p>Counts as {session.getPlayerName(merger.playerId)}’s pass.</p>{/if}
+    <p>Counts as {session.getPlayerName(merger.playerId)}’s pass.</p>
 </section>
 
 <style>

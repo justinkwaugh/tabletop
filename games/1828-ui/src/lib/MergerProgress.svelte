@@ -21,9 +21,8 @@
         return `${share}: trade up, or sell, which ${saleNote}`
     }
     const context = $derived.by(() => {
-        const merger = session.merger?.merger
-        if (!merger) return undefined
-        const proposer = session.getPlayerName(merger.playerId)
+        if (!session.merger) return undefined
+        const proposer = session.getPlayerName(session.merger.proposerId)
         if (session.mergerConsent) {
             const directed = session.mergerConsentCompany
             return `Merger proposed by ${proposer}${directed ? ` · you direct ${initials(directed)}` : ''}`

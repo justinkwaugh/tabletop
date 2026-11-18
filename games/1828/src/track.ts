@@ -8,7 +8,6 @@ import { CoalAccess, takeTunnelCoal } from './coal.js'
 import { ExtraYellowCompanyIds, PrivateCatalog1828 } from './companies.js'
 import { CobourgRailwayId, CpId, EkId } from './ids.js'
 import { Map1828, TunnelLocationId } from './map.js'
-import { requireState1828 } from './state.js'
 import { constituents } from './systems.js'
 import { TileSet1828, TunnelTileId } from './tiles.js'
 import { Phases1828 } from './trains.js'
@@ -81,10 +80,7 @@ export const TrackRules1828: TrackRules = {
         return undefined
     },
     afterLay(state, details) {
-        if (details.locationId === TunnelLocationId && requireState1828(state).tunnelCoal)
-            takeTunnelCoal(state, details.companyId)
-        if (details.companyId === CobourgRailwayId)
-            requireState1828(state).cobourgLay = details.locationId
+        if (details.locationId === TunnelLocationId) takeTunnelCoal(state, details.companyId)
         return { payments: [], closedPrivateIds: [] }
     }
 }

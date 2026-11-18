@@ -28,7 +28,7 @@ import {
     TitleRules1828,
     TunnelLocationId,
     coalfieldsMarkers,
-    requireState1828
+    tunnelHoldsCoal
 } from '@tabletop/1828'
 import {
     StandardTileLayouts,
@@ -96,7 +96,7 @@ const CoalfieldsMarkerPoints: readonly Point[] = [
 
 /** The coal markers still on the Coalfields and the tunnel (§4, §16). */
 export function coalMarkers1828(state: object): StateMarker[] {
-    const tunnel = requireState1828(state).tunnelCoal
+    const tunnel = tunnelHoldsCoal(state)
     return [
         ...CoalfieldsMarkerKinds.slice(0, coalfieldsMarkers(state)).map((kind) => ({
             locationId: CoalfieldsLocationId,

@@ -518,7 +518,6 @@ describe('choosing a blocking station', () => {
         const state: State1828 = {
             ...position.state,
             merger: {
-                playerId: 'p3',
                 survivorId: 'CPR',
                 absorbedId: 'GT',
                 stage: 'shares',

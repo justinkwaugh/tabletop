@@ -22,7 +22,7 @@ import {
     removeStockMarker,
     replaceStation,
     settleCashPayments,
-    sharesOwned,
+    signedShares,
     soldThisStockRound,
     systemAction,
     titleAction,
@@ -45,6 +45,10 @@ const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 
 /** A system's ten shares, its director holding at least the 20% certificate (§7.5, §13.3.3). */
 const SystemShares = 10
+/** The 20% certificate and the share donated to the system (§7.5.2.2). */
+const SharesToDirectSystem = 3
+/** Two pairs and a single traded up: the fewest shares that can reach three system shares. */
+const SharesForThreeSystemShares = 5
 
 /**
  * The system's price: up the column of the leftmost of the two prices, then right along the
@@ -73,8 +77,7 @@ export function systemMarketSpace(
 /** Whether the company floated in the stock round under way (§7.5.1). */
 function floatedThisRound(state: HydratedState1828, companyId: string): boolean {
     return (
-        !!getCompany(state, companyId).floated &&
-        state.floatedInStockRound[companyId] === state.stockRound.number
+        !!getCompany(state, companyId).floated && !!state.floatedThisStockRound?.includes(companyId)
     )
 }
 
@@ -82,10 +85,25 @@ function floatedEarlier(state: HydratedState1828, companyId: string): boolean {
     return !!getCompany(state, companyId).floated && !floatedThisRound(state, companyId)
 }
 
-/** A player's shares of the two companies together, a director's certificate counting two. */
-function combinedShares(state: HydratedState1828, owner: Owner, companyIds: readonly string[]) {
-    return companyIds.reduce((sum, companyId) => sum + sharesOwned(state, companyId, owner), 0)
+/** Each player's shares by company, a director's certificate counting two, tallied once. */
+type ShareCounts = ReadonlyMap<string, ReadonlyMap<string, number>>
+
+function shareCounts(state: HydratedState1828): ShareCounts {
+    const counts = new Map<string, Map<string, number>>()
+    for (const certificate of state.certificates) {
+        if (certificate.owner.kind !== 'player') continue
+        const held = counts.get(certificate.owner.playerId) ?? new Map<string, number>()
+        held.set(
+            certificate.companyId,
+            (held.get(certificate.companyId) ?? 0) + signedShares(certificate)
+        )
+        counts.set(certificate.owner.playerId, held)
+    }
+    return counts
 }
+
+const heldShares = (counts: ShareCounts, playerId: string, companyId: string) =>
+    counts.get(playerId)?.get(companyId) ?? 0
 
 function soldEither(state: HydratedState1828, playerId: string, companyIds: readonly string[]) {
     return companyIds.some((companyId) =>
@@ -93,30 +111,49 @@ function soldEither(state: HydratedState1828, playerId: string, companyIds: read
     )
 }
 
-/**
- * Whether two public companies may merge (§7.5.1): neither a system nor merged, both parred, and
- * either both floated in an earlier stock round, or neither did and one floated in this one; and
- * some player holds the five shares that three system shares take at the least.
- */
-export function canMerge(state: HydratedState1828, firstId: string, secondId: string): boolean {
-    if (firstId === secondId) return false
-    const companies = [firstId, secondId].map((id) => getCompany(state, id))
-    if (
-        companies.some(
+type MergeableCompany = {
+    id: string
+    directorId?: string
+    floatedEarlier: boolean
+    floatedNow: boolean
+}
+
+/** The public companies open to a merger: parred, and neither a system nor merged (§7.5.1). */
+function mergeableCompanies(state: HydratedState1828): MergeableCompany[] {
+    return state.companies
+        .filter(
             (company) =>
-                company.kind !== 'major' ||
-                !company.started ||
-                company.closed ||
-                isSystem(state, company.id) ||
-                !!systemAbsorbing(state, company.id)
+                company.kind === 'major' &&
+                company.started &&
+                !company.closed &&
+                !isSystem(state, company.id) &&
+                !systemAbsorbing(state, company.id)
         )
-    )
-        return false
-    const earlier = [firstId, secondId].filter((id) => floatedEarlier(state, id)).length
-    const now = [firstId, secondId].filter((id) => floatedThisRound(state, id)).length
-    if (!(earlier === 2 || (earlier === 0 && now > 0))) return false
+        .map(({ id }) => ({
+            id,
+            directorId: controllingOwner(state, id)?.playerId,
+            floatedEarlier: floatedEarlier(state, id),
+            floatedNow: floatedThisRound(state, id)
+        }))
+}
+
+/**
+ * Whether two companies may merge (§7.5.1): both floated in an earlier stock round, or neither
+ * did and one floated in this one; and some player holds the five shares that three system shares
+ * take at the least.
+ */
+function pairMayMerge(
+    state: HydratedState1828,
+    first: MergeableCompany,
+    second: MergeableCompany,
+    counts: ShareCounts
+): boolean {
+    const earlier = Number(first.floatedEarlier) + Number(second.floatedEarlier)
+    if (!(earlier === 2 || (earlier === 0 && (first.floatedNow || second.floatedNow)))) return false
     return state.players.some(
-        ({ playerId }) => combinedShares(state, player(playerId), [firstId, secondId]) >= 5
+        ({ playerId }) =>
+            heldShares(counts, playerId, first.id) + heldShares(counts, playerId, second.id) >=
+            SharesForThreeSystemShares
     )
 }
 
@@ -138,9 +175,15 @@ export const withSetAside = (
     setAsides: [...merger.setAsides, { playerId, companyId }]
 })
 
-export function newMerger(playerId: string, survivorId: string, absorbedId: string): Merger1828 {
+/** The acting player: a merger takes up their stock turn (§7.5.2). */
+export function mergerProposerId(state: HydratedState1828): string {
+    const playerId = state.turnManager.currentTurn()?.playerId
+    assertExists(playerId, 'A merger belongs to the stock turn under way')
+    return playerId
+}
+
+export function newMerger(survivorId: string, absorbedId: string): Merger1828 {
     return {
-        playerId,
         survivorId,
         absorbedId,
         stage: 'shares',
@@ -156,100 +199,56 @@ function mergerUnderWay(state: HydratedState1828): Merger1828 {
     return merger
 }
 
-/**
- * The next player to choose which single share to set aside: one with an odd total holding both
- * companies, where the two are priced differently and so the choice matters (§7.5.2 step 4).
- */
-export function pendingSetAside(state: HydratedState1828, merger: Merger1828): string | undefined {
-    const companyIds = [merger.survivorId, merger.absorbedId]
-    if (stockPrice(state, companyIds[0]) === stockPrice(state, companyIds[1])) return undefined
-    return turnOrderFrom(state.turnManager.turnOrder, merger.playerId).find(
-        (playerId) =>
-            combinedShares(state, player(playerId), companyIds) % 2 === 1 &&
-            companyIds.every((id) => sharesOwned(state, id, player(playerId)) > 0) &&
-            !merger.setAsides.some((setAside) => setAside.playerId === playerId)
-    )
-}
+type MergerHolding = { playerId: string; survivor: number; absorbed: number }
 
-/**
- * Whether some choice of trading up or selling the single shares forms the system. A failed
- * merger only amounts to a pass (§7.5.2.2), so nothing that dooms one is offered.
- */
-function mergerCanSucceed(state: HydratedState1828, merger: Merger1828): boolean {
-    const settingAside = pendingSetAside(state, merger)
-    if (settingAside)
-        return [merger.survivorId, merger.absorbedId].some((companyId) =>
-            mergerCanSucceed(state, withSetAside(merger, settingAside, companyId))
-        )
-    const trading = mergerTrading(state, merger)
-    const { deciderId } = trading
-    if (!deciderId) return !('failure' in mergerDirector(state, merger, trading))
-    return [true, false].some((tradeUp) =>
-        mergerCanSucceed(state, withDecision(merger, deciderId, tradeUp))
-    )
-}
-
-/**
- * Whether the player proposed the merger or directs one of its companies. They have chosen to go
- * ahead, so they are not offered what would make it fail; another holder never agreed to it and
- * may decline to trade up even so (§7.5.1, §7.5.2.1, §7.5.2.2).
- */
-function mergerInvolves(state: HydratedState1828, merger: Merger1828, playerId: string): boolean {
-    return (
-        playerId === merger.playerId ||
-        [merger.survivorId, merger.absorbedId].some(
-            (companyId) => controllingOwner(state, companyId)?.playerId === playerId
-        )
-    )
-}
-
-/** Whether a choice is open to the player: one bound to the merger must keep it possible. */
-function choiceOpen(
+/** Each player's shares of the two companies, in turn order from the acting player. */
+function mergerHoldings(
     state: HydratedState1828,
     merger: Merger1828,
-    playerId: string,
-    after: Merger1828
+    counts: ShareCounts = shareCounts(state)
+): MergerHolding[] {
+    return turnOrderFrom(state.turnManager.turnOrder, mergerProposerId(state)).map((playerId) => ({
+        playerId,
+        survivor: heldShares(counts, playerId, merger.survivorId),
+        absorbed: heldShares(counts, playerId, merger.absorbedId)
+    }))
+}
+
+const pairsHeld = ({ survivor, absorbed }: MergerHolding) => Math.floor((survivor + absorbed) / 2)
+const holdsSingle = ({ survivor, absorbed }: MergerHolding) => (survivor + absorbed) % 2 === 1
+
+/**
+ * Whether the holder has still to choose which single share to set aside: an odd total holding
+ * both companies, where the two are priced differently and so the choice matters (§7.5.2 step 4).
+ */
+function choosesSetAside(
+    state: HydratedState1828,
+    merger: Merger1828,
+    holding: MergerHolding
 ): boolean {
     return (
-        !mergerInvolves(state, merger, playerId) ||
-        !mergerCanSucceed(state, merger) ||
-        mergerCanSucceed(state, after)
+        stockPrice(state, merger.survivorId) !== stockPrice(state, merger.absorbedId) &&
+        holdsSingle(holding) &&
+        holding.survivor > 0 &&
+        holding.absorbed > 0 &&
+        !merger.setAsides.some((setAside) => setAside.playerId === holding.playerId)
     )
 }
 
-/** The shares the choosing player may set aside, dearest first (§7.5.2 step 4). */
-export function setAsideChoices(state: HydratedState1828, merger: Merger1828): string[] {
-    const playerId = pendingSetAside(state, merger)
-    assertExists(playerId, 'A player is choosing a share to set aside')
-    return [merger.survivorId, merger.absorbedId]
-        .filter((companyId) =>
-            choiceOpen(state, merger, playerId, withSetAside(merger, playerId, companyId))
-        )
-        .toSorted((first, second) => stockPrice(state, second) - stockPrice(state, first))
-}
-
-/** What the deciding player may do with their single share, and whether selling ends the merger. */
-export function singleShareChoices(
-    state: HydratedState1828,
-    merger: Merger1828
-): { tradeUp: boolean; sell: boolean; sellFails: boolean } {
-    const { deciderId } = mergerTrading(state, merger)
-    assertExists(deciderId, 'A player is deciding on a single share')
-    const sold = withDecision(merger, deciderId, false)
-    return {
-        tradeUp: choiceOpen(state, merger, deciderId, withDecision(merger, deciderId, true)),
-        sell: choiceOpen(state, merger, deciderId, sold),
-        sellFails: !mergerCanSucceed(state, sold)
-    }
+/** The next player to choose which single share to set aside. */
+export function pendingSetAside(state: HydratedState1828, merger: Merger1828): string | undefined {
+    return mergerHoldings(state, merger).find((holding) => choosesSetAside(state, merger, holding))
+        ?.playerId
 }
 
 /**
- * The mergers the player may start on their stock turn: they direct at least one company, and the
- * merger can succeed.
+ * The mergers the rules let the player start on their stock turn: they direct at least one of the
+ * companies (§7.5.1). One may still fail once its shares are traded (§7.5.2.2).
  */
 export function mergerChoices(
     state: HydratedState1828,
-    playerId: string
+    playerId: string,
+    counts: ShareCounts = shareCounts(state)
 ): { survivorId: string; absorbedId: string }[] {
     if (
         state.machineState !== 'StockRound' ||
@@ -259,17 +258,111 @@ export function mergerChoices(
         state.stockRound.turn.bought
     )
         return []
-    const majors = state.companies.filter((company) => company.kind === 'major')
-    return majors.flatMap((first) =>
-        majors.flatMap((second) =>
-            canMerge(state, first.id, second.id) &&
-            [first.id, second.id].some(
-                (id) => controllingOwner(state, id)?.playerId === playerId
-            ) &&
-            mergerCanSucceed(state, newMerger(playerId, first.id, second.id))
+    const companies = mergeableCompanies(state)
+    return companies.flatMap((first) =>
+        companies.flatMap((second) =>
+            first.id !== second.id &&
+            (first.directorId === playerId || second.directorId === playerId) &&
+            pairMayMerge(state, first, second, counts)
                 ? [{ survivorId: first.id, absorbedId: second.id }]
                 : []
         )
+    )
+}
+
+/**
+ * Whether the players' remaining choices can form the system, which takes one player ending with
+ * three system shares (§7.5.2.2). Short of three pairs, that is a player with exactly two pairs
+ * and a single trading it up, and every other single being sold leaves the most system shares for
+ * it. Their dearest single costs them least. Other players' set-asides matter only through a swap,
+ * whose cost exceeds the trade-up's only when the absorbed company is priced above the system; only
+ * then are they tried, at most one choice for each of the other four players.
+ */
+export function mergerCanSucceed(
+    state: HydratedState1828,
+    merger: Merger1828,
+    counts: ShareCounts = shareCounts(state)
+): boolean {
+    const holdings = mergerHoldings(state, merger, counts)
+    if (holdings.some((holding) => pairsHeld(holding) >= SharesToDirectSystem)) return true
+    const unpaired = holdings.reduce((left, holding) => left - pairsHeld(holding), SystemShares)
+    if (unpaired <= 0) return false
+    const companyIds = [merger.survivorId, merger.absorbedId]
+    const contenders = holdings.filter(
+        (holding) =>
+            oneTradeFromDirecting(holding) &&
+            decisionOf(merger, holding.playerId)?.tradeUp !== false &&
+            !soldEither(state, holding.playerId, companyIds)
+    )
+    if (!contenders.length) return false
+    const systemPrice = mergerSystemSpace(state, merger).price
+    const setAsideOf = setAsideShares(state, merger, holdings)
+    const someoneCanPay = contenders.some(({ playerId }) => {
+        const companyId = setAsideOf.get(playerId)
+        return (
+            !!companyId &&
+            finiteCashOwnedBy(state, player(playerId)) >= systemPrice - stockPrice(state, companyId)
+        )
+    })
+    if (!someoneCanPay) return false
+    if (singleCompletes(state, merger, holdings, systemPrice, unpaired)) return true
+    if (stockPrice(state, merger.absorbedId) <= systemPrice) return false
+    return holdings
+        .filter((holding) => choosesSetAside(state, merger, holding))
+        .reduce(
+            (outcomes, { playerId }) =>
+                outcomes.flatMap((outcome) =>
+                    companyIds.map((companyId) => withSetAside(outcome, playerId, companyId))
+                ),
+            [merger]
+        )
+        .some((outcome) => singleCompletes(state, outcome, holdings, systemPrice, unpaired))
+}
+
+function oneTradeFromDirecting(holding: MergerHolding): boolean {
+    return holdsSingle(holding) && pairsHeld(holding) === SharesToDirectSystem - 1
+}
+
+const decisionOf = (merger: Merger1828, playerId: string) =>
+    merger.decisions.find((decision) => decision.playerId === playerId)
+
+/** Whether, these set-asides made, a trade-up can give some player three system shares. */
+function singleCompletes(
+    state: HydratedState1828,
+    merger: Merger1828,
+    holdings: readonly MergerHolding[],
+    systemPrice: number,
+    unpaired: number
+): boolean {
+    const setAsideOf = setAsideShares(state, merger, holdings)
+    const swapped = swappedSetAsides(merger, holdings, setAsideOf)
+    let remaining = unpaired
+    for (const holding of singleTradingOrder(holdings)) {
+        const single = setAsideSingle(holding, setAsideOf)
+        if (!single) continue
+        if (!canTradeUp(state, merger, single, swapped, systemPrice, remaining)) continue
+        const decision = decisionOf(merger, holding.playerId)
+        if (oneTradeFromDirecting(holding) && decision?.tradeUp !== false) return true
+        if (decision?.tradeUp) remaining--
+    }
+    return false
+}
+
+/** The mergers worth offering the player: those the rules allow that can succeed. */
+export function offeredMergers(
+    state: HydratedState1828,
+    playerId: string
+): { survivorId: string; absorbedId: string }[] {
+    const counts = shareCounts(state)
+    return mergerChoices(state, playerId, counts).filter(({ survivorId, absorbedId }) =>
+        mergerCanSucceed(state, newMerger(survivorId, absorbedId), counts)
+    )
+}
+
+function offersMerger(state: HydratedState1828, playerId: string): boolean {
+    const counts = shareCounts(state)
+    return mergerChoices(state, playerId, counts).some(({ survivorId, absorbedId }) =>
+        mergerCanSucceed(state, newMerger(survivorId, absorbedId), counts)
     )
 }
 
@@ -277,7 +370,7 @@ function consentPlayerId(state: HydratedState1828, merger: Merger1828): string |
     const directors = [merger.survivorId, merger.absorbedId].map(
         (id) => controllingOwner(state, id)?.playerId
     )
-    return directors.find((id) => id && id !== merger.playerId)
+    return directors.find((id) => id && id !== mergerProposerId(state))
 }
 
 /** Hexes where both companies have a station: one becomes a blocking station (§7.5.2 step 3). */
@@ -359,22 +452,21 @@ export function bankPoolShares(
  * shares discarded and the other players' untraded ones run out (§7.5.2.1 items 1-3).
  */
 function swappedSetAsides(
-    state: HydratedState1828,
     merger: Merger1828,
-    order: readonly string[],
+    holdings: readonly MergerHolding[],
     setAsideOf: ReadonlyMap<string, string>
 ): Set<string> {
     const { survivorId, absorbedId } = merger
-    const counted = (companyId: string) =>
+    const order = holdings.map(({ playerId }) => playerId)
+    const counted = (companyId: string, heldOf: (holding: MergerHolding) => number) =>
         new Map(
-            order.map((playerId) => [
-                playerId,
-                sharesOwned(state, companyId, player(playerId)) -
-                    (setAsideOf.get(playerId) === companyId ? 1 : 0)
+            holdings.map((holding) => [
+                holding.playerId,
+                heldOf(holding) - (setAsideOf.get(holding.playerId) === companyId ? 1 : 0)
             ])
         )
-    const survivors = counted(survivorId)
-    const others = counted(absorbedId)
+    const survivors = counted(survivorId, ({ survivor }) => survivor)
+    const others = counted(absorbedId, ({ absorbed }) => absorbed)
     const swapped = new Set<string>()
     let discarded = 0
     order.forEach((playerId, index) => {
@@ -403,6 +495,71 @@ function swappedSetAsides(
     return swapped
 }
 
+function mergerSystemSpace(state: HydratedState1828, merger: Merger1828): StockMarketSpace {
+    return systemMarketSpace(
+        Market1828.companySpace(state.stockMarket, merger.survivorId),
+        Market1828.companySpace(state.stockMarket, merger.absorbedId)
+    )
+}
+
+/** Each odd holder's single: as chosen, or until then the dearer of those they hold. */
+function setAsideShares(
+    state: HydratedState1828,
+    merger: Merger1828,
+    holdings: readonly MergerHolding[]
+): Map<string, string> {
+    const setAsideOf = new Map<string, string>()
+    for (const holding of holdings) {
+        if (!holdsSingle(holding)) continue
+        const held = [
+            ...(holding.survivor > 0 ? [merger.survivorId] : []),
+            ...(holding.absorbed > 0 ? [merger.absorbedId] : [])
+        ]
+        setAsideOf.set(
+            holding.playerId,
+            merger.setAsides.find((setAside) => setAside.playerId === holding.playerId)
+                ?.companyId ??
+                held.reduce((best, id) =>
+                    stockPrice(state, id) > stockPrice(state, best) ? id : best
+                )
+        )
+    }
+    return setAsideOf
+}
+
+/** Singles are settled from the player after the acting player round to the acting player. */
+function singleTradingOrder(holdings: readonly MergerHolding[]): MergerHolding[] {
+    return [...holdings.slice(1), holdings[0]]
+}
+
+type SetAsideSingle = { playerId: string; companyId: string }
+
+function setAsideSingle(
+    { playerId }: MergerHolding,
+    setAsideOf: ReadonlyMap<string, string>
+): SetAsideSingle | undefined {
+    const companyId = setAsideOf.get(playerId)
+    return companyId ? { playerId, companyId } : undefined
+}
+
+/** Whether a system share is left, the holder has sold neither company, and can pay. */
+function canTradeUp(
+    state: HydratedState1828,
+    merger: Merger1828,
+    { playerId, companyId }: SetAsideSingle,
+    swapped: ReadonlySet<string>,
+    systemPrice: number,
+    remaining: number
+): boolean {
+    const price = stockPrice(state, companyId)
+    const swapCost = swapped.has(playerId) ? stockPrice(state, merger.absorbedId) - price : 0
+    return (
+        remaining > 0 &&
+        !soldEither(state, playerId, [merger.survivorId, merger.absorbedId]) &&
+        finiteCashOwnedBy(state, player(playerId)) >= Math.max(systemPrice - price, swapCost)
+    )
+}
+
 /**
  * Pairs of the two companies' shares become one system share each, from the acting player
  * round; then each single set aside, from the next player round to the acting player, is traded
@@ -413,39 +570,23 @@ function swappedSetAsides(
  */
 export function mergerTrading(state: HydratedState1828, merger: Merger1828): MergerTrading {
     const companyIds = [merger.survivorId, merger.absorbedId]
-    const spaces = companyIds.map((id) => Market1828.companySpace(state.stockMarket, id))
-    const system = systemMarketSpace(spaces[0], spaces[1])
-    const price = (companyId: string) => stockPrice(state, companyId)
-    const order = turnOrderFrom(state.turnManager.turnOrder, merger.playerId)
+    const system = mergerSystemSpace(state, merger)
+    const holdings = mergerHoldings(state, merger)
     let remaining = SystemShares
     const pairs: Record<string, number> = {}
-    for (const playerId of order) {
-        const held = combinedShares(state, player(playerId), companyIds)
-        pairs[playerId] = Math.floor(held / 2)
-        remaining -= pairs[playerId]
+    for (const holding of holdings) {
+        pairs[holding.playerId] = pairsHeld(holding)
+        remaining -= pairs[holding.playerId]
     }
     const singles: SingleTrade[] = []
     let deciderId: string | undefined
-    const setAsideOf = new Map<string, string>()
-    for (const playerId of order) {
-        if (combinedShares(state, player(playerId), companyIds) % 2 === 0) continue
-        const held = companyIds.filter((id) => sharesOwned(state, id, player(playerId)) > 0)
-        setAsideOf.set(
-            playerId,
-            merger.setAsides.find((setAside) => setAside.playerId === playerId)?.companyId ??
-                held.reduce((best, id) => (price(id) > price(best) ? id : best))
-        )
-    }
-    const swapped = swappedSetAsides(state, merger, order, setAsideOf)
-    for (const playerId of [...order.slice(1), order[0]]) {
-        const companyId = setAsideOf.get(playerId)
-        if (!companyId) continue
-        const cost = system.price - price(companyId)
-        const swapCost = swapped.has(playerId) ? price(merger.absorbedId) - price(companyId) : 0
-        const possible =
-            remaining > 0 &&
-            !soldEither(state, playerId, companyIds) &&
-            finiteCashOwnedBy(state, player(playerId)) >= Math.max(cost, swapCost)
+    const setAsideOf = setAsideShares(state, merger, holdings)
+    const swapped = swappedSetAsides(merger, holdings, setAsideOf)
+    for (const holding of singleTradingOrder(holdings)) {
+        const single = setAsideSingle(holding, setAsideOf)
+        if (!single) continue
+        const { playerId, companyId } = single
+        const possible = canTradeUp(state, merger, single, swapped, system.price, remaining)
         const decision = merger.decisions.find((entry) => entry.playerId === playerId)
         if (possible && !decision) {
             deciderId = playerId
@@ -453,7 +594,13 @@ export function mergerTrading(state: HydratedState1828, merger: Merger1828): Mer
         }
         const tradeUp = possible && decision?.tradeUp === true
         if (tradeUp) remaining--
-        singles.push({ playerId, companyId, price: price(companyId), tradeUp, chosen: possible })
+        singles.push({
+            playerId,
+            companyId,
+            price: stockPrice(state, companyId),
+            tradeUp,
+            chosen: possible
+        })
     }
     const bankTrade = (poolId: string) => {
         const held = companyIds.reduce((sum, id) => sum + bankPoolShares(state, id, poolId), 0)
@@ -498,10 +645,10 @@ export function mergerDirector(
     trading: MergerTrading
 ): { directorId: string; shares: Record<string, number> } | { failure: string } {
     const { turnOrder } = state.turnManager
-    const order = turnOrderFrom(turnOrder, merger.playerId)
+    const order = turnOrderFrom(turnOrder, mergerProposerId(state))
     const shares = playerShares(trading)
     const director = directorOf(order, shares)
-    if ((shares[director] ?? 0) < 3)
+    if ((shares[director] ?? 0) < SharesToDirectSystem)
         return { failure: 'No player holds the director’s certificate and a share to donate.' }
     const after = { ...shares, [director]: shares[director] - 1 }
     return { directorId: directorOf(turnOrderFrom(turnOrder, director), after), shares: after }
@@ -529,7 +676,7 @@ class HydratedProposeMerger extends ProposeMergerAction.Base implements ProposeM
     }
     apply(state: HydratedState1828): void {
         assert(this.isValid(state), 'These companies cannot merge now')
-        const merger = newMerger(this.playerId, this.survivorId, this.absorbedId)
+        const merger = newMerger(this.survivorId, this.absorbedId)
         merger.stage = consentPlayerId(state, merger) ? 'consent' : 'shares'
         state.merger = merger
     }
@@ -558,7 +705,7 @@ class HydratedAnswerMerger extends AnswerMergerAction.Base implements AnswerMerg
         const merger = mergerUnderWay(state)
         if (!this.accept) {
             delete state.merger
-            state.activePlayerIds = [merger.playerId]
+            state.activePlayerIds = [mergerProposerId(state)]
             return
         }
         merger.stage = 'shares'
@@ -586,7 +733,7 @@ class HydratedBlockMergerStation
         return (
             this.source === ActionSource.User &&
             merger?.stage === 'shares' &&
-            merger.playerId === this.playerId &&
+            mergerProposerId(state) === this.playerId &&
             pendingStationChoices(state, merger).some(({ stations }) =>
                 stations.some((station) => station.id === this.stationId)
             )
@@ -618,7 +765,7 @@ class HydratedChooseSetAsideShare
             !!merger &&
             mergerStep(state, merger) === 'set-aside' &&
             pendingSetAside(state, merger) === this.playerId &&
-            setAsideChoices(state, merger).includes(this.companyId)
+            [merger.survivorId, merger.absorbedId].includes(this.companyId)
         )
     }
     apply(state: HydratedState1828): void {
@@ -649,8 +796,7 @@ class HydratedDecideMergerShare extends DecideMergerShareAction.Base implements 
             this.source === ActionSource.User &&
             !!merger &&
             mergerStep(state, merger) === 'share' &&
-            mergerTrading(state, merger).deciderId === this.playerId &&
-            singleShareChoices(state, merger)[this.tradeUp ? 'tradeUp' : 'sell']
+            mergerTrading(state, merger).deciderId === this.playerId
         )
     }
     apply(state: HydratedState1828): void {
@@ -661,6 +807,8 @@ class HydratedDecideMergerShare extends DecideMergerShareAction.Base implements 
 
 export const MergerOutcome = Type.Object(
     {
+        /** The acting player, whose turn the merger takes. */
+        playerId: Id,
         survivorId: Id,
         absorbedId: Id,
         marketSpaceId: Id,
@@ -693,6 +841,7 @@ class HydratedFormSystem extends FormSystemAction.Base implements FormSystem {
         const director = mergerDirector(state, merger, trading)
         const blocked = this.blockedStations(state, merger).map((station) => station.id)
         const base = {
+            playerId: mergerProposerId(state),
             survivorId: merger.survivorId,
             absorbedId: merger.absorbedId,
             marketSpaceId: trading.marketSpaceId,
@@ -704,8 +853,8 @@ class HydratedFormSystem extends FormSystemAction.Base implements FormSystem {
             // The acting player is considered to have passed (§7.5.2.2), which waits only for a
             // sale they already owed.
             state.stockRound.turn.bought = true
-            state.activePlayerIds = [merger.playerId]
-            if (mustSellShares(state, merger.playerId, StockRules1828)) delete state.merger
+            state.activePlayerIds = [mergerProposerId(state)]
+            if (mustSellShares(state, mergerProposerId(state), StockRules1828)) delete state.merger
             else merger.stage = 'failed'
             this.metadata = {
                 ...base,
@@ -721,8 +870,8 @@ class HydratedFormSystem extends FormSystemAction.Base implements FormSystem {
         const payments = this.settleSingles(state, merger, trading)
         const floated = this.formSystem(state, merger, trading, director, blocked)
         markTurnPurchase(state)
-        recordStockAction(state, merger.playerId, StockRules1828.round)
-        state.activePlayerIds = [merger.playerId]
+        recordStockAction(state, mergerProposerId(state), StockRules1828.round)
+        state.activePlayerIds = [mergerProposerId(state)]
         this.metadata = {
             ...base,
             directorId: director.directorId,
@@ -957,7 +1106,7 @@ export type MergerStep = 'consent' | 'station' | 'set-aside' | 'share' | 'formin
 export function mergerStep(state: HydratedState1828, merger: Merger1828): MergerStep {
     if (merger.stage === 'consent') return 'consent'
     if (pendingStationChoices(state, merger).length) return 'station'
-    // Nothing left to decide matters once the merger cannot form.
+    // Nothing left to decide matters once the merger cannot form: a failure undoes it all.
     if (!mergerCanSucceed(state, merger)) return 'forming'
     if (pendingSetAside(state, merger)) return 'set-aside'
     return mergerTrading(state, merger).deciderId ? 'share' : 'forming'
@@ -968,7 +1117,8 @@ function mergerTurn(
 ): { playerId: string; action: string } | { system: true } | undefined {
     const merger = state.merger
     if (!merger) return undefined
-    if (merger.stage === 'failed') return { playerId: merger.playerId, action: 'FinishStockTurn' }
+    if (merger.stage === 'failed')
+        return { playerId: mergerProposerId(state), action: 'FinishStockTurn' }
     const acting = (playerId: string | undefined, action: string) => {
         assertExists(playerId, 'A merger under way waits for a player')
         return { playerId, action }
@@ -977,7 +1127,7 @@ function mergerTurn(
         case 'consent':
             return acting(consentPlayerId(state, merger), 'AnswerMerger')
         case 'station':
-            return acting(merger.playerId, 'BlockMergerStation')
+            return acting(mergerProposerId(state), 'BlockMergerStation')
         case 'set-aside':
             return acting(pendingSetAside(state, merger), 'ChooseSetAsideShare')
         case 'share':
@@ -1017,7 +1167,7 @@ export function mergesCompanies(handler: StateHandler1828): StateHandler1828 {
             if (!turn)
                 return [
                     ...handler.validActionsForPlayer(playerId, context),
-                    ...(mergerChoices(state, playerId).length ? ['ProposeMerger'] : [])
+                    ...(offersMerger(state, playerId) ? ['ProposeMerger'] : [])
                 ]
             return 'playerId' in turn && turn.playerId === playerId ? [turn.action] : []
         },

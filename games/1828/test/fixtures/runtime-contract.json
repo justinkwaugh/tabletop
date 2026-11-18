@@ -32,7 +32,7 @@
     "FinishStockTurn": "53a06c7d65e723d95555124849208f43baf1ad4e46d4b2dfe0996950080e7d1a",
     "FinishTrack": "1a6e9a2521c6c145584a778d9cceb6e8d4fa8ddf810c4aad80322f2fb0f90373",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
-    "FormSystem": "d6439c944a92c02b9a4cb2d93ff220354e612608a63785bedb47963ffb047b50",
+    "FormSystem": "c60d83bef564fa5a447c2cf98ad504f4b6c9e227b66d610266191f9ee99fdf96",
     "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
     "LayPrivateTile": "8fe6bfc7d8f5d5c8f4055e418bc59b2b8680d23734b546f9622c80a1085daed5",
@@ -488,10 +488,6 @@
           ]
         },
         "type": "array"
-      },
-      "cobourgLay": {
-        "minLength": 1,
-        "type": "string"
       },
       "companies": {
         "items": {
@@ -1318,14 +1314,13 @@
         },
         "type": "array"
       },
-      "floatedInStockRound": {
-        "patternProperties": {
-          "^.*$": {
-            "minimum": 1,
-            "type": "integer"
-          }
+      "floatedThisStockRound": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
         },
-        "type": "object"
+        "type": "array",
+        "uniqueItems": true
       },
       "gameEnding": {
         "additionalProperties": false,
@@ -1494,10 +1489,6 @@
             },
             "type": "array"
           },
-          "playerId": {
-            "minLength": 1,
-            "type": "string"
-          },
           "setAsides": {
             "items": {
               "additionalProperties": false,
@@ -1544,7 +1535,6 @@
           "absorbedId",
           "blockedStationIds",
           "decisions",
-          "playerId",
           "setAsides",
           "stage",
           "survivorId"
@@ -4572,9 +4562,6 @@
         ],
         "type": "object"
       },
-      "tunnelCoal": {
-        "type": "boolean"
-      },
       "turnManager": {
         "properties": {
           "series": {
@@ -4636,10 +4623,6 @@
         "type": "array",
         "uniqueItems": true
       },
-      "unparredRemoved": {
-        "const": true,
-        "type": "boolean"
-      },
       "usedPrivatePowerIds": {
         "items": {
           "minLength": 1,
@@ -4664,7 +4647,6 @@
       "certificatePools",
       "certificates",
       "companies",
-      "floatedInStockRound",
       "gameId",
       "id",
       "machineState",
@@ -4680,7 +4662,6 @@
       "systems",
       "tileInventory",
       "trainInventory",
-      "tunnelCoal",
       "turnManager",
       "usedPrivatePowerIds",
       "winningPlayerIds"

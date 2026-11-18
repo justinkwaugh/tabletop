@@ -10,11 +10,17 @@ import {
 } from '@tabletop/18xx'
 import { botMove, Random } from '../test/bot.js'
 import { kit, openAuction, type Table } from '../test/kit.js'
-import { AccessRightRules1828, CoalRightId, coalHolders, reachesCoalfields } from './coal.js'
+import {
+    AccessRightRules1828,
+    CoalRightId,
+    coalHolders,
+    reachesCoalfields,
+    tunnelHoldsCoal
+} from './coal.js'
 import { cobourgRuns } from './cobourg.js'
 import { CobourgRailwayId, MhId } from './ids.js'
 import { TunnelLocationId } from './map.js'
-import { mergerChoices } from './merger.js'
+import { offeredMergers } from './merger.js'
 import { mohawkOffers } from './mohawkOffers.js'
 import { movableShellTrainIds } from './shells.js'
 import { TrackRules1828 } from './track.js'
@@ -54,7 +60,7 @@ function mergerOpen(game: Table): boolean {
     return (
         game.state.machineState === 'StockRound' &&
         !game.state.merger &&
-        mergerChoices(game.hydrated, game.player).length > 0
+        offeredMergers(game.hydrated, game.player).length > 0
     )
 }
 
@@ -114,7 +120,7 @@ function coalForSale(game: Table): boolean {
 function tunnelOpen(game: Table): boolean {
     return (
         game.state.machineState === 'LayingTrack' &&
-        !!game.state.tunnelCoal &&
+        tunnelHoldsCoal(game.hydrated) &&
         game.state.trackStep?.companyId !== CobourgRailwayId &&
         game.valid().includes('LayTile') &&
         new TrackConstruction(game.hydrated, TrackRules1828).choices(TunnelLocationId).length > 0

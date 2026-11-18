@@ -54,13 +54,15 @@ function shellForNewTrain(
     return second.length < first.length ? 1 : 0
 }
 
-/** A system's shells as recorded, without trains it no longer owns, such as rusted ones. */
-function ownedShellTrainIds(state: TrainPurchaseState, companyId: string): [string[], string[]] {
-    const owned = new Set(
-        trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => train.id)
-    )
-    const [first, second] = requireState1828(state).systems[companyId].shellTrainIds
-    return [first.filter((id) => owned.has(id)), second.filter((id) => owned.has(id))]
+/** A train has left the company: its shell no longer lists it. */
+export function forgetShellTrain(state: object, companyId: string, trainId: string): void {
+    const system = requireState1828(state).systems[companyId]
+    if (!system) return
+    const [first, second] = system.shellTrainIds
+    system.shellTrainIds = [
+        first.filter((id) => id !== trainId),
+        second.filter((id) => id !== trainId)
+    ]
 }
 
 /** The shell the operating system's next train goes to (§8.3.5.1). */
@@ -77,7 +79,8 @@ export function arrangedShellTrainIds(
     companyId: string
 ): [string[], string[]] {
     const title = requireState1828(state)
-    const shells = ownedShellTrainIds(state, companyId)
+    const [first, second] = title.systems[companyId].shellTrainIds
+    const shells: [string[], string[]] = [[...first], [...second]]
     for (const train of unplacedShellTrains(state, companyId))
         shells[shellForNewTrain(title, shells)].push(train.id)
     return shells

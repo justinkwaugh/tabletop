@@ -66,6 +66,12 @@ function sameStops(first: readonly RevenueCenter[], second: readonly RevenueCent
     return key(first) === key(second)
 }
 
+/** The hex of the tile the C&P laid or upgraded this turn (§13.2.2.5). */
+function cobourgTile(state: HydratedState1828): string | undefined {
+    const step = state.trackStep
+    return step?.companyId === CobourgRailwayId ? step.lays[0]?.locationId : undefined
+}
+
 /**
  * The runs of half a 2-train the C&P's owner may choose among, the best first (§13.2.2.5): two
  * revenue centres joined by one line of track that includes the tile, and a revenue centre on the
@@ -74,7 +80,7 @@ function sameStops(first: readonly RevenueCenter[], second: readonly RevenueCent
  * Coalfields stay closed to it.
  */
 export function cobourgRuns(state: HydratedState1828): CobourgRun[] {
-    const tileId = state.cobourgLay
+    const tileId = cobourgTile(state)
     if (!tileId) return []
     const mapState = new RailwayMapState(Map1828, TileSet1828, state.tileInventory)
     const network = new RouteNetwork(mapState)
@@ -176,7 +182,6 @@ function settleCobourgRun(
           ]
         : []
     settleCashPayments(state, payments)
-    delete state.cobourgLay
     abandonOperatingTurn(state, CobourgRailwayId)
     return { stops: run?.stops ?? [], revenue: run?.revenue ?? 0, payments }
 }
@@ -273,7 +278,6 @@ export function runsCobourg(handler: StateHandler1828): StateHandler1828 {
             }
             const owner = controllingOwner(state, CobourgRailwayId)
             assertExists(owner, 'The C&P has an owner')
-            state.routeStep ??= { companyId: CobourgRailwayId }
             state.activePlayerIds = [owner.playerId]
         },
         onAction(action, context) {
@@ -282,12 +286,24 @@ export function runsCobourg(handler: StateHandler1828): StateHandler1828 {
                 : handler.onAction(action, context)
         }
     }
-    return new SystemActionFirstHandler(
+    const running = new SystemActionFirstHandler(
         choosing,
         RunCobourg,
         (state) => (cobourgRunDue(state) ? {} : undefined),
         'OperatingSet'
     )
+    return {
+        isValidAction: (action, context) => running.isValidAction(action, context),
+        validActionsForPlayer: (playerId, context) =>
+            running.validActionsForPlayer(playerId, context),
+        // The step's record comes first: its state must load even with a run due at once.
+        enter(context) {
+            const state = context.gameState
+            if (cobourgRunning(state)) state.routeStep ??= { companyId: CobourgRailwayId }
+            running.enter(context)
+        },
+        onAction: (action, context) => running.onAction(action, context)
+    }
 }
 
 /**
@@ -356,7 +372,6 @@ export function cobourgPurchased(state: object, offer: PurchaseOffer): void {
             }
         ])
     railway.closed = true
-    delete title.cobourgLay
     if (!placedStationThisTurn(title, offer.buyer.companyId)) markTurn(title, ReplacementMark)
 }
 
@@ -469,7 +484,6 @@ class HydratedCloseCobourg extends CloseCobourgAction.Base implements CloseCobou
             : []
         settleCashPayments(state, payments)
         getCompany(state, CobourgRailwayId).closed = true
-        delete state.cobourgLay
         this.metadata = { payments }
     }
 }

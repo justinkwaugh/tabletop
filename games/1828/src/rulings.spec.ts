@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { turnOrderFrom } from '@tabletop/common'
 import {
     ReserveBidAuction,
+    controllingOwner,
     furtherShareAllowed,
     getCompany,
     placeStockMarker,
@@ -23,25 +25,31 @@ import { Privates1828 } from './companies.js'
 import { directorPrivateId } from './ids.js'
 import { cobourgRuns, oneRunPerRevenue } from './cobourg.js'
 import {
+    mergerCanSucceed,
     mergerChoices,
     mergerDirector,
     mergerStep,
     mergerTrading,
-    singleShareChoices,
-    systemMarketSpace
+    offeredMergers,
+    pendingSetAside,
+    systemMarketSpace,
+    withDecision,
+    withSetAside
 } from './merger.js'
+import { singleShareChoices } from './mergerOffers.js'
+import { TunnelLocationId } from './map.js'
 import { mohawkOffers } from './mohawkOffers.js'
 import { IpoPoolId1828 } from './names.js'
 import { PrivateRules1828, TransferRules1828, dumpsTrainSeller } from './operating.js'
 import { AuctionRules1828 } from './opening.js'
 import { RouteRules1828 } from './routes.js'
-import type { Merger1828, State1828 } from './state.js'
+import type { HydratedState1828, Merger1828, State1828 } from './state.js'
 import { StationRules1828 } from './stations.js'
 import { ShareTrading1828, StockRoundRules1828, StockRules1828 } from './stock.js'
-import { Market1828 } from './stockMarket.js'
+import { Market1828, stockPrice } from './stockMarket.js'
 import { shellsOpen } from './shells.js'
 import { ShellsClosedMark, TrainShellMarks, trainBoughtFromMark, trainShells } from './systems.js'
-import { TileSet1828 } from './tiles.js'
+import { TileSet1828, TunnelTileId } from './tiles.js'
 import { TrackRules1828 } from './track.js'
 import { CobourgTrainId, TrainDepot1828 } from './trains.js'
 import { TrainRules1828 } from './trainRules.js'
@@ -169,6 +177,7 @@ function mergerPosition(holdings: {
 }): { game: Table; merger: Merger1828 } {
     const game = kit.table(4, 7)
     openAuction(game)
+    while (game.player !== 'p1') game.act('FinishStockTurn')
     const [survivorId, absorbedId] = ['BO', 'CO']
     edit(game, (state) => {
         for (const [companyId, holders] of [
@@ -219,7 +228,6 @@ function mergerPosition(holdings: {
         }, [])
     })
     const merger: Merger1828 = {
-        playerId: 'p1',
         survivorId,
         absorbedId,
         stage: 'shares',
@@ -338,6 +346,88 @@ describe('a merger played through (§7.5.2)', () => {
 })
 
 describe('mergers that cannot succeed (§7.5.2.2)', () => {
+    /** Tries every set-aside and single-share decision still open. */
+    function someChoiceSucceeds(state: HydratedState1828, merger: Merger1828): boolean {
+        const settingAside = pendingSetAside(state, merger)
+        if (settingAside)
+            return [merger.survivorId, merger.absorbedId].some((companyId) =>
+                someChoiceSucceeds(state, withSetAside(merger, settingAside, companyId))
+            )
+        const trading = mergerTrading(state, merger)
+        const { deciderId } = trading
+        if (!deciderId) return !('failure' in mergerDirector(state, merger, trading))
+        return [true, false].some((tradeUp) =>
+            someChoiceSucceeds(state, withDecision(merger, deciderId, tradeUp))
+        )
+    }
+
+    it('agrees with trying every remaining choice', () => {
+        let seed = 1828
+        const next = (limit: number) => {
+            seed = (seed * 48271) % 2147483647
+            return seed % limit
+        }
+        const spaces = Market1828.spaces
+        const players = ['p1', 'p2', 'p3', 'p4']
+        const deal = (total: number, first: number) => {
+            const held: Record<string, number> = { p1: first }
+            for (let dealt = first; dealt < total; dealt++) {
+                const playerId = players[next(players.length)]
+                held[playerId] = (held[playerId] ?? 0) + 1
+            }
+            return held
+        }
+        const outcomes = new Set<boolean>()
+        let swapDecided = 0
+        for (let position = 0; position < 24; position++) {
+            const { game, merger } = mergerPosition({
+                survivor: deal(4 + next(6), 2),
+                absorbed: deal(3 + next(7), 2)
+            })
+            for (let variant = 0; variant < 12; variant++) {
+                let survivorSpace = spaces[next(spaces.length)]
+                let absorbedSpace = spaces[next(spaces.length)]
+                // A system can price below its dearer company, where a swap costs the most.
+                while (
+                    variant % 3 === 0 &&
+                    systemMarketSpace(survivorSpace, absorbedSpace).price >= absorbedSpace.price
+                ) {
+                    survivorSpace = spaces[next(spaces.length)]
+                    absorbedSpace = spaces[next(spaces.length)]
+                }
+                edit(game, (state) => {
+                    for (const [companyId, space] of [
+                        ['BO', survivorSpace],
+                        ['CO', absorbedSpace]
+                    ] as const) {
+                        removeStockMarker(state.stockMarket, companyId)
+                        placeStockMarker(state.stockMarket, companyId, space.id)
+                    }
+                    for (const playerId of players)
+                        setCash(state, { kind: 'player', playerId }, next(4) * next(150))
+                })
+                const state = game.hydrated
+                let current = merger
+                for (;;) {
+                    const expected = someChoiceSucceeds(state, current)
+                    outcomes.add(expected)
+                    expect(mergerCanSucceed(state, current)).toBe(expected)
+                    const settingAside = pendingSetAside(state, current)
+                    const { deciderId, systemPrice } = mergerTrading(state, current)
+                    if (settingAside) {
+                        const companyId = next(2) ? current.survivorId : current.absorbedId
+                        current = withSetAside(current, settingAside, companyId)
+                    } else if (deciderId) {
+                        if (systemPrice < stockPrice(state, current.absorbedId)) swapDecided++
+                        current = withDecision(current, deciderId, next(2) === 0)
+                    } else break
+                }
+            }
+        }
+        expect(outcomes).toEqual(new Set([true, false]))
+        expect(swapDecided).toBeGreaterThan(0)
+    })
+
     /** The acting player holds five shares, so needs to trade up a single to direct the system. */
     function fiveShares(cash: number): Table {
         const { game } = mergerPosition({ survivor: { p1: 3 }, absorbed: { p1: 2 } })
@@ -346,15 +436,86 @@ describe('mergers that cannot succeed (§7.5.2.2)', () => {
         return game
     }
     const offered = (game: Table) =>
-        mergerChoices(game.hydrated, 'p1').filter(
+        offeredMergers(game.hydrated, 'p1').filter(
             ({ survivorId, absorbedId }) => survivorId === 'BO' && absorbedId === 'CO'
         )
 
+    it('sees that another player’s set-aside can spare the one who would direct a swap', () => {
+        const { game: table } = mergerPosition({ survivor: { p1: 2 }, absorbed: { p1: 2 } })
+        const [first, second, third, fourth] = turnOrderFrom(
+            table.state.turnManager.turnOrder,
+            'p1'
+        )
+        const { game, merger } = mergerPosition({
+            survivor: { [fourth]: 2, [second]: 1, [third]: 1 },
+            absorbed: { [fourth]: 3, [first]: 2, [second]: 2, [third]: 2 }
+        })
+        edit(game, (state) => {
+            for (const [companyId, spaceId] of [
+                ['BO', '1:0'],
+                ['CO', '1:14']
+            ] as const) {
+                removeStockMarker(state.stockMarket, companyId)
+                placeStockMarker(state.stockMarket, companyId, spaceId)
+            }
+            // Enough to trade the $112 share up to the $412 system, not to pay a swap to $443.
+            setCash(state, { kind: 'player', playerId: fourth }, 300)
+        })
+        const settled = [third, fourth].reduce(
+            (current, playerId) => withSetAside(current, playerId, 'BO'),
+            merger
+        )
+        expect(mergerCanSucceed(game.hydrated, settled)).toBe(true)
+        expect(mergerCanSucceed(game.hydrated, withSetAside(settled, second, 'CO'))).toBe(false)
+    })
     it('offers a merger the acting player can afford to complete', () => {
         expect(offered(fiveShares(27))).toHaveLength(1)
     })
     it('does not offer one whose trade-up no one can pay for', () => {
         expect(offered(fiveShares(26))).toHaveLength(0)
+    })
+    it('still accepts a legal merger that cannot succeed, which fails as a pass', () => {
+        const game = fiveShares(26)
+        expect(offered(game)).toHaveLength(0)
+        expect(game.valid('p1')).not.toContain('ProposeMerger')
+        expect(
+            mergerChoices(game.hydrated, 'p1').some(
+                ({ survivorId, absorbedId }) => survivorId === 'BO' && absorbedId === 'CO'
+            )
+        ).toBe(true)
+        game.act('ProposeMerger', { survivorId: 'BO', absorbedId: 'CO' })
+        expect(game.state.merger).toBeUndefined()
+        expect(game.state.systems.BO).toBeUndefined()
+        const formed = game.actions.findLast((action) => action.type === 'FormSystem')
+        expect(formed?.metadata).toHaveProperty('failure')
+        expect(game.state.stockRound.passedPlayerIds).toContain('p1')
+    })
+    it('holds a standing purchase until the merger is over', () => {
+        const game = fiveShares(1000)
+        game.act('ProposeMerger', { survivorId: 'BO', absorbedId: 'CO' })
+        const cash = game.state.cash.find(
+            ({ owner }) => owner.kind === 'player' && owner.playerId === 'p1'
+        )?.amount
+        game.act(
+            'SetStockInstruction',
+            {
+                outOfTurn: true,
+                supersedable: true,
+                instruction: {
+                    kind: 'buy',
+                    companyId: 'CO',
+                    preferredPoolId: IpoPoolId1828,
+                    until: { kind: 'shares', count: 9 },
+                    thenPass: false
+                }
+            },
+            'p1'
+        )
+        expect(game.state.merger).toBeDefined()
+        expect(
+            game.state.cash.find(({ owner }) => owner.kind === 'player' && owner.playerId === 'p1')
+                ?.amount
+        ).toBe(cash)
     })
     it('leaves only the single-share decision that lets the system form', () => {
         const game = fiveShares(1000)
@@ -366,7 +527,6 @@ describe('mergers that cannot succeed (§7.5.2.2)', () => {
             sell: false,
             sellFails: true
         })
-        expect(() => game.act('DecideMergerShare', { tradeUp: false }, 'p1')).toThrow()
         game.act('DecideMergerShare', { tradeUp: true }, 'p1')
         expect(game.state.merger).toBeUndefined()
         expect(game.state.systems.BO?.absorbedId).toBe('CO')
@@ -532,12 +692,30 @@ describe('system shells (§8.3.5.1, §15.4)', () => {
         expect(shellsOpen(step([]), 'BO')).toBe(true)
         expect(shellsOpen(step([ShellsClosedMark]), 'BO')).toBe(false)
     })
-    it('does not count a rusted train in its old shell', () => {
-        const { game, bought } = system(['2', '2'])
-        edit(game, (state) => {
-            state.systems.BO.shellTrainIds = [['gone', 'gone-too'], [bought]]
+    it('forgets a train that rusts or is sold, so one bought back is placed again', () => {
+        const { game, bought } = system(['2', '2', '2'])
+        const state = game.hydrated
+        const [rusted, sold] = state.systems.BO.shellTrainIds[0]
+        TrainRules1828.afterTrainsDepart?.(state, [
+            {
+                trainId: rusted,
+                definitionId: '2',
+                cause: 'rust',
+                owner: { kind: 'company', companyId: 'BO' }
+            }
+        ])
+        expect(state.systems.BO.shellTrainIds[0]).toEqual([sold])
+        TransferRules1828.afterPurchase(state, {
+            id: 'offer',
+            seller: { kind: 'company', companyId: 'BO' },
+            price: 1,
+            buyerPlayerId: 'p2',
+            sellerPlayerId: 'p1',
+            buyer: { kind: 'company', companyId: 'NYC' },
+            asset: { kind: 'train', trainId: sold }
         })
-        expect(trainShells(game.hydrated, 'BO').map((shell) => shell.length)).toEqual([1, 1])
+        expect(state.systems.BO.shellTrainIds).toEqual([[], []])
+        expect(bought).not.toBe(sold)
     })
     it('funds another company’s train for an empty shell', () => {
         const { game, bought } = system(['2'])
@@ -650,6 +828,15 @@ describe('stations and names', () => {
         openAuction(game)
         expect(coalfieldsMarkers(game.hydrated)).toBe(2)
         edit(game, (state) => {
+            const piece = TileSet1828.pieces.find(({ faceDefinitionIds }) =>
+                faceDefinitionIds.includes(TunnelTileId)
+            )
+            if (!piece) throw new Error('The tile set has the tunnel’s tile')
+            state.tileInventory.placements[TunnelLocationId] = {
+                pieceId: piece.id,
+                definitionId: TunnelTileId,
+                rotation: 0
+            }
             expect(takeTunnelCoal(state, 'CPRY')).toBe('returned')
         })
         expect(coalfieldsMarkers(game.hydrated)).toBe(3)
@@ -1064,6 +1251,24 @@ describe('the Mohawk & Hudson (§13.2.2.6)', () => {
             expect(exchangeShare(game, mohawk, floating).float).toBe('next-round')
             expect(getCompany(game.state, floating).floated).toBe(true)
             expect(order(game)).not.toContain(floating)
+        })
+        it('is not held back by another player’s standing instruction', () => {
+            const { game, mohawk, floating } = round(79)
+            skipCobourg(game)
+            const owner = controllingOwner(game.state, 'CPRY')
+            if (!owner) throw new Error('A player runs the C&P')
+            game.act(
+                'SetRunInstruction',
+                {
+                    outOfTurn: true,
+                    supersedable: true,
+                    supersessionScope: 'companyId',
+                    companyId: 'CPRY',
+                    instruction: { payout: 'pay', run: { routes: [], key: 'cobourg' } }
+                },
+                owner.playerId
+            )
+            expect(exchangeShare(game, mohawk, floating).float).toBe('this-round')
         })
         it('takes half a directorship off its owner’s turn, paying one share’s par', () => {
             const { game, mohawk } = round()

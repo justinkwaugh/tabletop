@@ -1,6 +1,6 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { isFinishStockTurn } from '@tabletop/18xx'
-import { isFormSystem, isProposeMerger } from '@tabletop/1828'
+import { isFormSystem } from '@tabletop/1828'
 
 export type MergerOption = { survivorId: string; absorbedId: string }
 
@@ -27,7 +27,7 @@ export function mergerPairs(choices: readonly MergerOption[]): MergerPair[] {
 }
 
 export type FailedMerger = {
-    playerId?: string
+    playerId: string
     companyIds: readonly [string, string]
     failure: string
 }
@@ -46,9 +46,8 @@ export function failedMerger(
         if (isFormSystem(action)) {
             const outcome = action.metadata
             if (!outcome?.failure) return undefined
-            const proposal = actions.slice(0, index).findLast(isProposeMerger)
             return {
-                ...(proposal ? { playerId: proposal.playerId } : {}),
+                playerId: outcome.playerId,
                 companyIds: [outcome.survivorId, outcome.absorbedId],
                 failure: outcome.failure
             }

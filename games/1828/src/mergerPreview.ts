@@ -5,12 +5,11 @@ import {
     mergerTrading,
     pendingSetAside,
     playerShares,
-    setAsideChoices,
-    singleShareChoices,
     withDecision,
     withSetAside,
     type MergerTrading
 } from './merger.js'
+import { setAsideChoices, singleShareChoices } from './mergerOffers.js'
 import { IpoPoolId1828, MarketPoolId1828 } from './names.js'
 import type { HydratedState1828, Merger1828 } from './state.js'
 import { stockPrice } from './stockMarket.js'

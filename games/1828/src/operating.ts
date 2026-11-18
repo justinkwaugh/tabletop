@@ -31,7 +31,13 @@ import { IpoPoolId1828, MarketPoolId1828, Names1828 } from './names.js'
 import { privateIncome1828 } from './opening.js'
 import { operatingOrder1828 } from './mohawkTiming.js'
 import { requireState1828, type HydratedState1828 } from './state.js'
-import { ShellsClosedMark, nextTrainShell, trainBoughtFromMark, trainShells } from './systems.js'
+import {
+    forgetShellTrain,
+    nextTrainShell,
+    ShellsClosedMark,
+    trainBoughtFromMark,
+    trainShells
+} from './systems.js'
 import { Charters1828, ShareTrading1828, StockRules1828 } from './stock.js'
 import { EndSpaceId1828, Market1828 } from './stockMarket.js'
 import { TrainRules1828 } from './trainRules.js'
@@ -175,8 +181,10 @@ export const TransferRules1828: TransferRules = {
         if (offer.asset.kind === 'train') {
             const title = requireState1828(state)
             markTurn(title, ShellsClosedMark)
-            if (offer.seller.kind === 'company')
+            if (offer.seller.kind === 'company') {
                 markTurn(title, trainBoughtFromMark(offer.seller.companyId))
+                forgetShellTrain(title, offer.seller.companyId, offer.asset.trainId)
+            }
             return
         }
         if (offer.asset.kind !== 'private') return
