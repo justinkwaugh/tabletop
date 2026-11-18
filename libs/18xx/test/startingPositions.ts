@@ -58,45 +58,27 @@ function finishOperatingTurn<
     play.act('FinishOperatingTurn', { companyId })
 }
 
-export function startingPositionTests<
+/** Seating and setup checks, for a title with or without prepared scenarios. */
+export function seatingTests<
     Raw extends EighteenXXState,
     State extends HydratedEighteenXXState & HydratedGameState<Raw>
 >(
     definition: GameDefinition<Raw, State>,
-    scenarios: GameDefinition<Raw, State>,
     playerCounts: readonly number[],
     {
         setupConfigs = [{}],
-        finishEnding = finishOperatingTurn,
         seated = seatedAsAssigned
     }: {
         /** Configurations that change setup or the first player, each run at every count. */
         setupConfigs?: readonly Record<string, unknown>[]
-        /** Plays the prepared final turn to the game's end. */
-        finishEnding?: (play: ExamplePlay<Raw, State>) => void
         /** The ordinary setup as the assigned seating should leave it. */
         seated?: (ordinary: Omit<Raw, 'id'>, playerIds: readonly string[]) => Omit<Raw, 'id'>
     } = {}
 ) {
     const engine = new GameEngine(definition.runtime)
-    const createGame = (count: number, gameDefinition = definition, config = {}) =>
-        gameDefinition.runtime.initializer.initializeGame(
-            {
-                id: 'starting-positions',
-                typeId: gameDefinition.info.id,
-                ownerId: 'p0',
-                config,
-                players: Array.from({ length: count }, (_, index) => ({
-                    id: `p${index}`,
-                    name: `p${index}`,
-                    isHuman: true,
-                    status: PlayerStatus.Joined
-                }))
-            },
-            gameDefinition
-        )
+    const createGame = (count: number, config = {}) => newGame(definition, count, config)
     const start = (count: number, playerIds?: string[], config = {}) => {
-        const { id, ...state } = engine.startGame(createGame(count, definition, config), {
+        const { id, ...state } = engine.startGame(createGame(count, config), {
             masterSeed,
             ...(playerIds ? { startingPositions: { playerIds } } : {})
         }).initialState
@@ -152,9 +134,53 @@ export function startingPositionTests<
             )
         ).toThrow('Starting positions must assign every player exactly once')
     })
+}
+
+function newGame<
+    Raw extends EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw>
+>(definition: GameDefinition<Raw, State>, count: number, config = {}) {
+    return definition.runtime.initializer.initializeGame(
+        {
+            id: 'starting-positions',
+            typeId: definition.info.id,
+            ownerId: 'p0',
+            config,
+            players: Array.from({ length: count }, (_, index) => ({
+                id: `p${index}`,
+                name: `p${index}`,
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        definition
+    )
+}
+
+export function startingPositionTests<
+    Raw extends EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw>
+>(
+    definition: GameDefinition<Raw, State>,
+    scenarios: GameDefinition<Raw, State>,
+    playerCounts: readonly number[],
+    {
+        setupConfigs = [{}],
+        finishEnding = finishOperatingTurn,
+        seated = seatedAsAssigned
+    }: {
+        /** Configurations that change setup or the first player, each run at every count. */
+        setupConfigs?: readonly Record<string, unknown>[]
+        /** Plays the prepared final turn to the game's end. */
+        finishEnding?: (play: ExamplePlay<Raw, State>) => void
+        /** The ordinary setup as the assigned seating should leave it. */
+        seated?: (ordinary: Omit<Raw, 'id'>, playerIds: readonly string[]) => Omit<Raw, 'id'>
+    } = {}
+) {
+    seatingTests(definition, playerCounts, { setupConfigs, seated })
 
     it('rejects assigned starting positions for a prepared scenario', () => {
-        const game = createGame(3, scenarios, { examplePosition: 'trading' })
+        const game = newGame(scenarios, 3, { examplePosition: 'trading' })
         expect(() =>
             new GameEngine(scenarios.runtime).startGame(game, {
                 masterSeed,

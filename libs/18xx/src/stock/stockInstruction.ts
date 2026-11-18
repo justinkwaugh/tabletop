@@ -140,6 +140,8 @@ export type StoppedStockInstruction = StandingStockInstruction & {
 }
 
 export interface StockInstructionRules {
+    /** Whether standing instructions wait, while a title's own step holds the turn. */
+    held?(state: StockState): boolean
     securePresidency?(state: StockState, companyId: string, owner: Owner): boolean
     titleSnapshot?(state: StockState, playerId: string): StockInstructionTitleSnapshot
     positionChange?(

@@ -660,6 +660,22 @@ export function createEighteenXXRuntime<
             : machineState === 'StockRound'
               ? new ResumesInterruptedTurnHandler(handler)
               : new StockRoundInterruptionHandler(handler)
+    const observesActions = (machineState: string, handler: Handler): Handler => {
+        const observer = Object.entries(options.actionObservers ?? {}).find(
+            ([observed]) => observed === machineState
+        )?.[1]
+        if (!observer) return handler
+        return {
+            isValidAction: (action, context) => handler.isValidAction(action, context),
+            validActionsForPlayer: (playerId, context) =>
+                handler.validActionsForPlayer(playerId, context),
+            enter: (context) => handler.enter(context),
+            onAction(action, context) {
+                observer(context.gameState, action)
+                return handler.onAction(action, context)
+            }
+        }
+    }
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
         Object.entries({
             ...familyStateHandlers,
@@ -667,9 +683,12 @@ export function createEighteenXXRuntime<
             ...options.titleStateHandlers
         }).map(([machineState, handler]) => [
             machineState,
-            interrupts(
+            observesActions(
                 machineState,
-                awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
+                interrupts(
+                    machineState,
+                    awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
+                )
             )
         ])
     )

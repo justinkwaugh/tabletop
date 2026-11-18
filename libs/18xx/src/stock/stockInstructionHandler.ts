@@ -41,6 +41,7 @@ export class StockInstructionHandler<
         const state = context.gameState
         const playerId = state.turnManager.currentTurn()?.playerId
         if (!playerId || state.stockRound.completed) return undefined
+        if (this.rules.instructions?.held?.(state)) return undefined
         const anotherPlayerDecidingInThisTurn = !state.activePlayerIds.includes(playerId)
         if (anotherPlayerDecidingInThisTurn) return undefined
         const standing = standingStockInstructionFor(state, playerId)

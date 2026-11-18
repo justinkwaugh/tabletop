@@ -72,6 +72,13 @@ export interface EighteenXXTitleRules<
         >
     >
     titleStateHandlers?: Readonly<Record<string, EighteenXXStateHandler<State>>>
+    /**
+     * Called with every action processed in a machine state, whichever handler takes it, for a
+     * title that must note what happened, such as a company's first act of its turn.
+     */
+    actionObservers?: Partial<
+        Record<EighteenXXMachineState, (state: State, action: HydratedAction) => void>
+    >
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules<State>
