@@ -95,6 +95,17 @@ const Names: Readonly<Record<string, string>> = {
     Q15: 'Hong Kong'
 }
 
+/** Each foreign investor's home base (§VII). */
+export const InvestorHomes1880 = {
+    A1: RussiaLocationId,
+    A2: 'E13',
+    A3: 'H6',
+    A4: 'H14',
+    A5: 'Q15',
+    A6: 'P12',
+    A7: 'Q7'
+} as const
+
 /** Beijing's four printed cities, by the side each faces (§VIII). */
 export const BeijingCityIds = {
     [JggId]: 'city-0',
@@ -117,7 +128,13 @@ const Homes: Readonly<Record<string, string | CityReservation | readonly CityRes
     K13: NjrId,
     L10: WnrId,
     D12: QsrId,
-    N12: ScrId
+    N12: ScrId,
+    ...Object.fromEntries(
+        Object.entries(InvestorHomes1880).map(([investorId, locationId]) => [
+            locationId,
+            investorId
+        ])
+    )
 }
 
 /** Each major's home hex (§VIII). */

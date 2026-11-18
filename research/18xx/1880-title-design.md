@@ -108,6 +108,10 @@ the titles using `printedPaths` (1822, 1833 New England, 1849) those stops are j
 off-boards, so only 1880's harbours change. A harbour chosen as a route's start keeps the start
 ring, the one sign of the choice.
 
+Every investor's home is a printed reservation (`InvestorHomes1880`), so the map shows the flags
+from the start of the game. An investor left out by the random variant has none, a chosen
+investor's is used by its station, and the rest go when the last player has chosen (§VII).
+
 The phase strip shows the director's share needed to float (Float 20%/30%/40%/60%), and during
 the Communist Takeover a banner under it opens the takeover's rules (`phaseNotice`).
 
