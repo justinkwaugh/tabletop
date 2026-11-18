@@ -31,6 +31,7 @@ import type { GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
 import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
 import { InstructedRunSolver } from './instructedRunSolver.js'
+import { turnRestart, type TurnRestart } from './turnRestart.js'
 import { RunInstructionModule } from './runInstructionModule.svelte.js'
 import type { PresentedTransition, TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
@@ -1051,9 +1052,18 @@ export class EighteenXXSession<
         this.restoredSilently = transition.intent === 'silent'
         this.map.clearInspection()
     }
-    override async undoCommittedAction() {
+    override async undoCommittedAction(target?: GameAction) {
         this.stock.menu.clear()
-        await super.undoCommittedAction()
+        await super.undoCommittedAction(target)
+    }
+    readonly turnRestart: TurnRestart | undefined = $derived.by(() =>
+        this.undoableAction && !this.isViewingHistory
+            ? turnRestart(this.undoableActions({ stopAtReveal: false }), this.undoableAction)
+            : undefined
+    )
+    async restartTurn() {
+        if (!this.turnRestart) return
+        await this.undoCommittedAction(this.turnRestart.target)
     }
     private registerLocalSelections() {
         const { localSelections } = this

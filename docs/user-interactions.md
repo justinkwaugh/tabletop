@@ -15,7 +15,7 @@ Committed actions are not local staged selections and must stay in game action h
 
 ## Undo
 
-A Game UI offers exactly one reversal control: the `Undo` button at the right end of the turn header (see [game UI layout](game-ui-layout.md)). It is contextual:
+A Game UI's reversal controls sit at the right end of the turn header (see [game UI layout](game-ui-layout.md)): the `Undo` button, and in titles that offer it, [`Restart turn`](#restart-turn) beside it. Undo is contextual:
 
 1. When a manual staged selection exists, Undo pops the highest manual stage and every stage after it. No game action is undone.
 2. Otherwise Undo undoes the Undo Candidate (`undoableAction`) through `GameSession.undoCommittedAction()`.
@@ -24,7 +24,7 @@ Auto selections never absorb a press: when only auto selections remain, Undo goe
 
 A press records at most one Action. A UI never submits a chain of Actions for one choice: a step that follows from the player's choice with nothing left to decide is a System Action the game logic takes in that Action's cascade, so one Undo reverses the whole choice.
 
-Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through this one control, so no panel renders a `Back` or step-cancel button of its own. A toggle is a selection, not a reversal control: choosing a selected piece or target again may deselect it.
+Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through Undo, so no panel renders a `Back` or step-cancel button of its own. A toggle is a selection, not a reversal control: choosing a selected piece or target again may deselect it.
 
 A free-form draft is the exception to one step per press: a decision the player shapes by trying things, such as drawing train routes, is a single manual stage that each press replaces, so one Undo drops the whole draft rather than replaying every adjustment. Its panel may offer a reset to the suggested starting point, such as Auto returning to the best run found, which drops the stage the same way; it chooses where to start, not which step to cancel.
 
@@ -46,6 +46,14 @@ constructor(options: SessionOptions) {
 `undo()` pops the first registered selection that has a manual stage, and only when none has does it call `undoCommittedAction()` to undo the Undo Candidate. Selections are tried in the order they were registered; register one with `'first'` to put it ahead of the rest. Popping a selection is local, so it does not wait for a pending submission or animation; only History View blocks it. A title with work to do before an action is undone, such as closing a menu, overrides `undoCommittedAction()`.
 
 Show the button whenever a press would do something: `hasLocalSelection` (a registered selection has a manual stage) or `undoableAction` is set.
+
+### Restart turn
+
+A title whose turns span several Actions may offer `Restart turn` beside Undo, which undoes the player's whole turn at once. It is still one press, one request: `undoCommittedAction(target)` undoes the turn's first User Action and everything after it, under the same rules as Undo.
+
+Show it only when it would undo more than Undo does, and hide it when the turn's start is past what the player may undo or another player acted during the turn; it never restarts part of a turn. A press always opens a confirmation naming the turn and how many actions it undoes, since nothing redoes them. A pending staged selection is dropped with the turn.
+
+The 18xx family offers it in the shared turn header for operating and stock turns. `libs/18xx-ui/src/lib/session/turnRestart.ts` reads the turn from Action history, walking back from the Undo Candidate to the Action that opened it. An operating turn resumed after an interrupting stock round is not restarted, since other players may have acted inside it. A finished turn can still be restarted while Undo reaches its last action, before the next player acts.
 
 ### Lifetime
 

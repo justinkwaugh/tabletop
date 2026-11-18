@@ -30,3 +30,16 @@ export function popoverBeside(
               : clamp(anchor.x + (anchor.width - popover.width) / 2, popover.width, viewport.width)
     return { x, y: clamp(pointerY - popover.height / 2, popover.height, viewport.height) }
 }
+
+export type PopoverBelowEnd = { right: number; top: number }
+
+export function popoverBelowEnd(anchor: HTMLElement, width = 0, margin = 8): PopoverBelowEnd {
+    const bounds = anchor.getBoundingClientRect()
+    return {
+        right: Math.max(
+            margin,
+            Math.min(window.innerWidth - bounds.right, window.innerWidth - width - margin)
+        ),
+        top: bounds.bottom + 6
+    }
+}
