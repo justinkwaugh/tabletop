@@ -59,7 +59,8 @@ import {
     goodsOffTheBoard,
     guildPoint,
     keyOfRef,
-    placedPieces
+    placedPieces,
+    type GuildsApart
 } from './boardPlan.js'
 
 /** Contract, Animation plan: what a moving copy is, one row for each. */
@@ -160,6 +161,8 @@ export interface FlightChange {
     readonly viewerId?: string
     /** Contract, Animation plan: the board draws no score ring (a desk), so each score flies to its seat. */
     readonly scoreFlights?: boolean
+    /** Contract, Desk layout: the guild areas an open side shows; a good to or from one flies here. */
+    readonly apart?: GuildsApart
 }
 
 const CopySeconds = 0.45
@@ -458,8 +461,8 @@ function pilferedGood({
  * draft is the session's, and never reaches a plan.
  */
 function flyGoods(plan: FlightBuilder, change: FlightChange, at: number): number {
-    const { from, to, action } = change
-    const board = goodsOffTheBoard({ from, to }, action)
+    const { from, to, action, apart } = change
+    const board = goodsOffTheBoard({ from, to }, action, apart)
     const pilfered = pilferedGood(change)
     let launch = at
     let ends = at
@@ -1127,7 +1130,8 @@ export function planDirectFlights(change: Omit<FlightChange, 'action'>): FlightP
     const { flights } = planFlights({
         from: change.from,
         to: change.to,
-        ...(change.scoreFlights ? { scoreFlights: true } : {})
+        ...(change.scoreFlights ? { scoreFlights: true } : {}),
+        ...(change.apart ? { apart: change.apart } : {})
     })
     const direct = flights.map((flight): Flight => {
         const last = flight.legs[flight.legs.length - 1]

@@ -710,7 +710,15 @@ function barnGoodPlace(state: HydratedFeudumGameState, good: Good): GoodPlace {
 interface GoodHolder {
     readonly count: (state: HydratedFeudumGameState, good: Good) => number
     readonly place: (state: HydratedFeudumGameState, good: Good) => GoodPlace | undefined
+    /** The guild area it lies in. */
+    readonly guild?: GuildId
 }
+
+/**
+ * Contract, Desk layout: the guild areas a desk's open side shows, stood upright over the map. The
+ * board's own motion stays out of them: a good to or from one is the flight layer's.
+ */
+export type GuildsApart = readonly GuildId[]
 
 const GoodHolders: readonly GoodHolder[] = [
     ...Spaces.map(({ id }): GoodHolder => ({
@@ -722,7 +730,8 @@ const GoodHolders: readonly GoodHolder[] = [
     })),
     {
         count: (state, good) => state.guilds.farmer.barn[good],
-        place: barnGoodPlace
+        place: barnGoodPlace,
+        guild: 'farmer'
     },
     ...MarketSpaces.map((space): GoodHolder => ({
         count: (state, good) =>
@@ -730,7 +739,8 @@ const GoodHolders: readonly GoodHolder[] = [
         place: () => ({
             point: guildPoint('merchant', guildSlot(space.id)),
             key: `good:${space.id}`
-        })
+        }),
+        guild: 'merchant'
     })),
     ...AlchemistCartSpaces.map((space): GoodHolder => ({
         count: (state, good) =>
@@ -738,7 +748,8 @@ const GoodHolders: readonly GoodHolder[] = [
         place: () => ({
             point: guildPoint('alchemist', guildSlot(space.id)),
             key: `good:${space.id}`
-        })
+        }),
+        guild: 'alchemist'
     })),
     {
         count: (state, good) => state.supply.haversack[good],
@@ -760,14 +771,18 @@ interface GoodCrossings {
         readonly from: GoodPlace
         readonly to: GoodPlace
     }[]
-    /** What has no such pair: it crossed to or from a seat, so it is the flight layer's. */
+    /**
+     * What has no such pair: it crossed to or from a seat, or to or from a guild area apart from the
+     * board, so it is the flight layer's.
+     */
     readonly leaving: readonly GoodCrossing[]
     readonly arriving: readonly GoodCrossing[]
 }
 
 function goodCrossings(
     { from, to }: BoardChange,
-    pilfered?: { readonly good: Good; readonly holder: GoodHolder }
+    pilfered?: { readonly good: Good; readonly holder: GoodHolder },
+    apart: GuildsApart = []
 ): GoodCrossings {
     const pairs: { good: Good; from: GoodPlace; to: GoodPlace }[] = []
     const left: GoodCrossing[] = []
@@ -787,21 +802,29 @@ function goodCrossings(
                 arriving.push(holder)
             }
         }
-        const paired = Math.min(leaving.length, arriving.length)
+        // A holder apart from the board pairs with nothing on it: the flight layer carries its goods.
+        const onBoard = (holder: GoodHolder) => !holder.guild || !apart.includes(holder.guild)
+        const leavingOn = leaving.filter(onBoard)
+        const arrivingOn = arriving.filter(onBoard)
+        const paired = Math.min(leavingOn.length, arrivingOn.length)
         for (let pair = 0; pair < paired; pair += 1) {
-            const source = leaving[pair].place(from, good)
-            const landing = arriving[pair].place(to, good)
+            const source = leavingOn[pair].place(from, good)
+            const landing = arrivingOn[pair].place(to, good)
             if (source && landing) {
                 pairs.push({ good, from: source, to: landing })
             }
         }
-        for (const holder of leaving.slice(paired)) {
+        const unpaired = (holders: readonly GoodHolder[], on: readonly GoodHolder[]) => [
+            ...on.slice(paired),
+            ...holders.filter((holder) => !onBoard(holder))
+        ]
+        for (const holder of unpaired(leaving, leavingOn)) {
             const place = holder.place(from, good)
             if (place) {
                 left.push({ good, place })
             }
         }
-        for (const holder of arriving.slice(paired)) {
+        for (const holder of unpaired(arriving, arrivingOn)) {
             const place = holder.place(to, good)
             if (place) {
                 reached.push({ good, place })
@@ -814,26 +837,30 @@ function goodCrossings(
 /** R-3.7.4 What the board leaves to the flight layer: the goods with no partner on the board. */
 export function goodsOffTheBoard(
     change: BoardChange,
-    action?: GameAction
+    action?: GameAction,
+    apart: GuildsApart = []
 ): Pick<GoodCrossings, 'leaving' | 'arriving'> {
     const pilfered = action && isMove(action) ? pilferedHolder(action) : undefined
-    const { leaving, arriving } = goodCrossings(change, pilfered)
+    const { leaving, arriving } = goodCrossings(change, pilfered, apart)
     return { leaving, arriving }
 }
 
 /**
  * R-1.1 Goods that left one place on the board and reached another fly a short arc, one after another a
- * few frames apart. A good with no such pair crossed to or from a seat, which is the flight layer's.
+ * few frames apart. A good with no such pair crossed to or from a seat, or a guild area apart from the
+ * board, which is the flight layer's.
  */
 function flyGoods(
     plan: PlanBuilder,
     change: BoardChange,
     at: number,
-    pilfered?: { readonly good: Good; readonly holder: GoodHolder }
+    pilfered: { readonly good: Good; readonly holder: GoodHolder } | undefined,
+    apart: GuildsApart
 ): number {
     let launch = at
     let ends = at
-    for (const { good, from: source, to: landing } of goodCrossings(change, pilfered).pairs) {
+    for (const { good, from: source, to: landing } of goodCrossings(change, pilfered, apart)
+        .pairs) {
         if (source.key) {
             plan.move('goods', { piece: source.key }, launch, 0, { opacity: 0 })
         }
@@ -1105,6 +1132,7 @@ function playStateRows(
     plan: PlanBuilder,
     change: BoardChange,
     at: number,
+    apart: GuildsApart,
     pilfered?: { readonly good: Good; readonly holder: GoodHolder }
 ): number {
     const primary = Math.max(
@@ -1116,7 +1144,7 @@ function playStateRows(
         fillKnightRows(plan, change, at),
         markMonsterIcons(plan, change, at)
     )
-    return flyGoods(plan, change, primary, pilfered)
+    return flyGoods(plan, change, primary, pilfered, apart)
 }
 
 function pilferedHolder(action: Move): { good: Good; holder: GoodHolder } | undefined {
@@ -1132,17 +1160,20 @@ function pilferedHolder(action: Move): { good: Good; holder: GoodHolder } | unde
 /**
  * The cinematic: what an Action shows, each row in turn at an explicit time. Where the board draws no
  * score ring (`scoreRing` off, a desk), no disc slides: the flight layer carries each score to its seat.
+ * A good to or from a guild area `apart` from the board (a desk's open side) is the flight layer's.
  */
 export function planBoardMotion({
     from,
     to,
     action,
     flightRoom = 0,
-    scoreRing = true
+    scoreRing = true,
+    apart = []
 }: BoardChange & {
     readonly action: GameAction
     readonly flightRoom?: number
     readonly scoreRing?: boolean
+    readonly apart?: GuildsApart
 }): BoardPlan {
     const plan = new PlanBuilder()
     const change = { from, to }
@@ -1160,7 +1191,7 @@ export function planBoardMotion({
         cursor = playDie(plan, action.metadata.faces, action.metadata.removed, cursor)
     }
     cursor = playCombatOf(plan, action, from, cursor)
-    cursor = playStateRows(plan, change, cursor, pilfered)
+    cursor = playStateRows(plan, change, cursor, apart, pilfered)
     if (flightRoom > 0 && plan.pilferToken) {
         // R-3.7.4 The good's last leg, from the piece to the seat, is the flight layer's from here.
         plan.move('goods', plan.pilferToken, cursor, 0, { opacity: 0 })
@@ -1180,10 +1211,14 @@ export function planBoardMotion({
 }
 
 /** Fast fallback: every piece straight to its new place at once, flips and fades cut to the bound. */
-export function planDirect(change: BoardChange, scoreRing = true): BoardPlan {
+export function planDirect(
+    change: BoardChange,
+    scoreRing = true,
+    apart: GuildsApart = []
+): BoardPlan {
     const plan = new PlanBuilder()
     slidePieces(plan, change, 0)
-    playStateRows(plan, change, 0)
+    playStateRows(plan, change, 0, apart)
     slideEpoch(plan, change, 0)
     if (scoreRing) {
         slideScores(plan, change, 0)

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { ActionType } from '@tabletop/feudum'
 import { settled } from './helpers.js'
 import { StarPath } from '../src/lib/utils/pieceShapes.js'
 import { openFixture } from './scenarioTable.js'
@@ -92,6 +93,89 @@ async function rect(target: Locator) {
         throw new Error('not on the page')
     }
     return box
+}
+
+type Point = { x: number; y: number }
+
+function holds(box: { x: number; y: number; width: number; height: number }, { x, y }: Point) {
+    return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height
+}
+
+/** The table's first seat, whose turn it is, sends a function of its Guild card. */
+async function sentByTrader(page: Page, guildId: string, params: Record<string, unknown>) {
+    await page.evaluate(
+        ([type, guild, sent]) => {
+            const { host } = window.feudumFixture
+            const [trader] = host.order
+            return host.send(trader, { type, guildId: guild, fn: 'trade', params: sent })
+        },
+        [ActionType.GuildAction, guildId, params] as const
+    )
+    await settled(page)
+}
+
+/**
+ * What moved while `act` ran, frame by frame: each flying copy's row and where it stood first and
+ * last; where each token or piece stood while it moved inside an open guild side; and how many
+ * pieces in that side were hidden at once while their copies flew.
+ */
+async function motionWhile(page: Page, act: () => Promise<void>) {
+    await page.evaluate(() => {
+        const seen = {
+            flights: new Map<string, { row: string; first: Point; last: Point }>(),
+            movingInView: [] as Point[],
+            hiddenInView: 0
+        }
+        Object.assign(window, { feudumMotionSeen: seen })
+        const centre = (element: Element) => {
+            const box = element.getBoundingClientRect()
+            return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+        }
+        const sample = () => {
+            for (const copy of document.querySelectorAll('[data-flight]')) {
+                if (getComputedStyle(copy).visibility !== 'visible') {
+                    continue
+                }
+                const id = copy.getAttribute('data-flight') ?? ''
+                const at = centre(copy)
+                const known = seen.flights.get(id)
+                if (known) {
+                    known.last = at
+                } else {
+                    seen.flights.set(id, {
+                        row: copy.getAttribute('data-flight-row') ?? '',
+                        first: at,
+                        last: at
+                    })
+                }
+            }
+            const view = document.querySelector('[data-guild-view]')
+            for (const moving of view?.querySelectorAll('[data-transient], [data-motion]') ?? []) {
+                const shown = Number(moving.getAttribute('opacity') ?? '1') > 0
+                if (moving.getAttribute('transform') && shown) {
+                    seen.movingInView.push(centre(moving))
+                }
+            }
+            const hidden = [...(view?.querySelectorAll('[data-motion]') ?? [])].filter(
+                (piece) => piece instanceof SVGElement && piece.style.visibility === 'hidden'
+            ).length
+            seen.hiddenInView = Math.max(seen.hiddenInView, hidden)
+            if (Reflect.get(window, 'feudumMotionSeen') === seen) {
+                requestAnimationFrame(sample)
+            }
+        }
+        requestAnimationFrame(sample)
+    })
+    await act()
+    return page.evaluate(() => {
+        const seen = Reflect.get(window, 'feudumMotionSeen') as {
+            flights: Map<string, { row: string; first: Point; last: Point }>
+            movingInView: Point[]
+            hiddenInView: number
+        }
+        Object.assign(window, { feudumMotionSeen: undefined })
+        return { ...seen, flights: [...seen.flights.values()] }
+    })
 }
 
 /** A desk's guild button: "West guilds" or "East guilds". */
@@ -521,6 +605,75 @@ test.describe('a 1440 px desk', () => {
         await expect(popup).toBeVisible()
         const merchant = await rect(westView.locator('[data-open-guild="merchant"]'))
         expect((await rect(popup)).x).toBeGreaterThanOrEqual(merchant.x + merchant.width - 2)
+    })
+
+    test('Contract, Desk layout: a good leaving an open side flies from its place in the upright area', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-merchant-trade-watched')
+        await settled(page)
+        await sideButton(page, 'West').click()
+        await settled(page)
+        const area = await rect(page.locator('[data-open-guild="merchant"]'))
+        const seen = await motionWhile(page, () =>
+            sentByTrader(page, 'merchant', { goods: ['iron', 'iron'] })
+        )
+        const goods = seen.flights.filter(({ row }) => row === 'goods')
+        expect(goods).toHaveLength(2)
+        for (const { first } of goods) {
+            expect(holds(area, first), JSON.stringify({ area, first })).toBe(true)
+        }
+        // Each leaves from its own good, which hides while it flies.
+        expect(seen.hiddenInView).toBeGreaterThanOrEqual(2)
+    })
+
+    test('Contract, Desk layout: with the side closed, a good leaving it flies from its button', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-merchant-trade-watched')
+        await settled(page)
+        const button = await rect(sideButton(page, 'West'))
+        const seen = await motionWhile(page, () =>
+            sentByTrader(page, 'merchant', { goods: ['iron', 'iron'] })
+        )
+        const goods = seen.flights.filter(({ row }) => row === 'goods')
+        expect(goods).toHaveLength(2)
+        for (const { first } of goods) {
+            // At the button's outer edge, where the board view ends.
+            expect(Math.abs(first.x - button.x), JSON.stringify({ button, first })).toBeLessThan(6)
+        }
+    })
+
+    test('Contract, Desk layout: in an open East side a tame moves the row’s marker onto its icon there, and the others fly home from their places', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-knight-trade-watched')
+        await settled(page)
+        await sideButton(page, 'East').click()
+        await settled(page)
+        const area = await rect(page.locator('[data-open-guild="knight"]'))
+        const deploy = await page.evaluate(() => {
+            const { host } = window.feudumFixture
+            const [trader] = host.order
+            return host.state.players
+                .find(({ playerId }) => playerId === trader)
+                ?.pawns.find(({ spaceId }) => spaceId)?.spaceId
+        })
+        const seen = await motionWhile(page, () =>
+            sentByTrader(page, 'knight', { monster: 'behemoth', deploySpaceId: deploy })
+        )
+        // The board's own motion: the top marker onto the behemoth's icon, inside the open area.
+        expect(seen.movingInView.length).toBeGreaterThan(0)
+        for (const at of seen.movingInView) {
+            expect(holds(area, at), JSON.stringify({ area, at })).toBe(true)
+        }
+        // The flight layer's: the rest leave from their places in the upright area, hidden as they go.
+        const markers = seen.flights.filter(({ row }) => row === 'markers')
+        expect(markers.length).toBeGreaterThan(0)
+        for (const { first } of markers) {
+            expect(holds(area, first), JSON.stringify({ area, first })).toBe(true)
+        }
+        expect(seen.hiddenInView).toBeGreaterThan(0)
     })
 
     test('Contract, Pick framing: a pick in both sides opens nothing and dots each side', async ({

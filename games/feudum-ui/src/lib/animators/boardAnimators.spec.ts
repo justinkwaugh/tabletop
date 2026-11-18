@@ -34,6 +34,7 @@ import {
     GuildAreaWidth,
     GuildAreas,
     GuildBox,
+    guildAreaAt,
     RoutePaths,
     knightCell,
     monsterIconMarker,
@@ -43,6 +44,7 @@ import {
     type Point
 } from '$lib/utils/boardGeometry.js'
 import { BoardAnimator, type MotionElement, type MotionSurface } from './boardAnimator.svelte.js'
+import { planFlights } from './flightPlan.js'
 import {
     planBoardMotion,
     planDirect,
@@ -134,6 +136,17 @@ class FakeSurface implements MotionSurface {
 
     piece(key: string): FakeElement {
         return this.querySelector(`[data-motion="${key}"]`)
+    }
+}
+
+/** An open side's upright area: it holds only what it draws, and finds nothing else. */
+class KnownSurface implements MotionSurface {
+    readonly inner = new FakeSurface()
+
+    constructor(private readonly known: readonly string[]) {}
+
+    querySelector(selector: string): FakeElement | null {
+        return this.known.includes(selector) ? this.inner.querySelector(selector) : null
     }
 }
 
@@ -836,6 +849,46 @@ describe('R-4.1.2 markers inside the board', () => {
         ])
     })
 
+    it('Contract, Desk layout: in an open side the marker moves on the upright area’s own svg', async () => {
+        const table = await emptyTable()
+        const [icon] = KnightMonsterIcons
+        table.host.edit((state) => {
+            const row = state.guilds.knight.rows.find(({ playerId }) => playerId === table.seat)
+            if (row) {
+                row.markers = 3
+            }
+        })
+        const colour = hydrated(table.host.state).guilds.knight.rows.find(
+            ({ playerId }) => playerId === table.seat
+        )?.colour
+        const scene = {
+            ...changeFrom(table, (to) => {
+                to.guilds.knight.monsterIcons[icon.monster] = table.seat
+                const own = to.guilds.knight.rows.find(({ playerId }) => playerId === table.seat)
+                if (own) {
+                    own.markers -= 1
+                }
+            }),
+            action: anAction(table.seat)
+        }
+        const marker = `[data-motion="knight:${colour}:3"]`
+        const board = new FakeSurface()
+        const area = new KnownSurface([marker])
+        const animator = new BoardAnimator(() => false)
+        animator.attach(board)
+        const open = animator.attachArea(area, 'knight')
+        const { context } = await animate(scene, { animator, surface: board })
+        play(context)
+        expect(area.inner.elements.get(marker)?.writes.length).toBeGreaterThan(0)
+        expect(board.elements.get(marker)).toBeUndefined()
+        // Closed again, the motion is the board's, as on a phone's board.
+        open.destroy()
+        animator.settle()
+        const again = await animate(scene, { animator, surface: board })
+        play(again.context)
+        expect(board.elements.get(marker)?.writes.length).toBeGreaterThan(0)
+    })
+
     it('S38 R-3.14.2 a crowned seal slides in under the serf', async () => {
         const table = await emptyTable()
         const { id } = Spaces[0]
@@ -874,6 +927,32 @@ describe('R-1.1 goods between spaces and guild areas', () => {
                 opacity: 0
             })
         )
+    })
+
+    it('Contract, Desk layout: with the West side open, the barn-to-market good is the flight layer’s, from one upright area to the other', async () => {
+        const scene = await Scenes.goods()
+        const west = ['alchemist', 'merchant', 'farmer'] as const
+        const east = ['knight', 'noble', 'monk'] as const
+        const { tokens, motions } = planBoardMotion({ ...scene, apart: west })
+        expect(tokens).toEqual([])
+        expect(motions.filter(({ row }) => row === 'goods')).toEqual([])
+        const [market] = MarketSpaces
+        const goods = planFlights({ ...scene, apart: west }).flights.filter(
+            ({ row }) => row === 'goods'
+        )
+        expect(goods).toHaveLength(1)
+        const [good] = goods
+        expect(good.from).toMatchObject({
+            kind: 'board',
+            piece: `good:${FarmerBarn.id}:${market.good}:1`,
+            hide: true
+        })
+        const landing = good.legs.at(-1)?.to
+        expect(landing?.kind === 'board' ? guildAreaAt(landing.point) : undefined).toBe('merchant')
+        // With the East open instead, the West's pair stays the board's.
+        expect(planBoardMotion({ ...scene, apart: east }).tokens).toHaveLength(1)
+        const eastGoods = planFlights({ ...scene, apart: east }).flights
+        expect(eastGoods.filter(({ row }) => row === 'goods')).toEqual([])
     })
 
     it('R-1.1 go one after another, a few frames apart', async () => {

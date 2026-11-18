@@ -656,6 +656,40 @@ export function uprightTransform(guild: GuildId): string {
     return `translate(-50%, -50%) rotate(${uprightTurn(guild)}deg)`
 }
 
+/** R-1.2.3 The guild area a point on the board lies in, if any. */
+export function guildAreaAt({ x, y }: Point): GuildId | undefined {
+    return GuildIds.find((guild) => {
+        const area = GuildAreas[guild]
+        return (
+            x >= area.x &&
+            x <= area.x + GuildAreaWidth &&
+            y >= area.y &&
+            y <= area.y + GuildAreaHeight
+        )
+    })
+}
+
+/**
+ * R-1.2.3 Where a point of a guild area stands once the area is stood upright in `box` (its upright
+ * box on the page, short side across): turned about the area's centre as the area is, and scaled to
+ * the box.
+ */
+export function uprightPoint(
+    guild: GuildId,
+    point: Point,
+    box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+): Point {
+    const area = GuildAreas[guild]
+    const scale = box.height / GuildAreaWidth
+    const across = (point.x - area.x - GuildAreaWidth / 2) * scale
+    const down = (point.y - area.y - GuildAreaHeight / 2) * scale
+    const turn = (uprightTurn(guild) * Math.PI) / 180
+    return {
+        x: box.x + box.width / 2 + across * Math.cos(turn) - down * Math.sin(turn),
+        y: box.y + box.height / 2 + across * Math.sin(turn) + down * Math.cos(turn)
+    }
+}
+
 /**
  * Contract, Guild standings: on a desk the six rails stand in one strip under the map, the West
  * guilds' then the East's, each in its area's order. In board units: `gap` above the strip and
