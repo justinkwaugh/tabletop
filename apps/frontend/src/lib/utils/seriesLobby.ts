@@ -32,7 +32,7 @@ export type SeriesFilter = {
 
 export const PACE_FILTERS: readonly { pace: GamePace; label: string }[] = [
     { pace: GamePace.Daily, label: 'Daily or faster' },
-    { pace: GamePace.SameDay, label: 'Same day or faster' },
+    { pace: GamePace.Brisk, label: 'Brisk or faster' },
     { pace: GamePace.Fast, label: 'Fast or faster' },
     { pace: GamePace.Live, label: 'Live' }
 ]

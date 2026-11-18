@@ -25,8 +25,25 @@ describe('game pace', () => {
         expect(snapPaceMinutes(3 * 24 * 60)).toBe(3 * 24 * 60)
     })
 
-    it('refuses to read a stored pace that is not a preset', () => {
-        expect(() => gamePaceOf({ paceMinutes: 90 })).toThrow('not a preset')
+    it('treats a game stored at the former 8 hour Same day pace as Brisk', () => {
+        const formerSameDay = { paceMinutes: 8 * 60 }
+
+        expect(gamePaceOf(formerSameDay)).toEqual({ pace: GamePace.Brisk, minutes: 4 * 60 })
+        expect(waitExceedsPace(formerSameDay, 4 * 60 * 60_000 + 1)).toBe(true)
+        expect(snapPaceMinutes(8 * 60)).toBe(4 * 60)
+    })
+
+    it('reads a stored pace between presets as the next slower preset', () => {
+        const between = { paceMinutes: 90 }
+
+        expect(gamePaceOf(between)).toEqual({ pace: GamePace.Brisk, minutes: 4 * 60 })
+        expect(waitExceedsPace(between, 2 * 60 * 60_000)).toBe(false)
+        expect(waitExceedsPace(between, 4 * 60 * 60_000 + 1)).toBe(true)
+    })
+
+    it('reads a pace slower than every preset as the slowest preset', () => {
+        expect(gamePaceOf({ paceMinutes: 10_000 }).pace).toBe(GamePace.Relaxed)
+        expect(snapPaceMinutes(10_000)).toBe(3 * 24 * 60)
     })
 })
 

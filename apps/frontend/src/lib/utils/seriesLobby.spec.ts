@@ -91,8 +91,8 @@ describe('series filter in the address', () => {
         expect(seriesFilterSearch({ view: 'finished', titleIds: ['1830', '1889'], seats: 3 })).toBe(
             '?view=finished&titles=1830%2C1889&players=3'
         )
-        expect(seriesFilterSearch({ view: 'lobby', titleIds: [], pace: GamePace.SameDay })).toBe(
-            '?view=lobby&pace=sameDay'
+        expect(seriesFilterSearch({ view: 'lobby', titleIds: [], pace: GamePace.Brisk })).toBe(
+            '?view=lobby&pace=brisk'
         )
     })
 })
