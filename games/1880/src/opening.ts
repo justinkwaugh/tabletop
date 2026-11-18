@@ -176,7 +176,9 @@ export function createOpening1880({
             ),
             ...ForeignInvestors1880.flatMap((investor) => createCompanyStations(investor.id, 1))
         ],
-        stationReservations: Map1880.stationReservations(),
+        stationReservations: Map1880.stationReservations().filter(
+            (reservation) => !removedInvestorIds.includes(reservation.companyId)
+        ),
         tileInventory: TileSet1880.createInventory(),
         trainInventory: TrainDepot1880.createInventory(),
         phaseId: 'A1'

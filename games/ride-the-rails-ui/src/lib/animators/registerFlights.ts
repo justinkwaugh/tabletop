@@ -1,5 +1,6 @@
 import { untrack } from 'svelte'
 import type { RideTheRailsGameSession } from '$lib/model/session.svelte.js'
+import { connectionAnimator } from './connectionAnimator.js'
 import { endOfRoundAnimator } from './endOfRoundAnimator.js'
 import { journeyAnimator } from './journeyAnimator.js'
 import { placementAnimator } from './placementAnimator.js'
@@ -12,6 +13,7 @@ export function registerFlightAnimators(session: RideTheRailsGameSession): () =>
         shareAnimator(session.flights),
         placementAnimator(session.flights),
         transcontinentalAnimator(session.flights, () => session.wantsTranscontinentalLine),
+        connectionAnimator(session.flights),
         journeyAnimator(
             session.flights,
             (playerId) => playerId === session.myPlayerId && !session.isViewingHistory

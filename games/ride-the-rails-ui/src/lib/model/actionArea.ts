@@ -1,5 +1,6 @@
 import type { GameAction } from '@tabletop/common'
 import {
+    PLACEMENT_LIMITS,
     PhaseName,
     RAILROAD_IDS,
     isPassJourney,
@@ -35,6 +36,8 @@ export type BuildProgress = {
     placed: number
     limit: number
     usedMountain: boolean
+    /** R-3.2.4, R-8: how far the map's mountain lowers the limit. */
+    mountainReduction: number
 }
 
 // R-3.2.3, R-3.2.4: placements so far against the limit, which a mountain lowers.
@@ -46,7 +49,8 @@ export function buildProgress(state: HydratedRideTheRailsGameState): BuildProgre
     return {
         placed: building.placed,
         limit: placementLimit(state.mapId, state.players.length, building.usedMountain),
-        usedMountain: building.usedMountain
+        usedMountain: building.usedMountain,
+        mountainReduction: PLACEMENT_LIMITS[state.mapId].mountainReduction
     }
 }
 
@@ -59,9 +63,16 @@ export function placedCount(progress: BuildProgress): string {
     return `${progress.placed}/${progress.limit}`
 }
 
-// R-3.2.4
+// R-3.2.4: once a mountain has lowered the limit.
 export function mountainNote(progress: BuildProgress): string | undefined {
-    return progress.usedMountain ? `Mountain used: limit ${progress.limit}` : undefined
+    return progress.usedMountain && progress.mountainReduction > 0
+        ? `Mountain used: limit ${progress.limit}`
+        : undefined
+}
+
+// R-3.2.4, R-8: the mountain's cost as the panel marks it, "−1" on the USA.
+export function mountainCost(progress: BuildProgress): string {
+    return `−${progress.mountainReduction}`
 }
 
 // R-3.2.1: the turn may end before its first placement.

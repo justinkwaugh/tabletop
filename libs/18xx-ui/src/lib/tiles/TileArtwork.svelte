@@ -53,24 +53,6 @@
         overlays?: Snippet<[TileDrawing]>
     } = $props()
     const crossingClipId = $props.id()
-    // A junction whose every track prints as a spike or pier has no track to join.
-    const printedOnlyJunctionIds = $derived(
-        face.nodes
-            .filter((node) => node.kind === 'junction')
-            .map((node) => node.id)
-            .filter((nodeId) =>
-                face.paths
-                    .filter((path) =>
-                        path.endpoints.some(
-                            (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === nodeId
-                        )
-                    )
-                    .every((path) => {
-                        const drawn = drawing.paths.find((entry) => entry.id === path.id)
-                        return !!(drawn?.spike || drawn?.pier)
-                    })
-            )
-    )
     // A port connection prints as two dashes across it from the edge, then the anchor.
     const PierDashes = [0.12, 0.38]
     const PierDashLength = 11
@@ -325,7 +307,7 @@
         ></path>
     {/each}
     {@render trackOverlay?.(drawing)}
-    {#each drawing.nodes as { node, center, slots, openBand, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
+    {#each drawing.nodes.filter((drawn) => !drawn.unmarked) as { node, center, slots, openBand, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
         <g data-node-id={node.id} filter={nodeInkFilter}>
             {#if node.kind === 'city'}
                 {#if slots.length > 1}
@@ -395,7 +377,7 @@
                         fill={appearance.ink}
                     ></circle>
                 {/if}
-            {:else if node.kind === 'offboard' || printedOnlyJunctionIds.includes(node.id)}{:else}
+            {:else if node.kind !== 'offboard'}
                 <circle cx={center.x} cy={center.y} r="3" fill={appearance.ink}></circle>
             {/if}
         </g>

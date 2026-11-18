@@ -98,8 +98,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             activatedStation: station
         }
 
-        const duplicate = state.activeEffect === EffectType.Duplicate
-        const awardMetadata = HydratedActivate.applyActivationAward(playerState, station, duplicate)
+        const awardMetadata = HydratedActivate.applyActivationAward(
+            playerState,
+            station,
+            state.sundiverBuildMultiplier(this.playerId)
+        )
         Object.assign(this.metadata, awardMetadata)
 
         if (state.machineState !== MachineState.SolarFlares) {
@@ -132,7 +135,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
     static applyActivationAward(
         playerState: HydratedSolPlayerState,
         station: Station,
-        duplicate: boolean = false
+        sundiverBuildMultiplier: number = 1
     ): { energyAdded: number; createdSundiverIds: string[]; momentumAdded: number } {
         const award = BASE_AWARD_PER_RING[station.coords!.row]
         const metadata: {
@@ -148,7 +151,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             case StationType.SundiverFoundry: {
                 playerState.energyCubes -= award
 
-                const buildAmount = duplicate ? 2 * award : award
+                const buildAmount = award * sundiverBuildMultiplier
                 const awardedSundivers = playerState.reserveSundivers.splice(
                     -buildAmount,
                     buildAmount
@@ -192,7 +195,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
         const awardCost = BASE_AWARD_PER_RING[coords.row]
-        const numToBuild = state.activeEffect === EffectType.Duplicate ? 2 * awardCost : awardCost
+        const numToBuild = awardCost * state.sundiverBuildMultiplier(playerId)
         const playerState = state.getPlayerState(playerId)
 
         return (
@@ -258,7 +261,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             (hasMotivateCard && state.getEffectTracking().convertedStation) ||
             state.activeEffect === EffectType.Motivate
 
-        if (pulse || state.activeEffect === EffectType.Pulse) {
+        if (state.machineState === MachineState.SolarFlares) {
+            if (station.playerId !== playerId || coords.row !== Ring.Outer) {
+                return false
+            }
+        } else if (pulse || state.activeEffect === EffectType.Pulse) {
             if (coords.row !== Ring.Outer && coords.row !== Ring.Inner) {
                 return false
             }
@@ -280,10 +287,6 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                     assetsAfterActivation
                 )
             ) {
-                return false
-            }
-        } else if (state.machineState === MachineState.SolarFlares) {
-            if (station.playerId !== playerId || coords.row !== Ring.Outer) {
                 return false
             }
         } else if (!canMotivate) {

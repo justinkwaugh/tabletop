@@ -12,7 +12,8 @@ import {
 import { isEndBuilding } from '../actions/endBuilding.js'
 import { isFinishBuilding } from '../actions/finishBuilding.js'
 import { isPlaceLocomotive } from '../actions/placeLocomotive.js'
-import type { CityId } from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
+import type { MapId } from '../data/maps.js'
 import { Definition } from '../definition/definition.js'
 import { PhaseName } from '../definition/phases.js'
 import { RideTheRailsRuntime } from '../definition/runtime.js'
@@ -42,6 +43,8 @@ const PHASE_MACHINE_STATES: Readonly<Record<PhaseName, MachineState>> = {
 
 export type StateRecipe = {
     playerCount?: number
+    /** The map the game is created on; the USA when absent. */
+    mapId?: MapId
     round?: number
     phase?: PhaseName
     currentPlayerId?: string
@@ -59,14 +62,15 @@ export function fixturePlayerIds(playerCount: number): string[] {
     return FIXTURE_PLAYER_IDS.slice(0, playerCount)
 }
 
-export function createGame(playerCount: number, seed = 11): Game {
+// A game created without a map plays the USA, as a game stored before the map option did.
+export function createGame(playerCount: number, seed = 11, mapId?: MapId): Game {
     return RideTheRailsRuntime.initializer.initializeGame(
         {
             id: 'ride-the-rails-test',
             typeId: Definition.info.id,
             ownerId: 'owner',
             seed,
-            config: {},
+            config: mapId === undefined ? {} : { map: mapId },
             players: fixturePlayerIds(playerCount).map((playerId) => ({
                 id: playerId,
                 name: `Player ${playerId}`,
@@ -78,8 +82,8 @@ export function createGame(playerCount: number, seed = 11): Game {
     )
 }
 
-export function freshState(playerCount = 3): HydratedRideTheRailsGameState {
-    const game = createGame(playerCount)
+export function freshState(playerCount = 3, mapId?: MapId): HydratedRideTheRailsGameState {
+    const game = createGame(playerCount, 11, mapId)
     const { initialState } = engine.startGame(game, {
         masterSeed,
         startingPositions: { playerIds: fixturePlayerIds(playerCount) }
@@ -92,7 +96,7 @@ export function freshState(playerCount = 3): HydratedRideTheRailsGameState {
 export function buildState(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
     const { playerCount = 3, round = 1, phase = PhaseName.TakeShare } = recipe
     assert(round >= 1 && round <= ROUND_COUNT, `No round ${round}`)
-    const state = freshState(playerCount)
+    const state = freshState(playerCount, recipe.mapId)
 
     state.roundManager = roundsUpTo(round)
     state.phaseManager = phasesUpTo(phase)

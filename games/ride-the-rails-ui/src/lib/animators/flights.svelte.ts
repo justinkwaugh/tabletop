@@ -47,6 +47,9 @@ export function shareSlotKey(playerId: string, slot: number): string {
 /** The Transcontinental chip in the turn line, where the claim's coin lands. */
 export const TRANSCONTINENTAL_KEY = 'transcontinental'
 
+/** R-8: the connection bonus's chip in the turn line, where its claim's coin lands. */
+export const CONNECTION_KEY = 'connection'
+
 /** The round the table shows, ticked ahead of the state as the end of a round steps it. */
 export const ROUND_KEY = 'round'
 

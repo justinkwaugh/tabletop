@@ -1,3 +1,4 @@
+import type { TileRotation } from '@tabletop/18xx'
 import { titleTestKit, type Table as TitleTable } from '../../../libs/18xx/test/titleTestKit.js'
 import { Privates1880 } from '../src/companies.js'
 import { unchosenInvestors } from '../src/investors.js'
@@ -32,6 +33,22 @@ export function edit(game: Table, change: (state: State1880) => void): void {
     const state = structuredClone(game.state)
     change(state)
     game.state = state
+}
+
+export function placeTile(
+    game: Table,
+    locationId: string,
+    definitionId: string,
+    rotation: TileRotation
+): void {
+    edit(game, (state) => {
+        const [piece] = TileSet1880.availablePieces(state.tileInventory, definitionId)
+        state.tileInventory.placements[locationId] = {
+            pieceId: piece.id,
+            definitionId,
+            rotation
+        }
+    })
 }
 
 /** The certificate's current holder: a player id, a company id, or the bank's pool. */

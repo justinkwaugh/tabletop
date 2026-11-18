@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { HexId } from '@tabletop/ride-the-rails'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
-    import { BONUS_PILL } from '$lib/utils/cityMarks.js'
     import {
-        insetHexPoints,
+        insetCellPoints,
         pickScale,
         type LitHexView,
         type MarkTone
@@ -23,8 +23,11 @@
         return journeyFrom !== undefined && hexCenter(hexId).x < hexCenter(journeyFrom).x
     }
 
+    const gameSession = getGameSession()
+    const board = $derived(gameSession.boardFrame)
+
     // Rings and marks keep a readable screen size at any zoom; ghost cubes stand in their slots.
-    const scale = $derived(pickScale(viewScale))
+    const scale = $derived(pickScale(board, viewScale))
 
     // A lit hex: no ring, only its hole in the scrim; the picked one an amber ring on a dark
     // edge, tinted. A city lit for a start only keeps a fainter amber ring further out, so extensions
@@ -59,48 +62,58 @@
             <!-- A lit hex, a start one too: a hole in the scrim, and the mark BOARD_LOOK.litHex
                  picks. -->
             {#if BOARD_LOOK.litHex === 'thin-ring'}
-                <polygon
-                    points={insetHexPoints(view.hexId, 3.5)}
-                    fill="none"
-                    stroke="var(--rtr-white)"
-                    stroke-width={2.6 * scale}
-                    stroke-linejoin="round"
-                    data-ring={view.ring}
-                ></polygon>
+                {#each insetCellPoints(view.hexId, 3.5) as points, cell (cell)}
+                    <polygon
+                        {points}
+                        fill="none"
+                        stroke="var(--rtr-white)"
+                        stroke-width={2.6 * scale}
+                        stroke-linejoin="round"
+                        data-ring={view.ring}
+                    ></polygon>
+                {/each}
             {/if}
         {:else if view.ring === 'picked'}
             {@const widths = RING_WIDTHS[view.ring]}
-            <polygon
-                points={insetHexPoints(view.hexId, LIT_INSET)}
-                fill="var(--rtr-lit-fill)"
-                stroke="var(--rtr-halo)"
-                stroke-width={widths.edge * scale}
-                stroke-linejoin="round"
-                data-ring={view.ring}
-            ></polygon>
-            <polygon
-                points={insetHexPoints(view.hexId, LIT_INSET)}
-                fill="none"
-                stroke="var(--rtr-lit-bright)"
-                stroke-width={widths.bright * scale}
-                stroke-linejoin="round"
-            ></polygon>
+            {#each insetCellPoints(view.hexId, LIT_INSET) as points, cell (cell)}
+                <polygon
+                    {points}
+                    fill="var(--rtr-lit-fill)"
+                    stroke="var(--rtr-halo)"
+                    stroke-width={widths.edge * scale}
+                    stroke-linejoin="round"
+                    data-ring={view.ring}
+                ></polygon>
+            {/each}
+            {#each insetCellPoints(view.hexId, LIT_INSET) as points, cell (cell)}
+                <polygon
+                    {points}
+                    fill="none"
+                    stroke="var(--rtr-lit-bright)"
+                    stroke-width={widths.bright * scale}
+                    stroke-linejoin="round"
+                ></polygon>
+            {/each}
         {:else}
-            <polygon
-                points={insetHexPoints(view.hexId, JOURNEY_START_INSET)}
-                fill="none"
-                stroke="var(--rtr-white)"
-                stroke-width={8.4 * scale}
-                stroke-linejoin="round"
-                data-ring={view.ring}
-            ></polygon>
-            <polygon
-                points={insetHexPoints(view.hexId, JOURNEY_START_INSET)}
-                fill="none"
-                stroke="var(--rtr-pill)"
-                stroke-width={4.4 * scale}
-                stroke-linejoin="round"
-            ></polygon>
+            {#each insetCellPoints(view.hexId, JOURNEY_START_INSET) as points, cell (cell)}
+                <polygon
+                    {points}
+                    fill="none"
+                    stroke="var(--rtr-white)"
+                    stroke-width={8.4 * scale}
+                    stroke-linejoin="round"
+                    data-ring={view.ring}
+                ></polygon>
+            {/each}
+            {#each insetCellPoints(view.hexId, JOURNEY_START_INSET) as points, cell (cell)}
+                <polygon
+                    {points}
+                    fill="none"
+                    stroke="var(--rtr-pill)"
+                    stroke-width={4.4 * scale}
+                    stroke-linejoin="round"
+                ></polygon>
+            {/each}
         {/if}
     {/each}
     {#if BOARD_LOOK.litRailroads === 'ghost-cube'}
@@ -116,12 +129,12 @@
         {#each view.marks as mark (mark.tone)}
             {@const width = (mark.text.length > 2 ? 30 : 22) * scale}
             {@const index = gains.indexOf(mark)}
-            <!-- R-3.2.4: the mountain's −1 at the bottom centre, where a city's bonus pill sits;
+            <!-- R-3.2.4: the mountain's cost at the bottom centre, where a city's bonus pill sits;
                  a gain up and left of the centre. -->
             {@const x = mark.tone === 'cost' ? center.x : center.x - (18.8 + index * 18) * scale}
             {@const y =
                 mark.tone === 'cost'
-                    ? center.y + BONUS_PILL.center.y
+                    ? center.y + board.hexFrame.bonusPill.y
                     : center.y - (22 + index * 5) * scale}
             <rect
                 x={x - width / 2}
@@ -132,6 +145,7 @@
                 fill={MARK_FILL[mark.tone]}
                 stroke="var(--rtr-halo)"
                 stroke-width={2.6 * scale}
+                data-keep-clear
             ></rect>
             <text
                 {x}
@@ -152,6 +166,7 @@
                 transform="translate({center.x + across * scale} {center.y}) scale({scale *
                     CHEVRON_SCALE})"
                 data-chevron={railroadId}
+                data-keep-clear
             >
                 <circle r="9.8" fill={style.fill} stroke="var(--rtr-halo)" stroke-width="2"
                 ></circle>

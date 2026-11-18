@@ -118,7 +118,10 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
     },
     '1833ne:N25': {
         hideRevenue: ['city-1'],
-        nodePositions: { 'city-0': towardTileEdge(5.5, 18), 'city-1': towardTileEdge(4, 20) }
+        revenuePositions: { 'city-0': { x: -18, y: -30 } },
+        labelPosition: { x: -22, y: -10 },
+        // As printed: the double city low across the tile, the separate city clear above it.
+        nodePositions: { 'city-0': towardTileEdge(0, 14), 'city-1': towardTileEdge(3.5, 23) }
     }
 }
 

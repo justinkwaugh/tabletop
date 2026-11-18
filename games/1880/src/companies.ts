@@ -23,7 +23,7 @@ import {
     ScrId,
     WnrId
 } from './ids.js'
-import { TaiwanLocationId } from './map.js'
+import { InvestorHomes1880, TaiwanLocationId } from './map.js'
 import { CommunistPhaseId, Phases1880 } from './trains.js'
 
 export * from './ids.js'
@@ -55,13 +55,13 @@ export const StationCosts1880: readonly number[] = [0, 40, 100]
 
 /** The foreign investors and their home bases (§VII). */
 export const ForeignInvestors1880 = [
-    { id: 'A1', name: 'Russian Investor', home: 'A3' },
-    { id: 'A2', name: 'Japanese Investor', home: 'E13' },
-    { id: 'A3', name: 'Belgian Investor', home: 'H6' },
-    { id: 'A4', name: 'German Investor', home: 'H14' },
-    { id: 'A5', name: 'British Investor', home: 'Q15' },
-    { id: 'A6', name: 'Portuguese Investor', home: 'P12' },
-    { id: 'A7', name: 'French Investor', home: 'Q7' }
+    { id: 'A1', name: 'Russian Investor', home: InvestorHomes1880.A1 },
+    { id: 'A2', name: 'Japanese Investor', home: InvestorHomes1880.A2 },
+    { id: 'A3', name: 'Belgian Investor', home: InvestorHomes1880.A3 },
+    { id: 'A4', name: 'German Investor', home: InvestorHomes1880.A4 },
+    { id: 'A5', name: 'British Investor', home: InvestorHomes1880.A5 },
+    { id: 'A6', name: 'Portuguese Investor', home: InvestorHomes1880.A6 },
+    { id: 'A7', name: 'French Investor', home: InvestorHomes1880.A7 }
 ] as const satisfies readonly { id: string; name: string; home: string }[]
 
 /** P0's one-off payment by the train whose last purchase earns it (§VI). */

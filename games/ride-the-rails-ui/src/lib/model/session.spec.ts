@@ -16,7 +16,7 @@ import {
     isTakeShare,
     legalPlacements,
     adjacentHexIds,
-    usaCity,
+    cityById,
     type HexId,
     type RailroadId,
     type Shares
@@ -181,7 +181,7 @@ describe('the board offer in Building (R-3.2, R-4.1, R-4.2)', () => {
             expect(yellowStarts()).toHaveLength(4)
             expect(yellowCues()).toHaveLength(4)
 
-            const start = usaCity(cityId).hexId
+            const start = cityById(cityId).hexId
             await session.placeLocomotive(yellow, start)
             await settled(session)
             expect(session.gameState.track[start]).toContain(yellow)
@@ -516,5 +516,64 @@ describe('the Transcontinental line toggle (R-4.3.3)', () => {
         expect(session.transcontinentalLineToggle).toEqual({ shown: true })
         session.toggleTranscontinentalLine()
         expect(session.showsTranscontinentalLine).toBe(false)
+    })
+})
+
+describe('the bonus chip’s description (R-8)', () => {
+    async function germany() {
+        const fixture = TABLE_FIXTURES.find(
+            (candidate) => candidate.slug === 'germany-link-in-reach'
+        )
+        assertExists(fixture)
+        return openSessionOn(tableState(fixture.recipe))
+    }
+
+    it('opens on a press and closes on a second, taking no game action', async () => {
+        const session = await germany()
+        const apply = spyOnApply()
+        expect(session.openBonusDescription).toBeUndefined()
+        session.toggleBonusDescription('bonus.de.greater-germany')
+        expect(session.openBonusDescription).toBe('bonus.de.greater-germany')
+        session.toggleBonusDescription('bonus.de.greater-germany')
+        expect(session.openBonusDescription).toBeUndefined()
+        session.toggleBonusDescription('bonus.de.greater-germany')
+        session.closeBonusDescription()
+        expect(session.openBonusDescription).toBeUndefined()
+        expect(apply).not.toHaveBeenCalled()
+    })
+
+    it('holds one description at a time', async () => {
+        const session = await germany()
+        session.toggleBonusDescription('bonus.de.greater-germany')
+        session.toggleBonusDescription('bonus.usa.transcontinental')
+        expect(session.openBonusDescription).toBe('bonus.usa.transcontinental')
+    })
+
+    it('stays open while the turn goes on and closes when the turn changes', async () => {
+        const session = await germany()
+        const seat = session.gameState.turnManager.currentTurn()?.playerId
+        session.toggleBonusDescription('bonus.de.greater-germany')
+        // A placement sent without a press on the board keeps the same seat's turn.
+        const another = session.boardOffer.lit.find((hex) => hex.placements.length === 1)
+        assertExists(another)
+        await session.placeLocomotive(another.placements[0].railroadId, another.hexId)
+        await settled(session)
+        expect(session.gameState.turnManager.currentTurn()?.playerId).toBe(seat)
+        expect(session.openBonusDescription).toBe('bonus.de.greater-germany')
+
+        await session.endBuilding()
+        await settled(session)
+        expect(session.gameState.turnManager.currentTurn()?.playerId).not.toBe(seat)
+        expect(session.openBonusDescription).toBeUndefined()
+    })
+
+    it('closes when the board is pressed, before a building offer opens there', async () => {
+        const session = await germany()
+        session.toggleBonusDescription('bonus.de.greater-germany')
+        const choice = session.boardOffer.lit.find((hex) => hex.placements.length > 1)
+        const hexId = (choice ?? session.boardOffer.lit[0])?.hexId
+        assertExists(hexId)
+        await session.pressHex(hexId)
+        expect(session.openBonusDescription).toBeUndefined()
     })
 })

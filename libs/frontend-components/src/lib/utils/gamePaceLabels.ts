@@ -18,28 +18,28 @@ export const GAME_PACE_LABELS: Record<GamePace, GamePaceLabels> = {
     },
     [GamePace.Fast]: {
         name: 'Fast',
-        option: 'Fast · move within about an hour',
+        option: 'Fast · moves within an hour',
         summary: 'Fast · 1 h',
         line: 'Fast · within 1 h',
         limit: 'the 1 h pace'
     },
-    [GamePace.SameDay]: {
-        name: 'Same day',
-        option: 'Same day · move within about 8 hours',
-        summary: 'Same day · 8 h',
-        line: 'Same day · within 8 h',
-        limit: 'the 8 h pace'
+    [GamePace.Brisk]: {
+        name: 'Brisk',
+        option: 'Brisk · moves every few hours',
+        summary: 'Brisk · 4 h',
+        line: 'Brisk · within 4 h',
+        limit: 'the 4 h pace'
     },
     [GamePace.Daily]: {
         name: 'Daily',
-        option: 'Daily · move within a day',
+        option: 'Daily · moves within a day',
         summary: 'Daily',
         line: 'Daily · within a day',
         limit: 'the 1-day pace'
     },
     [GamePace.Relaxed]: {
         name: 'Relaxed',
-        option: 'Relaxed · move within about 3 days',
+        option: 'Relaxed · moves within about 3 days',
         summary: 'Relaxed · 3 days',
         line: 'Relaxed · within 3 days',
         limit: 'the 3-day pace'

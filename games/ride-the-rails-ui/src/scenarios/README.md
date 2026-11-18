@@ -2,6 +2,36 @@
 
 The dev harness lists these under **Scenarios**; loading one again starts it over. The menu names each file by its slug, so a fixture's name is its slug with the first letter capitalised. Each is a position reached by legal play: `src/lib/testing/tableFixtures.ts` builds it by sending every past placement through the engine in its seat's building turn. `tableFixtures.spec.ts` writes the files and fails when one drifts; after changing a fixture, run `pnpm exec vitest run -u src/lib/testing/tableFixtures.spec.ts`. The seats are Ada, Ben, Cora, Dell and Eli, in turn order. The numbers are the contract's verification scenarios (`docs/ui-interaction-visual-contract.md`); the Playwright specs in `tests/` play them.
 
+## Germany berlin
+
+Germany, round 4 with three seats, Build. Red from Leipzig and Blue from Dresden have reached Berlin, Ben has started Purple there, and Ada started Orange in München. Ada holds Red, Orange, Yellow and Purple and builds next.
+
+- Berlin is one city over two cells: one outline, one Purple and Black band, one cream middle, its three cubes alternating between the cells, its "6" and passenger in its own cell and its "$3" pill in the second.
+- The mountain beside München lights for Orange with no "−1": an Orange placement there leaves the limit at 8.
+
+## France paris ring
+
+France, round 2 with three seats, Build. Red runs from Lille into the entry hex north of Paris, Blue from Sedan to Reims, and Ben has started Orange in Le Havre. Ada holds Red and Orange and builds next.
+
+- The six entry hexes round Paris are tinted and edged in navy, each with its "1"; Paris carries its "6" and "$10" in the hex, and the four Red/Blue/Black cities their "1".
+- Paris lights for Red with its $10; round Le Havre the hexes light for Orange, but not Caen across the estuary.
+- Caen's passenger, its head in Le Havre's hex, stands over the Seine's red line; in the pick it is dimmed whole, and the line beside it is not.
+
+## Canada toronto
+
+Canada, round 4 with three seats, Build. Red from Montréal and Blue from Windsor have reached Toronto, and Ben has started Purple there and run it into the hex beside it, whose south side is impassable. Ada holds Red, Orange, Yellow and Purple and builds next.
+
+- Toronto, which has no limit, is drawn as Chicago is, its three cubes small in a row, its "$3/$2" pill below them and its "6" in the lake.
+- Hamilton lights for Purple; the hex past the impassable side, though empty, does not.
+- Every impassable side is a red line over the bands, cubes and scrim, under the passengers: Québec City's south-west side and Montréal's south side run over their bands, and Nicolet's and Sorel-Tracy's passengers stand over the river's line.
+
+## Australia perth chain
+
+Australia, round 4 with three seats, Build. Orange started in Adelaide and stands in the first long-distance hex of the chain to Perth; Blue runs from Melbourne past the Alps over four mountains; Red runs west from Sydney. Ada holds Red, Orange, Yellow and Purple and builds first.
+
+- The Alps are hatched; the four long-distance hexes are ochre with a "1" and a buffer stop; Perth and Brisbane carry their gold pills, "$50" and "$20", and a buffer stop at the top. The lit long-distance hex's name ends ", ends the turn".
+- The chain's next hex lights for Orange; the one past it does not. An Orange placement there, the turn's first, ends Ada's turn.
+
 ## First share
 
 Round 1 with four seats, before anyone holds a share. Dell, last in turn order, decides first (scenario 1).
@@ -48,6 +78,20 @@ Round 5, Build. Purple from San Francisco waits beside Denver, where Orange's li
 
 - Denver reads "place Purple, $12 Transcontinental"; the plain hex east of it, on Orange's line, reads "$8".
 
+## Canada link in reach
+
+Round 4 on Canada, Build. Blue runs from Windsor and Red from Montréal into Toronto, Orange from Québec City to Montréal, and Yellow from Sault Ste. Marie to Toronto's door; Ada holds Yellow and builds first (the Intercolonial, R-8.3).
+
+- The turn line shows the Intercolonial's chip, "$8 · open", in the Transcontinental's place; Sault Ste. Marie, Windsor and Québec City wear gold rings.
+- Toronto reads "place Yellow, $3, $8 Intercolonial". Placing it joins the three: the link cities outline, a gold coin flies to the chip, Ada gains $11, the chip shows her seat, and the rings go.
+
+## Germany link in reach
+
+Round 4 on Germany, Build. Red runs from Köln to Hamburg, Blue from Dresden to Berlin, Orange from München through the mountains to Dresden, and Yellow from Hamburg to Berlin's door; Ada holds Yellow and builds first (Greater Germany, R-8.5).
+
+- The turn line shows Greater Germany's chip, "$12 · open"; Berlin (round both its hexes), Hamburg, Köln, Dresden and München wear gold rings.
+- Berlin reads "place Yellow, $3, $12 Greater Germany". Placing it joins the five: Ada gains $15, the chip shows her seat, and the rings go.
+
 ## Purple arrives
 
 Round 4, Build, the first round Purple may build. Ada holds Red, Orange and Purple; Purple has no track yet (scenario 25 and the railroad cards).
@@ -88,6 +132,20 @@ Round 1, Ride, three seats. Red runs Baltimore, the plain south-west of it, Wash
 Round 1, Ride. Ada, Ben and Cora have ridden; Dell rides last (scenario 18).
 
 - Dell's journey from Washington brings him level with Ben at $4; the tied pair swap places, so round 2's order is Dell, Ben, Cora, Ada, and Orange becomes available.
+
+## Crowded chicago
+
+Round 3, Ride. Orange runs from Chicago to Milwaukee and on its other side to Detroit, and Yellow from Chicago to Cincinnati; Ada rides first (the map's Ride button, Pick conventions).
+
+- Milwaukee, then Chicago by Orange: Detroit lights east of Chicago and Cincinnati below it.
+- On the whole map the Ride button's own side covers Detroit on desktop and Cincinnati on a phone, so it stands at the first clear place instead; zoomed in, it is back on its own side.
+
+## Ringed chicago
+
+Crowded chicago with Yellow on from Chicago to Saint Louis as well; Ada rides first (the map's Ride button, Pick conventions).
+
+- Milwaukee, then Chicago by Orange: Detroit lights east of Chicago, Cincinnati below it and Saint Louis south-west of it.
+- On a phone's whole map no place beside Chicago is clear, so the map's Ride button stays hidden; Cincinnati and Saint Louis, under its own side, still take a press.
 
 ## Last journey
 

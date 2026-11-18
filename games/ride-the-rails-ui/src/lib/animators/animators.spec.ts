@@ -9,14 +9,23 @@ import {
     type PlaceLocomotive,
     supplyOf,
     transcontinentalLine,
-    usaCity,
+    cityById,
+    type CityId,
     type HexId,
     type HydratedRideTheRailsGameState,
     type RailroadId,
     type Track
 } from '@tabletop/ride-the-rails'
-import { buildState, hydrated, runAction } from '@tabletop/ride-the-rails/testing'
-import { ABOVE_THE_BOARD, TRAVELLING_LOCOMOTIVE_WIDTH } from './flightPlaces.js'
+import {
+    QUEBEC_CITY,
+    buildState,
+    hydrated,
+    intercolonialOneShort,
+    runAction
+} from '@tabletop/ride-the-rails/testing'
+import { CONNECTION_COIN_KEY, connectionAnimator } from './connectionAnimator.js'
+import { aboveTheBoard, TRAVELLING_LOCOMOTIVE_WIDTH } from './flightPlaces.js'
+import { boardGeometry } from '$lib/utils/boardGeometry.js'
 import { Flights, moneyKey, sharesKey, supplyKey } from './flights.svelte.js'
 import { OUTLINE_TOTAL, outlineStep } from './flightPlan.js'
 import { FLIGHT, QUICK } from './motion.js'
@@ -29,14 +38,16 @@ import {
     transcontinentalAnimator
 } from './transcontinentalAnimator.js'
 
+const ABOVE_THE_BOARD = aboveTheBoard(boardGeometry('map.usa'))
+
 type State = HydratedRideTheRailsGameState
 
 const RED: RailroadId = 'railroad.red'
 const PURPLE: RailroadId = 'railroad.purple'
 const CHICAGO: HexId = 'hex.usa.5-43'
 const NEXT_TO_CHICAGO: HexId = 'hex.usa.5-41'
-const NEW_YORK = usaCity('city.usa.new-york').hexId
-const SEATTLE = usaCity('city.usa.seattle').hexId
+const NEW_YORK = cityById('city.usa.new-york').hexId
+const SEATTLE = cityById('city.usa.seattle').hexId
 
 const opened: AnimationContext[] = []
 
@@ -337,6 +348,64 @@ describe('the Transcontinental animator (R-4.3.3)', () => {
         const flights = new Flights()
         const { from, to } = nearlyAcross()
         const animationContext = await step(transcontinentalAnimator(flights, hidden), from, to)
+        expect(animationContext.actionTimeline.duration()).toBe(0)
+        expect(flights.flyers).toEqual([])
+    })
+})
+
+describe('the connection bonus animator (R-8)', () => {
+    // Canada's track one placement short of the Intercolonial: Orange's locomotive in Québec City
+    // joins Sault Ste. Marie, Windsor and Québec City.
+    function oneShort() {
+        const { track, railroadId, hexId } = intercolonialOneShort()
+        expect(hexId).toBe(QUEBEC_CITY)
+        const from = buildState({
+            mapId: 'map.ca',
+            phase: PhaseName.Build,
+            shares: { p1: { [railroadId]: 1 } },
+            money: { p1: 10, p2: 10, p3: 10 },
+            track
+        })
+        return { from, ...placed(from, railroadId, hexId) }
+    }
+
+    it('outlines the link cities after the placement lands, then flies a gold coin to the chip', async () => {
+        const flights = new Flights()
+        const { from, to, action } = oneShort()
+        expect(to.connectionClaim).toEqual({ playerId: 'p1' })
+
+        const animationContext = await step(connectionAnimator(flights), from, to, action)
+        const outlines = flights.flyers.filter((flyer) => flyer.kind === 'outline')
+        const linkCities: CityId[] = [
+            'city.ca.sault-ste-marie',
+            'city.ca.windsor',
+            'city.ca.quebec-city'
+        ]
+        expect(outlines.map((flyer) => flyer.kind === 'outline' && flyer.hexId)).toEqual(
+            linkCities.map((cityId) => cityById(cityId).hexId)
+        )
+        const coin = flights.flyers.find((flyer) => flyer.key === CONNECTION_COIN_KEY)
+        expect(coin?.kind === 'coin' && [coin.amount, coin.gold]).toEqual([8, true])
+
+        const drawn = OUTLINES_BEGIN + 3 * outlineStep(3)
+        expect(animationContext.actionTimeline.duration()).toBeLessThanOrEqual(
+            drawn + 0.2 + FLIGHT.coinRise + FLIGHT.coinFly + FLIGHT.fade + 1e-9
+        )
+        playThrough(animationContext)
+        expect(flights.shown(moneyKey('p1'), 10)).toBe(18)
+    })
+
+    it('leaves the claim’s coin out of the placement’s flight to the seat', async () => {
+        const flights = new Flights()
+        const { from, to, action } = oneShort()
+        await step(placementAnimator(flights), from, to, action)
+        expect(flights.flyers.filter((flyer) => flyer.kind === 'coin')).toEqual([])
+    })
+
+    it('changes the chip with the state, without motion, when there is no action', async () => {
+        const flights = new Flights()
+        const { from, to } = oneShort()
+        const animationContext = await step(connectionAnimator(flights), from, to)
         expect(animationContext.actionTimeline.duration()).toBe(0)
         expect(flights.flyers).toEqual([])
     })

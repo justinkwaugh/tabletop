@@ -1,41 +1,9 @@
-import * as Type from 'typebox'
-import { assertExists } from '@tabletop/common'
-import type { BonusId } from './bonuses.js'
-import { doubledNeighbours, hexCoordinates, hexIdAt, type HexId } from './hexes.js'
-import type { RailroadId } from './railroads.js'
+import { HexOrientation } from '@tabletop/common'
+import type { City, CityHex, MapDefinition, TerrainHex } from './boardMap.js'
+import { hexCoordinates, hexIdAt, type DoubledCoordinates } from './hexes.js'
 
-export const CityId = Type.TemplateLiteral('city.usa.${string}')
-export type CityId = Type.Static<typeof CityId>
-
-type CityBonusId = Exclude<BonusId, 'bonus.usa.transcontinental'>
-
-export type CityCapacity = 1 | 2 | 'unlimited'
-
-export type CityGroup = 'east-coast' | 'west-coast'
-
-export type City = {
-    id: CityId
-    name: string
-    hexId: HexId
-    startColours: readonly RailroadId[]
-    capacity: CityCapacity
-    bonus: CityBonusId | null
-    groups: readonly CityGroup[]
-}
-
-export type Terrain = 'plain' | 'mountain' | 'city'
-
-type HexBase = {
-    id: HexId
-    row: number
-    dcol: number
-}
-
-export type TerrainHex = HexBase & { terrain: 'plain' | 'mountain' }
-
-export type CityHex = HexBase & { terrain: 'city'; cityId: CityId }
-
-export type Hex = TerrainHex | CityHex
+// The USA is pointy, and its hexes keep their (row, dcol) beside their ids.
+export type UsaHex = (TerrainHex | CityHex) & DoubledCoordinates
 
 type TerrainRow = {
     plain: readonly number[]
@@ -568,15 +536,15 @@ const USA_TERRAIN_BY_ROW: readonly TerrainRow[] = [
     { plain: [], mountain: [] }
 ]
 
-function terrainHexes(): TerrainHex[] {
+function terrainHexes(): UsaHex[] {
     return USA_TERRAIN_BY_ROW.flatMap(({ plain, mountain }, row) => [
-        ...plain.map((dcol): TerrainHex => ({
+        ...plain.map((dcol): UsaHex => ({
             id: hexIdAt({ row, dcol }),
             row,
             dcol,
             terrain: 'plain'
         })),
-        ...mountain.map((dcol): TerrainHex => ({
+        ...mountain.map((dcol): UsaHex => ({
             id: hexIdAt({ row, dcol }),
             row,
             dcol,
@@ -585,7 +553,7 @@ function terrainHexes(): TerrainHex[] {
     ])
 }
 
-function cityHexes(): CityHex[] {
+function cityHexes(): UsaHex[] {
     return USA_CITIES.map((city) => ({
         id: city.hexId,
         ...hexCoordinates(city.hexId),
@@ -594,63 +562,19 @@ function cityHexes(): CityHex[] {
     }))
 }
 
-export const USA_HEXES: readonly Hex[] = [...terrainHexes(), ...cityHexes()].sort(
+// In reading order: rows north to south, each west to east.
+export const USA_HEXES: readonly UsaHex[] = [...terrainHexes(), ...cityHexes()].sort(
     (a, b) => a.row - b.row || a.dcol - b.dcol
 )
 
-const HEXES_BY_ID: ReadonlyMap<string, Hex> = new Map(USA_HEXES.map((hex) => [hex.id, hex]))
-
-const CITIES_BY_ID: ReadonlyMap<CityId, City> = new Map(USA_CITIES.map((city) => [city.id, city]))
-
-export function usaHex(hexId: HexId): Hex {
-    const hex = HEXES_BY_ID.get(hexId)
-    assertExists(hex, `Unknown USA hex ${hexId}`)
-    return hex
-}
-
-export function usaCity(cityId: CityId): City {
-    const city = CITIES_BY_ID.get(cityId)
-    assertExists(city, `Unknown USA city ${cityId}`)
-    return city
-}
-
-export function isUsaHex(hexId: string): hexId is HexId {
-    return HEXES_BY_ID.has(hexId)
-}
-
-export function isCityHex(hexId: HexId): boolean {
-    return usaHex(hexId).terrain === 'city'
-}
-
-export function cityIn(hexId: HexId): City | undefined {
-    const hex = usaHex(hexId)
-    return hex.terrain === 'city' ? usaCity(hex.cityId) : undefined
-}
-
-export function cityAt(hexId: HexId): City {
-    const city = cityIn(hexId)
-    assertExists(city, `Hex ${hexId} is not a city`)
-    return city
-}
-
-const HEX_ORDER: ReadonlyMap<HexId, number> = new Map(
-    USA_HEXES.map((hex, index) => [hex.id, index])
-)
-
-// The map's hexes in id order, rows north to south and columns west to east.
-export function hexOrder(hexId: HexId): number {
-    const order = HEX_ORDER.get(hexId)
-    assertExists(order, `Unknown USA hex ${hexId}`)
-    return order
-}
-
-const ADJACENT_HEX_IDS: ReadonlyMap<HexId, readonly HexId[]> = new Map(
-    USA_HEXES.map((hex) => [hex.id, doubledNeighbours(hex).map(hexIdAt).filter(isUsaHex)])
-)
-
-// R-4.1.2: the hexes next to this one that exist on the board
-export function adjacentHexIds(hexId: HexId): readonly HexId[] {
-    const adjacent = ADJACENT_HEX_IDS.get(hexId)
-    assertExists(adjacent, `Unknown USA hex ${hexId}`)
-    return adjacent
+// R-8.1: the base game's map.
+export const USA_MAP: MapDefinition = {
+    id: 'map.usa',
+    key: 'usa',
+    orientation: HexOrientation.Pointy,
+    hexes: USA_HEXES,
+    cities: USA_CITIES,
+    impassable: [],
+    citiesWithoutSetupPassenger: [],
+    longDistanceCities: []
 }

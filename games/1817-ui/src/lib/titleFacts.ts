@@ -94,6 +94,7 @@ export const EighteenSeventeenMarketZones: readonly MarketZone[] = [
         name: 'Liquidation',
         description:
             'The company does not operate, and the bank sells it in the acquisition round.',
+        marksCompanyValue: true,
         fill: { kind: 'solid', color: '#c4433a', ink: '#fff8f0' },
         label: 'Liquidation'
     },
@@ -102,6 +103,7 @@ export const EighteenSeventeenMarketZones: readonly MarketZone[] = [
         name: 'Acquisition',
         description:
             'The company is auctioned from $10 in the acquisition round, and may not buy another.',
+        marksCompanyValue: true,
         fill: { kind: 'solid', color: '#a9aeb2' },
         banner: { label: 'Acquisition', shape: 'span' },
         setApart: true

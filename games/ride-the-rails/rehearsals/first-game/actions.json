@@ -6,7 +6,7 @@
     "type": "TakeShare",
     "playerId": "p4",
     "railroadId": "railroad.red",
-    "createdAt": "2026-11-15T18:14:47.939Z",
+    "createdAt": "2026-11-17T00:47:25.456Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 26
@@ -54,7 +54,7 @@
     "type": "TakeShare",
     "playerId": "p3",
     "railroadId": "railroad.blue",
-    "createdAt": "2026-11-15T18:14:47.940Z",
+    "createdAt": "2026-11-17T00:47:25.457Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 26
@@ -102,7 +102,7 @@
     "type": "TakeShare",
     "playerId": "p2",
     "railroadId": "railroad.blue",
-    "createdAt": "2026-11-15T18:14:47.941Z",
+    "createdAt": "2026-11-17T00:47:25.458Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 25
@@ -150,7 +150,7 @@
     "type": "TakeShare",
     "playerId": "p1",
     "railroadId": "railroad.blue",
-    "createdAt": "2026-11-15T18:14:47.942Z",
+    "createdAt": "2026-11-17T00:47:25.459Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 24
@@ -211,7 +211,7 @@
     "playerId": "p1",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.11-55",
-    "createdAt": "2026-11-15T18:14:47.946Z",
+    "createdAt": "2026-11-17T00:47:25.461Z",
     "metadata": {
       "isStart": true,
       "bonuses": []
@@ -245,7 +245,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:47.949Z",
+    "createdAt": "2026-11-17T00:47:25.463Z",
     "metadata": {
       "placed": 1
     },
@@ -294,7 +294,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.11-53",
-    "createdAt": "2026-11-15T18:14:47.951Z",
+    "createdAt": "2026-11-17T00:47:25.465Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -330,7 +330,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.10-52",
-    "createdAt": "2026-11-15T18:14:47.953Z",
+    "createdAt": "2026-11-17T00:47:25.466Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -366,7 +366,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.12-52",
-    "createdAt": "2026-11-15T18:14:47.954Z",
+    "createdAt": "2026-11-17T00:47:25.467Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -402,7 +402,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.11-51",
-    "createdAt": "2026-11-15T18:14:47.956Z",
+    "createdAt": "2026-11-17T00:47:25.468Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -438,7 +438,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.13-51",
-    "createdAt": "2026-11-15T18:14:47.957Z",
+    "createdAt": "2026-11-17T00:47:25.470Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -477,7 +477,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:47.958Z",
+    "createdAt": "2026-11-17T00:47:25.470Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -527,7 +527,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.9-51",
-    "createdAt": "2026-11-15T18:14:47.962Z",
+    "createdAt": "2026-11-17T00:47:25.472Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -566,7 +566,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.9-53",
-    "createdAt": "2026-11-15T18:14:47.967Z",
+    "createdAt": "2026-11-17T00:47:25.473Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -602,7 +602,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.11-49",
-    "createdAt": "2026-11-15T18:14:47.968Z",
+    "createdAt": "2026-11-17T00:47:25.474Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -638,7 +638,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.8-52",
-    "createdAt": "2026-11-15T18:14:47.971Z",
+    "createdAt": "2026-11-17T00:47:25.476Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -677,7 +677,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:47.971Z",
+    "createdAt": "2026-11-17T00:47:25.476Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -730,7 +730,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.6-60",
-    "createdAt": "2026-11-15T18:14:47.973Z",
+    "createdAt": "2026-11-17T00:47:25.478Z",
     "metadata": {
       "isStart": true,
       "bonuses": []
@@ -766,7 +766,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.6-58",
-    "createdAt": "2026-11-15T18:14:47.974Z",
+    "createdAt": "2026-11-17T00:47:25.479Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -802,7 +802,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.7-57",
-    "createdAt": "2026-11-15T18:14:47.976Z",
+    "createdAt": "2026-11-17T00:47:25.480Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -838,7 +838,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.5-61",
-    "createdAt": "2026-11-15T18:14:47.977Z",
+    "createdAt": "2026-11-17T00:47:25.481Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -874,7 +874,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.4-62",
-    "createdAt": "2026-11-15T18:14:47.978Z",
+    "createdAt": "2026-11-17T00:47:25.483Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -913,7 +913,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:47.978Z",
+    "createdAt": "2026-11-17T00:47:25.483Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -995,7 +995,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:47.981Z",
+    "createdAt": "2026-11-17T00:47:25.485Z",
     "metadata": {
       "startCityId": "city.usa.boston",
       "endCityId": "city.usa.philadelphia",
@@ -1093,7 +1093,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:47.983Z",
+    "createdAt": "2026-11-17T00:47:25.486Z",
     "metadata": {
       "startCityId": "city.usa.charleston",
       "endCityId": "city.usa.washington",
@@ -1203,7 +1203,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:47.984Z",
+    "createdAt": "2026-11-17T00:47:25.487Z",
     "metadata": {
       "startCityId": "city.usa.philadelphia",
       "endCityId": "city.usa.boston",
@@ -1301,7 +1301,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:47.986Z",
+    "createdAt": "2026-11-17T00:47:25.488Z",
     "metadata": {
       "startCityId": "city.usa.new-york",
       "endCityId": "city.usa.boston",
@@ -1388,7 +1388,7 @@
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "EndRound",
-    "createdAt": "2026-11-15T18:14:47.986Z",
+    "createdAt": "2026-11-17T00:47:25.488Z",
     "metadata": {
       "round": 1,
       "turnOrder": [
@@ -1480,7 +1480,7 @@
     "type": "TakeShare",
     "playerId": "p4",
     "railroadId": "railroad.orange",
-    "createdAt": "2026-11-15T18:14:47.987Z",
+    "createdAt": "2026-11-17T00:47:25.490Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 26
@@ -1528,7 +1528,7 @@
     "type": "TakeShare",
     "playerId": "p1",
     "railroadId": "railroad.orange",
-    "createdAt": "2026-11-15T18:14:47.988Z",
+    "createdAt": "2026-11-17T00:47:25.490Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 25
@@ -1576,7 +1576,7 @@
     "type": "TakeShare",
     "playerId": "p3",
     "railroadId": "railroad.orange",
-    "createdAt": "2026-11-15T18:14:47.989Z",
+    "createdAt": "2026-11-17T00:47:25.491Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 24
@@ -1624,7 +1624,7 @@
     "type": "TakeShare",
     "playerId": "p2",
     "railroadId": "railroad.blue",
-    "createdAt": "2026-11-15T18:14:47.990Z",
+    "createdAt": "2026-11-17T00:47:25.493Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 13
@@ -1686,7 +1686,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.7-51",
-    "createdAt": "2026-11-15T18:14:47.992Z",
+    "createdAt": "2026-11-17T00:47:25.494Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -1722,7 +1722,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.7-49",
-    "createdAt": "2026-11-15T18:14:47.993Z",
+    "createdAt": "2026-11-17T00:47:25.495Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -1758,7 +1758,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.6-52",
-    "createdAt": "2026-11-15T18:14:47.995Z",
+    "createdAt": "2026-11-17T00:47:25.496Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -1794,7 +1794,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.12-50",
-    "createdAt": "2026-11-15T18:14:47.997Z",
+    "createdAt": "2026-11-17T00:47:25.498Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -1830,7 +1830,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.6-50",
-    "createdAt": "2026-11-15T18:14:47.999Z",
+    "createdAt": "2026-11-17T00:47:25.499Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -1869,7 +1869,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:47.999Z",
+    "createdAt": "2026-11-17T00:47:25.499Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -1919,7 +1919,7 @@
     "playerId": "p3",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.5-43",
-    "createdAt": "2026-11-15T18:14:48.001Z",
+    "createdAt": "2026-11-17T00:47:25.501Z",
     "metadata": {
       "isStart": true,
       "bonuses": [
@@ -1966,7 +1966,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.10-54",
-    "createdAt": "2026-11-15T18:14:48.003Z",
+    "createdAt": "2026-11-17T00:47:25.502Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2002,7 +2002,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.6-54",
-    "createdAt": "2026-11-15T18:14:48.005Z",
+    "createdAt": "2026-11-17T00:47:25.504Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2041,7 +2041,7 @@
     "playerId": "p3",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.12-48",
-    "createdAt": "2026-11-15T18:14:48.007Z",
+    "createdAt": "2026-11-17T00:47:25.505Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2080,7 +2080,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:48.007Z",
+    "createdAt": "2026-11-17T00:47:25.505Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -2133,7 +2133,7 @@
     "playerId": "p1",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.10-50",
-    "createdAt": "2026-11-15T18:14:48.011Z",
+    "createdAt": "2026-11-17T00:47:25.507Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2172,7 +2172,7 @@
     "playerId": "p1",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.12-46",
-    "createdAt": "2026-11-15T18:14:48.012Z",
+    "createdAt": "2026-11-17T00:47:25.509Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2208,7 +2208,7 @@
     "playerId": "p1",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.10-48",
-    "createdAt": "2026-11-15T18:14:48.014Z",
+    "createdAt": "2026-11-17T00:47:25.510Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2244,7 +2244,7 @@
     "playerId": "p1",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.6-42",
-    "createdAt": "2026-11-15T18:14:48.016Z",
+    "createdAt": "2026-11-17T00:47:25.512Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2283,7 +2283,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.016Z",
+    "createdAt": "2026-11-17T00:47:25.512Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -2336,7 +2336,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.5-45",
-    "createdAt": "2026-11-15T18:14:48.018Z",
+    "createdAt": "2026-11-17T00:47:25.514Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2372,7 +2372,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.7-43",
-    "createdAt": "2026-11-15T18:14:48.021Z",
+    "createdAt": "2026-11-17T00:47:25.515Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2408,7 +2408,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.6-40",
-    "createdAt": "2026-11-15T18:14:48.023Z",
+    "createdAt": "2026-11-17T00:47:25.517Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2444,7 +2444,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.5-63",
-    "createdAt": "2026-11-15T18:14:48.025Z",
+    "createdAt": "2026-11-17T00:47:25.518Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2480,7 +2480,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.8-56",
-    "createdAt": "2026-11-15T18:14:48.028Z",
+    "createdAt": "2026-11-17T00:47:25.520Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -2519,7 +2519,7 @@
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.028Z",
+    "createdAt": "2026-11-17T00:47:25.520Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -2595,7 +2595,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.061Z",
+    "createdAt": "2026-11-17T00:47:25.538Z",
     "metadata": {
       "startCityId": "city.usa.atlanta",
       "endCityId": "city.usa.charleston",
@@ -2700,7 +2700,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.078Z",
+    "createdAt": "2026-11-17T00:47:25.549Z",
     "metadata": {
       "startCityId": "city.usa.pittsburgh",
       "endCityId": "city.usa.washington",
@@ -2804,7 +2804,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.091Z",
+    "createdAt": "2026-11-17T00:47:25.555Z",
     "metadata": {
       "startCityId": "city.usa.washington",
       "endCityId": "city.usa.pittsburgh",
@@ -2840,6 +2840,11 @@
     },
     "index": 56,
     "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 287
+      },
       {
         "op": "replace",
         "path": "/activePlayerIds/0",
@@ -2891,18 +2896,18 @@
     ]
   },
   {
-    "id": "scripted-57",
+    "id": "nEaXkVgyo6rMivPB6VGbZ",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.095Z",
+    "createdAt": "2026-11-17T00:47:25.555Z",
     "index": 57,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 287
+        "value": 322
       },
       {
         "op": "add",
@@ -2936,11 +2941,11 @@
     ]
   },
   {
-    "id": "nEaXkVgyo6rMivPB6VGbZ",
+    "id": "2cykjnAmTS34BQ8q4D66O",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "EndRound",
-    "createdAt": "2026-11-15T18:14:48.095Z",
+    "createdAt": "2026-11-17T00:47:25.555Z",
     "metadata": {
       "round": 2,
       "turnOrder": [
@@ -2983,7 +2988,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1720960750
+        "value": -1817983620
       },
       {
         "op": "replace",
@@ -3029,7 +3034,7 @@
     "type": "TakeShare",
     "playerId": "p2",
     "railroadId": "railroad.yellow",
-    "createdAt": "2026-11-15T18:14:48.102Z",
+    "createdAt": "2026-11-17T00:47:25.557Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 26
@@ -3049,7 +3054,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 151393209
+        "value": 1620657426
       },
       {
         "op": "remove",
@@ -3077,7 +3082,7 @@
     "type": "TakeShare",
     "playerId": "p3",
     "railroadId": "railroad.yellow",
-    "createdAt": "2026-11-15T18:14:48.109Z",
+    "createdAt": "2026-11-17T00:47:25.558Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 25
@@ -3097,7 +3102,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 45803674
+        "value": 1797635633
       },
       {
         "op": "remove",
@@ -3125,7 +3130,7 @@
     "type": "TakeShare",
     "playerId": "p1",
     "railroadId": "railroad.red",
-    "createdAt": "2026-11-15T18:14:48.119Z",
+    "createdAt": "2026-11-17T00:47:25.559Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 18
@@ -3145,7 +3150,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 46973288
+        "value": 1800640451
       },
       {
         "op": "remove",
@@ -3173,7 +3178,7 @@
     "type": "TakeShare",
     "playerId": "p4",
     "railroadId": "railroad.red",
-    "createdAt": "2026-11-15T18:14:48.123Z",
+    "createdAt": "2026-11-17T00:47:25.560Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 17
@@ -3188,7 +3193,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1765398310
+        "value": 10912141
       },
       {
         "op": "replace",
@@ -3235,7 +3240,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.8-42",
-    "createdAt": "2026-11-15T18:14:48.126Z",
+    "createdAt": "2026-11-17T00:47:25.562Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3250,7 +3255,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2033053505
+        "value": 280148458
       },
       {
         "op": "remove",
@@ -3271,7 +3276,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.5-39",
-    "createdAt": "2026-11-15T18:14:48.128Z",
+    "createdAt": "2026-11-17T00:47:25.564Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3286,7 +3291,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1858467737
+        "value": 123380018
       },
       {
         "op": "remove",
@@ -3307,7 +3312,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.6-56",
-    "createdAt": "2026-11-15T18:14:48.130Z",
+    "createdAt": "2026-11-17T00:47:25.566Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3322,7 +3327,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -277983727
+        "value": -2031019846
       },
       {
         "op": "remove",
@@ -3346,7 +3351,7 @@
     "playerId": "p4",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.7-55",
-    "createdAt": "2026-11-15T18:14:48.132Z",
+    "createdAt": "2026-11-17T00:47:25.568Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3356,7 +3361,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 322
+        "value": 357
       },
       {
         "op": "replace",
@@ -3366,7 +3371,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1909011695
+        "value": -408314438
       },
       {
         "op": "remove",
@@ -3380,12 +3385,12 @@
     ]
   },
   {
-    "id": "2cykjnAmTS34BQ8q4D66O",
+    "id": "wm7V6Zq06aKc6AajcNt3A",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.132Z",
+    "createdAt": "2026-11-17T00:47:25.568Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -3405,7 +3410,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -625713575
+        "value": -1289025294
       },
       {
         "op": "remove",
@@ -3438,7 +3443,7 @@
     "playerId": "p1",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.5-55",
-    "createdAt": "2026-11-15T18:14:48.134Z",
+    "createdAt": "2026-11-17T00:47:25.570Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3453,7 +3458,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 704026877
+        "value": 915078917
       },
       {
         "op": "remove",
@@ -3474,7 +3479,7 @@
     "playerId": "p1",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.8-48",
-    "createdAt": "2026-11-15T18:14:48.136Z",
+    "createdAt": "2026-11-17T00:47:25.572Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3489,7 +3494,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -333640149
+        "value": -211719725
       },
       {
         "op": "remove",
@@ -3510,7 +3515,7 @@
     "playerId": "p1",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.5-37",
-    "createdAt": "2026-11-15T18:14:48.140Z",
+    "createdAt": "2026-11-17T00:47:25.574Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3525,7 +3530,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1239136757
+        "value": 1453841933
       },
       {
         "op": "remove",
@@ -3546,7 +3551,7 @@
     "playerId": "p1",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.7-39",
-    "createdAt": "2026-11-15T18:14:48.142Z",
+    "createdAt": "2026-11-17T00:47:25.577Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3561,7 +3566,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1125241567
+        "value": -1550693671
       },
       {
         "op": "remove",
@@ -3580,7 +3585,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.145Z",
+    "createdAt": "2026-11-17T00:47:25.578Z",
     "metadata": {
       "placed": 4
     },
@@ -3599,7 +3604,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1379378767
+        "value": 1296810423
       },
       {
         "op": "remove",
@@ -3629,7 +3634,7 @@
     "playerId": "p3",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.12-46",
-    "createdAt": "2026-11-15T18:14:48.147Z",
+    "createdAt": "2026-11-17T00:47:25.581Z",
     "metadata": {
       "isStart": true,
       "bonuses": []
@@ -3644,7 +3649,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 411298794
+        "value": 134188050
       },
       {
         "op": "remove",
@@ -3663,7 +3668,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:48.149Z",
+    "createdAt": "2026-11-17T00:47:25.582Z",
     "metadata": {
       "placed": 1
     },
@@ -3682,7 +3687,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1941480427
+        "value": 1824834579
       },
       {
         "op": "remove",
@@ -3712,7 +3717,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.11-47",
-    "createdAt": "2026-11-15T18:14:48.151Z",
+    "createdAt": "2026-11-17T00:47:25.584Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3727,7 +3732,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1615600994
+        "value": -2133883546
       },
       {
         "op": "remove",
@@ -3748,7 +3753,7 @@
     "playerId": "p2",
     "railroadId": "railroad.blue",
     "hexId": "hex.usa.8-46",
-    "createdAt": "2026-11-15T18:14:48.154Z",
+    "createdAt": "2026-11-17T00:47:25.586Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3763,7 +3768,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1393274391
+        "value": -1282918895
       },
       {
         "op": "remove",
@@ -3784,7 +3789,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.10-46",
-    "createdAt": "2026-11-15T18:14:48.166Z",
+    "createdAt": "2026-11-17T00:47:25.588Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3799,7 +3804,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -320606770
+        "value": -207648202
       },
       {
         "op": "remove",
@@ -3820,7 +3825,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.9-47",
-    "createdAt": "2026-11-15T18:14:48.176Z",
+    "createdAt": "2026-11-17T00:47:25.590Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3835,7 +3840,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1936528259
+        "value": -1813083259
       },
       {
         "op": "remove",
@@ -3856,7 +3861,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.8-46",
-    "createdAt": "2026-11-15T18:14:48.186Z",
+    "createdAt": "2026-11-17T00:47:25.592Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -3866,7 +3871,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 357
+        "value": 392
       },
       {
         "op": "replace",
@@ -3876,7 +3881,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 932525670
+        "value": 686379422
       },
       {
         "op": "remove",
@@ -3890,12 +3895,12 @@
     ]
   },
   {
-    "id": "wm7V6Zq06aKc6AajcNt3A",
+    "id": "hiXBeIzSjqsGj22f13eBr",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.186Z",
+    "createdAt": "2026-11-17T00:47:25.592Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -3915,7 +3920,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 524166043
+        "value": 4342883
       },
       {
         "op": "replace",
@@ -3971,7 +3976,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.213Z",
+    "createdAt": "2026-11-17T00:47:25.601Z",
     "metadata": {
       "startCityId": "city.usa.chicago",
       "endCityId": "city.usa.des-moines",
@@ -4020,7 +4025,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1695268366
+        "value": 681984792
       },
       {
         "op": "replace",
@@ -4087,7 +4092,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.240Z",
+    "createdAt": "2026-11-17T00:47:25.609Z",
     "metadata": {
       "startCityId": "city.usa.cincinnati",
       "endCityId": "city.usa.washington",
@@ -4137,7 +4142,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 619457295
+        "value": -1765922331
       },
       {
         "op": "replace",
@@ -4192,7 +4197,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.244Z",
+    "createdAt": "2026-11-17T00:47:25.611Z",
     "metadata": {
       "startCityId": "city.usa.des-moines",
       "endCityId": "city.usa.chicago",
@@ -4230,6 +4235,11 @@
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 427
+      },
+      {
+        "op": "replace",
         "path": "/activePlayerIds/0",
         "value": "p3"
       },
@@ -4241,7 +4251,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 389156850
+        "value": -1520431848
       },
       {
         "op": "replace",
@@ -4279,18 +4289,18 @@
     ]
   },
   {
-    "id": "scripted-84",
+    "id": "lt6wlE0UD9xBo0XmR146n",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.248Z",
+    "createdAt": "2026-11-17T00:47:25.611Z",
     "index": 84,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 392
+        "value": 462
       },
       {
         "op": "add",
@@ -4305,7 +4315,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 76583925
+        "value": -1228762849
       },
       {
         "op": "replace",
@@ -4324,11 +4334,11 @@
     ]
   },
   {
-    "id": "hiXBeIzSjqsGj22f13eBr",
+    "id": "uIRP5RvMV3ZbCPgdgJdvd",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "EndRound",
-    "createdAt": "2026-11-15T18:14:48.249Z",
+    "createdAt": "2026-11-17T00:47:25.611Z",
     "metadata": {
       "round": 3,
       "turnOrder": [
@@ -4371,7 +4381,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -10058131
+        "value": -452841613
       },
       {
         "op": "replace",
@@ -4417,7 +4427,7 @@
     "type": "TakeShare",
     "playerId": "p3",
     "railroadId": "railroad.purple",
-    "createdAt": "2026-11-15T18:14:48.252Z",
+    "createdAt": "2026-11-17T00:47:25.613Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 26
@@ -4437,7 +4447,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -679310835
+        "value": -1902053034
       },
       {
         "op": "remove",
@@ -4465,7 +4475,7 @@
     "type": "TakeShare",
     "playerId": "p1",
     "railroadId": "railroad.purple",
-    "createdAt": "2026-11-15T18:14:48.256Z",
+    "createdAt": "2026-11-17T00:47:25.614Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 25
@@ -4485,7 +4495,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -19157888
+        "value": -1476796453
       },
       {
         "op": "remove",
@@ -4513,7 +4523,7 @@
     "type": "TakeShare",
     "playerId": "p2",
     "railroadId": "railroad.red",
-    "createdAt": "2026-11-15T18:14:48.258Z",
+    "createdAt": "2026-11-17T00:47:25.615Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 13
@@ -4533,7 +4543,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -164274285
+        "value": -1357435704
       },
       {
         "op": "remove",
@@ -4561,7 +4571,7 @@
     "type": "TakeShare",
     "playerId": "p4",
     "railroadId": "railroad.purple",
-    "createdAt": "2026-11-15T18:14:48.260Z",
+    "createdAt": "2026-11-17T00:47:25.617Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 24
@@ -4576,7 +4586,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 125296127
+        "value": 1582673572
       },
       {
         "op": "remove",
@@ -4622,7 +4632,7 @@
     "playerId": "p4",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.0-4",
-    "createdAt": "2026-11-15T18:14:48.268Z",
+    "createdAt": "2026-11-17T00:47:25.619Z",
     "metadata": {
       "isStart": true,
       "bonuses": []
@@ -4637,7 +4647,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2067010861
+        "value": -571893368
       },
       {
         "op": "remove",
@@ -4658,7 +4668,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.9-41",
-    "createdAt": "2026-11-15T18:14:48.274Z",
+    "createdAt": "2026-11-17T00:47:25.621Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4673,7 +4683,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1538128366
+        "value": -42961591
       },
       {
         "op": "remove",
@@ -4692,7 +4702,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.276Z",
+    "createdAt": "2026-11-17T00:47:25.623Z",
     "metadata": {
       "placed": 2
     },
@@ -4711,7 +4721,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -447213355
+        "value": -1132829810
       },
       {
         "op": "remove",
@@ -4741,7 +4751,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.8-48",
-    "createdAt": "2026-11-15T18:14:48.278Z",
+    "createdAt": "2026-11-17T00:47:25.624Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4756,7 +4766,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1109792393
+        "value": -453273044
       },
       {
         "op": "remove",
@@ -4777,7 +4787,7 @@
     "playerId": "p2",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.4-56",
-    "createdAt": "2026-11-15T18:14:48.280Z",
+    "createdAt": "2026-11-17T00:47:25.626Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4792,7 +4802,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 578704044
+        "value": 2069635575
       },
       {
         "op": "remove",
@@ -4813,7 +4823,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.13-45",
-    "createdAt": "2026-11-15T18:14:48.282Z",
+    "createdAt": "2026-11-17T00:47:25.628Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4828,7 +4838,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 154340017
+        "value": 1343322602
       },
       {
         "op": "remove",
@@ -4849,7 +4859,7 @@
     "playerId": "p2",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.4-58",
-    "createdAt": "2026-11-15T18:14:48.284Z",
+    "createdAt": "2026-11-17T00:47:25.630Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4864,7 +4874,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1119626281
+        "value": 463361906
       },
       {
         "op": "remove",
@@ -4885,7 +4895,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.11-45",
-    "createdAt": "2026-11-15T18:14:48.287Z",
+    "createdAt": "2026-11-17T00:47:25.632Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4895,7 +4905,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 427
+        "value": 497
       },
       {
         "op": "replace",
@@ -4905,7 +4915,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 595076610
+        "value": 2052740441
       },
       {
         "op": "remove",
@@ -4919,12 +4929,12 @@
     ]
   },
   {
-    "id": "lt6wlE0UD9xBo0XmR146n",
+    "id": "ja0RKug8QNHvexXsHkGcq",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.287Z",
+    "createdAt": "2026-11-17T00:47:25.632Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -4944,7 +4954,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -331890875
+        "value": -1256862690
       },
       {
         "op": "remove",
@@ -4974,7 +4984,7 @@
     "playerId": "p1",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.1-3",
-    "createdAt": "2026-11-15T18:14:48.290Z",
+    "createdAt": "2026-11-17T00:47:25.635Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -4989,7 +4999,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1074498844
+        "value": 1236439189
       },
       {
         "op": "remove",
@@ -5008,7 +5018,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.292Z",
+    "createdAt": "2026-11-17T00:47:25.637Z",
     "metadata": {
       "placed": 1
     },
@@ -5027,7 +5037,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1198367465
+        "value": 1322565478
       },
       {
         "op": "remove",
@@ -5057,7 +5067,7 @@
     "playerId": "p3",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.1-5",
-    "createdAt": "2026-11-15T18:14:48.295Z",
+    "createdAt": "2026-11-17T00:47:25.639Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5072,7 +5082,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 936438534
+        "value": -1047131785
       },
       {
         "op": "remove",
@@ -5096,7 +5106,7 @@
     "playerId": "p3",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.10-44",
-    "createdAt": "2026-11-15T18:14:48.297Z",
+    "createdAt": "2026-11-17T00:47:25.641Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5111,7 +5121,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 34055559
+        "value": -197048330
       },
       {
         "op": "remove",
@@ -5132,7 +5142,7 @@
     "playerId": "p3",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.8-40",
-    "createdAt": "2026-11-15T18:14:48.300Z",
+    "createdAt": "2026-11-17T00:47:25.643Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5147,7 +5157,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 8809697
+        "value": -155152752
       },
       {
         "op": "remove",
@@ -5168,7 +5178,7 @@
     "playerId": "p3",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.1-7",
-    "createdAt": "2026-11-15T18:14:48.304Z",
+    "createdAt": "2026-11-17T00:47:25.645Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5178,7 +5188,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 462
+        "value": 532
       },
       {
         "op": "replace",
@@ -5188,7 +5198,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 564649791
+        "value": -673104562
       },
       {
         "op": "remove",
@@ -5202,12 +5212,12 @@
     ]
   },
   {
-    "id": "uIRP5RvMV3ZbCPgdgJdvd",
+    "id": "nSOaAOtvC793jT6A5z1pa",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:48.304Z",
+    "createdAt": "2026-11-17T00:47:25.645Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -5227,7 +5237,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1666655762
+        "value": 1793997727
       },
       {
         "op": "replace",
@@ -5299,7 +5309,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.307Z",
+    "createdAt": "2026-11-17T00:47:25.647Z",
     "metadata": {
       "startCityId": "city.usa.albany",
       "endCityId": "city.usa.boston",
@@ -5339,6 +5349,11 @@
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 567
+      },
+      {
+        "op": "replace",
         "path": "/activePlayerIds/0",
         "value": "p4"
       },
@@ -5350,7 +5365,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1804610602
+        "value": -975733276
       },
       {
         "op": "replace",
@@ -5388,14 +5403,19 @@
     ]
   },
   {
-    "id": "scripted-107",
+    "id": "Wp9XZ2SO4rmhJ4lO5Ppt2",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.309Z",
+    "createdAt": "2026-11-17T00:47:25.647Z",
     "index": 107,
     "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 602
+      },
       {
         "op": "replace",
         "path": "/activePlayerIds/0",
@@ -5409,7 +5429,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 688622265
+        "value": 2025006219
       },
       {
         "op": "remove",
@@ -5427,14 +5447,19 @@
     ]
   },
   {
-    "id": "scripted-108",
+    "id": "J0uioHsJ56y0jinXirzhD",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.310Z",
+    "createdAt": "2026-11-17T00:47:25.647Z",
     "index": 108,
     "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 637
+      },
       {
         "op": "replace",
         "path": "/activePlayerIds/0",
@@ -5448,7 +5473,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -183528761
+        "value": 2029763435
       },
       {
         "op": "remove",
@@ -5466,18 +5491,18 @@
     ]
   },
   {
-    "id": "scripted-109",
+    "id": "2icyy9Fq8NsJ80vxL69IU",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:48.312Z",
+    "createdAt": "2026-11-17T00:47:25.648Z",
     "index": 109,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 497
+        "value": 672
       },
       {
         "op": "add",
@@ -5492,7 +5517,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 997358020
+        "value": -1558254621
       },
       {
         "op": "replace",
@@ -5511,11 +5536,11 @@
     ]
   },
   {
-    "id": "ja0RKug8QNHvexXsHkGcq",
+    "id": "3uztRbYIyIgqIzPPq4Dn6",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "EndRound",
-    "createdAt": "2026-11-15T18:14:48.312Z",
+    "createdAt": "2026-11-17T00:47:25.648Z",
     "metadata": {
       "round": 4,
       "turnOrder": [
@@ -5558,7 +5583,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -474369454
+        "value": -1792048528
       },
       {
         "op": "replace",
@@ -5604,7 +5629,7 @@
     "type": "TakeShare",
     "playerId": "p4",
     "railroadId": "railroad.black",
-    "createdAt": "2026-11-15T18:14:48.314Z",
+    "createdAt": "2026-11-17T00:47:25.650Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 26
@@ -5624,7 +5649,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -904577355
+        "value": -2071910259
       },
       {
         "op": "remove",
@@ -5652,7 +5677,7 @@
     "type": "TakeShare",
     "playerId": "p1",
     "railroadId": "railroad.red",
-    "createdAt": "2026-11-15T18:14:48.317Z",
+    "createdAt": "2026-11-17T00:47:25.651Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 10
@@ -5672,7 +5697,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -306971494
+        "value": -1557665118
       },
       {
         "op": "replace",
@@ -5701,7 +5726,7 @@
     "type": "TakeShare",
     "playerId": "p2",
     "railroadId": "railroad.black",
-    "createdAt": "2026-11-15T18:14:48.319Z",
+    "createdAt": "2026-11-17T00:47:25.653Z",
     "metadata": {
       "shares": 1,
       "supplyLeft": 25
@@ -5721,7 +5746,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1714341250
+        "value": -683332538
       },
       {
         "op": "remove",
@@ -5749,7 +5774,7 @@
     "type": "TakeShare",
     "playerId": "p3",
     "railroadId": "railroad.orange",
-    "createdAt": "2026-11-15T18:14:48.320Z",
+    "createdAt": "2026-11-17T00:47:25.654Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 12
@@ -5764,7 +5789,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -670893718
+        "value": -1768493230
       },
       {
         "op": "replace",
@@ -5811,7 +5836,7 @@
     "playerId": "p3",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.12-44",
-    "createdAt": "2026-11-15T18:14:48.323Z",
+    "createdAt": "2026-11-17T00:47:25.657Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5826,7 +5851,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1390289795
+        "value": -474625467
       },
       {
         "op": "remove",
@@ -5845,7 +5870,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:48.325Z",
+    "createdAt": "2026-11-17T00:47:25.658Z",
     "metadata": {
       "placed": 1
     },
@@ -5864,7 +5889,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -72781874
+        "value": -1254262282
       },
       {
         "op": "remove",
@@ -5894,7 +5919,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.12-10",
-    "createdAt": "2026-11-15T18:14:48.329Z",
+    "createdAt": "2026-11-17T00:47:25.661Z",
     "metadata": {
       "isStart": true,
       "bonuses": []
@@ -5909,7 +5934,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -34818016
+        "value": -1283936744
       },
       {
         "op": "remove",
@@ -5930,7 +5955,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.12-12",
-    "createdAt": "2026-11-15T18:14:48.332Z",
+    "createdAt": "2026-11-17T00:47:25.663Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5945,7 +5970,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 16708643
+        "value": 1315627547
       },
       {
         "op": "remove",
@@ -5966,7 +5991,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.13-11",
-    "createdAt": "2026-11-15T18:14:48.335Z",
+    "createdAt": "2026-11-17T00:47:25.665Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -5981,7 +6006,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2054966753
+        "value": -887643097
       },
       {
         "op": "remove",
@@ -6002,7 +6027,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.11-9",
-    "createdAt": "2026-11-15T18:14:48.337Z",
+    "createdAt": "2026-11-17T00:47:25.668Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6017,7 +6042,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -480150138
+        "value": -1376425026
       },
       {
         "op": "remove",
@@ -6036,7 +6061,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.339Z",
+    "createdAt": "2026-11-17T00:47:25.670Z",
     "metadata": {
       "placed": 4
     },
@@ -6055,7 +6080,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1656256318
+        "value": 741105926
       },
       {
         "op": "remove",
@@ -6085,7 +6110,7 @@
     "playerId": "p1",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.8-54",
-    "createdAt": "2026-11-15T18:14:48.343Z",
+    "createdAt": "2026-11-17T00:47:25.672Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6100,7 +6125,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1036239358
+        "value": -1935136710
       },
       {
         "op": "remove",
@@ -6121,7 +6146,7 @@
     "playerId": "p1",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.8-38",
-    "createdAt": "2026-11-15T18:14:48.346Z",
+    "createdAt": "2026-11-17T00:47:25.674Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6136,7 +6161,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1606359622
+        "value": 288033918
       },
       {
         "op": "remove",
@@ -6155,7 +6180,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.348Z",
+    "createdAt": "2026-11-17T00:47:25.676Z",
     "metadata": {
       "placed": 2
     },
@@ -6174,7 +6199,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -126111140
+        "value": -1225808796
       },
       {
         "op": "remove",
@@ -6204,7 +6229,7 @@
     "playerId": "p4",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.12-14",
-    "createdAt": "2026-11-15T18:14:48.351Z",
+    "createdAt": "2026-11-17T00:47:25.678Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6219,7 +6244,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1220626960
+        "value": 106257448
       },
       {
         "op": "remove",
@@ -6238,7 +6263,7 @@
     "source": "user",
     "type": "EndBuilding",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.354Z",
+    "createdAt": "2026-11-17T00:47:25.680Z",
     "metadata": {
       "placed": 1
     },
@@ -6257,7 +6282,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2078158379
+        "value": 894056467
       },
       {
         "op": "replace",
@@ -6313,7 +6338,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.356Z",
+    "createdAt": "2026-11-17T00:47:25.681Z",
     "metadata": {
       "startCityId": "city.usa.saint-louis",
       "endCityId": "city.usa.des-moines",
@@ -6351,6 +6376,11 @@
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 707
+      },
+      {
+        "op": "replace",
         "path": "/activePlayerIds/0",
         "value": "p3"
       },
@@ -6362,7 +6392,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1212483069
+        "value": -114365381
       },
       {
         "op": "replace",
@@ -6400,14 +6430,19 @@
     ]
   },
   {
-    "id": "scripted-128",
+    "id": "iewRbPwaAQEeNDG68wG2s",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.358Z",
+    "createdAt": "2026-11-17T00:47:25.681Z",
     "index": 128,
     "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 742
+      },
       {
         "op": "replace",
         "path": "/activePlayerIds/0",
@@ -6421,7 +6456,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1649712129
+        "value": 750815801
       },
       {
         "op": "remove",
@@ -6439,14 +6474,19 @@
     ]
   },
   {
-    "id": "scripted-129",
+    "id": "M7FS1pAL2pbKBO8wBQuDz",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.360Z",
+    "createdAt": "2026-11-17T00:47:25.682Z",
     "index": 129,
     "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 777
+      },
       {
         "op": "replace",
         "path": "/activePlayerIds/0",
@@ -6460,7 +6500,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 550076863
+        "value": -97432562
       },
       {
         "op": "remove",
@@ -6478,18 +6518,18 @@
     ]
   },
   {
-    "id": "scripted-130",
+    "id": "g1KUksZqzws9ja1MUSTvD",
     "gameId": "ride-the-rails-test",
-    "source": "user",
+    "source": "system",
     "type": "PassJourney",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.361Z",
+    "createdAt": "2026-11-17T00:47:25.682Z",
     "index": 130,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 532
+        "value": 812
       },
       {
         "op": "add",
@@ -6504,7 +6544,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1559160679
+        "value": -1380547383
       },
       {
         "op": "replace",
@@ -6523,11 +6563,11 @@
     ]
   },
   {
-    "id": "nSOaAOtvC793jT6A5z1pa",
+    "id": "BnrMDNBmTm8PqBdQGUwrW",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "EndRound",
-    "createdAt": "2026-11-15T18:14:48.361Z",
+    "createdAt": "2026-11-17T00:47:25.683Z",
     "metadata": {
       "round": 5,
       "turnOrder": [
@@ -6569,7 +6609,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 391839851
+        "value": 495057455
       },
       {
         "op": "replace",
@@ -6615,7 +6655,7 @@
     "type": "TakeShare",
     "playerId": "p4",
     "railroadId": "railroad.orange",
-    "createdAt": "2026-11-15T18:14:48.364Z",
+    "createdAt": "2026-11-17T00:47:25.685Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 10
@@ -6635,7 +6675,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1201009689
+        "value": 1468069966
       },
       {
         "op": "replace",
@@ -6664,7 +6704,7 @@
     "type": "TakeShare",
     "playerId": "p3",
     "railroadId": "railroad.yellow",
-    "createdAt": "2026-11-15T18:14:48.366Z",
+    "createdAt": "2026-11-17T00:47:25.686Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 14
@@ -6684,7 +6724,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -664399997
+        "value": 931986474
       },
       {
         "op": "replace",
@@ -6713,7 +6753,7 @@
     "type": "TakeShare",
     "playerId": "p1",
     "railroadId": "railroad.red",
-    "createdAt": "2026-11-15T18:14:48.368Z",
+    "createdAt": "2026-11-17T00:47:25.688Z",
     "metadata": {
       "shares": 3,
       "supplyLeft": 8
@@ -6733,7 +6773,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1728048441
+        "value": 1995104622
       },
       {
         "op": "replace",
@@ -6762,7 +6802,7 @@
     "type": "TakeShare",
     "playerId": "p2",
     "railroadId": "railroad.black",
-    "createdAt": "2026-11-15T18:14:48.370Z",
+    "createdAt": "2026-11-17T00:47:25.689Z",
     "metadata": {
       "shares": 2,
       "supplyLeft": 19
@@ -6777,7 +6817,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -590105223
+        "value": 859391696
       },
       {
         "op": "replace",
@@ -6824,7 +6864,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.11-15",
-    "createdAt": "2026-11-15T18:14:48.373Z",
+    "createdAt": "2026-11-17T00:47:25.692Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6839,7 +6879,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -854736111
+        "value": 585576632
       },
       {
         "op": "remove",
@@ -6860,7 +6900,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.10-14",
-    "createdAt": "2026-11-15T18:14:48.376Z",
+    "createdAt": "2026-11-17T00:47:25.694Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6875,7 +6915,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -64496023
+        "value": 332213696
       },
       {
         "op": "remove",
@@ -6896,7 +6936,7 @@
     "playerId": "p2",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.9-53",
-    "createdAt": "2026-11-15T18:14:48.378Z",
+    "createdAt": "2026-11-17T00:47:25.696Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6911,7 +6951,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 193059323
+        "value": -462738862
       },
       {
         "op": "remove",
@@ -6932,7 +6972,7 @@
     "playerId": "p2",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.10-42",
-    "createdAt": "2026-11-15T18:14:48.381Z",
+    "createdAt": "2026-11-17T00:47:25.699Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6947,7 +6987,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2123310843
+        "value": 1855597228
       },
       {
         "op": "remove",
@@ -6968,7 +7008,7 @@
     "playerId": "p2",
     "railroadId": "railroad.black",
     "hexId": "hex.usa.13-13",
-    "createdAt": "2026-11-15T18:14:48.384Z",
+    "createdAt": "2026-11-17T00:47:25.702Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -6978,7 +7018,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 567
+        "value": 847
       },
       {
         "op": "replace",
@@ -6988,7 +7028,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1843708
+        "value": -269036971
       },
       {
         "op": "remove",
@@ -7002,12 +7042,12 @@
     ]
   },
   {
-    "id": "Wp9XZ2SO4rmhJ4lO5Ppt2",
+    "id": "sQ4ZlPRpR5dkghasCX36r",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p2",
-    "createdAt": "2026-11-15T18:14:48.385Z",
+    "createdAt": "2026-11-17T00:47:25.702Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -7027,7 +7067,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1141954334
+        "value": -1409669961
       },
       {
         "op": "remove",
@@ -7057,7 +7097,7 @@
     "playerId": "p1",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.10-42",
-    "createdAt": "2026-11-15T18:14:48.388Z",
+    "createdAt": "2026-11-17T00:47:25.705Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7072,7 +7112,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1143853504
+        "value": -1431667446
       },
       {
         "op": "remove",
@@ -7093,7 +7133,7 @@
     "playerId": "p1",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.2-4",
-    "createdAt": "2026-11-15T18:14:48.391Z",
+    "createdAt": "2026-11-17T00:47:25.707Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7108,7 +7148,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -50817220
+        "value": 310328310
       },
       {
         "op": "remove",
@@ -7129,7 +7169,7 @@
     "playerId": "p1",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.11-41",
-    "createdAt": "2026-11-15T18:14:48.395Z",
+    "createdAt": "2026-11-17T00:47:25.709Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7144,7 +7184,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -985382665
+        "value": 734260285
       },
       {
         "op": "remove",
@@ -7165,7 +7205,7 @@
     "playerId": "p1",
     "railroadId": "railroad.red",
     "hexId": "hex.usa.3-59",
-    "createdAt": "2026-11-15T18:14:48.398Z",
+    "createdAt": "2026-11-17T00:47:25.712Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7175,7 +7215,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 602
+        "value": 882
       },
       {
         "op": "replace",
@@ -7185,7 +7225,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1275482556
+        "value": -1568539274
       },
       {
         "op": "remove",
@@ -7202,12 +7242,12 @@
     ]
   },
   {
-    "id": "J0uioHsJ56y0jinXirzhD",
+    "id": "YJgmvafC6jqLTo3l5nw6h",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p1",
-    "createdAt": "2026-11-15T18:14:48.398Z",
+    "createdAt": "2026-11-17T00:47:25.712Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -7227,7 +7267,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1400808212
+        "value": -1107750946
       },
       {
         "op": "remove",
@@ -7260,7 +7300,7 @@
     "playerId": "p3",
     "railroadId": "railroad.yellow",
     "hexId": "hex.usa.9-43",
-    "createdAt": "2026-11-15T18:14:48.401Z",
+    "createdAt": "2026-11-17T00:47:25.715Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7275,7 +7315,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2002303835
+        "value": -1231107817
       },
       {
         "op": "remove",
@@ -7296,7 +7336,7 @@
     "playerId": "p3",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.12-40",
-    "createdAt": "2026-11-15T18:14:48.404Z",
+    "createdAt": "2026-11-17T00:47:25.717Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7311,7 +7351,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 551235955
+        "value": 518175937
       },
       {
         "op": "remove",
@@ -7332,7 +7372,7 @@
     "playerId": "p3",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.2-6",
-    "createdAt": "2026-11-15T18:14:48.409Z",
+    "createdAt": "2026-11-17T00:47:25.720Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7347,7 +7387,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 14098223
+        "value": 1055822493
       },
       {
         "op": "remove",
@@ -7371,7 +7411,7 @@
     "playerId": "p3",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.11-43",
-    "createdAt": "2026-11-15T18:14:48.412Z",
+    "createdAt": "2026-11-17T00:47:25.722Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7381,7 +7421,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 637
+        "value": 917
       },
       {
         "op": "replace",
@@ -7391,7 +7431,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 697022370
+        "value": 397556240
       },
       {
         "op": "remove",
@@ -7405,12 +7445,12 @@
     ]
   },
   {
-    "id": "2icyy9Fq8NsJ80vxL69IU",
+    "id": "YDTkKbvZF2JTDM6Ugk6jh",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p3",
-    "createdAt": "2026-11-15T18:14:48.412Z",
+    "createdAt": "2026-11-17T00:47:25.723Z",
     "metadata": {
       "reason": "limit",
       "placed": 4
@@ -7430,7 +7470,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1632779262
+        "value": -1600894544
       },
       {
         "op": "remove",
@@ -7463,7 +7503,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.11-39",
-    "createdAt": "2026-11-15T18:14:48.415Z",
+    "createdAt": "2026-11-17T00:47:25.726Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7478,7 +7518,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1467685928
+        "value": 94214634
       },
       {
         "op": "remove",
@@ -7499,7 +7539,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.11-37",
-    "createdAt": "2026-11-15T18:14:48.422Z",
+    "createdAt": "2026-11-17T00:47:25.729Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7514,7 +7554,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1317448321
+        "value": -476065613
       },
       {
         "op": "remove",
@@ -7535,7 +7575,7 @@
     "playerId": "p4",
     "railroadId": "railroad.orange",
     "hexId": "hex.usa.6-44",
-    "createdAt": "2026-11-15T18:14:48.425Z",
+    "createdAt": "2026-11-17T00:47:25.732Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7550,7 +7590,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 7240559
+        "value": -1384709795
       },
       {
         "op": "remove",
@@ -7571,7 +7611,7 @@
     "playerId": "p4",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.3-3",
-    "createdAt": "2026-11-15T18:14:48.428Z",
+    "createdAt": "2026-11-17T00:47:25.734Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7586,7 +7626,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 605754103
+        "value": -1996330811
       },
       {
         "op": "remove",
@@ -7607,7 +7647,7 @@
     "playerId": "p4",
     "railroadId": "railroad.purple",
     "hexId": "hex.usa.3-7",
-    "createdAt": "2026-11-15T18:14:48.431Z",
+    "createdAt": "2026-11-17T00:47:25.737Z",
     "metadata": {
       "isStart": false,
       "bonuses": []
@@ -7617,7 +7657,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 672
+        "value": 952
       },
       {
         "op": "replace",
@@ -7627,7 +7667,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 566351954
+        "value": -1931959712
       },
       {
         "op": "remove",
@@ -7641,12 +7681,12 @@
     ]
   },
   {
-    "id": "3uztRbYIyIgqIzPPq4Dn6",
+    "id": "mKxHrYPbLjoFH5jH7Um2m",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "FinishBuilding",
     "playerId": "p4",
-    "createdAt": "2026-11-15T18:14:48.431Z",
+    "createdAt": "2026-11-17T00:47:25.737Z",
     "metadata": {
       "reason": "limit",
       "placed": 5
@@ -7666,7 +7706,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1752260386
+        "value": 983030508
       },
       {
         "op": "replace",
@@ -7754,7 +7794,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.454Z",
+    "createdAt": "2026-11-17T00:47:25.757Z",
     "metadata": {
       "startCityId": "city.usa.little-rock",
       "endCityId": "city.usa.washington",
@@ -7808,7 +7848,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2043374673
+        "value": -1061636614
       },
       {
         "op": "replace",
@@ -7891,7 +7931,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.464Z",
+    "createdAt": "2026-11-17T00:47:25.767Z",
     "metadata": {
       "startCityId": "city.usa.nashville",
       "endCityId": "city.usa.washington",
@@ -7943,7 +7983,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1457209114
+        "value": -274143565
       },
       {
         "op": "replace",
@@ -7996,7 +8036,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.467Z",
+    "createdAt": "2026-11-17T00:47:25.769Z",
     "metadata": {
       "startCityId": "city.usa.portland-or",
       "endCityId": "city.usa.seattle",
@@ -8045,7 +8085,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1555868319
+        "value": 439389386
       },
       {
         "op": "replace",
@@ -8100,7 +8140,7 @@
         ]
       }
     ],
-    "createdAt": "2026-11-15T18:14:48.469Z",
+    "createdAt": "2026-11-17T00:47:25.771Z",
     "metadata": {
       "startCityId": "city.usa.las-vegas",
       "endCityId": "city.usa.los-angeles",
@@ -8139,7 +8179,7 @@
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 707
+        "value": 987
       },
       {
         "op": "add",
@@ -8154,7 +8194,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 952793685
+        "value": 2118540288
       },
       {
         "op": "replace",
@@ -8188,11 +8228,11 @@
     ]
   },
   {
-    "id": "iewRbPwaAQEeNDG68wG2s",
+    "id": "Vxh54tN4EIhBXQ0qqr2Xj",
     "gameId": "ride-the-rails-test",
     "source": "system",
     "type": "EndGame",
-    "createdAt": "2026-11-15T18:14:48.469Z",
+    "createdAt": "2026-11-17T00:47:25.771Z",
     "metadata": {
       "money": [
         {
@@ -8230,7 +8270,7 @@
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1142371846
+        "value": -43716689
       },
       {
         "op": "remove",

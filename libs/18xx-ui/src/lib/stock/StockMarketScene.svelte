@@ -1,5 +1,12 @@
 <script lang="ts">
-    import { marketDarkLightness, marketSpaceColor, marketZone } from './marketColors.js'
+    import {
+        marketDarkLightness,
+        marketSolidInk,
+        marketSpaceColor,
+        marketZone,
+        marketZoneTitle
+    } from './marketColors.js'
+    import './marketZoneTint.css'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
     import type {
@@ -45,7 +52,6 @@
         cell?: MarketCellDimensions
         renderScale?: number
     } = $props()
-    const SolidFillInk = '#253b35'
     // Below this width a three-digit price at full size reaches the space's right edge.
     const NarrowCellWidth = 34
     const geometry = $derived(marketGeometry(chart, cell, zones))
@@ -93,10 +99,6 @@
                 : []
         })
     )
-    // A solid fill keeps its colour in dark mode, so its text keeps the light-mode ink.
-    function solidInk(zone: MarketZone | undefined): string | undefined {
-        return zone?.fill?.kind === 'solid' ? (zone.fill.ink ?? SolidFillInk) : undefined
-    }
     let tokens = $derived(marketTokenLayout(chart, market, geometry))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
@@ -238,7 +240,7 @@
             style:height={`${MarketZoneBannerHeight * renderScale}px`}
         >
             {#each banners as banner (banner.color)}<div
-                    class="banner"
+                    class="banner market-zone-tint"
                     class:arrow={banner.shape === 'arrow'}
                     style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 1 + span}`}
                     style:--market-color={banner.zoneColor}
@@ -274,13 +276,14 @@
             {@const fillKind = zone?.fill?.kind}
             <div
                 class="space"
+                class:market-zone-tint={tinted || fillKind}
                 class:tinted={tinted && !fillKind}
                 class:solid={fillKind === 'solid'}
                 class:recessed={fillKind === 'recessed'}
                 role="button"
                 tabindex={crowded ? 0 : -1}
                 aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
-                title={zone ? `${zone.name}: ${zone.description}` : undefined}
+                title={zone ? marketZoneTitle(zone) : undefined}
                 data-market-space={space.id}
                 style:grid-column={`${columnTracks[space.column] + 1} / span ${span}`}
                 style:grid-row={space.row + 1}
@@ -288,7 +291,7 @@
                     ? marketSpaceColor(space.color, zone)
                     : undefined}
                 style:--market-lightness={marketDarkLightness[space.color]}
-                style:--price-ink={solidInk(zone)}
+                style:--price-ink={marketSolidInk(zone)}
                 onpointerenter={() => expandStack(space.id)}
                 onfocus={() => expandStack(space.id)}
                 onblur={() => (hoveredSpace = undefined)}
@@ -391,11 +394,7 @@
     .banner {
         --zone-ink: light-dark(
             oklch(from var(--market-color) 0.5 calc(c * 1.5) h),
-            color-mix(
-                in oklab,
-                oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
-                var(--rail-surface-raised, #2b3744)
-            )
+            var(--market-tint-dark)
         );
         display: flex;
         align-items: center;
@@ -467,15 +466,8 @@
         font-size: calc(12px * var(--render-scale));
     }
     .space.tinted {
-        background: light-dark(
-            var(--market-color),
-            color-mix(
-                in oklab,
-                oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
-                var(--rail-surface-raised, #2b3744)
-            )
-        );
-        --price-ink: light-dark(#253b35, #ebe6dcd9);
+        background: var(--market-tint);
+        --price-ink: var(--market-tint-ink);
     }
     .space.solid,
     .space.recessed {

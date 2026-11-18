@@ -13,6 +13,14 @@ import { investorsInGame, unchosenInvestors } from './investors.js'
 import { isInvestor } from './stock.js'
 import { seatsByCash } from './opening.js'
 
+/** The investors with a home held for them on the map, in number order. */
+function reservedInvestors(game: Table): string[] {
+    return game.state.stationReservations
+        .map((reservation) => reservation.companyId)
+        .filter(isInvestor)
+        .toSorted()
+}
+
 /** The current chooser takes the lowest-numbered investor left. */
 function chooseOne(game: Table): void {
     game.act('ChooseInvestor', { investorId: unchosenInvestors(game.hydrated)[0] })
@@ -104,6 +112,33 @@ describe('the private auction (§V)', () => {
         expect(game.player).toBe(order[0])
     })
 
+    it('holds every investor’s home from the start of the game', () => {
+        const game = kit.table(4, 3)
+        expect(
+            game.state.stationReservations.filter((reservation) =>
+                isInvestor(reservation.companyId)
+            )
+        ).toEqual(
+            expect.arrayContaining(
+                ForeignInvestors1880.map((investor) => ({
+                    companyId: investor.id,
+                    locationId: investor.home,
+                    nodeId: 'city'
+                }))
+            )
+        )
+        expect(reservedInvestors(game)).toEqual(ForeignInvestors1880.map(({ id }) => id))
+    })
+
+    it('keeps the homes of investors still to be chosen until every player has one', () => {
+        const game = kit.table(4, 3)
+        auctionAtFaceValue(game)
+        chooseOne(game)
+        expect(reservedInvestors(game)).toEqual(['A2', 'A3', 'A4', 'A5', 'A6', 'A7'])
+        chooseInvestors(game)
+        expect(reservedInvestors(game)).toEqual([])
+    })
+
     it('places each chosen investor in its home and removes the rest', () => {
         const game = kit.table(4, 3)
         auctionAtFaceValue(game)
@@ -160,6 +195,7 @@ describe('the random investors variant', () => {
         expect(closedInvestors(game).toSorted()).toEqual(removed.toSorted())
         const inGame = investorIds.filter((id) => !removed.includes(id))
         expect(investorsInGame(game.state)).toEqual(inGame)
+        expect(reservedInvestors(game)).toEqual(inGame)
         auctionAtFaceValue(game)
         expect(game.state.machineState).toBe('ChoosingInvestors')
         expect(unchosenInvestors(game.hydrated)).toEqual(inGame)

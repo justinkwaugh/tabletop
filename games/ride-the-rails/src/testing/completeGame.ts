@@ -7,8 +7,9 @@ import {
     type GameAction,
     type RandomFunction
 } from '@tabletop/common'
+import type { MapId } from '../data/maps.js'
 import type { RailroadId } from '../data/railroads.js'
-import { isCityHex } from '../data/usaMap.js'
+import { isCityHex } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 import { legalPlacements, type LegalPlacement } from '../rules/placement.js'
@@ -26,6 +27,8 @@ export type RailroadPreference = 'least-taken' | 'scarcest'
 
 export type ScriptedOptions = {
     railroads: RailroadPreference
+    // The map the game is created on; the USA when absent.
+    mapId?: MapId
 }
 
 // One user action as submitted, and its whole cascade.
@@ -192,7 +195,7 @@ export function playCompleteGame(
     seed: number,
     options: ScriptedOptions = { railroads: 'least-taken' }
 ): CompleteGame {
-    const { game, initial } = startWalk(playerCount, seed)
+    const { game, initial } = startWalk(playerCount, seed, options.mapId)
     const player = new ScriptedPlayer(seed, options)
     const steps: ScriptedStep[] = []
     let state = initial

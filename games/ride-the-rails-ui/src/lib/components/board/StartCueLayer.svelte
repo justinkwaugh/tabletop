@@ -17,21 +17,23 @@
 <g class="start-cues" aria-hidden="true">
     {#each cues as cue (`${cue.railroadId}:${cue.hexId}`)}
         <g data-start-cue={cue.railroadId} data-hex={cue.hexId}>
-            <polygon
-                points={cue.points}
-                fill="none"
-                stroke="var(--rtr-white)"
-                stroke-width={START_CUE.groundWidth}
-                stroke-linejoin="round"
-            ></polygon>
-            <polygon
-                points={cue.points}
-                fill="none"
-                stroke={railroadStyle(cue.railroadId).cue}
-                stroke-width={START_CUE.width}
-                stroke-dasharray={START_CUE.dash}
-                stroke-linejoin="round"
-            ></polygon>
+            {#each cue.cells as points, cell (cell)}
+                <polygon
+                    {points}
+                    fill="none"
+                    stroke="var(--rtr-white)"
+                    stroke-width={START_CUE.groundWidth}
+                    stroke-linejoin="round"
+                ></polygon>
+                <polygon
+                    {points}
+                    fill="none"
+                    stroke={railroadStyle(cue.railroadId).cue}
+                    stroke-width={START_CUE.width}
+                    stroke-dasharray={START_CUE.dash}
+                    stroke-linejoin="round"
+                ></polygon>
+            {/each}
         </g>
     {/each}
 </g>

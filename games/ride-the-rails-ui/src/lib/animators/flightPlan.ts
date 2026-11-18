@@ -1,14 +1,17 @@
 import type { Point } from '@tabletop/common'
 import {
+    BONUS_RULES,
     RAILROAD_IDS,
-    TRANSCONTINENTAL_BONUS,
     transcontinentalLine,
-    usaCity,
+    cityById,
+    type CityId,
     type HexId,
+    type MapId,
     type PaidBonus,
     type RailroadId
 } from '@tabletop/ride-the-rails'
 import { hexCenter } from '$lib/utils/boardGeometry.js'
+import { connectionBonus } from '$lib/utils/linkBonus.js'
 import { locomotivePieces, type LocomotivePiece } from '$lib/utils/boardPieces.js'
 import type { TrackSlot } from '$lib/utils/trackLayout.js'
 import type { State } from './motion.js'
@@ -58,15 +61,22 @@ export function shareChanges(from: State, to: State): ShareChange[] {
 
 export type CoinFlight = { key: string; amount: number; from: Point }
 
-// R-3.2.5, R-4.3: the Chicago and $5 bonuses a placement paid rise from where they were earned.
-// The Transcontinental pays through its own animator, after its line is shown.
-export function bonusCoins(placementHexId: HexId, bonuses: readonly PaidBonus[]): CoinFlight[] {
+// R-3.2.5, R-4.3, R-8: the bonuses a placement paid each time (Chicago, $5, a city's own) rise from
+// where they were earned. One paid once and claimed (the Transcontinental, a connection bonus) pays
+// through its own animator, after its hexes are shown.
+export function bonusCoins(
+    mapId: MapId,
+    placementHexId: HexId,
+    bonuses: readonly PaidBonus[]
+): CoinFlight[] {
+    const claimed = (bonusId: string) =>
+        BONUS_RULES[mapId].some((rule) => rule.claims !== undefined && rule.bonus.id === bonusId)
     return bonuses
-        .filter((bonus) => bonus.bonusId !== TRANSCONTINENTAL_BONUS.id)
+        .filter((bonus) => !claimed(bonus.bonusId))
         .map((bonus, index) => ({
             key: `coin:${index}:${bonus.bonusId}`,
             amount: bonus.amount,
-            from: hexCenter(bonus.cityId ? usaCity(bonus.cityId).hexId : placementHexId)
+            from: hexCenter(bonus.cityId ? cityById(bonus.cityId).hexId : placementHexId)
         }))
 }
 
@@ -80,6 +90,13 @@ export function moneyAfterEach(start: number, coins: readonly { amount: number }
 export function claimedLine(from: State, to: State): HexId[] | undefined {
     if (from.transcontinental || !to.transcontinental) return undefined
     return transcontinentalLine(to.track)?.hexIds
+}
+
+// R-8: the link cities a transition joins, when it is the one that claims the map's connection
+// bonus.
+export function claimedConnection(from: State, to: State): readonly CityId[] | undefined {
+    if (from.connectionClaim || !to.connectionClaim) return undefined
+    return connectionBonus(to.mapId)?.cityIds
 }
 
 /** Contract, Animation plan: the line's hexes outline one after another within 900 ms. */

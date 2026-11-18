@@ -23,7 +23,7 @@ Top to bottom:
 
 1. **Turn header**: one row.
     - Left end: whose turn it is. `Your turn` for the acting player; otherwise the active player's name in possessive form, `[Player name]'s turn` (`PlayerName` with `possessive`). It reads `History` in History View and `End of game` once the game has a result.
-    - Right end: the single **Undo** button. Its behavior is defined in [user interaction patterns](user-interactions.md#undo).
+    - Right end: the **Undo** button, with **Restart turn** beside it in titles that offer it. Their behavior is defined in [user interaction patterns](user-interactions.md#undo).
 2. **Action area** (see [action area views](#action-area-views)): exactly one of
     - the action panel, holding prompts and controls for the decision the player is making now;
     - the waiting view, for players who are not acting;

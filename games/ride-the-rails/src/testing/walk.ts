@@ -1,6 +1,7 @@
 import { ActionSource, assert, assertExists, type Game, type GameAction } from '@tabletop/common'
-import { isCityHex } from '../data/usaMap.js'
+import { isCityHex } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
+import type { MapId } from '../data/maps.js'
 import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 import { legalPlacements, type LegalPlacement } from '../rules/placement.js'
 import { bestJourneys, type RankedJourney } from '../rules/routeSearch.js'
@@ -96,8 +97,8 @@ function pick<T>(options: readonly T[], step: number): T {
     return option
 }
 
-export function startWalk(playerCount: number, seed: number) {
-    const game = createGame(playerCount, seed)
+export function startWalk(playerCount: number, seed: number, mapId?: MapId) {
+    const game = createGame(playerCount, seed, mapId)
     const { initialState } = engine.startGame(game, {
         masterSeed: walkSeed(seed),
         startingPositions: { playerIds: fixturePlayerIds(playerCount) }

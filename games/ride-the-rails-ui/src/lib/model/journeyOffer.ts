@@ -1,14 +1,14 @@
 import { assertExists } from '@tabletop/common'
 import {
     RAILROAD_IDS,
-    USA_HEXES,
+    boardMap,
     hasLinkFrom,
     journeyCities,
     journeyPayments,
     paymentTotal,
     nextCities,
     realise,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type JourneyPayment,
@@ -74,7 +74,7 @@ export const EMPTY_JOURNEY_OFFER: JourneyOffer = {
 
 // R-3.3.1: a journey starts in a city holding a passenger with a link out, in map order.
 export function startCities(state: RideTheRailsGameState): JourneyCity[] {
-    return USA_HEXES.flatMap((hex): JourneyCity[] => {
+    return boardMap(state.mapId).hexes.flatMap((hex): JourneyCity[] => {
         if (hex.terrain !== 'city' || !state.passengers.includes(hex.cityId)) {
             return []
         }
@@ -100,7 +100,7 @@ function extensionCities(
                 realiseDraft(state, startCityId, [...links, { cityId, railroadId }]) !== undefined
         )
         return extending.length > 0
-            ? [{ cityId, hexId: usaCity(cityId).hexId, railroadIds: extending }]
+            ? [{ cityId, hexId: cityById(cityId).hexId, railroadIds: extending }]
             : []
     })
 }
@@ -204,12 +204,13 @@ export function journeyBoardOffer(offer: JourneyOffer): BoardOffer {
         placements: city.railroadIds.map((railroadId) => ({
             railroadId,
             isStart: false,
-            bonuses: []
+            bonuses: [],
+            limitChange: 0
         })),
         marks: [],
         startOnly: false
     }))
-    const startHexId = offer.draft ? [usaCity(offer.draft.startCityId).hexId] : []
+    const startHexId = offer.draft ? [cityById(offer.draft.startCityId).hexId] : []
     return {
         lit,
         scrim: { holes: [...startHexId, ...lit.map((hex) => hex.hexId)] },

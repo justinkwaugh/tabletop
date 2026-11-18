@@ -1,5 +1,6 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isTakeShare, supplyOf } from '@tabletop/ride-the-rails'
+import { boardGeometry } from '$lib/utils/boardGeometry.js'
 import { TRAVELLING_LOCOMOTIVE_WIDTH, railroadSourcePoint, seatCardPoint } from './flightPlaces.js'
 import { shareChanges } from './flightPlan.js'
 import { newShareSlot } from '$lib/utils/seatCards.js'
@@ -32,10 +33,11 @@ export function shareAnimator(flights: Flights): GameStateChangeListener<State> 
         if (!change) return
         flights.follow(animationContext)
 
-        const start = railroadSourcePoint(flights.table, change.railroadId)
+        const board = boardGeometry(to.mapId)
+        const start = railroadSourcePoint(board, flights.table, change.railroadId)
         const taker = to.getPlayerState(change.playerId)
         const slot = newShareSlot((railroadId) => taker.sharesOf(railroadId), change.railroadId)
-        const marker = seatCardPoint(flights.table, change.playerId, slot)
+        const marker = seatCardPoint(board, flights.table, change.playerId, slot)
         const startPose = pose(start.x, start.y)
         const shown = await showFlyers(flights, [
             {

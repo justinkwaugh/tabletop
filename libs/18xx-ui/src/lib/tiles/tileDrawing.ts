@@ -167,6 +167,7 @@ export type TileDrawnToken = {
 export type TileDrawnNode = {
     node: TileNode
     center: Point
+    unmarked?: true
     slots: readonly Point[]
     /** Spaces opened into an upside-down V, whose band leaves its bottom side open. */
     openBand?: true
@@ -533,22 +534,32 @@ export function createTileDrawing(
                   )
         if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
-        const tracks = face.paths.filter((path) =>
+        const nodeTracks = face.paths.filter((path) =>
             path.endpoints.some(
                 (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
             )
-        ).length
+        )
+        const tracks = nodeTracks.length
+        const unmarked =
+            (node.kind === 'town' || node.kind === 'junction') &&
+            tracks > 0 &&
+            nodeTracks.every((path) => {
+                const drawn = paths.find((entry) => entry.id === path.id)
+                return !!(drawn?.spike || drawn?.pier)
+            })
         // A town on through track, or ending a single track, is a bar across that track.
         const townAngle =
             !style.townDots &&
+            !unmarked &&
             node.kind === 'town' &&
             (automaticTownPaths.has(node.id) || tracks === 1)
                 ? townMarkerAngle(center, paths)
                 : undefined
-        const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 ? 9 : 6.3
+        const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 && !unmarked ? 9 : 6.3
         return {
             node,
             center,
+            ...(unmarked ? { unmarked: true as const } : {}),
             slots: node.kind === 'city' ? citySlots(node, center) : [],
             ...(node.kind === 'city' && layout.slotSpreads?.[node.id] !== undefined
                 ? { openBand: true as const }

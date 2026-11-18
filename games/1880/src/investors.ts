@@ -112,6 +112,14 @@ export function unchosenInvestors(state: HydratedState1880): string[] {
     )
 }
 
+function removeUnchosenInvestors(state: HydratedState1880): void {
+    const removedIds = unchosenInvestors(state)
+    for (const id of removedIds) getCompany(state, id).closed = true
+    state.stationReservations = state.stationReservations.filter(
+        (reservation) => !removedIds.includes(reservation.companyId)
+    )
+}
+
 const ChooseInvestorAction = titleAction('ChooseInvestor', { investorId: Id })
 export const ChooseInvestor = ChooseInvestorAction.schema
 export type ChooseInvestor = Type.Static<typeof ChooseInvestor>
@@ -154,7 +162,7 @@ export class HydratedChooseInvestor extends ChooseInvestorAction.Base {
         // first turn begins (§V).
         state.turnManager.endTurn(state.actionCount)
         const next = state.turnManager.turnOrder.find((playerId) => !holdsInvestor(state, playerId))
-        if (!next) for (const id of unchosenInvestors(state)) getCompany(state, id).closed = true
+        if (!next) removeUnchosenInvestors(state)
         const playerId = next ?? state.turnManager.turnOrder[0]
         state.turnManager.startTurn(playerId, state.actionCount + 1)
         state.activePlayerIds = [playerId]

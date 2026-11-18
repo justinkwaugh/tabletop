@@ -6,7 +6,7 @@ import {
     PhaseName,
     isTakeShare,
     railroadsIn,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type RailroadId,
@@ -24,6 +24,7 @@ import {
     latestJourney,
     latestShare,
     linksAndFareText,
+    mountainCost,
     mountainNote,
     placedCount,
     placedText,
@@ -125,6 +126,21 @@ describe('build panel (R-3.2.1, R-3.2.4)', () => {
         expect(endBuildingLabel(progress)).toBe('Done')
     })
 
+    it('reads the map’s mountain cost: −2 on Australia, the limit 6 once a mountain is used (R-8.2)', () => {
+        const progress = buildProgress(
+            buildState({
+                mapId: 'map.au',
+                playerCount: 3,
+                phase: PhaseName.Build,
+                building: { placed: 2, usedMountain: true }
+            })
+        )
+        assertExists(progress)
+        expect(placedText(progress)).toBe('2 of 6 placed')
+        expect(mountainCost(progress)).toBe('−2')
+        expect(mountainNote(progress)).toBe('Mountain used: limit 6')
+    })
+
     it('has no progress outside a building turn', () => {
         expect(buildProgress(buildState({ phase: PhaseName.Ride }))).toBeUndefined()
     })
@@ -215,9 +231,9 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1)', () => {
                 passengers: [KANSAS_CITY, CINCINNATI]
             })
         )
-        await session.pressHex(usaCity(KANSAS_CITY).hexId)
-        await session.pressHex(usaCity(SAINT_LOUIS).hexId)
-        await session.pressHex(usaCity(CINCINNATI).hexId)
+        await session.pressHex(cityById(KANSAS_CITY).hexId)
+        await session.pressHex(cityById(SAINT_LOUIS).hexId)
+        await session.pressHex(cityById(CINCINNATI).hexId)
         await session.rideJourney()
         await settled(session)
         const latest = latestJourney(session.actions)

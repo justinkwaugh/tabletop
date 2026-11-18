@@ -45,3 +45,36 @@ export function insideConvexPolygon(point: Point, corners: readonly Point[]): bo
         return cross >= -1e-9
     })
 }
+
+/**
+ * How far a disc reaches past a convex polygon's edge: the most, over its sides, of the disc's
+ * distance outside each (negative inside).
+ */
+export function reachPastConvex(point: Point, corners: readonly Point[], radius = 0): number {
+    const center = {
+        x: corners.reduce((sum, corner) => sum + corner.x, 0) / corners.length,
+        y: corners.reduce((sum, corner) => sum + corner.y, 0) / corners.length
+    }
+    return Math.max(
+        ...corners.map((from, index) => {
+            const to = corners[(index + 1) % corners.length]
+            const length = Math.hypot(to.x - from.x, to.y - from.y)
+            let nx = (to.y - from.y) / length
+            let ny = -(to.x - from.x) / length
+            // Point the normal away from the polygon's centre.
+            if ((from.x - center.x) * nx + (from.y - center.y) * ny < 0) {
+                nx = -nx
+                ny = -ny
+            }
+            return (point.x - from.x) * nx + (point.y - from.y) * ny + radius
+        })
+    )
+}
+
+/** A hexagon of this corner radius round the origin, its corners at the frame's angles. */
+export function frameHexagon(cornerAngles: readonly number[], radius: number): Point[] {
+    return cornerAngles.map((degrees) => {
+        const radians = (degrees * Math.PI) / 180
+        return { x: radius * Math.sin(radians), y: -radius * Math.cos(radians) }
+    })
+}

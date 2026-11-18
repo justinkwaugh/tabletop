@@ -7,7 +7,7 @@
     import './playerTint.css'
     import '../stock/tradePopover.css'
     import {
-        companySharePrice,
+        companyMarketSpace,
         DefaultCompanyPricePresentation,
         shownParPrice,
         type CompanyPricePresentation
@@ -36,6 +36,8 @@
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
+    import { marketValueMark } from '../stock/marketColors.js'
+    import '../stock/marketZoneTint.css'
     import { numberedSharesOwned } from './numberedShares.js'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
@@ -476,13 +478,25 @@
             }
         })
     )
+    const marketSpaces = $derived(
+        new Map(
+            companies.map((company) => [
+                company.id,
+                companyMarketSpace(
+                    session.stockMarketChart,
+                    session.gameState.stockMarket,
+                    company.id
+                )
+            ])
+        )
+    )
     const companyRows = $derived(
         companies.map((company) => ({
             company,
-            value: companySharePrice(
-                session.stockMarketChart,
-                session.gameState.stockMarket,
-                company.id
+            value: marketSpaces.get(company.id)?.price,
+            valueMark: marketValueMark(
+                marketSpaces.get(company.id),
+                session.presentation.marketZones
             ),
             // Par is the IPO purchase price, so it only matters while the IPO is selling,
             // unless the title still prices company actions from it.
@@ -589,6 +603,18 @@
         )
     }
 </script>
+
+{#snippet companyValueCell(row: CompanyRow, statStart: boolean, operating: boolean)}
+    <td
+        class="bright-cell value-cell"
+        class:company-stat-start={statStart}
+        class:operating-column={operating}
+        class:market-zone-tint={row.valueMark}
+        style={row.valueMark?.style}
+        title={row.valueMark?.title}
+        >{row.value === undefined ? '—' : row.value.toLocaleString('en-US')}</td
+    >
+{/snippet}
 
 {#snippet financialValue(ownerId: string, key: OwnerStatistic)}
     {@const values = statistics.get(ownerId)}
@@ -1057,11 +1083,7 @@
                                                 poolAlternate(owners[index].id),
                                                 row.shareNumbers[index]
                                             )}{/each}
-                                        <td class="company-stat-start bright-cell value-cell"
-                                            >{row.value === undefined
-                                                ? '—'
-                                                : row.value.toLocaleString('en-US')}</td
-                                        >
+                                        {@render companyValueCell(row, true, false)}
                                         <td class="company-stat-start bright-cell"
                                             >{@render companyCash(row.cash)}</td
                                         >
@@ -1185,14 +1207,11 @@
                                         pricePresentation.label,
                                         'value'
                                     )}
-                                    {#each rows as row (row.company.id)}<td
-                                            class:operating-column={row.company.id ===
-                                                operatingCompanyId}
-                                            class="bright-cell value-cell"
-                                            >{row.value === undefined
-                                                ? '—'
-                                                : row.value.toLocaleString('en-US')}</td
-                                        >{/each}
+                                    {#each rows as row (row.company.id)}{@render companyValueCell(
+                                            row,
+                                            false,
+                                            row.company.id === operatingCompanyId
+                                        )}{/each}
                                     {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
@@ -1555,6 +1574,10 @@
     }
     td.value-cell {
         --cell-fill: color-mix(in srgb, var(--sheet-market) 45%, var(--sheet-cell));
+    }
+    td.value-cell.market-zone-tint {
+        --cell-fill: var(--market-tint);
+        color: var(--market-tint-ink);
     }
     td {
         background: var(--cell-fill, var(--row-fill, transparent));

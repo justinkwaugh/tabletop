@@ -6,7 +6,7 @@ import { MILLISECONDS_PER_MINUTE } from '../../util/time.js'
 export enum GamePace {
     Live = 'live',
     Fast = 'fast',
-    SameDay = 'sameDay',
+    Brisk = 'brisk',
     Daily = 'daily',
     Relaxed = 'relaxed'
 }
@@ -16,12 +16,15 @@ export type GamePacePreset = { pace: GamePace; minutes: number }
 export const GAME_PACE_PRESETS: readonly GamePacePreset[] = [
     { pace: GamePace.Live, minutes: 15 },
     { pace: GamePace.Fast, minutes: 60 },
-    { pace: GamePace.SameDay, minutes: 8 * 60 },
+    { pace: GamePace.Brisk, minutes: 4 * 60 },
     { pace: GamePace.Daily, minutes: 24 * 60 },
     { pace: GamePace.Relaxed, minutes: 3 * 24 * 60 }
 ]
 
 export const DEFAULT_PACE_MINUTES = gamePacePreset(GamePace.Daily).minutes
+
+// Brisk replaced the 8 hour Same day pace; games stored at 8 hours are Brisk games.
+const FORMER_SAME_DAY_MINUTES = 8 * 60
 
 export function gamePacePreset(pace: GamePace): GamePacePreset {
     const preset = GAME_PACE_PRESETS.find((candidate) => candidate.pace === pace)
@@ -29,21 +32,25 @@ export function gamePacePreset(pace: GamePace): GamePacePreset {
     return preset
 }
 
-export function gamePaceMinutes(game: Pick<Game, 'paceMinutes'>): number {
-    return game.paceMinutes ?? DEFAULT_PACE_MINUTES
+// Presets can change while games keep their stored minutes, so any duration must resolve.
+function presetForMinutes(minutes: number): GamePacePreset {
+    if (minutes === FORMER_SAME_DAY_MINUTES) return gamePacePreset(GamePace.Brisk)
+    return (
+        GAME_PACE_PRESETS.find((candidate) => minutes <= candidate.minutes) ??
+        gamePacePreset(GamePace.Relaxed)
+    )
 }
 
 export function snapPaceMinutes(minutes: number): number {
-    const preset = GAME_PACE_PRESETS.find((candidate) => minutes <= candidate.minutes)
-    assertExists(preset, `A pace of ${minutes} minutes is slower than every preset`)
-    return preset.minutes
+    return presetForMinutes(minutes).minutes
 }
 
 export function gamePaceOf(game: Pick<Game, 'paceMinutes'>): GamePacePreset {
-    const minutes = gamePaceMinutes(game)
-    const preset = GAME_PACE_PRESETS.find((candidate) => candidate.minutes === minutes)
-    assertExists(preset, `A stored pace of ${minutes} minutes is not a preset`)
-    return preset
+    return presetForMinutes(game.paceMinutes ?? DEFAULT_PACE_MINUTES)
+}
+
+export function gamePaceMinutes(game: Pick<Game, 'paceMinutes'>): number {
+    return gamePaceOf(game).minutes
 }
 
 type TurnTiming = Pick<

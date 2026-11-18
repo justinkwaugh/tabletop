@@ -1,13 +1,6 @@
 import type { BoundingBox, Point, RectangleDimensions } from '@tabletop/common'
 import type { HexId, RailroadId } from '@tabletop/ride-the-rails'
-import {
-    BOARD_EXTENTS,
-    BOARD_HEIGHT,
-    BOARD_WIDTH,
-    HEX_WIDTH,
-    MAP_EXTENTS,
-    hexBox
-} from './boardGeometry.js'
+import { HEX_WIDTH, hexBox, type BoardGeometry } from './boardGeometry.js'
 
 /** The board's largest zoom. */
 export const BOARD_MAX_SCALE = 2
@@ -28,11 +21,13 @@ export const BOARD_COVER_BELOW_SCALE = 0.3
 export const MIN_RESTING_HEX_PX = 37
 
 /** A third of the map's width at the board's full height, about the map's middle. */
-const MIDDLE_THIRD: BoundingBox = {
-    x: MAP_EXTENTS.x + MAP_EXTENTS.width / 3,
-    y: 0,
-    width: MAP_EXTENTS.width / 3,
-    height: BOARD_HEIGHT
+function middleThird(board: BoardGeometry): BoundingBox {
+    return {
+        x: board.mapExtents.x + board.mapExtents.width / 3,
+        y: 0,
+        width: board.mapExtents.width / 3,
+        height: board.height
+    }
 }
 
 function containScale(rect: RectangleDimensions, view: RectangleDimensions): number {
@@ -40,21 +35,21 @@ function containScale(rect: RectangleDimensions, view: RectangleDimensions): num
 }
 
 /** Whether the wrapper rests this view at a cover fit rather than the whole map. */
-export function restsAtCover(view: RectangleDimensions): boolean {
-    return containScale(BOARD_EXTENTS, view) < BOARD_COVER_BELOW_SCALE
+export function restsAtCover(board: BoardGeometry, view: RectangleDimensions): boolean {
+    return containScale(board.extents, view) < BOARD_COVER_BELOW_SCALE
 }
 
 /**
  * The scale a phone rests at: the middle third fitted, but never smaller than a resting hex nor
  * short of the view's height.
  */
-export function middleThirdScale(view: RectangleDimensions): number {
+export function middleThirdScale(board: BoardGeometry, view: RectangleDimensions): number {
     return Math.min(
         BOARD_MAX_SCALE,
         Math.max(
-            containScale(MIDDLE_THIRD, view),
+            containScale(middleThird(board), view),
             MIN_RESTING_HEX_PX / HEX_WIDTH,
-            view.height / BOARD_HEIGHT
+            view.height / board.height
         )
     )
 }
@@ -68,19 +63,26 @@ function unitRectAt(point: Point): BoundingBox {
 }
 
 /** Contract, Phone layout: where a cover-fit view rests, the middle third with hexes at least 37 px. */
-export function restingRequest(view: RectangleDimensions): FocusRequest {
-    return { rect: unitRectAt(centreOf(MIDDLE_THIRD)), maxScale: middleThirdScale(view) }
+export function restingRequest(board: BoardGeometry, view: RectangleDimensions): FocusRequest {
+    return {
+        rect: unitRectAt(centreOf(middleThird(board))),
+        maxScale: middleThirdScale(board, view)
+    }
 }
 
 /** A box on screen, as `getBoundingClientRect` reports it. */
 export type ScreenBox = { left: number; top: number; width: number; height: number }
 
 /** The part of the board a view shows, in board units, read through where the board is drawn. */
-export function shownBoardRect(board: ScreenBox, view: ScreenBox): BoundingBox {
-    const scale = board.width / BOARD_WIDTH
+export function shownBoardRect(
+    board: BoardGeometry,
+    drawn: ScreenBox,
+    view: ScreenBox
+): BoundingBox {
+    const scale = drawn.width / board.width
     return {
-        x: (view.left - board.left) / scale,
-        y: (view.top - board.top) / scale,
+        x: (view.left - drawn.left) / scale,
+        y: (view.top - drawn.top) / scale,
         width: view.width / scale,
         height: view.height / scale
     }
@@ -204,29 +206,30 @@ export const MIN_BUILD_ZOOM_GAIN = 1.1
  * Contract, Build: the scale a view rests at, below which the building zoom never goes: the whole
  * map where the view fits it, and the middle third's scale where it rests at a cover fit.
  */
-export function restingScale(view: RectangleDimensions): number {
-    return restsAtCover(view)
-        ? middleThirdScale(view)
-        : Math.min(BOARD_MAX_FIT_SCALE, containScale(BOARD_EXTENTS, view))
+export function restingScale(board: BoardGeometry, view: RectangleDimensions): number {
+    return restsAtCover(board, view)
+        ? middleThirdScale(board, view)
+        : Math.min(BOARD_MAX_FIT_SCALE, containScale(board.extents, view))
 }
 
-function withinBoard(box: BoundingBox): BoundingBox {
-    const x = Math.max(BOARD_EXTENTS.x, box.x)
-    const y = Math.max(BOARD_EXTENTS.y, box.y)
+function withinBoard(board: BoardGeometry, box: BoundingBox): BoundingBox {
+    const { extents } = board
+    const x = Math.max(extents.x, box.x)
+    const y = Math.max(extents.y, box.y)
     return {
         x,
         y,
-        width: Math.min(BOARD_EXTENTS.x + BOARD_EXTENTS.width, box.x + box.width) - x,
-        height: Math.min(BOARD_EXTENTS.y + BOARD_EXTENTS.height, box.y + box.height) - y
+        width: Math.min(extents.x + extents.width, box.x + box.width) - x,
+        height: Math.min(extents.y + extents.height, box.y + box.height) - y
     }
 }
 
 /** Contract, Build: the lit hexes' box, a hex width wider on every side, kept inside the board. */
-function buildZoomRect(hexIds: readonly HexId[]): BoundingBox | undefined {
+function buildZoomRect(board: BoardGeometry, hexIds: readonly HexId[]): BoundingBox | undefined {
     const boxes = hexIds.map(hexBox)
     if (boxes.length === 0) return undefined
     const lit = boxes.reduce(unionBox)
-    return withinBoard({
+    return withinBoard(board, {
         x: lit.x - HEX_WIDTH,
         y: lit.y - HEX_WIDTH,
         width: lit.width + 2 * HEX_WIDTH,
@@ -242,10 +245,14 @@ function buildZoomRect(hexIds: readonly HexId[]): BoundingBox | undefined {
  */
 type BuildZoomFit = 'fit' | 'whole-map' | 'spread'
 
-function buildZoomFit(rect: BoundingBox, view: RectangleDimensions): BuildZoomFit {
-    const floor = restingScale(view)
+function buildZoomFit(
+    board: BoardGeometry,
+    rect: BoundingBox,
+    view: RectangleDimensions
+): BuildZoomFit {
+    const floor = restingScale(board, view)
     const scale = containScale(rect, view)
-    if (restsAtCover(view)) return scale >= floor ? 'fit' : 'spread'
+    if (restsAtCover(board, view)) return scale >= floor ? 'fit' : 'spread'
     return scale >= floor * MIN_BUILD_ZOOM_GAIN ? 'fit' : 'whole-map'
 }
 
@@ -257,18 +264,19 @@ function buildZoomFit(rect: BoundingBox, view: RectangleDimensions): BuildZoomFi
  * shows now, as many as fit. None with nothing lit.
  */
 export function buildZoomRequest(
+    board: BoardGeometry,
     hexIds: readonly HexId[],
     view: RectangleDimensions,
     shown: BoundingBox
 ): FocusRequest | undefined {
-    const rect = buildZoomRect(hexIds)
+    const rect = buildZoomRect(board, hexIds)
     if (!rect) return undefined
-    const floor = restingScale(view)
-    switch (buildZoomFit(rect, view)) {
+    const floor = restingScale(board, view)
+    switch (buildZoomFit(board, rect, view)) {
         case 'fit':
             return { rect, maxScale: Math.max(floor, BUILD_ZOOM_MAX_SCALE) }
         case 'whole-map':
-            return { rect: BOARD_EXTENTS, maxScale: floor }
+            return { rect: board.extents, maxScale: floor }
         case 'spread': {
             const size = { width: view.width / floor, height: view.height / floor }
             const joined = joinNearest(hexIds.map(hexBox), centreOf(shown), size)
@@ -284,14 +292,15 @@ export function buildZoomRequest(
  * its centre that fit it together.
  */
 export function buildZoomKeepsView(
+    board: BoardGeometry,
     hexIds: readonly HexId[],
     view: RectangleDimensions,
     shown: BoundingBox
 ): boolean {
-    const rect = buildZoomRect(hexIds)
+    const rect = buildZoomRect(board, hexIds)
     if (!rect) return true
     const boxes = hexIds.map(hexBox)
-    if (buildZoomFit(rect, view) === 'spread') {
+    if (buildZoomFit(board, rect, view) === 'spread') {
         return containsBox(shown, joinNearest(boxes, centreOf(shown), shown))
     }
     return boxes.every((box) => containsBox(shown, box))

@@ -6,16 +6,22 @@ import {
     USA_CITIES,
     USA_HEXES,
     adjacentHexIds,
+    boardMap,
     hexIdAt,
     isEastCoastCity,
     legalPlacements,
-    usaHex,
+    hexById,
     type HexId,
+    type MapId,
     type RailroadId,
     type Shares,
     type Track
 } from '@tabletop/ride-the-rails'
-import { buildState, type StateRecipe } from '@tabletop/ride-the-rails/testing'
+import {
+    buildState,
+    intercolonialOneShort,
+    type StateRecipe
+} from '@tabletop/ride-the-rails/testing'
 import { EMPTY_BOARD_OFFER, boardOffer, placementOffer, type OfferedHex } from './boardOffer.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
@@ -66,9 +72,21 @@ const MOUNTAIN = found(
     'mountain hex'
 ).id
 const PLAIN_BESIDE_MOUNTAIN = found(
-    adjacentHexIds(MOUNTAIN).find((adjacent) => usaHex(adjacent).terrain === 'plain'),
+    adjacentHexIds(MOUNTAIN).find((adjacent) => hexById(adjacent).terrain === 'plain'),
     'plain hex beside the mountain'
 )
+
+/** The map's first mountain with a plain beside it, and that plain. */
+function mountainBesidePlain(mapId: MapId): { mountain: HexId; plain: HexId } {
+    for (const hex of boardMap(mapId).hexes) {
+        if (hex.terrain !== 'mountain') continue
+        const plain = adjacentHexIds(hex.id).find(
+            (adjacent) => hexById(adjacent).terrain === 'plain'
+        )
+        if (plain) return { mountain: hex.id, plain }
+    }
+    throw new Error(`No mountain beside a plain on ${mapId}`)
+}
 
 describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
     it('lights exactly the legal placements, each hex once with a pip per railroad', () => {
@@ -101,7 +119,7 @@ describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
         expect(offered.map((hex) => hex.hexId).sort()).toEqual([...eastCoast].sort())
         for (const hex of offered) {
             expect(hex.placements).toEqual([
-                { railroadId: 'railroad.red', isStart: true, bonuses: [] }
+                { railroadId: 'railroad.red', isStart: true, bonuses: [], limitChange: 0 }
             ])
             expect(hex.startOnly).toBe(true)
         }
@@ -138,6 +156,52 @@ describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
             ])
         }
     })
+
+    describe('Perth and Brisbane, the long-distance cities (R-8.2)', () => {
+        const PERTH: HexId = 'hex.au.0-12'
+        const BRISBANE: HexId = 'hex.au.34-6'
+        const chainEnds = (placed: number) =>
+            building({
+                mapId: 'map.au',
+                round: 5,
+                shares: { p1: EVERY_SHARE },
+                track: {
+                    'hex.au.4-14': ['railroad.orange'],
+                    'hex.au.1-13': ['railroad.orange'],
+                    'hex.au.34-8': ['railroad.red']
+                },
+                building: { placed, usedMountain: false }
+            })
+
+        it('lights them as the turn’s first placement, by the railroads beside them', () => {
+            const offered = placementOffer(chainEnds(0), 'p1')
+            expect(offeredAt(offered, PERTH)?.placements).toEqual([
+                expect.objectContaining({ railroadId: 'railroad.orange', isStart: false })
+            ])
+            expect(offeredAt(offered, BRISBANE)?.placements).toEqual([
+                expect.objectContaining({ railroadId: 'railroad.red', isStart: false })
+            ])
+        })
+
+        it('never lights them once a placement is made this turn', () => {
+            const offered = placementOffer(chainEnds(1), 'p1')
+            expect(offeredAt(offered, PERTH)).toBeUndefined()
+            expect(offeredAt(offered, BRISBANE)).toBeUndefined()
+            expect(offered.length).toBeGreaterThan(0)
+        })
+
+        it('never lights them as a start, Black’s included', () => {
+            const state = building({
+                mapId: 'map.au',
+                round: 5,
+                shares: { p1: holding('railroad.black') }
+            })
+            const offered = placementOffer(state, 'p1')
+            expect(offered).toHaveLength(52)
+            expect(offeredAt(offered, PERTH)).toBeUndefined()
+            expect(offeredAt(offered, BRISBANE)).toBeUndefined()
+        })
+    })
 })
 
 describe('the marks (R-4.3, R-3.2.4)', () => {
@@ -168,9 +232,10 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
                 isStart: false,
                 bonuses: [
                     { bonusId: 'bonus.usa.five-dollar', amount: 5, cityId: 'city.usa.kansas-city' }
-                ]
+                ],
+                limitChange: 0
             },
-            { railroadId: 'railroad.black', isStart: true, bonuses: [] }
+            { railroadId: 'railroad.black', isStart: true, bonuses: [], limitChange: 0 }
         ])
 
         const blackOnly = building({ round: 5, shares: { p1: holding('railroad.black') } })
@@ -210,6 +275,27 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         expect(offeredAt(placementOffer(claimed, 'p1'), 'hex.usa.9-31')?.marks).toEqual([])
     })
 
+    it('offers the Intercolonial only while it is unclaimed, as the engine pays it (R-8.3)', () => {
+        const { track, railroadId, hexId } = intercolonialOneShort()
+        const recipe: StateRecipe = {
+            mapId: 'map.ca',
+            round: 6,
+            shares: { p1: EVERY_SHARE },
+            track
+        }
+        const bonusesOf = (state: ReturnType<typeof building>) =>
+            offeredAt(placementOffer(state, 'p1'), hexId)?.placements.find(
+                (placement) => placement.railroadId === railroadId
+            )?.bonuses
+        expect(bonusesOf(building(recipe))).toEqual([
+            { bonusId: 'bonus.ca.intercolonial', amount: 8 }
+        ])
+
+        const claimed = building(recipe)
+        claimed.connectionClaim = { playerId: 'p2' }
+        expect(bonusesOf(claimed)).toEqual([])
+    })
+
     it('marks a mountain −1 until a mountain is used this turn (R-3.2.4)', () => {
         const recipe: StateRecipe = {
             shares: { p1: holding('railroad.red') },
@@ -222,6 +308,44 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         expect(offeredAt(placementOffer(used, 'p1'), MOUNTAIN)?.marks).toEqual([])
     })
 
+    it('marks an Australian mountain −2, the map’s mountain cost (R-8.2)', () => {
+        const { plain, mountain } = mountainBesidePlain('map.au')
+        const state = building({
+            mapId: 'map.au',
+            shares: { p1: holding('railroad.red') },
+            track: trackOf(['railroad.red', [plain]])
+        })
+        const offered = offeredAt(placementOffer(state, 'p1'), mountain)
+        expect(offered?.marks).toEqual([{ kind: 'placement-limit', change: -2 }])
+        expect(offered?.placements.map((placement) => placement.limitChange)).toEqual([-2])
+    })
+
+    it('charges an Orange placement on a German mountain nothing, and marks the hex only for a railroad it charges (R-8.5)', () => {
+        const { plain, mountain } = mountainBesidePlain('map.de')
+        const orangeOnly = building({
+            mapId: 'map.de',
+            shares: { p1: holding('railroad.orange') },
+            track: trackOf(['railroad.orange', [plain]])
+        })
+        const orange = offeredAt(placementOffer(orangeOnly, 'p1'), mountain)
+        expect(orange?.marks).toEqual([])
+        expect(orange?.placements.map((placement) => placement.limitChange)).toEqual([0])
+
+        const both = building({
+            mapId: 'map.de',
+            shares: { p1: holding('railroad.red', 'railroad.orange') },
+            track: trackOf(['railroad.red', [plain]], ['railroad.orange', [plain]])
+        })
+        const shared = offeredAt(placementOffer(both, 'p1'), mountain)
+        expect(shared?.marks).toEqual([{ kind: 'placement-limit', change: -1 }])
+        expect(
+            shared?.placements.map((placement) => [placement.railroadId, placement.limitChange])
+        ).toEqual([
+            ['railroad.red', -1],
+            ['railroad.orange', 0]
+        ])
+    })
+
     it('lights no mountain when only one placement is left before the limit (R-3.2.3, R-3.2.4)', () => {
         const state = building({
             playerCount: 4,
@@ -231,7 +355,7 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         })
         const offered = placementOffer(state, 'p1')
         expect(offeredAt(offered, MOUNTAIN)).toBeUndefined()
-        expect(offered.some((hex) => usaHex(hex.hexId).terrain === 'plain')).toBe(true)
+        expect(offered.some((hex) => hexById(hex.hexId).terrain === 'plain')).toBe(true)
     })
 })
 
@@ -262,19 +386,40 @@ describe('the board offer', () => {
         expect(offer.popup).toEqual({
             hexId: shared.hexId,
             chips: [
-                { railroadId: 'railroad.red', isStart: false, bonuses: [], supplyLeft: 25 },
-                { railroadId: 'railroad.blue', isStart: false, bonuses: [], supplyLeft: 25 }
-            ],
-            lowersLimit: false
+                {
+                    railroadId: 'railroad.red',
+                    isStart: false,
+                    bonuses: [],
+                    limitChange: 0,
+                    supplyLeft: 25
+                },
+                {
+                    railroadId: 'railroad.blue',
+                    isStart: false,
+                    bonuses: [],
+                    limitChange: 0,
+                    supplyLeft: 25
+                }
+            ]
         })
     })
 
-    it('says when the picked hex lowers the turn’s limit, from its mountain mark (R-3.2.4)', () => {
+    it('gives each button its own placement’s change to the turn’s limit (R-3.2.4, R-8.5)', () => {
+        const [red, blue] = shared.placements
+        assertExists(red)
+        assertExists(blue)
         const mountain = {
             ...shared,
-            marks: [{ kind: 'placement-limit' as const, change: -1 }]
+            placements: [
+                { ...red, limitChange: -1 },
+                { ...blue, limitChange: 0 }
+            ]
         }
-        expect(boardOffer(state, [mountain], mountain.hexId).popup?.lowersLimit).toBe(true)
+        expect(
+            boardOffer(state, [mountain], mountain.hexId).popup?.chips.map(
+                (chip) => chip.limitChange
+            )
+        ).toEqual([-1, 0])
     })
 
     it('opens no popup on a hex only one railroad may enter', () => {

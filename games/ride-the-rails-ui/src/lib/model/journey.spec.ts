@@ -15,7 +15,7 @@ import {
     journeyRefusal,
     nextCities,
     railroadsIn,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -156,7 +156,7 @@ afterEach(() => {
 })
 
 function hexOf(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 function litCities(session: RideTheRailsGameSession) {

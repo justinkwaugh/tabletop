@@ -3,7 +3,7 @@
     import { NationalCompanyKind, privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
-        companySharePrice,
+        companyMarketSpace,
         DefaultCompanyPricePresentation,
         shownParPrice,
         type CompanyPricePresentation
@@ -43,6 +43,8 @@
     import RemainingStationTokens from './RemainingStationTokens.svelte'
     import { sessionStationTokens } from './stationTokens.js'
     import { shareSourceName } from '../stock/purchaseSources.js'
+    import { marketValueMark } from '../stock/marketColors.js'
+    import '../stock/marketZoneTint.css'
     let {
         session,
         onPreviewMap,
@@ -106,10 +108,12 @@
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
     )
     const numberedShares = $derived(ownership.some((row) => row.certificateNumbers.length))
-    const marketPrice = $derived(
-        companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
+    const marketSpace = $derived(
+        companyMarketSpace(session.stockMarketChart, gameState.stockMarket, company.id)
     )
     const parPrice = $derived(shownParPrice(pricePresentation, gameState, company))
+    const marketPrice = $derived(marketSpace?.price)
+    const valueMark = $derived(marketValueMark(marketSpace, session.presentation.marketZones))
     const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const marks = $derived(session.presentation.companyMarks?.(gameState, company.id) ?? [])
@@ -511,7 +515,12 @@
 {/snippet}
 
 {#snippet marketValue()}
-    {#if marketPrice !== undefined}<div class="market-value">
+    {#if marketPrice !== undefined}<div
+            class="market-value"
+            class:market-zone-tint={valueMark}
+            style={valueMark?.style}
+            title={valueMark?.title}
+        >
             <span>{pricePresentation.label}</span><strong>{marketPrice}</strong>
         </div>{/if}
 {/snippet}
@@ -718,6 +727,14 @@
     }
     .financial-summary .prices .market-value {
         background: #1b3d4580;
+    }
+    .financial-summary .prices .market-value.market-zone-tint {
+        background: var(--market-tint);
+        color: var(--market-tint-ink);
+    }
+    .financial-summary .prices .market-value.market-zone-tint span {
+        color: inherit;
+        opacity: 0.75;
     }
     .financial-summary .prices .cash-value {
         background: var(--rail-surface-inset, #1b232d);

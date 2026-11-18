@@ -88,6 +88,7 @@ export function tabbedTableLayout(title: {
         'Player Aid',
         'Depot',
         'Stats',
+        'Entities',
         ...(title.gameInformation ? ['Game info'] : [])
     ]
     const tabs: WorkspaceTab[] = [

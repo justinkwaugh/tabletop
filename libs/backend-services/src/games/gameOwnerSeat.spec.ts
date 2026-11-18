@@ -433,7 +433,7 @@ describe('game pace', () => {
             game: { ...publicGame(), paceMinutes: 90 },
             owner: regular
         })
-        expect(created.paceMinutes).toBe(480)
+        expect(created.paceMinutes).toBe(240)
 
         const existing: Game = { ...storedGame(regular, []), isPublic: true }
         existing.players = [{ ...seat(regular.id), status: PlayerStatus.Joined }, ...openSeats]

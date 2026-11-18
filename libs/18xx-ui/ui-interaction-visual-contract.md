@@ -132,7 +132,9 @@ A reserved city slot without a token shows the reserving company's token in its 
 colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
-own. A marker whose art is a local line shows its label beside two linked circles while
+own. A town or junction whose every track the layout prints as a spike or pier draws no
+marker either, and stays a stop that can be selected; a route started at such a town shows
+its start ring at the stop, the same size however many tracks reach it. A marker whose art is a local line shows its label beside two linked circles while
 the hex has no tile, drawn above track with a halo in the hex's colour. It sits near
 the foot of the hex, or, when its art is `above`, just over the hex's stops: above a
 name curved over a city, below a straight name printed across the top, or above the
@@ -2939,3 +2941,34 @@ These interactions came with 1822 and are available to any title whose rules sel
   the routes module spec for the standard and for the higher-subsidy excuse.
 - After a lay that leaves a company running one station, the map stays framed on that station.
   Manual.
+
+## Restart turn
+
+### Visual intents
+
+- **Offer:** `Restart turn` sits beside Undo in the turn header, as an icon alone on
+  narrow screens. It appears only when it would undo more than Undo does.
+- **Confirm:** every press opens a panel below the button naming the turn and how many
+  of the player's actions it undoes. Nothing is undone until the panel is confirmed.
+
+### Coexistence and precedence
+
+Undo keeps its own order, manual selection first. Restart turn ignores that order: a
+confirmed restart undoes committed history, and publishing the result clears any
+manual selection. The button is absent in History View, when another player acted in
+the turn, and for an operating turn resumed after an interrupting stock round.
+
+### Shared visual state
+
+The turn comes from Action history and the session's Undo reach, so it follows Undo,
+reload and new Actions. Only the panel's open state is local to the header.
+
+### Render ownership
+
+`TableHeader` owns the button. `RestartTurnConfirm` owns the panel and renders outside
+the header element, so the header's turn-attention colors do not reach it.
+
+### Verification scenarios
+
+`turnRestart.spec.ts` covers operating and stock turns, consecutive companies, a turn
+finished before an automatic company, interrupted turns, and other players' actions.

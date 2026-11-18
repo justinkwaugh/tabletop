@@ -501,15 +501,27 @@
     <Label class="mb-2">
         <span>Player Count</span>
     </Label>
-    <ButtonGroup>
-        {#each range(minPlayers, maxPlayers - minPlayers + 1) as i (i)}
-            <RadioButton
-                value={i}
-                checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
-                bind:group={numPlayers}>{i}</RadioButton
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <ButtonGroup>
+            {#each range(minPlayers, maxPlayers - minPlayers + 1) as i (i)}
+                <RadioButton
+                    value={i}
+                    checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
+                    bind:group={numPlayers}>{i}</RadioButton
+                >
+            {/each}
+        </ButtonGroup>
+        {#if showIncludeOwnerToggle}
+            <Toggle
+                bind:checked={includeOwner}
+                disabled={!canIncludeOwner}
+                onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
             >
-        {/each}
-    </ButtonGroup>
+        {/if}
+    </div>
+    {#if showIncludeOwnerToggle && !canIncludeOwner}
+        <Helper>Clear a seat to include yourself</Helper>
+    {/if}
 
     <Label class="mb-2">Players</Label>
     <div class="flex flex-col space-y-2">
@@ -619,16 +631,6 @@
                 class="w-fit"
             />
         </div>
-    {/if}
-    {#if showIncludeOwnerToggle}
-        <Toggle
-            bind:checked={includeOwner}
-            disabled={!canIncludeOwner}
-            onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
-        >
-        {#if !canIncludeOwner}
-            <Helper>Clear a seat to include yourself</Helper>
-        {/if}
     {/if}
     {#if gameTitle.info.configurator && gameTitle.info.configurator.options.length > 0}
         <div

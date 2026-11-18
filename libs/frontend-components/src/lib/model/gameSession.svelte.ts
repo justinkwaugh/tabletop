@@ -287,7 +287,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             : undefined
     })
 
-    private undoableActions({ stopAtReveal }: { stopAtReveal: boolean }): GameAction[] {
+    protected undoableActions({ stopAtReveal }: { stopAtReveal: boolean }): GameAction[] {
         const undoLimit =
             this.currentModifiableContext.state.explorationState?.checkpoint?.undoLimit
         let start = this.actions.length
@@ -1306,14 +1306,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         await this.undoCommittedAction()
     }
 
-    async undoCommittedAction() {
-        if (!this.isPlayable || this.isViewingHistory || !this.undoableAction || this.busy) {
+    async undoCommittedAction(target: GameAction | undefined = this.undoableAction) {
+        if (!this.isPlayable || this.isViewingHistory || !target || this.busy) {
             return
         }
 
         const context = this.currentModifiableContext
         const isRepresentationCurrent = this.representations.captureValidity()
-        const targetAction = structuredClone($state.snapshot(this.undoableAction))
+        const targetAction = structuredClone($state.snapshot(target))
         const before = context.clone()
         const hosted =
             this.usesHostExecution(context) || context.game.storage === GameStorage.Remote

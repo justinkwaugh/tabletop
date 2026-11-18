@@ -9,7 +9,8 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { EndGame, HydratedEndGame } from '../actions/endGame.js'
-import { usaCity } from '../data/usaMap.js'
+import { cityById } from '../data/boardMaps.js'
+import { MAP_IDS, type MapId } from '../data/maps.js'
 import {
     CURRENT_RIDE_THE_RAILS_REVISION,
     RideTheRailsGameStateValidator,
@@ -70,7 +71,7 @@ function nextInput(state: RideTheRailsGameState, step: number): UserInput {
         }
         case MachineState.Riding: {
             for (const cityId of state.passengers) {
-                const { hexId } = usaCity(cityId)
+                const { hexId } = cityById(cityId)
                 const link = firstLinkFrom(state, hexId, [hexId])
                 if (link) {
                     return { type: ActionType.RideJourney, playerId, links: [link] }
@@ -89,8 +90,8 @@ class Table {
     state: RideTheRailsGameState
     private step = 0
 
-    constructor(playerIds: readonly string[]) {
-        this.game = createGame(playerIds.length)
+    constructor(playerIds: readonly string[], mapId: MapId) {
+        this.game = createGame(playerIds.length, 11, mapId)
         this.state = engine.startGame(this.game, {
             masterSeed,
             startingPositions: { playerIds: [...playerIds] }
@@ -137,109 +138,116 @@ function roundOneTurns(state: RideTheRailsGameState): Record<string, string[]> {
     )
 }
 
-describe.each([3, 4, 5])('Ride the Rails tournaments with %i players (R-1.2)', (count) => {
-    const playerIds = fixturePlayerIds(count)
+// R-8: the map is the creation option that changes setup, so every map is played at every count.
+const TOURNAMENTS = MAP_IDS.flatMap((mapId) => [3, 4, 5].map((count) => ({ mapId, count })))
 
-    // R-2.2: position zero is first in turn order. Take a Share runs in reverse, so its first
-    // turn is the last position's; Build and Ride open with position zero.
-    it('puts position zero first in turn order and later positions after it, in every rotation (R-2.2, R-2.3)', () => {
-        for (const order of rotations(playerIds)) {
-            const table = new Table(order)
-            expect(table.state.turnManager.turnOrder).toEqual(order)
-            expect(table.state.players.map((player) => player.playerId)).toEqual(order)
-            expect(table.state.activePlayerIds).toEqual([order.at(-1)])
+describe.each(TOURNAMENTS)(
+    'Ride the Rails tournaments on $mapId with $count players (R-1.2, R-8)',
+    ({ mapId, count }) => {
+        const playerIds = fixturePlayerIds(count)
 
-            table.playUntil((state) => roundNumber(state) === 2)
-            expect(roundOneTurns(table.state)).toEqual({
-                [PhaseName.TakeShare]: order.toReversed(),
-                [PhaseName.Build]: order,
-                [PhaseName.Ride]: order
-            })
-        }
-    })
+        // R-2.2: position zero is first in turn order. Take a Share runs in reverse, so its first
+        // turn is the last position's; Build and Ride open with position zero.
+        it('puts position zero first in turn order and later positions after it, in every rotation (R-2.2, R-2.3)', () => {
+            for (const order of rotations(playerIds)) {
+                const table = new Table(order, mapId)
+                expect(table.state.turnManager.turnOrder).toEqual(order)
+                expect(table.state.players.map((player) => player.playerId)).toEqual(order)
+                expect(table.state.activePlayerIds).toEqual([order.at(-1)])
 
-    it('leaves setup otherwise unchanged for the same master seed (R-1.3, R-X.3)', () => {
-        const game = createGame(count)
-        const uninitialized = engine.generateUninitializedState(game, masterSeed)
-        const initialize = (assigned?: string[]) =>
-            RideTheRailsRuntime.initializer
-                .initializeGameState(
-                    game,
-                    structuredClone(uninitialized),
-                    assigned ? { playerIds: assigned } : undefined
-                )
-                .dehydrate()
-        const normal = initialize()
-        expect(initialize(normal.turnManager.turnOrder)).toEqual(normal)
-        for (const order of rotations([...normal.turnManager.turnOrder].reverse())) {
-            const assigned = initialize(order)
-            expect(initialize(order)).toEqual(assigned)
-            expect(assigned.turnManager.turnOrder).toEqual(order)
-            expect(assigned.rideTheRailsRevision).toBe(CURRENT_RIDE_THE_RAILS_REVISION)
-            // Seat colours, money and shares belong to the player, not the position.
-            expect(byPlayer(assigned)).toEqual(byPlayer(normal))
-            expect(assigned.turnManager.series).toEqual(
-                normal.turnManager.series.map((turn) => ({ ...turn, playerId: order.at(-1) }))
-            )
-            expect({
-                ...assigned,
-                players: byPlayer(assigned),
-                turnManager: normal.turnManager,
-                activePlayerIds: normal.activePlayerIds
-            }).toEqual({ ...normal, players: byPlayer(normal) })
-            assert(RideTheRailsGameStateValidator.Check(assigned), 'Setup must be canonical')
-        }
-    })
-
-    it(
-        'finishes an assigned game with a result validateGameResult accepts (R-6.1, R-6.2)',
-        () => {
-            const order = playerIds.toReversed()
-            const table = new Table(order)
-            table.playUntil((state) => state.result !== undefined)
-            const finished = table.state
-
-            expect(finished.machineState).toBe(MachineState.Ended)
-            assert(RideTheRailsGameStateValidator.Check(finished), 'The end must be canonical')
-            expect(() => validateGameResult(finished)).not.toThrow()
-
-            const finalScores = RideTheRailsRuntime.scoring.finalScores(finished)
-            expect(finalScores).toEqual(
-                Object.fromEntries(
-                    finished.players.map((player) => [player.playerId, player.money])
-                )
-            )
-            expect(Object.keys(finalScores).toSorted()).toEqual(order.toSorted())
-            const best = Math.max(...Object.values(finalScores))
-            expect(finished.winningPlayerIds).toEqual(
-                finished.players
-                    .filter((player) => player.money === best)
-                    .map((player) => player.playerId)
-            )
-            expect(finished.result).toBe(
-                finished.winningPlayerIds.length === 1 ? GameResult.Win : GameResult.Draw
-            )
-
-            // Every processed action, user and system, is one the hydrator rebuilds.
-            for (const action of table.processed) {
-                expect(RideTheRailsRuntime.hydrator.hydrateAction(action).dehydrate()).toEqual(
-                    action
-                )
+                table.playUntil((state) => roundNumber(state) === 2)
+                expect(roundOneTurns(table.state)).toEqual({
+                    [PhaseName.TakeShare]: order.toReversed(),
+                    [PhaseName.Build]: order,
+                    [PhaseName.Ride]: order
+                })
             }
-            const types = new Set(table.processed.map((action) => action.type))
-            for (const type of [
-                ActionType.TakeShare,
-                ActionType.PlaceLocomotive,
-                ActionType.RideJourney,
-                ActionType.EndRound,
-                ActionType.EndGame
-            ]) {
-                expect(types).toContain(type)
+        })
+
+        it('leaves setup otherwise unchanged for the same master seed (R-1.3, R-X.3)', () => {
+            const game = createGame(count, 11, mapId)
+            const uninitialized = engine.generateUninitializedState(game, masterSeed)
+            const initialize = (assigned?: string[]) =>
+                RideTheRailsRuntime.initializer
+                    .initializeGameState(
+                        game,
+                        structuredClone(uninitialized),
+                        assigned ? { playerIds: assigned } : undefined
+                    )
+                    .dehydrate()
+            const normal = initialize()
+            expect(normal.mapId).toBe(mapId)
+            expect(initialize(normal.turnManager.turnOrder)).toEqual(normal)
+            for (const order of rotations([...normal.turnManager.turnOrder].reverse())) {
+                const assigned = initialize(order)
+                expect(initialize(order)).toEqual(assigned)
+                expect(assigned.turnManager.turnOrder).toEqual(order)
+                expect(assigned.rideTheRailsRevision).toBe(CURRENT_RIDE_THE_RAILS_REVISION)
+                // Seat colours, money and shares belong to the player, not the position.
+                expect(byPlayer(assigned)).toEqual(byPlayer(normal))
+                expect(assigned.turnManager.series).toEqual(
+                    normal.turnManager.series.map((turn) => ({ ...turn, playerId: order.at(-1) }))
+                )
+                expect({
+                    ...assigned,
+                    players: byPlayer(assigned),
+                    turnManager: normal.turnManager,
+                    activePlayerIds: normal.activePlayerIds
+                }).toEqual({ ...normal, players: byPlayer(normal) })
+                assert(RideTheRailsGameStateValidator.Check(assigned), 'Setup must be canonical')
             }
-        },
-        WHOLE_GAME_TIMEOUT_MS
-    )
-})
+        })
+
+        it(
+            'finishes an assigned game with a result validateGameResult accepts (R-6.1, R-6.2)',
+            () => {
+                const order = playerIds.toReversed()
+                const table = new Table(order, mapId)
+                table.playUntil((state) => state.result !== undefined)
+                const finished = table.state
+
+                expect(finished.machineState).toBe(MachineState.Ended)
+                assert(RideTheRailsGameStateValidator.Check(finished), 'The end must be canonical')
+                expect(() => validateGameResult(finished)).not.toThrow()
+
+                const finalScores = RideTheRailsRuntime.scoring.finalScores(finished)
+                expect(finalScores).toEqual(
+                    Object.fromEntries(
+                        finished.players.map((player) => [player.playerId, player.money])
+                    )
+                )
+                expect(Object.keys(finalScores).toSorted()).toEqual(order.toSorted())
+                const best = Math.max(...Object.values(finalScores))
+                expect(finished.winningPlayerIds).toEqual(
+                    finished.players
+                        .filter((player) => player.money === best)
+                        .map((player) => player.playerId)
+                )
+                expect(finished.result).toBe(
+                    finished.winningPlayerIds.length === 1 ? GameResult.Win : GameResult.Draw
+                )
+
+                // Every processed action, user and system, is one the hydrator rebuilds.
+                for (const action of table.processed) {
+                    expect(RideTheRailsRuntime.hydrator.hydrateAction(action).dehydrate()).toEqual(
+                        action
+                    )
+                }
+                const types = new Set(table.processed.map((action) => action.type))
+                for (const type of [
+                    ActionType.TakeShare,
+                    ActionType.PlaceLocomotive,
+                    ActionType.RideJourney,
+                    ActionType.EndRound,
+                    ActionType.EndGame
+                ]) {
+                    expect(types).toContain(type)
+                }
+            },
+            WHOLE_GAME_TIMEOUT_MS
+        )
+    }
+)
 
 describe('terminal results (R-6.2)', () => {
     function endGame(playerCount: number, money: Record<string, number>) {

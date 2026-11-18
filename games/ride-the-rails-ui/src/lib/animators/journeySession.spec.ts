@@ -8,7 +8,7 @@ import {
 import {
     ActionType,
     PhaseName,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -63,7 +63,7 @@ async function staged() {
     const flights = session.flights
     unregisters.push(registerFlightAnimators(session))
     for (const cityId of [KANSAS_CITY, SAINT_LOUIS, CINCINNATI]) {
-        await session.pressHex(usaCity(cityId).hexId)
+        await session.pressHex(cityById(cityId).hexId)
     }
     expect(session.canRideJourney).toBe(true)
     return { session, flights }

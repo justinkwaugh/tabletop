@@ -90,6 +90,8 @@
     import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
     import LocationTileChoice from '../maps/LocationTileChoice.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
+    import EntityColumns from './EntityColumns.svelte'
+    import { entityColumns, type EntityHolders } from './entityColumns.js'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
     import History from './History.svelte'
@@ -772,6 +774,7 @@
             includedCompanyIds
         )
     )
+    const entities = $derived(entityColumns(gameState, startedCompanies, portfolioCompanyIds))
     const unstartedPresentation = $derived(session.presentation.unstartedCompanies)
     const companiesToStart = $derived(
         unstartedPresentation
@@ -826,6 +829,7 @@
         { id: 'Depot', label: tabTerms.depot, optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
         { id: 'Stats', label: 'Stats', optional: true },
+        { id: 'Entities', label: 'Entities', optional: true },
         ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
@@ -890,8 +894,9 @@
 
 <svelte:window onkeydown={navigateByShortcut} />
 
-{#snippet playerCards()}<PlayersPanel
+{#snippet playerCards(holders?: EntityHolders)}<PlayersPanel
         {session}
+        playerIds={holders?.playerIds}
         {auctionLotDescription}
         {numberedShareNames}
         {numberedShareLocation}
@@ -901,7 +906,7 @@
         onShowCompanyCard={paneLayout.current
             ? undefined
             : (companyId) => (shownCompanyCardId = companyId)}
-        {portfolioCompanyIds}
+        portfolioCompanyIds={holders?.portfolioCompanyIds ?? portfolioCompanyIds}
     />{/snippet}
 
 {#snippet companyCard(
@@ -1388,6 +1393,15 @@
                                     points={session.playerWealthHistory()}
                                     players={wealthPlayers}
                                 />{/if}
+                        </div>
+                    {:else if id === 'Entities'}<div class="workspace-view">
+                            <EntityColumns columns={entities}>
+                                {#snippet holders(column)}{@render playerCards(column)}{/snippet}
+                                {#snippet company(controlled)}{@render companyCard(controlled, {
+                                        layout: 'wide-fill',
+                                        onFocusConnection: focusConnection
+                                    })}{/snippet}
+                            </EntityColumns>
                         </div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">
                             {@render playerCards()}

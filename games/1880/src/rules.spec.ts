@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { trainsOwnedBy } from '@tabletop/18xx'
-import { edit, holderOf, opened, startMajor } from '../test/kit.js'
+import { assertExists } from '@tabletop/common'
+import {
+    RailwayMapState,
+    RouteNetwork,
+    TileEdges,
+    rotateTileFace,
+    trainsOwnedBy,
+    type RoutePath,
+    type TileEdge
+} from '@tabletop/18xx'
+import { edit, holderOf, opened, placeTile, startMajor, type Table } from '../test/kit.js'
+import { Map1880, RussiaLocationId, TaiwanLocationId } from './map.js'
 import { RouteRules1880, TaiwanBonus } from './routes.js'
 import { marketBonus } from './stockMarket.js'
+import { TileSet1880, tileFace1880 } from './tiles.js'
 import { TrackRules1880 } from './track.js'
 import { TrainRules1880 } from './trainRules.js'
 
@@ -20,6 +31,45 @@ function withPrivate(privateId: string) {
     })
     return game
 }
+
+const StraightCityTileId = '18xx:57'
+
+function layCityFacing(game: Table, locationId: string, edge: TileEdge): RoutePath {
+    const across = Map1880.across(locationId, edge)
+    assertExists(across, `${locationId} has a neighbour across side ${edge}`)
+    const [facing] = TileEdges.flatMap((rotation) =>
+        rotateTileFace(tileFace1880(StraightCityTileId), rotation)
+            .paths.filter((path) =>
+                path.endpoints.some((end) => end.kind === 'edge' && end.edge === across.edge)
+            )
+            .map((track) => ({ rotation, track }))
+    )
+    assertExists(facing, 'The straight city turns to face every side')
+    placeTile(game, across.location.id, StraightCityTileId, facing.rotation)
+    return { locationId: across.location.id, pathId: facing.track.id }
+}
+
+describe('off-board areas and harbours (§X Operating Trains)', () => {
+    it.each([
+        ['Russia', RussiaLocationId, 4, 5],
+        ['French Indochina', 'Q7', 2, 3],
+        ['Taiwan', TaiwanLocationId, 0, 1],
+        ['Haikou', 'Q13', 2, 3]
+    ] as const)('ends a route that reaches %s', (_name, locationId, arrival, departure) => {
+        const game = opened(4, 3)
+        const from = layCityFacing(game, locationId, arrival)
+        layCityFacing(game, locationId, departure)
+        const network = new RouteNetwork(
+            new RailwayMapState(Map1880, TileSet1880, game.state.tileInventory)
+        )
+        const start = { locationId: from.locationId, nodeId: 'city' }
+        const reaching: RoutePath[] = [from, { locationId, pathId: `edge-${arrival}` }]
+        expect(network.trace(start, reaching).trace).toBeDefined()
+        expect(
+            network.trace(start, [...reaching, { locationId, pathId: `edge-${departure}` }]).reason
+        ).toBe('A route ends where it reaches a terminus.')
+    })
+})
 
 describe('route values (§X Calculating Income)', () => {
     it('charges ¥10 a ferry unless the company’s director owns P2', () => {

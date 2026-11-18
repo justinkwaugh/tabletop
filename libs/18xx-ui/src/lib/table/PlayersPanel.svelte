@@ -33,7 +33,8 @@
         mapFocusExcludedCompanyIds = [],
         onFocusCompany,
         onShowCompanyCard,
-        portfolioCompanyIds = []
+        portfolioCompanyIds = [],
+        playerIds
     }: {
         session: EighteenXXSessionView
         auctionLotDescription?: (id: string) => string
@@ -44,6 +45,7 @@
         onFocusCompany: (companyId: string) => void
         onShowCompanyCard?: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
+        playerIds?: readonly string[]
     } = $props()
     const money = $derived(session.presentation.money)
     const compact = $derived(session.preferences.values.compactPlayerCards)
@@ -55,26 +57,31 @@
     const biddingPowerShown = $derived(
         !!session.presentation.biddingPowerShown?.(session.gameState)
     )
+    const turnOrder = $derived(playersWithBankruptLast(session.gameState))
     const players = $derived([
-        ...playersWithBankruptLast(session.gameState).map((playerId) => ({
-            id: `player:${playerId}`,
-            owner: { kind: 'player', playerId } as const,
-            controller: undefined,
-            bankrupt: isBankrupt(session.gameState, playerId),
-            description: undefined,
-            playerId,
-            name: session.getPlayerName(playerId),
-            liquidity: session.playerLiquidity(playerId),
-            reserved: session.reservedCash(playerId),
-            biddingPower: biddingPowerShown
-                ? session.companyAuction.biddingPower(playerId)
-                : undefined,
-            certs: session.noCertificateLimit ? undefined : session.playerCertificates(playerId),
-            ...session.portfolio(
-                { kind: 'player', playerId },
-                !!session.presentation.minorsAsPrivates
-            )
-        })),
+        ...turnOrder
+            .filter((playerId) => !playerIds || playerIds.includes(playerId))
+            .map((playerId) => ({
+                id: `player:${playerId}`,
+                owner: { kind: 'player', playerId } as const,
+                controller: undefined,
+                bankrupt: isBankrupt(session.gameState, playerId),
+                description: undefined,
+                playerId,
+                name: session.getPlayerName(playerId),
+                liquidity: session.playerLiquidity(playerId),
+                reserved: session.reservedCash(playerId),
+                biddingPower: biddingPowerShown
+                    ? session.companyAuction.biddingPower(playerId)
+                    : undefined,
+                certs: session.noCertificateLimit
+                    ? undefined
+                    : session.playerCertificates(playerId),
+                ...session.portfolio(
+                    { kind: 'player', playerId },
+                    !!session.presentation.minorsAsPrivates
+                )
+            })),
         ...portfolioCompanyIds.map((companyId) => {
             const controller = controllingOwner(session.gameState, companyId)
             return {
@@ -185,7 +192,7 @@
 {/snippet}
 
 <div class="players" aria-label="Players">
-    {#each players as player, index (player.id)}
+    {#each players as player (player.id)}
         <article
             class:compact
             animate:flip={{
@@ -264,7 +271,7 @@
                     {#if player.playerId && passOrderPositions}
                         {@const position = stockRoundActive
                             ? session.playerPriorityOrder.indexOf(player.playerId) + 1
-                            : index + 1}
+                            : turnOrder.indexOf(player.playerId) + 1}
                         {#if !stockRoundActive || session.gameState.stockRound.passedPlayerIds.includes(player.playerId)}
                             <span
                                 class="turn-position"
