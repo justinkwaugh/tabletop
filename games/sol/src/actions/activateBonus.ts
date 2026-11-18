@@ -13,7 +13,6 @@ import { Station, StationType } from '../components/stations.js'
 import { Ring } from '../utils/solGraph.js'
 import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 import { EffectType } from '../components/effects.js'
-import { Activation } from '../model/activation.js'
 import { HydratedActivate } from './activate.js'
 
 export type ActivateBonusMetadata = Type.Static<typeof ActivateBonusMetadata>
@@ -89,11 +88,9 @@ export class HydratedActivateBonus
             case StationType.SundiverFoundry: {
                 const awardCost = award
                 playerState.energyCubes -= awardCost
-                const numToBuild =
-                    activation?.playerId === this.playerId &&
-                    state.activeEffect === EffectType.Duplicate
-                        ? 2 * awardCost
-                        : awardCost
+                const numToBuild = HydratedActivate.buildsDoubleSundivers(state, this.playerId)
+                    ? 2 * awardCost
+                    : awardCost
                 const awardedSundivers = playerState.reserveSundivers.splice(
                     -numToBuild,
                     numToBuild
@@ -161,7 +158,7 @@ export class HydratedActivateBonus
                 return this.canActivateEnergyNodeBonus(state, playerId)
                 break
             case StationType.SundiverFoundry:
-                return this.canActivateSundiverFoundryBonus(state, playerId, activation, station)
+                return this.canActivateSundiverFoundryBonus(state, playerId, station)
                 break
             case StationType.TransmitTower:
                 return this.canActivateTransmitTowerBonus(state, playerId, station)
@@ -177,7 +174,6 @@ export class HydratedActivateBonus
     static canActivateSundiverFoundryBonus(
         state: HydratedSolGameState,
         playerId: string,
-        activation: Activation,
         station: Station
     ): boolean {
         const playerState = state.getPlayerState(playerId)
@@ -185,10 +181,9 @@ export class HydratedActivateBonus
         const awardCost =
             BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
 
-        const numToBuild =
-            activation?.playerId === playerId && state.activeEffect === EffectType.Duplicate
-                ? 2 * awardCost
-                : awardCost
+        const numToBuild = HydratedActivate.buildsDoubleSundivers(state, playerId)
+            ? 2 * awardCost
+            : awardCost
         return (
             playerState.energyCubes >= awardCost &&
             playerState.reserveSundivers.length >= numToBuild
@@ -226,12 +221,7 @@ export class HydratedActivateBonus
             case StationType.EnergyNode:
                 return this.canActivateEnergyNodeBonus(state, activateBonus.playerId)
             case StationType.SundiverFoundry:
-                return this.canActivateSundiverFoundryBonus(
-                    state,
-                    activateBonus.playerId,
-                    activation,
-                    station
-                )
+                return this.canActivateSundiverFoundryBonus(state, activateBonus.playerId, station)
             case StationType.TransmitTower:
                 return this.canActivateTransmitTowerBonus(state, activateBonus.playerId, station)
         }

@@ -98,8 +98,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             activatedStation: station
         }
 
-        const duplicate = state.activeEffect === EffectType.Duplicate
-        const awardMetadata = HydratedActivate.applyActivationAward(playerState, station, duplicate)
+        const awardMetadata = HydratedActivate.applyActivationAward(
+            playerState,
+            station,
+            HydratedActivate.buildsDoubleSundivers(state, this.playerId)
+        )
         Object.assign(this.metadata, awardMetadata)
 
         if (state.machineState !== MachineState.SolarFlares) {
@@ -166,6 +169,13 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         return metadata
     }
 
+    static buildsDoubleSundivers(state: HydratedSolGameState, playerId: string): boolean {
+        return (
+            state.activeEffect === EffectType.Duplicate &&
+            state.turnManager.currentTurn()?.playerId === playerId
+        )
+    }
+
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {
         for (const cell of state.board) {
             if (this.canActivateStationAt(state, playerId, cell.coords)) {
@@ -192,7 +202,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
         const awardCost = BASE_AWARD_PER_RING[coords.row]
-        const numToBuild = state.activeEffect === EffectType.Duplicate ? 2 * awardCost : awardCost
+        const numToBuild = this.buildsDoubleSundivers(state, playerId) ? 2 * awardCost : awardCost
         const playerState = state.getPlayerState(playerId)
 
         return (
