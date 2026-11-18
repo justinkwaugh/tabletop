@@ -254,6 +254,11 @@ export class BoardAnimator implements MoveInterrupter {
             const ahead = marbleSeedsAfter(this.actionsAhead().slice(0, to.actionCount))
             for (const [key, seed] of ahead) seedsDuring.set(key, seed)
         }
+        // A marble leaving its ring is still drawn there until the step hides or lifts it, so it
+        // keeps its seed; the seeds are read afresh from the actions once the state lands.
+        for (const [key, seed] of seedsBefore) {
+            if (!seedsDuring.has(key)) seedsDuring.set(key, seed)
+        }
         this.seeds = seedsDuring
         // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
