@@ -33,6 +33,7 @@ The marks on the board come from one derivation, `BoardAnimator.marksOf` with `w
 - **Last-move mark**: a white hexagon outline, its corners rounded like a tile's, growing from the cell's centre.
 - **Winning line** (`board/winningLine.ts`): the shortest run of the winning chain's cells from edge to edge, through their centres, its bends rounded (0.32 of the spacing), running on 0.7 of the spacing past each end cell into the band, along its last step where that leads off the board. A pale tint of the winner's colour (`--hex-red-tint`, `--hex-blue-tint`), 6.5 units wide, on a white edge 9.5 wide.
 - **Player cards** (`PlayerTray.svelte`): the player's colour band, and a small rhombus with their two edges drawn in their colour, turned as the board is.
+- **Action panel height** (`ActionPanel.svelte`, `components/holdTallest.ts`): the panel keeps the tallest height it has reached at its current width, so a line that wraps for a long name does not move the board when it shrinks back. A new width starts over; a remount (the end panel, a new game) starts over too.
 
 ## 4. Render Ownership
 

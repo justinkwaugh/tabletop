@@ -2,6 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import { holdTallest } from './holdTallest.js'
 
     const session = getGameSession()
 
@@ -10,7 +11,7 @@
 </script>
 
 <!-- One row: the last move while you wait, the prompt on your turn. -->
-<div class="panel">
+<div class="panel" {@attach holdTallest}>
     {#if session.isViewingHistory || !session.canPlace}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />
