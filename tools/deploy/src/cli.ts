@@ -56,7 +56,7 @@ Commands:
   prune (--game=<id> | --frontend | --all) [--apply] [--grace-days=<n>]
                                Delete artifact versions the manifest no longer references:
                                keeps the current selection, the rollback history, and anything
-                               uploaded in the last ${DEFAULT_GRACE_DAYS} days. Prints the plan only unless
+                               replaced in the last ${DEFAULT_GRACE_DAYS} days. Prints the plan only unless
                                --apply. Game and frontend deploys prune their own target
                                afterwards unless --no-prune.
   preflight (--game=<id> | --frontend | --backend | --realtime) [--json]

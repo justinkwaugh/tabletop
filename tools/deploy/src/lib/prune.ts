@@ -67,8 +67,9 @@ export const frontendPruneTarget = (manifest: SiteManifest): PruneTarget => ({
 
 // Version directories are grouped from the object listing, so a directory's size and newest
 // upload cover its files and its directory placeholders. Names that are not versions are left
-// alone. A version uploaded within the grace period is kept even when nothing references it,
-// because a browser that loaded it before a newer deploy can still request its lazy chunks.
+// alone. The grace period protects browsers still running a replaced version, which can request
+// its chunks and images. The manifest only remembers recent publications, so the next upload
+// dates the replacement.
 export const planTarget = (
     target: PruneTarget,
     objects: StoredObject[],
@@ -96,16 +97,21 @@ export const planTarget = (
             `${target.label}: current version ${target.current} is not under ${target.prefix}/; refusing to prune`
         )
     }
-    for (const plan of versions.values()) {
+    const versionsByUpload = [...versions.values()].sort(compareUploads)
+    versionsByUpload.forEach((plan, index) => {
+        const replacedAt = versionsByUpload[index + 1]?.uploadedAt ?? plan.uploadedAt
         if (plan.version === target.current) plan.keep = 'current'
         else if (target.history.includes(plan.version)) plan.keep = 'history'
-        else if (Date.parse(plan.uploadedAt) > graceStart) plan.keep = 'recent'
-    }
+        else if (Date.parse(replacedAt) > graceStart) plan.keep = 'recent'
+    })
     return { target, versions: [...versions.values()].sort(compareVersions) }
 }
 
 const compareVersions = (a: VersionPlan, b: VersionPlan) =>
     a.version.localeCompare(b.version, 'en', { numeric: true })
+
+const compareUploads = (a: VersionPlan, b: VersionPlan) =>
+    Date.parse(a.uploadedAt) - Date.parse(b.uploadedAt) || compareVersions(a, b)
 
 const execFileAsync = promisify(execFile)
 

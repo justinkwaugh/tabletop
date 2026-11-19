@@ -2,6 +2,7 @@ import { collectibleLogic } from './logic-factory.js'
 import fs from 'node:fs'
 import { moduleWorkers } from './workers.js'
 import { publishCssAssets } from './css-assets.js'
+import { gameUiPublicAssetsPath } from './asset-paths.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
@@ -176,7 +177,11 @@ export const createGameUiRolldownConfig = ({ packageRootUrl }) => {
     const packageVersion = packageJson.version ?? '0.0.0'
     const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
     const uiVersion = process.env.ROLLDOWN_UI_VERSION ?? packageVersion
-    const publicAssetsPath = `/games/${gameId}/ui/${uiVersion}/assets/`
+    const publicAssetsPath = gameUiPublicAssetsPath({
+        gameId,
+        uiVersion,
+        assetBaseUrl: process.env.ROLLDOWN_ASSET_BASE_URL
+    })
     const assetsDirectory = path.join(packageRoot, 'bundle/assets')
     const analyze = process.env.ROLLDOWN_ANALYZE === '1'
     const minify = process.env.ROLLDOWN_MINIFY !== '0'

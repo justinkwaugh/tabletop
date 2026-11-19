@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin'
 
-const REDIRECT_CACHE_CONTROL = 'public, max-age=86400'
+const REDIRECT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 const isEmptyOrDotSegment = (segment: string) =>
     segment === '' || segment === '.' || segment === '..'

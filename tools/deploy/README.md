@@ -139,8 +139,9 @@ node tools/deploy/esm/cli.js prune (--game=<id> | --frontend | --all) [--apply] 
 
 `prune` deletes version directories the manifest no longer references. Per game it treats logic
 and UI separately, and keeps the current version, every version in the publication history, and
-any version uploaded in the last 7 days (`--grace-days`), because a browser that loaded a UI before
-a newer deploy can still fetch its lazy chunks. Without `--apply` it only prints the plan.
+any version replaced in the last 7 days (`--grace-days`), dated by the next version's upload,
+because a browser that loaded a UI before a newer deploy can still fetch its lazy chunks and
+images. Without `--apply` it only prints the plan.
 It reads the manifest fresh, refuses a target whose current version is missing from the listing,
 leaves names that are not versions alone, and never touches games absent from the manifest or
 the manifest backups. `switch` can only select versions that are still in the bucket.
@@ -263,6 +264,13 @@ tabletop-deploy migrate-logic-artifacts --apply    # build and upload the missin
 ```
 
 ## Configuration
+
+### Game UI asset addresses
+
+Published UI builds write full public bucket addresses for images, fonts, models and the cover,
+derived from `gcsBucket`, so the browser fetches them from the bucket directly. Local builds keep
+site paths. Versions published before this change still use the backend's asset redirect, so that
+route stays until none of them are in use.
 
 ### Public game catalog
 

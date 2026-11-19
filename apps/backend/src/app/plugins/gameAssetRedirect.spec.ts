@@ -59,7 +59,7 @@ describe('game asset redirect', () => {
 
         expect(response.statusCode).toBe(302)
         expect(response.headers.location).toBe(`${ASSET_BASE_URL}${ASSET_PATH}`)
-        expect(response.headers['cache-control']).toBe('public, max-age=86400')
+        expect(response.headers['cache-control']).toBe('public, max-age=31536000, immutable')
     })
 
     it('answers HEAD the same way', async () => {
