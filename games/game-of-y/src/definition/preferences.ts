@@ -3,7 +3,9 @@ import type { TitlePreferenceDefinition } from '@tabletop/common'
 
 export const YPreferences = Type.Object(
     {
-        showCoordinates: Type.Boolean()
+        showCoordinates: Type.Boolean(),
+        looseStones: Type.Boolean(),
+        flatBoard: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -12,7 +14,9 @@ export const YPreferenceDefinition = {
     title: {
         schema: YPreferences,
         defaults: {
-            showCoordinates: true
+            showCoordinates: true,
+            looseStones: false,
+            flatBoard: true
         },
         version: 1
     }

@@ -118,6 +118,47 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
+                            <OverlayToggle
+                                label="Flat board"
+                                pressed={gameSession.flatBoard}
+                                onToggle={() => gameSession.toggleFlatBoard()}
+                            >
+                                <!-- The board's outline seen from straight above. -->
+                                <svg
+                                    viewBox="0 0 16 14"
+                                    width="16"
+                                    height="14"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="M8 1.2 Q12.6 5.6 14.8 12.6 Q8 14.2 1.2 12.6 Q3.4 5.6 8 1.2 Z"
+                                    ></path>
+                                </svg>
+                            </OverlayToggle>
+                            <OverlayToggle
+                                label="Loose stones"
+                                pressed={gameSession.looseStones}
+                                onToggle={() => gameSession.toggleLooseStones()}
+                            >
+                                <!-- Three stones, set a little off a line. -->
+                                <svg
+                                    viewBox="0 0 22 14"
+                                    width="22"
+                                    height="14"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    aria-hidden="true"
+                                >
+                                    <circle cx="4.6" cy="7.9" r="2.7"></circle>
+                                    <circle cx="11.2" cy="6.1" r="2.7"></circle>
+                                    <circle cx="17.6" cy="7.6" r="2.7"></circle>
+                                </svg>
+                            </OverlayToggle>
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

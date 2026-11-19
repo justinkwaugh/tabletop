@@ -8,6 +8,7 @@ import type {
 } from '@tabletop/frontend-components'
 import { neighborsOf, type HydratedYGameState, type Stone } from '@tabletop/game-of-y'
 import type { MoveInterrupter, YGameSession } from '$lib/model/session.svelte.js'
+import { boardView } from '$lib/board/geometry.js'
 import { poseOf, setPose } from './svgPose.js'
 import { setStonePose, stonePoseOf } from './stonePose.js'
 
@@ -45,8 +46,19 @@ const ROCK_TIME = DROP.rock.reduce((total, { duration }) => total + duration, 0)
 const RING = { grow: 0.18, shrink: 0.14, start: DROP.fall + ROCK_TIME * 0.45, stagger: 0.025 }
 // Undoing a placement lifts the stone off quickly, seen rising before it fades.
 const LIFT_OFF = { rise: -30, scale: 1.04 }
+// Seen from straight above, a stone does not rise up the screen: high up it looks larger, and its
+// shadow, cast down and to the right, lies further off.
+const FLAT_DROP = { scale: 1.2, shadowOff: 8 }
+const FLAT_LIFT_OFF = { scale: 1.15 }
 // A step without an action ends within QUICK.
 const QUICK = 0.18
+// A phone can take a few hundred milliseconds to draw the frame a new stone first shows in, and
+// GSAP's clock jumps over any stall shorter than half a second, skipping the whole fall. While a
+// move drops a stone, a stall longer than STALL counts as one ordinary frame instead, so the drop
+// runs late but whole. GSAP cannot report its setting, so its default is put back as the move
+// lands; steps without an action keep the default and their time limit.
+const STALL = { threshold: 100, frame: 33 }
+const GSAP_STALL = { threshold: 500, frame: 33 }
 // The motion waits for the board to draw what it moves, but never longer than this.
 const DRAW_WAIT = 0.01
 
@@ -68,6 +80,7 @@ export class BoardAnimator implements MoveInterrupter {
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private readonly tweened = new Set<object>()
     private landMove: (() => void) | undefined
+    private timeline: Timeline | undefined
     // The state of a presentation a switch of view left behind.
     private abandoned: HydratedYGameState | undefined
 
@@ -94,6 +107,7 @@ export class BoardAnimator implements MoveInterrupter {
     private stop(): boolean {
         const land = this.landMove
         if (land === undefined) return false
+        this.timeline?.kill()
         gsap.killTweensOf([...this.tweened])
         land()
         return true
@@ -141,6 +155,7 @@ export class BoardAnimator implements MoveInterrupter {
         try {
             await this.present(step)
         } catch (error) {
+            gsap.ticker.lagSmoothing(GSAP_STALL.threshold, GSAP_STALL.frame)
             this.stones = this.session.gameState.board.stones
             this.rings = this.ringsOf(this.session.gameState)
             throw error
@@ -166,22 +181,27 @@ export class BoardAnimator implements MoveInterrupter {
         const ringsBefore = this.ringsOf(from)
         const ringsAfter = this.ringsOf(to)
         this.rings = new Map([...ringsBefore, ...ringsAfter])
+        const dropping = !quick && placed.length > 0
+        if (dropping) gsap.ticker.lagSmoothing(STALL.threshold, STALL.frame)
         const drawing = performance.now()
         await tick()
         // The context's timelines run from the moment it is made, just before this listener.
         const timeline = gsap.timeline()
         const wait = Math.min(DRAW_WAIT, (performance.now() - drawing) / 1000)
         animationContext.actionTimeline.add(timeline, wait)
-        this.tweened.add(timeline)
+        this.timeline = timeline
         // Each stone's body and shadow, put back at rest once the move lands.
         const touched: [SVGGElement, SVGGElement][] = []
 
-        for (const stone of placed) this.drop(stone.id, timeline, touched, quick)
-        for (const stone of lifted) this.liftOff(stone.id, timeline, touched)
+        const { tilt, flat } = boardView(this.session.flatBoard)
+        for (const stone of placed) this.drop(stone.id, timeline, touched, quick, tilt, flat)
+        for (const stone of lifted) this.liftOff(stone.id, timeline, touched, tilt, flat)
         const ringed = this.changeRings(ringsBefore, ringsAfter, placed, lifted, timeline, quick)
 
         const land = () => {
             if (this.landMove === land) this.landMove = undefined
+            if (this.timeline === timeline) this.timeline = undefined
+            if (dropping) gsap.ticker.lagSmoothing(GSAP_STALL.threshold, GSAP_STALL.frame)
             this.tweened.clear()
             for (const [body, shadow] of touched) {
                 setStonePose(body, { x: 0, y: 0, scale: 1, rock: 0 })
@@ -219,9 +239,7 @@ export class BoardAnimator implements MoveInterrupter {
             return node
         }
         const leaving = new Set(lifted.map((stone) => stone.id))
-        const going = [...before.keys()].filter(
-            (id) => !leaving.has(id) && after.get(id) !== before.get(id)
-        )
+        const going = [...before.keys()].filter((id) => !leaving.has(id) && !after.has(id))
         const coming = [...after.keys()].filter((id) => before.get(id) !== after.get(id))
         const steps = this.stepsAlong(placed[0]?.point ?? lifted[0]?.point, coming)
         const nodes: SVGGElement[] = []
@@ -302,11 +320,17 @@ export class BoardAnimator implements MoveInterrupter {
         id: number,
         timeline: Timeline,
         touched: [SVGGElement, SVGGElement][],
-        quick: boolean
+        quick: boolean,
+        tilt: number,
+        flat: boolean
     ) {
         const { body, shadow } = this.partsOf(id, touched)
         const fall = quick ? QUICK : DROP.fall
         const pose = stonePoseOf(body)
+        pose.tilt = tilt
+        const high = flat
+            ? { scale: FLAT_DROP.scale, y: 0, shadowOff: FLAT_DROP.shadowOff }
+            : { scale: DROP.scale, y: DROP.rise, shadowOff: 0 }
         // The golden angle spreads each stone's line round evenly from the last.
         const axis = (id * 137.508) % 180
         timeline.fromTo(
@@ -317,7 +341,7 @@ export class BoardAnimator implements MoveInterrupter {
         )
         timeline.fromTo(
             pose,
-            { scale: DROP.scale, y: DROP.rise, rock: 0, axis },
+            { scale: high.scale, y: high.y, rock: 0, axis },
             { scale: 1, y: 0, duration: fall, ease: 'power2.in', immediateRender: true },
             0
         )
@@ -329,8 +353,8 @@ export class BoardAnimator implements MoveInterrupter {
         )
         timeline.fromTo(
             poseOf(shadow),
-            { scale: DROP.shadow },
-            { scale: 1, duration: fall, ease: 'power1.in', immediateRender: true },
+            { scale: DROP.shadow, x: high.shadowOff, y: high.shadowOff },
+            { scale: 1, x: 0, y: 0, duration: fall, ease: 'power1.in', immediateRender: true },
             0
         )
         if (quick) return
@@ -344,12 +368,25 @@ export class BoardAnimator implements MoveInterrupter {
 
     // The drop in reverse: the stone is seen rising off its point before it fades, and its
     // shadow shrinks under it.
-    private liftOff(id: number, timeline: Timeline, touched: [SVGGElement, SVGGElement][]) {
+    private liftOff(
+        id: number,
+        timeline: Timeline,
+        touched: [SVGGElement, SVGGElement][],
+        tilt: number,
+        flat: boolean
+    ) {
         const { body, shadow } = this.partsOf(id, touched)
-        const { rise, scale } = LIFT_OFF
-        timeline.to(stonePoseOf(body), { y: rise, scale, duration: QUICK, ease: 'power1.out' }, 0)
+        const pose = stonePoseOf(body)
+        pose.tilt = tilt
+        const { rise, scale } = flat ? { rise: 0, scale: FLAT_LIFT_OFF.scale } : LIFT_OFF
+        const shadowOff = flat ? FLAT_DROP.shadowOff : 0
+        timeline.to(pose, { y: rise, scale, duration: QUICK, ease: 'power1.out' }, 0)
         timeline.to(body, { opacity: 0, duration: QUICK, ease: 'power2.in' }, 0)
         timeline.to(shadow, { opacity: 0, duration: QUICK, ease: 'power1.out' }, 0)
-        timeline.to(poseOf(shadow), { scale: DROP.shadow, duration: QUICK, ease: 'power1.out' }, 0)
+        timeline.to(
+            poseOf(shadow),
+            { scale: DROP.shadow, x: shadowOff, y: shadowOff, duration: QUICK, ease: 'power1.out' },
+            0
+        )
     }
 }

@@ -3,6 +3,7 @@
     import type { HydratedYPlayerState } from '@tabletop/game-of-y'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { stoneBox, stoneLook } from '$lib/board/looks.js'
+    import { TILT } from '$lib/board/geometry.js'
     import { LOOK_URLS } from '$lib/board/lookUrls.js'
 
     let { playerState }: { playerState: HydratedYPlayerState } = $props()
@@ -15,7 +16,8 @@
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
     const color = $derived(session.colorOf(playerState.playerId))
-    const look = stoneBox()
+    // The tray shows its stone from the side, whichever way the board is seen.
+    const look = stoneBox(TILT)
 </script>
 
 <div class="tray" class:active={isActive}>
@@ -36,7 +38,7 @@
             aria-hidden="true"
         >
             <image
-                href={LOOK_URLS[stoneLook(color)]}
+                href={LOOK_URLS[stoneLook(color, false)]}
                 x={look.x}
                 y={look.y}
                 width={look.width}

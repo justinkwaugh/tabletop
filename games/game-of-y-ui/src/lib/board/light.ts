@@ -1,6 +1,6 @@
 // World space has x to the right, y towards the viewer and z up, in board units. A point shows on
-// screen at (x, y × TILT − z × RISE).
-import { RISE, TILT } from './geometry.js'
+// screen at (x, y × tilt − z × rise).
+import { riseOf } from './geometry.js'
 
 export type Vec = [number, number, number]
 export type Rgb = [number, number, number]
@@ -15,8 +15,10 @@ export const smoothstep = (from: number, to: number, value: number) => {
     return t * t * (3 - 2 * t)
 }
 
-// Towards the viewer.
-export const EYE: Vec = [0, RISE, TILT]
+// Towards the viewer, for a board seen at `tilt`.
+export function eyeOf(tilt: number): Vec {
+    return [0, riseOf(tilt), tilt]
+}
 // From above, to the left and beyond the board, so each stone's lit side faces up the screen and
 // its shadow falls towards the viewer.
 export const LIGHT: Vec = normalize([-0.5, -0.45, 0.74])

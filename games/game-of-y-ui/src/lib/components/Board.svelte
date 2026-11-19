@@ -1,57 +1,63 @@
 <script lang="ts">
     import { neighborsOf, POINTS, type Stone } from '@tabletop/game-of-y'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        center,
-        LABEL_SIZE,
-        linesOf,
-        RISE,
-        STONE_RADIUS,
-        STONE_THICKNESS,
-        TILT,
-        VIEW
-    } from '$lib/board/geometry.js'
-    import { EDGE_LOOK, stoneBox, stoneLook, WOOD_LOOK } from '$lib/board/looks.js'
+    import { boardView, LABEL_SIZE, linesOf, STONE_RADIUS } from '$lib/board/geometry.js'
+    import { EDGE_LOOK, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
     import { LOOK_URLS } from '$lib/board/lookUrls.js'
     import { domeHeight, domeRing } from '$lib/board/stoneShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import { keepStonesDecoded } from '$lib/board/decodedStones.js'
+    import { stoneOffsets } from '$lib/board/jitter.js'
 
     const session = getGameSession()
 
-    const layout = VIEW
+    // Seen from the near side of the table, or flat from straight above.
+    const layout = $derived(boardView(session.flatBoard))
 
     const animator = new BoardAnimator(session)
 
-    const lines = linesOf(neighborsOf)
-    const linePath = lines
-        .map(
-            ([a, b]) =>
-                `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)}`
-        )
-        .join(' ')
+    const linePath = $derived(
+        linesOf(neighborsOf, layout.tilt)
+            .map(
+                ([a, b]) =>
+                    `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)}`
+            )
+            .join(' ')
+    )
+
+    // How far a loose stone may sit off its point, seen from above.
+    const LOOSE_REACH = 10
+
+    const offsets = $derived(
+        session.looseStones ? stoneOffsets(animator.stones, LOOSE_REACH) : new Map()
+    )
+
+    // Where a stone rests on screen: on its point, or a little off it when stones lie loose.
+    function restingAt(stone: Stone) {
+        const at = layout.center(stone.point)
+        const offset = offsets.get(stone.id)
+        return offset ? { x: at.x + offset.x, y: at.y + offset.y * layout.tilt } : at
+    }
 
     // Back to front, so a nearer stone covers the one behind it.
     const stones = $derived(
-        animator.stones.toSorted((a, b) => {
-            const pa = center(a.point)
-            const pb = center(b.point)
-            return pa.y - pb.y || pa.x - pb.x
-        })
+        animator.stones
+            .map((stone) => ({ stone, at: restingAt(stone) }))
+            .toSorted((a, b) => a.at.y - b.at.y || a.at.x - b.at.x)
     )
 
-    const look = stoneBox()
+    const look = $derived(stoneBox(layout.tilt))
     const wood = $derived(layout.woodBox)
     // Rings painted on the stone's top dome, following its curve: a band 0.15 of the radius wide
     // round a line 0.48 out; the winning chain's cyan band lies on a wider dark one.
     const RING_LINE = STONE_RADIUS * 0.48
     const RING_HALF = STONE_RADIUS * 0.075
-    const RING_MIDDLE = -domeHeight(RING_LINE) * RISE
-    const LAST_RING = domeRing(RING_LINE - RING_HALF, RING_LINE + RING_HALF)
-    const WON_RING = {
-        under: domeRing(RING_LINE - RING_HALF * 1.5, RING_LINE + RING_HALF * 1.5),
-        over: domeRing(RING_LINE - RING_HALF, RING_LINE + RING_HALF)
-    }
+    const RING_MIDDLE = $derived(-domeHeight(RING_LINE) * layout.rise)
+    const LAST_RING = $derived(domeRing(RING_LINE - RING_HALF, RING_LINE + RING_HALF, layout.tilt))
+    const WON_RING = $derived({
+        under: domeRing(RING_LINE - RING_HALF * 1.5, RING_LINE + RING_HALF * 1.5, layout.tilt),
+        over: domeRing(RING_LINE - RING_HALF, RING_LINE + RING_HALF, layout.tilt)
+    })
 
     let hovered: string | undefined = $state()
     const hoverColor = $derived(session.myPlayer ? session.colorOf(session.myPlayer.id) : undefined)
@@ -82,13 +88,13 @@
             cx="3"
             cy="3"
             rx={STONE_RADIUS + 3}
-            ry={(STONE_RADIUS + 3) * TILT}
+            ry={(STONE_RADIUS + 3) * layout.tilt}
             fill="url(#y-stone-shadow)"
         ></ellipse>
     </g>
     <g {@attach ghost ? undefined : animator.stone(stone.id, 'body')}>
         <image
-            href={LOOK_URLS[stoneLook(stone.color)]}
+            href={LOOK_URLS[stoneLook(stone.color, layout.flat)]}
             x={look.x}
             y={look.y}
             width={look.width}
@@ -162,19 +168,21 @@
             ></path>
         {/each}
     </g>
+    {#if !layout.flat}
+        <image
+            href={LOOK_URLS[EDGE_LOOK]}
+            x={layout.edgeBox.x}
+            y={layout.edgeBox.y}
+            width={layout.edgeBox.width}
+            height={layout.edgeBox.height}
+            clip-path="url(#y-slab-clip)"
+            preserveAspectRatio="none"
+            class="wood"
+        ></image>
+        <path d={layout.slab} fill="url(#y-edge-light)" class="wood"></path>
+    {/if}
     <image
-        href={LOOK_URLS[EDGE_LOOK]}
-        x={layout.edgeBox.x}
-        y={layout.edgeBox.y}
-        width={layout.edgeBox.width}
-        height={layout.edgeBox.height}
-        clip-path="url(#y-slab-clip)"
-        preserveAspectRatio="none"
-        class="wood"
-    ></image>
-    <path d={layout.slab} fill="url(#y-edge-light)" class="wood"></path>
-    <image
-        href={LOOK_URLS[WOOD_LOOK]}
+        href={LOOK_URLS[woodLook(layout.flat)]}
         x={wood.x}
         y={wood.y}
         width={wood.width}
@@ -194,15 +202,14 @@
         {/each}
     {/if}
 
-    {#each stones as stone (stone.id)}
-        {@const at = center(stone.point)}
+    {#each stones as { stone, at } (stone.id)}
         <g transform="translate({at.x} {at.y})" class="stone">
             {@render stoneDrawing(stone, false)}
         </g>
     {/each}
 
     {#if hovered && hoverColor && session.placeable.has(hovered) && !session.updatingVisibleState}
-        {@const at = center(hovered)}
+        {@const at = layout.center(hovered)}
         <g transform="translate({at.x} {at.y})" class="ghost">
             {@render stoneDrawing({ id: -1, point: hovered, color: hoverColor }, true)}
         </g>
@@ -211,12 +218,12 @@
     <g class="targets">
         {#each POINTS as point (point)}
             {#if session.placeable.has(point)}
-                {@const at = center(point)}
+                {@const at = layout.center(point)}
                 <ellipse
                     cx={at.x}
                     cy={at.y}
                     rx={STONE_RADIUS}
-                    ry={STONE_RADIUS * TILT}
+                    ry={STONE_RADIUS * layout.tilt}
                     class="target"
                     role="button"
                     tabindex="0"

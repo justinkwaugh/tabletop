@@ -3,9 +3,13 @@ import { POINTS, Side, sidesOf, TOP_CORNER } from '@tabletop/game-of-y'
 import { POINT_PLAN, SHORTEST_LINE } from './pointPlan.js'
 
 // The board seen from the near side of the table: the plan's depth shortened by TILT, heights
-// shown at RISE.
+// shown at RISE. Seen flat, from straight above, the tilt is 1 and heights do not show.
 export const TILT = 0.75
-export const RISE = Math.sqrt(1 - TILT ** 2)
+export const FLAT = 1
+
+export function riseOf(tilt: number): number {
+    return Math.sqrt(1 - tilt ** 2)
+}
 
 // Stones as large as the closest pair of points allows, a hair apart.
 export const STONE_RADIUS = Math.floor(SHORTEST_LINE / 2 - 0.5)
@@ -46,20 +50,29 @@ const SIDES: readonly { side: Side; from: string; middle: string; to: string }[]
     { side: Side.Right, from: 'I1', middle: 'M5', to: TOP_CORNER }
 ]
 
-export type Label = { key: string; text: string; at: Point }
+// A label on the rim: the point it stands beside, the way out to it on screen, and how much
+// further than a stone on that point needs it stands, room a loose stone may lean into.
+export type Label = {
+    key: string
+    text: string
+    at: Point
+    point: string
+    going: Point
+    spare: number
+}
 export type Box = { x: number; y: number; width: number; height: number }
 
 export function plan(point: string): Point {
     return POINT_PLAN[point]
 }
 
-export function center(point: string): Point {
+export function center(point: string, tilt: number): Point {
     const { x, y } = plan(point)
-    return { x, y: y * TILT }
+    return { x, y: y * tilt }
 }
 
-export function toScreen({ x, y }: Point, height = 0): Point {
-    return { x, y: y * TILT - height * RISE }
+export function toScreen({ x, y }: Point, tilt: number, height = 0): Point {
+    return { x, y: y * tilt - height * riseOf(tilt) }
 }
 
 const add = (a: Point, b: Point, scale = 1): Point => ({
@@ -155,10 +168,10 @@ function pathOf(points: readonly Point[]): string {
 // as far out as it needs to clear the footprint of a stone, and above a stone most of its dome,
 // with the distance changing only a little from one label to the next, so a side's labels still
 // run alongside it.
-function labelsFor(): Label[] {
+function labelsFor(tilt: number): Label[] {
     const room = (text: string, going: Point) => {
-        const footprint = Math.hypot(STONE_RADIUS * going.x, STONE_RADIUS * TILT * going.y)
-        const dome = going.y < 0 ? -going.y * STONE_THICKNESS * RISE * DOME_CLEARANCE : 0
+        const footprint = Math.hypot(STONE_RADIUS * going.x, STONE_RADIUS * tilt * going.y)
+        const dome = going.y < 0 ? -going.y * STONE_THICKNESS * riseOf(tilt) * DOME_CLEARANCE : 0
         const half =
             Math.abs(going.x) * labelHalfWidth(text) + Math.abs(going.y) * LABEL_SIZE * 0.36
         return footprint + dome + LABEL_GAP + half
@@ -168,7 +181,7 @@ function labelsFor(): Label[] {
         const placed = points.map((point) => ({
             point,
             text: named(point),
-            going: outwardOnScreen(points, point)
+            going: outwardOnScreen(points, point, tilt)
         }))
         const needed = placed.map(({ text, going }) => room(text, going))
         const reach = needed.map((_, index) =>
@@ -177,7 +190,10 @@ function labelsFor(): Label[] {
         return placed.map(({ point, text, going }, index) => ({
             key: `${side}-${point}`,
             text,
-            at: add(center(point), going, reach[index])
+            at: add(center(point, tilt), going, reach[index]),
+            point,
+            going,
+            spare: reach[index] - needed[index]
         }))
     }
     const rowNamed = (point: string) => point
@@ -188,20 +204,23 @@ function labelsFor(): Label[] {
         {
             key: 'top',
             text: TOP_CORNER,
-            at: add(center(TOP_CORNER), { x: 0, y: -1 }, room(TOP_CORNER, { x: 0, y: -1 }))
+            at: add(center(TOP_CORNER, tilt), { x: 0, y: -1 }, room(TOP_CORNER, { x: 0, y: -1 })),
+            point: TOP_CORNER,
+            going: { x: 0, y: -1 },
+            spare: 0
         }
     ]
 }
 
 // Out from the board, square to the side through `point` as it shows on screen.
-function outwardOnScreen(side: readonly string[], point: string): Point {
+function outwardOnScreen(side: readonly string[], point: string, tilt: number): Point {
     const index = side.indexOf(point)
-    const before = center(side[Math.max(0, index - 1)])
-    const after = center(side[Math.min(side.length - 1, index + 1)])
+    const before = center(side[Math.max(0, index - 1)], tilt)
+    const after = center(side[Math.min(side.length - 1, index + 1)], tilt)
     const tangent = unit({ x: after.x - before.x, y: after.y - before.y })
     const normal = { x: tangent.y, y: -tangent.x }
-    const middle = center('G5')
-    const own = center(point)
+    const middle = center('G5', tilt)
+    const own = center(point, tilt)
     const away = normal.x * (own.x - middle.x) + normal.y * (own.y - middle.y)
     return away > 0 ? normal : { x: -normal.x, y: -normal.y }
 }
@@ -215,6 +234,7 @@ function boxOf(points: readonly Point[]): Box {
 }
 
 export class BoardView {
+    readonly rise: number
     readonly outline: string
     // The top and its edge together: the far half of the top's outline and the near half lowered
     // by the board's thickness.
@@ -225,11 +245,12 @@ export class BoardView {
     readonly frame: Box
     readonly woodBox: Box
 
-    constructor() {
+    constructor(readonly tilt: number) {
+        this.rise = riseOf(tilt)
         const plain = outlinePlan()
-        const screen = plain.map((p) => toScreen(p))
+        const screen = plain.map((p) => toScreen(p, tilt))
         this.outline = pathOf(screen)
-        const drop = BOARD_THICKNESS * RISE
+        const drop = BOARD_THICKNESS * this.rise
         const slab = slabOutline(screen, drop)
         this.slab = pathOf(slab)
         const sides = [
@@ -244,7 +265,7 @@ export class BoardView {
             width: slabBox.width,
             height: slabBox.y + slabBox.height - edgeTop
         }
-        this.labels = labelsFor()
+        this.labels = labelsFor(tilt)
         this.woodBox = boxOf(screen)
         const all = boxOf([...screen, ...slab])
         this.frame = {
@@ -260,9 +281,20 @@ export class BoardView {
         return `${x} ${y} ${width} ${height}`
     }
 
-    center(point: string): Point {
-        return center(point)
+    get flat(): boolean {
+        return this.tilt === FLAT
     }
+
+    center(point: string): Point {
+        return center(point, this.tilt)
+    }
+}
+
+export const TILTED_VIEW = new BoardView(TILT)
+export const FLAT_VIEW = new BoardView(FLAT)
+
+export function boardView(flat: boolean): BoardView {
+    return flat ? FLAT_VIEW : TILTED_VIEW
 }
 
 // A convex outline swept straight down by `drop`: the far chain between its leftmost and
@@ -284,14 +316,15 @@ function slabOutline(outline: readonly Point[], drop: number): Point[] {
     return [...far, ...near.map((p) => ({ x: p.x, y: p.y + drop }))]
 }
 
-export function linesOf(neighbors: (point: string) => readonly string[]): [Point, Point][] {
+export function linesOf(
+    neighbors: (point: string) => readonly string[],
+    tilt: number
+): [Point, Point][] {
     return POINTS.flatMap((point) =>
         neighbors(point)
             .filter((other) => POINTS.indexOf(other) > POINTS.indexOf(point))
-            .map((other): [Point, Point] => [center(point), center(other)])
+            .map((other): [Point, Point] => [center(point, tilt), center(other, tilt)])
     )
 }
-
-export const VIEW = new BoardView()
 
 export { CORNERS }

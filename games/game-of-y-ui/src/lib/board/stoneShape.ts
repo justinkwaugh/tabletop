@@ -1,5 +1,5 @@
 import type { Point } from '@tabletop/common'
-import { RISE, STONE_RADIUS, STONE_THICKNESS, TILT } from './geometry.js'
+import { riseOf, STONE_RADIUS, STONE_THICKNESS } from './geometry.js'
 
 // A go stone: two spherical domes alike, meeting in a softly rounded rim, resting on its lower dome
 // at the origin.
@@ -18,15 +18,16 @@ export function domeHeight(r: number): number {
     return STONE_THICKNESS - PROFILE.sphere + Math.sqrt(PROFILE.sphere ** 2 - r * r)
 }
 
-// A ring painted on the top dome, between radii `inner` and `outer`, as the board sees it: each
-// edge a circle at its own height, so the band narrows where the dome turns away.
-export function domeRing(inner: number, outer: number): string {
+// A ring painted on the top dome, between radii `inner` and `outer`, as the board sees it at `tilt`:
+// each edge a circle at its own height, so the band narrows where the dome turns away.
+export function domeRing(inner: number, outer: number, tilt: number): string {
+    const rise = riseOf(tilt)
     const loop = (r: number) =>
         Array.from({ length: 48 }, (_, step) => {
             const angle = (step / 48) * 2 * Math.PI
             const x = r * Math.cos(angle)
             const y = r * Math.sin(angle)
-            return `${x.toFixed(2)} ${(y * TILT - domeHeight(r) * RISE).toFixed(2)}`
+            return `${x.toFixed(2)} ${(y * tilt - domeHeight(r) * rise).toFixed(2)}`
         })
     const path = (points: string[]) => `M ${points.join(' L ')} Z`
     return `${path(loop(outer))} ${path(loop(inner).toReversed())}`
@@ -49,14 +50,14 @@ const SURFACE: readonly Vec[] = Array.from({ length: 7 }, (_, ring) => (ring + 1
         }).flat()
 )
 
-const project = ([x, y, z]: Vec): Point => ({ x, y: y * TILT - z * RISE })
-
 export type Affine = { a: number; b: number; c: number; d: number; e: number; f: number }
 
 // The stone tipped by `angle` degrees about a line through where it touches the board, running
-// `axis` degrees round from the board's x direction, as one flat transform of its picture: the
-// least-squares fit over its surface, as the picture is a single view.
-export function rockTransform(angle: number, axis: number): Affine {
+// `axis` degrees round from the board's x direction, as one flat transform of its picture seen at
+// `tilt`: the least-squares fit over its surface, as the picture is a single view.
+export function rockTransform(angle: number, axis: number, tilt: number): Affine {
+    const rise = riseOf(tilt)
+    const project = ([x, y, z]: Vec): Point => ({ x, y: y * tilt - z * rise })
     const theta = (angle * Math.PI) / 180
     const phi = (axis * Math.PI) / 180
     const [ux, uy] = [Math.cos(phi), Math.sin(phi)]

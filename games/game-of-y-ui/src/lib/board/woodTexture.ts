@@ -1,7 +1,7 @@
 // The board as a slab of kaya, the wood of fine go boards: on top, straight close grain running
 // away from the viewer (masame); down the edge, growth rings wandering top to bottom. Only
 // scripts/render-looks.mjs runs this, through the /looks page; rerun it after changing the grain.
-import { TILT, type Box } from './geometry.js'
+import type { Box } from './geometry.js'
 import { clamp, linear, srgb, type Bitmap, type Rgb } from './light.js'
 import { seededRandom } from './random.js'
 
@@ -91,8 +91,8 @@ function paint(box: Box, pixels: number, shade: (x: number, y: number) => number
     return { x: box.x, y: box.y, width, height: rows, data }
 }
 
-// The top seen at the board's tilt, its grain running up the screen.
-export function renderTop(box: Box, grain = TOP_GRAIN, pixels = WOOD_PIXELS): Bitmap {
+// The top seen at `tilt`, its grain running up the screen.
+export function renderTop(box: Box, tilt: number, grain = TOP_GRAIN, pixels = WOOD_PIXELS): Bitmap {
     const ring = rings(7)
     const figure = noise2(19)
     const fibre = noise2(31)
@@ -100,7 +100,7 @@ export function renderTop(box: Box, grain = TOP_GRAIN, pixels = WOOD_PIXELS): Bi
         box,
         pixels,
         (x, screenY) => {
-            const y = screenY / TILT
+            const y = screenY / tilt
             const drift = (figure(x * 0.01, y * 0.002) - 0.5) * 6
             return (
                 0.12 +

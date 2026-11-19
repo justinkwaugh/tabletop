@@ -7,7 +7,7 @@ import {
     add,
     clamp,
     dot,
-    EYE,
+    eyeOf,
     LIGHT,
     linear,
     normalize,
@@ -75,10 +75,11 @@ export function lens(thickness: number) {
     }
     // The first point of the stone seen through a screen point, marching from in front of it.
     const hit = (sx: number, sy: number, tilt: number): Vec | undefined => {
+        const eye = eyeOf(tilt)
         const start: Vec = [sx, sy / tilt, 0]
         let t = (thickness + STONE_RADIUS) * 2
         for (let step = 0; step < 160 && t > -STONE_RADIUS * 3; step++) {
-            const p = add(start, scale(EYE, t))
+            const p = add(start, scale(eye, t))
             const d = distance(p)
             if (d < 0.002) return p
             t -= Math.max(d, 0.01)
@@ -88,9 +89,9 @@ export function lens(thickness: number) {
     return { half, distance, normalAt, hit }
 }
 
-function shade(finish: Finish, albedo: Rgb, normal: Vec, p: Vec, half: number): Rgb {
+function shade(finish: Finish, albedo: Rgb, normal: Vec, p: Vec, half: number, eye: Vec): Rgb {
     const diffuse = Math.max(0, dot(normal, LIGHT))
-    const halfway = normalize(add(LIGHT, EYE))
+    const halfway = normalize(add(LIGHT, eye))
     const facing = Math.max(0, dot(normal, halfway))
     const specular = finish.highlight * facing ** finish.sharpness + finish.sheen * facing ** 8
     // Only close to the board is the underside in its own shade; above that the wood lights it
@@ -114,7 +115,8 @@ export function renderStone(
 ): Bitmap {
     const shape = lens(thickness)
     const albedo = linear(finish.albedo)
-    const box = stoneBox(pixels, thickness)
+    const box = stoneBox(tilt, pixels, thickness)
+    const eye = eyeOf(tilt)
     const width = Math.round(box.width * pixels)
     const rows = Math.round(box.height * pixels)
     const data = new Uint8ClampedArray(width * rows * 4)
@@ -128,7 +130,7 @@ export function renderStone(
                     const sy = box.y + (row + (sv + 0.5) / samples) / pixels
                     const p = shape.hit(sx, sy, tilt)
                     if (p === undefined) continue
-                    const lit = shade(finish, albedo, shape.normalAt(p), p, shape.half)
+                    const lit = shade(finish, albedo, shape.normalAt(p), p, shape.half, eye)
                     red += srgb(lit[0])
                     green += srgb(lit[1])
                     blue += srgb(lit[2])

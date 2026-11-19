@@ -8,9 +8,11 @@ const held: HTMLImageElement[] = []
 
 export function keepStonesDecoded() {
     if (held.length > 0) return
-    for (const color of STONE_COLORS) {
+    for (const look of STONE_COLORS.flatMap((color) =>
+        [false, true].map((flat) => stoneLook(color, flat))
+    )) {
         const image = new Image()
-        image.src = LOOK_URLS[stoneLook(color)]
+        image.src = LOOK_URLS[look]
         held.push(image)
         image.decode().catch(() => {
             // A picture that fails to decode here is still drawn by the board as usual.

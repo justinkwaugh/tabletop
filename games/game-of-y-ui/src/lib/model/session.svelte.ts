@@ -36,6 +36,22 @@ export class YGameSession extends GameSession<YGameState, HydratedYGameState> {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
+    // Stones set a little off their points, as by hand.
+    looseStones: boolean = $derived(this.preferences.values.looseStones)
+
+    // The board seen flat, from straight above, rather than from the near side of the table.
+    flatBoard: boolean = $derived(this.preferences.values.flatBoard)
+
+    toggleFlatBoard() {
+        this.moveInterrupter?.interrupt()
+        this.preferences.set({ flatBoard: !this.flatBoard })
+    }
+
+    toggleLooseStones() {
+        this.moveInterrupter?.interrupt()
+        this.preferences.set({ looseStones: !this.looseStones })
+    }
+
     canPlace = $derived(this.canAct(ActionType.PlaceStone))
     canSwap = $derived(this.canAct(ActionType.SwapColors))
 
