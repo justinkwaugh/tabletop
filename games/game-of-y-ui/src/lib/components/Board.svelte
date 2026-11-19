@@ -20,7 +20,7 @@
     const animator = new BoardAnimator(session)
 
     // How far a loose stone may sit off its point, seen from above.
-    const LOOSE_REACH = 10
+    const LOOSE_REACH = 30
 
     const offsets = $derived(
         session.looseStones ? stoneOffsets(shape, animator.stones, LOOSE_REACH) : new Map()

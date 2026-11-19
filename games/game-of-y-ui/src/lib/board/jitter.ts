@@ -24,9 +24,9 @@ const GAP = 0.3
 // Stones set down by hand sit a little off their points. Each stone's offset, seen from above, is
 // its own (seeded by its id, so every viewer sees the same board) and never changes once it is
 // down: it reaches at most `reach` units, and toward a neighbouring point only as far as leaves a
-// stone there room. Toward an empty point a stone takes at most half the space between the two
-// stones, so the stone that comes later always fits; toward an earlier stone it takes what that
-// stone left. A stone on a side leans toward its label only into the room the label leaves
+// stone there room. Toward an empty point a stone may take all the space between the two stones,
+// since the stone that comes later still fits on its own point; toward an earlier stone it takes
+// what that stone left. A stone on a side leans toward its label only into the room the label leaves
 // beyond a stone on the point, labels shown or not, so a stone stays put when they are toggled.
 export function stoneOffsets(
     shape: BoardShape,
@@ -53,7 +53,7 @@ export function stoneOffsets(
             const other = byPoint.get(neighbor)
             // How far this stone may lean toward the neighbouring point.
             const allowed =
-                other === undefined ? room / 2 : room + (other.x * toward.x + other.y * toward.y)
+                other === undefined ? room : room + (other.x * toward.x + other.y * toward.y)
             const leaning = wanted.x * toward.x + wanted.y * toward.y
             if (leaning > allowed) scale = Math.min(scale, Math.max(0, allowed) / leaning)
         }
