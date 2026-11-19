@@ -2,7 +2,6 @@
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import PoolCount from './PoolCount.svelte'
 
     const session = getGameSession()
 
@@ -10,10 +9,11 @@
     const actingPlayerId = $derived(session.gameState.activePlayerIds[0])
 </script>
 
+<!-- A long name is cut off before it reaches Undo. -->
 <div
-    class="relative flex h-[44px] items-center justify-between px-4 tracking-[0.08em] text-(--yinsh-table-ink) max-sm:h-[30px] max-sm:px-1"
+    class="flex h-[44px] items-center justify-between gap-x-3 px-4 tracking-[0.08em] text-(--yinsh-table-ink) max-sm:h-[30px] max-sm:gap-x-2 max-sm:px-1"
 >
-    <div class="header-grid grid text-[18px] max-sm:text-[14px]">
+    <div class="header-grid grid min-w-0 text-[18px] max-sm:text-[14px]">
         {#if session.isViewingHistory}
             <div in:fade={{ duration: 200 }} out:fade={{ duration: 120 }}>HISTORY</div>
         {:else if session.gameState.result}
@@ -22,27 +22,22 @@
             <div
                 in:fade={{ duration: 200 }}
                 out:fade={{ duration: 120 }}
-                class="inline-flex gap-x-1"
+                class="flex min-w-0 gap-x-1"
             >
                 <PlayerName
                     playerId={actingPlayerId}
                     capitalization="uppercase"
                     possessive={true}
-                    additionalClasses="tracking-widest"
+                    additionalClasses="min-w-0 truncate tracking-widest"
                 />
-                <span>TURN</span>
+                <span class="shrink-0">TURN</span>
             </div>
         {:else}
             <div in:fade={{ duration: 200 }} out:fade={{ duration: 120 }}>YOUR TURN</div>
         {/if}
     </div>
 
-    <!-- Rule H3: the game also ends when the pool runs out, so its count stays in view. -->
-    <div class="pointer-events-auto absolute left-1/2 -translate-x-1/2">
-        <PoolCount />
-    </div>
-
-    <div class="header-grid grid text-[18px] max-sm:text-[14px]">
+    <div class="header-grid grid shrink-0 text-[18px] max-sm:text-[14px]">
         {#if session.hasLocalSelection || session.undoableAction}
             <button type="button" onclick={() => session.undo()} class="header-button">UNDO</button>
         {/if}
