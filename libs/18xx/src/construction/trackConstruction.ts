@@ -236,7 +236,13 @@ export interface TrackRules {
      * Stations stay on a companion hex's nodes as they were, so its tile keeps their node ids.
      */
     companionTiles?(state: ConstructionState, details: TrackLayDetails): readonly BoardTile[]
-    afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
+    /** Effects of a lay just made; `ordinary` is false for a lay outside the step's own lays. */
+    afterLay?(
+        state: ConstructionState,
+        details: TrackLayDetails,
+        payer: Owner,
+        ordinary: boolean
+    ): TrackLayEffects
     relabels?(locationId: string, definitionId: string): boolean
     /** The city of a tile that prints this reserved spot; laying the tile moves the spot there. */
     printedReservationNode?(

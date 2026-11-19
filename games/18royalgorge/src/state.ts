@@ -46,9 +46,7 @@ export const SteelTurn = Type.Object(
         /** The column, or the Steel Depot, chosen for each colour's next steel. */
         choices: Type.Optional(Type.Record(Id, Id)),
         /** Steel taken free from the Steel Depot for yellow tiles this turn (B3). */
-        depotSteel: Count,
-        /** Steel bought this turn, one for each ordinary lay (Rule 5). */
-        bought: Count
+        depotSteel: Count
     },
     { additionalProperties: false }
 )

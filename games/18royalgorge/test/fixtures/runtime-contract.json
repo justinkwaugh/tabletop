@@ -2957,10 +2957,6 @@
       "steelTurn": {
         "additionalProperties": false,
         "properties": {
-          "bought": {
-            "minimum": 0,
-            "type": "integer"
-          },
           "choices": {
             "patternProperties": {
               "^.*$": {
@@ -2989,7 +2985,6 @@
           }
         },
         "required": [
-          "bought",
           "columns",
           "companyId",
           "depotSteel"

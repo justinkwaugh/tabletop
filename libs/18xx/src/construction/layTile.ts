@@ -118,7 +118,7 @@ export function applyTrackLay(
             privateCompanyId
         })
     const borrowed = loans.length ? { ...details, loans } : details
-    const effects = rules.afterLay?.(state, details, payer)
+    const effects = rules.afterLay?.(state, details, payer, countsAsOrdinaryLay)
     if (!effects) return borrowed
     settleCashPayments(state, effects.payments)
     for (const privateId of effects.closedPrivateIds) closePrivate(state, privateId)

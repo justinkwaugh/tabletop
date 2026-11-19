@@ -39,7 +39,9 @@ export const SteelRecipient: Owner = { kind: 'company', companyId: CfiId }
 export function freshSteelMarket(): SteelMarket {
     return Object.fromEntries(
         Object.values(SteelColumns).flatMap((columns) =>
-            Object.entries(columns).map(([column, prices]) => [column, prices.length])
+            Object.entries(columns)
+                .filter(([, prices]) => prices.length)
+                .map(([column, prices]) => [column, prices.length])
         )
     )
 }
@@ -53,10 +55,15 @@ function columnPrices(column: string): readonly number[] {
 
 /** What the column's next cube costs: its cheapest left, or the empty price (ST-1, ST-4). */
 export function steelPrice(state: object, column: string): number {
-    const remaining = requireStateRoyalGorge(state).steelMarket[column]
-    assert(remaining !== undefined, `The steel market has column ${column}`)
+    const remaining = steelLeft(state, column)
     const prices = columnPrices(column)
     return remaining ? prices[prices.length - remaining] : EmptyColumnPrice
+}
+
+/** The cubes left in a printed column; a column printed without cubes is never stored. */
+export function steelLeft(state: object, column: string): number {
+    columnPrices(column)
+    return requireStateRoyalGorge(state).steelMarket[column] ?? 0
 }
 
 export function columnColor(column: string): string | undefined {
@@ -66,7 +73,7 @@ export function columnColor(column: string): string | undefined {
 function turnOf(state: HydratedStateRoyalGorge, companyId: string): SteelTurn {
     return state.steelTurn?.companyId === companyId
         ? state.steelTurn
-        : { companyId, columns: {}, depotSteel: 0, bought: 0 }
+        : { companyId, columns: {}, depotSteel: 0 }
 }
 
 /** The company's steel this turn: columns used and chosen, and what it has bought (ST-2). */
@@ -129,30 +136,19 @@ export function nextSteel(state: object, companyId: string, color: string): Stee
     return { source: column, price: steelPrice(title, column) }
 }
 
-/** The steel bought this turn by the company. */
-export function steelBought(state: object, companyId: string): number {
-    return turnOf(requireStateRoyalGorge(state), companyId).bought
-}
-
 /** Buys the steel for a tile just laid: a cube leaves its column, or the Steel Depot. */
 export function buySteel(state: object, companyId: string, color: string): SteelPurchase {
     const title = requireStateRoyalGorge(state)
     const purchase = nextSteel(title, companyId, color)
     const turn = turnOf(title, companyId)
-    const bought = turn.bought + 1
     if (purchase.source === DepotSourceId) {
         title.depotSteel -= 1
-        title.steelTurn = { ...turn, depotSteel: turn.depotSteel + 1, bought }
+        title.steelTurn = { ...turn, depotSteel: turn.depotSteel + 1 }
         return purchase
     }
-    const remaining = title.steelMarket[purchase.source]
-    assert(remaining !== undefined, `The steel market has column ${purchase.source}`)
+    const remaining = steelLeft(title, purchase.source)
     if (remaining) title.steelMarket = { ...title.steelMarket, [purchase.source]: remaining - 1 }
-    title.steelTurn = {
-        ...turn,
-        columns: { ...turn.columns, [color]: purchase.source },
-        bought
-    }
+    title.steelTurn = { ...turn, columns: { ...turn.columns, [color]: purchase.source } }
     return purchase
 }
 

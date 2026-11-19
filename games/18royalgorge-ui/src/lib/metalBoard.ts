@@ -1,4 +1,3 @@
-import { assertExists } from '@tabletop/common'
 import {
     CfiId,
     DepotSourceId,
@@ -11,6 +10,7 @@ import {
     goldDividend,
     nextSteel,
     steelColumn,
+    steelLeft,
     steelPrice,
     ownsOpenPrivate,
     steelChoices,
@@ -102,8 +102,7 @@ export function steelBoard(state: HydratedStateRoyalGorge, choosing: boolean): S
         return {
             color,
             columns: Object.entries(columns).map(([id, prices]) => {
-                const left = state.steelMarket[id]
-                assertExists(left, `The steel market has column ${id}`)
+                const left = steelLeft(state, id)
                 return {
                     id,
                     color,

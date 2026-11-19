@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T18:31:10.091Z",
+  "createdAt": "2026-11-19T18:55:17.951Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:31:10.091Z",
+  "startedAt": "2026-11-19T18:55:17.951Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "K0AIqXqfcZQzmBYgkOGST",
+  "id": "h1Gx9xEYzrVbaSJc6qcFm",
   "gameId": "scenario-18royalgorge-prison-labor",
   "seed": 3758006212,
   "prng": {
@@ -1360,8 +1360,7 @@
    "E": 2,
    "F": 2,
    "G": 1,
-   "H": 1,
-   "I": 0
+   "H": 1
   },
   "depotSteel": 0,
   "goldCubes": {},
@@ -1437,7 +1436,6 @@
    "companyId": "SPP",
    "columns": {},
    "depotSteel": 0,
-   "bought": 0,
    "choices": {
     "brown": "G"
    }

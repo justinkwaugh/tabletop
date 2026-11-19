@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p3"
   ],
-  "createdAt": "2026-11-19T18:32:44.524Z",
+  "createdAt": "2026-11-19T18:58:11.268Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:32:44.524Z",
+  "startedAt": "2026-11-19T18:58:11.268Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "JVSmRFNq9nACCag49BExu",
+  "id": "64EQnMCwoa2xuJyVcJMS9",
   "gameId": "scenario-18royalgorge-doc-holliday",
   "seed": 267391249,
   "prng": {
@@ -1459,8 +1459,7 @@
    "E": 1,
    "F": 0,
    "G": 1,
-   "H": 1,
-   "I": 0
+   "H": 1
   },
   "depotSteel": 0,
   "goldCubes": {},
@@ -1553,7 +1552,6 @@
     "green": "E"
    },
    "depotSteel": 0,
-   "bought": 1,
    "choices": {
     "brown": "H"
    }

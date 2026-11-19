@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T18:30:03.735Z",
+  "createdAt": "2026-11-19T18:54:08.083Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:30:03.735Z",
+  "startedAt": "2026-11-19T18:54:08.083Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "h9q8x4vMaVlRN5qqr0_y0",
+  "id": "d216cyJ4LJoIX8JZznyhQ",
   "gameId": "scenario-18royalgorge-ghost-town-run",
   "seed": 519231558,
   "prng": {
@@ -1368,8 +1368,7 @@
    "E": 1,
    "F": 2,
    "G": 1,
-   "H": 1,
-   "I": 0
+   "H": 1
   },
   "depotSteel": 5,
   "goldCubes": {},
@@ -1467,7 +1466,6 @@
     "green": "E"
    },
    "depotSteel": 0,
-   "bought": 4,
    "choices": {
     "green": "E"
    }

@@ -10,7 +10,7 @@ import {
 } from './map.js'
 import { ownsOpenPrivate } from './privateHoldings.js'
 import { requireStateRoyalGorge } from './state.js'
-import { SteelRecipient, buySteel, nextSteel, steelBought } from './steel.js'
+import { SteelRecipient, buySteel, nextSteel } from './steel.js'
 import {
     BrownGorgeTileIds,
     SalidaOneSpaceBrownId,
@@ -84,16 +84,11 @@ export const TrackRulesRoyalGorge: TrackRules = {
                   .filter(([locationId]) => locationId !== details.locationId)
                   .map(([locationId, definitionId]) => ({ locationId, definitionId, rotation: 0 }))
             : [],
-    afterLay(state, details) {
+    afterLay(state, details, _payer, ordinary) {
         const title = requireStateRoyalGorge(state)
         const face = tileFaceRoyalGorge(details.definitionId)
         // Ordinary lays buy steel; a private's free lay does not (B2).
-        const step = title.trackStep
-        if (
-            step?.companyId === details.companyId &&
-            step.lays.length > steelBought(title, details.companyId)
-        )
-            buySteel(title, details.companyId, face.color)
+        if (ordinary) buySteel(title, details.companyId, face.color)
         if (face.color === 'yellow') placeGold(title, details)
         return { payments: [], closedPrivateIds: [] }
     }

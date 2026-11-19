@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p4"
   ],
-  "createdAt": "2026-11-19T18:31:10.489Z",
+  "createdAt": "2026-11-19T18:55:18.360Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:31:10.489Z",
+  "startedAt": "2026-11-19T18:55:18.360Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "ROfILF-tECufY3JQ9MG6W",
+  "id": "yZqFQw6gWzSE4FINS-bxi",
   "gameId": "scenario-18royalgorge-steel-depot",
   "seed": 3842108683,
   "prng": {
@@ -1406,8 +1406,7 @@
    "E": 2,
    "F": 2,
    "G": 1,
-   "H": 1,
-   "I": 0
+   "H": 1
   },
   "depotSteel": 5,
   "goldCubes": {},
