@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assert, Color, GameResult } from '@tabletop/common'
+import { assert, Color, GameResult, getPrng } from '@tabletop/common'
 import { HexRuntime } from './runtime.js'
 import {
     RedPlayer,
@@ -121,18 +121,21 @@ describe('The Hex boards', () => {
     })
 
     it('always gives exactly one colour a winning chain on a full board', () => {
-        let value = 11
+        const random = getPrng(11)
+        const wins = { red: 0, blue: 0 }
         for (const size of sizes)
             for (let fill = 0; fill < 40; fill += 1) {
                 const board = new HydratedHexBoard({ size, stones: [] })
                 for (const cell of board.grid.cells) {
-                    value = (value * 1103515245 + 12345) % 2147483648
-                    board.place(cell, value % 2 === 0 ? Color.Red : Color.Blue)
+                    board.place(cell, random() < 0.5 ? Color.Red : Color.Blue)
                 }
                 const red = board.winningChainOf(Color.Red) !== undefined
                 const blue = board.winningChainOf(Color.Blue) !== undefined
                 expect(red !== blue).toBe(true)
+                wins[red ? 'red' : 'blue'] += 1
             }
+        expect(wins.red).toBeGreaterThan(60)
+        expect(wins.blue).toBeGreaterThan(60)
     })
 
     it('starts empty at the size chosen, and ends every random game with one winner', () => {
