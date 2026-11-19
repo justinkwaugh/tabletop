@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assert, Color, GameResult } from '@tabletop/common'
+import { assert, Color, GameResult, getPrng } from '@tabletop/common'
 import { YRuntime } from './runtime.js'
 import {
     BlackPlayer,
@@ -123,19 +123,22 @@ describe('The Game of Y board', () => {
     })
 
     it('always gives exactly one colour a Y on a full board, whichever the board', () => {
-        let value = 11
+        const random = getPrng(11)
+        const wins = { black: 0, white: 0 }
         for (const shape of Object.values(BoardShape))
             for (let fill = 0; fill < 100; fill += 1) {
                 const board = new HydratedYBoard({ shape, stones: [] })
                 for (const point of board.grid.points) {
-                    value = (value * 1103515245 + 12345) % 2147483648
-                    const color: StoneColor = value % 2 === 0 ? Color.Black : Color.White
+                    const color: StoneColor = random() < 0.5 ? Color.Black : Color.White
                     board.place(point, color)
                 }
                 const black = board.yChainOf(Color.Black) !== undefined
                 const white = board.yChainOf(Color.White) !== undefined
                 expect(black !== white).toBe(true)
+                wins[black ? 'black' : 'white'] += 1
             }
+        expect(wins.black).toBeGreaterThan(120)
+        expect(wins.white).toBeGreaterThan(120)
     })
 })
 
