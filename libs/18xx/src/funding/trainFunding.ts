@@ -428,6 +428,7 @@ export class EmergencyTrainFunding {
                         market: this.stocks.market,
                         charters: this.stocks.charters,
                         presidencyCandidates: this.stocks.presidencyCandidates,
+                        presidentless: this.stocks.presidentless,
                         holdsMarketMove: this.stocks.holdsMarketMove,
                         saleTerms: previous?.block
                             ? extendingSaleTerms(this.saleTerms, previous.block)

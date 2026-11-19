@@ -291,7 +291,7 @@ export type NameArc = {
     span: number
     below: boolean
 }
-type HexSegment = { start: Point; end: Point }
+export type HexSegment = { start: Point; end: Point }
 export type BoardArtwork = {
     backgroundColor?: string
     imageUrl: string

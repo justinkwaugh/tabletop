@@ -88,6 +88,11 @@ export interface StockRules {
      */
     presidencyLapses?: true
     /**
+     * Whether the company's shares carry no presidency at all, as 18RoyalGorge's steel and gold
+     * companies, which issue ten single shares and never operate (SR-5, SR-6).
+     */
+    presidentless?(state: StockState, companyId: string): boolean
+    /**
      * What follows any sale into the market, such as the market closing its own shorts. Sale
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */

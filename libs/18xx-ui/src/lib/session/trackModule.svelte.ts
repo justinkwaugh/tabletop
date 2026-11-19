@@ -11,10 +11,12 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type StationState,
+    type BoardTile,
     type TrackLayDetails,
     type TrackRequest
 } from '@tabletop/18xx'
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
+import { withTileGroups } from '../maps/tileGroups.js'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import type { PrivateActionsModule } from './privateActionsModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -32,6 +34,7 @@ export type TrackSession = ModuleSession<
 type TrackMap = {
     map: Pick<MapViewDefinition['map'], 'definition'>
     tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'>
+    tileGroups?: MapViewDefinition['tileGroups']
 }
 type PrivateActions = Pick<PrivateActionsModule, 'selection' | 'trackPowerSelection' | 'titlePower'>
 type Decisions = Pick<CompanyDecisionsModule, 'selectPrivateTile' | 'confirm'>
@@ -108,6 +111,8 @@ export class TrackModule {
     locationIds = $derived.by(() =>
         [...this.choicesByLocation].filter(([, choices]) => choices.length).map(([id]) => id)
     )
+    /** The legal hexes, with every hex a tile laid there covers too, which choose it as well. */
+    pieceLocationIds = $derived.by(() => withTileGroups(this.mapView(), this.locationIds))
     choices = $derived.by(() =>
         this.selection.locationId
             ? (this.choicesByLocation.get(this.selection.locationId.value) ?? [])
@@ -179,6 +184,15 @@ export class TrackModule {
         })
     )
 
+    /** A lay's tiles: its own, and those it places beside it as one piece. */
+    pieceOf(details: TrackLayDetails): readonly BoardTile[] {
+        const { locationId, definitionId, rotation } = details
+        const { state, rules } = this.session
+        return [
+            { locationId, definitionId, rotation },
+            ...(rules.trackRules.companionTiles?.(state, details) ?? [])
+        ]
+    }
     selectLocation(locationId: string) {
         assert(
             this.canBuild && this.locationIds.includes(locationId),

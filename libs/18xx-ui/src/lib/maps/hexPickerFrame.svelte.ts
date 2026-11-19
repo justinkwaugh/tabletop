@@ -1,5 +1,6 @@
 import type { Point } from '@tabletop/common'
 import { followHex, type HexPlacement } from './followHex.js'
+import { TileBox } from './tilePiece.js'
 
 /** Where a picker drawn around a map hex stands: the hex, the tile size there, and its ✗/✓ controls. */
 export class HexPickerFrame {
@@ -9,17 +10,17 @@ export class HexPickerFrame {
     tileSize = $state(80)
     hexHeight = $state(100)
     readonly buttonSize = $derived(this.tileSize * 0.42)
-    readonly controls = $derived({
-        x: Math.max(
-            this.buttonSize * 1.2,
-            Math.min(this.width - this.buttonSize * 1.2, this.center.x)
-        ),
-        y:
-            Math.max(
-                this.buttonSize * 0.6,
-                this.center.y - this.hexHeight / 2 - this.buttonSize * 0.65
-            ) + 1
-    })
+    readonly controls = $derived(this.controlsAbove(this.center, this.hexHeight / 2))
+    /** Where the ✗/✓ controls stand above something centred here, this far up and down. */
+    controlsAbove(center: Point, halfHeight: number): Point {
+        return {
+            x: Math.max(
+                this.buttonSize * 1.2,
+                Math.min(this.width - this.buttonSize * 1.2, center.x)
+            ),
+            y: Math.max(this.buttonSize * 0.6, center.y - halfHeight - this.buttonSize * 0.65) + 1
+        }
+    }
     /** The action that keeps the frame on its hex as the map moves. */
     follow(viewport: () => HTMLElement, scheduled?: () => void) {
         return followHex(viewport, (placement) => this.measure(placement), scheduled)
@@ -30,6 +31,6 @@ export class HexPickerFrame {
         this.width = placement.width
         this.height = placement.height
         this.hexHeight = placement.hexHeight
-        if (placement.mapScale !== undefined) this.tileSize = 106 * placement.mapScale
+        if (placement.mapScale !== undefined) this.tileSize = TileBox * placement.mapScale
     }
 }

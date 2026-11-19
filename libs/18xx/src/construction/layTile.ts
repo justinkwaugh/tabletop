@@ -93,8 +93,14 @@ export function applyTrackLay(
         payer.kind === 'company' && details.cost
             ? (rules.borrowing?.borrowFor(state, payer.companyId, details.cost) ?? [])
             : []
-    if (details.cost)
-        settleCashPayments(state, [{ from: payer, to: { kind: 'bank' }, amount: details.cost }])
+    const recipient = details.allowanceRecipient
+    const bankCost = recipient ? details.cost - details.allowanceCost : details.cost
+    settleCashPayments(state, [
+        ...(bankCost ? [{ from: payer, to: { kind: 'bank' as const }, amount: bankCost }] : []),
+        ...(recipient && details.allowanceCost
+            ? [{ from: payer, to: recipient, amount: details.allowanceCost }]
+            : [])
+    ])
     state.tileInventory = inventory
     state.stations = stations
     state.stationReservations = stationReservations

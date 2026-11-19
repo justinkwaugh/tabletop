@@ -15,6 +15,8 @@ export const DefaultMarketCell: MarketCellDimensions = {
 export const MarketTokenSize = 26
 export const MarketScenePadding = 6
 export const MarketZoneBannerHeight = 24
+/** A title's marker hung as a tab under the market's spaces. */
+export const MarketTabHeight = 14
 /** The space either side of a set-apart zone's columns. */
 export const MarketZoneGap = 8
 // Stacked tokens sit against the cell's right edge, clear of the price at the upper left.

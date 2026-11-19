@@ -94,10 +94,14 @@
             const style = getComputedStyle(node)
             const available =
                 node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+            // The phase's width on one line, though it wraps once the order moves down.
+            parts.phase.style.whiteSpace = 'nowrap'
+            const phaseWidth = parts.phase.offsetWidth
+            parts.phase.style.whiteSpace = ''
             const needed =
                 parts.title.offsetWidth +
                 parts.order.scrollWidth +
-                parts.phase.offsetWidth +
+                phaseWidth +
                 2 * parseFloat(style.columnGap)
             node.classList.toggle('order-on-second-line', needed > available)
         }
@@ -386,8 +390,9 @@
     .round-order :global(.order) {
         flex-wrap: nowrap;
     }
+    /* A long phase name wraps beside the title rather than running under it. */
     .round-divider:global(.order-on-second-line) {
-        grid-template-columns: minmax(0, 1fr) max-content;
+        grid-template-columns: max-content minmax(0, 1fr);
         grid-template-areas: 'title phase' 'order order';
     }
     :global(.order-on-second-line) .round-order {
@@ -400,6 +405,9 @@
         font-weight: 600;
         text-align: right;
         white-space: nowrap;
+    }
+    :global(.order-on-second-line) .round-phase {
+        white-space: normal;
     }
     .empty {
         padding: 1.538em 0.615em;

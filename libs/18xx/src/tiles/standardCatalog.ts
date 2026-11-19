@@ -466,7 +466,12 @@ export const StandardTileCatalog = new TileCatalog([
         )
     ),
     standardTile('767', townFace('brown', [[2, 3, 4, 5]], 10)),
-    standardTile('769', townFace('brown', [[0, 2, 3, 4]], 10))
+    standardTile('769', townFace('brown', [[0, 2, 3, 4]], 10)),
+    standardTile('87', townFace('green', [[0, 1, 2, 3]], 10)),
+    standardTile('88', townFace('green', [[0, 1, 3, 4]], 10)),
+    standardTile('204', townFace('green', [[0, 2, 3, 4]], 10)),
+    standardTile('911', townFace('brown', [[0, 1, 2, 3, 4]], 10)),
+    standardTile('171', cityFace('gray', [0, 1, 2, 3, 4, 5], 60, 3))
 ])
 
 function standardTile(printedNumber: string, face: TileFace): TileDefinition {

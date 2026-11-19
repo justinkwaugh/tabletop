@@ -63,6 +63,7 @@
         artwork,
         extents,
         terrainDiscounts = {},
+        tileGroups = [],
         onselect
     }: {
         scene: MapDrawing
@@ -72,6 +73,8 @@
         outlinedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
+        /** Hexes one tile covers together, highlighted as one piece. */
+        tileGroups?: readonly (readonly string[])[]
         translucentLocationId?: string
         selection?: MapSelection
         tokens?: readonly MapToken[]
@@ -130,6 +133,26 @@
         maskUnavailableLocations
         legalLocationIds
         return undefined
+    })
+    const pieceMembers = $derived(new Set(tileGroups.flat()))
+    const highlightedIds = $derived.by(() => {
+        const ids = new Set(
+            entries
+                .map((entry) => entry.location.id)
+                .filter(
+                    (id) =>
+                        id === selection?.locationId ||
+                        outlinedLocationIds.includes(id) ||
+                        id === focusedLocationId ||
+                        id === previewLocationId ||
+                        (maskUnavailableLocations &&
+                            id === hoveredLocationId &&
+                            legalLocationIds.includes(id))
+                )
+        )
+        for (const group of tileGroups)
+            if (group.some((id) => ids.has(id))) for (const id of group) ids.add(id)
+        return ids
     })
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
@@ -1070,22 +1093,38 @@
         pointer-events="none"
         aria-hidden="true"
     >
-        {#each entries.filter((entry) => entry.location.id === selection?.locationId || outlinedLocationIds.includes(entry.location.id) || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
-            <polygon
-                data-map-highlight={entry.location.id}
-                data-track-preview={entry.location.id === previewLocationId
-                    ? entry.location.id
-                    : undefined}
-                data-map-hover={maskUnavailableLocations &&
-                entry.location.id === hoveredLocationId &&
-                legalLocationIds.includes(entry.location.id)
-                    ? entry.location.id
-                    : undefined}
-                transform={`translate(${entry.center.x} ${entry.center.y})`}
-                points={entry.drawing.polygon}
-                stroke-width="5"
-                stroke-linejoin="round"
-            ></polygon>
+        {#each entries.filter( (entry) => highlightedIds.has(entry.location.id) ) as entry (entry.location.id)}
+            {#if pieceMembers.has(entry.location.id)}<path
+                    data-map-highlight={entry.location.id}
+                    data-track-preview={entry.location.id === previewLocationId
+                        ? entry.location.id
+                        : undefined}
+                    data-map-hover={maskUnavailableLocations &&
+                    entry.location.id === hoveredLocationId &&
+                    legalLocationIds.includes(entry.location.id)
+                        ? entry.location.id
+                        : undefined}
+                    transform={`translate(${entry.center.x} ${entry.center.y})`}
+                    d={entry.outline
+                        .map(({ start, end }) => `M${start.x} ${start.y}L${end.x} ${end.y}`)
+                        .join('')}
+                    stroke-width="5"
+                    stroke-linecap="round"
+                ></path>{:else}<polygon
+                    data-map-highlight={entry.location.id}
+                    data-track-preview={entry.location.id === previewLocationId
+                        ? entry.location.id
+                        : undefined}
+                    data-map-hover={maskUnavailableLocations &&
+                    entry.location.id === hoveredLocationId &&
+                    legalLocationIds.includes(entry.location.id)
+                        ? entry.location.id
+                        : undefined}
+                    transform={`translate(${entry.center.x} ${entry.center.y})`}
+                    points={entry.drawing.polygon}
+                    stroke-width="5"
+                    stroke-linejoin="round"
+                ></polygon>{/if}
         {/each}
     </g>
 </svg>

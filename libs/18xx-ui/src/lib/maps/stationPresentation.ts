@@ -175,6 +175,11 @@ export type MapViewDefinition = {
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
     joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
     /**
+     * Hexes one tile covers together, such as 18RoyalGorge's gorge: choosing any of them for a
+     * lay chooses the piece, which highlights and is previewed as one.
+     */
+    tileGroups?: readonly (readonly string[])[]
+    /**
      * Sides along which a laid tile joins the tile beside it as one printed area, by tile
      * definition id, as a scenario overlay that spans two hexes.
      */

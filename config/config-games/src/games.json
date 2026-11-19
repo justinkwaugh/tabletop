@@ -206,5 +206,9 @@
     {
         "gameId": "punct",
         "packageId": "punct"
+    },
+    {
+        "gameId": "18royalgorge",
+        "packageId": "18royalgorge"
     }
 ]

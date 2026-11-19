@@ -42,7 +42,9 @@ export const EarningsDetails = Type.Object(
         /** The part of the revenue decided apart from the rest, and what was chosen for it. */
         separate: Type.Optional(SeparateEarnings),
         /** What the run's revenue gave up before it was distributed, such as 1856's unpaid interest. */
-        deducted: Type.Optional(Type.Integer({ minimum: 1 }))
+        deducted: Type.Optional(Type.Integer({ minimum: 1 })),
+        /** What the company added to the run's revenue before it was distributed. */
+        added: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -97,6 +99,11 @@ export interface EarningsRules {
      * treasury could not pay (Pay Interest); none unless given.
      */
     revenueDeduction?(state: DistributionState, companyId: string): number
+    /**
+     * What the company adds to the run's revenue before it is distributed, as 18RoyalGorge's
+     * shipped gold adds $50 (Shipping Gold); none unless given.
+     */
+    revenueAddition?(state: DistributionState, companyId: string): number
     /**
      * What the company's treasury may add to its revenue to pay it all out, offered as the
      * ``top-up`` choice; undefined or zero offers none (1862 §7.8.6).
@@ -191,7 +198,9 @@ export class EarningsDistribution {
             result.revenue,
             this.rules.revenueDeduction?.(this.state, companyId) ?? 0
         )
-        const revenue = result.revenue - deducted + topUp,
+        const added = this.rules.revenueAddition?.(this.state, companyId) ?? 0
+        assert(Number.isSafeInteger(added) && added >= 0, 'A revenue addition is a whole amount')
+        const revenue = result.revenue - deducted + added + topUp,
             retained = this.rules.retainedRevenue(this.state, companyId, choice, revenue, separate)
         const count = this.rules.shareCount(this.state, companyId)
         assert(count > 0 && Number.isInteger(count), 'Dividends require a positive share count')
@@ -244,7 +253,8 @@ export class EarningsDistribution {
                 ...(effect.move ? { marketMove: effect.move } : {}),
                 ...(topUp ? { topUp } : {}),
                 ...(separate ? { separate } : {}),
-                ...(deducted ? { deducted } : {})
+                ...(deducted ? { deducted } : {}),
+                ...(added ? { added } : {})
             }
         }
     }

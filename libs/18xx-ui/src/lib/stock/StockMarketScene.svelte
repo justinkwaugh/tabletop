@@ -17,7 +17,8 @@
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
-    import type { MarketLedge, MarketZone } from '../session/titlePresentation.js'
+    import type { MarketLedge, MarketMarker, MarketZone } from '../session/titlePresentation.js'
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import {
         marketTokenLayout,
@@ -28,7 +29,8 @@
         type MarketCellDimensions,
         MarketTokenSize,
         MarketScenePadding,
-        MarketZoneBannerHeight
+        MarketZoneBannerHeight,
+        MarketTabHeight
     } from './marketTokenLayout.js'
 
     let {
@@ -40,6 +42,7 @@
         zones = [],
         ledge,
         cell = DefaultMarketCell,
+        markers = [],
         renderScale = 1
     }: {
         chart: StockMarketChart
@@ -50,6 +53,8 @@
         zones?: readonly MarketZone[]
         ledge?: MarketLedge
         cell?: MarketCellDimensions
+        /** The title's markers, each hung as a tab under its space. */
+        markers?: readonly MarketMarker[]
         renderScale?: number
     } = $props()
     // Below this width a three-digit price at full size reaches the space's right edge.
@@ -370,6 +375,26 @@
             </div>
         {/each}
     </div>
+    {#if markers.length}<div
+            class="marker-tabs"
+            style:width={`${geometry.width * renderScale}px`}
+            style:height={`${MarketTabHeight * renderScale}px`}
+        >
+            {#each markers as marker (marker.id)}
+                {@const space = chart.space(marker.spaceId)}
+                <span
+                    class="tab"
+                    role="img"
+                    aria-label={marker.name}
+                    title={marker.name}
+                    data-market-tab={marker.id}
+                    style:left={`${geometry.columnLefts[space.column] * renderScale}px`}
+                    style:width={`${cell.width * renderScale}px`}
+                    style:--tab-color={marker.color}
+                    style:--tab-ink={contrastingTextColor(marker.color)}>{marker.label}</span
+                >
+            {/each}
+        </div>{/if}
 </div>
 
 <style>
@@ -453,6 +478,24 @@
         position: relative;
         display: grid;
         width: max-content;
+    }
+    .marker-tabs {
+        position: relative;
+    }
+    .tab {
+        position: absolute;
+        top: calc(-1px * var(--render-scale));
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0 0 calc(4px * var(--render-scale)) calc(4px * var(--render-scale));
+        background: var(--tab-color);
+        color: var(--tab-ink);
+        font-size: calc(9px * var(--render-scale));
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1;
     }
     /* Explicit, so the scene stays interactive inside a pointer-transparent board panel. */
     .space {

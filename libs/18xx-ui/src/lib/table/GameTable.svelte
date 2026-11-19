@@ -506,7 +506,7 @@
               ? offeredCityLocationIds
               : !session.privateActions.trackPowerSelection && session.stations.canPlace
                 ? session.stations.locationIds
-                : session.track.locationIds
+                : session.track.pieceLocationIds
     )
     const highlightedPlacementLocationIds = $derived(
         !locationChoice && session.track.showChoices
@@ -983,6 +983,7 @@
         highlightedLocationIds={mapMask?.highlightedLocationIds}
         previewLocationId={session.track.displayedPreview?.locationId ??
             session.stations.preview?.position.locationId}
+        tileGroups={session.track.showChoices ? session.mapView.tileGroups : undefined}
         translucentLocationId={consentPreview?.details.locationId}
         appearance={tileAppearance}
         hexDiameter={MapHexDiameter}
@@ -1035,6 +1036,7 @@
                     companyName={(companyId) => session.companyName(companyId)}
                     zones={session.presentation.marketZones}
                     ledge={session.presentation.marketLedge}
+                    markers={session.marketMarkers}
                 />
                 {#if session.loans.rateTable}<LoanRateTable view={session.loans.rateTable} />{/if}
                 {#if boardInformation && corner}<div
@@ -1536,6 +1538,7 @@
                                                 session.companyName(companyId)}
                                             zones={session.presentation.marketZones}
                                             ledge={session.presentation.marketLedge}
+                                            markers={session.marketMarkers}
                                         />
                                         {#if session.loans.rateTable}<LoanRateTable
                                                 view={session.loans.rateTable}
@@ -1682,6 +1685,7 @@
                 preview={session.historicalMap}
                 revenueStageColors={session.mapView.revenueStageColors}
                 appearance={tileAppearance}
+                tileGroups={session.mapView.tileGroups}
                 onclose={() => session.closeHistoricalMap()}
             />
         {/if}

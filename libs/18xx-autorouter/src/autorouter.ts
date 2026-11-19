@@ -4,6 +4,7 @@ import {
     atRunningStep,
     companyStationCenters,
     routesBetween,
+    trainRoutesOf,
     type OperatingResult,
     type RevenueCenter,
     type RoutePath,
@@ -177,7 +178,7 @@ export class Autorouter {
             'Solver and game disagree on route revenue'
         )
         return {
-            result: checked.result,
+            result: this.routesOnFirstTrains(evaluation, companyId, checked.result),
             exhaustive: solution.exhaustive,
             metrics: {
                 encodeMs,
@@ -195,6 +196,47 @@ export class Autorouter {
                 connections: solution.connections
             }
         }
+    }
+
+    /**
+     * The run with each idle train given a later train of its type's route where the run then
+     * earns just the same, so that among equal runs the company's first trains run, and a route
+     * keeps its train and its colour when another train is changed, such as one lengthened.
+     */
+    private routesOnFirstTrains(
+        evaluation: RouteEvaluation,
+        companyId: string,
+        result: OperatingResult
+    ): OperatingResult {
+        const trains = evaluation.runnableTrains(companyId)
+        const order = trains.map((train) => train.id)
+        let run = result
+        for (const [index, idle] of trains.entries()) {
+            if (run.routes.some((route) => route.trainId === idle.id)) continue
+            const later = run.routes
+                .filter(
+                    (route) =>
+                        order.indexOf(route.trainId) > index &&
+                        route.definitionId === idle.definitionId
+                )
+                .sort((a, b) => order.indexOf(b.trainId) - order.indexOf(a.trainId))
+            for (const moving of later) {
+                const routes = trainRoutesOf(run).map((route) =>
+                    route.trainId === moving.trainId ? { ...route, trainId: idle.id } : route
+                )
+                const moved = evaluation.evaluate(companyId, routes).result
+                if (
+                    moved &&
+                    moved.revenue === run.revenue &&
+                    (moved.subsidy ?? 0) === (run.subsidy ?? 0) &&
+                    (moved.bonus ?? 0) === (run.bonus ?? 0)
+                ) {
+                    run = moved
+                    break
+                }
+            }
+        }
+        return run
     }
 
     /**

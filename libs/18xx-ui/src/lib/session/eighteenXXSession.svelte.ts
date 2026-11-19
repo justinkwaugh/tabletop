@@ -106,6 +106,7 @@ import { StockModule } from './stockModule.svelte.js'
 import type { MapRoute } from '../maps/mapDrawing.js'
 import { TableNotices } from './tableNotices.svelte.js'
 import type {
+    MarketMarker,
     TitlePrivateAction,
     PrivateTokenPresentation,
     TitleOperatingStep,
@@ -573,7 +574,8 @@ export class EighteenXXSession<
             this.phases.phases.map((phase) => [phase.id, phase.tileColors])
         ),
         tileColors: this.tileAppearance.colors,
-        tileColorNames: this.tileAppearance.colorNames ?? {}
+        tileColorNames: this.tileAppearance.colorNames ?? {},
+        everyPhase: !!this.presentation.historyMarksEveryPhase
     }))
     // Held as text, so the map redraws when the art changes rather than on every action.
     private playedMarkerArt = $derived.by(() =>
@@ -632,6 +634,10 @@ export class EighteenXXSession<
     })
     /** The rulebook's words for what the table names. */
     readonly terms: ResolvedTableTerms = $derived(tableTerms(this.presentation.terms))
+    /** The title's own markers, hung under the market's spaces. */
+    readonly marketMarkers: readonly MarketMarker[] = $derived(
+        this.presentation.marketMarkers?.(this.gameState) ?? []
+    )
     constructor(
         options: SessionOptions<Schema, State>,
         private readonly rules: EighteenXXSessionRules<Schema, State>,
