@@ -16,7 +16,12 @@ import {
 import { table } from '../test/table.js'
 import { position } from '../test/position.js'
 import { buyAllPrivates, launch, passStockRound, rotationFor } from '../test/flow.js'
-import { PrivatePowerRules1833NE, blockedByPrivate, privatePhaseEffects } from './privates.js'
+import {
+    PrivateCatalog1833NE,
+    PrivatePowerRules1833NE,
+    blockedByPrivate,
+    privatePhaseEffects
+} from './privates.js'
 import { trainRetirement } from './trains.js'
 import { Map1833NE } from './map.js'
 import { TileSet1833NE } from './tiles.js'
@@ -365,6 +370,12 @@ describe('the golden spike (corporate mats)', () => {
 })
 
 describe('Lowell Merchants (P2)', () => {
+    it('describes the G20 tile as a normal lay at no cost, not an extra one', () => {
+        const description = PrivateCatalog1833NE.definition('P2').description
+        expect(description).toContain('cost to lay a tile')
+        expect(description).toContain('one of its normal tile lays')
+    })
+
     it('makes its buyer’s G20 tile free in the round it bought it', () => {
         const state = position([], [], {})
         state.operatingSet = {
