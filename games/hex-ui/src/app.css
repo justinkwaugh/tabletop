@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fff5f2;
+    --color-primary-100: #fff1ee;
+    --color-primary-200: #ffe4de;
+    --color-primary-300: #ffd5cc;
+    --color-primary-400: #ffbcad;
+    --color-primary-500: #fe795d;
+    --color-primary-600: #ef562f;
+    --color-primary-700: #eb4f27;
+    --color-primary-800: #cc4522;
+    --color-primary-900: #a5371b;
+
+    --color-secondary-50: #f0f9ff;
+    --color-secondary-100: #e0f2fe;
+    --color-secondary-200: #bae6fd;
+    --color-secondary-300: #7dd3fc;
+    --color-secondary-400: #38bdf8;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+    --color-secondary-700: #0369a1;
+    --color-secondary-800: #075985;
+    --color-secondary-900: #0c4a6e;
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    /* disable chrome cancel button */
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}
+
+:root {
+    /* A pale stone-grey table, so the board's red and blue edges and the white cells stand out. */
+    --hex-table: #e4e1d9;
+    --hex-table-deep: #d3cfc4;
+    /* Cards and controls on light panels, lifted by a soft shadow. */
+    --hex-panel: #f8f6f1;
+    --hex-panel-edge: rgb(40 36 28 / 0.16);
+    --hex-panel-shadow: 0 2px 8px rgb(40 36 28 / 0.18);
+    --hex-panel-hover: color-mix(in srgb, var(--hex-panel), #2a2418 7%);
+    --hex-panel-inset: color-mix(in srgb, var(--hex-panel), #ffffff 50%);
+    --hex-panel-rule: color-mix(in srgb, var(--hex-panel), #2a2418 20%);
+    /* The ring round a toggle that is on. */
+    --hex-toggle-on: #0a8fb0;
+    /* The two sides, their edges and their cells. */
+    --hex-red: #d0413a;
+    --hex-blue: #2f6bbf;
+    --hex-cell: #fbfaf6;
+    --hex-line: #2b2925;
+    --hex-label: #3a362e;
+    --hex-ink: #1d1a15;
+    --hex-ink-quiet: #67615a;
+    --hex-control-off: #b5afa4;
+    /* Text standing straight on the table. */
+    --hex-table-ink: #29251e;
+    --hex-target: #e08a00;
+    /* Marks on the cells, drawn over a dark band so they read on both colours. */
+    --hex-mark: #5ef0ff;
+}

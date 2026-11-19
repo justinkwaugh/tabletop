@@ -1,0 +1,198 @@
+{
+ "game": {
+  "id": "scenario-red-one-from-a-win",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "hex",
+  "deleted": false,
+  "name": "Red one from a win",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "size": "Eleven",
+   "swapRule": true,
+   "redPlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 1903668284,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-19T07:40:30.798Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-19T07:40:30.798Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "BWSyjNFI3-cpwL4Cn9EF2",
+  "gameId": "scenario-red-one-from-a-win",
+  "seed": 1903668284,
+  "prng": {
+   "seed": 1903668284,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "345415b2ce373711c38b06249d4b2d0fa965cafcd99b09af91beb8cde7833007",
+   "invocations": 0
+  },
+  "masterSeed": "09cd599522b50240bf8483bd956180ce",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "red"
+   },
+   {
+    "playerId": "player-2",
+    "color": "blue"
+   }
+  ],
+  "machineState": "PlacingStones",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "size": "Eleven",
+   "stones": [
+    {
+     "id": 0,
+     "cell": "F1",
+     "color": "red"
+    },
+    {
+     "id": 1,
+     "cell": "G5",
+     "color": "blue"
+    },
+    {
+     "id": 2,
+     "cell": "F2",
+     "color": "red"
+    },
+    {
+     "id": 3,
+     "cell": "H4",
+     "color": "blue"
+    },
+    {
+     "id": 4,
+     "cell": "E3",
+     "color": "red"
+    },
+    {
+     "id": 5,
+     "cell": "C4",
+     "color": "blue"
+    },
+    {
+     "id": 6,
+     "cell": "E4",
+     "color": "red"
+    },
+    {
+     "id": 7,
+     "cell": "B6",
+     "color": "blue"
+    },
+    {
+     "id": 8,
+     "cell": "D5",
+     "color": "red"
+    },
+    {
+     "id": 9,
+     "cell": "E6",
+     "color": "blue"
+    },
+    {
+     "id": 10,
+     "cell": "C7",
+     "color": "red"
+    },
+    {
+     "id": 11,
+     "cell": "F5",
+     "color": "blue"
+    },
+    {
+     "id": 12,
+     "cell": "C8",
+     "color": "red"
+    },
+    {
+     "id": 13,
+     "cell": "H8",
+     "color": "blue"
+    },
+    {
+     "id": 14,
+     "cell": "B9",
+     "color": "red"
+    },
+    {
+     "id": 15,
+     "cell": "G9",
+     "color": "blue"
+    },
+    {
+     "id": 16,
+     "cell": "B10",
+     "color": "red"
+    },
+    {
+     "id": 17,
+     "cell": "I3",
+     "color": "blue"
+    },
+    {
+     "id": 18,
+     "cell": "A11",
+     "color": "red"
+    },
+    {
+     "id": 19,
+     "cell": "J6",
+     "color": "blue"
+    }
+   ]
+  },
+  "swapped": false
+ },
+ "actions": []
+}

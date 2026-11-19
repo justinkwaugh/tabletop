@@ -1,0 +1,203 @@
+{
+ "game": {
+  "id": "scenario-blue-one-from-a-win",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "hex",
+  "deleted": false,
+  "name": "Blue one from a win",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "size": "Eleven",
+   "swapRule": true,
+   "redPlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 1468292749,
+  "activePlayerIds": [
+   "player-2"
+  ],
+  "createdAt": "2026-11-19T07:40:30.799Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-19T07:40:30.799Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "5qQIF2nZ-atg5aK8LRk8_",
+  "gameId": "scenario-blue-one-from-a-win",
+  "seed": 1468292749,
+  "prng": {
+   "seed": 1468292749,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "5d66fdcfe328c944b7e4fc6ab1cf8189875c5a64df4a91ff5e98a0cda10aaf0a",
+   "invocations": 0
+  },
+  "masterSeed": "26aa2277d7fd0eb646d9edeadd60f11a",
+  "activePlayerIds": [
+   "player-2"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "red"
+   },
+   {
+    "playerId": "player-2",
+    "color": "blue"
+   }
+  ],
+  "machineState": "PlacingStones",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-2",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "size": "Eleven",
+   "stones": [
+    {
+     "id": 0,
+     "cell": "F1",
+     "color": "red"
+    },
+    {
+     "id": 1,
+     "cell": "A6",
+     "color": "blue"
+    },
+    {
+     "id": 2,
+     "cell": "F2",
+     "color": "red"
+    },
+    {
+     "id": 3,
+     "cell": "B6",
+     "color": "blue"
+    },
+    {
+     "id": 4,
+     "cell": "F3",
+     "color": "red"
+    },
+    {
+     "id": 5,
+     "cell": "C6",
+     "color": "blue"
+    },
+    {
+     "id": 6,
+     "cell": "F4",
+     "color": "red"
+    },
+    {
+     "id": 7,
+     "cell": "D6",
+     "color": "blue"
+    },
+    {
+     "id": 8,
+     "cell": "E5",
+     "color": "red"
+    },
+    {
+     "id": 9,
+     "cell": "E6",
+     "color": "blue"
+    },
+    {
+     "id": 10,
+     "cell": "K5",
+     "color": "red"
+    },
+    {
+     "id": 11,
+     "cell": "F6",
+     "color": "blue"
+    },
+    {
+     "id": 12,
+     "cell": "E7",
+     "color": "red"
+    },
+    {
+     "id": 13,
+     "cell": "G6",
+     "color": "blue"
+    },
+    {
+     "id": 14,
+     "cell": "D8",
+     "color": "red"
+    },
+    {
+     "id": 15,
+     "cell": "H6",
+     "color": "blue"
+    },
+    {
+     "id": 16,
+     "cell": "D9",
+     "color": "red"
+    },
+    {
+     "id": 17,
+     "cell": "I6",
+     "color": "blue"
+    },
+    {
+     "id": 18,
+     "cell": "C10",
+     "color": "red"
+    },
+    {
+     "id": 19,
+     "cell": "J6",
+     "color": "blue"
+    },
+    {
+     "id": 20,
+     "cell": "H9",
+     "color": "red"
+    }
+   ]
+  },
+  "swapped": false
+ },
+ "actions": []
+}

@@ -1,0 +1,348 @@
+{
+ "game": {
+  "id": "scenario-middle-game",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "hex",
+  "deleted": false,
+  "name": "Middle game",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "size": "Eleven",
+   "swapRule": true,
+   "redPlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3016196106,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-19T07:40:30.802Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-19T07:40:30.802Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "DZoXmqFpA-XWZe9RCfL1W",
+  "gameId": "scenario-middle-game",
+  "seed": 3016196106,
+  "prng": {
+   "seed": 3016196106,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "ccae68d81911bfe2e328d7a9b496a35646c59c50066cb15609801ea285aacd4c",
+   "invocations": 0
+  },
+  "masterSeed": "78352510f499a9e1ced249b6f412c079",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "red"
+   },
+   {
+    "playerId": "player-2",
+    "color": "blue"
+   }
+  ],
+  "machineState": "PlacingStones",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "size": "Eleven",
+   "stones": [
+    {
+     "id": 0,
+     "cell": "G1",
+     "color": "red"
+    },
+    {
+     "id": 1,
+     "cell": "H7",
+     "color": "blue"
+    },
+    {
+     "id": 2,
+     "cell": "I1",
+     "color": "red"
+    },
+    {
+     "id": 3,
+     "cell": "J1",
+     "color": "blue"
+    },
+    {
+     "id": 4,
+     "cell": "G11",
+     "color": "red"
+    },
+    {
+     "id": 5,
+     "cell": "B9",
+     "color": "blue"
+    },
+    {
+     "id": 6,
+     "cell": "K10",
+     "color": "red"
+    },
+    {
+     "id": 7,
+     "cell": "K11",
+     "color": "blue"
+    },
+    {
+     "id": 8,
+     "cell": "H2",
+     "color": "red"
+    },
+    {
+     "id": 9,
+     "cell": "A3",
+     "color": "blue"
+    },
+    {
+     "id": 10,
+     "cell": "D10",
+     "color": "red"
+    },
+    {
+     "id": 11,
+     "cell": "B4",
+     "color": "blue"
+    },
+    {
+     "id": 12,
+     "cell": "K9",
+     "color": "red"
+    },
+    {
+     "id": 13,
+     "cell": "F7",
+     "color": "blue"
+    },
+    {
+     "id": 14,
+     "cell": "J5",
+     "color": "red"
+    },
+    {
+     "id": 15,
+     "cell": "H1",
+     "color": "blue"
+    },
+    {
+     "id": 16,
+     "cell": "K3",
+     "color": "red"
+    },
+    {
+     "id": 17,
+     "cell": "C11",
+     "color": "blue"
+    },
+    {
+     "id": 18,
+     "cell": "D1",
+     "color": "red"
+    },
+    {
+     "id": 19,
+     "cell": "J10",
+     "color": "blue"
+    },
+    {
+     "id": 20,
+     "cell": "E8",
+     "color": "red"
+    },
+    {
+     "id": 21,
+     "cell": "F6",
+     "color": "blue"
+    },
+    {
+     "id": 22,
+     "cell": "J3",
+     "color": "red"
+    },
+    {
+     "id": 23,
+     "cell": "C6",
+     "color": "blue"
+    },
+    {
+     "id": 24,
+     "cell": "G4",
+     "color": "red"
+    },
+    {
+     "id": 25,
+     "cell": "F11",
+     "color": "blue"
+    },
+    {
+     "id": 26,
+     "cell": "F1",
+     "color": "red"
+    },
+    {
+     "id": 27,
+     "cell": "I4",
+     "color": "blue"
+    },
+    {
+     "id": 28,
+     "cell": "B2",
+     "color": "red"
+    },
+    {
+     "id": 29,
+     "cell": "H4",
+     "color": "blue"
+    },
+    {
+     "id": 30,
+     "cell": "B3",
+     "color": "red"
+    },
+    {
+     "id": 31,
+     "cell": "G5",
+     "color": "blue"
+    },
+    {
+     "id": 32,
+     "cell": "J9",
+     "color": "red"
+    },
+    {
+     "id": 33,
+     "cell": "G9",
+     "color": "blue"
+    },
+    {
+     "id": 34,
+     "cell": "G8",
+     "color": "red"
+    },
+    {
+     "id": 35,
+     "cell": "A1",
+     "color": "blue"
+    },
+    {
+     "id": 36,
+     "cell": "C7",
+     "color": "red"
+    },
+    {
+     "id": 37,
+     "cell": "G2",
+     "color": "blue"
+    },
+    {
+     "id": 38,
+     "cell": "I5",
+     "color": "red"
+    },
+    {
+     "id": 39,
+     "cell": "I11",
+     "color": "blue"
+    },
+    {
+     "id": 40,
+     "cell": "G10",
+     "color": "red"
+    },
+    {
+     "id": 41,
+     "cell": "F5",
+     "color": "blue"
+    },
+    {
+     "id": 42,
+     "cell": "D5",
+     "color": "red"
+    },
+    {
+     "id": 43,
+     "cell": "H3",
+     "color": "blue"
+    },
+    {
+     "id": 44,
+     "cell": "K4",
+     "color": "red"
+    },
+    {
+     "id": 45,
+     "cell": "B1",
+     "color": "blue"
+    },
+    {
+     "id": 46,
+     "cell": "D6",
+     "color": "red"
+    },
+    {
+     "id": 47,
+     "cell": "B10",
+     "color": "blue"
+    },
+    {
+     "id": 48,
+     "cell": "F4",
+     "color": "red"
+    },
+    {
+     "id": 49,
+     "cell": "A4",
+     "color": "blue"
+    }
+   ]
+  },
+  "swapped": false
+ },
+ "actions": []
+}

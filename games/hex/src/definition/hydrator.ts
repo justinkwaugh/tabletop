@@ -1,0 +1,21 @@
+import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
+import { HydratedHexGameState, HexGameState } from '../model/gameState.js'
+import { HydratedPlaceStone, isPlaceStone } from '../actions/placeStone.js'
+import { HydratedSwapColors, isSwapColors } from '../actions/swapColors.js'
+
+export class HexHydrator implements GameHydrator<HexGameState, HydratedHexGameState> {
+    hydrateAction(data: GameAction): HydratedAction {
+        switch (true) {
+            case isPlaceStone(data):
+                return new HydratedPlaceStone(data)
+            case isSwapColors(data):
+                return new HydratedSwapColors(data)
+            default:
+                throw new Error(`Unknown action type ${data.type}`)
+        }
+    }
+
+    hydrateState(state: HexGameState): HydratedHexGameState {
+        return new HydratedHexGameState(state)
+    }
+}
