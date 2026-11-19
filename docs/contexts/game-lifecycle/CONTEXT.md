@@ -157,6 +157,17 @@ _Avoid_: Exploration
 A new Game Instance whose initial Game State is built from the final Game State of a Finished Game, for Game Titles whose play carries over from one game to the next. Any Player of the Finished Game may start one when its Game State offers continuation. It is created like any other Game Instance: the source's Game Title is fixed, while its Players, Game Configuration and name start as the source's and can be changed. One Finished Game may have many Continuations. Its setup is captured when it is created, so later Undo or deletion of the source cannot change it.
 _Avoid_: Fork, resumed game, sequel
 
+## Conditional moves (proposed)
+
+Proposed in [Variations and Conditional Moves](../../variations-and-conditional-moves.md); not yet built.
+
+**Conditional Move Tree**:
+A Player's private tree of replies to possible Actions of the other Player in one Hosted Game, rooted at the position where it was submitted. The host keeps it until it runs out or the other Player's Actions leave it.
+_Avoid_: Premove, Programmed Action
+
+**Conditional Reply**:
+The User Actions a Conditional Move Tree plays for its Player when the other Player's Actions match one of its branches.
+
 ## Stats
 
 **Counted Game**:

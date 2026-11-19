@@ -119,3 +119,14 @@ An Exploration persisted as a separate Local Game Instance linked to its source.
 
 **Hypothetical Game State**:
 A rules-valid Game State whose unknown information is simulated while honoring facts available to the explorer at the selected branch point. Later source-Game revelations do not constrain an earlier branch. Its simulated information does not disclose the source Game’s unknown information.
+
+## Variations (proposed)
+
+Proposed in [Variations and Conditional Moves](../../docs/variations-and-conditional-moves.md); not yet built.
+
+**Variation Tree**:
+The branching set of alternate Action sequences one Exploration holds, rooted at its branch point.
+
+**Variation**:
+One path through a Variation Tree from its root.
+_Avoid_: Line, branch
