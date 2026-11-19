@@ -1,5 +1,5 @@
 import { gsap } from 'gsap'
-import type { CityId, HexId, RailroadId } from '@tabletop/ride-the-rails'
+import type { CityId, HexId, Link, RailroadId } from '@tabletop/ride-the-rails'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 /** Where a travelling piece is drawn: its centre, its scale and its opacity. */
@@ -108,6 +108,8 @@ export class Flights {
     hiddenKeys: ReadonlySet<string> = $state.raw(new Set())
     /** Counts and money that have ticked ahead of the shown state (Pattern D). */
     private values: ReadonlyMap<string, number> = $state.raw(new Map())
+    /** U-7: the journey being ridden, drawn as the last journey ahead of the shown state. */
+    riddenJourney: readonly Link[] | undefined = $state.raw(undefined)
 
     /** Set by an interruption until the next Game State is shown: later steps move nothing. */
     interrupted = false
@@ -135,6 +137,10 @@ export class Flights {
 
     tick(key: string, value: number) {
         this.values = new Map(this.values).set(key, value)
+    }
+
+    ride(links: readonly Link[]) {
+        this.riddenJourney = links
     }
 
     /** A count as the board shows it: ticked ahead of the shown state while a flight lands. */
@@ -242,5 +248,6 @@ export class Flights {
         if (this.flyers.length > 0) this.flyers = []
         if (this.hiddenKeys.size > 0) this.hiddenKeys = new Set()
         if (this.values.size > 0) this.values = new Map()
+        if (this.riddenJourney) this.riddenJourney = undefined
     }
 }

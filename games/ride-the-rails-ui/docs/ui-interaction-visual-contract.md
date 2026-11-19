@@ -89,7 +89,7 @@ R-3.3.1: a seat with no journey to make passes by itself. On its turn the Riding
 
 ### Last journey
 
-After a journey, the seat now deciding starts its turn on a clean board: in Live View the last journey is not drawn for that seat. Every other viewer (the seat that rode included) sees it until the next action is made, through the cubes it rode, thinner than a staged route but over the same dark halo, so it reads in every railroad colour (Yellow on plain hexes included). The waiting view and the log still name the ride. In History View it shows the displayed action's journey, for every viewer. It never takes presses.
+After a journey, the seat now deciding starts its turn on a clean board: in Live View the last journey is not drawn for that seat. Every other viewer (the seat that rode included) sees it until the next action is made, through the cubes it rode, thinner than a staged route but over the same dark halo, so it reads in every railroad colour (Yellow on plain hexes included). The waiting view and the log still name the ride. In History View it shows the displayed action's journey, for every viewer. While a journey plays, its line is the one drawn, from the start of its motion, so the line and the travelling passenger always show the same journey. It never takes presses.
 
 ### Watching (waiting view)
 
@@ -140,7 +140,7 @@ The session owns these. Components read them and call its methods.
 - **Railroad spotlight** (`railroadId`): producer, the railroad cards (the build panel's cards on a phone and in full screen) and seat cards' held shares; consumers, the track layer, which fades every other railroad's cubes, and the building zoom when held. Cleared by a second press or pointer leave (hover only). Survives Game States and history navigation.
 - **Transcontinental line shown** (a yes or no, this viewer's own, not game state): producer, the toggle in the Transcontinental chip's description, offered only while the displayed state has a claim; consumers, the line layer, the chip's gold outline, and the claim's animator, which fades the settled line as its coin lands unless it is shown. Starts hidden; survives Game States and history navigation, not a reload.
 - **Bonus description open** (a bonus id or none, this viewer's own, not game state): producer, the bonus chip in the turn line (a press opens its description, a second press, a press anywhere outside the chip and the description, or Escape closes it); consumers, the chip (`aria-expanded`) and its description. One at a time. Closed when a Game State arrives in which another turn is under way (or the game has ended) and when the board is pressed, so it never stays over the deciding seat's offer. Opening it takes no game action. Starts closed; not kept across a reload.
-- **Animation transients**: a travelling locomotive, a cube sliding to its new slot, a travelling passenger, a coin chip. Producer: the state-change animators. Consumers: the flight layer and the track layer. Scoped to the action being animated; cleared on its timeline's end or teardown.
+- **Animation transients**: a travelling locomotive, a cube sliding to its new slot, a travelling passenger and the line of the journey it rides, a coin chip. Producer: the state-change animators. Consumers: the flight layer, the track layer and the line layer. Scoped to the action being animated; cleared on its timeline's end or teardown.
 
 ## Render ownership
 

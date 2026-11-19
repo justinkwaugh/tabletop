@@ -59,6 +59,7 @@ export function journeyAnimator(
         if (!from) return
         const mode = motionMode(flights, action)
         if (mode === 'still') return
+        if (isRideJourney(action)) flights.ride(action.links)
         if (mode === 'cinematic' && isRideJourney(action) && action.metadata) {
             flights.follow(animationContext)
             await ride(flights, { to, animationContext }, action, startsCentred(action.playerId))
