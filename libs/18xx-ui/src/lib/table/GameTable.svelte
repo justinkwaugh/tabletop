@@ -1983,6 +1983,15 @@
         letter-spacing: 0.07em;
         text-transform: uppercase;
         line-height: 1;
+        /* A faint dotted rule, like the Companies headers' underline, hints the strip opens the phase
+           chart. A border rather than a text underline runs unbroken across Train limit's flex gap. */
+        padding-bottom: 1px;
+        border-bottom: 1px dotted color-mix(in srgb, currentColor 40%, transparent);
+    }
+    @media (hover: hover) {
+        .game-information:hover .information-label {
+            border-bottom-color: currentColor;
+        }
     }
 
     .railway-table {
