@@ -5,7 +5,7 @@
 boardless presentation: there is no board artwork. Companies are drawn in their colours with their
 logos. The board's own panel holds CF&I's steel market and VGC's gold track; the operating
 railroad picks its steel columns there. The debt marker hangs as a tab under its space on the stock
-market while debts are owed. Mines, gold cubes, ghost towns and the St. Cloud Hotel are drawn as markers on their hexes.
+market from setup until the Treaty of Boston, then while debts are owed. Mines, gold cubes, ghost towns and the St. Cloud Hotel are drawn as markers on their hexes.
 
 `pnpm --filter @tabletop/18royalgorge-ui dev` serves the standalone harness on port 4238.
 

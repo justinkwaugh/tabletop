@@ -49,7 +49,7 @@ describe('18RoyalGorge history', () => {
     it('describes each title action from its input and metadata', () => {
         expect(describeFirst('ShipGold')?.text).toMatch(/shipped gold from/)
         expect(describeFirst('PayDebt')?.text).toMatch(/paid (a|one of)/)
-        expect(describeFirst('ChooseSteel')?.text).toMatch(/took \w+ steel from/)
+        expect(describeFirst('ChooseSteel')?.text).toMatch(/chose \w+ steel from/)
         expect(describeFirst('BuyMetalShares')?.text).toMatch(/with the G5|with the B6/)
         const ship = actions.find((action) => action.type === 'ShipGold')
         if (!ship) throw new Error('The recorded game ships gold')

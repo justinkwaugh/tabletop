@@ -132,7 +132,7 @@ export function describeRoyalGorgeAction(
         }
     if (isChooseSteel(action))
         return {
-            text: `${companyName(action.companyId)} took ${action.color} steel from ${steelSource(action.column)}`,
+            text: `${companyName(action.companyId)} chose ${action.color} steel from ${steelSource(action.column)}`,
             routine: true
         }
     if (isExtendTrain(action))

@@ -37,16 +37,11 @@ import {
     railroad,
     type PrivateTier
 } from './companies.js'
-import { GameConfigRoyalGorge } from './definition/gameConfig.js'
+import { GameConfigRoyalGorge, type VariantsRoyalGorge } from './definition/gameConfig.js'
 import { GorgeEastId, GorgeWestId, HomeTowns, MapRoyalGorge } from './map.js'
 import { BankPoolIdRoyalGorge, MetalBoardPoolIdRoyalGorge } from './names.js'
 import { freshSteelMarket } from './steel.js'
-import {
-    StateRoyalGorge,
-    requireStateRoyalGorge,
-    type HydratedStateRoyalGorge,
-    type VariantsRoyalGorge
-} from './state.js'
+import { StateRoyalGorge, requireStateRoyalGorge, type HydratedStateRoyalGorge } from './state.js'
 import { DebtStartSpaceId, MarketRoyalGorge, MetalStartSpaceId } from './stockMarket.js'
 import { HomeCityTileId, RiverHomeCityTileId, TileSetRoyalGorge } from './tiles.js'
 import { TrainDepotRoyalGorge, YellowPhaseId } from './trains.js'
@@ -315,7 +310,7 @@ export function createOpeningRoyalGorge({
             metalSpaces
         ),
         titleState: {
-            variants,
+            ...(variants.shorterGame ? { shorterGame: true as const } : {}),
             railroadIds,
             steelMarket: freshSteelMarket(),
             depotSteel: privateIds.includes(SteelDepotId) ? DepotSteel : 0,

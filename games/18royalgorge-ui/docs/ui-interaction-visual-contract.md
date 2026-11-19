@@ -28,6 +28,12 @@ This contract covers what 18RoyalGorge adds. The map is the generic presentation
   rest of the run. After the payout, while trains ran through the gorge, the action area asks for
   Rio Grande's 10% of them, with a button for the treasury and one for the president, each paying
   the whole amount (PayBridgeLease); no other Action is offered until it is paid.
+- **Discounted metal shares.** In a stock round, while the player's Metals Investor or U.S. Mint
+  Worker offers a CF&I or VGC purchase, the stock menu adds a "Discount" entry. Opening it
+  replaces the action area with one prompt per private: the Metals Investor's buys a share a space
+  below its price, held until the next stock round; the Mint Worker's closes the private to buy
+  VGC at half price. Each button names the shares and the price, with the market price in its
+  tooltip, and is one Action (BuyMetalShares).
 - **Debt repayment.** While a railroad may repay a debt, the action area shows its token, "owes N
   debts:" and a "Repay one for $X" button (PayDebt).
 - **Brown gorge.** The brown gorge is one piece across the gorge's three hexes. Hovering any of
@@ -52,6 +58,8 @@ This contract covers what 18RoyalGorge adds. The map is the generic presentation
 - Gold shipping and the ghost town are never offered together: the ghost town follows the
   shipment that emptied the mine, and a railroad ships once a turn. Gold shipping wins in
   `mapLocationChoice` if both were ever open; either replaces the family's location choices.
+- The action area shows the selection auction first, then the open Discount panel, then the
+  title's prompts above the shared operating actions; the Discount panel hides the latter two.
 - Steel choice happens only in the track step and gold only after the run, so the steel buttons
   and the gold mask never overlap.
 - The bridge lease choice comes before the run and its payment after the payout, so neither
@@ -81,5 +89,17 @@ This contract covers what 18RoyalGorge adds. The map is the generic presentation
   the 4+ run through the gorge; after the payout only the two payment buttons are offered.
 - _Brown gorge_ (manual, scenario "Brown gorge"): hovering E13 outlines all three gorge hexes, and
   choosing one previews the brown gorge whole.
-- _Nugget follow-up and ghost town_ (manual, no prepared scenario): with the Nugget, a pick opens
-  the follow-up; Undo closes it without undoing an Action.
+- _Train extension_ (manual, scenarios "Train extension", "Coal creek" and "Coal depot"): the
+  prompt shows one badge button per 2+; pressing one lists that train with its route colour and
+  "+1 stop", and the prompt leaves (Track Engineer) or offers what cubes remain.
+- _Discounted metal shares_ (manual, scenarios "Metal shares stock round" and "Mint worker"): open
+  Discount from the stock menu; the Metals Investor offers CF&I and VGC at $40, and buying one
+  CF&I leaves only VGC. The Mint Worker's purchase closes it.
+- _Map markers_ (manual, scenarios "Gold shipping", "Ghost town run" and "St. cloud hotel"): gold
+  cubes, the ghost town and the hotel stand in a corner of their hexes, clear of track and stops.
+- _Debt repayment_ (manual, scenario "Treaty debts"): the prompt shows Rio Grande's token, "owes 4
+  debts:" and "Repay one for $60"; repaying leaves three and no second prompt this round.
+- _Nugget follow-up_ (manual, scenario "Gold nugget"): picking B10 opens the follow-up offering
+  +$50 or +$130; Undo closes it without undoing an Action.
+- _Ghost town_ (manual, scenario "Ghost town"): shipping B6's last cube leaves B6 pickable and
+  offers Place ghost town; placing it puts the marker on B6.

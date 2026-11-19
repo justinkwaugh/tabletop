@@ -692,7 +692,7 @@ describe('18RoyalGorge end of the game', () => {
         const state = game.hydrated
         state.trainEndTrigger = { setNumber: 3, byExport: false }
         expect(EndingRulesRoyalGorge.trigger(state)?.finalOperatingSet).toBe(4)
-        state.variants = { shorterGame: true }
+        state.shorterGame = true
         expect(EndingRulesRoyalGorge.trigger(state)?.finalOperatingSet).toBe(3)
         state.trainEndTrigger = { setNumber: 3, byExport: true }
         expect(EndingRulesRoyalGorge.trigger(state)?.finalOperatingSet).toBe(4)

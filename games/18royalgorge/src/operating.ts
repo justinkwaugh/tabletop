@@ -293,7 +293,7 @@ function triggerRoyalGorge(state: EndingState): GameEnding | undefined {
             ? {
                   reason: LastTrainReason,
                   finalOperatingSet:
-                      trigger.setNumber + (title.variants.shorterGame && !trigger.byExport ? 0 : 1)
+                      trigger.setNumber + (title.shorterGame && !trigger.byExport ? 0 : 1)
               }
             : undefined
     ])

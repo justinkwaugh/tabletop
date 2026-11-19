@@ -2732,6 +2732,10 @@
         ],
         "type": "object"
       },
+      "shorterGame": {
+        "const": true,
+        "type": "boolean"
+      },
       "stationAccess": {
         "items": {
           "additionalProperties": false,
@@ -4494,24 +4498,6 @@
         "type": "array",
         "uniqueItems": true
       },
-      "variants": {
-        "additionalProperties": false,
-        "properties": {
-          "alternatePrices": {
-            "const": true,
-            "type": "boolean"
-          },
-          "noPrivates": {
-            "const": true,
-            "type": "boolean"
-          },
-          "shorterGame": {
-            "const": true,
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
       "winningPlayerIds": {
         "items": {
           "type": "string"
@@ -4558,7 +4544,6 @@
       "trainInventory",
       "turnManager",
       "usedPrivatePowerIds",
-      "variants",
       "winningPlayerIds"
     ],
     "type": "object"

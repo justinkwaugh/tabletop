@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T18:58:13.486Z",
+  "createdAt": "2026-11-19T19:17:52.021Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:58:13.486Z",
+  "startedAt": "2026-11-19T19:17:52.021Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "jqEUkRAKr9leXBjbmt3ax",
+  "id": "j3UU-V8W83H00GfjmKyjo",
   "gameId": "scenario-18royalgorge-mint-worker",
   "seed": 918595571,
   "prng": {
@@ -1334,7 +1334,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "variants": {},
   "railroadIds": [
    "RG",
    "SF",

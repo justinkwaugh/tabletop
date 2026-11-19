@@ -7,7 +7,6 @@ import {
     type GameConfigOptions,
     type GameConfigurator
 } from '@tabletop/common'
-import type { VariantsRoyalGorge } from '../state.js'
 
 const shorterGameOption: BooleanConfigOption = {
     id: 'shorterGame',
@@ -43,6 +42,16 @@ const Schema = Type.Object(
     },
     { additionalProperties: false }
 )
+
+/** The rulebook variants chosen for the game (Game Play Variants). */
+export type VariantsRoyalGorge = {
+    /** The end trigger finishes only the current set, unless an export triggered it. */
+    shorterGame?: true
+    /** No private assets are dealt. */
+    noPrivates?: true
+    /** Steel and gold start at the minimum bids of a drawn yellow and green card. */
+    alternatePrices?: true
+}
 
 export const GameConfigRoyalGorge = {
     schema: Schema,

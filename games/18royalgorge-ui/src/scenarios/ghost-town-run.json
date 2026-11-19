@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T18:54:08.083Z",
+  "createdAt": "2026-11-19T19:13:59.971Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:54:08.083Z",
+  "startedAt": "2026-11-19T19:13:59.971Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "d216cyJ4LJoIX8JZznyhQ",
+  "id": "STV4pZsz1yiPMfxCI1qPi",
   "gameId": "scenario-18royalgorge-ghost-town-run",
   "seed": 519231558,
   "prng": {
@@ -1352,7 +1352,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "variants": {},
   "railroadIds": [
    "RG",
    "SPP",

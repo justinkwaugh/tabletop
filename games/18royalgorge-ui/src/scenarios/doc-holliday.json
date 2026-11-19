@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p3"
   ],
-  "createdAt": "2026-11-19T18:58:11.268Z",
+  "createdAt": "2026-11-19T19:17:49.862Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T18:58:11.268Z",
+  "startedAt": "2026-11-19T19:17:49.862Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "64EQnMCwoa2xuJyVcJMS9",
+  "id": "Itdx2AhOublA4KrP2l1DY",
   "gameId": "scenario-18royalgorge-doc-holliday",
   "seed": 267391249,
   "prng": {
@@ -1443,7 +1443,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "variants": {},
   "railroadIds": [
    "RG",
    "PAV",

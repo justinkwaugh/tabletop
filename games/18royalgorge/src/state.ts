@@ -19,20 +19,6 @@ import * as Type from 'typebox'
 const Id = Type.String({ minLength: 1 })
 const Count = Type.Integer({ minimum: 0 })
 
-/** The rulebook variants chosen when the game was set up (Game Play Variants). */
-export const VariantsRoyalGorge = Type.Object(
-    {
-        /** The end trigger finishes only the current set, unless an export triggered it. */
-        shorterGame: Type.Optional(Type.Literal(true)),
-        /** No private assets are dealt. */
-        noPrivates: Type.Optional(Type.Literal(true)),
-        /** Steel and gold start at the minimum bids of a drawn yellow and green card. */
-        alternatePrices: Type.Optional(Type.Literal(true))
-    },
-    { additionalProperties: false }
-)
-export type VariantsRoyalGorge = Type.Static<typeof VariantsRoyalGorge>
-
 /** How many steel cubes are left in each column of the steel market, its dearest ones (ST-1). */
 export const SteelMarket = Type.Record(Id, Count)
 export type SteelMarket = Type.Static<typeof SteelMarket>
@@ -78,7 +64,11 @@ export const TrainEndTrigger = Type.Object(
 export type TrainEndTrigger = Type.Static<typeof TrainEndTrigger>
 
 export const TitleFieldsRoyalGorge = {
-    variants: VariantsRoyalGorge,
+    /**
+     * The shorter game variant: the end trigger finishes only the current set, unless an export
+     * triggered it (Game Play Variants). The other variants shape only the setup.
+     */
+    shorterGame: Type.Optional(Type.Literal(true)),
     /** The five railroads in the game, by establishment year: two yellow, two green, one brown. */
     railroadIds: Type.Array(Id, { minItems: 5, maxItems: 5, uniqueItems: true }),
     steelMarket: SteelMarket,
