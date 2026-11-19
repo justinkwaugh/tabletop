@@ -24,17 +24,20 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 // A placed stone falls onto its point, gathering speed, and rocks on its rounded underside: a
 // quick first tip, then a few slower swings back and forth as it settles, the line it rocks about
 // turning a little as it goes and different for every stone. Its shadow waits on the point, small
-// and faint, and darkens as it lands.
+// and faint, and darkens as it lands. The whole drop, fall and rock, takes DROP_TIME: the timing
+// below was first tuned at 0.54 s and is scaled to it.
+const DROP_TIME = 0.45
+const PACE = DROP_TIME / 0.54
 const DROP = {
-    fall: 0.16,
+    fall: 0.16 * PACE,
     rise: -26,
     scale: 1.06,
     rock: [
-        { angle: 9, duration: 0.06, ease: 'power1.out' },
-        { angle: -5.5, duration: 0.09, ease: 'sine.inOut' },
-        { angle: 2.6, duration: 0.09, ease: 'sine.inOut' },
-        { angle: -0.9, duration: 0.08, ease: 'sine.inOut' },
-        { angle: 0, duration: 0.06, ease: 'sine.inOut' }
+        { angle: 9, duration: 0.06 * PACE, ease: 'power1.out' },
+        { angle: -5.5, duration: 0.09 * PACE, ease: 'sine.inOut' },
+        { angle: 2.6, duration: 0.09 * PACE, ease: 'sine.inOut' },
+        { angle: -0.9, duration: 0.08 * PACE, ease: 'sine.inOut' },
+        { angle: 0, duration: 0.06 * PACE, ease: 'sine.inOut' }
     ],
     // How far the line rocked about turns while the stone settles.
     axisTurn: 40,
