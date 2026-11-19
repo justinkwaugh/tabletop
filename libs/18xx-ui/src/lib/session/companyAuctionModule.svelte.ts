@@ -104,6 +104,12 @@ export class CompanyAuctionModule {
     contributedPrivateIds = $derived.by(
         () => (this.session.selectionsVisible ? this.contribution.value('choice') : undefined) ?? []
     )
+    /** How the privates chosen so far split the winning bid, for the winner choosing them. */
+    formationPayment = $derived.by(() =>
+        this.canForm && this.contributions.length
+            ? this.model?.formationPayment(this.contributedPrivateIds)
+            : undefined
+    )
     formationChoice = $derived.by((): CompanyFormationChoice | undefined =>
         this.shareCount === undefined
             ? undefined

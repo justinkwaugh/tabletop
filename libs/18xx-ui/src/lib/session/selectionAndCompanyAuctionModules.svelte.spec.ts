@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { AuctionType } from '@tabletop/common'
 import {
     minimalPlayState,
     minimalStockRules,
     TestCompanyId,
     TestPlayerId
 } from '@tabletop/18xx/testing'
-import type { CompanyAuctionRules, SelectionAuctionRules } from '@tabletop/18xx'
+import type {
+    CompanyAuctionRules,
+    CompanyAuctionState,
+    SelectionAuctionRules
+} from '@tabletop/18xx'
 import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
@@ -20,7 +25,12 @@ const selectionRules: SelectionAuctionRules = {
     closeUnsold: () => {}
 }
 
-function selection(valid: string[], passingWhileNominating = () => true) {
+function selection(
+    valid: string[],
+    passingWhileNominating = () => true,
+    openingBid = selectionRules.openingBid,
+    discount?: number
+) {
     const state = {
         ...minimalPlayState(),
         cash: [
@@ -34,12 +44,13 @@ function selection(valid: string[], passingWhileNominating = () => true) {
             passedPlayerIds: [],
             awards: [],
             closedLotIds: [],
-            completed: false
+            completed: false,
+            ...(discount ? { discount } : {})
         }
     }
     const harness = testSession(
         state,
-        { selectionAuctionRules: { ...selectionRules, passingWhileNominating } },
+        { selectionAuctionRules: { ...selectionRules, passingWhileNominating, openingBid } },
         valid
     )
     return { ...harness, module: new SelectionAuctionModule(harness.session) }
@@ -56,12 +67,20 @@ const auctionTerms: CompanyAuctionRules = {
     startSpace: () => '0:0',
     shareCounts: () => [2, 5],
     contributions: () => [],
+    contributionValue: (privateIds) => privateIds.length * 40,
     formationReason: () => undefined,
     form: () => {}
 }
 
-function companyAuction(valid: string[], terms: CompanyAuctionRules = auctionTerms) {
-    const state = minimalPlayState()
+function companyAuction(
+    valid: string[],
+    terms: CompanyAuctionRules = auctionTerms,
+    standingAuction?: CompanyAuctionState['companyAuction']
+) {
+    const state = {
+        ...minimalPlayState(),
+        ...(standingAuction ? { companyAuction: standingAuction } : {})
+    }
     state.companies[0].started = false
     const harness = testSession(
         state,
@@ -98,9 +117,50 @@ describe('SelectionAuctionModule', () => {
         expect(applied).toMatchObject([{ type: 'PassSelectionAuction' }])
         expect(module.choice.hasManual()).toBe(false)
     })
+
+    it('shows opening bids only when one differs from its lot’s value', () => {
+        const atValue = () => 40
+        expect(selection([], undefined, atValue).module.showsOpeningBids).toBe(false)
+        expect(selection([]).module.showsOpeningBids).toBe(true)
+        expect(selection([], undefined, atValue, 5).module.showsOpeningBids).toBe(true)
+    })
 })
 
 describe('CompanyAuctionModule', () => {
+    function wonAuction(valid: string[]) {
+        return companyAuction(
+            valid,
+            { ...auctionTerms, contributions: () => ['P', 'Q'] },
+            {
+                companyId: TestCompanyId,
+                openerId: TestPlayerId,
+                home,
+                auction: {
+                    id: 'auction',
+                    type: AuctionType.Simple,
+                    auctioneerId: TestPlayerId,
+                    highBid: 120,
+                    participants: [{ playerId: TestPlayerId, passed: false, bid: 120 }]
+                }
+            }
+        )
+    }
+
+    it('splits the winning bid between cash and the privates chosen so far', () => {
+        const { module } = wonAuction(['FormCompany'])
+        expect(module.formationPayment).toEqual({ privates: 0, cash: 120 })
+        module.toggleContribution('P')
+        expect(module.formationPayment).toEqual({ privates: 40, cash: 80 })
+        module.toggleContribution('Q')
+        expect(module.formationPayment).toEqual({ privates: 80, cash: 40 })
+        module.toggleContribution('P')
+        expect(module.formationPayment).toEqual({ privates: 40, cash: 80 })
+    })
+
+    it('leaves the split to the winner forming the company', () => {
+        expect(wonAuction([]).module.formationPayment).toBeUndefined()
+    })
+
     it('offers home cities once a company is chosen and opens at the opening bid', async () => {
         const { module, applied } = companyAuction(['AuctionCompany'])
         expect(module.companies.map((company) => company.id)).toEqual([TestCompanyId])

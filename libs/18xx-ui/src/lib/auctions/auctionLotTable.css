@@ -40,6 +40,10 @@
     gap: 9px;
 }
 
+.auction-lot-table .identity > svg {
+    flex: 0 0 auto;
+}
+
 .auction-lot-table .private-icon {
     display: grid;
     place-items: center;

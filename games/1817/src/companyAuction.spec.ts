@@ -2,6 +2,7 @@ import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import {
     cashOwnedBy,
+    CompanyAuctionModel,
     evaluateSharePurchase,
     evaluateShareSale,
     getCompany,
@@ -116,6 +117,9 @@ describe('company auctions', () => {
         // Blair's $250 and $30 private cannot reach $305, so only Casey is asked.
         expect(play.state.activePlayerIds).toEqual(['casey'])
         play.act('PassCompanyAuction', { companyId: 'AS' })
+        const auction = new CompanyAuctionModel(play.state, EighteenSeventeenStockRules)
+        expect(auction.formationPayment(['MAJC'])).toEqual({ privates: 90, cash: 210 })
+        expect(auction.formationPayment(['MAJC', 'OBC'])).toEqual({ privates: 130, cash: 170 })
         expect(() =>
             play.act('FormCompany', { companyId: 'AS', shareCount: 2, privateIds: ['MINC'] })
         ).toThrow()

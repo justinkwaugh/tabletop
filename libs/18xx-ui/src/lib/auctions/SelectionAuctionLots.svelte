@@ -24,7 +24,7 @@
     const tiered = $derived(!!model.tiers)
     const selected = $derived(lots.find((lot) => lot.id === auction.selection?.lotId))
     const playerId = $derived(auction.playerId)
-    const columnCount = $derived(auction.ownTurn ? 4 : 3)
+    const columnCount = $derived(3 + Number(auction.ownTurn) + Number(auction.showsOpeningBids))
     // The table opens the bid under the chosen lot; the tiers bid beside them.
     const bidsInline = $derived(!tiered && !!selected)
 </script>
@@ -49,13 +49,13 @@
             {#if tiered}
                 <SelectionAuctionPyramid {session} />
             {:else}
-                <table class="auction-lot-table">
+                <table class="auction-lot-table" class:opening-bids={auction.showsOpeningBids}>
                     <thead
                         ><tr
                             >{#if auction.ownTurn}<th><span class="sr-only">Action</span></th
-                                >{/if}<th>Private</th><th class="amount">Value</th><th
-                                class="amount">Opens at</th
-                            ></tr
+                                >{/if}<th>Private</th><th class="amount">Income</th><th
+                                class="amount">Value</th
+                            >{#if auction.showsOpeningBids}<th class="amount">Opens at</th>{/if}</tr
                         ></thead
                     >
                     <tbody>
@@ -106,8 +106,13 @@
                                         </span>
                                     </div></th
                                 >
+                                <td class="amount income"
+                                    >{money(lot.company.revenue)} <small>/ OR</small></td
+                                >
                                 <td class="amount value">{money(lot.price)}</td>
-                                <td class="amount">{money(model.minimumBid(lot.id))}</td>
+                                {#if auction.showsOpeningBids}<td class="amount"
+                                        >{money(model.minimumBid(lot.id))}</td
+                                    >{/if}
                             </tr>
                             {#if selected?.id === lot.id && auction.selection && playerId}
                                 {@const amount = auction.selection.amount}
@@ -201,6 +206,26 @@
     @container auction-turn (max-width: 719px) {
         table {
             flex: none;
+        }
+    }
+    @container auction-turn (max-width: 420px) {
+        .income small {
+            display: none;
+        }
+        thead .amount {
+            white-space: normal;
+        }
+        .amount {
+            padding-inline: 4px;
+        }
+        .opening-bids .private-icon {
+            display: none;
+        }
+        .opening-bids .action {
+            padding-right: 4px;
+        }
+        .opening-bids .action button {
+            padding-inline: 6px;
         }
     }
 </style>
