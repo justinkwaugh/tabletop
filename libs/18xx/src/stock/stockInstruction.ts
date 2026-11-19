@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { President, type Owner } from '../finance/finance.js'
+import { getCompany, President, sharesOwned, type Owner } from '../finance/finance.js'
 import type { StockState } from './stockState.js'
 import { orderedSubset } from '../game/orderedSubset.js'
 
@@ -38,6 +38,20 @@ export const StockInstruction = Type.Union([
     )
 ])
 export type StockInstruction = Type.Static<typeof StockInstruction>
+export type BuyStockInstruction = Extract<StockInstruction, { kind: 'buy' }>
+
+export function buyGoalMet(
+    state: StockState,
+    instruction: BuyStockInstruction,
+    playerId: string
+): boolean {
+    if (instruction.until.kind === 'floated')
+        return getCompany(state, instruction.companyId).floated === true
+    return (
+        sharesOwned(state, instruction.companyId, { kind: 'player', playerId }) >=
+        instruction.until.count
+    )
+}
 
 export function orderedIgnorableStops(
     stops: readonly IgnorableStockInstructionStop[]

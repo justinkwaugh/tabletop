@@ -17,6 +17,7 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type IgnorableStockInstructionStop,
+    type BuyStockInstruction,
     type StockInstruction,
     type StoppedStockInstruction,
     companyShareCount
@@ -31,10 +32,7 @@ export type StockInstructionSession = ModuleSession<
     Pick<EighteenXXTitleRules, 'stockRules'>
 >
 
-export type BuyInstructionTerms = Omit<
-    Extract<StockInstruction, { kind: 'buy' }>,
-    'kind' | 'ignoredStops'
->
+export type BuyInstructionTerms = Omit<BuyStockInstruction, 'kind' | 'ignoredStops'>
 
 export type BuyInstructionChoice = { company: Company; pools: CertificatePool[] }
 export type ShareGoalRange = { min: number; max: number }

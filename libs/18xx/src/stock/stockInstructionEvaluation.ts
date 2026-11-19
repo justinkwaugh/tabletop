@@ -15,12 +15,13 @@ import {
 } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import {
+    buyGoalMet,
     withIgnoredStops,
     type StandingStockInstruction,
     type StockInstruction,
     type StockInstructionStopReason
 } from './stockInstruction.js'
-import { buyGoalMet, stockPositionChange } from './stockInstructionSnapshot.js'
+import { stockPositionChange } from './stockInstructionSnapshot.js'
 
 export type StockInstructionOutcome =
     | { kind: 'wait' }
