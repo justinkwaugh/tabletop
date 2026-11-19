@@ -65,12 +65,13 @@ Terms follow the [Game Client](../libs/frontend-components/CONTEXT.md#variations
 - Replies run within the other Player's own Action request, after their Action is stored, so the reply reaches them through the usual Realtime Update within about a second, before they are likely to leave. Whether this is a second write or part of the same transaction is a question for review.
 - A Conditional Reply carries no mark in history, so the other Player cannot tell a reply was planned.
 - No notification is sent for each reply played. The Player's normal turn notification comes when their tree runs out or is discarded.
-- Conditional Moves pause while a Player Vote is open.
+- Conditional Moves pause while a Player Vote is open. While paused, nothing is matched, and the Player gets their normal turn notification when it becomes their turn; if they act themselves, their own Action leaves the tree and the host discards it. When the vote closes, the host matches the other Player's Actions played meanwhile: a match plays the reply then, and no match discards the tree. If the vote passed, its Undo applies first, and the tree is matched against what remains.
 
 ### Privacy and lifetime
 
 - The host keeps each Player's tree privately, one per Player per Hosted Game. It never appears in the Game representation, Realtime Updates, a Fork or a Continuation, and is deleted with the game.
-- An Undo that removes the tree's anchor discards the tree.
+- An Undo that takes back the tree's anchor or any Conditional Reply discards the tree. A Player who undoes their own reply has chosen to play that turn by hand; the alternative, moving the tree's position back so the reply's branch is open again, is left for review.
+- An Undo that takes back only the other Player's Actions after the anchor, while the tree is paused, moves the tree's position back with them.
 - When the game ends, the host discards any remaining tree. A Player who wants to keep their plan keeps it in an Exploration. Showing unused branches becomes worth revisiting with lasting public reviews.
 - Rollout: deploy the backend first, then republish each opted-in title's UI Artifact. Titles that have not opted in, and UI Artifacts built before this stage, are unaffected.
 
@@ -84,6 +85,7 @@ A Conditional Reply is the other Player's User Action, so under the current rule
 - **Option: a grace period.** The reply waits a short time, during which the triggering Player can still undo their own Action without a vote. It costs some of the immediacy and adds a pending state the host must track.
 - **Option: a delay before playing the reply.** Similar, with a longer delay and a scheduled task, so the reply arrives after the triggering Player has had time to reconsider. It risks the Player leaving before the reply arrives, which works against the main reason for Conditional Moves.
 - Considered and dropped: undoing the triggering Action also reverses the reply and re-arms the tree. It is the simplest rule, but it is exactly what invites undoing after seeing the reply.
+- Whichever rule is chosen, an Undo that takes back a Conditional Reply discards the rest of the tree by default, as described under [Privacy and lifetime](#privacy-and-lifetime).
 
 ### Other questions
 
