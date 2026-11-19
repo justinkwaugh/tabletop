@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { finiteCashOwnedBy, getCompany, placeStockMarker, trainsOwnedBy } from '@tabletop/18xx'
+import {
+    finiteCashOwnedBy,
+    getCompany,
+    isEndMergerRound,
+    placeStockMarker,
+    recordedRoundEnd,
+    trainsOwnedBy
+} from '@tabletop/18xx'
 import { auctionMinor, edit, finishStockRound, opened, type Table } from '../test/kit.js'
 
 /** Plays the operating turns, each company running nothing and buying the cheapest train. */
@@ -72,6 +79,13 @@ describe('1861 merger round', () => {
         )
             game.act('BuyMergerShares', { shares: 0 })
         expect(game.state.mergerRound?.completed).toBe(true)
+        const end = game.actions.find(isEndMergerRound)
+        expect(end && recordedRoundEnd(end)).toEqual({
+            round: 'title',
+            playerNetWorth: Object.fromEntries(
+                game.state.players.map(({ playerId }) => [playerId, expect.any(Number)])
+            )
+        })
         const held = game.state.certificates
             .filter(
                 (certificate) =>
