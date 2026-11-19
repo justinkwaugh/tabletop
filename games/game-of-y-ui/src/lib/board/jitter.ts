@@ -1,16 +1,23 @@
-import { neighborsOf, type Stone } from '@tabletop/game-of-y'
-import { FLAT_VIEW, plan, STONE_RADIUS, TILTED_VIEW } from './geometry.js'
+import { gridOf, type BoardShape, type Stone } from '@tabletop/game-of-y'
+import { boardView, planOf, STONE_RADIUS, type Label } from './geometry.js'
 import { seededRandom } from './random.js'
 
 type Point = { x: number; y: number }
 
-// Labels as both views place them, so a stone lies in the same place either way.
-const LABELS_BY_POINT = Map.groupBy(
-    [TILTED_VIEW, FLAT_VIEW].flatMap((view) =>
-        view.labels.map((label) => ({ ...label, tilt: view.tilt }))
-    ),
-    (label) => label.point
-)
+// A board's labels as both views and both looks place them, so a stone lies in the same place
+// whichever is shown.
+function labelsByPoint(shape: BoardShape): Map<string, (Label & { tilt: number })[]> {
+    return Map.groupBy(
+        [false, true].flatMap((flat) => {
+            const view = boardView(shape, flat)
+            return [...view.labels, ...view.cellLabels].map((label) => ({
+                ...label,
+                tilt: view.tilt
+            }))
+        }),
+        (label) => label.point
+    )
+}
 
 // The least space left between two stones on neighbouring points.
 const GAP = 0.3
@@ -22,7 +29,14 @@ const GAP = 0.3
 // stones, so the stone that comes later always fits; toward an earlier stone it takes what that
 // stone left. A stone on a side leans toward its label only into the room the label leaves
 // beyond a stone on the point, labels shown or not, so a stone stays put when they are toggled.
-export function stoneOffsets(stones: readonly Stone[], reach: number): Map<number, Point> {
+export function stoneOffsets(
+    shape: BoardShape,
+    stones: readonly Stone[],
+    reach: number
+): Map<number, Point> {
+    const grid = gridOf(shape)
+    const plan = (point: string) => planOf(shape, point)
+    const labels = labelsByPoint(shape)
     const offsets = new Map<number, Point>()
     const byPoint = new Map<string, Point>()
     for (const stone of stones.toSorted((a, b) => a.id - b.id)) {
@@ -32,7 +46,7 @@ export function stoneOffsets(stones: readonly Stone[], reach: number): Map<numbe
         const wanted = { x: Math.cos(angle) * length, y: Math.sin(angle) * length }
         const at = plan(stone.point)
         let scale = 1
-        for (const neighbor of neighborsOf(stone.point)) {
+        for (const neighbor of grid.neighborsOf(stone.point)) {
             const there = plan(neighbor)
             const distance = Math.hypot(there.x - at.x, there.y - at.y)
             const toward = { x: (there.x - at.x) / distance, y: (there.y - at.y) / distance }
@@ -44,7 +58,7 @@ export function stoneOffsets(stones: readonly Stone[], reach: number): Map<numbe
             const leaning = wanted.x * toward.x + wanted.y * toward.y
             if (leaning > allowed) scale = Math.min(scale, Math.max(0, allowed) / leaning)
         }
-        for (const { going, spare, tilt } of LABELS_BY_POINT.get(stone.point) ?? []) {
+        for (const { going, spare, tilt } of labels.get(stone.point) ?? []) {
             // The label's way out on screen, as a direction seen from above.
             const leaning = wanted.x * going.x + wanted.y * tilt * going.y
             if (leaning > spare) scale = Math.min(scale, spare / leaning)

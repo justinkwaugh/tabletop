@@ -12,7 +12,7 @@ import {
 import { HydratedYGameState, YGameState } from '../model/gameState.js'
 import { HydratedYPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
-import { BlackPlayer, blackPlayerFromConfig } from './config.js'
+import { BlackPlayer, blackPlayerFromConfig, boardShapeFromConfig } from './config.js'
 import { emptyBoard } from '../model/board.js'
 
 export class YGameInitializer
@@ -47,7 +47,7 @@ export class YGameInitializer
                 players,
                 machineState: MachineState.PlacingStones,
                 turnManager,
-                board: emptyBoard(),
+                board: emptyBoard(boardShapeFromConfig(game.config)),
                 swapped: false
             })
         )

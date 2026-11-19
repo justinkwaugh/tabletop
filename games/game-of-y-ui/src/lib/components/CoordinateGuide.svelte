@@ -1,6 +1,7 @@
 <script lang="ts">
     import { neighborsOf, POINTS, ROW_LENGTHS, rowOf } from '@tabletop/game-of-y'
-    import { plan } from '$lib/board/geometry.js'
+    import { BoardShape } from '@tabletop/game-of-y'
+    import { planOf } from '$lib/board/geometry.js'
 
     // Every point named, each row traced in its own colour, the three pentads ringed.
     const ROW_COLORS = [
@@ -18,7 +19,7 @@
     const MARK = 13
 
     const at = (point: string) => {
-        const { x, y } = plan(point)
+        const { x, y } = planOf(BoardShape.Kadon, point)
         return { x: x * SCALE, y: y * SCALE }
     }
 

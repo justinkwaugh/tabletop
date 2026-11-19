@@ -1,251 +1,245 @@
 {
- "game": {
-  "id": "scenario-one-from-a-y",
-  "isPublic": false,
-  "status": "started",
-  "typeId": "game-of-y",
-  "deleted": false,
-  "name": "One from a Y",
-  "ownerId": "owner",
-  "players": [
-   {
-    "id": "player-1",
-    "name": "Alice",
-    "isHuman": true,
-    "status": "joined"
-   },
-   {
-    "id": "player-2",
-    "name": "Bob",
-    "isHuman": true,
-    "status": "joined"
-   }
-  ],
-  "config": {
-   "swapRule": true,
-   "blackPlayer": "Random"
-  },
-  "hotseat": false,
-  "winningPlayerIds": [],
-  "seed": 1277591804,
-  "activePlayerIds": [
-   "player-1"
-  ],
-  "createdAt": "2026-11-19T03:29:19.778Z",
-  "storage": "remote",
-  "category": "standard",
-  "startedAt": "2026-11-19T03:29:19.778Z"
- },
- "state": {
-  "systemVersion": 3,
-  "id": "-VnWuuwh_BHAAZZo4rHg8",
-  "gameId": "scenario-one-from-a-y",
-  "seed": 1277591804,
-  "prng": {
-   "seed": 1277591804,
-   "invocations": 1
-  },
-  "protectedPrng": {
-   "algorithm": "chacha20-v1",
-   "seed": "63a95e8454f1cbe8e7d0d7a2ce214959729fe5f781331d7d657fadd6e8feda3b",
-   "invocations": 0
-  },
-  "masterSeed": "9e95624a3060f3a407a16a798525b8b8",
-  "activePlayerIds": [
-   "player-1"
-  ],
-  "winningPlayerIds": [],
-  "actionCount": 0,
-  "actionChecksum": 0,
-  "players": [
-   {
-    "playerId": "player-1",
-    "color": "black"
-   },
-   {
-    "playerId": "player-2",
-    "color": "white"
-   }
-  ],
-  "machineState": "PlacingStones",
-  "turnManager": {
-   "series": [
-    {
-     "type": "turn",
-     "playerId": "player-1",
-     "start": 0
-    }
-   ],
-   "turnOrder": [
-    "player-1",
-    "player-2"
-   ],
-   "turnCounts": {
-    "player-1": 0,
-    "player-2": 0
-   },
-   "seriesKeeps": "latest"
-  },
-  "board": {
-   "stones": [
-    {
-     "id": 0,
-     "point": "A4",
-     "color": "black"
+    "game": {
+        "id": "scenario-one-from-a-y",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "game-of-y",
+        "deleted": false,
+        "name": "One from a Y",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "swapRule": true,
+            "blackPlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 1277591804,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-19T03:29:19.778Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-19T03:29:19.778Z"
     },
-    {
-     "id": 1,
-     "point": "D1",
-     "color": "white"
+    "state": {
+        "systemVersion": 3,
+        "id": "-VnWuuwh_BHAAZZo4rHg8",
+        "gameId": "scenario-one-from-a-y",
+        "seed": 1277591804,
+        "prng": {
+            "seed": 1277591804,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "63a95e8454f1cbe8e7d0d7a2ce214959729fe5f781331d7d657fadd6e8feda3b",
+            "invocations": 0
+        },
+        "masterSeed": "9e95624a3060f3a407a16a798525b8b8",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "black"
+            },
+            {
+                "playerId": "player-2",
+                "color": "white"
+            }
+        ],
+        "machineState": "PlacingStones",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "board": {
+            "shape": "Kadon",
+            "stones": [
+                {
+                    "id": 0,
+                    "point": "A4",
+                    "color": "black"
+                },
+                {
+                    "id": 1,
+                    "point": "D1",
+                    "color": "white"
+                },
+                {
+                    "id": 2,
+                    "point": "B5",
+                    "color": "black"
+                },
+                {
+                    "id": 3,
+                    "point": "I1",
+                    "color": "white"
+                },
+                {
+                    "id": 4,
+                    "point": "C6",
+                    "color": "black"
+                },
+                {
+                    "id": 5,
+                    "point": "F2",
+                    "color": "white"
+                },
+                {
+                    "id": 6,
+                    "point": "D7",
+                    "color": "black"
+                },
+                {
+                    "id": 7,
+                    "point": "A3",
+                    "color": "white"
+                },
+                {
+                    "id": 8,
+                    "point": "E8",
+                    "color": "black"
+                },
+                {
+                    "id": 9,
+                    "point": "G3",
+                    "color": "white"
+                },
+                {
+                    "id": 10,
+                    "point": "F8",
+                    "color": "black"
+                },
+                {
+                    "id": 11,
+                    "point": "B4",
+                    "color": "white"
+                },
+                {
+                    "id": 12,
+                    "point": "H7",
+                    "color": "black"
+                },
+                {
+                    "id": 13,
+                    "point": "H4",
+                    "color": "white"
+                },
+                {
+                    "id": 14,
+                    "point": "J6",
+                    "color": "black"
+                },
+                {
+                    "id": 15,
+                    "point": "C5",
+                    "color": "white"
+                },
+                {
+                    "id": 16,
+                    "point": "L5",
+                    "color": "black"
+                },
+                {
+                    "id": 17,
+                    "point": "I5",
+                    "color": "white"
+                },
+                {
+                    "id": 18,
+                    "point": "L4",
+                    "color": "black"
+                },
+                {
+                    "id": 19,
+                    "point": "B6",
+                    "color": "white"
+                },
+                {
+                    "id": 20,
+                    "point": "F7",
+                    "color": "black"
+                },
+                {
+                    "id": 21,
+                    "point": "I6",
+                    "color": "white"
+                },
+                {
+                    "id": 22,
+                    "point": "F6",
+                    "color": "black"
+                },
+                {
+                    "id": 23,
+                    "point": "C7",
+                    "color": "white"
+                },
+                {
+                    "id": 24,
+                    "point": "F5",
+                    "color": "black"
+                },
+                {
+                    "id": 25,
+                    "point": "K7",
+                    "color": "white"
+                },
+                {
+                    "id": 26,
+                    "point": "E4",
+                    "color": "black"
+                },
+                {
+                    "id": 27,
+                    "point": "G8",
+                    "color": "white"
+                },
+                {
+                    "id": 28,
+                    "point": "D3",
+                    "color": "black"
+                },
+                {
+                    "id": 29,
+                    "point": "B9",
+                    "color": "white"
+                },
+                {
+                    "id": 30,
+                    "point": "C2",
+                    "color": "black"
+                }
+            ]
+        },
+        "swapped": false
     },
-    {
-     "id": 2,
-     "point": "B5",
-     "color": "black"
-    },
-    {
-     "id": 3,
-     "point": "I1",
-     "color": "white"
-    },
-    {
-     "id": 4,
-     "point": "C6",
-     "color": "black"
-    },
-    {
-     "id": 5,
-     "point": "F2",
-     "color": "white"
-    },
-    {
-     "id": 6,
-     "point": "D7",
-     "color": "black"
-    },
-    {
-     "id": 7,
-     "point": "A3",
-     "color": "white"
-    },
-    {
-     "id": 8,
-     "point": "E8",
-     "color": "black"
-    },
-    {
-     "id": 9,
-     "point": "G3",
-     "color": "white"
-    },
-    {
-     "id": 10,
-     "point": "F8",
-     "color": "black"
-    },
-    {
-     "id": 11,
-     "point": "B4",
-     "color": "white"
-    },
-    {
-     "id": 12,
-     "point": "H7",
-     "color": "black"
-    },
-    {
-     "id": 13,
-     "point": "H4",
-     "color": "white"
-    },
-    {
-     "id": 14,
-     "point": "J6",
-     "color": "black"
-    },
-    {
-     "id": 15,
-     "point": "C5",
-     "color": "white"
-    },
-    {
-     "id": 16,
-     "point": "L5",
-     "color": "black"
-    },
-    {
-     "id": 17,
-     "point": "I5",
-     "color": "white"
-    },
-    {
-     "id": 18,
-     "point": "L4",
-     "color": "black"
-    },
-    {
-     "id": 19,
-     "point": "B6",
-     "color": "white"
-    },
-    {
-     "id": 20,
-     "point": "F7",
-     "color": "black"
-    },
-    {
-     "id": 21,
-     "point": "I6",
-     "color": "white"
-    },
-    {
-     "id": 22,
-     "point": "F6",
-     "color": "black"
-    },
-    {
-     "id": 23,
-     "point": "C7",
-     "color": "white"
-    },
-    {
-     "id": 24,
-     "point": "F5",
-     "color": "black"
-    },
-    {
-     "id": 25,
-     "point": "K7",
-     "color": "white"
-    },
-    {
-     "id": 26,
-     "point": "E4",
-     "color": "black"
-    },
-    {
-     "id": 27,
-     "point": "G8",
-     "color": "white"
-    },
-    {
-     "id": 28,
-     "point": "D3",
-     "color": "black"
-    },
-    {
-     "id": 29,
-     "point": "B9",
-     "color": "white"
-    },
-    {
-     "id": 30,
-     "point": "C2",
-     "color": "black"
-    }
-   ]
-  },
-  "swapped": false
- },
- "actions": []
+    "actions": []
 }

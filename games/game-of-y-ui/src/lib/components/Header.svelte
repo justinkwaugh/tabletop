@@ -46,22 +46,25 @@
                 >
             {/if}
         </div>
-        <button
-            type="button"
-            id="y-coordinate-guide"
-            class="guide-button"
-            aria-label="How the points are named"
-            title="How the points are named">?</button
-        >
-        <Popover
-            reference="#y-header"
-            classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
-            placement="bottom"
-            triggeredBy="#y-coordinate-guide"
-            trigger="click"
-            offset={8}
-            arrow={false}><CoordinateGuide /></Popover
-        >
+        <!-- Kadon's point names need a guide; a hex board names its lines at their ends. -->
+        {#if !session.isHexBoard}
+            <button
+                type="button"
+                id="y-coordinate-guide"
+                class="guide-button"
+                aria-label="How the points are named"
+                title="How the points are named">?</button
+            >
+            <Popover
+                reference="#y-header"
+                classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
+                placement="bottom"
+                triggeredBy="#y-coordinate-guide"
+                trigger="click"
+                offset={8}
+                arrow={false}><CoordinateGuide /></Popover
+            >
+        {/if}
     </div>
 </div>
 

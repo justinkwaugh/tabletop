@@ -1,5 +1,5 @@
 import { Color } from '@tabletop/common'
-import type { StoneColor } from '@tabletop/game-of-y'
+import type { BoardShape, StoneColor } from '@tabletop/game-of-y'
 import { riseOf, STONE_RADIUS, STONE_THICKNESS, type Box } from './geometry.js'
 
 // 2.5 times the 2.5 px per unit the board fits at (GameTable's maxFitScale): larger images cost
@@ -25,8 +25,11 @@ export function stoneLook(color: StoneColor, flat: boolean): string {
     return flat ? `stone-${color}-flat` : `stone-${color}`
 }
 
-export function woodLook(flat: boolean): string {
-    return flat ? 'wood-flat' : 'wood'
+// Each board's wood, its top as each view sees it and its edge as the tilted view does.
+export function woodLook(shape: BoardShape, flat: boolean): string {
+    return `wood-${shape.toLowerCase()}${flat ? '-flat' : ''}`
 }
 
-export const EDGE_LOOK = 'edge'
+export function edgeLook(shape: BoardShape): string {
+    return `edge-${shape.toLowerCase()}`
+}

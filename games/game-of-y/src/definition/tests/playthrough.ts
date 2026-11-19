@@ -9,6 +9,7 @@ import { Definition } from '../definition.js'
 import { YRuntime } from '../runtime.js'
 import { YInfo } from '../info.js'
 import type { BlackPlayer } from '../config.js'
+import type { BoardShape } from '../../model/grids.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedYGameState, type YGameState } from '../../model/gameState.js'
@@ -17,7 +18,7 @@ export const engine = new GameEngine(YRuntime)
 
 export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-export type YConfig = { swapRule?: boolean; blackPlayer?: BlackPlayer }
+export type YConfig = { board?: BoardShape; swapRule?: boolean; blackPlayer?: BlackPlayer }
 
 // `userIds` gives seats a user; the game's creator is the user `ownerId`.
 export function createGame(
@@ -83,7 +84,12 @@ export function playToEnd(game: YGame, state: YGameState, seed: number): YGameSt
         if (actions.length === 0) throw Error(`No legal action after ${steps} steps`)
         state = execute(game, state, choose(actions))
         steps += 1
-        if (steps > 94) throw Error('The playout did not end')
+        // Every place filled, and a swap.
+        if (steps > hydratedBoardSize(state) + 1) throw Error('The playout did not end')
     }
     return state
+}
+
+function hydratedBoardSize(state: YGameState): number {
+    return new HydratedYGameState(state).board.grid.points.length
 }

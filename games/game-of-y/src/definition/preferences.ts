@@ -5,7 +5,8 @@ export const YPreferences = Type.Object(
     {
         showCoordinates: Type.Boolean(),
         looseStones: Type.Boolean(),
-        flatBoard: Type.Boolean()
+        flatBoard: Type.Boolean(),
+        hexCells: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -16,7 +17,8 @@ export const YPreferenceDefinition = {
         defaults: {
             showCoordinates: true,
             looseStones: false,
-            flatBoard: true
+            flatBoard: true,
+            hexCells: true
         },
         version: 1
     }

@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { neighborsOf, POINTS, type Stone } from '@tabletop/game-of-y'
+    import type { Stone } from '@tabletop/game-of-y'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { boardView, LABEL_SIZE, linesOf, STONE_RADIUS } from '$lib/board/geometry.js'
-    import { EDGE_LOOK, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
+    import { boardView, LABEL_SIZE, STONE_RADIUS } from '$lib/board/geometry.js'
+    import { edgeLook, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
     import { LOOK_URLS } from '$lib/board/lookUrls.js'
     import { domeHeight, domeRing } from '$lib/board/stoneShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
@@ -12,24 +12,18 @@
     const session = getGameSession()
 
     // Seen from the near side of the table, or flat from straight above.
-    const layout = $derived(boardView(session.flatBoard))
+    const shape = $derived(session.gameState.board.shape)
+    const layout = $derived(boardView(shape, session.flatBoard))
+    // A hex board drawn as hexagons, or as lines joining the cells' centres like Kadon's board.
+    const cells = $derived(session.hexCells ? layout.cells : undefined)
 
     const animator = new BoardAnimator(session)
-
-    const linePath = $derived(
-        linesOf(neighborsOf, layout.tilt)
-            .map(
-                ([a, b]) =>
-                    `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)}`
-            )
-            .join(' ')
-    )
 
     // How far a loose stone may sit off its point, seen from above.
     const LOOSE_REACH = 10
 
     const offsets = $derived(
-        session.looseStones ? stoneOffsets(animator.stones, LOOSE_REACH) : new Map()
+        session.looseStones ? stoneOffsets(shape, animator.stones, LOOSE_REACH) : new Map()
     )
 
     // Where a stone rests on screen: on its point, or a little off it when stones lie loose.
@@ -170,7 +164,7 @@
     </g>
     {#if !layout.flat}
         <image
-            href={LOOK_URLS[EDGE_LOOK]}
+            href={LOOK_URLS[edgeLook(shape)]}
             x={layout.edgeBox.x}
             y={layout.edgeBox.y}
             width={layout.edgeBox.width}
@@ -182,7 +176,7 @@
         <path d={layout.slab} fill="url(#y-edge-light)" class="wood"></path>
     {/if}
     <image
-        href={LOOK_URLS[woodLook(layout.flat)]}
+        href={LOOK_URLS[woodLook(shape, layout.flat)]}
         x={wood.x}
         y={wood.y}
         width={wood.width}
@@ -192,10 +186,14 @@
         class="wood"
     ></image>
     <path d={layout.outline} class="rim"></path>
-    <path d={linePath} class="lines"></path>
+    {#if cells}
+        <path d={cells} class="cells"></path>
+    {:else}
+        <path d={layout.lines} class="lines"></path>
+    {/if}
 
     {#if session.showCoordinates}
-        {#each layout.labels as label (label.key)}
+        {#each cells ? layout.cellLabels : layout.labels as label (label.key)}
             <text x={label.at.x} y={label.at.y} dy={LABEL_SIZE * 0.35} class="coordinate-label"
                 >{label.text}</text
             >
@@ -216,7 +214,7 @@
     {/if}
 
     <g class="targets">
-        {#each POINTS as point (point)}
+        {#each layout.points as point (point)}
             {#if session.placeable.has(point)}
                 {@const at = layout.center(point)}
                 <ellipse
@@ -248,6 +246,7 @@
     .wood,
     .rim,
     .lines,
+    .cells,
     .stone,
     .ghost {
         pointer-events: none;
@@ -265,6 +264,14 @@
         fill: none;
         stroke: var(--y-line);
         stroke-width: 1.3;
+        stroke-linecap: round;
+    }
+
+    .cells {
+        fill: none;
+        stroke: var(--y-line);
+        stroke-width: 1.3;
+        stroke-linejoin: round;
         stroke-linecap: round;
     }
 

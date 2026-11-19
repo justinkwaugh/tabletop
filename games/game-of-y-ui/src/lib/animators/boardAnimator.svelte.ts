@@ -6,7 +6,7 @@ import type {
     TransitionKind,
     TransitionStep
 } from '@tabletop/frontend-components'
-import { neighborsOf, type HydratedYGameState, type Stone } from '@tabletop/game-of-y'
+import type { HydratedYGameState, Stone } from '@tabletop/game-of-y'
 import type { MoveInterrupter, YGameSession } from '$lib/model/session.svelte.js'
 import { boardView } from '$lib/board/geometry.js'
 import { poseOf, setPose } from './svgPose.js'
@@ -193,7 +193,7 @@ export class BoardAnimator implements MoveInterrupter {
         // Each stone's body and shadow, put back at rest once the move lands.
         const touched: [SVGGElement, SVGGElement][] = []
 
-        const { tilt, flat } = boardView(this.session.flatBoard)
+        const { tilt, flat } = boardView(to.board.shape, this.session.flatBoard)
         for (const stone of placed) this.drop(stone.id, timeline, touched, quick, tilt, flat)
         for (const stone of lifted) this.liftOff(stone.id, timeline, touched, tilt, flat)
         const ringed = this.changeRings(ringsBefore, ringsAfter, placed, lifted, timeline, quick)
@@ -283,6 +283,7 @@ export class BoardAnimator implements MoveInterrupter {
     // How many steps along the ringed stones each lies from where the move was played, so the
     // winning chain lights up outward along itself.
     private stepsAlong(origin: string | undefined, ids: readonly number[]): Map<number, number> {
+        const { grid } = this.session.gameState.board
         const idAt = new Map(
             this.stones
                 .filter((stone) => ids.includes(stone.id))
@@ -296,7 +297,7 @@ export class BoardAnimator implements MoveInterrupter {
             const [point, step] = next
             const id = idAt.get(point)
             if (id !== undefined) steps.set(id, step)
-            for (const neighbor of neighborsOf(point)) {
+            for (const neighbor of grid.neighborsOf(point)) {
                 if (!seen.has(neighbor) && idAt.has(neighbor)) {
                     seen.add(neighbor)
                     queue.push([neighbor, step + 1])

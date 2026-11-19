@@ -26,7 +26,7 @@
             ></span
         >
     {:else}
-        <span>Place a {myColor} stone on any empty point</span>
+        <span>Place a {myColor} stone on any empty {session.placeWord}</span>
     {/if}
 </div>
 

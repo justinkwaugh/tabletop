@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { FLAT_VIEW, TILTED_VIEW } from '$lib/board/geometry.js'
-    import { EDGE_LOOK, STONE_COLORS, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
+    import { BoardShape } from '@tabletop/game-of-y'
+    import { boardView } from '$lib/board/geometry.js'
+    import { edgeLook, STONE_COLORS, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
     import { renderStone } from '$lib/board/stoneLight.js'
     import { renderEdge, renderTop } from '$lib/board/woodTexture.js'
     import type { Bitmap } from '$lib/board/light.js'
@@ -23,18 +24,25 @@
     onMount(() => {
         const start = performance.now()
         const drawn: Record<string, string> = {}
-        for (const view of VIEWS) {
+        for (const flat of [false, true]) {
+            const { tilt } = boardView(BoardShape.Kadon, flat)
             for (const color of STONE_COLORS) {
-                drawn[stoneLook(color, view.flat)] = toUrl(renderStone(color, view.tilt), 0.92)
+                drawn[stoneLook(color, flat)] = toUrl(renderStone(color, tilt), 0.92)
             }
-            drawn[woodLook(view.flat)] = toUrl(renderTop(view.woodBox, view.tilt), 0.86)
         }
-        drawn[EDGE_LOOK] = toUrl(renderEdge(TILTED_VIEW.edgeBox), 0.86)
+        for (const view of VIEWS) {
+            drawn[woodLook(view.shape, view.flat)] = toUrl(renderTop(view.woodBox, view.tilt), 0.86)
+            if (!view.flat) drawn[edgeLook(view.shape)] = toUrl(renderEdge(view.edgeBox), 0.86)
+        }
         urls = drawn
         millis = Math.round(performance.now() - start)
     })
 
-    const VIEWS = [TILTED_VIEW, FLAT_VIEW]
+    // Every board, tilted and flat.
+    const VIEWS = Object.values(BoardShape).flatMap((shape) =>
+        [false, true].map((flat) => boardView(shape, flat))
+    )
+    const STONE_TILTS = [false, true].map((flat) => boardView(BoardShape.Kadon, flat))
 </script>
 
 <main class="looks">
@@ -42,7 +50,7 @@
         {@const drawn = urls}
         <p>Drawn in {millis} ms.</p>
         <section data-looks={JSON.stringify(drawn)}>
-            {#each VIEWS as view (view.tilt)}
+            {#each STONE_TILTS as view (view.tilt)}
                 {@const box = stoneBox(view.tilt)}
                 {#each STONE_COLORS as color (color)}
                     <svg
@@ -61,12 +69,12 @@
                 {/each}
             {/each}
         </section>
-        {#each VIEWS as view (view.tilt)}
+        {#each VIEWS as view (`${view.shape}-${view.tilt}`)}
             {@const wood = view.woodBox}
             <svg viewBox="{wood.x} {wood.y} {wood.width} {wood.height + 40}" width={wood.width}>
                 {#if !view.flat}
                     <image
-                        href={drawn[EDGE_LOOK]}
+                        href={drawn[edgeLook(view.shape)]}
                         x={view.edgeBox.x}
                         y={view.edgeBox.y}
                         width={view.edgeBox.width}
@@ -74,7 +82,7 @@
                     ></image>
                 {/if}
                 <image
-                    href={drawn[woodLook(view.flat)]}
+                    href={drawn[woodLook(view.shape, view.flat)]}
                     x={wood.x}
                     y={wood.y}
                     width={wood.width}

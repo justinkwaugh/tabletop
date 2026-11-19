@@ -9,6 +9,7 @@ import {
     PlaceStone,
     SwapColors,
     YPreferenceDefinition,
+    hexSizeOf,
     type HydratedYGameState,
     type StoneColor,
     type YGameState,
@@ -45,6 +46,18 @@ export class YGameSession extends GameSession<YGameState, HydratedYGameState> {
     toggleFlatBoard() {
         this.moveInterrupter?.interrupt()
         this.preferences.set({ flatBoard: !this.flatBoard })
+    }
+
+    // A hex board drawn as hexagons rather than as lines joining their centres.
+    hexCells: boolean = $derived(this.preferences.values.hexCells)
+    isHexBoard: boolean = $derived(hexSizeOf(this.gameState.board.shape) !== undefined)
+
+    // What the prompt calls a place for a stone: a cell on a board drawn as hexagons, a point
+    // where lines meet otherwise.
+    placeWord: 'cell' | 'point' = $derived(this.isHexBoard && this.hexCells ? 'cell' : 'point')
+
+    toggleHexCells() {
+        this.preferences.set({ hexCells: !this.hexCells })
     }
 
     toggleLooseStones() {

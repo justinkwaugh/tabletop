@@ -7,6 +7,7 @@ import { Color, defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/co
 import { startingPositionFile } from '@tabletop/common/testing'
 import {
     Definition,
+    BoardShape,
     HydratedYBoard,
     neighborsOf,
     POINTS,
@@ -42,7 +43,7 @@ function position({ black, white, toMove = FIRST, swapped = false }) {
     const { startedGame, initialState: state } = engine.startGame(game, {
         startingPositions: { playerIds: [FIRST, SECOND] }
     })
-    const board = new HydratedYBoard({ stones: [] })
+    const board = new HydratedYBoard({ shape: BoardShape.Kadon, stones: [] })
     const order = Math.max(black.length, white.length)
     for (let index = 0; index < order; index++) {
         if (black[index]) board.place(black[index], Color.Black)
@@ -51,7 +52,7 @@ function position({ black, white, toMove = FIRST, swapped = false }) {
     for (const color of [Color.Black, Color.White]) {
         if (board.yChainOf(color)) throw Error(`${color} already has a Y`)
     }
-    state.board = { stones: board.stones }
+    state.board = { shape: BoardShape.Kadon, stones: board.stones }
     state.swapped = swapped
     state.activePlayerIds = [toMove]
     state.turnManager.series = [{ ...state.turnManager.series[0], playerId: toMove }]
@@ -121,7 +122,7 @@ const random = () => {
     return seed / 2147483648
 }
 const crowd = { black: [], white: [] }
-const board = new HydratedYBoard({ stones: [] })
+const board = new HydratedYBoard({ shape: BoardShape.Kadon, stones: [] })
 // The top corner always holds a stone, to judge how close the A9 label sits above one.
 const shuffled = POINTS.toSorted(() => random() - 0.5).filter((point) => point !== TOP_CORNER)
 for (const point of [TOP_CORNER, ...shuffled]) {

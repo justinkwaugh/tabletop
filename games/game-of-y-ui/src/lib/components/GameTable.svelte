@@ -118,6 +118,29 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
+                            {#if gameSession.isHexBoard}
+                                <OverlayToggle
+                                    label="Hexagons"
+                                    pressed={gameSession.hexCells}
+                                    onToggle={() => gameSession.toggleHexCells()}
+                                >
+                                    <!-- Two cells side by side. -->
+                                    <svg
+                                        viewBox="0 0 20 14"
+                                        width="20"
+                                        height="14"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.3"
+                                        stroke-linejoin="round"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            d="M5.5 1.5 L9.8 4 L9.8 10 L5.5 12.5 L1.2 10 L1.2 4 Z M9.8 4 L14.1 1.5 L18.4 4 L18.4 10 L14.1 12.5 L9.8 10"
+                                        ></path>
+                                    </svg>
+                                </OverlayToggle>
+                            {/if}
                             <OverlayToggle
                                 label="Flat board"
                                 pressed={gameSession.flatBoard}

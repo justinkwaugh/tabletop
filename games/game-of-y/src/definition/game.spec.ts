@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { assert, Color, GameResult } from '@tabletop/common'
 import { YRuntime } from './runtime.js'
-import { BlackPlayer, blackPlayerFromConfig, swapRuleFromConfig } from './config.js'
+import {
+    BlackPlayer,
+    blackPlayerFromConfig,
+    boardShapeFromConfig,
+    swapRuleFromConfig
+} from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { HydratedYGameState, YGameStateValidator, type YGameState } from '../model/gameState.js'
 import { HydratedYBoard, type StoneColor } from '../model/board.js'
 import { neighborsOf, POINTS, rowOf, Side, sidesOf, TOP_CORNER } from '../model/points.js'
+import { BoardShape, gridOf, hexSizeOf } from '../model/grids.js'
 import { isPlaceStone, type PlaceStone } from '../actions/placeStone.js'
 import type { SwapColors } from '../actions/swapColors.js'
 import {
@@ -115,19 +121,94 @@ describe('The Game of Y board', () => {
         }
     })
 
-    it('always gives exactly one colour a Y on a full board', () => {
+    it('always gives exactly one colour a Y on a full board, whichever the board', () => {
         let value = 11
-        for (let fill = 0; fill < 200; fill += 1) {
-            const board = new HydratedYBoard({ stones: [] })
-            for (const point of POINTS) {
-                value = (value * 1103515245 + 12345) % 2147483648
-                const color: StoneColor = value % 2 === 0 ? Color.Black : Color.White
-                board.place(point, color)
+        for (const shape of Object.values(BoardShape))
+            for (let fill = 0; fill < 100; fill += 1) {
+                const board = new HydratedYBoard({ shape, stones: [] })
+                for (const point of board.grid.points) {
+                    value = (value * 1103515245 + 12345) % 2147483648
+                    const color: StoneColor = value % 2 === 0 ? Color.Black : Color.White
+                    board.place(point, color)
+                }
+                const black = board.yChainOf(Color.Black) !== undefined
+                const white = board.yChainOf(Color.White) !== undefined
+                expect(black !== white).toBe(true)
             }
-            const black = board.yChainOf(Color.Black) !== undefined
-            const white = board.yChainOf(Color.White) !== undefined
-            expect(black !== white).toBe(true)
+    })
+})
+
+describe('The hex boards', () => {
+    const hexShapes = Object.values(BoardShape).filter((shape) => hexSizeOf(shape) !== undefined)
+
+    it('hold a triangle of cells, as many to a side as the board is named for', () => {
+        for (const shape of hexShapes) {
+            const size = hexSizeOf(shape) ?? 0
+            const grid = gridOf(shape)
+            expect(grid.points).toHaveLength((size * (size + 1)) / 2)
+            expect(new Set(grid.points).size).toBe(grid.points.length)
+            for (const side of Object.values(Side)) {
+                expect(
+                    grid.points.filter((point) => grid.sidesOf(point).includes(side))
+                ).toHaveLength(size)
+            }
+            const corners = grid.points.filter((point) => grid.sidesOf(point).length === 2)
+            const last = String.fromCharCode('A'.charCodeAt(0) + size - 1)
+            expect(corners.sort()).toEqual(['A1', `A${size}`, `${last}${size}`].sort())
+            expect(grid.sidesOf('A1')).toEqual([Side.Bottom, Side.Left])
+            expect(grid.sidesOf(`A${size}`)).toEqual([Side.Left, Side.Right])
+            expect(grid.sidesOf(`${last}${size}`)).toEqual([Side.Bottom, Side.Right])
         }
+    })
+
+    it('name cells by their two lines, as on a Hex board', () => {
+        const grid = gridOf(BoardShape.Hex9)
+        // The bottom side runs A1, B2 … I9; the left side A1 … A9; the right side A9 … I9.
+        expect(grid.points.filter((point) => grid.sidesOf(point).includes(Side.Bottom))).toEqual([
+            'A1',
+            'B2',
+            'C3',
+            'D4',
+            'E5',
+            'F6',
+            'G7',
+            'H8',
+            'I9'
+        ])
+        expect(grid.neighborsOf('A1').toSorted()).toEqual(['A2', 'B2'])
+        expect(grid.neighborsOf('B3').toSorted()).toEqual(['A2', 'A3', 'B2', 'B4', 'C3', 'C4'])
+    })
+
+    it('link every cell both ways, inner cells to six and corners to two', () => {
+        for (const shape of hexShapes) {
+            const grid = gridOf(shape)
+            for (const point of grid.points) {
+                const around = grid.neighborsOf(point)
+                const sides = grid.sidesOf(point).length
+                expect(around).toHaveLength(sides === 0 ? 6 : sides === 1 ? 4 : 2)
+                for (const neighbor of around) expect(grid.neighborsOf(neighbor)).toContain(point)
+            }
+        }
+    })
+
+    it('start empty on the board chosen, and end every random game with one winner', () => {
+        for (const shape of hexShapes) {
+            const game = createGame({ board: shape })
+            const initial = start(game)
+            expect(initial.board.shape).toBe(shape)
+            for (let seed = 0; seed < 4; seed += 1) {
+                const finished = playToEnd(game, initial, seed)
+                expect(finished.result).toBe(GameResult.Win)
+                expect(finished.winningPlayerIds).toHaveLength(1)
+                assert(YGameStateValidator.Check(finished), 'A finished game is canonical')
+            }
+        }
+    })
+
+    it('refuse a Kadon point that is not a cell', () => {
+        const game = createGame({ board: BoardShape.Hex9 })
+        expect(new HydratedYGameState(start(game)).board.isVacant('J2')).toBe(false)
+        expect(new HydratedYGameState(start(game)).board.isVacant('B2')).toBe(true)
     })
 })
 
@@ -319,5 +400,8 @@ describe('Config readers', () => {
             BlackPlayer.Creator
         )
         expect(() => blackPlayerFromConfig({ blackPlayer: 'Mallory' })).toThrow()
+        expect(boardShapeFromConfig({})).toBe(BoardShape.Kadon)
+        expect(boardShapeFromConfig({ board: BoardShape.Hex13 })).toBe(BoardShape.Hex13)
+        expect(() => boardShapeFromConfig({ board: 'Hex7' })).toThrow()
     })
 })
