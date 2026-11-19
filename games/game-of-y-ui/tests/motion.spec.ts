@@ -62,3 +62,19 @@ test('a winning move rings its chain without an offset matrix()', async ({ page 
     await openScenario(page, 'One from a y', { clock: true })
     await expectNoOffsetMatrix(page, () => press(page, 'place on C1'))
 })
+
+test.describe('with reduced motion', () => {
+    test.use({ reducedMotion: 'reduce' })
+
+    test('a placement shows its stone at rest at once', async ({ page }) => {
+        await openScenario(page, 'Swap or place', { clock: true })
+        const stones = () => page.evaluate(() => window.ySession.gameState.board.stones.length)
+        const before = await stones()
+        await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
+        await press(page, 'place on F5')
+        await page.clock.runFor(50)
+        expect(await stones()).toBe(before + 1)
+        expect(await page.evaluate(() => window.ySession.updatingVisibleState)).toBe(false)
+        await page.clock.resume()
+    })
+})

@@ -1,5 +1,6 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
+import { prefersReducedMotion } from 'svelte/motion'
 import { gsap } from 'gsap'
 import type {
     AnimationContext,
@@ -166,7 +167,8 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     private async present({ kind, to, from, action, animationContext }: Step) {
-        if (from === undefined || !ANIMATED_KINDS.has(kind)) return
+        // A player who asks for reduced motion sees each state at rest, as on a page load.
+        if (from === undefined || !ANIMATED_KINDS.has(kind) || prefersReducedMotion.current) return
         const presenting = this.session.presentingState
         if (presenting !== undefined && presenting === this.abandoned) return
         this.abandoned = undefined

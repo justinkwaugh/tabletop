@@ -33,7 +33,7 @@
 
 ## 4. Shared State Contracts
 
-- **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest.
+- **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. A player who asks for reduced motion (`prefersReducedMotion`) sees every state at rest.
 - **Placing**: the whole drop takes 0.45 s (`DROP_TIME`; first tuned at 0.54 s and scaled down, user 2026-11-19 after trying 0.35): a placed stone falls 26 units in about 0.13 s, then rocks on its underside about a line through its resting point, a quick first tip of 9° and three slower swings easing to rest, the line different for each stone (the golden angle by id) and turning 40° as it settles. The stone is written as a fitted affine of its tipped 3D shape (`board/stoneShape.ts` `rockTransform`, `animators/stonePose.ts`), as `translate()` and an offset-free `matrix()`, since Firefox leaves a `matrix()` offset out of the board's CSS zoom.
 - **Rings**: a new ring grows from its middle as the stone settles; the previous move's ring shrinks into its middle as the next stone drops; the winning chain's rings grow one after another along the chain from the winning stone. Undo fades a lifted stone's ring over the first half of the lift.
 - **Steps without an action** (Undo, state-only history, exploration): stones that appear drop in and stones that go lift off, rings change, all within 0.18 s plus at most 0.01 s waiting for the board to draw.
