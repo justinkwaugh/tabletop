@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T19:18:07.898Z",
+  "createdAt": "2026-11-19T19:35:47.953Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:18:07.898Z",
+  "startedAt": "2026-11-19T19:35:47.953Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "gmDLkU970ov-3fP3Ynu61",
+  "id": "gnKfYChpMymUFt-Vz8UQS",
   "gameId": "scenario-18royalgorge-set-end",
   "seed": 519231558,
   "prng": {
@@ -1352,13 +1352,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SPP",
-   "SF",
-   "CM",
-   "CSCC"
-  ],
   "steelMarket": {
    "A": 1,
    "B": 4,

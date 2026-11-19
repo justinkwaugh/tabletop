@@ -4,6 +4,7 @@ import {
     RailwayMapState,
     RouteEvaluation,
     TrackConstruction,
+    closePrivate,
     finiteCashOwnedBy,
     getCompany,
     sharesOwned,
@@ -21,12 +22,15 @@ import {
 import {
     BridgeLeaseId,
     CfiId,
+    CoalCreekId,
     CoalDepotId,
     GoldMinerId,
+    JewelerId,
     PalmerId,
     PrivateCardsRoyalGorge,
     RgId,
     SfId,
+    SteelDepotId,
     SulphurSpringsId,
     TrackEngineerId,
     VgcId
@@ -36,7 +40,8 @@ import { extendedDefinition, extensionChoices } from './extensions.js'
 import { GoldDividends, goldShipmentLimit } from './gold.js'
 import { EndingRulesRoyalGorge, TrainRulesRoyalGorge } from './operating.js'
 import { requireStateRoyalGorge, type StateRoyalGorge } from './state.js'
-import { CompanyRulesRoyalGorge, StockRulesRoyalGorge } from './stock.js'
+import { CompanyRulesRoyalGorge, StockRulesRoyalGorge, gameRailroadIds } from './stock.js'
+import { emptyClosedPrivates } from './privateHoldings.js'
 import { RouteRulesRoyalGorge } from './routes.js'
 import { TrackRulesRoyalGorge } from './track.js'
 import { MarketRoyalGorge } from './stockMarket.js'
@@ -78,11 +83,11 @@ function started(companyId = RgId, par = 80, players = 4, seed = 7): Table {
 
 describe('18RoyalGorge setup and auction', () => {
     it('plays Santa Fe, Rio Grande and three drawn railroads, by establishment year', () => {
-        const state = requireStateRoyalGorge(kit.table(4, 3).hydrated)
-        expect(state.railroadIds).toHaveLength(5)
-        expect(state.railroadIds).toContain(RgId)
-        expect(state.railroadIds).toContain(SfId)
-        const years = state.railroadIds.map(
+        const railroadIds = gameRailroadIds(kit.table(4, 3).hydrated)
+        expect(railroadIds).toHaveLength(5)
+        expect(railroadIds).toContain(RgId)
+        expect(railroadIds).toContain(SfId)
+        const years = railroadIds.map(
             (id) =>
                 ({
                     KP: 1869,
@@ -526,6 +531,31 @@ describe('18RoyalGorge Treaty of Boston and debt', () => {
 })
 
 describe('18RoyalGorge private powers', () => {
+    it('empties a closed private’s card, its steel, coal or money leaving the game (B3, Y3, G6, Y6)', () => {
+        const game = started()
+        edit(game, (state) => {
+            for (const privateId of [SteelDepotId, CoalCreekId, CoalDepotId, JewelerId])
+                givePrivate(state, privateId, { kind: 'player', playerId: 'p1' })
+            Object.assign(state, {
+                depotSteel: 3,
+                coalCreekCubes: 1,
+                coalCreekSupply: 9,
+                coalDepotCubes: 2,
+                jewelerCash: 15
+            })
+        })
+        const state = requireStateRoyalGorge(game.hydrated)
+        closePrivate(state, SteelDepotId)
+        closePrivate(state, CoalDepotId)
+        emptyClosedPrivates(state)
+        expect([state.depotSteel, state.coalDepotCubes]).toEqual([0, 0])
+        expect([state.coalCreekCubes, state.coalCreekSupply, state.jewelerCash]).toEqual([1, 9, 15])
+        closePrivate(state, CoalCreekId)
+        closePrivate(state, JewelerId)
+        emptyClosedPrivates(state)
+        expect([state.coalCreekCubes, state.coalCreekSupply, state.jewelerCash]).toEqual([0, 0, 0])
+    })
+
     /** Rio Grande's track step with E3 a yellow town, Sulphur Springs given to the owner. */
     function sulphurTown(
         owner: { kind: 'player'; playerId: string } | { kind: 'company'; companyId: string }
@@ -748,7 +778,7 @@ describe('18RoyalGorge treasury', () => {
 
     it('opens the brown-tranche railroad only in the Brown phase (SC-1)', () => {
         const state = requireStateRoyalGorge(opened(4, 7).hydrated)
-        const brown = state.railroadIds[4]
+        const brown = gameRailroadIds(state)[4]
         expect(CompanyRulesRoyalGorge.startMarketSpaces(state, brown)).toEqual([])
         state.phaseId = BrownPhaseId
         expect(CompanyRulesRoyalGorge.startMarketSpaces(state, brown).length).toBe(12)

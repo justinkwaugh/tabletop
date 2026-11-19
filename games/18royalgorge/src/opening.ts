@@ -40,6 +40,7 @@ import {
 import { GameConfigRoyalGorge, type VariantsRoyalGorge } from './definition/gameConfig.js'
 import { GorgeEastId, GorgeWestId, HomeTowns, MapRoyalGorge } from './map.js'
 import { BankPoolIdRoyalGorge, MetalBoardPoolIdRoyalGorge } from './names.js'
+import { emptyClosedPrivates } from './privateHoldings.js'
 import { freshSteelMarket } from './steel.js'
 import { StateRoyalGorge, requireStateRoyalGorge, type HydratedStateRoyalGorge } from './state.js'
 import { DebtStartSpaceId, MarketRoyalGorge, MetalStartSpaceId } from './stockMarket.js'
@@ -278,6 +279,7 @@ export const AuctionRulesRoyalGorge: SelectionAuctionRules = {
     allPassClosesLot: true,
     closeUnsold(state, lotIds) {
         for (const lotId of lotIds) closePrivate(state, lotId)
+        emptyClosedPrivates(requireStateRoyalGorge(state))
     },
     firstStockOrder(state) {
         const order = state.turnManager.turnOrder
@@ -311,7 +313,6 @@ export function createOpeningRoyalGorge({
         ),
         titleState: {
             ...(variants.shorterGame ? { shorterGame: true as const } : {}),
-            railroadIds,
             steelMarket: freshSteelMarket(),
             depotSteel: privateIds.includes(SteelDepotId) ? DepotSteel : 0,
             goldCubes: {},

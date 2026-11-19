@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T19:13:33.988Z",
+  "createdAt": "2026-11-19T19:31:16.721Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:13:33.988Z",
+  "startedAt": "2026-11-19T19:31:16.721Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "b7bbMKH_4t8nb7i9-DRKK",
+  "id": "QxPRvp01pT8xvy9WutfH-",
   "gameId": "scenario-18royalgorge-st-cloud-hotel",
   "seed": 3758006212,
   "prng": {
@@ -1417,13 +1417,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SPP",
-   "SF",
-   "CSCC",
-   "CS"
-  ],
   "steelMarket": {
    "A": 1,
    "B": 4,

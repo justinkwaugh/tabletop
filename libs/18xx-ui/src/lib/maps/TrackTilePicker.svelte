@@ -383,8 +383,7 @@
         transition: transform 120ms ease-out;
         transform-origin: center;
     }
-    .tile-choice:not(.chosen):hover > :global(svg),
-    .tile-choice:not(.chosen):hover > :global(.piece) {
+    .tile-choice:not(.chosen):hover > :global(svg) {
         transform: scale(1.1);
     }
     @media (prefers-reduced-motion: reduce) {

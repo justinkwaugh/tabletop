@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T19:15:05.220Z",
+  "createdAt": "2026-11-19T19:32:46.833Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:15:05.220Z",
+  "startedAt": "2026-11-19T19:32:46.833Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "jvgdmOWRd0ghcRPRsOI07",
+  "id": "ySpBljBDZqHtT4kcmOIZV",
   "gameId": "scenario-18royalgorge-coal-depot",
   "seed": 4149959042,
   "prng": {
@@ -1384,13 +1384,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SPP",
-   "SF",
-   "CM",
-   "CSCC"
-  ],
   "steelMarket": {
    "A": 4,
    "B": 4,

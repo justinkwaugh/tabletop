@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T19:17:39.626Z",
+  "createdAt": "2026-11-19T19:35:19.931Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:17:39.626Z",
+  "startedAt": "2026-11-19T19:35:19.931Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "Qf4-zJo_M4StjZPfyVFpk",
+  "id": "GVsDOqJj_olDkatU5JTNL",
   "gameId": "scenario-18royalgorge-sulphur-springs",
   "seed": 3740010207,
   "prng": {
@@ -1408,13 +1408,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "PAV",
-   "SF",
-   "CM",
-   "CS"
-  ],
   "steelMarket": {
    "A": 2,
    "B": 4,

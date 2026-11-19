@@ -64,7 +64,8 @@
                 aria-checked={depot.on}
                 disabled={!depot.choosable || session.actionsLocked}
                 onclick={() => void session.toggleSteelDepot()}
-                ><SwitchTrack on={depot.on} />Free yellow steel from the Steel Depot</button
+                ><SwitchTrack on={depot.on} instant={session.restoredSilently} />Free yellow steel
+                from the Steel Depot</button
             ><span class="depot-note">{depotTurnNote(session.steel.depot.steel, depot)}</span>
         </p>
     {/if}

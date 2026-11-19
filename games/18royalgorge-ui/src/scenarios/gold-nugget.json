@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T19:17:49.190Z",
+  "createdAt": "2026-11-19T19:35:29.403Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:17:49.190Z",
+  "startedAt": "2026-11-19T19:35:29.403Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "JnSVEFEXSn_1tYOBSyprm",
+  "id": "uLY4Axm6ruX8xQCV95O9i",
   "gameId": "scenario-18royalgorge-gold-nugget",
   "seed": 2420729966,
   "prng": {
@@ -1415,13 +1415,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SF",
-   "NO",
-   "CM",
-   "CS"
-  ],
   "steelMarket": {
    "A": 2,
    "B": 4,

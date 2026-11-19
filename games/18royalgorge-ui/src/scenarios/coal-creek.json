@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p4"
   ],
-  "createdAt": "2026-11-19T19:15:04.291Z",
+  "createdAt": "2026-11-19T19:32:45.918Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:15:04.291Z",
+  "startedAt": "2026-11-19T19:32:45.918Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "m1y-GZs8s9BbT0fl5ROIb",
+  "id": "w-ULjyutATfuaxTqFPQDr",
   "gameId": "scenario-18royalgorge-coal-creek",
   "seed": 2444278190,
   "prng": {
@@ -1504,13 +1504,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SPP",
-   "PAV",
-   "SF",
-   "NO"
-  ],
   "steelMarket": {
    "A": 2,
    "B": 4,

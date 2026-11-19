@@ -69,8 +69,6 @@ export const TitleFieldsRoyalGorge = {
      * triggered it (Game Play Variants). The other variants shape only the setup.
      */
     shorterGame: Type.Optional(Type.Literal(true)),
-    /** The five railroads in the game, by establishment year: two yellow, two green, one brown. */
-    railroadIds: Type.Array(Id, { minItems: 5, maxItems: 5, uniqueItems: true }),
     steelMarket: SteelMarket,
     steelTurn: Type.Optional(SteelTurn),
     /** Steel left on the Steel Depot card (B3). */
@@ -132,7 +130,7 @@ export const StateDefinitionRoyalGorge = defineEighteenXXState(StateRoyalGorge, 
 ])
 
 function isStateRoyalGorge(state: object): state is HydratedStateRoyalGorge {
-    return 'steelMarket' in state && 'railroadIds' in state
+    return 'steelMarket' in state && 'goldCubes' in state
 }
 
 /** A family hook's state, which is always this title's. */

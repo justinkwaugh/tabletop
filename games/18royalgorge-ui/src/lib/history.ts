@@ -3,10 +3,8 @@ import {
     CoalDepotId,
     DepotSourceId,
     DocHollidayId,
-    GoldBonus,
     MarketRoyalGorge,
     MintWorkerId,
-    NuggetBonus,
     NuggetId,
     RgId,
     SfId,
@@ -20,6 +18,7 @@ import {
     isPlaceGhostTown,
     isSettleOperatingRound,
     isShipGold,
+    shipmentBonus,
     type MetalPayout
 } from '@tabletop/18royalgorge'
 import type { CashPayment } from '@tabletop/18xx'
@@ -115,7 +114,7 @@ export function describeRoyalGorgeAction(
     if (isShipGold(action))
         return {
             text: `${companyName(action.companyId)} shipped gold from ${place(action.locationId)}`,
-            value: `+${money(action.nugget ? NuggetBonus : GoldBonus)}`,
+            value: `+${money(shipmentBonus(action))}`,
             detail: action.nugget ? `With the ${companyName(NuggetId)}, which closed` : undefined
         }
     if (isPlaceGhostTown(action))

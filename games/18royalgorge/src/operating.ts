@@ -28,7 +28,6 @@ import {
 import * as Type from 'typebox'
 import {
     IncomeFromPhase,
-    JewelerId,
     PrivateCatalogRoyalGorge,
     RailroadIdsRoyalGorge,
     SulphurSpringsId
@@ -39,7 +38,7 @@ import { MapRoyalGorge, SulphurSpringsLocationId } from './map.js'
 import { BankPoolIdRoyalGorge, NamesRoyalGorge } from './names.js'
 import { privateDescription } from './privateText.js'
 import { settlementDue, payoutMove } from './settlement.js'
-import { openPrivateOwner } from './privateHoldings.js'
+import { emptyClosedPrivates } from './privateHoldings.js'
 import { requireStateRoyalGorge } from './state.js'
 import { ChartersRoyalGorge, StockRulesRoyalGorge, isMetalCompany } from './stock.js'
 import { MarketRoyalGorge, companyMove } from './stockMarket.js'
@@ -135,8 +134,7 @@ export const PhaseRulesRoyalGorge: PhaseRules = {
         schema: PhaseChangesRoyalGorge,
         apply(state, event) {
             const title = requireStateRoyalGorge(state)
-            // The jeweler's money is lost when the card closes (Y6).
-            if (title.jewelerCash && !openPrivateOwner(title, JewelerId)) title.jewelerCash = 0
+            emptyClosedPrivates(title)
             if (event.toPhaseId === TreatyPhaseId) {
                 signTreaty(state)
                 return { treaty: true as const }

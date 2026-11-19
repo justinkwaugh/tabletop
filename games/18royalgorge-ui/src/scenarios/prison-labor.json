@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T19:15:05.677Z",
+  "createdAt": "2026-11-19T19:32:47.286Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:15:05.677Z",
+  "startedAt": "2026-11-19T19:32:47.286Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "pnFW409BsKnZORkmiO-vX",
+  "id": "WiI-IAOwTIqJgvZQhiUhJ",
   "gameId": "scenario-18royalgorge-prison-labor",
   "seed": 3758006212,
   "prng": {
@@ -1344,13 +1344,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SPP",
-   "SF",
-   "CSCC",
-   "CS"
-  ],
   "steelMarket": {
    "A": 4,
    "B": 4,

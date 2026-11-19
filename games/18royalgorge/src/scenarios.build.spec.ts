@@ -208,7 +208,7 @@ function metalPurchaseOpen(game: Table): boolean {
     if (game.state.machineState !== 'StockRound') return false
     const state = game.hydrated
     const started = state.companies.filter(
-        (company) => state.railroadIds.includes(company.id) && company.started
+        (company) => company.kind === 'major' && company.started
     ).length
     return (
         started >= 2 &&

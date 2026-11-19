@@ -22,7 +22,8 @@ import {
     MetalIdsRoyalGorge,
     PrivateCardsRoyalGorge,
     RailroadIdsRoyalGorge,
-    MetalsInvestorId
+    MetalsInvestorId,
+    railroad
 } from './companies.js'
 import { homeLocationRoyalGorge } from './map.js'
 import { BankPoolIdRoyalGorge, MetalBoardPoolIdRoyalGorge } from './names.js'
@@ -49,9 +50,17 @@ const CertificateLimits: Readonly<Record<number, number>> = { 2: 20, 3: 14, 4: 1
 const ColorOrder: readonly ColorPhase[] = ['Yellow', 'Green', 'Brown', 'Silver']
 const TrancheColors: readonly ColorPhase[] = ['Yellow', 'Yellow', 'Green', 'Green', 'Brown']
 
+/** The five railroads in the game, by establishment year: two yellow, two green, one brown. */
+export function gameRailroadIds(state: object): string[] {
+    return requireStateRoyalGorge(state)
+        .companies.filter((company) => company.kind === 'major')
+        .map((company) => company.id)
+        .sort((a, b) => railroad(a).established - railroad(b).established)
+}
+
 /** The colour phase a railroad's shares become available in, by its establishment year (SC-1). */
 export function trancheColor(state: object, companyId: string): ColorPhase | undefined {
-    const index = requireStateRoyalGorge(state).railroadIds.indexOf(companyId)
+    const index = gameRailroadIds(state).indexOf(companyId)
     return index < 0 ? undefined : TrancheColors[index]
 }
 

@@ -2125,16 +2125,6 @@
           }
         ]
       },
-      "railroadIds": {
-        "items": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "maxItems": 5,
-        "minItems": 5,
-        "type": "array",
-        "uniqueItems": true
-      },
       "result": {
         "enum": [
           "Abandoned",
@@ -4533,7 +4523,6 @@
       "phaseId",
       "players",
       "prng",
-      "railroadIds",
       "stationReservations",
       "stations",
       "steelMarket",

@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T19:13:47.437Z",
+  "createdAt": "2026-11-19T19:31:29.882Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T19:13:47.437Z",
+  "startedAt": "2026-11-19T19:31:29.882Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "5RKmOH9_acuxwEprlcJ6S",
+  "id": "DsA2bZ07fFcxN3OJAIraF",
   "gameId": "scenario-18royalgorge-ghost-town",
   "seed": 519231558,
   "prng": {
@@ -1352,13 +1352,6 @@
    ],
    "nextTrainNumber": 14
   },
-  "railroadIds": [
-   "RG",
-   "SPP",
-   "SF",
-   "CM",
-   "CSCC"
-  ],
   "steelMarket": {
    "A": 1,
    "B": 4,

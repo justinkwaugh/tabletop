@@ -1,4 +1,6 @@
 import { getCompany, privateOwner, type FinancialState, type Owner } from '@tabletop/18xx'
+import { CoalCreekId, CoalDepotId, JewelerId, SteelDepotId } from './ids.js'
+import type { HydratedStateRoyalGorge } from './state.js'
 
 /** Who holds an open private of the game, if it is in the game and open. */
 export function openPrivateOwner(
@@ -38,4 +40,24 @@ export function privatePlayerHolder(
 ): string | undefined {
     const owner = openPrivateOwner(state, privateCompanyId)
     return owner?.kind === 'player' ? owner.playerId : undefined
+}
+
+/** Whether the private is in the game and still open. */
+function privateOpen(state: Pick<FinancialState, 'companies'>, privateCompanyId: string): boolean {
+    const company = state.companies.find((entry) => entry.id === privateCompanyId)
+    return !!company && !company.closed
+}
+
+/**
+ * Empties the cards of closed privates: the Jeweler's money is lost (Y6), and the steel and coal
+ * left on the Steel Depot, Coal Creek and the Coal Depot leave the game with them.
+ */
+export function emptyClosedPrivates(state: HydratedStateRoyalGorge): void {
+    if (!privateOpen(state, JewelerId)) state.jewelerCash = 0
+    if (!privateOpen(state, SteelDepotId)) state.depotSteel = 0
+    if (!privateOpen(state, CoalCreekId)) {
+        state.coalCreekCubes = 0
+        state.coalCreekSupply = 0
+    }
+    if (!privateOpen(state, CoalDepotId)) state.coalDepotCubes = 0
 }
