@@ -417,7 +417,13 @@
             return
         }
         boardFocus = { target, restore: boardFocus?.restore ?? wrapper.captureView() }
-        if (area) wrapper.focusRect(viewportRect(boardViewport, area), { animate: true })
+        // Markets print along the board's top, so a centred focus on a short (one-row) market pulls
+        // blank space in above it; every market frames from its top edge instead.
+        if (area)
+            wrapper.focusRect(viewportRect(boardViewport, area), {
+                animate: true,
+                align: target === 'Market' ? 'top' : 'center'
+            })
         else wrapper.fitToContent({ animate: true })
     }
     const boardFocusTarget = $derived(

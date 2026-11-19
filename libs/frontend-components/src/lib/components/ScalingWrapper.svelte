@@ -28,17 +28,21 @@
         height: number
     }
 
+    type FocusAlign = 'center' | 'top'
+
     type FocusOptions = {
         maxScale?: number
         padding?: number | { x: number; y: number }
         animate?: boolean
+        /** Where the rect sits vertically when it is shorter than the viewport. */
+        align?: FocusAlign
     }
 
     type FitOptions = {
         animate?: boolean
     }
 
-    type RevealOptions = Omit<FocusOptions, 'maxScale'>
+    type RevealOptions = Omit<FocusOptions, 'maxScale' | 'align'>
 
     type FocusTarget = {
         rect: FocusRect
@@ -46,6 +50,7 @@
         paddingX: number
         paddingY: number
         animate: boolean
+        align: FocusAlign
     }
 
     type Point = {
@@ -277,7 +282,8 @@
             maxScale: options.maxScale ?? 1,
             paddingX: padding?.x ?? 0,
             paddingY: padding?.y ?? 0,
-            animate: options.animate ?? false
+            animate: options.animate ?? false,
+            align: options.align ?? 'center'
         }
     }
 
@@ -624,13 +630,16 @@
             )
         )
         const centerX = target.rect.x + target.rect.width / 2
-        const centerY = target.rect.y + target.rect.height / 2
+        const anchor =
+            target.align === 'top'
+                ? { contentY: target.rect.y, viewportY: insetTop + target.paddingY }
+                : { contentY: target.rect.y + target.rect.height / 2, viewportY: viewportCenterY() }
 
         return getViewForContentPointAtViewportPoint(
             centerX,
-            centerY,
+            anchor.contentY,
             wrapperWidth / 2,
-            viewportCenterY(),
+            anchor.viewportY,
             scale,
             'programmatic'
         )
