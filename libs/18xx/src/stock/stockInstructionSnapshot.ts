@@ -1,4 +1,4 @@
-import { sameOwner, sharesOwned, type Owner } from '../finance/finance.js'
+import { getCompany, sameOwner, sharesOwned, type Owner } from '../finance/finance.js'
 import { companyShareCount } from '../company/companyCharters.js'
 import { exceedsStockLimits, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
@@ -55,6 +55,20 @@ export function stockPositionSnapshot(
     })
 }
 
+/** Whether a buy instruction's player already holds what it was set to buy. */
+export function buyGoalMet(
+    state: StockState,
+    instruction: Extract<StockInstruction, { kind: 'buy' }>,
+    playerId: string
+): boolean {
+    if (instruction.until.kind === 'floated')
+        return getCompany(state, instruction.companyId).floated === true
+    return (
+        sharesOwned(state, instruction.companyId, { kind: 'player', playerId }) >=
+        instruction.until.count
+    )
+}
+
 export function stockPositionChange(
     state: StockState,
     standing: StandingStockInstruction,
@@ -75,6 +89,12 @@ function familyPositionChange(
     const watches = (stop: IgnorableStockInstructionStop) =>
         !standing.instruction.ignoredStops?.includes(stop)
     if (exceedsStockLimits(state, owner, rules)) return { code: 'limits' }
+    const { instruction } = standing
+    // Buying keeps the target's presidency ahead of a rival buying alongside, until the goal is met.
+    const defended =
+        instruction.kind === 'buy' && !buyGoalMet(state, instruction, standing.playerId)
+            ? instruction.companyId
+            : undefined
     for (const current of stockPositionSnapshot(state, standing.playerId, rules)) {
         const before = standing.snapshot.find((item) => item.companyId === current.companyId)
         if (!before) continue
@@ -102,6 +122,7 @@ function familyPositionChange(
                 (companyShareCount(state, rules.charters, current.companyId) ?? 0)
         if (
             watches('presidency-threatened') &&
+            companyId !== defended &&
             presides &&
             !secure &&
             current.rivalShares > before.rivalShares

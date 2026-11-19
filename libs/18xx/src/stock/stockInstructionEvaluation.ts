@@ -20,7 +20,7 @@ import {
     type StockInstruction,
     type StockInstructionStopReason
 } from './stockInstruction.js'
-import { stockPositionChange } from './stockInstructionSnapshot.js'
+import { buyGoalMet, stockPositionChange } from './stockInstructionSnapshot.js'
 
 export type StockInstructionOutcome =
     | { kind: 'wait' }
@@ -53,12 +53,7 @@ export function evaluateStockInstruction(
     const followUp = instruction.thenPass
         ? withIgnoredStops({ kind: 'pass' }, instruction.ignoredStops ?? [])
         : undefined
-    if (instruction.until.kind === 'floated' && company.floated)
-        return stop({ code: 'goal-met', companyId: company.id }, followUp)
-    if (
-        instruction.until.kind === 'shares' &&
-        sharesOwned(state, company.id, owner) >= instruction.until.count
-    )
+    if (buyGoalMet(state, instruction, playerId))
         return stop({ code: 'goal-met', companyId: company.id }, followUp)
     if (state.stockRound.turn.bought)
         return canPass ? { kind: 'pass' } : stop({ code: 'cannot-finish' })

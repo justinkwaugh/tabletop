@@ -7,6 +7,7 @@ import {
 } from '../testing/index.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import { createStandingStockInstruction, stockPositionChange } from './stockInstructionSnapshot.js'
+import { evaluateStockInstruction } from './stockInstructionEvaluation.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
@@ -83,6 +84,30 @@ describe('standing instruction title hooks', () => {
         )
         state.certificates.push({ ...state.certificates[3], id: 'r2', owner: rival })
         expect(stockPositionChange(state, standing, minimalStockRules)).toBeUndefined()
+    })
+
+    it('keeps buying a threatened target until its goal is met', () => {
+        const state = contested()
+        const standing = createStandingStockInstruction(
+            state,
+            TestPlayerId,
+            {
+                kind: 'buy',
+                companyId: TestCompanyId,
+                preferredPoolId: 'market',
+                until: { kind: 'shares', count: 4 },
+                thenPass: true
+            },
+            minimalStockRules
+        )
+        state.certificates.push({ ...state.certificates[3], id: 'r2', owner: rival })
+        expect(stockPositionChange(state, standing, minimalStockRules)).toBeUndefined()
+        state.certificates.push({ ...state.certificates[3], id: 'o4', owner })
+        const threatened = { code: 'presidency-threatened', companyId: TestCompanyId }
+        expect(stockPositionChange(state, standing, minimalStockRules)).toEqual(threatened)
+        expect(
+            evaluateStockInstruction(state, standing, minimalStockRules, ['FinishStockTurn'])
+        ).toEqual({ kind: 'stop', reason: threatened })
     })
 
     it('lets a title wrap the family cancel rules', () => {
