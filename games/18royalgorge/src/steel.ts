@@ -1,4 +1,4 @@
-import { ActionSource, assert } from '@tabletop/common'
+import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
     actsFor,
     stepAction,
@@ -39,9 +39,24 @@ export const SteelRecipient: Owner = { kind: 'company', companyId: CfiId }
 export function freshSteelMarket(): SteelMarket {
     return Object.fromEntries(
         Object.values(SteelColumns).flatMap((columns) =>
-            Object.entries(columns).map(([column, prices]) => [column, [...prices]])
+            Object.entries(columns).map(([column, prices]) => [column, prices.length])
         )
     )
+}
+
+/** A column's printed prices, cheapest first. */
+function columnPrices(column: string): readonly number[] {
+    const prices = Object.values(SteelColumns).find((columns) => column in columns)?.[column]
+    assertExists(prices, `Steel column ${column} is printed`)
+    return prices
+}
+
+/** What the column's next cube costs: its cheapest left, or the empty price (ST-1, ST-4). */
+export function steelPrice(state: object, column: string): number {
+    const remaining = requireStateRoyalGorge(state).steelMarket[column]
+    assert(remaining !== undefined, `The steel market has column ${column}`)
+    const prices = columnPrices(column)
+    return remaining ? prices[prices.length - remaining] : EmptyColumnPrice
 }
 
 export function columnColor(column: string): string | undefined {
@@ -72,7 +87,7 @@ export function steelColumn(state: object, companyId: string, color: string): st
     if (chosen && chosen !== DepotSourceId) return chosen
     const columns = Object.keys(SteelColumns[color] ?? {})
     assert(columns.length > 0, `No steel columns for ${color} tiles`)
-    const price = (column: string) => title.steelMarket[column]?.[0] ?? EmptyColumnPrice
+    const price = (column: string) => steelPrice(title, column)
     return columns.reduce((best, column) => (price(column) < price(best) ? column : best))
 }
 
@@ -111,7 +126,7 @@ export function nextSteel(state: object, companyId: string, color: string): Stee
     const title = requireStateRoyalGorge(state)
     if (usesDepot(title, companyId, color)) return { source: DepotSourceId, price: 0 }
     const column = steelColumn(title, companyId, color)
-    return { source: column, price: title.steelMarket[column]?.[0] ?? EmptyColumnPrice }
+    return { source: column, price: steelPrice(title, column) }
 }
 
 /** The steel bought this turn by the company. */
@@ -130,8 +145,9 @@ export function buySteel(state: object, companyId: string, color: string): Steel
         title.steelTurn = { ...turn, depotSteel: turn.depotSteel + 1, bought }
         return purchase
     }
-    const remaining = title.steelMarket[purchase.source] ?? []
-    title.steelMarket = { ...title.steelMarket, [purchase.source]: remaining.slice(1) }
+    const remaining = title.steelMarket[purchase.source]
+    assert(remaining !== undefined, `The steel market has column ${purchase.source}`)
+    if (remaining) title.steelMarket = { ...title.steelMarket, [purchase.source]: remaining - 1 }
     title.steelTurn = {
         ...turn,
         columns: { ...turn.columns, [color]: purchase.source },

@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T14:11:28.564Z",
+  "createdAt": "2026-11-19T18:29:37.688Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T14:11:28.565Z",
+  "startedAt": "2026-11-19T18:29:37.688Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "31Q0r2a_NJCrvyOJItde3",
+  "id": "nhOgUTmhn19ueBy_SrA5Z",
   "gameId": "scenario-18royalgorge-st-cloud-hotel",
   "seed": 3758006212,
   "prng": {
@@ -1426,39 +1426,15 @@
    "CS"
   ],
   "steelMarket": {
-   "A": [
-    30
-   ],
-   "B": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "C": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "D": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "E": [],
-   "F": [
-    20,
-    30
-   ],
-   "G": [
-    30
-   ],
-   "H": [
-    30
-   ],
-   "I": []
+   "A": 1,
+   "B": 4,
+   "C": 4,
+   "D": 4,
+   "E": 0,
+   "F": 2,
+   "G": 1,
+   "H": 1,
+   "I": 0
   },
   "depotSteel": 0,
   "goldCubes": {

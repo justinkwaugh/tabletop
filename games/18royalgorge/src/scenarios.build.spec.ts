@@ -438,7 +438,9 @@ describe.skipIf(!process.env.SCENARIOS)('18RoyalGorge private scenarios', () => 
                 game.state.machineState === 'LayingTrack' &&
                 !game.state.trackStep?.lays.length &&
                 privatesOpen(game.state) &&
-                !!tileAt(game.state, SulphurSpringsLocationId).placement
+                !!tileAt(game.state, SulphurSpringsLocationId).placement,
+            3000,
+            200
         )
         saveArranged('sulphur-springs', game, (state) =>
             givePrivate(state, SulphurSpringsId, railroad(operating(game)))

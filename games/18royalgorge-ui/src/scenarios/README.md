@@ -19,8 +19,8 @@ it acts, so their history starts afresh.
   column F makes the next green tile take F's $20 cube, and the yellow column cannot be changed
   this turn (ST-2, ST-3).
 - **Gold shipping**: South Park's earnings after a run through B6, which holds two gold cubes.
-  Ship Gold takes one cube off B6 and adds $50 to the revenue: paying out then pays $140, $14 a
-  share, from a $90 run. Only one shipment is allowed a turn (GO-2, GO-3). Player 1 holds the Local
+  Ship Gold takes one cube off B6 and adds $50 to the revenue: paying out then pays $130, $13 a
+  share, from an $80 run. Only one shipment is allowed a turn (GO-2, GO-3). Player 1 holds the Local
   Jeweler (Y6): the shipment puts $5 on its card (Y6).
 - **Treaty debts**: Rio Grande buying trains after the Treaty of Boston, owing four debts with
   Santa Fe owing two, the debt marker at $60. Pay Debt takes $60 from Rio Grande's treasury into
@@ -71,10 +71,10 @@ it acts, so their history starts afresh.
   steel. Choosing the Steel Depot for yellow on CF&I's market makes the next yellow tile's steel
   free from the card. Two yellow tiles take depot steel, leaving three; the third takes a column's
   steel (B3).
-- **Sulphur springs**: Santa Fe's track step in the Brown phase, owning Sulphur Springs (B2), with
-  a yellow town tile on Sulphur Springs (E3). The private's lay turns it into the yellow R city,
-  free and outside the six lays, and the private closes. The R city later upgrades to the green and
-  brown R cities like any city (B2, TR-8).
+- **Sulphur springs**: Pueblo & Arkansas Valley's track step in the Brown phase, owning Sulphur
+  Springs (B2), with a green town tile on Sulphur Springs (E3). The private's lay turns it into the
+  green R city, free and outside the six lays, and the private closes. The R city later upgrades to
+  the brown R city like any city (B2, TR-8).
 - **Gold nugget**: Rio Grande's earnings in the Brown phase after a run past B10's gold, owning the
   13lb Gold Nugget (G2). Ship Gold with the Nugget adds $130 to the revenue instead of $50, and the
   Nugget closes (G2).

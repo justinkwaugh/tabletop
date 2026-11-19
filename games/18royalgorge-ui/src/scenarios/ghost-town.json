@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T14:21:16.623Z",
+  "createdAt": "2026-11-19T18:29:51.183Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T14:21:16.623Z",
+  "startedAt": "2026-11-19T18:29:51.183Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "3sr5vnu4iziT15LsTY31F",
+  "id": "QVZ9l8GhOODtMovgyrFvj",
   "gameId": "scenario-18royalgorge-ghost-town",
   "seed": 519231558,
   "prng": {
@@ -1361,40 +1361,15 @@
    "CSCC"
   ],
   "steelMarket": {
-   "A": [
-    30
-   ],
-   "B": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "C": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "D": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "E": [
-    30
-   ],
-   "F": [
-    30
-   ],
-   "G": [
-    30
-   ],
-   "H": [
-    30
-   ],
-   "I": []
+   "A": 1,
+   "B": 4,
+   "C": 4,
+   "D": 4,
+   "E": 1,
+   "F": 1,
+   "G": 1,
+   "H": 1,
+   "I": 0
   },
   "depotSteel": 5,
   "goldCubes": {

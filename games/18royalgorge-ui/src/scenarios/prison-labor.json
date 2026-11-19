@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T14:12:09.077Z",
+  "createdAt": "2026-11-19T18:31:10.091Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T14:12:09.077Z",
+  "startedAt": "2026-11-19T18:31:10.091Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "eRgUV-ZR8pqwqB5JTqV6H",
+  "id": "K0AIqXqfcZQzmBYgkOGST",
   "gameId": "scenario-18royalgorge-prison-labor",
   "seed": 3758006212,
   "prng": {
@@ -1353,45 +1353,15 @@
    "CS"
   ],
   "steelMarket": {
-   "A": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "B": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "C": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "D": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "E": [
-    20,
-    30
-   ],
-   "F": [
-    20,
-    30
-   ],
-   "G": [
-    30
-   ],
-   "H": [
-    30
-   ],
-   "I": []
+   "A": 4,
+   "B": 4,
+   "C": 4,
+   "D": 4,
+   "E": 2,
+   "F": 2,
+   "G": 1,
+   "H": 1,
+   "I": 0
   },
   "depotSteel": 0,
   "goldCubes": {},

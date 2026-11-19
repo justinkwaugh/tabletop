@@ -11,7 +11,7 @@ import { GhostTownId, JewelerId, NuggetId } from './ids.js'
 import { GoldMines } from './map.js'
 import { ownsOpenPrivate, privatePlayerHolder } from './privateHoldings.js'
 import { operatedBy } from './operator.js'
-import { requireStateRoyalGorge, type HydratedStateRoyalGorge } from './state.js'
+import { requireStateRoyalGorge, type GoldShipment, type HydratedStateRoyalGorge } from './state.js'
 import { colorPhase } from './trains.js'
 
 /** What VGC pays at the end of a set, by how much gold covers its track (GO-4). */
@@ -69,10 +69,15 @@ export function shippableGold(state: object, companyId: string): string[] {
     return Object.keys(title.goldCubes).filter((locationId) => hexes.has(locationId))
 }
 
+/** What a shipment adds to the revenue: $50, or $130 with the 13lb Gold Nugget (GO-2, G2). */
+export function shipmentBonus(shipment: Pick<GoldShipment, 'nugget'>): number {
+    return shipment.nugget ? NuggetBonus : GoldBonus
+}
+
 /** The gold added to the company's revenue this turn (Calculating Revenue). */
 export function shippedGoldRevenue(state: object, companyId: string): number {
     const shipment = requireStateRoyalGorge(state).goldShipment
-    return shipment?.companyId === companyId ? shipment.amount : 0
+    return shipment?.companyId === companyId ? shipmentBonus(shipment) : 0
 }
 
 const ShipGoldAction = titleAction('ShipGold', {
@@ -111,7 +116,6 @@ export class HydratedShipGold extends ShipGoldAction.Base {
         state.goldShipment = {
             companyId: this.companyId,
             locationId: this.locationId,
-            amount: this.nugget ? NuggetBonus : GoldBonus,
             ...(this.nugget ? { nugget: true as const } : {})
         }
         if (privatePlayerHolder(state, JewelerId)) state.jewelerCash += JewelerShare

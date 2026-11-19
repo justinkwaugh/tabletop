@@ -109,28 +109,9 @@
         "const": true,
         "type": "boolean"
       },
-      "bridgeLeasePayment": {
-        "additionalProperties": false,
-        "properties": {
-          "amount": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "payer": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "amount",
-          "companyId",
-          "payer"
-        ],
-        "type": "object"
+      "bridgeLeasePaid": {
+        "const": true,
+        "type": "boolean"
       },
       "canContinue": {
         "type": "boolean"
@@ -1393,10 +1374,6 @@
       "goldShipment": {
         "additionalProperties": false,
         "properties": {
-          "amount": {
-            "minimum": 1,
-            "type": "integer"
-          },
           "companyId": {
             "minLength": 1,
             "type": "string"
@@ -1411,7 +1388,6 @@
           }
         },
         "required": [
-          "amount",
           "companyId",
           "locationId"
         ],
@@ -2972,11 +2948,8 @@
       "steelMarket": {
         "patternProperties": {
           "^.*$": {
-            "items": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "type": "array"
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "type": "object"

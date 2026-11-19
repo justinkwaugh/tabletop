@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p4"
   ],
-  "createdAt": "2026-11-19T14:15:00.777Z",
+  "createdAt": "2026-11-19T18:31:08.673Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T14:15:00.777Z",
+  "startedAt": "2026-11-19T18:31:08.673Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,12 +55,12 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "01doCljT3nKjLnOjxfE6h",
+  "id": "pjsJdBiZyDoqr_JZYw0hj",
   "gameId": "scenario-18royalgorge-coal-creek",
   "seed": 2444278190,
   "prng": {
    "seed": 2444278190,
-   "invocations": 7129
+   "invocations": 7164
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
@@ -128,10 +128,10 @@
    "number": 5,
    "completed": true,
    "passedPlayerIds": [
+    "p2",
     "p3",
     "p4",
-    "p1",
-    "p2"
+    "p1"
    ],
    "turn": {
     "acted": false,
@@ -150,7 +150,14 @@
     {
      "owner": {
       "kind": "player",
-      "playerId": "p1"
+      "playerId": "p3"
+     },
+     "companyId": "SPP"
+    },
+    {
+     "owner": {
+      "kind": "player",
+      "playerId": "p3"
      },
      "companyId": "SF"
     },
@@ -159,14 +166,7 @@
       "kind": "player",
       "playerId": "p1"
      },
-     "companyId": "PAV"
-    },
-    {
-     "owner": {
-      "kind": "player",
-      "playerId": "p2"
-     },
-     "companyId": "RG"
+     "companyId": "SPP"
     }
    ],
    "companyPurchases": []
@@ -180,16 +180,16 @@
     }
    ],
    "turnOrder": [
+    "p2",
     "p3",
     "p4",
-    "p1",
-    "p2"
+    "p1"
    ],
    "turnCounts": {
-    "p1": 35,
+    "p1": 36,
     "p2": 31,
-    "p3": 37,
-    "p4": 35
+    "p3": 38,
+    "p4": 36
    },
    "seriesKeeps": "latest"
   },
@@ -210,27 +210,23 @@
      ]
     },
     {
-     "spaceId": "0:1",
-     "companyIds": [
-      "SF"
-     ]
-    },
-    {
-     "spaceId": "0:3",
-     "companyIds": [
-      "SPP"
-     ]
-    },
-    {
      "spaceId": "0:8",
      "companyIds": [
-      "CFI"
+      "CFI",
+      "NO"
      ]
     },
     {
      "spaceId": "0:10",
      "companyIds": [
       "RG"
+     ]
+    },
+    {
+     "spaceId": "0:0",
+     "companyIds": [
+      "SPP",
+      "SF"
      ]
     }
    ]
@@ -260,7 +256,7 @@
     "parPrice": 65,
     "president": {
      "kind": "player",
-     "playerId": "p3"
+     "playerId": "p2"
     },
     "lastRunRevenue": 80
    },
@@ -274,7 +270,7 @@
     "parPrice": 100,
     "president": {
      "kind": "player",
-     "playerId": "p4"
+     "playerId": "p1"
     },
     "lastRunRevenue": 0
    },
@@ -295,10 +291,15 @@
    {
     "id": "NO",
     "kind": "major",
-    "started": false,
-    "floated": false,
-    "funded": false,
-    "operated": false
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": false,
+    "parPrice": 70,
+    "president": {
+     "kind": "player",
+     "playerId": "p4"
+    }
    },
    {
     "id": "CFI",
@@ -353,70 +354,70 @@
      "kind": "player",
      "playerId": "p1"
     },
-    "amount": 3
+    "amount": 27
    },
    {
     "owner": {
      "kind": "player",
      "playerId": "p2"
     },
-    "amount": 94
+    "amount": 6
    },
    {
     "owner": {
      "kind": "player",
      "playerId": "p3"
     },
-    "amount": 37
+    "amount": 28
    },
    {
     "owner": {
      "kind": "player",
      "playerId": "p4"
     },
-    "amount": 10
+    "amount": 3
    },
    {
     "owner": {
      "kind": "company",
      "companyId": "RG"
     },
-    "amount": 384
+    "amount": 411
    },
    {
     "owner": {
      "kind": "company",
      "companyId": "SPP"
     },
-    "amount": 59
+    "amount": 255
    },
    {
     "owner": {
      "kind": "company",
      "companyId": "PAV"
     },
-    "amount": 285
+    "amount": 170
    },
    {
     "owner": {
      "kind": "company",
      "companyId": "SF"
     },
-    "amount": 320
+    "amount": 280
    },
    {
     "owner": {
      "kind": "company",
      "companyId": "NO"
     },
-    "amount": 0
+    "amount": 210
    },
    {
     "owner": {
      "kind": "company",
      "companyId": "CFI"
     },
-    "amount": 170
+    "amount": 110
    },
    {
     "owner": {
@@ -493,9 +494,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p3"
-    }
+     "kind": "bank"
+    },
+    "poolId": "bank-pool"
    },
    {
     "id": "RG:share:2",
@@ -525,9 +526,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "bank"
-    },
-    "poolId": "bank-pool"
+     "kind": "player",
+     "playerId": "p2"
+    }
    },
    {
     "id": "RG:share:5",
@@ -545,9 +546,10 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p4"
-    }
+     "kind": "company",
+     "companyId": "RG"
+    },
+    "poolId": "treasury:RG"
    },
    {
     "id": "RG:share:7",
@@ -578,7 +580,7 @@
     "president": true,
     "owner": {
      "kind": "player",
-     "playerId": "p3"
+     "playerId": "p2"
     }
    },
    {
@@ -588,7 +590,7 @@
     "shares": 1,
     "owner": {
      "kind": "player",
-     "playerId": "p1"
+     "playerId": "p4"
     }
    },
    {
@@ -597,10 +599,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "company",
-     "companyId": "SPP"
-    },
-    "poolId": "treasury:SPP"
+     "kind": "player",
+     "playerId": "p4"
+    }
    },
    {
     "id": "SPP:share:3",
@@ -608,9 +609,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p2"
-    }
+     "kind": "bank"
+    },
+    "poolId": "bank-pool"
    },
    {
     "id": "SPP:share:4",
@@ -628,10 +629,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "company",
-     "companyId": "SPP"
+     "kind": "bank"
     },
-    "poolId": "treasury:SPP"
+    "poolId": "bank-pool"
    },
    {
     "id": "SPP:share:6",
@@ -639,10 +639,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "company",
-     "companyId": "SPP"
+     "kind": "bank"
     },
-    "poolId": "treasury:SPP"
+    "poolId": "bank-pool"
    },
    {
     "id": "SPP:share:7",
@@ -650,9 +649,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "bank"
-    },
-    "poolId": "bank-pool"
+     "kind": "player",
+     "playerId": "p3"
+    }
    },
    {
     "id": "SPP:share:8",
@@ -672,7 +671,7 @@
     "president": true,
     "owner": {
      "kind": "player",
-     "playerId": "p4"
+     "playerId": "p1"
     }
    },
    {
@@ -703,9 +702,10 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "bank"
+     "kind": "company",
+     "companyId": "PAV"
     },
-    "poolId": "bank-pool"
+    "poolId": "treasury:PAV"
    },
    {
     "id": "PAV:share:4",
@@ -713,22 +713,12 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p1"
-    }
-   },
-   {
-    "id": "PAV:share:5",
-    "companyId": "PAV",
-    "kind": "share",
-    "shares": 1,
-    "owner": {
      "kind": "bank"
     },
     "poolId": "bank-pool"
    },
    {
-    "id": "PAV:share:6",
+    "id": "PAV:share:5",
     "companyId": "PAV",
     "kind": "share",
     "shares": 1,
@@ -739,7 +729,7 @@
     "poolId": "treasury:PAV"
    },
    {
-    "id": "PAV:share:7",
+    "id": "PAV:share:6",
     "companyId": "PAV",
     "kind": "share",
     "shares": 1,
@@ -749,7 +739,7 @@
     }
    },
    {
-    "id": "PAV:share:8",
+    "id": "PAV:share:7",
     "companyId": "PAV",
     "kind": "share",
     "shares": 1,
@@ -757,6 +747,17 @@
      "kind": "player",
      "playerId": "p4"
     }
+   },
+   {
+    "id": "PAV:share:8",
+    "companyId": "PAV",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "PAV"
+    },
+    "poolId": "treasury:PAV"
    },
    {
     "id": "SF:president",
@@ -775,54 +776,12 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p3"
-    }
+     "kind": "bank"
+    },
+    "poolId": "bank-pool"
    },
    {
     "id": "SF:share:2",
-    "companyId": "SF",
-    "kind": "share",
-    "shares": 1,
-    "owner": {
-     "kind": "company",
-     "companyId": "SF"
-    },
-    "poolId": "treasury:SF"
-   },
-   {
-    "id": "SF:share:3",
-    "companyId": "SF",
-    "kind": "share",
-    "shares": 1,
-    "owner": {
-     "kind": "company",
-     "companyId": "SF"
-    },
-    "poolId": "treasury:SF"
-   },
-   {
-    "id": "SF:share:4",
-    "companyId": "SF",
-    "kind": "share",
-    "shares": 1,
-    "owner": {
-     "kind": "player",
-     "playerId": "p4"
-    }
-   },
-   {
-    "id": "SF:share:5",
-    "companyId": "SF",
-    "kind": "share",
-    "shares": 1,
-    "owner": {
-     "kind": "player",
-     "playerId": "p3"
-    }
-   },
-   {
-    "id": "SF:share:6",
     "companyId": "SF",
     "kind": "share",
     "shares": 1,
@@ -832,13 +791,55 @@
     "poolId": "bank-pool"
    },
    {
+    "id": "SF:share:3",
+    "companyId": "SF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p4"
+    }
+   },
+   {
+    "id": "SF:share:4",
+    "companyId": "SF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "SF"
+    },
+    "poolId": "treasury:SF"
+   },
+   {
+    "id": "SF:share:5",
+    "companyId": "SF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "SF"
+    },
+    "poolId": "treasury:SF"
+   },
+   {
+    "id": "SF:share:6",
+    "companyId": "SF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p1"
+    }
+   },
+   {
     "id": "SF:share:7",
     "companyId": "SF",
     "kind": "share",
     "shares": 1,
     "owner": {
      "kind": "player",
-     "playerId": "p2"
+     "playerId": "p3"
     }
    },
    {
@@ -858,10 +859,9 @@
     "shares": 2,
     "president": true,
     "owner": {
-     "kind": "company",
-     "companyId": "NO"
-    },
-    "poolId": "treasury:NO"
+     "kind": "player",
+     "playerId": "p4"
+    }
    },
    {
     "id": "NO:share:1",
@@ -924,10 +924,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "company",
-     "companyId": "NO"
-    },
-    "poolId": "treasury:NO"
+     "kind": "player",
+     "playerId": "p3"
+    }
    },
    {
     "id": "NO:share:7",
@@ -967,9 +966,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p1"
-    }
+     "kind": "bank"
+    },
+    "poolId": "metal-board"
    },
    {
     "id": "CFI:3",
@@ -1007,9 +1006,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p3"
-    }
+     "kind": "bank"
+    },
+    "poolId": "metal-board"
    },
    {
     "id": "CFI:7",
@@ -1027,9 +1026,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "bank"
-    },
-    "poolId": "metal-board"
+     "kind": "player",
+     "playerId": "p4"
+    }
    },
    {
     "id": "CFI:9",
@@ -1047,9 +1046,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p4"
-    }
+     "kind": "bank"
+    },
+    "poolId": "metal-board"
    },
    {
     "id": "VGC:1",
@@ -1077,9 +1076,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "bank"
-    },
-    "poolId": "metal-board"
+     "kind": "player",
+     "playerId": "p3"
+    }
    },
    {
     "id": "VGC:4",
@@ -1107,9 +1106,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "player",
-     "playerId": "p4"
-    }
+     "kind": "bank"
+    },
+    "poolId": "metal-board"
    },
    {
     "id": "VGC:7",
@@ -1137,9 +1136,9 @@
     "kind": "share",
     "shares": 1,
     "owner": {
-     "kind": "bank"
-    },
-    "poolId": "metal-board"
+     "kind": "player",
+     "playerId": "p1"
+    }
    },
    {
     "id": "VGC:10",
@@ -1320,7 +1319,12 @@
    {
     "id": "NO:home",
     "companyId": "NO",
-    "status": "available"
+    "status": "placed",
+    "position": {
+     "locationId": "L8",
+     "nodeId": "city",
+     "slot": 0
+    }
    },
    {
     "id": "NO:station:1",
@@ -1353,13 +1357,7 @@
     }
    }
   ],
-  "stationReservations": [
-   {
-    "companyId": "NO",
-    "locationId": "L8",
-    "nodeId": "city"
-   }
-  ],
+  "stationReservations": [],
   "tileInventory": {
    "placements": {
     "L8": {
@@ -1383,18 +1381,18 @@
      "rotation": 1
     },
     "D12": {
-     "pieceId": "18royalgorge:standard/GD/1",
-     "definitionId": "18royalgorge:GD",
+     "pieceId": "18royalgorge:standard/GA/1",
+     "definitionId": "18royalgorge:GA",
      "rotation": 0
     },
     "E13": {
-     "pieceId": "18royalgorge:standard/GE/1",
-     "definitionId": "18royalgorge:GE",
+     "pieceId": "18royalgorge:standard/GB/1",
+     "definitionId": "18royalgorge:GB",
      "rotation": 0
     },
     "F12": {
-     "pieceId": "18royalgorge:standard/GF/1",
-     "definitionId": "18royalgorge:GF",
+     "pieceId": "18royalgorge:standard/GC/1",
+     "definitionId": "18royalgorge:GC",
      "rotation": 0
     },
     "G11": {
@@ -1437,20 +1435,20 @@
      "definitionId": "18xx:57",
      "rotation": 3
     },
-    "M3": {
-     "pieceId": "18royalgorge:standard/3/1",
-     "definitionId": "18xx:3",
-     "rotation": 0
-    },
-    "H14": {
-     "pieceId": "18royalgorge:standard/4/2",
-     "definitionId": "18xx:4",
-     "rotation": 3
+    "N16": {
+     "pieceId": "18royalgorge:standard/7/2",
+     "definitionId": "18xx:7",
+     "rotation": 4
     },
     "K5": {
      "pieceId": "18royalgorge:standard/29/1",
      "definitionId": "18xx:29",
      "rotation": 2
+    },
+    "H14": {
+     "pieceId": "18royalgorge:standard/4/2",
+     "definitionId": "18xx:4",
+     "rotation": 0
     }
    },
    "retiredPieceIds": []
@@ -1515,39 +1513,15 @@
    "NO"
   ],
   "steelMarket": {
-   "A": [
-    30
-   ],
-   "B": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "C": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "D": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "E": [
-    30
-   ],
-   "F": [
-    20,
-    30
-   ],
-   "G": [
-    30
-   ],
-   "H": [],
-   "I": []
+   "A": 2,
+   "B": 4,
+   "C": 4,
+   "D": 4,
+   "E": 1,
+   "F": 2,
+   "G": 0,
+   "H": 1,
+   "I": 0
   },
   "depotSteel": 0,
   "goldCubes": {
@@ -1606,6 +1580,7 @@
    "roundCount": 2,
    "companyOrder": [
     "RG",
+    "NO",
     "PAV",
     "SPP",
     "SF"
@@ -1622,18 +1597,6 @@
    "companyId": "RG",
    "lays": [
     {
-     "locationId": "E13",
-     "definitionId": "18royalgorge:GE"
-    },
-    {
-     "locationId": "M3",
-     "definitionId": "18xx:3"
-    },
-    {
-     "locationId": "H14",
-     "definitionId": "18xx:4"
-    },
-    {
      "locationId": "L4",
      "definitionId": "18xx:41"
     },
@@ -1644,6 +1607,10 @@
     {
      "locationId": "K5",
      "definitionId": "18xx:29"
+    },
+    {
+     "locationId": "H14",
+     "definitionId": "18xx:4"
     }
    ],
    "completed": true
@@ -1651,15 +1618,12 @@
   "steelTurn": {
    "companyId": "RG",
    "columns": {
-    "brown": "H",
+    "brown": "G",
     "yellow": "A",
     "green": "E"
    },
    "depotSteel": 0,
-   "bought": 6,
-   "choices": {
-    "brown": "H"
-   }
+   "bought": 4
   },
   "stationStep": {
    "companyId": "RG",

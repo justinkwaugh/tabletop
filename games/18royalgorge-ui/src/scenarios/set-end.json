@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-19T14:13:05.417Z",
+  "createdAt": "2026-11-19T18:33:02.598Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T14:13:05.417Z",
+  "startedAt": "2026-11-19T18:33:02.598Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "opKbfI58iLhfeKEkQAJJ9",
+  "id": "UIT6OFb1RIfcIwSokYtj_",
   "gameId": "scenario-18royalgorge-set-end",
   "seed": 519231558,
   "prng": {
@@ -1361,40 +1361,15 @@
    "CSCC"
   ],
   "steelMarket": {
-   "A": [
-    30
-   ],
-   "B": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "C": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "D": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "E": [
-    30
-   ],
-   "F": [
-    30
-   ],
-   "G": [
-    30
-   ],
-   "H": [
-    30
-   ],
-   "I": []
+   "A": 1,
+   "B": 4,
+   "C": 4,
+   "D": 4,
+   "E": 1,
+   "F": 1,
+   "G": 1,
+   "H": 1,
+   "I": 0
   },
   "depotSteel": 5,
   "goldCubes": {},

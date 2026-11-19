@@ -44,10 +44,10 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-11-19T14:24:35.848Z",
+  "createdAt": "2026-11-19T18:32:49.479Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-19T14:24:35.848Z",
+  "startedAt": "2026-11-19T18:32:49.479Z",
   "progress": {
    "fraction": 0,
    "label": "Phase yellow"
@@ -55,7 +55,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "NAVjclSGP8FVWwLr8kRww",
+  "id": "wt1JhIXyLYrRLKB6BstCP",
   "gameId": "scenario-18royalgorge-private-income",
   "seed": 918595571,
   "prng": {
@@ -1482,44 +1482,15 @@
    "CS"
   ],
   "steelMarket": {
-   "A": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "B": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "C": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "D": [
-    0,
-    10,
-    20,
-    30
-   ],
-   "E": [
-    30
-   ],
-   "F": [
-    20,
-    30
-   ],
-   "G": [
-    30
-   ],
-   "H": [
-    30
-   ],
-   "I": []
+   "A": 4,
+   "B": 4,
+   "C": 4,
+   "D": 4,
+   "E": 1,
+   "F": 2,
+   "G": 1,
+   "H": 1,
+   "I": 0
   },
   "depotSteel": 5,
   "goldCubes": {

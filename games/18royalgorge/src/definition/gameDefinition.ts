@@ -54,7 +54,7 @@ function startsTurn(state: HydratedStateRoyalGorge, action: { type: string }): v
     delete state.steelTurn
     delete state.goldShipment
     delete state.bridgeLeaseInUse
-    delete state.bridgeLeasePayment
+    delete state.bridgeLeasePaid
     state.trainExtensions = []
 }
 

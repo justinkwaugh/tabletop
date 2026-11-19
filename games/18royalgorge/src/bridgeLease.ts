@@ -64,7 +64,7 @@ export function bridgeLeaseOffered(state: object, companyId: string): boolean {
 export function bridgeLeaseOwed(state: object, companyId: string): number {
     const title = requireStateRoyalGorge(state)
     const result = title.routeStep?.companyId === companyId ? title.routeStep.result : undefined
-    if (!result || !leaseInUse(title, companyId) || title.bridgeLeasePayment) return 0
+    if (!result || !leaseInUse(title, companyId) || title.bridgeLeasePaid) return 0
     return result.routes
         .filter((route) => route.paths.some((path) => path.locationId === GorgeTownId))
         .reduce((sum, route) => sum + Math.floor(route.revenue / 10), 0)
@@ -138,11 +138,7 @@ export class HydratedPayBridgeLease extends PayBridgeLeaseAction.Base {
         const payments = bridgeLeasePayments(state, this.companyId, this.payer)
         assertExists(payments, 'A valid lease payment has its payments')
         settleCashPayments(state, payments)
-        state.bridgeLeasePayment = {
-            companyId: this.companyId,
-            amount: this.expectedAmount,
-            payer: this.payer
-        }
+        state.bridgeLeasePaid = true
     }
 }
 

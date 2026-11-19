@@ -253,13 +253,13 @@ describe('18RoyalGorge track and steel', () => {
         const before = finiteCashOwnedBy(game.state, { kind: 'company', companyId: CfiId })
         game.act('ChooseSteel', { companyId: RgId, color: 'yellow', column: 'B' })
         kit.lay(game, 'L4', '18xx:9', [0, 3])
-        expect(game.state.steelMarket.B).toEqual([10, 20, 30])
+        expect(game.state.steelMarket.B).toBe(3)
         kit.lay(game, 'K3', '18xx:4', [1, 4])
-        expect(game.state.steelMarket.B).toEqual([20, 30])
+        expect(game.state.steelMarket.B).toBe(2)
         expect(finiteCashOwnedBy(game.state, { kind: 'company', companyId: CfiId })).toBe(
             before + 10
         )
-        expect(game.state.steelMarket.A).toEqual([0, 10, 20, 30])
+        expect(game.state.steelMarket.A).toBe(4)
     })
 
     it('fixes a colour’s column once used for the turn (ST-2)', () => {

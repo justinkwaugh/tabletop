@@ -33,8 +33,8 @@ export const VariantsRoyalGorge = Type.Object(
 )
 export type VariantsRoyalGorge = Type.Static<typeof VariantsRoyalGorge>
 
-/** The steel cubes left in each column of the steel market, cheapest last (ST-1). */
-export const SteelMarket = Type.Record(Id, Type.Array(Count))
+/** How many steel cubes are left in each column of the steel market, its dearest ones (ST-1). */
+export const SteelMarket = Type.Record(Id, Count)
 export type SteelMarket = Type.Static<typeof SteelMarket>
 
 /** The operating company's steel this turn: the column of each colour it uses (ST-2). */
@@ -58,7 +58,6 @@ export const GoldShipment = Type.Object(
     {
         companyId: Id,
         locationId: Id,
-        amount: Type.Integer({ minimum: 1 }),
         /** The 13lb Gold Nugget made the shipment (G2). */
         nugget: Type.Optional(Type.Literal(true))
     },
@@ -72,13 +71,6 @@ export const TrainExtension = Type.Object(
     { additionalProperties: false }
 )
 export type TrainExtension = Type.Static<typeof TrainExtension>
-
-/** What a company paid Rio Grande this turn for running through the gorge on the lease (G3). */
-export const BridgeLeasePayment = Type.Object(
-    { companyId: Id, amount: Type.Integer({ minimum: 1 }), payer: Id },
-    { additionalProperties: false }
-)
-export type BridgeLeasePayment = Type.Static<typeof BridgeLeasePayment>
 
 /** How the game's end was triggered by the first 6x2 (EG-2, EG-4). */
 export const TrainEndTrigger = Type.Object(
@@ -117,7 +109,8 @@ export const TitleFieldsRoyalGorge = {
     debtPaidIds: Type.Array(Id, { uniqueItems: true }),
     /** The operating lessee chose, before running, to run through the gorge on its lease (G3). */
     bridgeLeaseInUse: Type.Optional(Type.Literal(true)),
-    bridgeLeasePayment: Type.Optional(BridgeLeasePayment),
+    /** The lessee has paid Rio Grande for this turn's run through the gorge (G3). */
+    bridgeLeasePaid: Type.Optional(Type.Literal(true)),
     /** The last operating round whose end has been settled, as set and round numbers (EG-1). */
     settledRound: Type.Optional(
         Type.Object(

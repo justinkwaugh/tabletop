@@ -1,7 +1,7 @@
+import { assertExists } from '@tabletop/common'
 import {
     CfiId,
     DepotSourceId,
-    EmptyColumnPrice,
     GoldDividends,
     PhasesRoyalGorge,
     SteelColumns,
@@ -11,6 +11,7 @@ import {
     goldDividend,
     nextSteel,
     steelColumn,
+    steelPrice,
     ownsOpenPrivate,
     steelChoices,
     steelTurnOf,
@@ -101,14 +102,15 @@ export function steelBoard(state: HydratedStateRoyalGorge, choosing: boolean): S
         return {
             color,
             columns: Object.entries(columns).map(([id, prices]) => {
-                const remaining = state.steelMarket[id] ?? []
+                const left = state.steelMarket[id]
+                assertExists(left, `The steel market has column ${id}`)
                 return {
                     id,
                     color,
                     cubes: [...prices]
                         .reverse()
-                        .map((price, index) => ({ price, remaining: index < remaining.length })),
-                    price: remaining[0] ?? EmptyColumnPrice,
+                        .map((price, index) => ({ price, remaining: index < left })),
+                    price: steelPrice(state, id),
                     ...(fixed === id
                         ? { mark: 'fixed' as const }
                         : upcoming?.source === id

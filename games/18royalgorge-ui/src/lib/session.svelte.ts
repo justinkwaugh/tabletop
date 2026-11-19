@@ -19,6 +19,7 @@ import {
     GoldBonus,
     bridgeLeaseOwed,
     bridgeLeasePayments,
+    shipmentBonus,
     debtCreditor,
     debtPrice,
     evaluateMetalPurchase,
@@ -155,7 +156,7 @@ export class SessionRoyalGorge extends BaseSession {
         return shipment &&
             shipment.companyId === this.gameState.routeStep?.companyId &&
             this.gameState.machineState === 'DistributingEarnings'
-            ? shipment
+            ? { locationId: shipment.locationId, amount: shipmentBonus(shipment) }
             : undefined
     })
     /** Where the Ghost Town Tour Co.'s railroad may leave a ghost town now (Y2). */
