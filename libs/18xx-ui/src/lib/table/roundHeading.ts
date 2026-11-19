@@ -1,5 +1,9 @@
 import { assertExists, type GameState } from '@tabletop/common'
-import { endlessOperatingSet, operatingRoundPart, type EighteenXXState } from '@tabletop/18xx'
+import {
+    operatingRoundPart,
+    type EighteenXXState,
+    type OperatingRoundIdentity
+} from '@tabletop/18xx'
 import type { TitleRound } from '../session/titlePresentation.js'
 
 export type RoundHeading = {
@@ -39,12 +43,67 @@ export function operatingRoundHeading(
     }
 }
 
+/** The set a round is numbered within, none for an endless set's. */
+export function operatingSetNumber(
+    round: Pick<OperatingRoundIdentity, 'number' | 'endless'>
+): number | undefined {
+    return round.endless ? undefined : round.number
+}
+
+/** An operating round by its identity; an endless set's goes by the part of it under way. */
+export function identifiedOperatingRoundHeading(
+    round: OperatingRoundIdentity,
+    part: number
+): RoundHeading {
+    return operatingRoundHeading(
+        operatingSetNumber(round),
+        round.roundNumber,
+        undefined,
+        round.endless ? part : undefined
+    )
+}
+
 /** A title's round held after a stock round, which shares its number. */
 export function titleStockRoundHeading(
     number: number,
     titleRound: Pick<TitleRound, 'name' | 'abbreviation'>
 ): RoundHeading {
     return { abbreviation: titleRound.abbreviation, name: titleRound.name, number: `${number}` }
+}
+
+/** Where play stands: the latest stock round, and the operating round of the latest set. */
+export type RoundPosition = {
+    stock: number
+    /** Whether the operating set that follows the latest stock round is under way. */
+    setUnderWay: boolean
+    /** The set the round is numbered within, none for an endless set's. */
+    set: number | undefined
+    round: number
+    /** The part of an endless set's round under way. */
+    part: number | undefined
+}
+
+export function roundPosition(
+    state: Pick<EighteenXXState, 'stockRound' | 'operatingSet'>
+): RoundPosition {
+    const set = state.operatingSet
+    return {
+        stock: state.stockRound.number,
+        setUnderWay: !!set && !set.completed,
+        set: set ? operatingSetNumber(set) : 1,
+        round: set?.roundNumber ?? 1,
+        part: set ? operatingRoundPart(set) : undefined
+    }
+}
+
+/** A title's round: one following a stock round shares its number, others the operating round's. */
+export function titleRoundHeading(
+    titleRound: Pick<TitleRound, 'name' | 'abbreviation' | 'followsStockRound'>,
+    position: RoundPosition
+): RoundHeading {
+    return titleRound.followsStockRound && !position.setUnderWay
+        ? titleStockRoundHeading(position.stock, titleRound)
+        : operatingRoundHeading(position.set, position.round, titleRound, position.part)
 }
 
 export function roundLabel(heading: RoundHeading): string {
@@ -74,18 +133,13 @@ export function currentRoundHeading(
 ): RoundHeading {
     if (!state.stockRound.completed) return stockRoundHeading(state.stockRound.number)
     const titleRound = titleRounds.find((round) => round.inProgress(state))
+    const position = roundPosition(state)
+    const heading = titleRound
+        ? titleRoundHeading(titleRound, position)
+        : operatingRoundHeading(position.set, position.round, undefined, position.part)
+    if (titleRound?.followsStockRound && !position.setUnderWay) return heading
     const set = state.operatingSet
-    if (titleRound?.followsStockRound && (!set || set.completed))
-        return titleStockRoundHeading(state.stockRound.number, titleRound)
     assertExists(set, 'An operating round belongs to a set')
-    if (endlessOperatingSet(set))
-        return operatingRoundHeading(
-            undefined,
-            set.roundNumber,
-            titleRound,
-            operatingRoundPart(set)
-        )
-    const heading = operatingRoundHeading(set.number, set.roundNumber, titleRound)
     return set.roundCount !== undefined && set.roundCount > 1
         ? { ...heading, roundCount: set.roundCount }
         : heading

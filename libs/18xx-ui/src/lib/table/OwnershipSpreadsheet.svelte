@@ -34,7 +34,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { NumberedShareNames } from './companyPresentation.js'
     import PlayerName from './PlayerName.svelte'
-    import OperatingHistory from './OperatingHistory.svelte'
+    import IncomeHistory from './IncomeHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import { marketValueMark } from '../stock/marketColors.js'
     import '../stock/marketZoneTint.css'
@@ -935,9 +935,9 @@
     <div class="sheet-spacing" aria-hidden="true"></div>
     <div class="sheet-content">
         {#if period !== 'Current'}
-            <OperatingHistory
+            <IncomeHistory
                 {money}
-                rounds={session.operatingIncomeHistory()}
+                rounds={session.roundIncomeHistory()}
                 players={seatOrder.map((playerId) => ({
                     playerId,
                     name: session.getPlayerName(playerId),

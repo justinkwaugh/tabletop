@@ -68,8 +68,9 @@ import {
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingRoundInProgress } from '../table/roundHeading.js'
 import type { HistoryWording } from '../table/historyDescription.js'
-import { operatingHistory } from '../table/operatingHistory.js'
+import { roundIncomeHistory } from '../table/roundIncomeHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
+import type { RoundProgressTitle } from '../table/roundProgress.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tableTerms, type ResolvedTableTerms } from '../presentation/tableTerms.js'
 import { phaseLabel, phaseName } from '../phases/phaseChart.js'
@@ -211,17 +212,22 @@ export class EighteenXXSession<
             })
         }
     }
-    operatingIncomeHistory() {
-        return operatingHistory(this.actions)
+    private get roundProgressTitle(): RoundProgressTitle {
+        return {
+            openingRound: this.presentation.openingRound,
+            titleRounds: this.presentation.titleRounds
+        }
+    }
+    roundIncomeHistory() {
+        return roundIncomeHistory(this.actions, this.roundProgressTitle)
     }
     playerWealthHistory() {
         return wealthHistory(this.actions, this.gameState, {
+            ...this.roundProgressTitle,
             startingCash: this.rules.startingCash({
                 playerCount: this.gameState.players.length,
                 config: this.game.config
-            }),
-            openingRound: this.presentation.openingRound,
-            titleRounds: this.presentation.titleRounds
+            })
         })
     }
     readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
