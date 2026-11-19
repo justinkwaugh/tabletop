@@ -107,7 +107,10 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
     // A badge on each stack with its height.
     heightBadges: boolean = $derived(this.preferences.values.heightBadges)
 
+    // A move's badges are gathered when it starts, so a badge added mid-move would wait at the old
+    // space; the toggle lands the move first.
     toggleHeightBadges() {
+        this.moveInterrupter?.interrupt()
         this.preferences.set({ heightBadges: !this.heightBadges })
     }
 

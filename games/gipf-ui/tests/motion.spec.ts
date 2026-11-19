@@ -101,3 +101,17 @@ test('a push, its Undo and a history step move pieces without matrix()', async (
     const forward = () => void window.gipfSession.history.goToNextAction()
     expect(await matricesDuring(page, forward)).toEqual([])
 })
+
+test('turning piece badges on mid-push lands the push at once', async ({ page }) => {
+    await createGame(page)
+    await act(page, press, 'dot E1')
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
+    await page.evaluate(press, 'push to E2')
+    await page.clock.runFor(60)
+    expect(await page.evaluate(() => window.gipfSession.updatingVisibleState)).toBe(true)
+
+    await page.evaluate(() => window.gipfSession.togglePieceBadges())
+    await page.clock.runFor(20)
+    expect(await page.evaluate(() => window.gipfSession.updatingVisibleState)).toBe(false)
+    await page.clock.resume()
+})
