@@ -98,9 +98,9 @@ export function poseTransform(pose: Pose): string {
 
 /**
  * The flight layer's transient state. The state-change animators write presence (flyers, hidden
- * locomotives, ticked counts) and tween each flyer's pose; the board reads it. Everything here
- * describes the transition under way, so it all goes when a new Game State is shown, when an
- * Undo interrupts the motion, and when the board is torn down.
+ * locomotives, ticked counts, the last journey line) and tween each flyer's pose; the board reads
+ * it. Everything here describes the transition under way, so it all goes when a new Game State is
+ * shown, when an Undo interrupts the motion, and when the board is torn down.
  */
 export class Flights {
     flyers: readonly Flyer[] = $state.raw([])
@@ -108,8 +108,8 @@ export class Flights {
     hiddenKeys: ReadonlySet<string> = $state.raw(new Set())
     /** Counts and money that have ticked ahead of the shown state (Pattern D). */
     private values: ReadonlyMap<string, number> = $state.raw(new Map())
-    /** U-7: the journey being ridden, drawn as the last journey ahead of the shown state. */
-    riddenJourney: readonly Link[] | undefined = $state.raw(undefined)
+    /** U-7: the last journey line of the latest player action stepped, ahead of the shown state. */
+    private journeyAhead: readonly Link[] | undefined = $state.raw(undefined)
 
     /** Set by an interruption until the next Game State is shown: later steps move nothing. */
     interrupted = false
@@ -139,8 +139,13 @@ export class Flights {
         this.values = new Map(this.values).set(key, value)
     }
 
-    ride(links: readonly Link[]) {
-        this.riddenJourney = links
+    drawJourney(links: readonly Link[]) {
+        this.journeyAhead = links
+    }
+
+    /** The last journey line while a transition steps ahead of the shown state, if it drew one. */
+    get drawnJourney(): readonly Link[] | undefined {
+        return this.journeyAhead
     }
 
     /** A count as the board shows it: ticked ahead of the shown state while a flight lands. */
@@ -248,6 +253,6 @@ export class Flights {
         if (this.flyers.length > 0) this.flyers = []
         if (this.hiddenKeys.size > 0) this.hiddenKeys = new Set()
         if (this.values.size > 0) this.values = new Map()
-        if (this.riddenJourney) this.riddenJourney = undefined
+        if (this.journeyAhead) this.journeyAhead = undefined
     }
 }

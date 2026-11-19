@@ -246,7 +246,7 @@ export class RideTheRailsGameSession extends GameSession<
 
     // U-7: the last journey, as this viewer's board draws it.
     lastJourney: readonly Link[] = $derived(
-        this.flights.riddenJourney ??
+        this.flights.drawnJourney ??
             lastJourneyLinks(this.actions, {
                 isMyTurn: this.isMyTurn,
                 isViewingHistory: this.isViewingHistory

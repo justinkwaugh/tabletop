@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushSync } from 'svelte'
+import { assert } from '@tabletop/common'
 import {
     AnimationContext,
     GameContext,
@@ -231,7 +232,7 @@ describe('a journey and the end of round in a session (R-3.3, R-2.5)', () => {
         await session.rideJourney()
         await settled(session)
         const ride = session.actions[0]
-        if (!isRideJourney(ride)) throw new Error('the first action is no ride')
+        assert(isRideJourney(ride), 'the first action is a ride')
         await vi.waitFor(() => expect(session.history.isDisabled()).toBe(false))
         await session.history.goToActionIndex(-1)
         await settled(session)
