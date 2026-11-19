@@ -24,7 +24,7 @@ Committed actions use the shared animation timeline. Actionless History navigati
 
 ## Render ownership
 
-Both pile animators and settled selection read the owner's inspection snapshot, including the `from` snapshot when taking removes it. They never read the canonical hidden pile. Opponents render one unknown card back per public hand count; no invented face enters state or history. The public final-hand snapshot supplies endgame faces. Pending opponent bids render as sealed submissions; resolved-round summaries use the complete public reveal.
+Both pile animators and settled selection read the owner's inspection snapshot, including the `from` snapshot when taking removes it. They never read the canonical hidden pile. A player's own hand renders face up at all times, including on other players' turns and while viewing History, so every card in it can be read and magnified whenever it is held. Opponents render one unknown card back per public hand count; no invented face enters state or history. The public final-hand snapshot supplies endgame faces. Pending opponent bids render as sealed submissions; resolved-round summaries use the complete public reveal.
 
 The pile reveal owns both the transient deal and the settled buttons. Its animators target those nodes by local occurrence index, with the chosen node above the collapsing cards. Node maps and transient layout references clear on detach. The hand panel owns its grouped cards and active badges; the session owns targeting and pending treasure quantities.
 
