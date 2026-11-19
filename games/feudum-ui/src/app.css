@@ -1,0 +1,180 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fff5f2;
+    --color-primary-100: #fff1ee;
+    --color-primary-200: #ffe4de;
+    --color-primary-300: #ffd5cc;
+    --color-primary-400: #ffbcad;
+    --color-primary-500: #fe795d;
+    --color-primary-600: #ef562f;
+    --color-primary-700: #eb4f27;
+    --color-primary-800: #cc4522;
+    --color-primary-900: #a5371b;
+
+    --color-secondary-50: #f0f9ff;
+    --color-secondary-100: #e0f2fe;
+    --color-secondary-200: #bae6fd;
+    --color-secondary-300: #7dd3fc;
+    --color-secondary-400: #38bdf8;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+    --color-secondary-700: #0369a1;
+    --color-secondary-800: #075985;
+    --color-secondary-900: #0c4a6e;
+}
+
+/* The table's palette: the only colours a component names. The scope plugin rewrites `:root` to the
+   title's root, `[data-game-ui="feudum"]`. The dusk look holds in both site themes. */
+:root {
+    /* 92 % over a light page; the dark rule below is 85 %. */
+    --feudum-surface: #221d33eb;
+    --feudum-surface-raised: #2e2744;
+    --feudum-parchment: #efe3c8;
+    --feudum-parchment-shade: #d9c8a3;
+    --feudum-ink: #3b2a1a;
+    --feudum-frame: #f59e0b66;
+    --feudum-text: #f5f5f4;
+    --feudum-text-muted: #a8a29e;
+    --feudum-heading: #fde680cc;
+    --feudum-accent: #fcd34d;
+    --feudum-accent-soft: #45190399;
+    --feudum-control: #44403c;
+    --feudum-control-hover: #57534e;
+    --feudum-primary: #292524;
+    --feudum-primary-hover: #44403c;
+    --feudum-primary-text: #fcd34d;
+    --feudum-primary-border: #fcd34d;
+    --feudum-danger: #fb7185;
+    --feudum-danger-soft: #881337b3;
+    --feudum-decided: #d6d3d1;
+    --feudum-divider: #44403c99;
+    --feudum-terrain-sea: #2b6f7e;
+    --feudum-terrain-island: #8c9a4b;
+    --feudum-terrain-forest: #2f5e3a;
+    --feudum-terrain-desert: #d2b06a;
+    --feudum-terrain-badlands: #8a5a3c;
+    --feudum-terrain-mountain: #6b7686;
+    --feudum-terrain-line: #14110d;
+    --feudum-route-road: #c9a77a;
+    --feudum-route-ship: #4fa3d9;
+    --feudum-route-submersible: #8b6fd1;
+    --feudum-route-flying: #7cc8f0;
+    --feudum-route-ferry: #a0764a;
+    --feudum-good-saltpeter: #f4f1ea;
+    --feudum-good-sulfur: #f2d13a;
+    --feudum-good-iron: #2a2a2e;
+    --feudum-good-iron-edge: #b8b8c0;
+    --feudum-good-wood: #9a6232;
+    --feudum-good-food: #5da64a;
+    --feudum-seal: #a81c26;
+    --feudum-bead: #e8d9a0;
+    --feudum-shilling: #c9ced6;
+    --feudum-wood-piece: #b8864f;
+    --feudum-wood-dark: #5b3b1e;
+    --feudum-gilt: #c9a24a;
+    --feudum-map-ink: #14110d;
+    --feudum-halo: #111111;
+    --feudum-dim: #1111118c;
+    --feudum-sky-dawn: #f2b45a;
+    --feudum-sky-dusk: #5c4a8a;
+    --feudum-river: #5fb3c4;
+    --feudum-board-frame: #5b3b1e;
+    --feudum-score-cell: #efe3c8;
+    --feudum-print-frame-red: #9f302c;
+    --feudum-print-frame-blue: #4e5992;
+    --feudum-print-frame-green: #5c6139;
+    --feudum-print-frame-purple: #9f548d;
+    --feudum-print-frame-yellow: #c7b041;
+    --feudum-disc-outpost: #8e8096;
+    --feudum-disc-farm: #8c9a3a;
+    --feudum-disc-town: #c9ae2e;
+    --feudum-disc-feudum: #73a08f;
+    --feudum-font-title: 'MedievalSharp', 'IM Fell English', serif;
+    --feudum-font-text: 'IM Fell English', serif;
+}
+
+/* A translucent surface shows the page: over a dark one it can afford more. */
+:where(.dark *) {
+    --feudum-surface: #221d33d9;
+}
+
+@theme inline {
+    --color-feudum-surface: var(--feudum-surface);
+    --color-feudum-surface-raised: var(--feudum-surface-raised);
+    --color-feudum-parchment: var(--feudum-parchment);
+    --color-feudum-parchment-shade: var(--feudum-parchment-shade);
+    --color-feudum-ink: var(--feudum-ink);
+    --color-feudum-frame: var(--feudum-frame);
+    --color-feudum-text: var(--feudum-text);
+    --color-feudum-text-muted: var(--feudum-text-muted);
+    --color-feudum-heading: var(--feudum-heading);
+    --color-feudum-accent: var(--feudum-accent);
+    --color-feudum-accent-soft: var(--feudum-accent-soft);
+    --color-feudum-control: var(--feudum-control);
+    --color-feudum-control-hover: var(--feudum-control-hover);
+    --color-feudum-primary: var(--feudum-primary);
+    --color-feudum-primary-hover: var(--feudum-primary-hover);
+    --color-feudum-primary-text: var(--feudum-primary-text);
+    --color-feudum-primary-border: var(--feudum-primary-border);
+    --color-feudum-danger: var(--feudum-danger);
+    --color-feudum-danger-soft: var(--feudum-danger-soft);
+    --color-feudum-decided: var(--feudum-decided);
+    --color-feudum-divider: var(--feudum-divider);
+    --color-feudum-terrain-sea: var(--feudum-terrain-sea);
+    --color-feudum-terrain-island: var(--feudum-terrain-island);
+    --color-feudum-terrain-forest: var(--feudum-terrain-forest);
+    --color-feudum-terrain-desert: var(--feudum-terrain-desert);
+    --color-feudum-terrain-badlands: var(--feudum-terrain-badlands);
+    --color-feudum-terrain-mountain: var(--feudum-terrain-mountain);
+    --color-feudum-terrain-line: var(--feudum-terrain-line);
+    --color-feudum-route-road: var(--feudum-route-road);
+    --color-feudum-route-ship: var(--feudum-route-ship);
+    --color-feudum-route-submersible: var(--feudum-route-submersible);
+    --color-feudum-route-flying: var(--feudum-route-flying);
+    --color-feudum-route-ferry: var(--feudum-route-ferry);
+    --color-feudum-good-saltpeter: var(--feudum-good-saltpeter);
+    --color-feudum-good-sulfur: var(--feudum-good-sulfur);
+    --color-feudum-good-iron: var(--feudum-good-iron);
+    --color-feudum-good-iron-edge: var(--feudum-good-iron-edge);
+    --color-feudum-good-wood: var(--feudum-good-wood);
+    --color-feudum-good-food: var(--feudum-good-food);
+    --color-feudum-seal: var(--feudum-seal);
+    --color-feudum-bead: var(--feudum-bead);
+    --color-feudum-shilling: var(--feudum-shilling);
+    --color-feudum-wood-piece: var(--feudum-wood-piece);
+    --color-feudum-wood-dark: var(--feudum-wood-dark);
+    --color-feudum-gilt: var(--feudum-gilt);
+    --color-feudum-map-ink: var(--feudum-map-ink);
+    --color-feudum-halo: var(--feudum-halo);
+    --color-feudum-dim: var(--feudum-dim);
+    --color-feudum-sky-dawn: var(--feudum-sky-dawn);
+    --color-feudum-sky-dusk: var(--feudum-sky-dusk);
+    --color-feudum-river: var(--feudum-river);
+    --color-feudum-board-frame: var(--feudum-board-frame);
+    --color-feudum-score-cell: var(--feudum-score-cell);
+    --color-feudum-print-frame-red: var(--feudum-print-frame-red);
+    --color-feudum-print-frame-blue: var(--feudum-print-frame-blue);
+    --color-feudum-print-frame-green: var(--feudum-print-frame-green);
+    --color-feudum-print-frame-purple: var(--feudum-print-frame-purple);
+    --color-feudum-print-frame-yellow: var(--feudum-print-frame-yellow);
+    --color-feudum-disc-outpost: var(--feudum-disc-outpost);
+    --color-feudum-disc-farm: var(--feudum-disc-farm);
+    --color-feudum-disc-town: var(--feudum-disc-town);
+    --color-feudum-disc-feudum: var(--feudum-disc-feudum);
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    /* disable chrome cancel button */
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}
