@@ -1,0 +1,101 @@
+{
+ "game": {
+  "id": "scenario-swap-or-place",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "game-of-y",
+  "deleted": false,
+  "name": "Swap or place",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "swapRule": true,
+   "blackPlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3323893729,
+  "activePlayerIds": [
+   "player-2"
+  ],
+  "createdAt": "2026-11-19T03:29:19.771Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-19T03:29:19.772Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "FKgbbC7kfaCHAA89e2J1e",
+  "gameId": "scenario-swap-or-place",
+  "seed": 3323893729,
+  "prng": {
+   "seed": 3323893729,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "e9e6b209955e904be4abebf237b6015ca51dd1cd72610749872126a08d7c2658",
+   "invocations": 0
+  },
+  "masterSeed": "c4d78ffb22f4a9a5a7d86d1151262c39",
+  "activePlayerIds": [
+   "player-2"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "black"
+   },
+   {
+    "playerId": "player-2",
+    "color": "white"
+   }
+  ],
+  "machineState": "PlacingStones",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-2",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "stones": [
+    {
+     "id": 0,
+     "point": "E5",
+     "color": "black"
+    }
+   ]
+  },
+  "swapped": false
+ },
+ "actions": []
+}
