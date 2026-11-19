@@ -1,6 +1,8 @@
 // Written by scripts/layout-points.mjs: where each point lies on the board, seen from
 // straight above, in board units. The shortest line is 49.20 long.
-export const POINT_PLAN: Readonly<Record<string, { x: number; y: number }>> = {
+import type { Point } from '@tabletop/common'
+
+export const POINT_PLAN: Readonly<Record<string, Point>> = {
     A1: { x: -288.17, y: 166.38 },
     B1: { x: -220.96, y: 201.18 },
     C1: { x: -149.63, y: 226.51 },

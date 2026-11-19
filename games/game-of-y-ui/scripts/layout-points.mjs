@@ -122,7 +122,9 @@ writeFileSync(
     [
         '// Written by scripts/layout-points.mjs: where each point lies on the board, seen from',
         `// straight above, in board units. The shortest line is ${shortest.toFixed(2)} long.`,
-        'export const POINT_PLAN: Readonly<Record<string, { x: number; y: number }>> = {',
+        "import type { Point } from '@tabletop/common'",
+        '',
+        'export const POINT_PLAN: Readonly<Record<string, Point>> = {',
         ...POINTS.map((point) => {
             const [x, y] = at.get(point)
             return `    ${point}: { x: ${round(x)}, y: ${round(y)} },`

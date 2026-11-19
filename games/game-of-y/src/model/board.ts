@@ -2,7 +2,8 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, Color, Hydratable } from '@tabletop/common'
 import { Side } from './points.js'
-import { BoardShape, gridOf, MOST_STONES, type BoardGrid } from './grids.js'
+import { BoardShape } from './boardShape.js'
+import { gridOf, MOST_STONES, type BoardGrid } from './grids.js'
 
 export type StoneColor = Type.Static<typeof StoneColor>
 export const StoneColor = Type.Union([Type.Literal(Color.Black), Type.Literal(Color.White)])

@@ -1,8 +1,7 @@
+import type { Point } from '@tabletop/common'
 import { gridOf, type BoardShape, type Stone } from '@tabletop/game-of-y'
 import { boardView, planOf, STONE_RADIUS, type Label } from './geometry.js'
 import { seededRandom } from './random.js'
-
-type Point = { x: number; y: number }
 
 // A board's labels as both views and both looks place them, so a stone lies in the same place
 // whichever is shown.

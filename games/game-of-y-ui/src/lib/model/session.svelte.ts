@@ -3,7 +3,6 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { Color } from '@tabletop/common'
 import {
     ActionType,
     PlaceStone,
@@ -77,9 +76,7 @@ export class YGameSession extends GameSession<YGameState, HydratedYGameState> {
     }
 
     colorOf(playerId: string): StoneColor {
-        return this.gameState.getPlayerState(playerId).color === Color.Black
-            ? Color.Black
-            : Color.White
+        return this.gameState.colorOf(playerId)
     }
 
     get presentingState(): HydratedYGameState | undefined {

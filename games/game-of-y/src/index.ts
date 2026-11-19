@@ -10,6 +10,7 @@ export * from './actions/placeStone.js'
 export * from './actions/swapColors.js'
 
 export * from './model/board.js'
+export * from './model/boardShape.js'
 export * from './model/grids.js'
 export * from './model/gameState.js'
 export * from './model/playerState.js'

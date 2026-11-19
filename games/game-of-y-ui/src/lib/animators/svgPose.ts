@@ -1,5 +1,3 @@
-import { gsap } from 'gsap'
-
 // Firefox 140 leaves the offset of an SVG matrix() transform out of a CSS zoom, and the board is
 // drawn under one at view scale. GSAP writes x, y and scale as matrix(), so moving pieces tween a
 // plain pose that writes translate() and scale() itself.
@@ -61,20 +59,4 @@ export function poseOf(node: SVGElement): Pose {
 
 export function setPose(node: SVGElement, pose: Partial<Pose>) {
     Object.assign(poseOf(node), pose)
-}
-
-export function tweenPose(node: SVGElement, vars: gsap.TweenVars & Partial<Pose>) {
-    return gsap.to(poseOf(node), vars)
-}
-
-export function fromToPose(
-    node: SVGElement,
-    from: Partial<Pose>,
-    to: gsap.TweenVars & Partial<Pose>
-) {
-    return gsap.fromTo(poseOf(node), from, to)
-}
-
-export function killPose(node: SVGElement) {
-    gsap.killTweensOf(poseOf(node))
 }

@@ -52,7 +52,7 @@ const LABEL_TAPER = 2
 // How much of a stone's dome a label above it keeps clear of.
 const DOME_CLEARANCE = 0.55
 
-export function labelHalfWidth(text: string): number {
+function labelHalfWidth(text: string): number {
     return text.length * LABEL_SIZE * 0.31
 }
 // Room round everything drawn, for the zoom bar and the toggles.
@@ -95,7 +95,7 @@ export function center(shape: BoardShape, point: string, tilt: number): Point {
     return { x, y: y * tilt }
 }
 
-export function toScreen({ x, y }: Point, tilt: number, height = 0): Point {
+function toScreen({ x, y }: Point, tilt: number, height = 0): Point {
     return { x, y: y * tilt - height * riseOf(tilt) }
 }
 
@@ -342,8 +342,12 @@ function boxOf(points: readonly Point[]): Box {
     return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y }
 }
 
-export class BoardView {
+// A board as one view shows it: everything the board draws, in screen units.
+export type BoardView = {
+    readonly shape: BoardShape
+    readonly tilt: number
     readonly rise: number
+    readonly flat: boolean
     readonly points: readonly string[]
     readonly outline: string
     // The top and its edge together: the far half of the top's outline and the near half lowered
@@ -355,62 +359,57 @@ export class BoardView {
     // Labels clear of the hexagons, on a hex board drawn as hexagons.
     readonly cellLabels: Label[]
     readonly frame: Box
+    readonly viewBox: string
     readonly woodBox: Box
     // The lines joining neighbouring points, as one path.
     readonly lines: string
     // A hex board's cells drawn as hexagons, as one path.
     readonly cells: string | undefined
+    center(point: string): Point
+}
 
-    constructor(
-        readonly shape: BoardShape,
-        readonly tilt: number
-    ) {
-        this.rise = riseOf(tilt)
-        this.points = gridOf(shape).points
-        const hex = hexSizeOf(shape) !== undefined
-        const plain = hex ? hexOutline(shape) : kadonOutline()
-        const screen = plain.map((p) => toScreen(p, tilt))
-        this.outline = pathOf(screen)
-        const drop = BOARD_THICKNESS * this.rise
-        const slab = slabOutline(screen, drop)
-        this.slab = pathOf(slab)
-        const sides = [
-            screen.reduce((a, b) => (b.x < a.x ? b : a)),
-            screen.reduce((a, b) => (b.x > a.x ? b : a))
-        ]
-        const slabBox = boxOf(slab)
-        const edgeTop = Math.min(...sides.map((p) => p.y))
-        this.edgeBox = {
+function makeBoardView(shape: BoardShape, tilt: number): BoardView {
+    const rise = riseOf(tilt)
+    const hex = hexSizeOf(shape) !== undefined
+    const plain = hex ? hexOutline(shape) : kadonOutline()
+    const screen = plain.map((p) => toScreen(p, tilt))
+    const slab = slabOutline(screen, BOARD_THICKNESS * rise)
+    const sides = [
+        screen.reduce((a, b) => (b.x < a.x ? b : a)),
+        screen.reduce((a, b) => (b.x > a.x ? b : a))
+    ]
+    const slabBox = boxOf(slab)
+    const edgeTop = Math.min(...sides.map((p) => p.y))
+    const labels = hex ? hexLabels(shape, tilt, false) : kadonLabels(tilt)
+    const all = boxOf([...screen, ...slab])
+    const frame = {
+        x: all.x - FRAME_MARGIN,
+        y: all.y - FRAME_MARGIN,
+        width: all.width + FRAME_MARGIN * 2,
+        height: all.height + FRAME_MARGIN * 2
+    }
+    return {
+        shape,
+        tilt,
+        rise,
+        flat: tilt === FLAT,
+        points: gridOf(shape).points,
+        outline: pathOf(screen),
+        slab: pathOf(slab),
+        edgeBox: {
             x: slabBox.x,
             y: edgeTop,
             width: slabBox.width,
             height: slabBox.y + slabBox.height - edgeTop
-        }
-        this.labels = hex ? hexLabels(shape, tilt, false) : kadonLabels(tilt)
-        this.cellLabels = hex ? hexLabels(shape, tilt, true) : this.labels
-        this.lines = linesOf(shape, tilt)
-        this.cells = hex ? hexCells(shape, tilt) : undefined
-        this.woodBox = boxOf(screen)
-        const all = boxOf([...screen, ...slab])
-        this.frame = {
-            x: all.x - FRAME_MARGIN,
-            y: all.y - FRAME_MARGIN,
-            width: all.width + FRAME_MARGIN * 2,
-            height: all.height + FRAME_MARGIN * 2
-        }
-    }
-
-    get viewBox(): string {
-        const { x, y, width, height } = this.frame
-        return `${x} ${y} ${width} ${height}`
-    }
-
-    get flat(): boolean {
-        return this.tilt === FLAT
-    }
-
-    center(point: string): Point {
-        return center(this.shape, point, this.tilt)
+        },
+        labels,
+        cellLabels: hex ? hexLabels(shape, tilt, true) : labels,
+        frame,
+        viewBox: `${frame.x} ${frame.y} ${frame.width} ${frame.height}`,
+        woodBox: boxOf(screen),
+        lines: linesOf(shape, tilt),
+        cells: hex ? hexCells(shape, tilt) : undefined,
+        center: (point) => center(shape, point, tilt)
     }
 }
 
@@ -421,7 +420,7 @@ export function boardView(shape: BoardShape, flat: boolean): BoardView {
     const key = `${shape}-${flat}`
     let view = VIEWS.get(key)
     if (view === undefined) {
-        view = new BoardView(shape, flat ? FLAT : TILT)
+        view = makeBoardView(shape, flat ? FLAT : TILT)
         VIEWS.set(key, view)
     }
     return view

@@ -6,12 +6,16 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const session = getGameSession()
+    // Full screen draws a second header in its dialog; each anchors its own guide.
+    const uid = $props.id()
+    const headerId = `y-header-${uid}`
+    const guideId = `y-coordinate-guide-${uid}`
 
     const currentTurnPlayerId = $derived(session.gameState.turnManager.currentTurn()?.playerId)
 </script>
 
 <div
-    id="y-header"
+    id={headerId}
     class="relative flex h-[44px] items-center justify-between px-4 tracking-[0.08em] text-(--y-table-ink) max-sm:h-[30px] max-sm:px-1"
 >
     <div class="header-grid grid text-[18px] max-sm:text-[14px]">
@@ -50,16 +54,16 @@
         {#if !session.isHexBoard}
             <button
                 type="button"
-                id="y-coordinate-guide"
+                id={guideId}
                 class="guide-button"
                 aria-label="How the points are named"
                 title="How the points are named">?</button
             >
             <Popover
-                reference="#y-header"
+                reference="#{headerId}"
                 classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
                 placement="bottom"
-                triggeredBy="#y-coordinate-guide"
+                triggeredBy="#{guideId}"
                 trigger="click"
                 offset={8}
                 arrow={false}><CoordinateGuide /></Popover

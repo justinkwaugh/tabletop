@@ -51,17 +51,27 @@ export async function openScenario(page: Page, name: string, { clock = false } =
     await ready(page)
 }
 
-export async function createGame(page: Page) {
+// `board` names a choice of the form's Board option, Kadon's board by default.
+export async function createGame(page: Page, { board }: { board?: string } = {}) {
     await exposeSession(page)
     await page.goto('/', { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'New game', exact: true }).click()
     await page.getByPlaceholder('choose a name for your game').fill('Table')
+    if (board) {
+        await page
+            .locator('select')
+            .filter({ has: page.locator('option', { hasText: board }) })
+            .selectOption({ label: board })
+    }
     await page
         .getByPlaceholder('optional reproduction seed')
         .fill('0123456789abcdef0123456789abcdef')
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
+    // The form's modal dialog keeps the board inert, out of reach of the keyboard, until it has
+    // closed.
+    await expect(page.locator('dialog[open][class*="backdrop:"]')).toHaveCount(0)
     await ready(page)
 }
 

@@ -137,3 +137,70 @@ for (const point of [TOP_CORNER, ...shuffled]) {
 }
 write('crowded-board', 'Crowded board', position(crowd))
 console.log(`Crowded board: ${crowd.black.length} black, ${crowd.white.length} white`)
+
+// A finished game in a top-down photo of a Kadon board, one stone short: Black's F1 joins the
+// three sides. The cover is this board after F1.
+write(
+    'cover-position',
+    'Cover position',
+    position({
+        swapped: true,
+        black: [
+            'A1',
+            'A2',
+            'A6',
+            'B7',
+            'C4',
+            'C6',
+            'C7',
+            'D6',
+            'E2',
+            'E3',
+            'E7',
+            'F5',
+            'F7',
+            'F8',
+            'G2',
+            'G3',
+            'G7',
+            'H3',
+            'I4',
+            'I6',
+            'J3',
+            'J5',
+            'J6',
+            'K3',
+            'L5',
+            'M5'
+        ],
+        white: [
+            'A3',
+            'A7',
+            'B2',
+            'B3',
+            'B5',
+            'B6',
+            'C2',
+            'D1',
+            'D7',
+            'D8',
+            'E8',
+            'F2',
+            'F3',
+            'F6',
+            'G1',
+            'G4',
+            'G5',
+            'H4',
+            'H5',
+            'H7',
+            'I3',
+            'J2',
+            'J4',
+            'J7',
+            'K4',
+            'K5',
+            'K6'
+        ]
+    })
+)

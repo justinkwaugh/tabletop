@@ -1,13 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import { isPoint, neighborsOf, POINTS, Side, sidesOf } from './points.js'
-
-// The board a game is played on: Kadon's curved board of 93 points, or a triangle of hexagons.
-export enum BoardShape {
-    Kadon = 'Kadon',
-    Hex9 = 'Hex9',
-    Hex13 = 'Hex13',
-    Hex19 = 'Hex19'
-}
+import { BoardShape } from './boardShape.js'
 
 // The places a board holds, which touch which, and which sides each lies on.
 export type BoardGrid = {

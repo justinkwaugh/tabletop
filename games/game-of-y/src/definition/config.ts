@@ -8,7 +8,7 @@ import {
     type GameConfigOptions
 } from '@tabletop/common'
 
-import { BoardShape } from '../model/grids.js'
+import { BoardShape } from '../model/boardShape.js'
 
 export enum BlackPlayer {
     Random = 'Random',
