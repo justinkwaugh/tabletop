@@ -40,8 +40,7 @@
 }
 
 :root {
-    /* A pale sand table (the user's pick of stone, linen, sage, mist and sand), so the white cells
-       and the board's red and blue edges stand out. */
+    /* A pale sand table, so the white cells and the board's red and blue edges stand out. */
     --hex-table: #eadcbf;
     --hex-table-deep: #dbc9a6;
     /* Cards and controls on near-white panels, lifted by a soft shadow, to stand out on the sand. */

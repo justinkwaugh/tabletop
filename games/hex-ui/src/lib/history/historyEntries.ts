@@ -22,14 +22,14 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     return actions.flatMap((action, index): HistoryEntry[] => {
         const span = { id: action.id, firstIndex: index, lastIndex: index }
         if (isPlaceStone(action)) {
-            assertExists(action.metadata, 'A processed placement records its stone')
+            assertExists(action.metadata, 'A processed placement records its colour')
             return [
                 {
                     ...span,
                     kind: 'place',
                     playerId: action.playerId,
                     cell: action.cell,
-                    color: action.metadata.stone.color,
+                    color: action.metadata.color,
                     joinsEdges: action.metadata.joinsEdges
                 }
             ]

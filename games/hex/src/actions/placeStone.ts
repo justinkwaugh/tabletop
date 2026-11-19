@@ -3,11 +3,11 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedHexGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { Stone } from '../model/board.js'
+import { StoneColor } from '../model/board.js'
 
 export type PlaceStoneMetadata = Type.Static<typeof PlaceStoneMetadata>
 export const PlaceStoneMetadata = Type.Object({
-    stone: Stone,
+    color: StoneColor,
     // Whether the stone joins the placer's two edges, which wins.
     joinsEdges: Type.Boolean()
 })
@@ -47,7 +47,7 @@ export class HydratedPlaceStone extends HydratableAction<typeof PlaceStone> impl
         }
         const stone = state.placeStone(this.playerId, this.cell)
         this.metadata = {
-            stone: structuredClone(stone),
+            color: stone.color,
             joinsEdges: state.board.joinsEdges(state.board.chainAt(this.cell), stone.color)
         }
     }

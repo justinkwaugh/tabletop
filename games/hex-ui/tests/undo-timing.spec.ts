@@ -95,3 +95,37 @@ test('history steps back and forward, and jumps to either end, marking the winni
     await act(page, () => window.hexSession.history.goToEnd())
     await expectActionlessWithinBudget(page)
 })
+
+// Whether any cell is drawn filling or draining while `run`'s step plays.
+async function drawsFills(page: Page, run: () => unknown): Promise<boolean> {
+    await page.evaluate(() => {
+        const board = document.querySelector('svg.hex-board')
+        if (board === null) throw Error('The board is drawn')
+        Reflect.set(window, 'sawFill', false)
+        const watch = new MutationObserver(() => {
+            if (board.querySelector('.stone [clip-path]')) Reflect.set(window, 'sawFill', true)
+        })
+        watch.observe(board, { childList: true, subtree: true })
+        Reflect.set(window, 'fillWatch', watch)
+    })
+    await act(page, run)
+    return page.evaluate(() => {
+        Reflect.get(window, 'fillWatch').disconnect()
+        return Reflect.get(window, 'sawFill') as boolean
+    })
+}
+
+test('a history jump across many cells shows them at once, and a step fills its cell', async ({
+    page
+}) => {
+    await openScenario(page, 'Swap or place')
+    for (const cell of ['A1', 'K11', 'A11', 'K1', 'B2', 'J10']) {
+        await page.evaluate((cell) => window.hexSession.placeStone(cell), cell)
+        await settle(page)
+    }
+    await timeSteps(page)
+    expect(await drawsFills(page, () => window.hexSession.history.goToPreviousAction())).toBe(true)
+    expect(await drawsFills(page, () => window.hexSession.history.goToBeginning())).toBe(false)
+    expect(await drawsFills(page, () => window.hexSession.history.goToEnd())).toBe(false)
+    await expectActionlessWithinBudget(page)
+})

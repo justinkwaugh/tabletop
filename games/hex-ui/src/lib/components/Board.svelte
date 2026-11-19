@@ -142,8 +142,7 @@
 
         {#if animator.win}
             <!-- The winning chain's line, edge to edge: a pale tint of the winner's colour on a
-                 white edge (the user's pick of white, tint, cyan or white on dark, and the tint
-                 alone or edged in white or black). -->
+                 white edge. -->
             {@const { line, color } = animator.win}
             <g class="win-line {color}">
                 <path d={line.d} class="under" {@attach animator.line('under')}></path>
@@ -153,21 +152,22 @@
 
         <g class="targets">
             {#each layout.grid.cells as cell (cell)}
-                {#if session.placeable.has(cell)}
-                    {@const at = layout.center(cell)}
-                    <path
-                        d={HEX_PATH}
-                        transform="translate({at.x} {at.y})"
-                        class="target"
-                        role="button"
-                        tabindex="0"
-                        aria-label="place on {cell}"
-                        onclick={() => place(cell)}
-                        onkeydown={(event) => onKey(event, cell)}
-                        onpointerenter={(event) => onPointerEnter(event, cell)}
-                        onpointerleave={() => (hovered = undefined)}
-                    ></path>
-                {/if}
+                {@const open = session.placeable.has(cell)}
+                {@const at = layout.center(cell)}
+                <path
+                    d={HEX_PATH}
+                    transform="translate({at.x} {at.y})"
+                    class="target"
+                    class:open
+                    role="button"
+                    tabindex={open ? 0 : -1}
+                    aria-label={open ? `place on ${cell}` : undefined}
+                    aria-hidden={!open}
+                    onclick={() => place(cell)}
+                    onkeydown={(event) => onKey(event, cell)}
+                    onpointerenter={(event) => onPointerEnter(event, cell)}
+                    onpointerleave={() => (hovered = undefined)}
+                ></path>
             {/each}
         </g>
     </g>
@@ -271,8 +271,13 @@
 
     .target {
         fill: transparent;
-        cursor: pointer;
         outline: none;
+        pointer-events: none;
+    }
+
+    .target.open {
+        cursor: pointer;
+        pointer-events: all;
     }
 
     .target:focus-visible {

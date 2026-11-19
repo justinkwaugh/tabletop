@@ -1,0 +1,898 @@
+{
+ "game": {
+  "id": "scenario-big-board",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "hex",
+  "deleted": false,
+  "name": "Big board",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "size": "Nineteen",
+   "swapRule": true,
+   "redPlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 730032570,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-19T16:36:42.257Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-19T16:36:42.258Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "065lL3NNQwfabZR9EgjsB",
+  "gameId": "scenario-big-board",
+  "seed": 730032570,
+  "prng": {
+   "seed": 730032570,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "a4e23829d3ea8149477d29e9b43ead744166ca3d4a46303abd8b942e8ebf498d",
+   "invocations": 0
+  },
+  "masterSeed": "f5d964b6178910d8c4ff0bf24a5e2609",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "red"
+   },
+   {
+    "playerId": "player-2",
+    "color": "blue"
+   }
+  ],
+  "machineState": "PlacingStones",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "size": "Nineteen",
+   "stones": [
+    {
+     "id": 0,
+     "cell": "K8",
+     "color": "red"
+    },
+    {
+     "id": 1,
+     "cell": "J14",
+     "color": "blue"
+    },
+    {
+     "id": 2,
+     "cell": "D17",
+     "color": "red"
+    },
+    {
+     "id": 3,
+     "cell": "D14",
+     "color": "blue"
+    },
+    {
+     "id": 4,
+     "cell": "I14",
+     "color": "red"
+    },
+    {
+     "id": 5,
+     "cell": "H6",
+     "color": "blue"
+    },
+    {
+     "id": 6,
+     "cell": "N10",
+     "color": "red"
+    },
+    {
+     "id": 7,
+     "cell": "O10",
+     "color": "blue"
+    },
+    {
+     "id": 8,
+     "cell": "P7",
+     "color": "red"
+    },
+    {
+     "id": 9,
+     "cell": "B6",
+     "color": "blue"
+    },
+    {
+     "id": 10,
+     "cell": "C15",
+     "color": "red"
+    },
+    {
+     "id": 11,
+     "cell": "C6",
+     "color": "blue"
+    },
+    {
+     "id": 12,
+     "cell": "M11",
+     "color": "red"
+    },
+    {
+     "id": 13,
+     "cell": "K14",
+     "color": "blue"
+    },
+    {
+     "id": 14,
+     "cell": "A6",
+     "color": "red"
+    },
+    {
+     "id": 15,
+     "cell": "N12",
+     "color": "blue"
+    },
+    {
+     "id": 16,
+     "cell": "B12",
+     "color": "red"
+    },
+    {
+     "id": 17,
+     "cell": "Q12",
+     "color": "blue"
+    },
+    {
+     "id": 18,
+     "cell": "Q6",
+     "color": "red"
+    },
+    {
+     "id": 19,
+     "cell": "H15",
+     "color": "blue"
+    },
+    {
+     "id": 20,
+     "cell": "C7",
+     "color": "red"
+    },
+    {
+     "id": 21,
+     "cell": "G8",
+     "color": "blue"
+    },
+    {
+     "id": 22,
+     "cell": "L7",
+     "color": "red"
+    },
+    {
+     "id": 23,
+     "cell": "R14",
+     "color": "blue"
+    },
+    {
+     "id": 24,
+     "cell": "S11",
+     "color": "red"
+    },
+    {
+     "id": 25,
+     "cell": "Q13",
+     "color": "blue"
+    },
+    {
+     "id": 26,
+     "cell": "S6",
+     "color": "red"
+    },
+    {
+     "id": 27,
+     "cell": "A11",
+     "color": "blue"
+    },
+    {
+     "id": 28,
+     "cell": "E15",
+     "color": "red"
+    },
+    {
+     "id": 29,
+     "cell": "K12",
+     "color": "blue"
+    },
+    {
+     "id": 30,
+     "cell": "G13",
+     "color": "red"
+    },
+    {
+     "id": 31,
+     "cell": "L9",
+     "color": "blue"
+    },
+    {
+     "id": 32,
+     "cell": "K7",
+     "color": "red"
+    },
+    {
+     "id": 33,
+     "cell": "J13",
+     "color": "blue"
+    },
+    {
+     "id": 34,
+     "cell": "J12",
+     "color": "red"
+    },
+    {
+     "id": 35,
+     "cell": "N11",
+     "color": "blue"
+    },
+    {
+     "id": 36,
+     "cell": "N15",
+     "color": "red"
+    },
+    {
+     "id": 37,
+     "cell": "E11",
+     "color": "blue"
+    },
+    {
+     "id": 38,
+     "cell": "C16",
+     "color": "red"
+    },
+    {
+     "id": 39,
+     "cell": "J10",
+     "color": "blue"
+    },
+    {
+     "id": 40,
+     "cell": "C8",
+     "color": "red"
+    },
+    {
+     "id": 41,
+     "cell": "A17",
+     "color": "blue"
+    },
+    {
+     "id": 42,
+     "cell": "G9",
+     "color": "red"
+    },
+    {
+     "id": 43,
+     "cell": "M10",
+     "color": "blue"
+    },
+    {
+     "id": 44,
+     "cell": "E14",
+     "color": "red"
+    },
+    {
+     "id": 45,
+     "cell": "M16",
+     "color": "blue"
+    },
+    {
+     "id": 46,
+     "cell": "O12",
+     "color": "red"
+    },
+    {
+     "id": 47,
+     "cell": "Q16",
+     "color": "blue"
+    },
+    {
+     "id": 48,
+     "cell": "M17",
+     "color": "red"
+    },
+    {
+     "id": 49,
+     "cell": "B9",
+     "color": "blue"
+    },
+    {
+     "id": 50,
+     "cell": "I7",
+     "color": "red"
+    },
+    {
+     "id": 51,
+     "cell": "S15",
+     "color": "blue"
+    },
+    {
+     "id": 52,
+     "cell": "H14",
+     "color": "red"
+    },
+    {
+     "id": 53,
+     "cell": "B13",
+     "color": "blue"
+    },
+    {
+     "id": 54,
+     "cell": "F8",
+     "color": "red"
+    },
+    {
+     "id": 55,
+     "cell": "L14",
+     "color": "blue"
+    },
+    {
+     "id": 56,
+     "cell": "E8",
+     "color": "red"
+    },
+    {
+     "id": 57,
+     "cell": "A15",
+     "color": "blue"
+    },
+    {
+     "id": 58,
+     "cell": "P6",
+     "color": "red"
+    },
+    {
+     "id": 59,
+     "cell": "P8",
+     "color": "blue"
+    },
+    {
+     "id": 60,
+     "cell": "J9",
+     "color": "red"
+    },
+    {
+     "id": 61,
+     "cell": "E16",
+     "color": "blue"
+    },
+    {
+     "id": 62,
+     "cell": "F15",
+     "color": "red"
+    },
+    {
+     "id": 63,
+     "cell": "J11",
+     "color": "blue"
+    },
+    {
+     "id": 64,
+     "cell": "D9",
+     "color": "red"
+    },
+    {
+     "id": 65,
+     "cell": "Q11",
+     "color": "blue"
+    },
+    {
+     "id": 66,
+     "cell": "M8",
+     "color": "red"
+    },
+    {
+     "id": 67,
+     "cell": "I6",
+     "color": "blue"
+    },
+    {
+     "id": 68,
+     "cell": "H10",
+     "color": "red"
+    },
+    {
+     "id": 69,
+     "cell": "H16",
+     "color": "blue"
+    },
+    {
+     "id": 70,
+     "cell": "P10",
+     "color": "red"
+    },
+    {
+     "id": 71,
+     "cell": "Q7",
+     "color": "blue"
+    },
+    {
+     "id": 72,
+     "cell": "E10",
+     "color": "red"
+    },
+    {
+     "id": 73,
+     "cell": "Q15",
+     "color": "blue"
+    },
+    {
+     "id": 74,
+     "cell": "H9",
+     "color": "red"
+    },
+    {
+     "id": 75,
+     "cell": "L13",
+     "color": "blue"
+    },
+    {
+     "id": 76,
+     "cell": "O15",
+     "color": "red"
+    },
+    {
+     "id": 77,
+     "cell": "I8",
+     "color": "blue"
+    },
+    {
+     "id": 78,
+     "cell": "I10",
+     "color": "red"
+    },
+    {
+     "id": 79,
+     "cell": "F12",
+     "color": "blue"
+    },
+    {
+     "id": 80,
+     "cell": "O9",
+     "color": "red"
+    },
+    {
+     "id": 81,
+     "cell": "L6",
+     "color": "blue"
+    },
+    {
+     "id": 82,
+     "cell": "R13",
+     "color": "red"
+    },
+    {
+     "id": 83,
+     "cell": "A8",
+     "color": "blue"
+    },
+    {
+     "id": 84,
+     "cell": "R8",
+     "color": "red"
+    },
+    {
+     "id": 85,
+     "cell": "K11",
+     "color": "blue"
+    },
+    {
+     "id": 86,
+     "cell": "A9",
+     "color": "red"
+    },
+    {
+     "id": 87,
+     "cell": "F11",
+     "color": "blue"
+    },
+    {
+     "id": 88,
+     "cell": "D8",
+     "color": "red"
+    },
+    {
+     "id": 89,
+     "cell": "C10",
+     "color": "blue"
+    },
+    {
+     "id": 90,
+     "cell": "P15",
+     "color": "red"
+    },
+    {
+     "id": 91,
+     "cell": "R17",
+     "color": "blue"
+    },
+    {
+     "id": 92,
+     "cell": "L8",
+     "color": "red"
+    },
+    {
+     "id": 93,
+     "cell": "D6",
+     "color": "blue"
+    },
+    {
+     "id": 94,
+     "cell": "J8",
+     "color": "red"
+    },
+    {
+     "id": 95,
+     "cell": "J2",
+     "color": "blue"
+    },
+    {
+     "id": 96,
+     "cell": "O13",
+     "color": "red"
+    },
+    {
+     "id": 97,
+     "cell": "Q9",
+     "color": "blue"
+    },
+    {
+     "id": 98,
+     "cell": "K17",
+     "color": "red"
+    },
+    {
+     "id": 99,
+     "cell": "M6",
+     "color": "blue"
+    },
+    {
+     "id": 100,
+     "cell": "I3",
+     "color": "red"
+    },
+    {
+     "id": 101,
+     "cell": "H11",
+     "color": "blue"
+    },
+    {
+     "id": 102,
+     "cell": "N6",
+     "color": "red"
+    },
+    {
+     "id": 103,
+     "cell": "N13",
+     "color": "blue"
+    },
+    {
+     "id": 104,
+     "cell": "S5",
+     "color": "red"
+    },
+    {
+     "id": 105,
+     "cell": "L17",
+     "color": "blue"
+    },
+    {
+     "id": 106,
+     "cell": "G10",
+     "color": "red"
+    },
+    {
+     "id": 107,
+     "cell": "A5",
+     "color": "blue"
+    },
+    {
+     "id": 108,
+     "cell": "L3",
+     "color": "red"
+    },
+    {
+     "id": 109,
+     "cell": "Q4",
+     "color": "blue"
+    },
+    {
+     "id": 110,
+     "cell": "R15",
+     "color": "red"
+    },
+    {
+     "id": 111,
+     "cell": "I9",
+     "color": "blue"
+    },
+    {
+     "id": 112,
+     "cell": "K16",
+     "color": "red"
+    },
+    {
+     "id": 113,
+     "cell": "N2",
+     "color": "blue"
+    },
+    {
+     "id": 114,
+     "cell": "S8",
+     "color": "red"
+    },
+    {
+     "id": 115,
+     "cell": "O17",
+     "color": "blue"
+    },
+    {
+     "id": 116,
+     "cell": "L12",
+     "color": "red"
+    },
+    {
+     "id": 117,
+     "cell": "Q14",
+     "color": "blue"
+    },
+    {
+     "id": 118,
+     "cell": "R16",
+     "color": "red"
+    },
+    {
+     "id": 119,
+     "cell": "P17",
+     "color": "blue"
+    },
+    {
+     "id": 120,
+     "cell": "F17",
+     "color": "red"
+    },
+    {
+     "id": 121,
+     "cell": "E3",
+     "color": "blue"
+    },
+    {
+     "id": 122,
+     "cell": "R3",
+     "color": "red"
+    },
+    {
+     "id": 123,
+     "cell": "N17",
+     "color": "blue"
+    },
+    {
+     "id": 124,
+     "cell": "O7",
+     "color": "red"
+    },
+    {
+     "id": 125,
+     "cell": "S14",
+     "color": "blue"
+    },
+    {
+     "id": 126,
+     "cell": "D15",
+     "color": "red"
+    },
+    {
+     "id": 127,
+     "cell": "A16",
+     "color": "blue"
+    },
+    {
+     "id": 128,
+     "cell": "S9",
+     "color": "red"
+    },
+    {
+     "id": 129,
+     "cell": "G7",
+     "color": "blue"
+    },
+    {
+     "id": 130,
+     "cell": "K1",
+     "color": "red"
+    },
+    {
+     "id": 131,
+     "cell": "I12",
+     "color": "blue"
+    },
+    {
+     "id": 132,
+     "cell": "Q10",
+     "color": "red"
+    },
+    {
+     "id": 133,
+     "cell": "K15",
+     "color": "blue"
+    },
+    {
+     "id": 134,
+     "cell": "F16",
+     "color": "red"
+    },
+    {
+     "id": 135,
+     "cell": "A14",
+     "color": "blue"
+    },
+    {
+     "id": 136,
+     "cell": "O6",
+     "color": "red"
+    },
+    {
+     "id": 137,
+     "cell": "A1",
+     "color": "blue"
+    },
+    {
+     "id": 138,
+     "cell": "O11",
+     "color": "red"
+    },
+    {
+     "id": 139,
+     "cell": "B7",
+     "color": "blue"
+    },
+    {
+     "id": 140,
+     "cell": "N14",
+     "color": "red"
+    },
+    {
+     "id": 141,
+     "cell": "A2",
+     "color": "blue"
+    },
+    {
+     "id": 142,
+     "cell": "M12",
+     "color": "red"
+    },
+    {
+     "id": 143,
+     "cell": "O16",
+     "color": "blue"
+    },
+    {
+     "id": 144,
+     "cell": "R5",
+     "color": "red"
+    },
+    {
+     "id": 145,
+     "cell": "G17",
+     "color": "blue"
+    },
+    {
+     "id": 146,
+     "cell": "H4",
+     "color": "red"
+    },
+    {
+     "id": 147,
+     "cell": "C9",
+     "color": "blue"
+    },
+    {
+     "id": 148,
+     "cell": "R9",
+     "color": "red"
+    },
+    {
+     "id": 149,
+     "cell": "D10",
+     "color": "blue"
+    },
+    {
+     "id": 150,
+     "cell": "G2",
+     "color": "red"
+    },
+    {
+     "id": 151,
+     "cell": "F1",
+     "color": "blue"
+    },
+    {
+     "id": 152,
+     "cell": "S4",
+     "color": "red"
+    },
+    {
+     "id": 153,
+     "cell": "R6",
+     "color": "blue"
+    },
+    {
+     "id": 154,
+     "cell": "Q5",
+     "color": "red"
+    },
+    {
+     "id": 155,
+     "cell": "J7",
+     "color": "blue"
+    },
+    {
+     "id": 156,
+     "cell": "B1",
+     "color": "red"
+    },
+    {
+     "id": 157,
+     "cell": "O4",
+     "color": "blue"
+    },
+    {
+     "id": 158,
+     "cell": "B10",
+     "color": "red"
+    },
+    {
+     "id": 159,
+     "cell": "H13",
+     "color": "blue"
+    }
+   ]
+  },
+  "swapped": false
+ },
+ "actions": []
+}

@@ -85,8 +85,10 @@
         border-radius: 6px;
     }
 
-    .entry:hover {
-        background: var(--hex-panel-hover);
+    @media (hover: hover) {
+        .entry:hover {
+            background: var(--hex-panel-hover);
+        }
     }
 
     .entry.replaying {

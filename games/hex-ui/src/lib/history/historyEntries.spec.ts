@@ -15,7 +15,7 @@ describe('historyEntries', () => {
             action('a', {
                 type: ActionType.PlaceStone,
                 cell: 'F6',
-                metadata: { stone: { id: 0, cell: 'F6', color: Color.Red }, joinsEdges: false }
+                metadata: { color: Color.Red, joinsEdges: false }
             }),
             action('b', { type: ActionType.SwapColors })
         ])

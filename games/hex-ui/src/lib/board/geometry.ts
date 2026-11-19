@@ -321,8 +321,7 @@ export function isIsolated({ origins }: Growth): boolean {
 }
 
 // The shape an isolated fill spreads as, at full size: a soft hexagon, its corners rounded over
-// 0.35 of its corner radius either side (the user's pick of 0.15 to 0.5 and a disc), large
-// enough that its rounded corners cover the cell's.
+// 0.35 of its corner radius either side, large enough that its rounded corners cover the cell's.
 const SPREAD_ROUND = 0.35
 const SPREAD_RADIUS = (CELL_RADIUS + GOO_SPARE) / (1 - 0.25 * SPREAD_ROUND)
 export const SPREAD_PATH = roundedHexagon(SPREAD_RADIUS, SPREAD_RADIUS * SPREAD_ROUND)

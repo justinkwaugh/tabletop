@@ -12,14 +12,14 @@ const engine = new GameEngine(HexRuntime)
 const FIRST = 'player-1'
 const SECOND = 'player-2'
 
-// Alice plays Red and Bob Blue, on the 11 board; `toMove` is whose turn it is.
-function position({ red, blue, toMove = FIRST, swapped = false }) {
+// Alice plays Red and Bob Blue, on the 11 board unless `size` says; `toMove` is whose turn it is.
+function position({ red, blue, toMove = FIRST, swapped = false, size = BoardSize.Eleven }) {
     const game = HexRuntime.initializer.initializeGame(
         {
             id: 'scenario',
             typeId: 'hex',
             ownerId: 'owner',
-            config: defaultGameConfig(HexInfo.configurator?.options ?? []),
+            config: { ...defaultGameConfig(HexInfo.configurator?.options ?? []), size },
             players: [FIRST, SECOND].map((id, index) => ({
                 id,
                 name: index === 0 ? 'Alice' : 'Bob',
@@ -32,7 +32,7 @@ function position({ red, blue, toMove = FIRST, swapped = false }) {
     const { startedGame, initialState: state } = engine.startGame(game, {
         startingPositions: { playerIds: [FIRST, SECOND] }
     })
-    const board = new HydratedHexBoard({ size: BoardSize.Eleven, stones: [] })
+    const board = new HydratedHexBoard({ size, stones: [] })
     const order = Math.max(red.length, blue.length)
     for (let index = 0; index < order; index++) {
         if (red[index]) board.place(red[index], Color.Red)
@@ -41,7 +41,7 @@ function position({ red, blue, toMove = FIRST, swapped = false }) {
     for (const color of [Color.Red, Color.Blue]) {
         if (board.winningChainOf(color)) throw Error(`${color} has already won`)
     }
-    state.board = { size: BoardSize.Eleven, stones: board.stones }
+    state.board = { size, stones: board.stones }
     state.swapped = swapped
     state.activePlayerIds = [toMove]
     state.turnManager.series = [{ ...state.turnManager.series[0], playerId: toMove }]
@@ -80,28 +80,36 @@ write(
     })
 )
 
-// A board in the middle of a game: seeded random cells of both colours, neither joined up.
-let seed = 23
-const random = () => {
-    seed = (seed * 1103515245 + 12345) % 2147483648
-    return seed / 2147483648
-}
-const crowd = { red: [], blue: [] }
-const board = new HydratedHexBoard({ size: BoardSize.Eleven, stones: [] })
-for (const cell of board.grid.cells.toSorted(() => random() - 0.5)) {
-    if (crowd.red.length + crowd.blue.length >= 50) break
-    const color = crowd.red.length <= crowd.blue.length ? Color.Red : Color.Blue
-    board.place(cell, color)
-    if (board.winningChainOf(color)) {
-        board.stones.pop()
-        continue
+// A board in the middle of a game: `count` seeded random cells of both colours, neither joined up.
+function crowdOf(size, count, start) {
+    let seed = start
+    const random = () => {
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        return seed / 2147483648
     }
-    crowd[color].push(cell)
+    const crowd = { red: [], blue: [], size }
+    const board = new HydratedHexBoard({ size, stones: [] })
+    for (const cell of board.grid.cells.toSorted(() => random() - 0.5)) {
+        if (crowd.red.length + crowd.blue.length >= count) break
+        const color = crowd.red.length <= crowd.blue.length ? Color.Red : Color.Blue
+        board.place(cell, color)
+        if (board.winningChainOf(color)) {
+            board.stones.pop()
+            continue
+        }
+        crowd[color].push(cell)
+    }
+    return crowd
 }
+const crowd = crowdOf(BoardSize.Eleven, 50, 23)
 write('middle-game', 'Middle game', position(crowd))
 console.log(`Middle game: ${crowd.red.length} red, ${crowd.blue.length} blue`)
+// The largest board half full, for judging small cells and speed on a phone.
+const big = crowdOf(BoardSize.Nineteen, 160, 29)
+write('big-board', 'Big board', position(big))
+console.log(`Big board: ${big.red.length} red, ${big.blue.length} blue`)
 
-// The cover's game, from the user's picture: Blue's chain winds from A6 to K6 but for D7, which
+// The cover's game: Blue's chain winds from A6 to K6 but for D7, which
 // also cuts Red's chain in two. Blue plays D7 to win; the cover is this board after it.
 write(
     'cover-position',

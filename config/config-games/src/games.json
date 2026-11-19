@@ -210,5 +210,9 @@
     {
         "gameId": "18royalgorge",
         "packageId": "18royalgorge"
+    },
+    {
+        "gameId": "hex",
+        "packageId": "hex"
     }
 ]

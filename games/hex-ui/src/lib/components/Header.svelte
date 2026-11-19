@@ -60,8 +60,10 @@
         padding: 0.25rem 0.5rem;
     }
 
-    .header-button:hover {
-        background: rgb(60 40 20 / 0.08);
+    @media (hover: hover) {
+        .header-button:hover {
+            background: rgb(60 40 20 / 0.08);
+        }
     }
 
     @media (max-width: 639px) {

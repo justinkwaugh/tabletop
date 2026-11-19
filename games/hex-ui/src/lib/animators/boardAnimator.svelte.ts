@@ -37,7 +37,6 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 
 // A placed cell fills with its colour like a liquid: flowing in from the cells of its colour
 // beside it and from its player's edge, or, touching neither, spreading out from its centre.
-// About as long as a GIPF-series drop or slide (0.33–0.35 s).
 const FILL = { duration: 0.3, ease: 'power1.out' }
 // A mark grows out from its middle as the cell it marks finishes filling, and shrinks back into
 // it as it goes.
@@ -56,6 +55,9 @@ const STALL = { threshold: 100, frame: 33 }
 const GSAP_STALL = { threshold: 500, frame: 33 }
 // The motion waits for the board to draw what it moves, but never longer than this.
 const DRAW_WAIT = 0.01
+// A step that fills or drains more cells than this, such as a history jump, shows them at once:
+// WebKit stalls a frame for every few goo-filtered fills that start together.
+const JUMP_LIMIT = 4
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedHexGameState, AnimationContext>
@@ -188,6 +190,15 @@ export class BoardAnimator implements MoveInterrupter {
         return new Map(last && this.winOf(state) === undefined ? [[last.id, 'last']] : [])
     }
 
+    // The marks of `state` on cells still on the board after a jump, which drew the cells gone
+    // away at once.
+    private marksStaying(
+        state: HydratedHexGameState,
+        staying: ReadonlySet<number>
+    ): Map<number, MarkKind> {
+        return new Map([...this.marksOf(state)].filter(([id]) => staying.has(id)))
+    }
+
     // A game won by joining its edges has a line along the chain; a called game has none.
     private winOf(state: HydratedHexGameState): Win | undefined {
         const [winner] = state.winningPlayerIds
@@ -225,22 +236,25 @@ export class BoardAnimator implements MoveInterrupter {
         const after = new Set(to.board.stones.map((stone) => stone.id))
         const placed = to.board.stones.filter((stone) => !before.has(stone.id))
         const drained = from.board.stones.filter((stone) => !after.has(stone.id))
+        const flowing = placed.length + drained.length <= JUMP_LIMIT
 
         // Every cell either board fills, so new ones can fill and old ones drain, and every mark
         // either shows, so new ones can grow and old ones shrink. A placed cell grows from the
         // cells that were there before it; a drained one drains into the cells that stay.
-        this.stones = [...from.board.stones, ...placed]
-        const marksBefore = this.marksOf(from)
+        this.stones = flowing ? [...from.board.stones, ...placed] : to.board.stones
+        const marksBefore = flowing ? this.marksOf(from) : this.marksStaying(from, after)
         const marksAfter = this.marksOf(to)
         this.marks = new Map([...marksBefore, ...marksAfter])
         const winBefore = this.winOf(from)
         const winAfter = this.winOf(to)
         this.win = winAfter ?? winBefore
-        this.growing = new Map([
-            ...placed.map((stone) => [stone.id, this.growthIn(from.board, stone)] as const),
-            ...drained.map((stone) => [stone.id, this.growthIn(to.board, stone)] as const)
-        ])
-        const filling = !quick && placed.length > 0
+        this.growing = flowing
+            ? new Map([
+                  ...placed.map((stone) => [stone.id, this.growthIn(from.board, stone)] as const),
+                  ...drained.map((stone) => [stone.id, this.growthIn(to.board, stone)] as const)
+              ])
+            : new Map()
+        const filling = !quick && flowing && placed.length > 0
         if (filling) gsap.ticker.lagSmoothing(STALL.threshold, STALL.frame)
         const drawing = performance.now()
         await tick()
@@ -250,9 +264,17 @@ export class BoardAnimator implements MoveInterrupter {
         animationContext.actionTimeline.add(timeline, wait)
         this.timeline = timeline
 
-        for (const stone of placed) this.flow(stone.id, true, timeline, quick)
-        for (const stone of drained) this.flow(stone.id, false, timeline, true)
-        const marked = this.changeMarks(marksBefore, marksAfter, drained, timeline, quick)
+        if (flowing) {
+            for (const stone of placed) this.flow(stone.id, true, timeline, quick)
+            for (const stone of drained) this.flow(stone.id, false, timeline, true)
+        }
+        const marked = this.changeMarks(
+            marksBefore,
+            marksAfter,
+            flowing ? drained : [],
+            timeline,
+            quick
+        )
         const lined = this.changeLine(winBefore, winAfter, timeline, quick)
 
         const land = () => {

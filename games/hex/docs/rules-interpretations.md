@@ -16,7 +16,7 @@ Hex has no publisher; its rules are the short set Piet Hein (1942) and John Nash
 ## Swap rule
 
 - **The swap rule is an option, on by default**, as in all serious play, since the first move is otherwise a large advantage.
-- **Swapping trades colours**, as in this site's Game of Y: Blue may answer Red's first stone by swapping. The stone stays red, the swapping player becomes Red, and the other player, now Blue, places next. The swap is open only on that one turn and cannot be swapped back. (HexWiki also describes the equivalent "swap pieces" form, which mirrors the stone across the long diagonal and changes its colour so each player keeps theirs; trading colours avoids moving a stone.)
+- **Swapping trades colours**: Blue may answer Red's first stone by swapping. The stone stays red, the swapping player becomes Red, and the other player, now Blue, places next. The swap is open only on that one turn and cannot be swapped back. (HexWiki also describes the equivalent "swap pieces" form, which mirrors the stone across the long diagonal and changes its colour so each player keeps theirs; trading colours avoids moving a stone.)
 
 ## Who plays Red
 
