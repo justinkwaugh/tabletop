@@ -22,16 +22,6 @@
 
     const animator = new BoardAnimator(session)
 
-    // Trial looks, chosen in the harness by ?look=A|B|C|D: A lines, B tiles, C lines on a slab,
-    // D tiles on a slab.
-    const look =
-        (typeof location === 'undefined'
-            ? null
-            : new URL(location.href).searchParams.get('look')) ?? 'B'
-    const tiles = look === 'B' || look === 'D'
-    const slab = look === 'C' || look === 'D'
-    const CELL = tiles ? TILE_PATH : HEX_PATH
-
     let hovered: string | undefined = $state()
     const hoverColor = $derived(session.myPlayer ? session.colorOf(session.myPlayer.id) : undefined)
 
@@ -66,7 +56,7 @@
 >
     <defs>
         <clipPath id="hex-cell-{uid}">
-            <path d={CELL}></path>
+            <path d={TILE_PATH}></path>
         </clipPath>
         <!-- Blurred and cut back to a hard edge, discs that meet run together. Sized to a cell. -->
         <filter
@@ -82,53 +72,27 @@
             <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 22 -10"></feColorMatrix>
         </filter>
     </defs>
-    {#if slab}
-        <!-- The board's shadow on the table, then its side below its top. -->
-        {#each [14, 8, 4] as reach (reach)}
-            <g transform="translate({reach * 0.4} {reach * 0.9})">
-                <path
-                    d={layout.outline}
-                    transform={layout.transform}
-                    class="slab-shadow"
-                    stroke-width={reach}
-                ></path>
-            </g>
-        {/each}
-        <g transform="translate(0 7)">
-            <path d={layout.outline} transform={layout.transform} class="slab-side"></path>
-        </g>
-    {/if}
     <g transform={layout.transform}>
-        {#if tiles}
-            <path d={layout.outline} class="tile-ground"></path>
-            {#each layout.bands as band (band.edge)}
-                <path d={band.path} class="band {band.color}"></path>
-            {/each}
-            <!-- Grooves between the bands and the cells, between the bands, and round the board,
-                 as wide as those between tiles. -->
-            <path d={layout.seams} class="seam" stroke-width={TILE_INSET * 2}></path>
-            <path d={layout.outline} class="seam" stroke-width={TILE_INSET * 2}></path>
-        {:else}
-            {#each layout.bands as band (band.edge)}
-                <path d={band.path} class="band {band.color}"></path>
-            {/each}
-            <path d={layout.outline} class="rim"></path>
-        {/if}
-        {#if tiles}
-            {#each layout.grid.cells as cell (cell)}
-                {@const at = layout.center(cell)}
-                <path d={TILE_PATH} transform="translate({at.x} {at.y})" class="tile"></path>
-            {/each}
-        {:else}
-            <path d={layout.lines} class="ground"></path>
-        {/if}
+        <!-- Rounded tiles on a dark ground, which shows as grooves between them. -->
+        <path d={layout.outline} class="ground"></path>
+        {#each layout.bands as band (band.edge)}
+            <path d={band.path} class="band {band.color}"></path>
+        {/each}
+        <!-- Grooves between the bands and the cells, between the bands, and round the board, as
+             wide as those between tiles. -->
+        <path d={layout.seams} class="seam" stroke-width={TILE_INSET * 2}></path>
+        <path d={layout.outline} class="seam" stroke-width={TILE_INSET * 2}></path>
+        {#each layout.grid.cells as cell (cell)}
+            {@const at = layout.center(cell)}
+            <path d={TILE_PATH} transform="translate({at.x} {at.y})" class="tile"></path>
+        {/each}
 
         {#each animator.stones as stone (stone.id)}
             {@const at = layout.center(stone.cell)}
             {@const growth = animator.growing.get(stone.id)}
             <g transform="translate({at.x} {at.y})" class="stone">
                 {#if growth === undefined}
-                    <path d={CELL} class="fill {stone.color}"></path>
+                    <path d={TILE_PATH} class="fill {stone.color}"></path>
                 {:else}
                     <g clip-path="url(#hex-cell-{uid})">
                         {#if isIsolated(growth)}
@@ -160,12 +124,8 @@
 
         {#if hovered && hoverColor && session.placeable.has(hovered) && !session.updatingVisibleState}
             {@const at = layout.center(hovered)}
-            <path d={CELL} transform="translate({at.x} {at.y})" class="fill ghost {hoverColor}"
+            <path d={TILE_PATH} transform="translate({at.x} {at.y})" class="fill ghost {hoverColor}"
             ></path>
-        {/if}
-
-        {#if !tiles}
-            <path d={layout.lines} class="lines"></path>
         {/if}
 
         {#each animator.stones as stone (stone.id)}
@@ -174,16 +134,22 @@
                 {@const at = layout.center(stone.cell)}
                 <g transform="translate({at.x} {at.y})">
                     <g {@attach animator.mark(stone.id)} class="mark {mark}">
-                        {#if mark === 'won'}
-                            <circle r={SPACING * 0.19} class="under"></circle>
-                            <circle r={SPACING * 0.13} class="over"></circle>
-                        {:else}
-                            <path d={LAST_MOVE.path} stroke-width={LAST_MOVE.width}></path>
-                        {/if}
+                        <path d={LAST_MOVE.path} stroke-width={LAST_MOVE.width}></path>
                     </g>
                 </g>
             {/if}
         {/each}
+
+        {#if animator.win}
+            <!-- The winning chain's line, edge to edge: a pale tint of the winner's colour on a
+                 white edge (the user's pick of white, tint, cyan or white on dark, and the tint
+                 alone or edged in white or black). -->
+            {@const { line, color } = animator.win}
+            <g class="win-line {color}">
+                <path d={line.d} class="under" {@attach animator.line('under')}></path>
+                <path d={line.d} class="over" {@attach animator.line('over')}></path>
+            </g>
+        {/if}
 
         <g class="targets">
             {#each layout.grid.cells as cell (cell)}
@@ -222,9 +188,9 @@
     }
 
     .band,
-    .rim,
     .ground,
-    .lines,
+    .seam,
+    .tile,
     .stone,
     .ghost,
     .mark {
@@ -241,55 +207,19 @@
         fill: var(--hex-blue);
     }
 
-    .rim {
-        fill: none;
-        stroke: var(--hex-line);
-        stroke-width: 1.2;
-        stroke-linejoin: round;
-    }
-
-    .slab-shadow {
-        fill: rgb(40 30 15 / 0.07);
-        stroke: rgb(40 30 15 / 0.07);
-        stroke-linejoin: round;
-        pointer-events: none;
-    }
-
-    .slab-side {
-        fill: #3b3732;
-        stroke: #3b3732;
-        stroke-width: 2.4;
-        stroke-linejoin: round;
-        pointer-events: none;
-    }
-
-    .tile-ground {
-        fill: #44403a;
-        pointer-events: none;
+    .ground {
+        fill: var(--hex-groove);
     }
 
     .seam {
         fill: none;
-        stroke: #44403a;
+        stroke: var(--hex-groove);
         stroke-linejoin: round;
         stroke-linecap: round;
-        pointer-events: none;
     }
 
     .tile {
         fill: var(--hex-cell);
-        pointer-events: none;
-    }
-
-    .ground {
-        fill: var(--hex-cell);
-    }
-
-    .lines {
-        fill: none;
-        stroke: var(--hex-line);
-        stroke-width: 1.2;
-        stroke-linejoin: round;
     }
 
     .ghost {
@@ -315,12 +245,28 @@
         stroke-linejoin: round;
     }
 
-    .mark.won .under {
-        fill: rgb(0 0 0 / 0.8);
+    .win-line {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        pointer-events: none;
     }
 
-    .mark.won .over {
-        fill: var(--hex-mark);
+    .win-line .under {
+        stroke-width: 9.5;
+        stroke: #ffffff;
+    }
+
+    .win-line .over {
+        stroke-width: 6.5;
+    }
+
+    .win-line.blue .over {
+        stroke: var(--hex-blue-tint);
+    }
+
+    .win-line.red .over {
+        stroke: var(--hex-red-tint);
     }
 
     .target {

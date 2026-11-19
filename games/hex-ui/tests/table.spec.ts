@@ -66,12 +66,15 @@ test("Blue may take Red's first stone, and Undo offers the swap again", async ({
     await expect(page.getByRole('button', { name: 'Swap', exact: true })).toBeVisible()
 })
 
-test('joining your edges wins at once and marks the winning chain', async ({ page }) => {
+test('joining your edges wins at once and draws a line along the winning chain', async ({
+    page
+}) => {
     await openScenario(page, 'Red one from a win')
     await press(page, 'place on D6')
     await settle(page)
     expect(await page.evaluate(() => window.hexSession.gameState.winningPlayerIds)).toHaveLength(1)
-    expect(await page.locator('svg.hex-board .mark.won').count()).toBe(11)
+    await expect(page.locator('svg.hex-board .win-line .over')).toHaveCount(1)
+    await expect(page.locator('svg.hex-board .mark.last')).toHaveCount(0)
     await expect(page.getByText('joins both red edges')).toBeVisible()
 })
 

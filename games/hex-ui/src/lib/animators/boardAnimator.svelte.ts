@@ -6,11 +6,13 @@ import type {
     TransitionKind,
     TransitionStep
 } from '@tabletop/frontend-components'
+import { assertExists } from '@tabletop/common'
 import {
     EDGES_OF,
     type HydratedHexBoard,
     type HydratedHexGameState,
-    type Stone
+    type Stone,
+    type StoneColor
 } from '@tabletop/hex'
 import type { MoveInterrupter, HexGameSession } from '$lib/model/session.svelte.js'
 import {
@@ -21,6 +23,7 @@ import {
     reachFrom,
     type Growth
 } from '$lib/board/geometry.js'
+import { winningLine, type WinningLine } from '$lib/board/winningLine.js'
 import { poseOf, setPose } from './svgPose.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
@@ -37,8 +40,11 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 // About as long as a GIPF-series drop or slide (0.33–0.35 s).
 const FILL = { duration: 0.3, ease: 'power1.out' }
 // A mark grows out from its middle as the cell it marks finishes filling, and shrinks back into
-// it as it goes; the winning chain's marks follow one after another out from the winning cell.
-const MARK = { grow: 0.18, shrink: 0.14, start: FILL.duration * 0.7, stagger: 0.025 }
+// it as it goes.
+const MARK = { grow: 0.18, shrink: 0.14, start: FILL.duration * 0.7 }
+// The winning line draws along the chain, Blue's from left to right and Red's from bottom to top
+// as the board is first drawn, as the winning cell finishes filling.
+const LINE = { start: FILL.duration * 0.7, draw: 0.5 }
 // A step without an action ends within QUICK: Undo drains a fill back the way it came.
 const QUICK = 0.18
 // A phone can take a few hundred milliseconds to draw the frame a new fill first shows in, and
@@ -53,8 +59,37 @@ const DRAW_WAIT = 0.01
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedHexGameState, AnimationContext>
-// A mark on a cell: the latest move, or one of the winning chain.
-export type MarkKind = 'last' | 'won'
+// A mark on a cell: the latest move.
+export type MarkKind = 'last'
+
+// The line along the winning chain, and the colour that won.
+export type Win = { line: WinningLine; color: StoneColor }
+
+// How much of the winning line shows, `t` of the way along from the edge it draws out of, written
+// as a dash to each of its nodes as it is set.
+class Reveal {
+    private shown = 1
+
+    constructor(
+        private readonly nodes: readonly SVGElement[],
+        private readonly line: WinningLine
+    ) {}
+
+    get t() {
+        return this.shown
+    }
+
+    set t(t: number) {
+        this.shown = t
+        const { length } = this.line
+        const dash = `${length * t} ${length + 1}`
+        for (const node of this.nodes) {
+            node.setAttribute('stroke-dasharray', dash)
+            // A dash of no length still draws its round cap.
+            node.setAttribute('visibility', t > 0 ? 'visible' : 'hidden')
+        }
+    }
+}
 
 // A disc of fill whose radius is `r`, written to its node as it is set, so a seek leaves it where
 // its time says.
@@ -79,11 +114,14 @@ export class BoardAnimator implements MoveInterrupter {
     stones: Stone[] = $derived.by(() => this.session.gameState.board.stones)
     // The mark each cell carries, likewise.
     marks: ReadonlyMap<number, MarkKind> = $derived.by(() => this.marksOf(this.session.gameState))
+    // The line along the winning chain, once a move wins.
+    win: Win | undefined = $derived.by(() => this.winOf(this.session.gameState))
     // The cells filling or draining, each drawn as its growing fill while it moves.
     growing: ReadonlyMap<number, Growth> = $state.raw(new Map())
 
     private readonly frontNodes = new Map<string, SVGElement>()
     private readonly markNodes = new Map<number, SVGGElement>()
+    private readonly lineNodes = new Map<string, SVGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private readonly tweened = new Set<object>()
     private landMove: (() => void) | undefined
@@ -130,6 +168,11 @@ export class BoardAnimator implements MoveInterrupter {
         return this.register(this.markNodes, id)
     }
 
+    // A layer of the winning line.
+    line(layer: string): Attachment<SVGElement> {
+        return this.register(this.lineNodes, layer)
+    }
+
     private register<K, N extends SVGElement>(nodes: Map<K, N>, key: K): Attachment<N> {
         return (node) => {
             nodes.set(key, node)
@@ -139,18 +182,22 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
+    // The latest move's mark, until a move wins and the winning line takes over.
     private marksOf(state: HydratedHexGameState): Map<number, MarkKind> {
-        const [winner] = state.winningPlayerIds
-        if (state.result !== undefined && winner !== undefined) {
-            const chain = new Set(state.board.winningChainOf(state.colorOf(winner)) ?? [])
-            return new Map(
-                state.board.stones
-                    .filter((stone) => chain.has(stone.cell))
-                    .map((stone) => [stone.id, 'won'])
-            )
-        }
         const last = state.board.stones.at(-1)
-        return new Map(last ? [[last.id, 'last']] : [])
+        return new Map(last && this.winOf(state) === undefined ? [[last.id, 'last']] : [])
+    }
+
+    // A game won by joining its edges has a line along the chain; a called game has none.
+    private winOf(state: HydratedHexGameState): Win | undefined {
+        const [winner] = state.winningPlayerIds
+        const last = state.board.stones.at(-1)
+        if (state.result === undefined || winner === undefined || last === undefined) {
+            return undefined
+        }
+        const color = state.colorOf(winner)
+        if (state.board.winningChainOf(color) === undefined) return undefined
+        return { line: winningLine(state.board, color, last.cell), color }
     }
 
     private async onGameStateChange(step: Step) {
@@ -160,6 +207,7 @@ export class BoardAnimator implements MoveInterrupter {
             gsap.ticker.lagSmoothing(GSAP_STALL.threshold, GSAP_STALL.frame)
             this.stones = this.session.gameState.board.stones
             this.marks = this.marksOf(this.session.gameState)
+            this.win = this.winOf(this.session.gameState)
             this.growing = new Map()
             throw error
         }
@@ -185,6 +233,9 @@ export class BoardAnimator implements MoveInterrupter {
         const marksBefore = this.marksOf(from)
         const marksAfter = this.marksOf(to)
         this.marks = new Map([...marksBefore, ...marksAfter])
+        const winBefore = this.winOf(from)
+        const winAfter = this.winOf(to)
+        this.win = winAfter ?? winBefore
         this.growing = new Map([
             ...placed.map((stone) => [stone.id, this.growthIn(from.board, stone)] as const),
             ...drained.map((stone) => [stone.id, this.growthIn(to.board, stone)] as const)
@@ -201,7 +252,8 @@ export class BoardAnimator implements MoveInterrupter {
 
         for (const stone of placed) this.flow(stone.id, true, timeline, quick)
         for (const stone of drained) this.flow(stone.id, false, timeline, true)
-        const marked = this.changeMarks(marksBefore, marksAfter, placed, drained, timeline, quick)
+        const marked = this.changeMarks(marksBefore, marksAfter, drained, timeline, quick)
+        const lined = this.changeLine(winBefore, winAfter, timeline, quick)
 
         const land = () => {
             if (this.landMove === land) this.landMove = undefined
@@ -212,12 +264,17 @@ export class BoardAnimator implements MoveInterrupter {
                 setPose(node, { scale: 1 })
                 gsap.set(node, { clearProps: 'opacity' })
             }
+            for (const node of lined) {
+                node.removeAttribute('stroke-dasharray')
+                node.removeAttribute('visibility')
+            }
             this.growing = new Map()
             // A switch of view while the move played has already shown another state, which
             // this move's board must not cover.
             if (this.session.gameState !== shown) return
             this.stones = to.board.stones
             this.marks = marksAfter
+            this.win = winAfter
         }
         this.landMove = land
         animationContext.afterAnimations(land)
@@ -286,12 +343,44 @@ export class BoardAnimator implements MoveInterrupter {
         })
     }
 
+    // The winning line draws along the chain from its first edge as the winning cell finishes
+    // filling; undone, it draws back.
+    private changeLine(
+        before: Win | undefined,
+        after: Win | undefined,
+        timeline: Timeline,
+        quick: boolean
+    ): SVGElement[] {
+        if ((before === undefined) === (after === undefined)) return []
+        const win = after ?? before
+        assertExists(win, 'A line comes or goes')
+        const nodes = [...this.lineNodes.values()]
+        if (nodes.length === 0) throw Error('The winning line is drawn before it moves')
+        const reveal = new Reveal(nodes, win.line)
+        this.tweened.add(reveal)
+        if (after) {
+            timeline.fromTo(
+                reveal,
+                { t: 0 },
+                {
+                    t: 1,
+                    duration: quick ? QUICK : LINE.draw,
+                    ease: quick ? 'power1.out' : 'power1.inOut',
+                    immediateRender: true
+                },
+                quick ? 0 : LINE.start
+            )
+        } else {
+            timeline.fromTo(reveal, { t: 1 }, { t: 0, duration: QUICK, ease: 'power1.in' }, 0)
+        }
+        return nodes
+    }
+
     // Marks that come grow in as the cell they mark finishes filling; marks that go shrink away,
     // except on a cell draining away, whose mark fades out early in the drain.
     private changeMarks(
         before: ReadonlyMap<number, MarkKind>,
         after: ReadonlyMap<number, MarkKind>,
-        placed: readonly Stone[],
         drained: readonly Stone[],
         timeline: Timeline,
         quick: boolean
@@ -305,7 +394,6 @@ export class BoardAnimator implements MoveInterrupter {
         const leaving = new Set(drained.map((stone) => stone.id))
         const going = [...before.keys()].filter((id) => !leaving.has(id) && !after.has(id))
         const coming = [...after.keys()].filter((id) => before.get(id) !== after.get(id))
-        const steps = this.stepsAlong(placed[0]?.cell ?? drained[0]?.cell, coming)
         const nodes: SVGGElement[] = []
         for (const id of leaving) {
             if (!before.has(id)) continue
@@ -323,51 +411,21 @@ export class BoardAnimator implements MoveInterrupter {
                 0
             )
         }
-        coming
-            .toSorted((a, b) => (steps.get(a) ?? 0) - (steps.get(b) ?? 0))
-            .forEach((id, order) => {
-                const node = nodeOf(id)
-                nodes.push(node)
-                const start = quick ? 0 : MARK.start + order * MARK.stagger
-                timeline.fromTo(
-                    poseOf(node),
-                    { scale: 0 },
-                    {
-                        scale: 1,
-                        duration: quick ? QUICK : MARK.grow,
-                        ease: quick ? 'power1.out' : 'back.out(1.6)',
-                        immediateRender: true
-                    },
-                    start
-                )
-            })
-        return nodes
-    }
-
-    // How many steps along the marked cells each lies from where the move was played, so the
-    // winning chain lights up outward along itself.
-    private stepsAlong(origin: string | undefined, ids: readonly number[]): Map<number, number> {
-        const { grid } = this.session.gameState.board
-        const idAt = new Map(
-            this.stones
-                .filter((stone) => ids.includes(stone.id))
-                .map((stone) => [stone.cell, stone.id])
-        )
-        const steps = new Map<number, number>()
-        if (origin === undefined) return steps
-        const queue: [string, number][] = [[origin, 0]]
-        const seen = new Set([origin])
-        for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-            const [cell, step] = next
-            const id = idAt.get(cell)
-            if (id !== undefined) steps.set(id, step)
-            for (const neighbor of grid.neighborsOf(cell)) {
-                if (!seen.has(neighbor) && idAt.has(neighbor)) {
-                    seen.add(neighbor)
-                    queue.push([neighbor, step + 1])
-                }
-            }
+        for (const id of coming) {
+            const node = nodeOf(id)
+            nodes.push(node)
+            timeline.fromTo(
+                poseOf(node),
+                { scale: 0 },
+                {
+                    scale: 1,
+                    duration: quick ? QUICK : MARK.grow,
+                    ease: quick ? 'power1.out' : 'back.out(1.6)',
+                    immediateRender: true
+                },
+                quick ? 0 : MARK.start
+            )
         }
-        return steps
+        return nodes
     }
 }

@@ -100,3 +100,48 @@ for (const cell of board.grid.cells.toSorted(() => random() - 0.5)) {
 }
 write('middle-game', 'Middle game', position(crowd))
 console.log(`Middle game: ${crowd.red.length} red, ${crowd.blue.length} blue`)
+
+// The cover's game, from the user's picture: Blue's chain winds from A6 to K6 but for D7, which
+// also cuts Red's chain in two. Blue plays D7 to win; the cover is this board after it.
+write(
+    'cover-position',
+    'Cover position',
+    position({
+        red: [
+            'B1',
+            'B2',
+            'B3',
+            'C3',
+            'C4',
+            'D4',
+            'C5',
+            'D5',
+            'D6',
+            'E7',
+            'F7',
+            'G7',
+            'G8',
+            'G9',
+            'F10',
+            'E11'
+        ],
+        blue: [
+            'A6',
+            'B6',
+            'B7',
+            'B8',
+            'C8',
+            'E6',
+            'F5',
+            'G4',
+            'H4',
+            'I4',
+            'I5',
+            'I6',
+            'I7',
+            'J7',
+            'K6'
+        ],
+        toMove: SECOND
+    })
+)

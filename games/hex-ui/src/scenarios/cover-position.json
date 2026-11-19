@@ -1,0 +1,253 @@
+{
+ "game": {
+  "id": "scenario-cover-position",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "hex",
+  "deleted": false,
+  "name": "Cover position",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "size": "Eleven",
+   "swapRule": true,
+   "redPlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3512643074,
+  "activePlayerIds": [
+   "player-2"
+  ],
+  "createdAt": "2026-11-19T16:29:58.197Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-19T16:29:58.197Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "mrDjTAXgbg2TFJWgiIIjd",
+  "gameId": "scenario-cover-position",
+  "seed": 3512643074,
+  "prng": {
+   "seed": 3512643074,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "924a71e1dd2994e81156e6ff50ba63b0c5f93eeb4725bffc2cfa99ef77f4ad91",
+   "invocations": 0
+  },
+  "masterSeed": "42eef79cf3c50c3e13175767240147f6",
+  "activePlayerIds": [
+   "player-2"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "red"
+   },
+   {
+    "playerId": "player-2",
+    "color": "blue"
+   }
+  ],
+  "machineState": "PlacingStones",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-2",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "size": "Eleven",
+   "stones": [
+    {
+     "id": 0,
+     "cell": "B1",
+     "color": "red"
+    },
+    {
+     "id": 1,
+     "cell": "A6",
+     "color": "blue"
+    },
+    {
+     "id": 2,
+     "cell": "B2",
+     "color": "red"
+    },
+    {
+     "id": 3,
+     "cell": "B6",
+     "color": "blue"
+    },
+    {
+     "id": 4,
+     "cell": "B3",
+     "color": "red"
+    },
+    {
+     "id": 5,
+     "cell": "B7",
+     "color": "blue"
+    },
+    {
+     "id": 6,
+     "cell": "C3",
+     "color": "red"
+    },
+    {
+     "id": 7,
+     "cell": "B8",
+     "color": "blue"
+    },
+    {
+     "id": 8,
+     "cell": "C4",
+     "color": "red"
+    },
+    {
+     "id": 9,
+     "cell": "C8",
+     "color": "blue"
+    },
+    {
+     "id": 10,
+     "cell": "D4",
+     "color": "red"
+    },
+    {
+     "id": 11,
+     "cell": "E6",
+     "color": "blue"
+    },
+    {
+     "id": 12,
+     "cell": "C5",
+     "color": "red"
+    },
+    {
+     "id": 13,
+     "cell": "F5",
+     "color": "blue"
+    },
+    {
+     "id": 14,
+     "cell": "D5",
+     "color": "red"
+    },
+    {
+     "id": 15,
+     "cell": "G4",
+     "color": "blue"
+    },
+    {
+     "id": 16,
+     "cell": "D6",
+     "color": "red"
+    },
+    {
+     "id": 17,
+     "cell": "H4",
+     "color": "blue"
+    },
+    {
+     "id": 18,
+     "cell": "E7",
+     "color": "red"
+    },
+    {
+     "id": 19,
+     "cell": "I4",
+     "color": "blue"
+    },
+    {
+     "id": 20,
+     "cell": "F7",
+     "color": "red"
+    },
+    {
+     "id": 21,
+     "cell": "I5",
+     "color": "blue"
+    },
+    {
+     "id": 22,
+     "cell": "G7",
+     "color": "red"
+    },
+    {
+     "id": 23,
+     "cell": "I6",
+     "color": "blue"
+    },
+    {
+     "id": 24,
+     "cell": "G8",
+     "color": "red"
+    },
+    {
+     "id": 25,
+     "cell": "I7",
+     "color": "blue"
+    },
+    {
+     "id": 26,
+     "cell": "G9",
+     "color": "red"
+    },
+    {
+     "id": 27,
+     "cell": "J7",
+     "color": "blue"
+    },
+    {
+     "id": 28,
+     "cell": "F10",
+     "color": "red"
+    },
+    {
+     "id": 29,
+     "cell": "K6",
+     "color": "blue"
+    },
+    {
+     "id": 30,
+     "cell": "E11",
+     "color": "red"
+    }
+   ]
+  },
+  "swapped": false
+ },
+ "actions": []
+}

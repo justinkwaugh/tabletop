@@ -142,8 +142,6 @@ export type BoardView = {
     // Where the bands meet the cells and one another, for grooves as wide as the tiles' own.
     readonly seams: string
     readonly labels: readonly Label[]
-    // Every cell's outline, as one path.
-    readonly lines: string
     readonly outline: string
     center(cell: string): Point
 }
@@ -261,9 +259,6 @@ export function makeBoardView(size: BoardSize, upright: boolean): BoardView {
         corners.bottomRight,
         corners.bottomLeft
     ])
-    const lines = grid.cells
-        .map((name) => pathOf(HEX_ANGLES.map((degrees) => corner(grid.cellOf(name), degrees))))
-        .join(' ')
 
     const extents = [
         ...Object.values(corners).map(toScreen),
@@ -286,7 +281,6 @@ export function makeBoardView(size: BoardSize, upright: boolean): BoardView {
         bands,
         seams,
         labels,
-        lines,
         outline,
         center: (cell) => planCenter(grid.cellOf(cell))
     }

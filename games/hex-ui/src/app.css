@@ -40,11 +40,12 @@
 }
 
 :root {
-    /* A pale stone-grey table, so the board's red and blue edges and the white cells stand out. */
-    --hex-table: #e4e1d9;
-    --hex-table-deep: #d3cfc4;
-    /* Cards and controls on light panels, lifted by a soft shadow. */
-    --hex-panel: #f8f6f1;
+    /* A pale sand table (the user's pick of stone, linen, sage, mist and sand), so the white cells
+       and the board's red and blue edges stand out. */
+    --hex-table: #eadcbf;
+    --hex-table-deep: #dbc9a6;
+    /* Cards and controls on near-white panels, lifted by a soft shadow, to stand out on the sand. */
+    --hex-panel: #fffefa;
     --hex-panel-edge: rgb(40 36 28 / 0.16);
     --hex-panel-shadow: 0 2px 8px rgb(40 36 28 / 0.18);
     --hex-panel-hover: color-mix(in srgb, var(--hex-panel), #2a2418 7%);
@@ -55,7 +56,12 @@
     /* The two sides, their edges and their cells. */
     --hex-red: #d0413a;
     --hex-blue: #2f6bbf;
+    /* The winning line's pale tints of each colour. */
+    --hex-red-tint: #f4b4ac;
+    --hex-blue-tint: #a8c6f2;
     --hex-cell: #fbfaf6;
+    /* The dark ground the tiles stand on, showing as grooves between them. */
+    --hex-groove: #44403a;
     --hex-line: #2b2925;
     --hex-label: #3a362e;
     --hex-ink: #1d1a15;
