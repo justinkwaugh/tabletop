@@ -104,7 +104,6 @@ export class CompanyAuctionModule {
     contributedPrivateIds = $derived.by(
         () => (this.session.selectionsVisible ? this.contribution.value('choice') : undefined) ?? []
     )
-    /** How the privates chosen so far split the winning bid, for the winner choosing them. */
     formationPayment = $derived.by(() =>
         this.canForm && this.contributions.length
             ? this.model?.formationPayment(this.contributedPrivateIds)
@@ -146,12 +145,17 @@ export class CompanyAuctionModule {
         const playerId = this.playerId
         return this.canRespond && !!playerId && !!this.model?.canBid(playerId, amount)
     }
-    formationReason(choice: CompanyFormationChoice): string | undefined {
+    // Every offered size pays alike, so a payment problem shows before a size is chosen.
+    formationProblem = $derived.by(() => {
         const model = this.model
         const pending = this.pending
         if (!model || !pending) return 'No company is being formed.'
-        return model.formationReason(pending.playerId, pending.companyId, choice)
-    }
+        const problem = model.formationReason(pending.playerId, pending.companyId, {
+            shareCount: this.shareCount ?? this.shareCounts[0],
+            privateIds: this.contributedPrivateIds
+        })
+        return problem ?? (this.shareCount === undefined ? 'Choose a size.' : undefined)
+    })
 
     selectCompany(companyId: string) {
         assert(this.canOpen, 'Company auctions are unavailable')

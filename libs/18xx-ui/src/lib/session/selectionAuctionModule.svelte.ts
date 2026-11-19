@@ -39,16 +39,6 @@ export class SelectionAuctionModule {
             ? undefined
             : this.choice.value('choice')
     )
-    /** Whether a remaining lot opens at other than its value, so its opening bid is news. */
-    showsOpeningBids = $derived.by(() => {
-        const model = this.model
-        if (!model) return false
-        return model.lots.some(
-            (lot) =>
-                model.auction.remainingLotIds.includes(lot.id) &&
-                model.minimumBid(lot.id) !== lot.price
-        )
-    })
     canAct = $derived.by(() => this.session.interactive && this.ownTurn)
     canPass = $derived.by(
         () => this.canAct && this.session.validActionTypes.includes('PassSelectionAuction')

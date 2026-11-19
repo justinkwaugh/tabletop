@@ -18,7 +18,7 @@
     const company = $derived(getCompany(session.gameState, pending.companyId))
     const choice = $derived(module.formationChoice)
     const payment = $derived(module.formationPayment)
-    const reason = $derived(choice ? module.formationReason(choice) : 'Choose a size.')
+    const reason = $derived(module.formationProblem)
     const startPrice = $derived(
         session.stockMarketChart.space(terms.startSpace(session.gameState, pending.price)).price
     )
@@ -59,7 +59,7 @@
         {/if}
         {#if payment}<p role="status">
                 Cash <strong>{money(payment.cash)}</strong> · Privates
-                <strong>{money(payment.privates)}</strong>
+                <strong>{money(payment.privatesValue)}</strong>
             </p>{/if}
         {#if reason}<p role="status">{reason}</p>{/if}
         <button

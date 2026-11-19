@@ -162,7 +162,18 @@ export class SelectionAuctionModel {
         const bidding = this.auction.bidding
         return bidding?.lotId === lotId
             ? new PassableBidding(bidding.auction).highBid + this.rules.increment
-            : Math.max(0, this.rules.openingBid(this.state, lotId) - (this.auction.discount ?? 0))
+            : Math.max(0, this.rules.openingBid(this.state, lotId) - this.discountOn(lotId))
+    }
+    private discountOn(lotId: string): number {
+        const discount = this.auction.discount
+        return discount && this.nominationLotIds[0] === lotId ? discount : 0
+    }
+    get someLotOpensOffValue(): boolean {
+        return this.lots.some(
+            (lot) =>
+                this.auction.remainingLotIds.includes(lot.id) &&
+                this.minimumBid(lot.id) !== lot.price
+        )
     }
     /** The unsold lots that would leave the game if this award were made now. */
     lotsRemovedBy(award: AuctionAward): readonly string[] {

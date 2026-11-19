@@ -118,8 +118,8 @@ describe('company auctions', () => {
         expect(play.state.activePlayerIds).toEqual(['casey'])
         play.act('PassCompanyAuction', { companyId: 'AS' })
         const auction = new CompanyAuctionModel(play.state, EighteenSeventeenStockRules)
-        expect(auction.formationPayment(['MAJC'])).toEqual({ privates: 90, cash: 210 })
-        expect(auction.formationPayment(['MAJC', 'OBC'])).toEqual({ privates: 130, cash: 170 })
+        expect(auction.formationPayment(['MAJC'])).toEqual({ privatesValue: 90, cash: 210 })
+        expect(auction.formationPayment(['MAJC', 'OBC'])).toEqual({ privatesValue: 130, cash: 170 })
         expect(() =>
             play.act('FormCompany', { companyId: 'AS', shareCount: 2, privateIds: ['MINC'] })
         ).toThrow()

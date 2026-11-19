@@ -25,12 +25,7 @@ const selectionRules: SelectionAuctionRules = {
     closeUnsold: () => {}
 }
 
-function selection(
-    valid: string[],
-    passingWhileNominating = () => true,
-    openingBid = selectionRules.openingBid,
-    discount?: number
-) {
+function selection(valid: string[], passingWhileNominating = () => true) {
     const state = {
         ...minimalPlayState(),
         cash: [
@@ -44,13 +39,12 @@ function selection(
             passedPlayerIds: [],
             awards: [],
             closedLotIds: [],
-            completed: false,
-            ...(discount ? { discount } : {})
+            completed: false
         }
     }
     const harness = testSession(
         state,
-        { selectionAuctionRules: { ...selectionRules, passingWhileNominating, openingBid } },
+        { selectionAuctionRules: { ...selectionRules, passingWhileNominating } },
         valid
     )
     return { ...harness, module: new SelectionAuctionModule(harness.session) }
@@ -117,20 +111,16 @@ describe('SelectionAuctionModule', () => {
         expect(applied).toMatchObject([{ type: 'PassSelectionAuction' }])
         expect(module.choice.hasManual()).toBe(false)
     })
-
-    it('shows opening bids only when one differs from its lot’s value', () => {
-        const atValue = () => 40
-        expect(selection([], undefined, atValue).module.showsOpeningBids).toBe(false)
-        expect(selection([]).module.showsOpeningBids).toBe(true)
-        expect(selection([], undefined, atValue, 5).module.showsOpeningBids).toBe(true)
-    })
 })
 
 describe('CompanyAuctionModule', () => {
-    function wonAuction(valid: string[]) {
+    function wonAuction(
+        valid: string[],
+        formationReason: CompanyAuctionRules['formationReason'] = auctionTerms.formationReason
+    ) {
         return companyAuction(
             valid,
-            { ...auctionTerms, contributions: () => ['P', 'Q'] },
+            { ...auctionTerms, contributions: () => ['P', 'Q'], formationReason },
             {
                 companyId: TestCompanyId,
                 openerId: TestPlayerId,
@@ -148,13 +138,24 @@ describe('CompanyAuctionModule', () => {
 
     it('splits the winning bid between cash and the privates chosen so far', () => {
         const { module } = wonAuction(['FormCompany'])
-        expect(module.formationPayment).toEqual({ privates: 0, cash: 120 })
+        expect(module.formationPayment).toEqual({ privatesValue: 0, cash: 120 })
         module.toggleContribution('P')
-        expect(module.formationPayment).toEqual({ privates: 40, cash: 80 })
+        expect(module.formationPayment).toEqual({ privatesValue: 40, cash: 80 })
         module.toggleContribution('Q')
-        expect(module.formationPayment).toEqual({ privates: 80, cash: 40 })
+        expect(module.formationPayment).toEqual({ privatesValue: 80, cash: 40 })
         module.toggleContribution('P')
-        expect(module.formationPayment).toEqual({ privates: 40, cash: 80 })
+        expect(module.formationPayment).toEqual({ privatesValue: 40, cash: 80 })
+    })
+
+    it('names a payment problem before asking for a size', () => {
+        const { module } = wonAuction(['FormCompany'], (_state, formation) =>
+            formation.privateIds.length ? undefined : 'Contribute more.'
+        )
+        expect(module.formationProblem).toBe('Contribute more.')
+        module.toggleContribution('P')
+        expect(module.formationProblem).toBe('Choose a size.')
+        module.setShareCount(2)
+        expect(module.formationProblem).toBeUndefined()
     })
 
     it('leaves the split to the winner forming the company', () => {
