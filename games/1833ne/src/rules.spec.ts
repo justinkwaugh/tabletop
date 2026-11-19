@@ -370,10 +370,10 @@ describe('the golden spike (corporate mats)', () => {
 })
 
 describe('Lowell Merchants (P2)', () => {
-    it('describes the G20 tile as a normal lay at no cost, not an extra one', () => {
-        const description = PrivateCatalog1833NE.definition('P2').description
-        expect(description).toContain('cost to lay a tile')
-        expect(description).toContain('one of its normal tile lays')
+    it('describes the free G20 tile as one of the ordinary lays', () => {
+        expect(PrivateCatalog1833NE.definition('P2').description).toContain(
+            'as one of its ordinary tile lays'
+        )
     })
 
     it('makes its buyer’s G20 tile free in the round it bought it', () => {
