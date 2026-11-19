@@ -22,6 +22,7 @@
 - **Board theme** (`app.css`): one light, matte board in the printed board's colours: a pale steel-blue table and a paler play area. There is no dark board and no theme toggle.
 - **Coordinate labels** (`board/coordinates.ts`): BoardSpace style, each column's letter below its bottom point and each line's number before its first point on the left. Centred by `dy` on the alphabetic baseline with letter-spacing in user units, as WebKit misplaces `dominant-baseline` and Safari em lengths under the board's zoom.
 - **Board lines** (`board/boardLines.ts`, from the logic's `LINES`): each line end to end, with a short whisker past each end point.
+- **Action panel height** (`ActionPanel.svelte`, `components/holdTallest.ts`): the panel keeps the tallest height it has reached at its current width, so a line that wraps for a long name does not move the board when it shrinks back. A new width starts over; a remount (the end panel, a new game) starts over too.
 
 ## 3. Layer Responsibilities
 

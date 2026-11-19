@@ -18,6 +18,7 @@
 - **Marks** (`Board.svelte`, drawn in each stack's group after the stack but outside its moving group, so nearer stacks cover them as they cover pieces; the animator fades every mark with the move): two-tone ellipses, a dark band under a cyan core (`--dvonn-mark`), drawn on the top face's moulded rim at the stack's current height, so a mark never reaches a neighbour. Inputs `session.movable`, `session.chosenFrom`, `session.destinations`.
 - **Coordinate labels** (`board/coordinates.ts`): BoardSpace style; each row's number before its first space on the left, each diagonal column's letter beyond its bottom space, both on the table outside the board. Centred by `dy` on the alphabetic baseline with letter-spacing in user units, and the height badge's digits by a `dy` in user units, as WebKit misplaces `dominant-baseline` and Safari em lengths under the board's zoom.
 - **Board geometry** (`board/boardLines.ts`, `board/marks.ts`): the graph board's lines, where a mark, a badge and a tap target sit on a stack of a given height.
+- **Action panel height** (`ActionPanel.svelte`, `components/holdTallest.ts`): the panel keeps the tallest height it has reached at its current width, so a line that wraps for a long name does not move the board when it shrinks back. A new width starts over; a remount (the end panel, a new game) starts over too.
 
 ## 3. Layer Responsibilities
 
