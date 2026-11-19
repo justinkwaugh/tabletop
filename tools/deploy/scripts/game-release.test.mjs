@@ -420,6 +420,16 @@ test('revision suffixes are valid Cloud Run names', async () => {
     assert.equal(revisionSuffixForVersion('2.10.3-rc.1'), 'v2-10-3-rc-1')
 })
 
+test('a published UI addresses its assets in the public bucket', async () => {
+    const { buildGameUiCommand, publicBucketUrl } = await import('../esm/lib/commands.js')
+
+    const published = buildGameUiCommand('/repo', 'a', publicBucketUrl('b'))
+    assert.deepEqual(published.env, {
+        ROLLDOWN_ASSET_BASE_URL: 'https://storage.googleapis.com/b'
+    })
+    assert.equal(buildGameUiCommand('/repo', 'a').env, undefined)
+})
+
 test('uploads set the cache headers the public bucket serves', async () => {
     const { deployGameUiCommand, deployManifestCommand, directoryPlaceholderSpecs } =
         await import('../esm/lib/commands.js')

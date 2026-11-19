@@ -265,6 +265,13 @@ tabletop-deploy migrate-logic-artifacts --apply    # build and upload the missin
 
 ## Configuration
 
+### Game UI asset addresses
+
+Published UI builds write full public bucket addresses for images, fonts, models and the cover,
+derived from `gcsBucket`, so the browser fetches them from the bucket directly. Local builds keep
+site paths. Versions published before this change still use the backend's asset redirect, so that
+route stays until none of them are in use.
+
 ### Public game catalog
 
 Every UI bundle build writes `bundle/catalog.json` from the built `UiDefinition.info`, retaining
