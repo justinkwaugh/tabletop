@@ -1,4 +1,4 @@
-import type { Color, GameAction, Point } from '@tabletop/common'
+import { assertExists, type Color, type GameAction, type Point } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
     dummyRowColour,
@@ -116,6 +116,8 @@ export interface MotionToken {
     readonly place: Point
     readonly layer: 'under' | 'over'
     readonly scaleX?: number
+    /** Contract, Replay: the piece this token stands for once it lands, until the state shows it. */
+    readonly rests?: string
 }
 
 export type MotionTarget =
@@ -190,6 +192,12 @@ class PlanBuilder implements BoardPlan {
         return { token: id }
     }
 
+    restingToken(face: TokenFace, place: Point, rests: string | undefined) {
+        const id = `token-${this.tokens.length}`
+        this.tokens.push({ id, face, place, layer: 'over', ...(rests ? { rests } : {}) })
+        return { token: id }
+    }
+
     move(
         row: PlanRow,
         target: MotionTarget,
@@ -258,9 +266,7 @@ export function keyOfRef(ref: PieceRef): string {
 /** R-1.2.3 A route's line, walked from the space it left. */
 function routeWalk(routeId: string, from: SpaceId): readonly Point[] {
     const route = [...RoutePaths].find(([id]) => id === routeId)?.[1]
-    if (!route) {
-        return []
-    }
+    assertExists(route, `R-1.2.3 The board draws ${routeId}`)
     const points = Array.from({ length: RouteSamples + 1 }, (_, index) =>
         routePointAt(route, index / RouteSamples)
     )
@@ -830,7 +836,7 @@ function flyGoods(
         if (source.key) {
             plan.move('goods', { piece: source.key }, launch, 0, { opacity: 0 })
         }
-        const token = plan.token({ kind: 'good', good, size: 24 }, source.point)
+        const token = plan.restingToken({ kind: 'good', good, size: 24 }, source.point, landing.key)
         ends = plan.move('goods', token, launch, GoodFlight, {
             path: arc(source.point, landing.point),
             reveal: true

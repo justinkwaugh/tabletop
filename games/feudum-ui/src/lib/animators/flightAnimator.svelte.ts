@@ -44,6 +44,13 @@ interface CopyPose {
     visible: boolean
 }
 
+/** Contract, Replay: a copy an earlier step left resting, as a later step's board motion moves it. */
+export interface RestingCopy {
+    readonly opacity: number
+    moveTo(point: Point): void
+    fadeTo(opacity: number): void
+}
+
 const ArcShare = 0.15
 const DesignSize = 48
 
@@ -69,6 +76,7 @@ export class FlightAnimator {
         return () => {
             if (this.layer === stage) {
                 this.layer = undefined
+                stage.forget()
                 // Torn down rather than moved: no layer came back in the same stroke.
                 queueMicrotask(() => {
                     if (!this.layer) {
@@ -104,22 +112,34 @@ export class FlightAnimator {
     }
 
     /** Contract, Replay: a piece an earlier Action landed stays its copy until the state shows. */
-    carrier(piece: string): ((point: Point) => void) | undefined {
+    carrier(piece: string): RestingCopy | undefined {
         const flight = this.flights.findLast((one) => this.restsAs(one) === piece)
         const end = flight?.legs.at(-1)?.to
         if (!flight || end?.kind !== 'board') {
             return undefined
         }
-        return (point) => {
-            const pose = this.poses.get(flight.id)
-            if (!pose) {
-                return
+        const pose = () => this.poses.get(flight.id)
+        return {
+            get opacity() {
+                return pose()?.opacity ?? 1
+            },
+            moveTo: (point) => {
+                const resting = pose()
+                if (resting) {
+                    const place = this.place({ kind: 'board', point, size: end.size })
+                    resting.x = place.x
+                    resting.y = place.y
+                    resting.size = place.size
+                    this.redraw(flight, resting)
+                }
+            },
+            fadeTo: (opacity) => {
+                const resting = pose()
+                if (resting) {
+                    resting.opacity = opacity
+                    this.redraw(flight, resting)
+                }
             }
-            const place = this.place({ kind: 'board', point, size: end.size })
-            pose.x = place.x
-            pose.y = place.y
-            pose.size = place.size
-            this.redraw(flight, pose)
         }
     }
 
@@ -169,6 +189,7 @@ export class FlightAnimator {
         }
         this.hidden.clear()
         this.poses.clear()
+        this.layer?.forget()
         if (this.flights.length > 0) {
             this.flights = []
         }
@@ -188,6 +209,7 @@ export class FlightAnimator {
             start.source.style.visibility = 'hidden'
             this.hidden.add(start.source)
         }
+        this.leaveResting(flight)
         const pose: CopyPose = {
             x: start.x,
             y: start.y,
@@ -200,6 +222,21 @@ export class FlightAnimator {
         }
         this.poses.set(flight.id, pose)
         return pose
+    }
+
+    /** Contract, Replay: a flight from a piece an earlier step left as a copy takes that copy away. */
+    private leaveResting(flight: Flight) {
+        const { from } = flight
+        if (from.kind !== 'board' || !from.piece || !from.hide) {
+            return
+        }
+        const before = this.flights.slice(0, this.flights.indexOf(flight))
+        const resting = before.findLast((one) => this.restsAs(one) === from.piece)
+        const pose = resting && this.poses.get(resting.id)
+        if (resting && pose) {
+            pose.visible = false
+            this.redraw(resting, pose)
+        }
     }
 
     private redraw(flight: Flight, pose: CopyPose) {

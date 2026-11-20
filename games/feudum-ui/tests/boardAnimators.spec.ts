@@ -1,6 +1,11 @@
 import type { Point } from '@tabletop/common'
 import { expect, test, type Page } from '@playwright/test'
-import type { MotionFrame, PawnFrame } from '../src/lib/testing/motionTablePage.js'
+import type {
+    MotionFrame,
+    PawnFrame,
+    PaintedFrame,
+    WatchedReplay
+} from '../src/lib/testing/motionTablePage.js'
 import { settled } from './helpers.js'
 
 /**
@@ -21,6 +26,7 @@ declare global {
             seat(): string
             replay(piece?: string): Promise<MotionFrame[]>
             replayPawn(): Promise<PawnFrame[]>
+            replayTurn(): Promise<WatchedReplay>
         }
     }
 }
@@ -223,4 +229,74 @@ test.describe('a framed phone', () => {
         const moving = frames.filter(({ writes }) => writes !== '')
         expect(new Set(moving.map(({ scale }) => Math.round(scale))).size).toBe(1)
     })
+})
+
+/**
+ * Contract, Replay: the moving pieces in order of first sight, the frames each is painted in, and
+ * how far its last painted place stands from the nearest piece, against its travel.
+ */
+function replayedSteps({ frames, pieces }: WatchedReplay) {
+    const order = [...new Set(frames.flatMap(({ seen }) => seen.map(({ id }) => id)))]
+    const seenIn = (id: string) =>
+        frames.flatMap(({ seen }, index) => (seen.some((one) => one.id === id) ? [index] : []))
+    const placeIn = (index: number | undefined, id: string) =>
+        index === undefined ? undefined : frames[index].seen.find((one) => one.id === id)
+    const landing = (id: string) => {
+        const first = placeIn(seenIn(id).at(0), id)
+        const last = placeIn(seenIn(id).at(-1), id)
+        if (!first || !last || pieces.length === 0) {
+            return undefined
+        }
+        const travel = Math.hypot(last.x - first.x, last.y - first.y)
+        const off = Math.min(...pieces.map(({ x, y }) => Math.hypot(x - last.x, y - last.y)))
+        return { travel, off }
+    }
+    return { order, seenIn, landing }
+}
+
+const firstFrame = (frames: readonly PaintedFrame[], ids: readonly string[]) =>
+    frames.findIndex(({ seen }) => seen.some(({ id }) => ids.includes(id)))
+
+for (const side of [undefined, 'west'] as const) {
+    test(`S64 R-3.15, R-4.6.5 a replayed turn takes on the good its first Action laid down: ${side ? 'on a desk with the West side open, the flight layer’s copy' : 'on a phone’s board, its token'} goes as the next one leaves, and the piece shows where that one ends`, async ({
+        page
+    }) => {
+        await page.setViewportSize(
+            side ? { width: 1440, height: 900 } : { width: 390, height: 844 }
+        )
+        await openTable(page, `openGuildRepeatTable(${side ? `'${side}'` : ''})`)
+        const watched = await page.evaluate(() => window.motionTable.replayTurn())
+        const { order, seenIn, landing } = replayedSteps(watched)
+        // The push's good, then the pull's: one moving good each.
+        expect(order).toHaveLength(2)
+        const [pushed, pulled] = order
+        const taken = firstFrame(watched.frames, [pulled])
+        expect(seenIn(pushed)[0]).toBeLessThan(taken)
+        // Never two: once the pull's good is on its way, the push's is gone from the market.
+        expect(seenIn(pushed).filter((index) => index >= taken)).toEqual([])
+        expect(watched.pieces).toHaveLength(1)
+        // No jump: the last frame painted before the state shows is the flight's last stretch.
+        const end = landing(pulled)
+        expect(end?.travel).toBeGreaterThan(50)
+        expect(end?.off).toBeLessThan((end?.travel ?? 0) / 4)
+    })
+}
+
+test('S64 R-3.15, R-4.6.4 a replayed turn lifts the bead its first Action laid on the rosary: on a desk with the East side open, that copy goes as the lift starts, and both lifted beads are drawn', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openTable(page, `openBeadRepeatTable('east')`)
+    const watched = await page.evaluate(() => window.motionTable.replayTurn())
+    const { order, seenIn } = replayedSteps(watched)
+    // The flipped seal, then the two beads lifted: the high and the low.
+    expect(order).toHaveLength(3)
+    const [flipped, ...lifted] = order
+    const lift = firstFrame(watched.frames, lifted)
+    expect(seenIn(flipped)[0]).toBeLessThan(lift)
+    // Never two: once the lift starts, the first Action's copy is gone from the rosary.
+    expect(seenIn(flipped).filter((index) => index >= lift)).toEqual([])
+    for (const bead of lifted) {
+        expect(seenIn(bead).length).toBeGreaterThan(5)
+    }
 })

@@ -2,22 +2,26 @@ import { flushSync, mount } from 'svelte'
 import { assertExists, type Point } from '@tabletop/common'
 import {
     ActionType,
+    AlchemistCartSpaces,
     Goods,
     HydratedFeudumGameState,
     GuildIds,
     MachineState,
     Spaces,
     migrateOffers,
+    moveConcealedSeal,
     returnGoodToHaversack,
+    ScrollSpaces,
     type SpaceId
 } from '@tabletop/feudum'
 import GameTable from '$lib/components/GameTable.svelte'
 import { pawnTarget, roleOf, spaceTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { isHistoryGroup } from '$lib/utils/actionAggregator.js'
-import { setMaster } from './guildTable.js'
+import type { GuildSide } from '$lib/model/boardFocus.svelte.js'
+import { setBarn, setCarts, setMarket, setMaster, setPawns } from './guildTable.js'
 import { playOutRound, showOnStacks } from './roundEndTable.js'
-import { settled } from './sessionHarness.js'
+import { settled, type FeudumHost } from './sessionHarness.js'
 import { addPawn, atPlayingCards, giveGood } from './turnTable.js'
 
 /** One frame of the page, as it was painted: a piece on the board's own coordinates, and the gate. */
@@ -351,5 +355,225 @@ export async function openRoundEndTable() {
         motionTable: {
             roundEnd: () => framesOf(session, 'progress-die', forfeitAll)
         }
+    })
+}
+
+/** A piece as painted: a board token, a flight layer copy, or the piece, by its centre on the page. */
+export interface PaintedPiece {
+    readonly id: string
+    readonly x: number
+    readonly y: number
+}
+
+export interface PaintedFrame {
+    readonly at: number
+    readonly seen: readonly PaintedPiece[]
+}
+
+/** A replay watched: every frame of one row's moving pieces, then the pieces the state draws. */
+export interface WatchedReplay {
+    readonly frames: readonly PaintedFrame[]
+    readonly pieces: readonly PaintedPiece[]
+}
+
+function centreOf(element: Element): Omit<PaintedPiece, 'id'> {
+    const box = element.getBoundingClientRect()
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/** An open side draws its guild areas upright over the map: there the piece is its area's. */
+function piecesPainted(prefix: string): PaintedPiece[] {
+    const selector = `[data-motion^="${prefix}"]`
+    const upright = [
+        ...document.querySelectorAll(`[data-open-guild] [data-upright-area] ${selector}`)
+    ]
+    const shown = new Set(upright.map((piece) => piece.getAttribute('data-motion')))
+    const drawn = [...document.querySelectorAll(selector)].filter(
+        (piece) => !shown.has(piece.getAttribute('data-motion'))
+    )
+    return [...upright, ...drawn].map((piece) => ({
+        id: piece.getAttribute('data-motion') ?? '',
+        ...centreOf(piece)
+    }))
+}
+
+function movingPainted(row: 'goods' | 'seals'): PaintedPiece[] {
+    const tokens = [...document.querySelectorAll('[data-transient][data-token="good"]')]
+        .filter((token) => row === 'goods' && Number(getComputedStyle(token).opacity) > 0)
+        .map((token) => ({ id: token.getAttribute('data-transient') ?? '', ...centreOf(token) }))
+    const copies = [...document.querySelectorAll(`[data-flight-row="${row}"]`)]
+        .filter(
+            (copy) =>
+                copy instanceof HTMLElement &&
+                copy.style.visibility === 'visible' &&
+                Number(copy.style.opacity || '1') > 0
+        )
+        .map((copy) => ({
+            id: copy.getAttribute('data-flight') ?? '',
+            ...centreOf(copy.querySelector('[data-flight-side]:not([hidden])') ?? copy)
+        }))
+    return [...tokens, ...copies]
+}
+
+/** Contract, Replay: the seat's last turn again, through the log, watched frame by frame. */
+async function watchTurn(
+    session: FeudumGameSession,
+    row: 'goods' | 'seals',
+    pieces: string
+): Promise<WatchedReplay> {
+    const frames: PaintedFrame[] = []
+    const start = performance.now()
+    let running = true
+    const sample = () => {
+        if (running) {
+            frames.push({ at: performance.now() - start, seen: movingPainted(row) })
+            requestAnimationFrame(sample)
+        }
+    }
+    requestAnimationFrame(sample)
+    await replayOf(session, 'turn')
+    await settled(session)
+    await new Promise(requestAnimationFrame)
+    await new Promise(requestAnimationFrame)
+    running = false
+    return { frames, pieces: piecesPainted(pieces) }
+}
+
+/** R-4.7 Each push or pull offers the seat a reeve; it keeps its discs. */
+async function playDecliningReeves(
+    host: FeudumHost,
+    session: FeudumGameSession,
+    seat: string,
+    moves: readonly Parameters<FeudumHost['send']>[1][]
+) {
+    for (const move of moves) {
+        await host.send(seat, move)
+        await settled(session)
+        if (session.gameState.machineState === MachineState.PlacingDisc) {
+            await host.send(seat, { type: ActionType.PlaceDisc, place: false })
+            await settled(session)
+        }
+    }
+}
+
+/**
+ * R-3.15, R-4.6.4, R-4.6.5 One turn of two guild Actions: a Farmer push moves the barn's saltpeter
+ * to the market, then Repeat as the journeyman's Alchemist pull takes that same good on to a cart.
+ * `replay` shows the turn again: on a phone's board as tokens, or with a desk's side open as copies.
+ */
+export async function openGuildRepeatTable(side?: GuildSide) {
+    const { host, seat, other } = await atPlayingCards(['guild', 'repeat'], {
+        pouchGood: 'sulfur'
+    })
+    const good = 'saltpeter'
+    host.edit((state) => {
+        for (const player of state.players) {
+            setPawns(state, player.playerId, [])
+        }
+        setPawns(state, seat, ['farmer', 'alchemist'])
+        setPawns(state, other, ['alchemist', 'alchemist'])
+        setBarn(state, { [good]: 1 })
+        setMarket(state, {})
+        setCarts(
+            state,
+            Object.fromEntries(
+                Goods.map((one) => [
+                    one,
+                    AlchemistCartSpaces.filter((space) => space.good === one).length -
+                        (one === good ? 2 : 0)
+                ])
+            )
+        )
+        state.recomputeRanks()
+    })
+    const session = await host.openSeat(seat)
+    await show(session)
+    await playDecliningReeves(host, session, seat, [
+        {
+            type: ActionType.GuildAction,
+            guildId: 'farmer',
+            fn: 'push',
+            params: { goods: [good] },
+            secondCard: true
+        },
+        {
+            type: ActionType.GuildAction,
+            guildId: 'alchemist',
+            fn: 'pull',
+            params: { goods: [good] },
+            asRepeat: 'repeat'
+        }
+    ])
+    if (side) {
+        session.layers.toggleGuildSide(side)
+        flushSync()
+    }
+    const carted = `good:${AlchemistCartSpaces.filter((space) => space.good === good).at(-2)?.id}`
+    Object.assign(window, {
+        feudumSession: session,
+        motionTable: { replayTurn: () => watchTurn(session, 'goods', carted) }
+    })
+}
+
+/**
+ * R-3.15, R-4.6.4 One turn of two guild Actions: the journeyman's Monk pull flips the scroll's seal
+ * onto the rosary, then Repeat as its Farmer pull lifts the rosary's high and low beads, that one
+ * among them, and lays one on a chicken. `replay` shows the turn again, watched.
+ */
+export async function openBeadRepeatTable(side?: GuildSide) {
+    const { host, seat } = await atPlayingCards(['guild', 'repeat'], {
+        pouchGood: 'sulfur'
+    })
+    const [scroll] = ScrollSpaces
+    host.edit((state) => {
+        for (const player of state.players) {
+            setPawns(state, player.playerId, [])
+        }
+        const [master, other] = host.order.filter((playerId) => playerId !== seat)
+        setPawns(state, seat, ['monk', 'farmer'])
+        setPawns(state, master, ['monk', 'monk'])
+        setPawns(state, other, ['farmer', 'farmer'])
+        const vault = state.requireVault()
+        const { rosary } = state.guilds.monk
+        for (const sealId of rosary.splice(1)) {
+            vault.sealPile.push(sealId)
+            state.supply.sealPileCount += 1
+        }
+        for (const { id } of ScrollSpaces) {
+            if (state.guilds.noble.scrolls[id] !== (id === scroll.id)) {
+                moveConcealedSeal(
+                    state,
+                    id === scroll.id ? { kind: 'pile' } : { kind: 'scroll', spaceId: id },
+                    id === scroll.id ? { kind: 'scroll', spaceId: id } : { kind: 'pile' }
+                )
+            }
+        }
+        state.recomputeRanks()
+    })
+    const session = await host.openSeat(seat)
+    await show(session)
+    await playDecliningReeves(host, session, seat, [
+        {
+            type: ActionType.GuildAction,
+            guildId: 'monk',
+            fn: 'pull',
+            params: { scrollSpaces: [scroll.id] },
+            secondCard: true
+        },
+        {
+            type: ActionType.GuildAction,
+            guildId: 'farmer',
+            fn: 'pull',
+            params: {},
+            asRepeat: 'repeat'
+        }
+    ])
+    if (side) {
+        session.layers.toggleGuildSide(side)
+        flushSync()
+    }
+    Object.assign(window, {
+        feudumSession: session,
+        motionTable: { replayTurn: () => watchTurn(session, 'seals', 'bead:') }
     })
 }

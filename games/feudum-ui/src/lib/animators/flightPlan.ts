@@ -494,7 +494,12 @@ function flyGoods(plan: FlightBuilder, change: FlightChange, at: number): number
         }
         for (const { good: reached, place } of board.arriving) {
             if (reached === good) {
-                targets.push({ kind: 'board', point: place.point, size: GoodSize })
+                targets.push({
+                    kind: 'board',
+                    point: place.point,
+                    size: GoodSize,
+                    ...(place.key ? { rests: place.key } : {})
+                })
             }
         }
         const crossings = Math.max(sources.length, targets.length)
@@ -638,7 +643,8 @@ function flyTiles(plan: FlightBuilder, { from, to }: FlightChange, at: number): 
                     {
                         kind: 'board',
                         point: spaceGeometry(space).landscape,
-                        size: LandscapeSize
+                        size: LandscapeSize,
+                        rests: `landscape:${space}`
                     },
                     launch,
                     { turnTo: tileFace(tileId, false, to) }
@@ -839,7 +845,7 @@ function beadEnd(sealId: SealId, spot: BeadSpot, source: boolean): FlightEnd {
         kind: 'board',
         point: boardPointOfBead(spot),
         size: spot.at === 'rosary' ? RosaryBeadSize : BeadSize,
-        ...(source ? { piece: `bead:${sealId}`, hide: true } : {})
+        ...(source ? { piece: `bead:${sealId}`, hide: true } : { rests: `bead:${sealId}` })
     }
 }
 
@@ -883,7 +889,7 @@ function concealedChanges({ from, to }: FlightChange) {
                 kind: 'board',
                 point: guildPoint('noble', guildSlot(space.id)),
                 size: ScrollSealSize,
-                ...(had ? { piece: `seal:${space.id}`, hide: true } : {})
+                ...(had ? { piece: `seal:${space.id}`, hide: true } : { rests: `seal:${space.id}` })
             }
         })
     }

@@ -17,6 +17,7 @@ export interface StagePlace extends Point {
 
 export interface FlightStage {
     locate(end: FlightEnd): StagePlace
+    forget(): void
     /** Contract, Animation plan: where the board draws no score ring, a score flies to its seat. */
     readonly scoresFly?: () => boolean
     /** Contract, Desk layout: the guild areas an open side shows, stood upright over the map. */
@@ -34,6 +35,10 @@ export class DomFlightStage implements FlightStage {
     private readonly found = new Map<FlightEnd, Element | null>()
 
     constructor(private readonly layer: HTMLElement) {}
+
+    forget() {
+        this.found.clear()
+    }
 
     private get table(): ParentNode {
         return titleRootOf(this.layer)

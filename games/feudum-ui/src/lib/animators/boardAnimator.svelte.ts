@@ -11,6 +11,7 @@ import {
     type MotionTarget,
     type MotionToken
 } from './boardPlan.js'
+import type { RestingCopy } from './flightAnimator.svelte.js'
 
 export interface MotionElement {
     readonly parentElement: { getAttribute(name: string): string | null } | null
@@ -52,12 +53,12 @@ export class BoardAnimator {
     private generation = 0
     private steps = 0
     private readonly poses = new Map<MotionElement, Pose>()
+    private readonly areaPieces = new Map<MotionSurface, Set<MotionElement>>()
 
     /** @param carrier Moves a replay's piece that rests only as a copy on the flight layer. */
     constructor(
         private readonly reduced: () => boolean = () => prefersReducedMotion.current,
-        private readonly carrier: (piece: string) => ((point: Point) => void) | undefined = () =>
-            undefined
+        private readonly carrier: (piece: string) => RestingCopy | undefined = () => undefined
     ) {}
 
     readonly attach = (surface: MotionSurface) => {
@@ -74,10 +75,12 @@ export class BoardAnimator {
 
     readonly attachArea = (surface: MotionSurface, guild: GuildId) => {
         this.areas.set(guild, surface)
+        this.areaPieces.set(surface, new Set())
         return {
             destroy: () => {
                 if (this.areas.get(guild) === surface) {
                     this.areas.delete(guild)
+                    this.forgetArea(surface)
                 }
             }
         }
@@ -137,6 +140,9 @@ export class BoardAnimator {
             element.removeAttribute('opacity')
         }
         this.poses.clear()
+        for (const pieces of this.areaPieces.values()) {
+            pieces.clear()
+        }
         if (this.tokens.length > 0) {
             this.tokens = []
         }
@@ -203,9 +209,13 @@ export class BoardAnimator {
         }
         const found = this.resolve(motion.target)
         if (!found) {
+            const carry = this.carried(motion.target)
             const end = motion.path?.at(-1)
-            if (end) {
-                this.carried(motion.target)?.(end)
+            if (carry && end) {
+                carry.moveTo(end)
+            }
+            if (carry && motion.opacity !== undefined) {
+                carry.fadeTo(motion.opacity)
             }
             return
         }
@@ -230,14 +240,22 @@ export class BoardAnimator {
         const found = this.resolve(motion.target)
         if (!found) {
             const carry = this.carried(motion.target)
-            const path = motion.path
-            return carry && path
-                ? (t) => {
-                      if (generation === this.generation) {
-                          carry(BoardAnimator.along(path, t))
-                      }
-                  }
-                : undefined
+            if (!carry) {
+                return undefined
+            }
+            const { path, opacity } = motion
+            const from = carry.opacity
+            return (t) => {
+                if (generation !== this.generation) {
+                    return
+                }
+                if (path) {
+                    carry.moveTo(BoardAnimator.along(path, t))
+                }
+                if (opacity !== undefined) {
+                    carry.fadeTo(from + (opacity - from) * t)
+                }
+            }
         }
         const { element, pose, world } = found
         if (motion.reveal) {
@@ -249,7 +267,7 @@ export class BoardAnimator {
             ...motion.path.slice(1)
         ]
         return (t) => {
-            if (generation !== this.generation) {
+            if (generation !== this.generation || this.poses.get(element) !== pose) {
                 return
             }
             if (path) {
@@ -276,7 +294,7 @@ export class BoardAnimator {
         }
     }
 
-    private carried(target: MotionTarget): ((point: Point) => void) | undefined {
+    private carried(target: MotionTarget): RestingCopy | undefined {
         return 'piece' in target && target.part === undefined
             ? this.carrier(target.piece)
             : undefined
@@ -284,17 +302,42 @@ export class BoardAnimator {
 
     /** Areas first: a token in an open side's area is drawn there and on the board's svg too. */
     private resolve(target: MotionTarget) {
-        const selector = this.selectorOf(target)
-        const element =
-            [...this.areas.values()]
-                .map((area) => area.querySelector(selector))
-                .find((found) => found !== null) ?? this.surface?.querySelector(selector)
+        const element = this.find(this.selectorOf(target)) ?? this.restingToken(target)
         if (!element) {
             return undefined
+        }
+        for (const [area, pieces] of this.areaPieces) {
+            if (area.querySelector(this.selectorOf(target)) === element) {
+                pieces.add(element)
+            }
         }
         const pose = this.poses.get(element) ?? this.firstPose(target)
         this.poses.set(element, pose)
         return { element, pose, world: this.worldOf(element) }
+    }
+
+    private find(selector: string): MotionElement | null | undefined {
+        return (
+            [...this.areas.values()]
+                .map((area) => area.querySelector(selector))
+                .find((found) => found !== null) ?? this.surface?.querySelector(selector)
+        )
+    }
+
+    /** Contract, Replay: a piece an earlier step's token brought on is that token until the state shows. */
+    private restingToken(target: MotionTarget): MotionElement | null | undefined {
+        if (!('piece' in target) || target.part !== undefined) {
+            return undefined
+        }
+        const token = this.tokens.findLast(({ rests }) => rests === target.piece)
+        return token ? this.find(this.selectorOf({ token: token.id })) : undefined
+    }
+
+    private forgetArea(area: MotionSurface) {
+        for (const element of this.areaPieces.get(area) ?? []) {
+            this.poses.delete(element)
+        }
+        this.areaPieces.delete(area)
     }
 
     private firstPose(target: MotionTarget): Pose {

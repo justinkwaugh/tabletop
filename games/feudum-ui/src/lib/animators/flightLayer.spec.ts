@@ -176,6 +176,11 @@ class FakeStage implements FlightStage {
     readonly places = new Map<string, Point>()
     readonly sources = new Map<string, FakeSource>()
     zoom = 1
+    forgotten = 0
+
+    forget() {
+        this.forgotten += 1
+    }
 
     private keyOf(end: FlightEnd): string {
         return JSON.stringify(end)
@@ -1259,6 +1264,85 @@ describe('a copy on the layer', () => {
         expect(copy.shownSides).toEqual(['first'])
         timeline.progress(1)
         expect(copy.shownSides).toEqual(['then'])
+    })
+})
+
+const FoodAtSeat: FlightEnd = { kind: 'seat', playerId: 'p1', part: { part: 'good', good: 'food' } }
+const FoodOnSpace: FlightEnd = {
+    kind: 'board',
+    point: { x: 10, y: 10 },
+    size: 20,
+    rests: 'good:s:food'
+}
+
+function foodFlight(from: FlightEnd, to: FlightEnd): Flight {
+    return {
+        id: 'goods-0',
+        row: 'goods',
+        face: { kind: 'good', good: 'food' },
+        from,
+        legs: [{ to, at: 0, duration: 0.4 }]
+    }
+}
+
+/** One step of a replay: its flights played through, each copy drawn as the layer mounts it. */
+async function playStep(animator: FlightAnimator, copies: Map<string, FakeCopy>, flight: Flight) {
+    const context = new AnimationContext()
+    await animator.play({ flights: [flight], seconds: 0.4 }, context, 0)
+    for (const { id } of animator.flights) {
+        if (!copies.has(id)) {
+            const copy = new FakeCopy()
+            animator.copy(id)(copy)
+            copies.set(id, copy)
+        }
+    }
+    context.actionTimeline.pause()
+    context.actionTimeline.progress(1)
+}
+
+describe('Contract, Replay: a copy an earlier step left resting', () => {
+    it('R-1.1 hides when a later step’s copy leaves from that piece, so the piece is never drawn twice', async () => {
+        const { animator } = rig()
+        const copies = new Map<string, FakeCopy>()
+        await playStep(animator, copies, foodFlight(FoodAtSeat, FoodOnSpace))
+        expect(copies.get('1-goods-0')?.style.visibility).toBe('visible')
+        const away: FlightEnd = {
+            kind: 'board',
+            point: { x: 10, y: 10 },
+            size: 20,
+            piece: 'good:s:food',
+            hide: true
+        }
+        await playStep(animator, copies, foodFlight(away, FoodAtSeat))
+        expect(copies.get('1-goods-0')?.style.visibility).toBe('hidden')
+        expect(copies.get('2-goods-0')?.style.visibility).toBe('visible')
+    })
+
+    it('R-1.1 is carried by a later step’s board motion: moved along it, and faded with it', async () => {
+        const { animator } = rig()
+        const copies = new Map<string, FakeCopy>()
+        await playStep(animator, copies, foodFlight(FoodAtSeat, FoodOnSpace))
+        const copy = copyOf(copies, '1-goods-0')
+        const landed = placeOf(copy)
+        const resting = animator.carrier('good:s:food')
+        expect(resting?.opacity).toBe(1)
+        resting?.moveTo({ x: 30, y: 30 })
+        expect(placeOf(copy)).not.toEqual(landed)
+        resting?.fadeTo(0)
+        expect(copy.style.opacity).toBe('0')
+        expect(animator.carrier('good:s:other')).toBeUndefined()
+    })
+})
+
+describe('what the stage found', () => {
+    it('is dropped when the table settles and when the layer is torn down, so no detached element is held', async () => {
+        const stage = new FakeStage()
+        const animator = new FlightAnimator(() => false)
+        const teardown = animator.useStage(stage)
+        animator.settle()
+        expect(stage.forgotten).toBe(1)
+        teardown()
+        expect(stage.forgotten).toBe(2)
     })
 })
 

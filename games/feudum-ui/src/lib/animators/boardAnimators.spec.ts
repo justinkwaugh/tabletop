@@ -2,10 +2,11 @@ import { showLocation } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
-import { ActionSource, type GameAction, type Point } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction, type Point } from '@tabletop/common'
 import {
     ActionType,
     type BeginDawn,
+    ChickenSpaces,
     FarmerBarn,
     Goods,
     GuildTrackSpaces,
@@ -24,13 +25,14 @@ import {
     returnGoodToHaversack,
     type RollProgressDie,
     Routes,
+    ScrollSpaces,
     seatKnightRow,
     Spaces
 } from '@tabletop/feudum'
 import { askedToDefend, type AskTable } from '$lib/testing/askTable.js'
 import { showOnStacks } from '$lib/testing/roundEndTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
-import { addPawn, atPlayingCards } from '$lib/testing/turnTable.js'
+import { addPawn, atPlayingCards, giveBead, giveSeal, giveTile } from '$lib/testing/turnTable.js'
 import { spaceTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { scoreDiscs, seatScores, type SeatScore } from '$lib/model/boardView.js'
@@ -47,6 +49,7 @@ import {
     spaceGeometry
 } from '$lib/utils/boardGeometry.js'
 import { BoardAnimator, type MotionElement, type MotionSurface } from './boardAnimator.svelte.js'
+import type { RestingCopy } from './flightAnimator.svelte.js'
 import { planFlights } from './flightPlan.js'
 import {
     planBoardMotion,
@@ -464,17 +467,34 @@ function drawn(motion: BoardMotion): boolean {
 
 const RowNames = Object.keys(Scenes).filter((row): row is PlanRow => row in Scenes)
 
+/** A copy resting on the flight layer, with what the board animator asked of it. */
+class FakeResting implements RestingCopy {
+    opacity = 1
+    readonly moves: Point[] = []
+    readonly fades: number[] = []
+
+    moveTo(point: Point) {
+        this.moves.push(point)
+    }
+
+    fadeTo(opacity: number) {
+        this.opacity = opacity
+        this.fades.push(opacity)
+    }
+}
+
 describe('Contract, Replay: a piece an earlier Action brought on, not on the board yet', () => {
     it('R-3.7.1 its walk carries the resting copy, where a lookup of the piece finds nothing', async () => {
         const scene = await walkScene()
         const key = `pawn:${scene.seat}:1`
-        const carried: Point[] = []
+        const resting = new FakeResting()
+        const carried = resting.moves
         const asked: string[] = []
         const animator = new BoardAnimator(
             () => false,
             (piece) => {
                 asked.push(piece)
-                return (point) => carried.push(point)
+                return resting
             }
         )
         // As the board's svg does before the state shows the piece: nothing for its key.
@@ -491,16 +511,121 @@ describe('Contract, Replay: a piece an earlier Action brought on, not on the boa
 
     it('R-3.7.1 with reduced motion the copy is simply carried to where the walk ends', async () => {
         const scene = await walkScene()
-        const carried: Point[] = []
+        const resting = new FakeResting()
+        const carried = resting.moves
         const animator = new BoardAnimator(
             () => true,
-            () => (point) => carried.push(point)
+            () => resting
         )
         animator.attach(new KnownSurface([]))
         const context = new AnimationContext()
         await animator.onGameStateChange({ ...scene, animationContext: context })
         play(context)
         expect(carried).toHaveLength(1)
+    })
+})
+
+describe('Contract, Replay: every kind a flight lands on the board rests as the piece the state will draw', () => {
+    it('R-1.1 a good flown to a guild space rests as that space’s good', async () => {
+        const scene = await Scenes.goods()
+        const [market] = MarketSpaces
+        const west = ['alchemist', 'merchant', 'farmer'] as const
+        const [good] = planFlights({ ...scene, apart: west }).flights.filter(
+            ({ row }) => row === 'goods'
+        )
+        expect(good.legs.at(-1)?.to).toMatchObject({ kind: 'board', rests: `good:${market.id}` })
+    })
+
+    it('R-4.3.4 a tile laid on a space rests as its landscape', async () => {
+        const table = await emptyTable()
+        const { id } = Spaces[0]
+        let tileId = ''
+        table.host.edit((state) => {
+            tileId = giveTile(state, table.seat)
+        })
+        const change = changeFrom(table, (to) => {
+            const player = to.getPlayerState(table.seat)
+            player.regionTiles = player.regionTiles.filter((one) => one !== tileId)
+            to.spaces[id].landscape = { tileId, amount: 0 }
+        })
+        const [tile] = planFlights({ ...change, action: anAction(table.seat) }).flights.filter(
+            ({ row }) => row === 'tiles'
+        )
+        expect(tile.legs.at(-1)?.to).toMatchObject({ kind: 'board', rests: `landscape:${id}` })
+    })
+
+    it('R-3.11.2 a bead laid on the board rests as its bead; a seal laid on a scroll as that scroll’s seal', async () => {
+        const table = await emptyTable()
+        const chicken = ChickenSpaces.find((space) => !space.setupBead)
+        assertExists(chicken, 'R-1.4 A chicken space starts with no bead')
+        const [scroll] = ScrollSpaces
+        let sealId = ''
+        table.host.edit((state) => {
+            giveBead(state, table.seat)
+            giveSeal(state, table.seat)
+            sealId = state.getPlayerState(table.seat).beads[0]
+            state.guilds.noble.scrolls[scroll.id] = false
+        })
+        const change = changeFrom(table, (to) => {
+            const player = to.getPlayerState(table.seat)
+            player.beads = []
+            to.guilds.farmer.chickens[chicken.id] = sealId
+            player.sealCount -= 1
+            to.guilds.noble.scrolls[scroll.id] = true
+        })
+        const ends = planFlights({ ...change, action: anAction(table.seat) })
+            .flights.filter(({ row }) => row === 'seals')
+            .map(({ legs }) => legs.at(-1)?.to)
+        expect(ends).toContainEqual(expect.objectContaining({ rests: `bead:${sealId}` }))
+        expect(ends).toContainEqual(expect.objectContaining({ rests: `seal:${scroll.id}` }))
+    })
+
+    it('R-1.1 a good an earlier Action flew on hides with the step that takes it on: its resting copy fades', async () => {
+        const scene = await Scenes.goods()
+        const resting = new FakeResting()
+        const asked: string[] = []
+        const animator = new BoardAnimator(
+            () => false,
+            (piece) => {
+                asked.push(piece)
+                return resting
+            }
+        )
+        animator.attach(new KnownSurface([]))
+        const context = new AnimationContext()
+        await animator.onGameStateChange({ ...scene, animationContext: context })
+        play(context)
+        const [market] = MarketSpaces
+        expect(asked).toContain(`good:${FarmerBarn.id}:${market.good}:1`)
+        expect(resting.fades).toEqual([0])
+    })
+
+    it('R-1.1 a good an earlier step’s token left on a guild space is the token the next step takes on', async () => {
+        const first = await Scenes.goods()
+        const [market] = MarketSpaces
+        const second = {
+            from: first.to,
+            to: (() => {
+                const to = new HydratedFeudumGameState(structuredClone(first.to.dehydrate()))
+                to.guilds.merchant.market[market.id] = false
+                to.guilds.farmer.barn[market.good] += 1
+                return to
+            })(),
+            action: first.action
+        }
+        const tokens = ['[data-transient="1-token-0"]', '[data-transient="2-token-0"]']
+        const surface = new KnownSurface(tokens)
+        const animator = new BoardAnimator(() => false)
+        animator.attach(surface)
+        for (const scene of [first, second]) {
+            const context = new AnimationContext()
+            await animator.onGameStateChange({ ...scene, animationContext: context })
+            play(context)
+        }
+        const left = surface.inner.elements.get(tokens[0])
+        const taken = surface.inner.elements.get(tokens[1])
+        expect(left?.opacity).toBe(0)
+        expect(taken?.opacity).toBe(1)
     })
 })
 
@@ -579,6 +704,15 @@ function firstWrites(log: readonly string[]): readonly string[] {
 }
 
 describe('R-3.7.1 pawns and monsters on a Move', () => {
+    it('R-1.2.3 a step on a route the board does not draw is an error, not a walk with no line', async () => {
+        const scene = await walkScene()
+        const lost = moved(scene.seat, {
+            steps: scene.action.steps,
+            metadata: { steps: [{ routeId: 'route.none', from: scene.route.a }] }
+        })
+        expect(() => planBoardMotion({ ...scene, action: lost })).toThrow(/route\.none/)
+    })
+
     it('R-3.7.1 step along the route line, not straight across, from slot to slot', async () => {
         const scene = await walkScene()
         const { motions } = planBoardMotion(scene)
@@ -932,6 +1066,48 @@ describe('R-4.1.2 markers inside the board', () => {
         const again = await animate(scene, { animator, surface: board })
         play(again.context)
         expect(board.elements.get(marker)?.writes.length).toBeGreaterThan(0)
+    })
+
+    it('Contract, Desk layout: a side closed mid-motion drops its area’s pieces, and the tween writes to them no more', async () => {
+        const table = await emptyTable()
+        const [icon] = KnightMonsterIcons
+        table.host.edit((state) => {
+            const row = seatKnightRow(state, table.seat)?.row
+            if (row) {
+                row.markers = 3
+            }
+        })
+        const scene = {
+            ...changeFrom(table, (to) => {
+                to.monsters[icon.monster] = { playerId: table.seat }
+                const own = seatKnightRow(to, table.seat)?.row
+                if (own) {
+                    own.markers -= 1
+                }
+            }),
+            action: anAction(table.seat)
+        }
+        const rowId = seatKnightRow(hydrated(table.host.state), table.seat)?.rowId
+        const marker = `[data-motion="knight:${rowId}:3"]`
+        const board = new FakeSurface()
+        const area = new KnownSurface([marker])
+        const animator = new BoardAnimator(() => false)
+        animator.attach(board)
+        const open = animator.attachArea(area, 'knight')
+        const { context, duration } = await animate(scene, { animator, surface: board })
+        const timeline = context.actionTimeline
+        timeline.pause()
+        timeline.time(duration / 2)
+        const drawn = area.inner.elements.get(marker)
+        const written = drawn?.writes.length ?? 0
+        expect(written).toBeGreaterThan(0)
+        open.destroy()
+        timeline.progress(1)
+        expect(drawn?.writes.length).toBe(written)
+        // settle() no longer reaches the detached piece either.
+        drawn?.attributes.set('transform', 'kept')
+        animator.settle()
+        expect(drawn?.attributes.get('transform')).toBe('kept')
     })
 
     it('S38 R-3.14.2 a crowned seal slides in under the serf', async () => {
