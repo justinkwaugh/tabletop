@@ -38,8 +38,7 @@ export type HistoryCall = {
 export type HistoryEntry = HistoryTurn | HistoryOffering | HistoryDividend | HistoryCall
 
 // Groups actions oldest first: each chosen action opens a turn holding everything it caused,
-// the opening auctions group with their free builds, and every dividend and a called game's
-// ending stand alone.
+// the opening auctions group with their free builds, and every dividend stands alone.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     let open: HistoryTurn | HistoryOffering | undefined

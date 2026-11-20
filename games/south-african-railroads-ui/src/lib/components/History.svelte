@@ -44,7 +44,7 @@
 </script>
 
 <div class="history">
-    {#if gameSession.gameState.result && entries[0]?.kind !== 'call' && gameSession.gameState.winningPlayerIds.length > 0}
+    {#if gameSession.gameState.result && !gameSession.gameCall && gameSession.gameState.winningPlayerIds.length > 0}
         <div class="milestone">
             Game over:
             {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
