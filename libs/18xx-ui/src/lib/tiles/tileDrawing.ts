@@ -547,12 +547,12 @@ export function createTileDrawing(
                 const drawn = paths.find((entry) => entry.id === path.id)
                 return !!(drawn?.spike || drawn?.pier)
             })
-        // A town on through track, or ending a single track, is a bar across that track.
+        // A town on one line of track, through it or at its end, is a bar across that line.
         const townAngle =
             !style.townDots &&
             !unmarked &&
             node.kind === 'town' &&
-            (automaticTownPaths.has(node.id) || tracks === 1)
+            (automaticTownPaths.has(node.id) || tracks === 1 || tracks === 2)
                 ? townMarkerAngle(center, paths)
                 : undefined
         const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 && !unmarked ? 9 : 6.3
@@ -760,16 +760,25 @@ function clearPosition(line: TileDrawnPath, others: readonly TileDrawnPath[]): n
 }
 
 function townMarkerAngle(center: Point, paths: readonly TileDrawnPath[]): number {
-    const path = paths.find((path) => path.start === center || path.end === center)
-    if (!path) return 0
-    const control = path.start === center ? path.controls[0] : path.controls[1]
-    const tangent =
-        control.x === center.x && control.y === center.y
-            ? path.start === center
-                ? path.end
-                : path.start
-            : control
-    return (Math.atan2(tangent.y - center.y, tangent.x - center.x) * 180) / Math.PI + 90
+    const away = paths.flatMap((path) => {
+        if (path.start !== center && path.end !== center) return []
+        const control = path.start === center ? path.controls[0] : path.controls[1]
+        const toward =
+            control.x === center.x && control.y === center.y
+                ? path.start === center
+                    ? path.end
+                    : path.start
+                : control
+        const length = Math.hypot(toward.x - center.x, toward.y - center.y)
+        return length
+            ? [{ x: (toward.x - center.x) / length, y: (toward.y - center.y) / length }]
+            : []
+    })
+    if (!away.length) return 0
+    // Through a town the line runs from one track's direction to the other's opposite.
+    const line =
+        away.length === 2 ? { x: away[0].x - away[1].x, y: away[0].y - away[1].y } : away[0]
+    return (Math.atan2(line.y, line.x) * 180) / Math.PI + 90
 }
 
 export const LabelFontSize = 12

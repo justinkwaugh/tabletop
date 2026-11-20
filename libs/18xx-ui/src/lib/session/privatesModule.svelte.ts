@@ -71,12 +71,13 @@ export class PrivatesModule {
                     },
                     company.id
                 ),
-                description: this.session.rules.privateRules.description(
-                    this.session.state,
-                    company.id
-                )
+                description: this.description(company.id)
             }))
     )
+    /** The title's description of a company sold like a private, a minor in an auction too. */
+    description(companyId: string): string {
+        return this.session.rules.privateRules.description(this.session.state, companyId)
+    }
     hasExchanges = $derived.by(() => {
         const { state, rules } = this.session
         if (this.titleListsExchanges) return false

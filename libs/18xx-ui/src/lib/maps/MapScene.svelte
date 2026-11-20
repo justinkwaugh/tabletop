@@ -224,10 +224,11 @@
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
         {@const yellowUpgradeLabels = (entry.location.upgradeLabels ?? []).filter(
-            (label) => ['yellow', 'green'].includes(label.color) && ['X', 'T'].includes(label.label)
+            (label) =>
+                ['yellow', 'green'].includes(label.color) && ['X', 'T'].includes(label.label ?? '')
         )}
         {@const overlayLabels = yellowUpgradeLabels.filter(
-            (label) => !entry.face.labels.includes(label.label)
+            (label) => !entry.face.labels.includes(label.label ?? '')
         )}
 
         {@const available =

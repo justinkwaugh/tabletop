@@ -63,7 +63,8 @@ export const MapLocation = Type.Object(
                 Type.Object(
                     {
                         color: Identifier,
-                        label: Identifier
+                        /** Absent when the hex's tiles carry no label from this colour on. */
+                        label: Type.Optional(Identifier)
                     },
                     { additionalProperties: false }
                 )

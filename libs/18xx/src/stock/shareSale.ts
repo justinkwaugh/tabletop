@@ -303,7 +303,7 @@ export function evaluateShareDisposal(
         const from = rules.market.companySpace(projected.stockMarket, company.id)
         const fromStackIndex = stockMarkerStackIndex(projected.stockMarket, company.id)
         const to = rules.market.move(from.id, terms.direction, terms.movement)
-        const proceeds = terms.price * sale.shares
+        const proceeds = terms.proceeds ?? terms.price * sale.shares
         const settlement: ShareSaleSettlement = {
             ...sale,
             certificateIds,

@@ -173,6 +173,7 @@ export function createPhaseChart({
     depot,
     rustNotes = {},
     rustPhases = {},
+    rustTrainIds = {},
     phaseNotes = {},
     phaseNames,
     phaseEvents,
@@ -187,6 +188,11 @@ export function createPhaseChart({
     depot: TrainDepot
     rustNotes?: Readonly<Record<string, string>>
     rustPhases?: Readonly<Record<string, string>>
+    /**
+     * The trains whose purchase rusts a train, where its phase starts on a later purchase of a
+     * kind rather than the first, as 18MEX's second 6-train makes the 4-trains obsolete.
+     */
+    rustTrainIds?: Readonly<Record<string, readonly string[]>>
     phaseNotes?: Readonly<Record<string, string>>
     /** What the rulebook calls the phases, where that is not their trains. */
     phaseNames?: Readonly<Record<string, string>>
@@ -227,7 +233,9 @@ export function createPhaseChart({
                           price: train.price,
                           supplyId: definitionId,
                           rustPhaseId,
-                          rustTrainIds: rustPhaseId ? phases.phase(rustPhaseId).startedBy : [],
+                          rustTrainIds: rustPhaseId
+                              ? (rustTrainIds[train.id] ?? phases.phase(rustPhaseId).startedBy)
+                              : [],
                           rustNote: rustNotes[train.id],
                           upgrades: trainUpgrades?.(train.id)
                       }

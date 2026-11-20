@@ -69,7 +69,7 @@
                 Home reservation: {reservation.companyId} · {reservation.nodeId}
             </p>{/each}
         {#each entry.location.upgradeLabels ?? [] as label, i (i)}<p>
-                Upgrade label: {label.label} from {label.color}
+                Upgrade label: {label.label ?? 'none'} from {label.color}
             </p>{/each}
         {#each entry.location.markers ?? [] as marker (marker.id)}<p>
                 <strong>{marker.label}:</strong>

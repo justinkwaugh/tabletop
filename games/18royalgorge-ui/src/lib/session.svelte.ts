@@ -87,9 +87,6 @@ export class SessionRoyalGorge extends BaseSession {
     }
 
     private readonly deciding = $derived(this.isPlayable && this.isMyTurn && !this.isViewingHistory)
-    readonly actionsLocked = $derived(
-        this.busy || this.updatingVisibleState || this.isViewingHistory
-    )
     private can(type: string): boolean {
         return this.deciding && this.validActionTypes.includes(type)
     }

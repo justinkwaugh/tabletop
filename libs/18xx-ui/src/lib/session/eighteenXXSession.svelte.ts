@@ -318,6 +318,10 @@ export class EighteenXXSession<
         if (!state.activePlayerIds.length) return undefined
         return state.turnManager.currentTurn()?.playerId
     }
+    /** Whether a title's own action controls are disabled: sending, publishing or in history. */
+    readonly actionsLocked = $derived(
+        this.busy || this.updatingVisibleState || this.isViewingHistory
+    )
     readonly privates = new PrivatesModule(this.moduleSession)
     readonly notices = new TableNotices(
         () => this.isViewingHistory || this.localHotseat,

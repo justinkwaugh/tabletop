@@ -7,7 +7,12 @@ import {
     removeCertificates,
     type FinancialState
 } from '../finance/finance.js'
-import { StationAccess, StationReservation, type StationState } from '../map/station.js'
+import {
+    StationAccess,
+    StationReservation,
+    removeCompanyStations,
+    type StationState
+} from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
 import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 import { trainsOwnedBy, releaseTrains, TrainDestination, type TrainState } from '../trains/train.js'
@@ -121,12 +126,7 @@ export function closeShareCompany(
                 .map((certificate) => certificate.id)
         )
     }
-    state.stations = state.stations.map((station) =>
-        station.companyId === companyId ? { id: station.id, companyId, status: 'removed' } : station
-    )
-    state.stationReservations = state.stationReservations.filter(
-        (reservation) => reservation.companyId !== companyId
-    )
+    removeCompanyStations(state, companyId)
     if (removedStationAccess.length)
         state.stationAccess = state.stationAccess?.filter(
             (access) => access.companyId !== companyId

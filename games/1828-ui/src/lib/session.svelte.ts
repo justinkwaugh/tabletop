@@ -100,9 +100,6 @@ export class Session1828 extends BaseSession {
     private can(type: string): boolean {
         return this.deciding && this.validActionTypes.includes(type)
     }
-    readonly actionsLocked = $derived(
-        this.busy || this.updatingVisibleState || this.isViewingHistory
-    )
 
     protected override get sharedActionsBlocked() {
         return !!this.gameState.merger

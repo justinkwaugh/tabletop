@@ -22,6 +22,25 @@ export function privateLotDetail(session: EighteenXXSessionView, lot: AuctionLot
     return { ...detail, company: detail.company }
 }
 
+/**
+ * A lot that is a company: a private with its income, or a minor some titles auction beside
+ * them, as 18MEX's, described by the title and earning no fixed income.
+ */
+export function companyLotDetail(session: EighteenXXSessionView, lot: AuctionLot) {
+    if (session.privates.companies.some((item) => item.id === lot.id))
+        return privateLotDetail(session, lot)
+    const detail = auctionLotDetail(session, lot)
+    const company = session.gameState.companies.find((item) => item.id === lot.id)
+    assertExists(company, `Auction lot ${lot.id} must be a company`)
+    const token = detail.token ?? session.mapView.stations[lot.id]
+    return {
+        ...detail,
+        token,
+        cardTokens: detail.cardTokens.length || !token ? detail.cardTokens : [token],
+        company: { ...company, revenue: 0, description: session.privates.description(lot.id) }
+    }
+}
+
 export function auctionLotDetails(session: EighteenXXSessionView, lotIds: readonly string[]) {
     const model = session.offers.model
     assertExists(model, 'Offer lots require an offer auction')

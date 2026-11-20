@@ -68,6 +68,11 @@ export interface WaterfallAuctionRules<State extends AuctionState = AuctionState
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number
     bidOrder: 'clockwise-from-highest' | 'lowest-bid-first'
+    /**
+     * Whether a bidder who passed may bid again after another's bid, the lot going to the high
+     * bidder once every other bidder has passed since (18MEX 3.1.1); otherwise a pass is final.
+     */
+    rebidAfterPass?: true
     /** Bids must be multiples of this amount. */
     bidMultiple?: number
     /** A lot's first bid may equal its price; later bids beat the highest by the increment. */
@@ -266,6 +271,9 @@ export class ReserveBidAuction {
             const auction = new HydratedSimpleAuction(bidding.auction)
             auction.placeBid(playerId, amount)
             auction.highBid = amount
+            if (this.rules.rebidAfterPass)
+                for (const bidder of auction.participants)
+                    if (bidder.playerId !== playerId) bidder.passed = false
             bidding.auction = auction.dehydrate()
             bidding.playerId = this.nextBidder(playerId)
         } else {

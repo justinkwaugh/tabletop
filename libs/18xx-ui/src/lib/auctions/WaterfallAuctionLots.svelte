@@ -1,7 +1,7 @@
 <script lang="ts">
     import { assertExists, committedBidAmount } from '@tabletop/common'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import { privateLotDetail } from './auctionLotDetails.js'
+    import { companyLotDetail } from './auctionLotDetails.js'
     import AuctionBidControl from './AuctionBidControl.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -18,7 +18,7 @@
     const playerId = $derived(session.myPlayer?.id)
     const lots = $derived(
         auction.lots.map(({ lot, bids, award }) => ({
-            ...privateLotDetail(session, lot),
+            ...companyLotDetail(session, lot),
             bids,
             award
         }))

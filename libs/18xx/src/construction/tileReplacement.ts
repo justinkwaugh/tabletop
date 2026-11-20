@@ -43,7 +43,8 @@ export function requiredLabels(
     const upgradeLabel = location.upgradeLabels
         ?.filter((entry) => colorOrder.indexOf(entry.color) <= colorOrder.indexOf(color))
         .at(-1)
-    return upgradeLabel ? [upgradeLabel.label] : replacedLabels
+    if (!upgradeLabel) return replacedLabels
+    return upgradeLabel.label ? [upgradeLabel.label] : []
 }
 
 export function sameLabels(a: readonly string[], b: readonly string[]): boolean {

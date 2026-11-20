@@ -89,16 +89,23 @@
         return false
     })
     const selectedId = $derived(session.track.preview?.definitionId)
-    const layout = $derived(
-        tileChoiceArc(
-            center,
-            width,
-            height,
-            session.track.tiles.length,
-            tileSize,
-            groupLayout ? (1.4 * Math.max(groupLayout.width, groupLayout.height)) / TileBox : 1.4
-        )
+    /** How many hexes across a piece laid over the group is, so its hexes keep a tile's size. */
+    const pieceExtent = $derived(
+        groupLayout ? Math.max(groupLayout.width, groupLayout.height) / TileBox : 1
     )
+    /**
+     * The choices' arc, and the size a choice's whole piece takes there: each hex at a tile's
+     * size where the pieces fit around the group, otherwise a piece within one tile's size.
+     */
+    const layout = $derived.by(() => {
+        const count = session.track.tiles.length
+        const whole = groupLayout
+            ? tileChoiceArc(center, width, height, count, tileSize * pieceExtent, 1.4)
+            : undefined
+        if (whole) return { ...whole, size: whole.size / pieceExtent, pieceSize: whole.size }
+        const arc = tileChoiceArc(center, width, height, count, tileSize, 1.4 * pieceExtent)
+        return arc ? { ...arc, pieceSize: arc.size } : undefined
+    })
 
     const trackHex = frame.follow(
         () => viewport,
@@ -268,7 +275,7 @@
                     {@const pieceScale = piece
                         ? chosen
                             ? mapScale
-                            : size / Math.max(piece.layout.width, piece.layout.height)
+                            : layout.pieceSize / Math.max(piece.layout.width, piece.layout.height)
                         : 1}
                     {@const point = chosen
                         ? piece

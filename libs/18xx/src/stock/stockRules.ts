@@ -38,6 +38,12 @@ export function presidencyExchangeTerms(
 export type ShareSaleTerms = {
     payer: Owner
     price: number
+    /**
+     * What selling exactly these shares pays, where a share is worth no whole amount, as an
+     * 18MEX NdM 5% unit, half a 10% share's price, the odd half rounded up (3.2(a)); otherwise
+     * the price for each share.
+     */
+    proceeds?: number
     destinationPoolId: string
     marketLimit: number
     maximumShares: number

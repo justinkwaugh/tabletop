@@ -284,6 +284,19 @@ export function cityBlockedForCompanies(
     )
 }
 
+/** Takes a company's stations off the board and its charter, with any reserved home. */
+export function removeCompanyStations(
+    state: Pick<StationState, 'stations' | 'stationReservations'>,
+    companyId: string
+): void {
+    state.stations = state.stations.map((station) =>
+        station.companyId === companyId ? { id: station.id, companyId, status: 'removed' } : station
+    )
+    state.stationReservations = state.stationReservations.filter(
+        (reservation) => reservation.companyId !== companyId
+    )
+}
+
 export function homeStationId(companyId: string): string {
     return `${companyId}:home`
 }

@@ -214,5 +214,9 @@
     {
         "gameId": "hex",
         "packageId": "hex"
+    },
+    {
+        "gameId": "18mex",
+        "packageId": "18mex"
     }
 ]
