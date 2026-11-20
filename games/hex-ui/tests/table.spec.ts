@@ -75,7 +75,7 @@ test('joining your edges wins at once and draws a line along the winning chain',
     expect(await page.evaluate(() => window.hexSession.gameState.winningPlayerIds)).toHaveLength(1)
     await expect(page.locator('svg.hex-board .win-line .over')).toHaveCount(1)
     await expect(page.locator('svg.hex-board .mark.last')).toHaveCount(0)
-    await expect(page.getByText('joins both red edges')).toBeVisible()
+    await expect(page.getByText(/^(You win|.+ wins)$/)).toBeVisible()
 })
 
 for (const [board, cells] of [
