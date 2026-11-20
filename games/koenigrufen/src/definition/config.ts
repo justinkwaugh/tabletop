@@ -22,9 +22,9 @@ export enum TimesAround {
 const trischakenTalonByTrickOption: BooleanConfigOption = {
     id: 'trischakenTalonByTrick',
     type: ConfigOptionType.Boolean,
-    name: 'Trischaken talon by trick',
+    name: 'Trischaken: talon by trick',
     description:
-        'In Trischaken, the winners of the first six tricks each take the next talon card, shown to everyone. Off: the last trick’s winner takes the whole talon.',
+        'Winners of the first 6 tricks each take 1 talon card, shown to all. Off: the last trick’s winner takes all 6.',
     default: false
 }
 
