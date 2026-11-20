@@ -161,13 +161,15 @@ export function evaluateShareTransfer(
     assert(purchased, 'Missing purchased certificate')
     purchased.owner = buyer
     delete purchased.poolId
-    const presidency = evaluatePresidency(
-        projected,
-        company.id,
-        rules.presidencyCandidates(state, company.id),
-        undefined,
-        presidencyExchangeTerms(rules)
-    )
+    const presidency = rules.presidentless?.(state, company.id)
+        ? {}
+        : evaluatePresidency(
+              projected,
+              company.id,
+              rules.presidencyCandidates(state, company.id),
+              undefined,
+              presidencyExchangeTerms(rules)
+          )
     if (presidency.reason) return { reason: presidency.reason }
     if (presidency.claim) applyPresidencyClaim(projected, presidency.claim)
     if (

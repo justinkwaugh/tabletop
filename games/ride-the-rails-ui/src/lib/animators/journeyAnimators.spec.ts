@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { assertExists, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { AnimationContext, type GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     ActionType,
@@ -241,6 +241,36 @@ describe('the Journey animator (R-3.3)', () => {
         animationContext.runAfterAnimations()
         expect(flights.flyers).toEqual([])
         expect(flights.hiddenKeys.has(passengerKey(KANSAS_CITY))).toBe(true)
+    })
+
+    // U-7: the line follows the latest player action stepped, ahead of the shown state.
+    it('draws the ridden journey through its system steps, and none after a later player action', async () => {
+        const flights = new Flights()
+        const listener = journeyAnimator(flights)
+        const [ride, ...systemSteps] = stepsOf(riding())
+        assertExists(ride)
+        expect(systemSteps.map(({ action }) => action.source)).toContain(ActionSource.System)
+
+        await step(listener, ride.from, ride.to, ride.action)
+        expect(flights.drawnJourney).toEqual(LINKS)
+        for (const system of systemSteps) {
+            await step(listener, system.from, system.to, system.action)
+        }
+        expect(flights.drawnJourney).toEqual(LINKS)
+
+        const after = systemSteps.at(-1)?.to ?? ride.to
+        const share: GameAction = {
+            id: 'share',
+            gameId: ride.action.gameId,
+            type: ActionType.TakeShare,
+            playerId: 'p2',
+            source: ActionSource.User
+        }
+        await step(listener, after, after, share)
+        expect(flights.drawnJourney).toEqual([])
+
+        flights.settle()
+        expect(flights.drawnJourney).toBeUndefined()
     })
 
     it('caps a long journey at 2.4 s of travel', async () => {

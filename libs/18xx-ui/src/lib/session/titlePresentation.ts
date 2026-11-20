@@ -11,6 +11,7 @@ import type {
 import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
+import type { TableTerms } from '../presentation/tableTerms.js'
 import type {
     CompanyNameVariants,
     CompanyPricePresentation,
@@ -43,6 +44,9 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
      */
     followsStockRound?: boolean
 }
+
+/** A title's own use of a private, offered beside the family's private controls. */
+export type TitlePrivateAction = { label: string; pressed: boolean; press(): void }
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = {
@@ -149,6 +153,20 @@ export type MarketLedge = {
     edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
 }
 
+/**
+ * A marker of the title's own on the stock market, such as 18RoyalGorge's debt marker, hung as a
+ * tab under its space below the market, clear of the companies' tokens.
+ */
+export type MarketMarker = {
+    id: string
+    spaceId: string
+    /** What the marker is, said when the tab is pointed at. */
+    name: string
+    /** The tab's short word. */
+    label: string
+    color: string
+}
+
 /** What the companies tab shows of companies no one has started. */
 export type UnstartedCompanies<State extends GameState = EighteenXXState> = {
     /** Whether the company could be started in this phase. */
@@ -202,10 +220,17 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     phaseChartFor?(state: State): PhaseChartData
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>
+    /**
+     * The history marks every phase change in its phase's colour, where phases change within a
+     * colour as events, as 18RoyalGorge's deck cards do.
+     */
+    historyMarksEveryPhase?: true
     marketPoolId: string
     /** The bank's pool of shares not yet sold, where a title has one. */
     ipoPoolId?: string
     exchangePoolId?: string
+    /** The rulebook's words for what the table names, where they are not the family's. */
+    terms?: Partial<TableTerms>
     companyNames: Readonly<Record<string, CompanyNameVariants>>
     companyPricePresentation?: CompanyPricePresentation
     numberedShareNames?: NumberedShareNames
@@ -312,11 +337,16 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     actionCompanyInitials?: true
     /** Player cards leave out their privates' value, where privates are worth nothing, as 1880's (§XV). */
     privatesWithoutValue?: true
+    /**
+     * Whether building shows a projected run for this company, for a title where a company's run
+     * does not follow from its network, as 1828's C&P pays only for a run through its new tile.
+     */
+    projectsRun?(companyId: string): boolean
     /** A word for an open private's state in place of its income, such as Flipped. */
     privateStatus?(state: State, privateCompanyId: string): string | undefined
     /**
-     * What a private company keeps on its own charter for the player who holds it, said under
-     * its name on that player's card, as 1822's tax haven holds shares and money.
+     * What a private company keeps on its own charter, said under its name on the card of the
+     * player or company that holds it, as 1822's tax haven holds shares and money.
      */
     privateHoldings?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
@@ -331,6 +361,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * best routes found.
      */
     manualRoutes?(state: State, companyId: string): boolean
+    /** What Autorun does for a company whose turn is not the family's run and payout. */
+    autorunDescription?(companyId: string): string | undefined
     /**
      * A drawn run must earn as much as the best routes found, where the title lets a director
      * choose among the best runs but not run for less (1822 §5.13.6). With
@@ -341,6 +373,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
     historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions
+    /** Markers of the title's own on the stock market, beside the companies' tokens. */
+    marketMarkers?(state: State): readonly MarketMarker[]
     marketZones?: readonly MarketZone[]
     marketLedge?: MarketLedge
     /** Leaves the zones and ledge out of a legend below the market; each space's tooltip still names its zone. */

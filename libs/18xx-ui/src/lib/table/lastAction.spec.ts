@@ -117,6 +117,23 @@ it('recaps the lap since the player last ended a stock turn, folding passes toge
     ])
 })
 
+it('recaps a company floating, in its place among the turns', () => {
+    const blairBuys = buy('blair')
+    const float: GameAction & { companyId: string } = {
+        id: 'float',
+        gameId: 'g',
+        type: 'FloatCompany',
+        source: ActionSource.System,
+        companyId: 'R'
+    }
+    const actions = [endTurn('alex'), blairBuys, float, endTurn('blair'), pass('casey')]
+    expect(turnRecap(actions, 'alex', routine)).toEqual([
+        { kind: 'decision', action: blairBuys },
+        { kind: 'float', action: float },
+        { kind: 'passes', id: actions[4].id, playerIds: ['casey'] }
+    ])
+})
+
 it('recaps nothing before the player has had a turn in this stock round', () => {
     expect(turnRecap([buy('blair'), endTurn('blair')], 'alex', routine)).toEqual([])
     const previousRound = [pass('alex'), startStockRound(), buy('blair'), endTurn('blair')]

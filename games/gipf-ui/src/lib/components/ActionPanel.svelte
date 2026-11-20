@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import { holdTallest } from './holdTallest.js'
 
     const session = getGameSession()
 
@@ -36,7 +37,7 @@
     })
 </script>
 
-<div class="panel">
+<div class="panel" {@attach holdTallest}>
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />

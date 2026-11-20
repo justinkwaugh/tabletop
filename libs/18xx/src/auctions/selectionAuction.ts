@@ -68,6 +68,8 @@ export interface SelectionAuctionRules {
     lotsRemovedBy?(state: SelectionAuctionState, award: AuctionAward): readonly string[]
     /** Whether the player after the winner, rather than after the nominator, nominates next. */
     nominationFollowsWinner?(state: SelectionAuctionState): boolean
+    /** The winner opens the next lot themselves, as 18RoyalGorge's private auction (AU-4). */
+    winnerNominatesNext?: true
     /**
      * The player after the lot's opener nominates next: the first to act on it, though they
      * passed before another player nominated it, as 1880's starting player (§V).
@@ -82,6 +84,11 @@ export interface SelectionAuctionRules {
      * nominates again; once it falls to nothing, that player receives the lot free (1861 §9.4).
      */
     allPassDiscount?: number
+    /**
+     * When every player passes in succession, only the lot up for nomination closes, and the
+     * player who began the passes nominates the next, as 18RoyalGorge's privates (AU-2).
+     */
+    allPassClosesLot?: true
     /**
      * When every player passes on the lot, its privates pay their income, as in an operating
      * round of nothing else, and the lot is offered again from the same player, as 1880's lots
@@ -162,7 +169,18 @@ export class SelectionAuctionModel {
         const bidding = this.auction.bidding
         return bidding?.lotId === lotId
             ? new PassableBidding(bidding.auction).highBid + this.rules.increment
-            : Math.max(0, this.rules.openingBid(this.state, lotId) - (this.auction.discount ?? 0))
+            : Math.max(0, this.rules.openingBid(this.state, lotId) - this.discountOn(lotId))
+    }
+    private discountOn(lotId: string): number {
+        const discount = this.auction.discount
+        return discount && this.nominationLotIds[0] === lotId ? discount : 0
+    }
+    get someLotOpensOffValue(): boolean {
+        return this.lots.some(
+            (lot) =>
+                this.auction.remainingLotIds.includes(lot.id) &&
+                this.minimumBid(lot.id) !== lot.price
+        )
     }
     /** The unsold lots that would leave the game if this award were made now. */
     lotsRemovedBy(award: AuctionAward): readonly string[] {
@@ -248,8 +266,10 @@ export class SelectionAuctionModel {
                     payments,
                     nominatorId: this.auction.passedPlayerIds[0]
                 }
-            return this.rules.allPassDiscount
-                ? this.discountResolution(this.rules.allPassDiscount)
+            if (this.rules.allPassDiscount)
+                return this.discountResolution(this.rules.allPassDiscount)
+            return this.rules.allPassClosesLot && lotId
+                ? { kind: 'close-unsold', lotIds: [lotId] }
                 : { kind: 'close-unsold', lotIds: [...this.auction.remainingLotIds] }
         }
         return undefined
@@ -284,9 +304,13 @@ export class SelectionAuctionModel {
                 this.auction.remainingLotIds = this.auction.remainingLotIds.filter(
                     (id) => id !== award.lotId && !removed.includes(id)
                 )
-                this.auction.nominatorId = this.nextNominator(
-                    this.rules.nominationFollowsWinner?.(this.state) ? award.playerId : nominatorId
-                )
+                this.auction.nominatorId = this.rules.winnerNominatesNext
+                    ? award.playerId
+                    : this.nextNominator(
+                          this.rules.nominationFollowsWinner?.(this.state)
+                              ? award.playerId
+                              : nominatorId
+                      )
                 delete this.auction.bidding
                 delete this.auction.discount
                 this.auction.passedPlayerIds = []
@@ -306,8 +330,13 @@ export class SelectionAuctionModel {
             case 'close-unsold':
                 this.rules.closeUnsold(this.state, resolution.lotIds)
                 this.auction.closedLotIds.push(...resolution.lotIds)
-                this.auction.remainingLotIds = []
-                this.auction.completed = true
+                this.auction.remainingLotIds = this.auction.remainingLotIds.filter(
+                    (id) => !resolution.lotIds.includes(id)
+                )
+                if (this.auction.remainingLotIds.length) {
+                    this.auction.nominatorId = this.auction.passedPlayerIds[0]
+                    this.auction.passedPlayerIds = []
+                } else this.auction.completed = true
                 break
             case 'complete':
                 this.auction.completed = true

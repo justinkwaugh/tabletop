@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { AuctionType } from '@tabletop/common'
 import {
     minimalPlayState,
     minimalStockRules,
     TestCompanyId,
     TestPlayerId
 } from '@tabletop/18xx/testing'
-import type { CompanyAuctionRules, SelectionAuctionRules } from '@tabletop/18xx'
+import type {
+    CompanyAuctionRules,
+    CompanyAuctionState,
+    SelectionAuctionRules
+} from '@tabletop/18xx'
 import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
@@ -56,12 +61,20 @@ const auctionTerms: CompanyAuctionRules = {
     startSpace: () => '0:0',
     shareCounts: () => [2, 5],
     contributions: () => [],
+    contributionValue: (privateIds) => privateIds.length * 40,
     formationReason: () => undefined,
     form: () => {}
 }
 
-function companyAuction(valid: string[], terms: CompanyAuctionRules = auctionTerms) {
-    const state = minimalPlayState()
+function companyAuction(
+    valid: string[],
+    terms: CompanyAuctionRules = auctionTerms,
+    standingAuction?: CompanyAuctionState['companyAuction']
+) {
+    const state = {
+        ...minimalPlayState(),
+        ...(standingAuction ? { companyAuction: standingAuction } : {})
+    }
     state.companies[0].started = false
     const harness = testSession(
         state,
@@ -101,6 +114,54 @@ describe('SelectionAuctionModule', () => {
 })
 
 describe('CompanyAuctionModule', () => {
+    function wonAuction(
+        valid: string[],
+        formationReason: CompanyAuctionRules['formationReason'] = auctionTerms.formationReason
+    ) {
+        return companyAuction(
+            valid,
+            { ...auctionTerms, contributions: () => ['P', 'Q'], formationReason },
+            {
+                companyId: TestCompanyId,
+                openerId: TestPlayerId,
+                home,
+                auction: {
+                    id: 'auction',
+                    type: AuctionType.Simple,
+                    auctioneerId: TestPlayerId,
+                    highBid: 120,
+                    participants: [{ playerId: TestPlayerId, passed: false, bid: 120 }]
+                }
+            }
+        )
+    }
+
+    it('splits the winning bid between cash and the privates chosen so far', () => {
+        const { module } = wonAuction(['FormCompany'])
+        expect(module.formationPayment).toEqual({ privatesValue: 0, cash: 120 })
+        module.toggleContribution('P')
+        expect(module.formationPayment).toEqual({ privatesValue: 40, cash: 80 })
+        module.toggleContribution('Q')
+        expect(module.formationPayment).toEqual({ privatesValue: 80, cash: 40 })
+        module.toggleContribution('P')
+        expect(module.formationPayment).toEqual({ privatesValue: 40, cash: 80 })
+    })
+
+    it('names a payment problem before asking for a size', () => {
+        const { module } = wonAuction(['FormCompany'], (_state, formation) =>
+            formation.privateIds.length ? undefined : 'Contribute more.'
+        )
+        expect(module.formationProblem).toBe('Contribute more.')
+        module.toggleContribution('P')
+        expect(module.formationProblem).toBe('Choose a size.')
+        module.setShareCount(2)
+        expect(module.formationProblem).toBeUndefined()
+    })
+
+    it('leaves the split to the winner forming the company', () => {
+        expect(wonAuction([]).module.formationPayment).toBeUndefined()
+    })
+
     it('offers home cities once a company is chosen and opens at the opening bid', async () => {
         const { module, applied } = companyAuction(['AuctionCompany'])
         expect(module.companies.map((company) => company.id)).toEqual([TestCompanyId])

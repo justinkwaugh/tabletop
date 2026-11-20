@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { ActionType, pointFromName as p } from '@tabletop/yinsh'
 import { historyEntries } from './historyEntries.js'
 
@@ -7,6 +13,20 @@ let counter = 0
 function action(playerId: string, fields: { type: string } & Record<string, unknown>): GameAction {
     counter += 1
     return { id: `a${counter}`, gameId: 'g', source: ActionSource.User, playerId, ...fields }
+}
+
+const call: CallGameAction = {
+    id: 'call',
+    gameId: 'g',
+    source: ActionSource.System,
+    type: CALL_GAME_ACTION_TYPE,
+    call: {
+        kind: GameCallKind.Conceded,
+        initiatorPlayerId: 'b',
+        declaredWinnerId: 'a',
+        approvingPlayerIds: ['b'],
+        decliningPlayerIds: []
+    }
 }
 
 const move = (playerId: string, passedPlayerId?: string) =>
@@ -48,7 +68,7 @@ describe('historyEntries', () => {
         expect(
             entries.map((entry) => [
                 entry.kind,
-                entry.kind === 'place' ? undefined : entry.passedPlayerId
+                entry.kind === 'place' || entry.kind === 'call' ? undefined : entry.passedPlayerId
             ])
         ).toEqual([
             ['move', 'b'],
@@ -60,5 +80,22 @@ describe('historyEntries', () => {
     it('lists a ring removed for a row before the history starts on its own', () => {
         const entries = historyEntries([ring('a'), move('b')])
         expect(entries.map((entry) => entry.kind)).toEqual(['ring', 'move'])
+    })
+
+    it('gives a called game its own entry after the last move', () => {
+        const entries = historyEntries([move('a'), call])
+        expect(entries).toMatchObject([
+            { kind: 'move', playerId: 'a', firstIndex: 0, lastIndex: 0 },
+            { kind: 'call', firstIndex: 1, lastIndex: 1, action: call }
+        ])
+    })
+
+    it('keeps a call after a row whose ring never came out of the move', () => {
+        const entries = historyEntries([move('a'), row('a'), call])
+        expect(entries).toMatchObject([
+            { kind: 'move', firstIndex: 0, lastIndex: 1 },
+            { kind: 'call', firstIndex: 2, lastIndex: 2, action: call }
+        ])
+        expect(entries[0].kind === 'move' && entries[0].removals[0].ring).toBeUndefined()
     })
 })

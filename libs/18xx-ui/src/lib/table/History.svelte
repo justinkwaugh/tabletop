@@ -76,9 +76,7 @@
         )
     )
     function companyName(id: string) {
-        return gameState.companies.find((company) => company.id === id)?.kind === 'private'
-            ? session.companyName(id)
-            : session.companyInitials(id)
+        return session.historyCompanyName(id)
     }
     function describeShared(action: GameAction) {
         return historyDescription(
@@ -94,14 +92,16 @@
             session.placeName,
             (id) => session.poolName(id),
             { charters: session.charters, multiShare: session.presentation.multiShareCertificate },
-            session.presentation.runSubsidyName
+            session.presentation.runSubsidyName,
+            session.historyWording
         )
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
         const description = describeAutomaticStep(
             action,
-            describeAction?.(action, titleNames, shared) ?? shared()
+            describeAction?.(action, titleNames, shared) ?? shared(),
+            session.terms
         )
         return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
@@ -120,6 +120,7 @@
     {jumpDisabled}
     {rounds}
     phaseColors={session.presentation.phaseColors}
+    phaseLabel={(ids) => session.phaseLabel(ids)}
     {newestFirst}
     {setup}
     historyComplete={session.hasCompleteHistory}

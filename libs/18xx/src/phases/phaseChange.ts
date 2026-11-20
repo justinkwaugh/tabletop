@@ -12,7 +12,7 @@ import {
     type TrainState,
     type TrainPurchaseState
 } from '../trains/train.js'
-import { trainsCountingForLimit, type TrainRules } from '../trains/trainPurchase.js'
+import { trainsOverLimit, type TrainRules } from '../trains/trainPurchase.js'
 import {
     DeparturePayments,
     settleTrainDepartures,
@@ -164,11 +164,7 @@ export function advancePhase(
     state.phaseEvents.push({ ...change.event })
     change.discardCompanyIds = rules
         .discardOrder(state, change.continuation.companyId)
-        .filter(
-            (companyId) =>
-                trainsCountingForLimit(state, trainRules, companyId).length >
-                trainRules.trainLimit(state, companyId)
-        )
+        .filter((companyId) => trainsOverLimit(state, trainRules, companyId).length > 0)
     return changes === undefined ? { event } : { event, changes }
 }
 export function phaseDecisionPlayers(

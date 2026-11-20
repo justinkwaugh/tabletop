@@ -14,6 +14,7 @@
         appearance,
         revenueStageColors,
         artwork,
+        tileGroups,
         onclose
     }: {
         money: MoneyFormat
@@ -21,6 +22,8 @@
         preview: HistoricalMap
         appearance: TileAppearance
         revenueStageColors?: RevenueStageColors
+        /** Hexes one tile covers together, outlined as one where a lay covered them. */
+        tileGroups?: readonly (readonly string[])[]
         onclose: () => void
     } = $props()
     let dialog: HTMLDialogElement
@@ -77,6 +80,7 @@
                 outlinedLocationIds={preview.outlinedLocationIds}
                 maskUnavailableLocations={preview.kind === 'run'}
                 highlightedLocationIds={preview.locations}
+                tileGroups={preview.kind === 'track lay' ? tileGroups : undefined}
                 {appearance}
                 {revenueStageColors}
                 hexDiameter={140}

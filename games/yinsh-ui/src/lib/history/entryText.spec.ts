@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { pointFromName as p, pointName } from '@tabletop/yinsh'
 import { entrySegments, type Segment } from './entryText.js'
-import type { HistoryEntry } from './historyEntries.js'
+import type { PlayerEntry } from './historyEntries.js'
 
 function read(segments: Segment[]): string {
     return segments
@@ -20,7 +20,7 @@ function read(segments: Segment[]): string {
 
 const span = { id: 'a', firstIndex: 0, lastIndex: 3, playerId: 'p' }
 
-const move: HistoryEntry = {
+const move: PlayerEntry = {
     ...span,
     kind: 'move',
     from: p('F3'),
@@ -42,7 +42,7 @@ describe('entrySegments', () => {
     })
 
     it('names a plain move and a placement', () => {
-        const plain: HistoryEntry = {
+        const plain: PlayerEntry = {
             ...move,
             flipped: 0,
             removals: [],
@@ -55,7 +55,7 @@ describe('entrySegments', () => {
     })
 
     it('describes the rows a move made for the opponent', () => {
-        const take: HistoryEntry = {
+        const take: PlayerEntry = {
             ...span,
             kind: 'take',
             removals: [{ from: p('B3'), to: p('F3'), ring: { coords: p('K10'), ringsRemoved: 1 } }],
@@ -68,7 +68,7 @@ describe('entrySegments', () => {
     })
 
     it('names a ring removed for a row history starts after', () => {
-        const ring: HistoryEntry = {
+        const ring: PlayerEntry = {
             ...span,
             kind: 'ring',
             ring: { coords: p('K10'), ringsRemoved: 3 }

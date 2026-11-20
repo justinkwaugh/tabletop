@@ -148,6 +148,10 @@
         "packageId": "18chesapeake"
     },
     {
+        "gameId": "1828",
+        "packageId": "1828"
+    },
+    {
         "gameId": "dicke-kartoffeln",
         "packageId": "dicke-kartoffeln"
     },
@@ -202,5 +206,9 @@
     {
         "gameId": "punct",
         "packageId": "punct"
+    },
+    {
+        "gameId": "18royalgorge",
+        "packageId": "18royalgorge"
     }
 ]

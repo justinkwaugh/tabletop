@@ -1,5 +1,6 @@
 <script lang="ts">
     import { assertExists, GameResult } from '@tabletop/common'
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { EndReason } from '@tabletop/punct'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -22,13 +23,13 @@
         return state.board.centreCount(playerId)
     }
 
-    const headline = $derived.by(() => {
+    function headline(): string {
         if (draw) return 'A draw'
         const winner = winnerId()
         return winner === session.myPlayer?.id ? 'You win' : `${nameOf(winner)} wins`
-    })
+    }
 
-    const reason = $derived.by(() => {
+    function reason(): string {
         const endReason = state.endReason
         assertExists(endReason, 'A finished game records why it ended')
         switch (endReason) {
@@ -48,10 +49,18 @@
             case EndReason.NoMoves:
                 return 'Neither player could move'
         }
-    })
+    }
+
+    const outcome = $derived(
+        session.gameCall ? undefined : { headline: headline(), reason: reason() }
+    )
 </script>
 
 <div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--punct-ink)">
-    <div class="text-[22px] font-semibold tracking-[0.06em]">{headline}</div>
-    <div class="text-[15px] text-(--punct-ink-quiet)">{reason}</div>
+    {#if outcome}
+        <div class="text-[22px] font-semibold tracking-[0.06em]">{outcome.headline}</div>
+        <div class="text-[15px] text-(--punct-ink-quiet)">{outcome.reason}</div>
+    {:else}
+        <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
+    {/if}
 </div>

@@ -1,4 +1,7 @@
-import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { GipfInfo } from '@tabletop/gipf'
 import type { GipfGameState, HydratedGipfGameState } from '@tabletop/gipf'
 import coverImg from '$lib/images/gipf-cover.webp'
@@ -6,7 +9,8 @@ import coverImg from '$lib/images/gipf-cover.webp'
 export const UiDefinition: GameUiDefinition<GipfGameState, HydratedGipfGameState> = {
     info: {
         ...GipfInfo,
-        thumbnailUrl: coverImg
+        thumbnailUrl: coverImg,
+        clientCapabilities: gameClientCapabilities()
     },
     runtime: async () => {
         return (await import('./runtime.js')).GipfUiRuntime

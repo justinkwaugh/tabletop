@@ -242,6 +242,27 @@ it('draws a one-space city holding two stations as a two-space city in its share
     expect(overfullCityKeys([station('a', 0), station('b', 1)], mapState)).toEqual(['A1 city'])
 })
 
+it('draws impassable borders heavier unless the view sets their width', () => {
+    const map = new RailwayMap({
+        id: 'borders',
+        name: 'Borders',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', [])
+            }
+        ]
+    })
+    expect(createMapDrawing(map).borderWidths.impassable).toBe(5)
+    expect(
+        createMapDrawing(map, undefined, { borderWidths: { impassable: 4 } }).borderWidths
+            .impassable
+    ).toBe(4)
+})
+
 it('draws a dashed border the same from the hex on either side', () => {
     const start = { x: 0, y: 0 }
     const end = { x: 30, y: 40 }
@@ -598,6 +619,51 @@ it('stands a listed location’s terrain cost under its symbols', () => {
     expect(listed.terrainCostBelow).toBe(true)
     expect(listed.terrainPosition).toEqual({ x: -22, y: -5 })
     expect(other.terrainCostBelow).toBeUndefined()
+})
+
+it('stands a listed location’s terrain symbols under its cost', () => {
+    const map = new RailwayMap({
+        id: 'terrain',
+        name: 'Terrain',
+        orientation: HexOrientation.Flat,
+        locations: [0, 1].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: true,
+            preprintedTile: createTrackTileFace('yellow', [[0, 3]]),
+            terrain: { cost: 80, kinds: ['water'] }
+        }))
+    })
+    const scene = createMapDrawing(map, undefined, {
+        terrainPositions: { 'location-0': { x: 22, y: 16 } },
+        terrainSymbolsBelow: ['location-0']
+    })
+    const [listed, other] = scene.locations
+    expect(listed.terrainSymbolsBelow).toBe(true)
+    expect(listed.terrainCostBelow).toBeUndefined()
+    expect(listed.terrainPosition).toEqual({ x: 22, y: 16 })
+    expect(other.terrainSymbolsBelow).toBeUndefined()
+})
+
+it('moves a location’s name from the top of its hex by its offset, in its usual type', () => {
+    const map = new RailwayMap({
+        id: 'names',
+        name: 'Names',
+        orientation: HexOrientation.Flat,
+        locations: [0, 1].map((r) => ({
+            id: `location-${r}`,
+            name: 'Newark',
+            coordinates: { q: 0, r },
+            buildable: true,
+            preprintedTile: createCityTileFace('white', [], 0, 1)
+        }))
+    })
+    const scene = createMapDrawing(map, undefined, {
+        nameOffsets: { 'location-0': { x: 0, y: -2 } }
+    })
+    const [offset, other] = scene.locations
+    expect(offset.nameBaseline.y).toBe(other.nameBaseline.y - 2)
+    expect(offset.namePlaced).toBe(false)
 })
 
 it('keeps a hex’s terrain cost on a laid tile only where the view asks, clear of its city', () => {

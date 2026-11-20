@@ -12,7 +12,9 @@
         isSellFundingShares,
         sameOwner,
         isDistributeEarnings,
-        isFloatCompany
+        isFloatCompany,
+        isAdvancePhase,
+        isExportTrains
     } from '@tabletop/18xx'
     import type { HistoryGroup } from './historyGroups.js'
     import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
@@ -95,7 +97,10 @@
     const rows = $derived(
         group.actions.map((action) => {
             const description = describe(action)
-            const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId
+            const stockPlayerId =
+                isFloatCompany(action) || isAdvancePhase(action) || isExportTrains(action)
+                    ? undefined
+                    : action.playerId
             const bankBreak = bankBreaks.get(action.id)
             const balance = cash.get(action.id)
             const delta =
@@ -202,7 +207,13 @@
                     <span
                         >{#snippet stockSummary()}{row.stockPlayerId
                                 ? afterPlayerName(row.text, companyLabels)
-                                : row.text}{#if row.phase}<span class="phase-colors"
+                                : row.text}{#if row.trainDefinitionIds?.length}<span
+                                    class="run-trains"
+                                    >{#each row.trainDefinitionIds as id, index (index)}<TrainBadge
+                                            name={trainName(id)}
+                                            color={trainColors[id]}
+                                        />{/each}</span
+                                >{/if}{#if row.phase}<span class="phase-colors"
                                     >{row.phase.label}</span
                                 >{/if}{#if row.value}{' '}for
                                 <span class="stock-value">{row.value}</span

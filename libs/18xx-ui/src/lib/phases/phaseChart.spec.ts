@@ -5,6 +5,8 @@ import {
     createPhaseChart,
     currentDepotCertificates,
     marketCertificates,
+    phaseLabel,
+    phaseName,
     trainRosterRows
 } from './phaseChart.js'
 
@@ -255,4 +257,24 @@ it('keeps faces with different upgrades on their own rows', () => {
         trainRosterRows([{ ...cheaper, upgrades: [{ definitionId: '5', price: 200 }] }, dearer])
             .length
     ).toBe(2)
+})
+
+it('names a phase that shares its name by the event that starts it', () => {
+    const chart = {
+        phases: [
+            { id: 'green', name: 'Green', tileColors: [], operatingRounds: 2, trainLimit: 2 },
+            {
+                id: 'treaty',
+                name: 'Green',
+                event: 'Treaty of Boston',
+                tileColors: [],
+                operatingRounds: 2,
+                trainLimit: 2
+            }
+        ]
+    }
+    expect(phaseName(chart, 'treaty')).toBe('Green — Treaty of Boston')
+    expect(phaseLabel(chart, ['treaty'])).toBe('Green phase — Treaty of Boston')
+    expect(phaseLabel(chart, ['green', 'treaty'])).toBe('Green phase — Treaty of Boston')
+    expect(phaseLabel({ phases: [] }, ['3', '4'])).toBe('Phase 3 → 4')
 })

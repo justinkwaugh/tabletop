@@ -22,6 +22,7 @@
 - **Board theme** (`app.css`): one light, matte board in the printed board's colours: a pale steel-blue table and a paler play area. There is no dark board and no theme toggle.
 - **Coordinate labels** (`board/coordinates.ts`): BoardSpace style, each column's letter below its bottom point and each line's number before its first point on the left. Centred by `dy` on the alphabetic baseline with letter-spacing in user units, as WebKit misplaces `dominant-baseline` and Safari em lengths under the board's zoom.
 - **Board lines** (`board/boardLines.ts`, from the logic's `LINES`): each line end to end, with a short whisker past each end point.
+- **Action panel height** (`ActionPanel.svelte`, `components/holdTallest.ts`): the panel keeps the tallest height it has reached at its current width, so a line that wraps for a long name does not move the board when it shrinks back. A new width starts over; a remount (the end panel, a new game) starts over too.
 
 ## 3. Layer Responsibilities
 
@@ -43,7 +44,7 @@
 - **Undo of your own move** (`willUndo` notes the move as `undoingMove`): `restagedMove` holds only while the move is the one this Undo takes back (its index is the incoming state's action count) and the view stays with its mover. `beforeNewState` then chooses its ring again, with its marker still in it (`restaged`, so the marker does not drop in again), and the animator leaves that marker standing (`keepsMarker`). `undoingMove` is cleared by the next published state.
 - **Stopping a move** (`YinshGameSession.moveInterrupter`, set by `BoardAnimator`): `beforeNewState` abandons the move on `view-switch`, killing its tweens and putting the board back at rest; the animator tells the abandoned presentation's later steps by `presentingState`. A move's `afterAnimations` writes its board only while the state it began on is still shown.
 - **Board drawn during a move** (`BoardAnimator`, read by `Board.svelte`): `pieces` and `removed` (the board and ring spaces each replayed action leaves, until the state lands) are writable `$derived` values over `session.gameState`, so publishing the new state resets them; `fliers` is cleared as each step lands.
-- **Turn header** (`Header.svelte`): names the player to act, `activePlayerIds[0]`, who is the opponent while they take rows a move made for them.
+- **Turn header** (`Header.svelte`): names the player to act, `activePlayerIds[0]`, who is the opponent while they take rows a move made for them. A long name is cut off with an ellipsis before it reaches Undo. The pool count (`PoolCount.svelte`, rule H3), icon and number only, has its own row under the action panel, so no name can cover it.
 - **Passes** (`ActionPanel.svelte`, `history/historyEntries.ts`): the action that ends a turn records a player passed over (`passedPlayerId` in its metadata); the prompt and the history read it there.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 

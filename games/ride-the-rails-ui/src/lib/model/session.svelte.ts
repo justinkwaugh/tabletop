@@ -245,11 +245,12 @@ export class RideTheRailsGameSession extends GameSession<
     journeyPreview: JourneyPreview | undefined = $derived(this.offeredJourney.preview)
 
     // U-7: the last journey, as this viewer's board draws it.
-    lastJourney: Link[] = $derived(
-        lastJourneyLinks(this.actions, {
-            isMyTurn: this.isMyTurn,
-            isViewingHistory: this.isViewingHistory
-        })
+    lastJourney: readonly Link[] = $derived(
+        this.flights.drawnJourney ??
+            lastJourneyLinks(this.actions, {
+                isMyTurn: this.isMyTurn,
+                isViewingHistory: this.isViewingHistory
+            })
     )
 
     canRideJourney = $derived(this.journeyPreview !== undefined)

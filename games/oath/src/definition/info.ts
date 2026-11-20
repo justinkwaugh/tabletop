@@ -1,4 +1,4 @@
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { OathConfigurator } from './configurator.js'
 
@@ -9,6 +9,11 @@ export const OathInfo: GameInfo = {
         bggId: 291572,
         hasScores: false,
         designer: 'Cole Wehrle',
+        publisher: {
+            name: 'Buried Giant Studios',
+            url: 'https://buriedgiant.shop/products/oath',
+            sellsGame: true
+        },
         description:
             'A game of empire and exile. The Chancellor defends an Oath while Exiles gather followers, campaign across the realm and chase Visions of a different future.',
         year: '2021',
@@ -16,8 +21,7 @@ export const OathInfo: GameInfo = {
         maxPlayers: 6,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     configurator: new OathConfigurator()
 }

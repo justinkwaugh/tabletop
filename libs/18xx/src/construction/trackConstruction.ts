@@ -1,7 +1,7 @@
 import type { RevenueCenter } from '../routes/route.js'
 import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
-import { cashOwnedBy, type Owner } from '../finance/finance.js'
+import { Owner, cashOwnedBy } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
@@ -13,7 +13,13 @@ import {
 } from '../map/station.js'
 import { reservationFulfilled } from '../stations/stationPlacement.js'
 import { CashPayment } from '../finance/cashPayments.js'
-import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
+import {
+    TilePlacement,
+    withTiles,
+    type BoardTile,
+    type TileInventory,
+    type TileSet
+} from '../tiles/inventory.js'
 import {
     TileRotation,
     type TileDefinition,
@@ -129,6 +135,8 @@ export const TrackLayDetails = Type.Object(
         consentPlayerId: Type.Optional(Type.String()),
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
+        /** Who the allowance's cost is paid to, where not the bank. */
+        allowanceRecipient: Type.Optional(Owner),
         movedStations: Type.Array(PlacedStation),
         /** Stations a reconfiguring upgrade set aside for their owners to place again. */
         displacedStationIds: Type.Optional(Type.Array(Type.String())),
@@ -150,12 +158,16 @@ export interface TrackRules {
     /** Loans the company takes for construction its cash cannot pay for (1861 §10.2). */
     borrowing?: AutomaticBorrowing
     availableColors(state: ConstructionState): readonly string[]
-    /** Whether the company may lay a tile of the colour, replacing a tile when ``upgrade``. */
+    /**
+     * Whether the company may lay a tile of the colour, replacing a tile when ``upgrade``, and
+     * what the lay costs beside its terrain: paid to the bank, or to ``recipient``, as
+     * 18RoyalGorge's steel is bought from CF&I (Rule 5).
+     */
     allowance(
         state: ConstructionState,
         color: string,
         upgrade?: boolean
-    ): { cost: number } | { reason: string }
+    ): { cost: number; recipient?: Owner } | { reason: string }
     /**
      * A replacement in the same colour the title allows on this hex, such as a medium city's
      * yellow town becoming a yellow city; the title then judges its stops, and towns may become
@@ -218,7 +230,19 @@ export interface TrackRules {
         cost: number
     ): number
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
-    afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
+    /**
+     * Tiles a lay places beside its own as one piece, such as 18RoyalGorge's brown gorge across
+     * its three hexes: drawn with it while previewed and laid with it, for its one lay and cost.
+     * Stations stay on a companion hex's nodes as they were, so its tile keeps their node ids.
+     */
+    companionTiles?(state: ConstructionState, details: TrackLayDetails): readonly BoardTile[]
+    /** Effects of a lay just made; `ordinary` is false for a lay outside the step's own lays. */
+    afterLay?(
+        state: ConstructionState,
+        details: TrackLayDetails,
+        payer: Owner,
+        ordinary: boolean
+    ): TrackLayEffects
     relabels?(locationId: string, definitionId: string): boolean
     /** The city of a tile that prints this reserved spot; laying the tile moves the spot there. */
     printedReservationNode?(
@@ -509,6 +533,7 @@ export class TrackConstruction {
                 terrainCost,
                 ...(consentPlayerId ? { consentPlayerId } : {}),
                 allowanceCost: allowance.cost,
+                ...(allowance.recipient ? { allowanceRecipient: allowance.recipient } : {}),
                 movedStations: migrated.moved,
                 ...(migrated.displaced.length ? { displacedStationIds: migrated.displaced } : {}),
                 ...(migrated.reconfigured ? { reconfigured: true } : {})
@@ -519,11 +544,16 @@ export class TrackConstruction {
         return stationsAfterLay(this.state, details, this.rules)
     }
     inventoryAfter(details: TrackLayDetails): TileInventory {
-        return this.rules.tileSet.replace(this.state.tileInventory, {
-            locationId: details.locationId,
-            placement: details.placement,
-            returnPrevious: true
-        })
+        const { tileSet } = this.rules
+        return withTiles(
+            tileSet,
+            tileSet.replace(this.state.tileInventory, {
+                locationId: details.locationId,
+                placement: details.placement,
+                returnPrevious: true
+            }),
+            this.rules.companionTiles?.(this.state, details) ?? []
+        )
     }
     private network(companyId: string): ConstructionReachability {
         return (this.reachability ??= new ConstructionReachability(

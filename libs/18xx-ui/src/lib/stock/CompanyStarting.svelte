@@ -12,7 +12,8 @@
         {#if session.stock.selectedStartResult?.details}
             {@const details = session.stock.selectedStartResult.details}
             <p>
-                {session.ownerName(details.buyer)} buys the president’s certificate for {details.price}.
+                {session.ownerName(details.buyer)}
+                {session.terms.reword(`buys the president’s certificate for ${details.price}.`)}
                 Starting price: {details.parPrice}.
             </p>
             <ul>
@@ -40,14 +41,14 @@
                     <button
                         data-start-price={session.stockMarketChart.space(price.marketSpaceId).price}
                         disabled={session.busy || !price.result.details}
-                        title={price.result.reason}
+                        title={price.result.reason && session.terms.reword(price.result.reason)}
                         onclick={() => session.stock.selectStartPrice(price.marketSpaceId)}
                         >{session.stockMarketChart.space(price.marketSpaceId).price}</button
                     >
                 {/each}
             </div>
             {#if session.stock.selectedStartResult?.reason}<p role="alert">
-                    {session.stock.selectedStartResult.reason}
+                    {session.terms.reword(session.stock.selectedStartResult.reason)}
                 </p>{/if}
             <button disabled={session.busy} onclick={() => session.stock.backFromStart()}
                 >Back</button
@@ -70,7 +71,7 @@
                     <strong>{session.actionCompanyName(choice.request.companyId)}</strong>
                     <span>{session.ownerName(choice.request.buyer)}</span>
                     {#if !choice.prices.some((price) => price.result.details)}<span
-                            >{choice.prices[0]?.result.reason}</span
+                            >{session.terms.reword(choice.prices[0]?.result.reason ?? '')}</span
                         >{/if}
                 </button>
             {/each}

@@ -9,6 +9,10 @@
     import { tileChoiceArc } from './tileChoiceArc.js'
     import { HexPickerFrame } from './hexPickerFrame.svelte.js'
     import HexPickerControls from './HexPickerControls.svelte'
+    import TilePiece from './TilePiece.svelte'
+    import { TileBox, pieceLayout, type PieceHex } from './tilePiece.js'
+    import { tileGroupOf } from './tileGroups.js'
+    import { assertExists, type Point } from '@tabletop/common'
 
     let {
         session,
@@ -18,19 +22,82 @@
         $props()
     const money = $derived(session.presentation.money)
     const frame = new HexPickerFrame()
-    const center = $derived(frame.center)
+    const locationId = $derived(session.track.selection.locationId?.value)
+    const mapScale = $derived(frame.tileSize / TileBox)
+    function sceneHex(id: string) {
+        const entry = session.map.scene.locations.find((candidate) => candidate.location.id === id)
+        assertExists(entry, `The map draws ${id}`)
+        return entry
+    }
+    /** Where a point of the map, in map units, stands on screen, from the followed hex. */
+    function onScreen(point: Point): Point {
+        assertExists(locationId, 'The picker follows a chosen hex')
+        const anchor = sceneHex(locationId).center
+        return {
+            x: frame.center.x + (point.x - anchor.x) * mapScale,
+            y: frame.center.y + (point.y - anchor.y) * mapScale
+        }
+    }
+    const group = $derived(locationId ? tileGroupOf(session.mapView, locationId) : undefined)
+    const groupLayout = $derived(
+        group ? pieceLayout(group.map((id) => sceneHex(id).center)) : undefined
+    )
+    const center = $derived(groupLayout ? onScreen(groupLayout.middle) : frame.center)
+    /** Half the height the hex, or the piece, takes on screen. */
+    const halfHeight = $derived(
+        frame.hexHeight / 2 + (groupLayout ? ((groupLayout.height - TileBox) * mapScale) / 2 : 0)
+    )
+    const controls = $derived(frame.controlsAbove(center, halfHeight))
+    /** The tiles each choice lays as one piece, by tile, where it lays more than one. */
+    const pieces = $derived.by(() => {
+        const preview = session.track.preview
+        return new Map(
+            session.track.tiles.flatMap((tile) => {
+                const details =
+                    preview?.definitionId === tile.id
+                        ? preview
+                        : session.track.choices.find((choice) => choice.definitionId === tile.id)
+                const tiles = details ? session.track.pieceOf(details) : []
+                if (tiles.length < 2) return []
+                const layout = pieceLayout(tiles.map((entry) => sceneHex(entry.locationId).center))
+                const hexes = tiles.map((entry, index): PieceHex => {
+                    const definition = session.mapView.tileSet.definitions.find(
+                        (candidate) => candidate.id === entry.definitionId
+                    )
+                    assertExists(definition, `Tile ${entry.definitionId} is in the set`)
+                    const { outline, joints } = sceneHex(entry.locationId)
+                    return {
+                        face: definition.face,
+                        printedNumber: definition.printedNumber,
+                        rotation: entry.rotation,
+                        layout: placedTileLayout(session.mapView.layouts, entry.definitionId),
+                        offset: layout.offsets[index],
+                        outline,
+                        joints
+                    }
+                })
+                return [[tile.id, { hexes, layout }] as const]
+            })
+        )
+    })
     const width = $derived(frame.width)
     const height = $derived(frame.height)
     const tileSize = $derived(frame.tileSize)
     const hexHeight = $derived(frame.hexHeight)
-    const locationId = $derived(session.track.selection.locationId?.value)
     let collapsing = $derived.by(() => {
         session.track.selection
         return false
     })
     const selectedId = $derived(session.track.preview?.definitionId)
     const layout = $derived(
-        tileChoiceArc(center, width, height, session.track.tiles.length, tileSize, 1.4)
+        tileChoiceArc(
+            center,
+            width,
+            height,
+            session.track.tiles.length,
+            tileSize,
+            groupLayout ? (1.4 * Math.max(groupLayout.width, groupLayout.height)) / TileBox : 1.4
+        )
     )
 
     const trackHex = frame.follow(
@@ -175,11 +242,10 @@
     function dismissChoices(event: PointerEvent) {
         if (session.track.preview || !(event.target instanceof Element)) return
         if (event.target.closest('[data-map-tile-choice]')) return
-        if (
-            event.target.closest('[data-map-location]')?.getAttribute('data-map-location') ===
-            locationId
-        )
-            return
+        const clicked = event.target
+            .closest('[data-map-location]')
+            ?.getAttribute('data-map-location')
+        if (clicked && (clicked === locationId || group?.includes(clicked))) return
         void cancel()
     }
 </script>
@@ -197,8 +263,18 @@
             {#key locationId}
                 {#each session.track.tiles as tile, index (tile.id)}
                     {@const chosen = tile.id === selectedId}
-                    {@const point = chosen ? center : layout.points[index]}
                     {@const size = chosen ? tileSize : layout.size}
+                    {@const piece = pieces.get(tile.id)}
+                    {@const pieceScale = piece
+                        ? chosen
+                            ? mapScale
+                            : size / Math.max(piece.layout.width, piece.layout.height)
+                        : 1}
+                    {@const point = chosen
+                        ? piece
+                            ? onScreen(piece.layout.middle)
+                            : center
+                        : layout.points[index]}
                     <button
                         use:register={tile.id}
                         out:fade|global={{
@@ -212,24 +288,34 @@
                         tabindex={chosen ? -1 : 0}
                         aria-label={`Build tile ${tile.printedNumber}`}
                         style:translate={`${point.x}px ${point.y}px`}
-                        style:width={`${size}px`}
-                        style:height={`${size}px`}
+                        style:width={`${piece ? piece.layout.width * pieceScale : size}px`}
+                        style:height={`${piece ? piece.layout.height * pieceScale : size}px`}
                         onclick={() => moveTile(tile.id)}
                     >
-                        <Tile
-                            face={tile.face}
-                            printedNumber={tile.printedNumber}
-                            {appearance}
-                            {size}
-                            shadow
-                            layout={placedTileLayout(session.mapView.layouts, tile.id)}
-                            orientation={session.mapView.map.definition.orientation}
-                            rotation={chosen
-                                ? session.track.preview?.rotation
-                                : session.track.choices.find(
-                                      (choice) => choice.definitionId === tile.id
-                                  )?.rotation}
-                        />
+                        {#if piece}<TilePiece
+                                hexes={piece.hexes}
+                                viewWidth={piece.layout.width}
+                                viewHeight={piece.layout.height}
+                                width={piece.layout.width * pieceScale}
+                                height={piece.layout.height * pieceScale}
+                                orientation={session.mapView.map.definition.orientation}
+                                {appearance}
+                                label={`Tile ${tile.printedNumber} across ${piece.hexes.length} hexes`}
+                                shadow
+                            />{:else}<Tile
+                                face={tile.face}
+                                printedNumber={tile.printedNumber}
+                                {appearance}
+                                {size}
+                                shadow
+                                layout={placedTileLayout(session.mapView.layouts, tile.id)}
+                                orientation={session.mapView.map.definition.orientation}
+                                rotation={chosen
+                                    ? session.track.preview?.rotation
+                                    : session.track.choices.find(
+                                          (choice) => choice.definitionId === tile.id
+                                      )?.rotation}
+                            />{/if}
                     </button>
                 {/each}
             {/key}
@@ -240,14 +326,14 @@
                     class="placement-cost"
                     transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
                     style:left={`${center.x}px`}
-                    style:top={`${Math.min(height - tileSize * 0.3, center.y + hexHeight / 2 + tileSize * 0.06)}px`}
+                    style:top={`${Math.min(height - tileSize * 0.3, center.y + halfHeight + tileSize * 0.06)}px`}
                     style:font-size={`${tileSize * 0.15}px`}
                 >
                     {money(session.track.preview.cost)}
                 </div>
             {/if}
             <HexPickerControls
-                at={frame.controls}
+                at={controls}
                 size={frame.buttonSize}
                 cancel={{ label: 'Cancel track lay', onclick: cancel }}
                 accept={{

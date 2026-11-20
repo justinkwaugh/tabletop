@@ -24,7 +24,13 @@
     const tiered = $derived(!!model.tiers)
     const selected = $derived(lots.find((lot) => lot.id === auction.selection?.lotId))
     const playerId = $derived(auction.playerId)
-    const columnCount = $derived(auction.ownTurn ? 4 : 3)
+    const showsIncome = $derived(
+        model.lots.some((lot) => selectionLotDetail(session, lot.id).company.revenue > 0)
+    )
+    const showsOpeningBids = $derived(model.someLotOpensOffValue)
+    const columnCount = $derived(
+        2 + Number(auction.ownTurn) + Number(showsIncome) + Number(showsOpeningBids)
+    )
     // The table opens the bid under the chosen lot; the tiers bid beside them.
     const bidsInline = $derived(!tiered && !!selected)
 </script>
@@ -49,13 +55,14 @@
             {#if tiered}
                 <SelectionAuctionPyramid {session} />
             {:else}
-                <table class="auction-lot-table">
+                <table class="auction-lot-table" class:crowded={columnCount === 5}>
                     <thead
                         ><tr
                             >{#if auction.ownTurn}<th><span class="sr-only">Action</span></th
-                                >{/if}<th>Private</th><th class="amount">Value</th><th
-                                class="amount">Opens at</th
-                            ></tr
+                                >{/if}<th>Private</th>{#if showsIncome}<th class="amount">Income</th
+                                >{/if}<th class="amount">Value</th>{#if showsOpeningBids}<th
+                                    class="amount">Opens at</th
+                                >{/if}</tr
                         ></thead
                     >
                     <tbody>
@@ -106,8 +113,13 @@
                                         </span>
                                     </div></th
                                 >
+                                {#if showsIncome}<td class="amount income"
+                                        >{money(lot.company.revenue)} <small>/ OR</small></td
+                                    >{/if}
                                 <td class="amount value">{money(lot.price)}</td>
-                                <td class="amount">{money(model.minimumBid(lot.id))}</td>
+                                {#if showsOpeningBids}<td class="amount"
+                                        >{money(model.minimumBid(lot.id))}</td
+                                    >{/if}
                             </tr>
                             {#if selected?.id === lot.id && auction.selection && playerId}
                                 {@const amount = auction.selection.amount}
@@ -201,6 +213,26 @@
     @container auction-turn (max-width: 719px) {
         table {
             flex: none;
+        }
+    }
+    @container auction-turn (max-width: 420px) {
+        .income small {
+            display: none;
+        }
+        thead .amount {
+            white-space: normal;
+        }
+        .amount {
+            padding-inline: 4px;
+        }
+        .crowded .private-icon {
+            display: none;
+        }
+        .crowded .action {
+            padding-right: 4px;
+        }
+        .crowded .action button {
+            padding-inline: 6px;
         }
     }
 </style>

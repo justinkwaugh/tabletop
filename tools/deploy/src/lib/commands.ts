@@ -73,13 +73,20 @@ export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Prom
     })
 }
 
-export const buildGameUiCommand = (repoRoot: string, packageId: string): CommandSpec => ({
+export const buildGameUiCommand = (
+    repoRoot: string,
+    packageId: string,
+    assetBaseUrl?: string
+): CommandSpec => ({
     label: `bundle-ui:${packageId}`,
     command: 'pnpm',
     args: ['-w', '--filter', `@tabletop/${packageId}-ui`, 'run', 'bundle'],
     cwd: repoRoot,
-    logPath: `/tmp/${packageId}-ui-bundle.log`
+    logPath: `/tmp/${packageId}-ui-bundle.log`,
+    ...(assetBaseUrl ? { env: { ROLLDOWN_ASSET_BASE_URL: assetBaseUrl } } : {})
 })
+
+export const publicBucketUrl = (bucket: string) => `https://storage.googleapis.com/${bucket}`
 
 export const buildGameUiPackageCommand = (repoRoot: string, packageId: string): CommandSpec => ({
     label: `build-ui:${packageId}`,

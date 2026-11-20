@@ -55,10 +55,13 @@ export function titleTestKit<
     depot: TrainDepot
     privates: readonly { id: string; faceValue: number }[]
     home(companyId: string): string | undefined
+    /** The colour of the market spaces companies start on, pink unless the title's differ. */
+    parColor?: string
     /** What a title decides straight after a private sells, such as its railway's par. */
     afterPrivateBought?(game: Table<State, Hydrated>): void
 }) {
     const { definition, map, tileSet, market, trackRules, stationRules, trainRules, depot } = title
+    const parColor = title.parColor ?? 'pink'
 
     function table(
         count = 4,
@@ -151,7 +154,9 @@ export function titleTestKit<
     }
 
     function spaceAt(price: number): string {
-        const space = market.spaces.find((entry) => entry.price === price && entry.color === 'pink')
+        const space = market.spaces.find(
+            (entry) => entry.price === price && entry.color === parColor
+        )
         if (!space) throw new Error(`No ${price} par space`)
         return space.id
     }
@@ -398,7 +403,9 @@ export function titleTestKit<
             parPrice: price,
             president: { kind: 'player', playerId }
         })
-        const space = market.spaces.find((entry) => entry.price === price && entry.color === 'pink')
+        const space = market.spaces.find(
+            (entry) => entry.price === price && entry.color === parColor
+        )
         assertExists(space, `No ${price} par space`)
         placeStockMarker(state.stockMarket, companyId, space.id)
         const owned = state.certificates.filter(

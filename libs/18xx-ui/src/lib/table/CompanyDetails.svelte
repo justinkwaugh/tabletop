@@ -5,6 +5,7 @@
     import {
         companyMarketSpace,
         DefaultCompanyPricePresentation,
+        shownParPrice,
         type CompanyPricePresentation
     } from './companyPresentation.js'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
@@ -110,6 +111,7 @@
     const marketSpace = $derived(
         companyMarketSpace(session.stockMarketChart, gameState.stockMarket, company.id)
     )
+    const parPrice = $derived(shownParPrice(pricePresentation, gameState, company))
     const marketPrice = $derived(marketSpace?.price)
     const valueMark = $derived(marketValueMark(marketSpace, session.presentation.marketZones))
     const shareStatus = $derived(session.companyShareStatus(company.id))
@@ -337,9 +339,9 @@
                                     company.id,
                                     entry.poolId
                                 )
-                                    ? 'Holds the president’s certificate'
+                                    ? `Holds the ${session.terms.presidentWord}’s certificate`
                                     : company.president && sameOwner(entry.owner, company.president)
-                                      ? 'President'
+                                      ? session.terms.president
                                       : undefined}
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
@@ -366,6 +368,7 @@
                                             )}
                                             president={!!presidency}
                                             label={session.presidentMark(company.id)}
+                                            title={session.terms.president}
                                         />{@render multiShareBadge(entry)}</th
                                     >
                                     {#if numberedShares}<td
@@ -478,8 +481,8 @@
 {#snippet prices()}
     <div class="prices">
         {@render cashValue()}
-        {#if pricePresentation.showPar && company.parPrice !== undefined}<div>
-                <span>Par</span><strong>{company.parPrice}</strong>
+        {#if pricePresentation.showPar && parPrice !== undefined}<div>
+                <span>Par</span><strong>{parPrice}</strong>
             </div>{/if}
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
@@ -554,7 +557,10 @@
                                 ? power.label
                                 : undefined}
                         /></span
-                    >{/each}
+                    >{/each}{#if !item.closed}{@const held = session.presentation.privateHoldings?.(
+                        gameState,
+                        item.id
+                    )}{#if held}<small class="private-holdings">{held}</small>{/if}{/if}
             </div>
             <span
                 >{purchasePrice ??
@@ -575,6 +581,13 @@
     .private-power {
         margin-left: 6px;
         white-space: nowrap;
+    }
+    .private-holdings {
+        display: block;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 14px;
     }
     .company-detail.unavailable {
         background: var(--rail-surface, #f1f1ef);

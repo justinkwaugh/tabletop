@@ -456,6 +456,29 @@ for (const [overpan, expected] of [
     })
 }
 
+// A wide, short target at half scale in the 400×300 pane: centred, its middle sits at the middle
+// of the 256px below the inset; top-aligned, its top edge sits on the inset.
+for (const [align, expectedTop] of [
+    [undefined, 44 + 256 / 2 - 50 / 2],
+    ['top', 44]
+] as const) {
+    test(`focusing a short target ${align ? `aligned ${align}` : 'centred'} below an inset`, async ({
+        page
+    }) => {
+        await mountWrapper(page, {
+            overpan: 'focus',
+            insetTop: 44,
+            focus: { x: 100, y: 200, width: 800, height: 100 },
+            focusOptions: { align }
+        })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(500)
+        const boardTop = (await board.boundingBox())!.y
+        const paneTop = (await page.getByTestId('pane').boundingBox())!.y
+        expect(boardTop + 200 * 0.5 - paneTop).toBeCloseTo(expectedTop)
+    })
+}
+
 test('gestures shrink a focus overpan but never grow it, handing outward movement to the table', async ({
     page
 }) => {

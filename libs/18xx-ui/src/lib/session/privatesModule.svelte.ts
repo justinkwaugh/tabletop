@@ -16,7 +16,8 @@ import {
     privateExchangeOffers,
     type EighteenXXTitleRules,
     type PrivateExchangeRequest,
-    privateIncome
+    privateIncome,
+    type StepAction
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
@@ -36,7 +37,9 @@ export type PrivatesSession = ModuleSession<
         | 'outOfTurnPrivatePowers'
         | 'privatePowerRules'
     > &
-        Partial<Pick<EighteenXXTitleRules, 'operatingRules'>>
+        Partial<Pick<EighteenXXTitleRules, 'operatingRules'>> & {
+            privateExchangeActions?: readonly Pick<StepAction<never>, 'type'>[]
+        }
 >
 
 function sameExchange(a: PrivateExchangeRequest, b: PrivateExchangeRequest) {
@@ -51,6 +54,10 @@ export class PrivatesModule {
     readonly exchangeChoice = singleChoice<PrivateExchangeRequest>()
     constructor(private readonly session: PrivatesSession) {}
 
+    /** A title with exchanges of its own lists them all together, the family's among them. */
+    private titleListsExchanges = $derived.by(
+        () => !!this.session.rules.privateExchangeActions?.length
+    )
     companies = $derived.by(() =>
         this.session.state.companies
             .filter((company) => company.kind === 'private')
@@ -72,6 +79,7 @@ export class PrivatesModule {
     )
     hasExchanges = $derived.by(() => {
         const { state, rules } = this.session
+        if (this.titleListsExchanges) return false
         return state.companies.some(
             (company) =>
                 company.kind === 'private' &&
@@ -82,6 +90,7 @@ export class PrivatesModule {
     private exchangesBlocked = $derived.by(() => {
         const { state, rules } = this.session
         return (
+            this.titleListsExchanges ||
             !this.session.interactive ||
             pendingCompanyDecision(state) ||
             !!nextCompanyToFloat(state, rules.companyRules)
@@ -170,6 +179,10 @@ export class PrivatesModule {
     async confirmExchange() {
         const request = this.exchangeSelection
         assert(request, 'Choose an available private exchange')
+        await this.submitExchange(request)
+    }
+    /** Sends an exchange, in turn for a player on turn and sequenced for any other. */
+    async submitExchange(request: PrivateExchangeRequest) {
         assert(
             this.session.canActFor(request.playerId),
             'Only the owning player can confirm this exchange'

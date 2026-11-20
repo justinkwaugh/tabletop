@@ -10,6 +10,7 @@
         rounds,
         children,
         phaseColors,
+        phaseLabel,
         newestFirst = false,
         historyComplete = true,
         onJump,
@@ -27,6 +28,7 @@
         rounds: HistoryRound[]
         children: Snippet<[HistoryRound]>
         phaseColors: Readonly<Record<string, string>>
+        phaseLabel: (phaseIds: readonly string[]) => string
         newestFirst?: boolean
         historyComplete?: boolean
         onOrderChange: (newestFirst: boolean) => void
@@ -92,10 +94,14 @@
             const style = getComputedStyle(node)
             const available =
                 node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+            // The phase's width on one line, though it wraps once the order moves down.
+            parts.phase.style.whiteSpace = 'nowrap'
+            const phaseWidth = parts.phase.offsetWidth
+            parts.phase.style.whiteSpace = ''
             const needed =
                 parts.title.offsetWidth +
                 parts.order.scrollWidth +
-                parts.phase.offsetWidth +
+                phaseWidth +
                 2 * parseFloat(style.columnGap)
             node.classList.toggle('order-on-second-line', needed > available)
         }
@@ -150,7 +156,7 @@
                     style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}
                     onclick={() => scrollToRound(round.id)}
                 >
-                    <strong>{round.label}</strong><span>Phase {round.phases.join(' → ')}</span>
+                    <strong>{round.label}</strong><span>{phaseLabel(round.phases)}</span>
                 </button>
             {:else}<div class="empty">No rounds yet.</div>{/each}
         </nav>
@@ -196,7 +202,7 @@
                                     aria-label="Operating order"
                                     >{@render orderContent(round.operatingOrder)}</span
                                 >{/if}
-                            <span class="round-phase">Phase {round.phases.join(' → ')}</span>
+                            <span class="round-phase">{phaseLabel(round.phases)}</span>
                         </h3>
                     {/snippet}
                     {#if !newestFirst}{@render divider()}{/if}
@@ -384,8 +390,9 @@
     .round-order :global(.order) {
         flex-wrap: nowrap;
     }
+    /* A long phase name wraps beside the title rather than running under it. */
     .round-divider:global(.order-on-second-line) {
-        grid-template-columns: minmax(0, 1fr) max-content;
+        grid-template-columns: max-content minmax(0, 1fr);
         grid-template-areas: 'title phase' 'order order';
     }
     :global(.order-on-second-line) .round-order {
@@ -398,6 +405,9 @@
         font-weight: 600;
         text-align: right;
         white-space: nowrap;
+    }
+    :global(.order-on-second-line) .round-phase {
+        white-space: normal;
     }
     .empty {
         padding: 1.538em 0.615em;

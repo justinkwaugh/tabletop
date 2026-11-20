@@ -6,11 +6,13 @@ export type PhaseChangePalette = {
     phaseTileColors: Readonly<Record<string, readonly string[]>>
     tileColors: Readonly<Record<string, string>>
     tileColorNames: Readonly<Record<string, string>>
+    /** Marks every phase change, not only those that change the colour or the tiles. */
+    everyPhase?: boolean
 }
 
 export function historyPhaseChange(
     action: GameAction,
-    { phaseColors, phaseTileColors, tileColors, tileColorNames }: PhaseChangePalette
+    { phaseColors, phaseTileColors, tileColors, tileColorNames, everyPhase }: PhaseChangePalette
 ): { color: string; label?: string } | undefined {
     if (!isAdvancePhase(action)) return undefined
     assertExists(action.metadata, 'Recorded phase change requires its event')
@@ -22,7 +24,10 @@ export function historyPhaseChange(
     assertExists(previousTiles, `Unknown tile phase: ${fromPhaseId}`)
     assertExists(nextTiles, `Unknown tile phase: ${toPhaseId}`)
     const unlocked = nextTiles.filter((color) => !previousTiles.includes(color))
-    if (previous === next && !unlocked.length) return undefined
+    if (previous === next && !unlocked.length) {
+        if (!everyPhase || fromPhaseId === toPhaseId || !next) return undefined
+        return { color: next }
+    }
     const unlockedColor = unlocked.at(-1)
     const color = unlockedColor ? tileColors[unlockedColor] : next
     assertExists(color, `Unknown history phase color: ${toPhaseId}`)

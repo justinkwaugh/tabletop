@@ -108,6 +108,7 @@ const MinorAuction1867: CompanyAuctionRules = {
     startSpace: (_state, price) => minorStartSpace(price).id,
     shareCounts: () => [2],
     contributions: () => [],
+    contributionValue: () => 0,
     formationReason: () => undefined,
     // The winner pays the minor's treasury (GTG §7.2.1).
     form(state, formation) {

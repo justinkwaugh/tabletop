@@ -31,7 +31,8 @@ export class ProjectedRunModule {
     constructor(
         private readonly session: ProjectedRunSession,
         private readonly map: ProjectedRunMap,
-        private readonly snapshot: () => TrainRunningState
+        private readonly snapshot: () => TrainRunningState,
+        private readonly projectsRun: (companyId: string) => boolean = () => true
     ) {}
 
     private operatingCompanyId = $derived.by((): string | undefined => {
@@ -46,7 +47,8 @@ export class ProjectedRunModule {
         const constructing = validActionTypes.some(
             (type) => type === 'FinishTrack' || type === 'FinishStations' || type === 'PlaceStation'
         )
-        return constructing ? this.operatingCompanyId : undefined
+        const companyId = constructing ? this.operatingCompanyId : undefined
+        return companyId && this.projectsRun(companyId) ? companyId : undefined
     })
     request = $derived.by((): RunProjectionRequest | undefined => {
         const companyId = this.companyId

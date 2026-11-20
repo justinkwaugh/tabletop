@@ -143,6 +143,10 @@ export function endOperatingTurn(
 ): void {
     assertExists(state.operatingSet, 'A turn belongs to an operating set')
     state.operatingSet.completedCompanyIds.push(companyId)
+    leaveOperatingTurn(state)
+}
+/** Ends the turn under way without completing its company, which operates later in the round. */
+export function leaveOperatingTurn(state: HydratedGameState & OperatingTurnState): void {
     state.turnManager.endTurn(state.actionCount)
     delete state.trackStep
     delete state.stationStep

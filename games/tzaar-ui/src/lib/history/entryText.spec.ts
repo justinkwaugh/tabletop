@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { PieceKind, spaceFromName, spaceName } from '@tabletop/tzaar'
 import { entrySegments } from './entryText.js'
-import type { HistoryEntry } from './historyEntries.js'
+import type { MoveEntry } from './historyEntries.js'
 
 const span = { id: 'a', firstIndex: 0, lastIndex: 0, playerId: 'alice' }
 
-function joined(entry: HistoryEntry, brief = false): string {
+function joined(entry: MoveEntry, brief = false): string {
     return entrySegments(entry, brief)
         .map((segment) =>
             segment.kind === 'text'
@@ -18,7 +18,7 @@ function joined(entry: HistoryEntry, brief = false): string {
 }
 
 describe('history text', () => {
-    const capture: HistoryEntry = {
+    const capture: MoveEntry = {
         ...span,
         kind: 'capture',
         from: spaceFromName('D1'),

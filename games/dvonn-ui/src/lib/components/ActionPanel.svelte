@@ -2,14 +2,18 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import { holdTallest } from './holdTallest.js'
 
     const session = getGameSession()
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
 
     // Rule E8: a player without a move passes, and the other moves again.
+    const passedPlayerId = $derived(
+        lastEntry?.kind === 'call' ? undefined : lastEntry?.passedPlayerId
+    )
     const opponentPassed = $derived(
-        lastEntry?.passedPlayerId !== undefined && lastEntry.passedPlayerId !== session.myPlayer?.id
+        passedPlayerId !== undefined && passedPlayerId !== session.myPlayer?.id
     )
 
     const prompt = $derived.by(() => {
@@ -19,8 +23,8 @@
                 : 'Place a piece on any empty space'
         }
         if (session.chosenFrom) return 'Choose where the stack lands'
-        if (session.canMove && opponentPassed && lastEntry?.passedPlayerId) {
-            return `${session.getPlayerName(lastEntry.passedPlayerId)} cannot move; move again`
+        if (session.canMove && opponentPassed && passedPlayerId) {
+            return `${session.getPlayerName(passedPlayerId)} cannot move; move again`
         }
         if (session.canMove) return 'Choose a piece or stack to move'
         return undefined
@@ -28,7 +32,7 @@
 </script>
 
 <!-- One row, as Bus and Magna Grecia do: the last move while you wait, the prompt on your turn. -->
-<div class="panel">
+<div class="panel" {@attach holdTallest}>
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />

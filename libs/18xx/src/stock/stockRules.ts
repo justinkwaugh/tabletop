@@ -88,6 +88,11 @@ export interface StockRules {
      */
     presidencyLapses?: true
     /**
+     * Whether the company's shares carry no presidency at all, as 18RoyalGorge's steel and gold
+     * companies, which issue ten single shares and never operate (SR-5, SR-6).
+     */
+    presidentless?(state: StockState, companyId: string): boolean
+    /**
      * What follows any sale into the market, such as the market closing its own shorts. Sale
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */
@@ -147,6 +152,9 @@ export function purchaseOwnershipCeiling(
     assertExists(shareCount, 'Ownership limits require a share count')
     return Math.floor((rules.ownershipLimit(state, companyId, buyer) * shareCount) / 100)
 }
+
+/** The certificate limit of a title that has none. */
+export const NoCertificateLimit = Number.MAX_SAFE_INTEGER
 
 export function certificateLimitAllows(
     state: StockState,

@@ -1,4 +1,9 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import {
+    isCallGameAction,
+    type AxialCoordinates,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { isPushPiece, isRemoveRow, piecesIn } from '@tabletop/gipf'
 
 export type Taking = {
@@ -22,7 +27,18 @@ export type PushEntry = Span & {
 
 export type TakingEntry = Span & { kind: 'taking'; takings: Taking[] }
 
-export type HistoryEntry = PushEntry | TakingEntry
+export type MoveEntry = PushEntry | TakingEntry
+
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = MoveEntry | CallEntry
 
 function takingOf(action: GameAction): Taking | undefined {
     if (!isRemoveRow(action)) return undefined
@@ -48,11 +64,21 @@ function inReadingOrder(
 }
 
 // A push and the rows its player takes after it form one entry; rows taken by the other player,
-// or before a push, get their own.
+// or before a push, get their own. A call stands apart from them all.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {
         const last = entries.at(-1)
+        if (isCallGameAction(action)) {
+            entries.push({
+                kind: 'call',
+                id: action.id,
+                firstIndex: index,
+                lastIndex: index,
+                action
+            })
+            return
+        }
         if (isPushPiece(action)) {
             entries.push({
                 kind: 'push',
@@ -72,6 +98,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
         if (taking === undefined || action.playerId === undefined) return
         if (
             last !== undefined &&
+            last.kind !== 'call' &&
             last.playerId === action.playerId &&
             last.lastIndex === index - 1
         ) {

@@ -6,7 +6,7 @@ import {
     ownershipLimitPercent1867
 } from './companies.js'
 import { Map1867 } from './map.js'
-import { OperatingRules1867, TrainRules1867 } from './operating.js'
+import { EndingRules1867, OperatingRules1867, TrainRules1867 } from './operating.js'
 import { StockRules1867 } from './stock.js'
 import { Market1867, convertible, majorStartSpaceAtOrBelow } from './stockMarket.js'
 import { TileSet1867 } from './tiles.js'
@@ -34,5 +34,6 @@ export const MergerRounds1867 = new MergerRounds({
     majorShareCount: MajorShareCount,
     directorShares: 2,
     certificateLimit: (state) => certificateLimit1867(state.players.length),
-    ownershipLimitPercent: (state) => ownershipLimitPercent1867(state.players.length)
+    ownershipLimitPercent: (state) => ownershipLimitPercent1867(state.players.length),
+    valuationRules: EndingRules1867
 })

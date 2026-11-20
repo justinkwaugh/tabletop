@@ -9,6 +9,7 @@
     import {
         companyMarketSpace,
         DefaultCompanyPricePresentation,
+        shownParPrice,
         type CompanyPricePresentation
     } from './companyPresentation.js'
     import { assert, assertExists, type GameAction } from '@tabletop/common'
@@ -25,6 +26,7 @@
         sharesOwned,
         trainsOwnedBy,
         type Company,
+        type Station,
         type Owner,
         type PurchaseRequest,
         isObsoleteTrain,
@@ -33,7 +35,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { NumberedShareNames } from './companyPresentation.js'
     import PlayerName from './PlayerName.svelte'
-    import OperatingHistory from './OperatingHistory.svelte'
+    import IncomeHistory from './IncomeHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import { marketValueMark } from '../stock/marketColors.js'
     import '../stock/marketZoneTint.css'
@@ -183,12 +185,12 @@
               : 'bank'
     }
     const firstPoolId = $derived(ipoPoolId ? 'ipo' : 'market')
-    const poolColumnLabels: Readonly<Record<string, string>> = {
+    const poolColumnLabels: Readonly<Record<string, string>> = $derived({
         ipo: 'IPO',
-        market: 'Market',
+        market: session.terms.marketPool,
         treasury: 'Treas.',
         exchange: 'Exch.'
-    }
+    })
     const portfolioColumnLabels = $derived(
         new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
@@ -308,8 +310,13 @@
         assertExists(first, 'A sortable column needs a sort direction')
         return first.direction
     }
-    const ownerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
-    type OwnerStatistic = (typeof ownerStatisticKeys)[number]
+    const OwnerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
+    type OwnerStatistic = (typeof OwnerStatisticKeys)[number]
+    const ownerStatisticKeys: readonly OwnerStatistic[] = $derived(
+        session.noCertificateLimit
+            ? OwnerStatisticKeys.filter((key) => key !== 'certs')
+            : OwnerStatisticKeys
+    )
     type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
         label: string
         text: (values: OwnerStatistics) => string
@@ -353,7 +360,7 @@
         pricePresentation.label,
         'Cash',
         'Trains',
-        'Tokens',
+        session.terms.stationTokensHeading,
         ...(loansLabel ? [loansLabel] : []),
         ...earlyTitleColumns.map((column) => column.label),
         'Last run',
@@ -409,7 +416,7 @@
                 : []),
             {
                 id: 'market',
-                name: 'Market',
+                name: session.terms.marketPool,
                 count: (companyId: string) => poolShares(marketPoolId, companyId),
                 sells: inPool(marketPoolId),
                 holder: (): CertificateHolder => ({
@@ -499,7 +506,7 @@
                 company.started &&
                 !company.closed &&
                 (pricePresentation.parWithoutIpoShares || poolShares(ipoPoolId, company.id) > 0)
-                    ? company.parPrice
+                    ? shownParPrice(pricePresentation, session.gameState, company)
                     : undefined,
             stations: session.gameState.stations.filter(
                 (station) => stationPlacer(session.gameState, station) === company.id
@@ -595,6 +602,12 @@
             ownerPlayerColor(ownerId) ??
             (controllerId ? session.colors.getPlayerBgColorValue(controllerId) : undefined)
         )
+    }
+    /** A company's stations left of all it has, or a dash for one that has none. */
+    function stationCount(stations: readonly Station[]): string {
+        if (!stations.length) return '—'
+        const available = stations.filter((station) => station.status === 'available').length
+        return `${available}/${stations.length}`
     }
 </script>
 
@@ -855,7 +868,7 @@
     <span class="share-value" class:president={!!president}
         >{text}{#if president || mark}<span
                 class="badge"
-                aria-label={[president ? 'President' : '', mark?.name ?? '']
+                aria-label={[president ? session.terms.president : '', mark?.name ?? '']
                     .filter(Boolean)
                     .join(', ')}
                 title={mark?.title}>{president ?? ''}{mark?.label ?? ''}</span
@@ -929,9 +942,9 @@
     <div class="sheet-spacing" aria-hidden="true"></div>
     <div class="sheet-content">
         {#if period !== 'Current'}
-            <OperatingHistory
+            <IncomeHistory
                 {money}
-                rounds={session.operatingIncomeHistory()}
+                rounds={session.roundIncomeHistory()}
                 players={seatOrder.map((playerId) => ({
                     playerId,
                     name: session.getPlayerName(playerId),
@@ -1017,7 +1030,7 @@
                                     )}
                                     {@render companySortHeader('col', 'Cash', 'cash')}
                                     <th scope="col">Trains</th>
-                                    <th scope="col">Tokens</th>
+                                    <th scope="col">{session.terms.stationTokensHeading}</th>
                                     {#if loansLabel}{@render companySortHeader(
                                             'col',
                                             loansLabel,
@@ -1085,9 +1098,7 @@
                                             >{@render companyTrains(row.company.id)}</td
                                         >
                                         <td class="bright-cell token-cell"
-                                            >{row.stations.filter(
-                                                (station) => station.status === 'available'
-                                            ).length}/{row.stations.length}</td
+                                            >{stationCount(row.stations)}</td
                                         >
                                         {#if loansLabel}<td class="company-stat-start bright-cell"
                                                 >{@render loansCell(row)}</td
@@ -1237,15 +1248,13 @@
                                         ></td>{/each}
                                 </tr>
                                 <tr class="financial-row">
-                                    <th scope="row">Tokens</th>
+                                    <th scope="row">{session.terms.stationTokensHeading}</th>
                                     {#each rows as row (row.company.id)}
                                         <td
                                             class:operating-column={row.company.id ===
                                                 operatingCompanyId}
                                             class="bright-cell token-cell"
-                                            >{row.stations.filter(
-                                                (station) => station.status === 'available'
-                                            ).length}/{row.stations.length}</td
+                                            >{stationCount(row.stations)}</td
                                         >
                                     {/each}
                                     {#each ownerStatisticKeys as _, index (index)}<td

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { EndReason } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -27,7 +28,9 @@
 </script>
 
 <div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--gipf-ink)">
-    {#if winnerId}
+    {#if session.gameCall}
+        <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
+    {:else if winnerId}
         <div class="text-[22px] font-semibold tracking-[0.06em]">
             {winnerId === session.myPlayer?.id ? 'You win' : `${nameOf(winnerId)} wins`}
         </div>
