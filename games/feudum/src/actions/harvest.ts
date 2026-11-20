@@ -162,14 +162,6 @@ export function harvestOffers(state: HydratedFeudumGameState, playerId: string):
     }
 }
 
-/** R-3.11.1 What the card prints. */
-function harvestVp(): number {
-    const { vp } = cardOf('harvest')
-    const points = vp === 'variable' ? undefined : vp?.at(0)
-    assertExists(points, 'R-3.11.1 Harvest prints its vp')
-    return points
-}
-
 /**
  * R-3.11.1, R-3.11.2 The drawn goods go where they go: the favours to the seat, the rest to the farm.
  * Taking favours flips every bead the seat holds, each identity into the vault as a held seal.
@@ -199,19 +191,6 @@ export function settleHarvest(
     return beads.length
 }
 
-function countsOf(goods: readonly Good[]): GoodCounts {
-    const counts = goodCounts()
-    for (const good of goods) {
-        counts[good] += 1
-    }
-    return counts
-}
-
-/** R-3.11-H2 The farm fills first: only what is past the partial can be a favour. */
-function favoursOwed(drawn: readonly Good[], total: number): number {
-    return Math.max(drawn.length - chartRow(total).partial, 0)
-}
-
 export class HydratedHarvest extends HydratableAction<typeof Harvest> implements Harvest {
     declare type: ActionType.Harvest
     declare playerId: string
@@ -236,12 +215,12 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
         const use = this.mode === 'inspect' ? 'special' : 'regular'
         playCard(state, this.playerId, 'harvest', use, this)
 
-        const vp = harvestVp()
+        const vp = HydratedHarvest.harvestVp()
         state.getPlayerState(this.playerId).score += vp
 
         const drawn = drawGoods(state, total)
-        const owed = favoursOwed(drawn, total)
-        const drawnCounts = countsOf(drawn)
+        const owed = HydratedHarvest.favoursOwed(drawn, total)
+        const drawnCounts = HydratedHarvest.countsOf(drawn)
 
         if (this.mode === 'inspect' && owed > 0) {
             // R-3.11.3 The goods wait in the open for the choice.
@@ -257,7 +236,9 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
         }
         // R-3.11-H1 Drawn at random: the partial, then the rest, unchosen.
         const favours =
-            this.mode === 'favours' ? countsOf(drawn.slice(drawn.length - owed)) : undefined
+            this.mode === 'favours'
+                ? HydratedHarvest.countsOf(drawn.slice(drawn.length - owed))
+                : undefined
         // R-3.11-H2 No good left for a favour: none was taken, so no bead flips.
         const beadsFlipped = settleHarvest(
             state,
@@ -273,5 +254,26 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
             ...(favours ? { favours } : {}),
             beadsFlipped
         }
+    }
+
+    /** R-3.11.1 What the card prints. */
+    private static harvestVp(): number {
+        const { vp } = cardOf('harvest')
+        const points = vp === 'variable' ? undefined : vp?.at(0)
+        assertExists(points, 'R-3.11.1 Harvest prints its vp')
+        return points
+    }
+
+    private static countsOf(goods: readonly Good[]): GoodCounts {
+        const counts = goodCounts()
+        for (const good of goods) {
+            counts[good] += 1
+        }
+        return counts
+    }
+
+    /** R-3.11-H2 The farm fills first: only what is past the partial can be a favour. */
+    private static favoursOwed(drawn: readonly Good[], total: number): number {
+        return Math.max(drawn.length - chartRow(total).partial, 0)
     }
 }

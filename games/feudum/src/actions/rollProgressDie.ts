@@ -48,45 +48,6 @@ export function isRollProgressDie(action?: GameAction): action is RollProgressDi
     return action?.type === ActionType.RollProgressDie
 }
 
-/**
- * R-4.11.1, R-6.1-H1 Rolls until a face shows a legal top tile, on the protected stream. No roll
- * with no legal tile anywhere, or with the condition for epoch V already met.
- */
-function rollFaces(state: HydratedFeudumGameState): RegionId[] {
-    const legal = legalStackRegions(state)
-    if (legal.length === 0 || triggeredEpoch(state) === LastEpoch) {
-        return []
-    }
-    const { randInt } = state.getProtectedPrng()
-    const faces: RegionId[] = []
-    let face: RegionId
-    do {
-        face = RegionIds[randInt(RegionIds.length)]
-        faces.push(face)
-    } while (!legal.includes(face))
-    return faces
-}
-
-/** R-4.11.1, R-4.11-H2 The tile the last face shows leaves the game, its landscape shown. */
-function removeRolledTile(
-    state: HydratedFeudumGameState,
-    region: RegionId | undefined
-): RollProgressDieMetadata['removed'] {
-    if (!region) {
-        return undefined
-    }
-    const { tile, landscape } = removeTopTile(state, region)
-    return { region, tileId: tile.id, landscape }
-}
-
-/** R-4.11.2, R-4.11-H1 Only here, and one epoch at a time. The first epoch is never next. */
-function triggerNextEpoch(state: HydratedFeudumGameState): TriggeredEpoch | undefined {
-    const next = triggeredEpoch(state)
-    const triggered = next === 1 ? undefined : next
-    state.flow.epochTriggered = triggered
-    return triggered
-}
-
 export class HydratedRollProgressDie
     extends HydratableAction<typeof RollProgressDie>
     implements RollProgressDie
@@ -105,16 +66,55 @@ export class HydratedRollProgressDie
      */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         beginPhase(state, PhaseName.Progress)
-        const faces = rollFaces(state)
-        const removed = removeRolledTile(state, faces.at(-1))
+        const faces = HydratedRollProgressDie.rollFaces(state)
+        const removed = HydratedRollProgressDie.removeRolledTile(state, faces.at(-1))
         if (removed) {
             markRevealsInfo(this, true)
         }
-        const epochTriggered = triggerNextEpoch(state)
+        const epochTriggered = HydratedRollProgressDie.triggerNextEpoch(state)
         this.metadata = {
             faces,
             ...(removed ? { removed } : {}),
             ...(epochTriggered ? { epochTriggered } : {})
         }
+    }
+
+    /**
+     * R-4.11.1, R-6.1-H1 Rolls until a face shows a legal top tile, on the protected stream. No roll
+     * with no legal tile anywhere, or with the condition for epoch V already met.
+     */
+    private static rollFaces(state: HydratedFeudumGameState): RegionId[] {
+        const legal = legalStackRegions(state)
+        if (legal.length === 0 || triggeredEpoch(state) === LastEpoch) {
+            return []
+        }
+        const { randInt } = state.getProtectedPrng()
+        const faces: RegionId[] = []
+        let face: RegionId
+        do {
+            face = RegionIds[randInt(RegionIds.length)]
+            faces.push(face)
+        } while (!legal.includes(face))
+        return faces
+    }
+
+    /** R-4.11.1, R-4.11-H2 The tile the last face shows leaves the game, its landscape shown. */
+    private static removeRolledTile(
+        state: HydratedFeudumGameState,
+        region: RegionId | undefined
+    ): RollProgressDieMetadata['removed'] {
+        if (!region) {
+            return undefined
+        }
+        const { tile, landscape } = removeTopTile(state, region)
+        return { region, tileId: tile.id, landscape }
+    }
+
+    /** R-4.11.2, R-4.11-H1 Only here, and one epoch at a time. The first epoch is never next. */
+    private static triggerNextEpoch(state: HydratedFeudumGameState): TriggeredEpoch | undefined {
+        const next = triggeredEpoch(state)
+        const triggered = next === 1 ? undefined : next
+        state.flow.epochTriggered = triggered
+        return triggered
     }
 }

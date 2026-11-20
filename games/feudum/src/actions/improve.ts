@@ -267,17 +267,6 @@ export function improveOffers(state: HydratedFeudumGameState, playerId: string):
     })
 }
 
-/** R-3.9.1 The farm's goods go to the haversack; otherwise a location's goods stay. */
-function sendGoodsToHaversack(state: HydratedFeudumGameState, spaceId: SpaceId): GoodCounts {
-    const { goods } = state.spaces[spaceId]
-    const sent = { ...goods }
-    for (const good of Goods) {
-        returnGoodToHaversack(state, good, goods[good])
-        goods[good] = 0
-    }
-    return sent
-}
-
 /**
  * R-4.3-H3 Ruled locations whose improvement lacks only a good a tile could bring. Improve takes no
  * tile in its payment, so the seat spends one at will first.
@@ -327,7 +316,9 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
             payGoods(state, this.playerId, { [step.cost]: 1 })
         }
         const goodsToHaversack =
-            step.to === 'town' ? sendGoodsToHaversack(state, this.spaceId) : undefined
+            step.to === 'town'
+                ? HydratedImprove.sendGoodsToHaversack(state, this.spaceId)
+                : undefined
 
         const discId = this.discId ?? discChoices(state, step.to, this.feudumGuild)[0].discId
         replaceLocationDisc(state, this.spaceId, discId, step.to, this.feudumGuild)
@@ -367,5 +358,19 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
         markRevealsInfo(this, true)
         const { tile, landscape } = collectTopTile(state, this.playerId, fallback.stack)
         return { tileId: tile.id, landscape, vp: 0 }
+    }
+
+    /** R-3.9.1 The farm's goods go to the haversack; otherwise a location's goods stay. */
+    private static sendGoodsToHaversack(
+        state: HydratedFeudumGameState,
+        spaceId: SpaceId
+    ): GoodCounts {
+        const { goods } = state.spaces[spaceId]
+        const sent = { ...goods }
+        for (const good of Goods) {
+            returnGoodToHaversack(state, good, goods[good])
+            goods[good] = 0
+        }
+        return sent
     }
 }

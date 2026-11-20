@@ -65,19 +65,6 @@ export interface CharterScore {
     readonly vp: number
 }
 
-/** R-4.4-H1, R-4.4.3 The one timing each writ has. */
-function timingOf(writ: RoyalWrit): WritTiming {
-    switch (writ.kind) {
-        case 'turn-in':
-        case 'guild-status':
-            return writ.weapon ? 'attack' : 'at-will'
-        case 'kingdom':
-        case 'sulfur-barrel':
-        case 'monster-defeat':
-            return 'end-scoring'
-    }
-}
-
 /**
  * R-4.4 Writ effects by writ id and timing. Actions and the scorer read them only through these
  * queries, never by testing a writ id. A writ with no registration gives nothing, and the `reason`
@@ -93,7 +80,10 @@ export class WritRegistry {
         const { writId, timing, printedText } = registration
         const writ = RoyalWrits.find((royalWrit) => royalWrit.id === writId)
         assertExists(writ, `No Royal Writ has the id ${writId}`)
-        assert(timingOf(writ) === timing, `${writId} applies ${timingOf(writ)}, not ${timing}`)
+        assert(
+            WritRegistry.timingOf(writ) === timing,
+            `${writId} applies ${WritRegistry.timingOf(writ)}, not ${timing}`
+        )
         assert(printedText.trim() !== '', `${writId} is registered without its printed text`)
         assert(
             !this.registrations().some(
@@ -196,6 +186,19 @@ export class WritRegistry {
     /** R-4.4.3 */
     reasonCharterRefused(writId: WritId): string | undefined {
         return this.charters.has(writId) ? undefined : `${writId} has no end scoring`
+    }
+
+    /** R-4.4-H1, R-4.4.3 The one timing each writ has. */
+    private static timingOf(writ: RoyalWrit): WritTiming {
+        switch (writ.kind) {
+            case 'turn-in':
+            case 'guild-status':
+                return writ.weapon ? 'attack' : 'at-will'
+            case 'kingdom':
+            case 'sulfur-barrel':
+            case 'monster-defeat':
+                return 'end-scoring'
+        }
     }
 }
 

@@ -180,13 +180,6 @@ function serfOf(state: HydratedFeudumGameState, spaceId: SpaceId): string {
     return serf.playerId
 }
 
-/** R-3.9.3 What the card prints for its special. */
-function tendVp(): number {
-    const { vp } = cardOf('improve').special
-    assertExists(vp, 'R-3.9.3 Tend Landscape prints its vp')
-    return vp
-}
-
 export class HydratedTendLandscape
     extends HydratableAction<typeof TendLandscape>
     implements TendLandscape
@@ -218,7 +211,7 @@ export class HydratedTendLandscape
         player.regionTiles = player.regionTiles.filter((tileId) => tileId !== this.tileId)
         state.spaces[this.spaceId].landscape = { tileId: this.tileId, amount: 0 }
 
-        const vp = tendVp()
+        const vp = HydratedTendLandscape.tendVp()
         player.score += vp
         const filled = fillLandscape(state, this.spaceId)
         const collected = this.collect ? collectLandscape(state, this.spaceId) : undefined
@@ -233,5 +226,12 @@ export class HydratedTendLandscape
             ...(collected ? { collected } : {}),
             rankChanges: state.recomputeRanks(this.playerId)
         }
+    }
+
+    /** R-3.9.3 What the card prints for its special. */
+    private static tendVp(): number {
+        const { vp } = cardOf('improve').special
+        assertExists(vp, 'R-3.9.3 Tend Landscape prints its vp')
+        return vp
     }
 }

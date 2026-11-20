@@ -48,19 +48,6 @@ export function holdsCards(state: HydratedFeudumGameState, playerId: string): bo
     return state.getPlayerState(playerId).handCount > 0
 }
 
-/** R-3.2, R-3.2-H1 Clockwise, skipping seats with no cards. Nobody left: no turn. */
-function passTurn(state: HydratedFeudumGameState): string | undefined {
-    const { turnManager, actionCount } = state
-    turnManager.endTurn(actionCount)
-    if (!turnManager.turnOrder.some((playerId) => holdsCards(state, playerId))) {
-        state.flow.turn = undefined
-        return undefined
-    }
-    const playerId = turnManager.startNextTurn(actionCount, (seat) => holdsCards(state, seat))
-    state.flow.turn = { secondCard: false, followUps: [] }
-    return playerId
-}
-
 export class HydratedAdvanceTurn
     extends HydratableAction<typeof AdvanceTurn>
     implements AdvanceTurn
@@ -87,9 +74,22 @@ export class HydratedAdvanceTurn
             this.metadata = { outcome: 'second-card', turnPlayerId }
             return
         }
-        const next = passTurn(state)
+        const next = HydratedAdvanceTurn.passTurn(state)
         this.metadata = next
             ? { outcome: 'next-seat', turnPlayerId: next }
             : { outcome: 'last-card' }
+    }
+
+    /** R-3.2, R-3.2-H1 Clockwise, skipping seats with no cards. Nobody left: no turn. */
+    private static passTurn(state: HydratedFeudumGameState): string | undefined {
+        const { turnManager, actionCount } = state
+        turnManager.endTurn(actionCount)
+        if (!turnManager.turnOrder.some((playerId) => holdsCards(state, playerId))) {
+            state.flow.turn = undefined
+            return undefined
+        }
+        const playerId = turnManager.startNextTurn(actionCount, (seat) => holdsCards(state, seat))
+        state.flow.turn = { secondCard: false, followUps: [] }
+        return playerId
     }
 }

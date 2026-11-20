@@ -36,49 +36,6 @@ export function isEndRound(action?: GameAction): action is EndRound {
     return action?.type === ActionType.EndRound
 }
 
-/** R-2.2.5, R-3.3, R-3.15.1, R-3.16.2, R-3.7.5 All 11 cards back, and the round's limits end. */
-function returnCards(player: HydratedFeudumPlayerState): void {
-    // Another seat's hand stays omitted from a projected state; its count is public.
-    if (player.hand) {
-        player.hand = []
-    }
-    player.handCount = 0
-    player.played = []
-    player.sequentialUsed = false
-    player.repeatUsed = false
-    player.guildsUsed = []
-    player.successfulMoves = 0
-}
-
-/** R-3.3 Paid to the haversack whether or not the bonus was used. */
-function payPouch(
-    state: HydratedFeudumGameState,
-    player: HydratedFeudumPlayerState
-): EndRoundMetadata['pouchesPaid'] {
-    const { playerId, pouch } = player
-    if (!pouch) {
-        return []
-    }
-    returnGoodToHaversack(state, pouch)
-    player.pouch = undefined
-    return [{ playerId, good: pouch }]
-}
-
-/** R-4.10.2 A pawn drunk this round gives back its sulfur; one wine fed this round keeps it. */
-function soberPawns(
-    state: HydratedFeudumGameState,
-    player: HydratedFeudumPlayerState
-): EndRoundMetadata['sobered'] {
-    return player.pawns.flatMap((pawn) => {
-        if (pawn.wine !== 'drunk') {
-            return []
-        }
-        returnGoodToHaversack(state, 'sulfur')
-        pawn.wine = undefined
-        return [{ playerId: player.playerId, n: pawn.n }]
-    })
-}
-
 export class HydratedEndRound extends HydratableAction<typeof EndRound> implements EndRound {
     declare type: ActionType.EndRound
     declare source: ActionSource.System
@@ -90,14 +47,61 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
 
     /** R-2.2.5, R-3.3, R-4.10.2 The marker passes, the cards go back, pouches are paid. Public. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
-        state.players.forEach(returnCards)
-        const pouchesPaid = state.players.flatMap((player) => payPouch(state, player))
-        const sobered = state.players.flatMap((player) => soberPawns(state, player))
+        state.players.forEach(HydratedEndRound.returnCards)
+        const pouchesPaid = state.players.flatMap((player) =>
+            HydratedEndRound.payPouch(state, player)
+        )
+        const sobered = state.players.flatMap((player) =>
+            HydratedEndRound.soberPawns(state, player)
+        )
         state.roundManager.endRound(state.actionCount)
         this.metadata = {
             startingPlayerId: state.passStartingPlayer(),
             pouchesPaid,
             sobered
         }
+    }
+
+    /** R-2.2.5, R-3.3, R-3.15.1, R-3.16.2, R-3.7.5 All 11 cards back, and the round's limits end. */
+    private static returnCards(player: HydratedFeudumPlayerState): void {
+        // Another seat's hand stays omitted from a projected state; its count is public.
+        if (player.hand) {
+            player.hand = []
+        }
+        player.handCount = 0
+        player.played = []
+        player.sequentialUsed = false
+        player.repeatUsed = false
+        player.guildsUsed = []
+        player.successfulMoves = 0
+    }
+
+    /** R-3.3 Paid to the haversack whether or not the bonus was used. */
+    private static payPouch(
+        state: HydratedFeudumGameState,
+        player: HydratedFeudumPlayerState
+    ): EndRoundMetadata['pouchesPaid'] {
+        const { playerId, pouch } = player
+        if (!pouch) {
+            return []
+        }
+        returnGoodToHaversack(state, pouch)
+        player.pouch = undefined
+        return [{ playerId, good: pouch }]
+    }
+
+    /** R-4.10.2 A pawn drunk this round gives back its sulfur; one wine fed this round keeps it. */
+    private static soberPawns(
+        state: HydratedFeudumGameState,
+        player: HydratedFeudumPlayerState
+    ): EndRoundMetadata['sobered'] {
+        return player.pawns.flatMap((pawn) => {
+            if (pawn.wine !== 'drunk') {
+                return []
+            }
+            returnGoodToHaversack(state, 'sulfur')
+            pawn.wine = undefined
+            return [{ playerId: player.playerId, n: pawn.n }]
+        })
     }
 }

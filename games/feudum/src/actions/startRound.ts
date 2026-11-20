@@ -33,17 +33,6 @@ export function isStartRound(action?: GameAction): action is StartRound {
     return action?.type === ActionType.StartRound
 }
 
-/** R-4.10.2 A pawn wine fed last round is drunk for this one. */
-function turnWineDrunk(player: HydratedFeudumPlayerState): StartRoundMetadata['drunk'] {
-    return player.pawns.flatMap((pawn) => {
-        if (pawn.wine !== 'fed') {
-            return []
-        }
-        pawn.wine = 'drunk'
-        return [{ playerId: player.playerId, n: pawn.n }]
-    })
-}
-
 export class HydratedStartRound extends HydratableAction<typeof StartRound> implements StartRound {
     declare type: ActionType.StartRound
     declare source: ActionSource.System
@@ -57,8 +46,19 @@ export class HydratedStartRound extends HydratableAction<typeof StartRound> impl
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const { number } = state.roundManager.startRound(state.actionCount)
         beginPhase(state, PhaseName.HandSelection)
-        const drunk = state.players.flatMap(turnWineDrunk)
+        const drunk = state.players.flatMap(HydratedStartRound.turnWineDrunk)
         state.flow.selection = { finalised: [] }
         this.metadata = { round: number, drunk }
+    }
+
+    /** R-4.10.2 A pawn wine fed last round is drunk for this one. */
+    private static turnWineDrunk(player: HydratedFeudumPlayerState): StartRoundMetadata['drunk'] {
+        return player.pawns.flatMap((pawn) => {
+            if (pawn.wine !== 'fed') {
+                return []
+            }
+            pawn.wine = 'drunk'
+            return [{ playerId: player.playerId, n: pawn.n }]
+        })
     }
 }
