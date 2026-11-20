@@ -70,16 +70,7 @@ Not a barrier: setup choices, `StartRound`, `AdvanceTurn`, `NourishPawns`, `Begi
 
 ## Exploration
 
-A player or a spectator explores from their own projection. `createFromProjectedState` keeps everything the projection names: the public table, the explorer's hand, writs, sealed charters, pending writ draw and deck knowledge, and the public deck writs. It deals every other hidden value afresh from the branch's randomness, within the public constraints, each writ and seal once:
-
-- each other player's hand: `handCount` kinds from their eleven less the kinds they have played this round; a player who has finalised before the reveal is dealt 4 kinds and no pouch good (R-3.1-H1);
-- each other player's writs: `writCount − sealedCharterCount` writs, and their sealed charters: `sealedCharterCount` charters, from the writs the explorer cannot place (not in the explorer's hand, sealed charters or pending draw, not in the explorer's deck knowledge or the public deck writs);
-- another player's pending writ draw: its count from the same unplaced writs;
-- the writ deck: by slot from `top` to `nextBottom`, the explorer's deck knowledge and the public deck writs at their slots, the rest of the unplaced writs in fresh order in the remaining slots;
-- concealed seals: the seals not shown as beads, dealt to the pile (by its count, in fresh order), the occupied scroll spaces, each player's held seals and sealed charters, and the immune markers.
-- tile landscapes: each epoch's printed mix less the landscapes shown, dealt across that epoch's tiles still hidden (R-1.4-H2).
-
-Other players' deck knowledge is left empty, since the projection does not say what they saw. The result names no master seed and passes the canonical validator. Two sources that differ only in hidden values give the same branch.
+Feudum offers no projected Exploration: `runtime.exploration` has no `createFromProjectedState`. A seal flipped back from a bead, by favours (R-3.11.2) or Starve the People (R-3.13.2), keeps an identity the table saw. Where it can lie afterwards turns on concealed seal moves no Action records: a held seal spent into the pile, pile draws onto scroll spaces, held seals and immunity, an immunity seal going back to its owner. A deal from the projection and the Action prefix could put it where public history rules it out.
 
 Host View, hotseat and local branches start from canonical state through `createFromCanonicalState`, which reshuffles each hidden list within itself from the branch's new protected stream, keeping every known position: deck slots in any player's deck knowledge or the public deck writs stay where they are, and the other writs in the deck are reshuffled among the remaining slots; the seal pile is reshuffled; seals elsewhere keep their places, since no one knows them apart; the hidden tile landscapes are reshuffled within each epoch.
 
@@ -99,7 +90,7 @@ No migrations: the Logic and UI Artifacts publish together, and a stored Game ke
 - Haversack counts public and conserved, draws from the protected stream: `supply.spec.ts`.
 - Guarded execution deferring every vault read and protected draw to the host, and a projection offering the same actions as canonical state for its own player: `protectedPlay.spec.ts`.
 - `revealsInfo` set exactly on the barriers listed above, and Undo refused across them: each action's own spec, and `protectedPlay.spec.ts` over whole protected games; every Action that can set it declared in `RevealingActionTypes`: `revealing.spec.ts`.
-- Exploration from each player's and a spectator's projection at states of scripted complete games (hand selection, a pending writ draw, an attack awaiting defence, a later epoch, final scoring): every writ and seal dealt once, the explorer's knowledge kept, the result complete with no master seed, the same branch from sources differing only in hidden values, and the branch playing on to the end; from canonical state, each hidden list reshuffled with every known slot kept: `exploration.spec.ts`.
+- Exploration: no projected population offered; from canonical state, each hidden list reshuffled with every known slot kept, a seal returned from a bead kept where it went, and the branch playing on to the end: `exploration.spec.ts`.
 - The table's writ reference, each writ once and the same markup for the seat holding a charter and knowing writs under the deck, for another seat, and after a mandate goes under; the Supply card's deck its count alone: the writ reference and Supply card specs and the browser scenarios S50 and S78 in the UI package.
 - Each log line read from the Action as a seat received it, with the actor's own line naming what others' lines don't, from real projections: the action descriptions spec in the UI package.
 - Projected history replay with forward and undo patches for every hidden-information Action, at 2 to 5 players, for every seat and a spectator: `protectedPlay.spec.ts`.
