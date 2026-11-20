@@ -1,5 +1,7 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import type { ShareButton } from '$lib/model/railroadCards.js'
+    import { shareButtonHandlers } from '$lib/model/railroadSpotlight.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import SupplyCount from './SupplyCount.svelte'
 
@@ -13,18 +15,35 @@
             ? gameSession.colors.getPlayerBgColorValue(gameSession.myPlayerId)
             : undefined
     )
+
+    // The row's buttons are made again whenever a card's count moves; the handlers, and the hover
+    // they hold, follow only the railroad and whether it can be taken.
+    const railroadId = $derived(button.railroadId)
+    const enabled = $derived(button.enabled)
+    const handlers = $derived(shareButtonHandlers(gameSession, railroadId, enabled))
+    const spotlit = $derived(enabled && gameSession.spotlightRailroadId === railroadId)
+
+    // A hover ends with the handlers that began it: when the button is disabled or leaves the page.
+    const releaseHover: Attachment = () => handlers.release
 </script>
 
 <!-- Contract, Take a share: one railroad's share button, the same on the desktop cards and the
      phone panel: its supply as a cube and the number left, the viewer's shares as a row of dots
-     under it; an empty supply is a dashed card, disabled. It fills the width its parent gives it, its count smaller when that is narrow. -->
+     under it; an empty supply is a dashed card, disabled. It fills the width its parent gives it, its count smaller when that is narrow.
+     Enabled, it shows the pointer, and a mouse over it spotlights its railroad and rings it in the
+     accent colour, as a railroad card does off turn (Look: railroad spotlight); a press only takes
+     the share. -->
 <button
     type="button"
-    class="share hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent"
+    class="share focus-visible:outline-2 focus-visible:outline-rtr-accent"
     class:empty={button.supply === 0}
-    disabled={!button.enabled}
+    class:spotlit
+    disabled={!enabled}
     aria-label={button.shareLabel}
-    onclick={() => gameSession.takeShare(button.railroadId)}
+    onclick={handlers.onclick}
+    onpointerenter={handlers.onpointerenter}
+    onpointerleave={handlers.onpointerleave}
+    {@attach releaseHover}
 >
     <span class="count"><SupplyCount railroadId={button.railroadId} supply={button.supply} /></span>
     {#if dots}
@@ -63,6 +82,18 @@
             --supply-gap: 3px;
             --supply-figure: 17px;
         }
+    }
+
+    .share:enabled {
+        cursor: pointer;
+    }
+
+    /* The off-turn card's spotlight ring, kept with the button's own shadow. Drawn here, since the
+       unlayered border and shadow above win over a layered utility. */
+    .share.spotlit {
+        box-shadow:
+            0 0 0 2px var(--rtr-accent),
+            0 2px 0 var(--rtr-line);
     }
 
     .share:disabled {
