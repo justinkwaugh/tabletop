@@ -27,48 +27,13 @@ export interface DiscPanel {
     readonly covers?: string
     /** R-1.1 "2/3 discs free" */
     readonly freeDiscs: string
-    /** Not drawn while the engine refuses the placement: Keep is then the answer. */
     readonly place?: DraftChoice
     readonly keep: DraftChoice
     /** R-X.2 Only once a placement that can't be undone is staged. */
     readonly primary?: TurnPrimary
 }
 
-function writWord(count: number): string {
-    return count === 1 ? 'writ' : 'writs'
-}
-
-function questionOf(offer: PlaceDiscOffer): string {
-    switch (offer.disc) {
-        case 'reeve': {
-            return `Reeve in ${GuildById[offer.guildId].name}?`
-        }
-        case 'military': {
-            return 'Service disc?'
-        }
-        case 'voyage': {
-            const space = printedSpaceNumber(offer.space)
-            if (!offer.advances) {
-                return `Voyage space ${space}?`
-            }
-            return offer.draw > 0
-                ? primaryLabel(`To ${space}? +${offer.draw} ${writWord(offer.draw)}`, offer)
-                : `To ${space}?`
-        }
-    }
-}
-
-/** R-3.7-H1 The placement's button: a disc on the track advances. */
-function placementOf(offer: PlaceDiscOffer): string {
-    return offer.disc === 'voyage' && offer.advances
-        ? `Advance to ${printedSpaceNumber(offer.space)}`
-        : 'Place'
-}
-
-/**
- * R-4.7, R-4.9-H1, R-3.7.5 One question, two buttons. A press that completes an undoable answer
- * sends at once; a step that draws stages for the primary (R-X.2). It never answers itself.
- */
+/** R-4.7, R-4.9-H1, R-3.7.5 One question, two buttons; a step that draws stages (R-X.2). */
 export class DiscDraft extends DeciderDraft<DiscValues> {
     constructor(contextOf: () => TurnContext | undefined) {
         super(DiscStageOrder, contextOf)
@@ -127,7 +92,7 @@ export class DiscDraft extends DeciderDraft<DiscValues> {
         const placing = this.value('place') === true
         const free = context.state.freeDiscs(context.playerId)
         return {
-            line: questionOf(offer),
+            line: DiscDraft.questionOf(offer),
             ...(offer.disc === 'military'
                 ? {
                       covers: `Space ${printedSpaceNumber(offer.space)} · covers −${Math.abs(offer.penalty)}`
@@ -138,8 +103,7 @@ export class DiscDraft extends DeciderDraft<DiscValues> {
                 ? {}
                 : {
                       place: {
-                          ...draftChoice(placementOf(offer), placing, this.pressPlace),
-                          // The heading names the space: the button is the verb, its label the full words.
+                          ...draftChoice(DiscDraft.placementOf(offer), placing, this.pressPlace),
                           ...(offer.disc === 'voyage' && offer.advances
                               ? { shown: 'Advance' }
                               : {}),
@@ -155,11 +119,45 @@ export class DiscDraft extends DeciderDraft<DiscValues> {
             ...(placing && this.play
                 ? {
                       primary: {
-                          label: primaryLabel(placementOf(offer), this.play),
+                          label: primaryLabel(DiscDraft.placementOf(offer), this.play),
                           enabled: true
                       }
                   }
                 : {})
         }
     })
+
+    private static writWord(count: number): string {
+        return count === 1 ? 'writ' : 'writs'
+    }
+
+    private static questionOf(offer: PlaceDiscOffer): string {
+        switch (offer.disc) {
+            case 'reeve': {
+                return `Reeve in ${GuildById[offer.guildId].name}?`
+            }
+            case 'military': {
+                return 'Service disc?'
+            }
+            case 'voyage': {
+                const space = printedSpaceNumber(offer.space)
+                if (!offer.advances) {
+                    return `Voyage space ${space}?`
+                }
+                return offer.draw > 0
+                    ? primaryLabel(
+                          `To ${space}? +${offer.draw} ${DiscDraft.writWord(offer.draw)}`,
+                          offer
+                      )
+                    : `To ${space}?`
+            }
+        }
+    }
+
+    /** R-3.7-H1 The placement's button: a disc on the track advances. */
+    private static placementOf(offer: PlaceDiscOffer): string {
+        return offer.disc === 'voyage' && offer.advances
+            ? `Advance to ${printedSpaceNumber(offer.space)}`
+            : 'Place'
+    }
 }

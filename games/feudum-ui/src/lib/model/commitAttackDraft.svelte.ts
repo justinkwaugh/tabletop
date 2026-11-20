@@ -62,33 +62,6 @@ export interface CommitPanel {
     readonly primary: TurnPrimary
 }
 
-function addGood(price: GoodPrice, good: Good): GoodPrice {
-    return { ...price, [good]: (price[good] ?? 0) + 1 }
-}
-
-/** R-4.8.2 What these adds turn in. */
-function priceOf(adds: readonly CommitAdd[], offer: CommitAttackOffer): GoodPrice {
-    let price: GoodPrice = {}
-    for (const add of adds) {
-        const goods =
-            add.kind === 'saltpeter'
-                ? (['saltpeter'] satisfies Good[])
-                : (offer.weapons.find(
-                      ({ writId, alternative }) =>
-                          writId === add.writId && alternative === add.alternative
-                  )?.turnedIn ?? [])
-        for (const good of goods) {
-            price = addGood(price, good)
-        }
-    }
-    return price
-}
-
-const isWeapon =
-    ({ writId }: WeaponOffer) =>
-    (add: CommitAdd) =>
-        add.kind === 'weapon' && add.writId === writId
-
 /** R-4.8.2 The attacker's saltpeter and weapons; the logic's preview is the tally. */
 export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
     constructor(contextOf: () => TurnContext | undefined) {
@@ -97,7 +70,9 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
 
     private needsOf(adds: readonly CommitAdd[], { state, playerId }: TurnContext) {
         const offer = commitAttackOffer(state, playerId)
-        return offer ? coverNeeds(goodsShort(state, playerId, priceOf(adds, offer))) : []
+        return offer
+            ? coverNeeds(goodsShort(state, playerId, CommitAttackDraft.priceOf(adds, offer)))
+            : []
     }
 
     protected override withAutos(
@@ -142,19 +117,15 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         return playUnless(preview.refused, (maker) => maker.createPlayerAction(CommitAttack, data))
     })
 
-    /** Short of more than the seat's tiles can bring, this add can't go on. */
     private canAdd(
         adds: readonly CommitAdd[],
         offer: CommitAttackOffer,
         { state, playerId }: TurnContext
     ): boolean {
-        return canCoverWithWildTiles(state, playerId, priceOf(adds, offer))
+        return canCoverWithWildTiles(state, playerId, CommitAttackDraft.priceOf(adds, offer))
     }
 
-    /**
-     * R-4.8.2 The stepper, each press the cube and its sign. With no saltpeter to pay, "+" is not
-     * drawn; at the most allowed, or held by the adds already on, it stands dimmed until one goes.
-     */
+    /** R-4.8.2 "+" not drawn with no saltpeter to pay; dimmed at the most, or while adds hold it. */
     private saltpeterRows(adds: readonly CommitAdd[], offer: CommitAttackOffer, c: TurnContext) {
         const count = adds.filter(({ kind }) => kind === 'saltpeter').length
         const more = [...adds, { kind: 'saltpeter' } as const]
@@ -188,7 +159,7 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         context: TurnContext
     ): DraftChoice {
         const { writId, alternative } = weapon
-        const others = adds.filter((add) => !isWeapon(weapon)(add))
+        const others = adds.filter((add) => !CommitAttackDraft.isWeapon(weapon)(add))
         const picked = adds.some(
             (add) =>
                 add.kind === 'weapon' && add.writId === writId && add.alternative === alternative
@@ -239,4 +210,30 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
             }
         }
     })
+
+    private static addGood(price: GoodPrice, good: Good): GoodPrice {
+        return { ...price, [good]: (price[good] ?? 0) + 1 }
+    }
+
+    /** R-4.8.2 What these adds turn in. */
+    private static priceOf(adds: readonly CommitAdd[], offer: CommitAttackOffer): GoodPrice {
+        let price: GoodPrice = {}
+        for (const add of adds) {
+            const goods =
+                add.kind === 'saltpeter'
+                    ? (['saltpeter'] satisfies Good[])
+                    : (offer.weapons.find(
+                          ({ writId, alternative }) =>
+                              writId === add.writId && alternative === add.alternative
+                      )?.turnedIn ?? [])
+            for (const good of goods) {
+                price = CommitAttackDraft.addGood(price, good)
+            }
+        }
+        return price
+    }
+
+    private static isWeapon({ writId }: WeaponOffer) {
+        return (add: CommitAdd) => add.kind === 'weapon' && add.writId === writId
+    }
 }

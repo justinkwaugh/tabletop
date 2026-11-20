@@ -60,7 +60,6 @@ export interface SealPick {
 }
 
 export type AtWillValues = {
-    /** The open chip; every other stage hangs under it. */
     list: AtWillList
     mandate: MandatePick
     /** R-4.4-H1 Stacked: each tile brings the next good owed. */
@@ -86,7 +85,6 @@ export const AtWillStageOrder: readonly (keyof AtWillValues)[] = [
 ]
 
 export interface AtWillContext extends TurnContext {
-    /** The at-will actions this seat is offered now. */
     readonly offered: readonly ActionType[]
 }
 
@@ -106,23 +104,6 @@ export interface AtWillPanel {
 }
 
 type WritRow = NonNullable<AtWillPanel['writs']>[number]
-
-function sameMandate(a: MandatePick | undefined, b: MandatePick): boolean {
-    return (
-        a?.writId === b.writId &&
-        a.alternative === b.alternative &&
-        a.rewardGuild === b.rewardGuild &&
-        a.vessel === b.vessel
-    )
-}
-
-function priceOf({ turnedIn }: PlayMandateOffer): Partial<Record<Good, number>> {
-    const price: Partial<Record<Good, number>> = {}
-    for (const good of turnedIn) {
-        price[good] = (price[good] ?? 0) + 1
-    }
-    return price
-}
 
 /** The contract's at-will row: what a seat may do any time its window is open (R-4.4-H1). */
 export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
@@ -163,9 +144,11 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
 
     private needsOf(context: AtWillContext, picked: MandatePick | undefined): readonly Good[] {
         const offer = picked
-            ? this.mandateOffers(context).find((row) => sameMandate(picked, row))
+            ? this.mandateOffers(context).find((row) => AtWillDraft.sameMandate(picked, row))
             : undefined
-        return offer ? coverNeeds(goodsShort(context.state, context.playerId, priceOf(offer))) : []
+        return offer
+            ? coverNeeds(goodsShort(context.state, context.playerId, AtWillDraft.priceOf(offer)))
+            : []
     }
 
     protected override withAutos(
@@ -200,7 +183,6 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
             : stored
     }
 
-    /** What the staged stages send, whichever list holds them. */
     play: FlowPlay | undefined = $derived.by(() => {
         const context = this.contextOf()
         if (!context) {
@@ -240,7 +222,8 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     private mandatePlay(context: AtWillContext): FlowPlay | undefined {
         const mandate = this.value('mandate')
         const offer =
-            mandate && this.mandateOffers(context).find((row) => sameMandate(mandate, row))
+            mandate &&
+            this.mandateOffers(context).find((row) => AtWillDraft.sameMandate(mandate, row))
         if (!mandate || !offer) {
             return undefined
         }
@@ -298,7 +281,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     }
 
     private pressMandate(mandate: MandatePick) {
-        if (sameMandate(this.value('mandate'), mandate)) {
+        if (AtWillDraft.sameMandate(this.value('mandate'), mandate)) {
             this.clearFrom('mandate')
         } else {
             this.set('mandate', mandate)
@@ -360,7 +343,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                     .map((offer) =>
                         draftChoice(
                             mandateChoiceLabel(offer, context.state.supply),
-                            sameMandate(picked, offer),
+                            AtWillDraft.sameMandate(picked, offer),
                             () => {
                                 this.pressMandate({
                                     writId,
@@ -585,5 +568,22 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
 
     pickOf(target: BoardTarget): FlowPick | undefined {
         return this.picks.find((pick) => pick.target === target)
+    }
+
+    private static sameMandate(a: MandatePick | undefined, b: MandatePick): boolean {
+        return (
+            a?.writId === b.writId &&
+            a.alternative === b.alternative &&
+            a.rewardGuild === b.rewardGuild &&
+            a.vessel === b.vessel
+        )
+    }
+
+    private static priceOf({ turnedIn }: PlayMandateOffer): Partial<Record<Good, number>> {
+        const price: Partial<Record<Good, number>> = {}
+        for (const good of turnedIn) {
+            price[good] = (price[good] ?? 0) + 1
+        }
+        return price
     }
 }
