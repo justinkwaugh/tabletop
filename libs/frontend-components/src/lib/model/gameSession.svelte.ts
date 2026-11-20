@@ -1163,8 +1163,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 return
             }
 
-            if (this.rewritesHostedHistory(relevantContext, action)) {
-                await this.applyHistoryRewrite(action, relevantContext)
+            if (this.replacesEarlierDeclaration(relevantContext, action)) {
+                await this.applyEarlierDeclarationReplacement(action, relevantContext)
                 return
             }
 
@@ -1211,10 +1211,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     actions: relevantContext.actions,
                     state: relevantContext.state
                 })
-            } else if (
-                this.usesHostExecution(relevantContext) ||
-                relevantContext.game.storage === GameStorage.Remote
-            ) {
+            } else if (this.submitsToHost(relevantContext)) {
                 // Now send the action to the server
                 if (this.debug) {
                     console.log(`Sending ${action.type} ${action.id} to server: `, action)
@@ -1286,21 +1283,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         await this.representations.reload()
     }
 
-    // The host replaces a declaration that later Actions followed by replaying those Actions,
-    // whose System Actions it regenerates, before appending the replacement (ADR 0008). A
-    // client cannot predict that rewrite, so it takes the host's history instead. Replacing the
-    // last Action rewrites nothing and stays optimistic.
-    private rewritesHostedHistory(context: GameContext<T, U>, action: GameAction): boolean {
-        const replaced = action.supersedesActionId
-        return (
-            replaced !== undefined &&
-            !this.executesLocally(context) &&
-            (this.usesHostExecution(context) || context.game.storage === GameStorage.Remote) &&
-            context.actions.at(-1)?.id !== replaced
-        )
+    private submitsToHost(context: GameContext<T, U>): boolean {
+        return this.usesHostExecution(context) || context.game.storage === GameStorage.Remote
     }
 
-    private async applyHistoryRewrite(action: GameAction, context: GameContext<T, U>) {
+    // Undefined when the representation went stale while the host answered, and was reloaded.
+    private async submitToHost(action: GameAction, context: GameContext<T, U>) {
         const isRepresentationCurrent = this.representations.captureValidity()
         action.index = context.state.actionCount
 
@@ -1309,16 +1297,36 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const response = await this.api.applyAction(context.game, action)
+        if (!isRepresentationCurrent()) {
+            await this.representations.reload()
+            return undefined
+        }
+        return response
+    }
+
+    // The host replays the Actions after a replaced declaration, regenerating their System
+    // Actions (ADR 0008), so the client takes the host's history rather than predicting it.
+    private replacesEarlierDeclaration(context: GameContext<T, U>, action: GameAction): boolean {
+        const replaced = action.supersedesActionId
+        return (
+            replaced !== undefined &&
+            this.usesHostExecution(context) &&
+            context.actions.at(-1)?.id !== replaced
+        )
+    }
+
+    private async applyEarlierDeclarationReplacement(
+        action: GameAction,
+        context: GameContext<T, U>
+    ): Promise<void> {
+        const response = await this.submitToHost(action, context)
+        if (!response) return
         assertExists(
             response.actions.find((processedAction) => processedAction.id === action.id),
             `Processed action not found for ${action.id}`
         )
-        if (!isRepresentationCurrent()) {
-            await this.representations.reload()
-            return
-        }
-        // The host's game is newer than its broadcasts of the rewrite, which then add nothing.
-        context.updateGame(response.game)
+        // The host's broadcasts of the replay predate this game, so they are not applied again.
+        this.presenter.present({ kind: 'own-action' }, () => context.updateGame(response.game))
         await this.checkSync()
     }
 
@@ -1326,19 +1334,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         action: GameAction,
         context: GameContext<T, U>
     ): Promise<void> {
-        const isRepresentationCurrent = this.representations.captureValidity()
-        action.index = context.state.actionCount
-
-        if (this.debug) {
-            console.log(`Sending ${action.type} ${action.id} to server: `, action)
-        }
-
-        const response = await this.api.applyAction(context.game, action)
-        if (!isRepresentationCurrent()) {
-            await this.representations.reload()
-            return
-        }
-        this.reconciliation.acceptSubmission(action.id, response)
+        const response = await this.submitToHost(action, context)
+        if (response) this.reconciliation.acceptSubmission(action.id, response)
     }
 
     async undo() {
@@ -1356,8 +1353,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const isRepresentationCurrent = this.representations.captureValidity()
         const targetAction = structuredClone($state.snapshot(target))
         const before = context.clone()
-        const hosted =
-            this.usesHostExecution(context) || context.game.storage === GameStorage.Remote
+        const hosted = this.submitsToHost(context)
         const privileged =
             context === this.gameContext && this.representations.hostContext !== undefined
 

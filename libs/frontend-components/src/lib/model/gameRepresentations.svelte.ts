@@ -264,7 +264,7 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
             return
         }
 
-        if (this.inspectionRequested) {
+        if (this.privilegedInspectionEnabled) {
             if (this.hostGameContext === undefined) {
                 await this.setPrivilegedEnabled(true)
             } else {
