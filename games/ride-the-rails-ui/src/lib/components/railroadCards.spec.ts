@@ -34,7 +34,22 @@ describe('the desktop railroad cards', () => {
         const share = source('./ShareButton.svelte')
         expect(share).toMatch(/<SupplyCount\b/)
         expect(share).toMatch(/aria-label=\{button\.shareLabel\}/)
-        expect(share).toMatch(/gameSession\.takeShare\(button\.railroadId\)/)
+        expect(share).toMatch(/shareButtonHandlers\(gameSession, railroadId, enabled\)/)
+        expect(share).toMatch(/onclick=\{handlers\.onclick\}/)
+    })
+
+    it('ring a hovered share button in its own style, and end the hover when it is disabled or leaves', () => {
+        const share = source('./ShareButton.svelte')
+        // A layered utility loses to the component's own border, so it never showed.
+        expect(share).not.toMatch(/hover:enabled:border-rtr-accent/)
+        expect(share).toMatch(/onpointerenter=\{handlers\.onpointerenter\}/)
+        expect(share).toMatch(/onpointerleave=\{handlers\.onpointerleave\}/)
+        expect(share).toMatch(/\{@attach releaseHover\}/)
+        expect(share).toMatch(/class:spotlit\b/)
+        expect(share).toMatch(
+            /\.share\.spotlit\s*\{\s*box-shadow:\s*0 0 0 2px var\(--rtr-accent\),\s*0 2px 0 var\(--rtr-line\);/
+        )
+        expect(share).toMatch(/\.share:enabled\s*\{\s*cursor:\s*pointer;/)
     })
 })
 

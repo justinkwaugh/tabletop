@@ -20,7 +20,8 @@
      cubes are for, a share or track: its supply as a cube in its colour and the number left, with no
      name (the colour is the label); the seat cards beside the board
      show the shares. While the viewer takes a share each card is that share's button, the
-     viewer's shares as dots; otherwise a press or hover spotlights it, and a press holds it, which
+     viewer's shares as dots, which a mouse hover spotlights and a press takes; otherwise a press or
+     hover spotlights it, and a press holds it, which
      narrows the building zoom. On the viewer's building turn a
      railroad they hold no share of is faded. -->
 <div class="frame max-sm:hidden" role="group" aria-label="Railroads">
