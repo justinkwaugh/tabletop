@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { assertExists, type Point } from '@tabletop/common'
-import { Side, type Face } from '@tabletop/napoleons-triumph'
+import { AUSTERLITZ, Side, type Face } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
@@ -413,14 +413,13 @@ describe("a reserve beside its locale's approaches", () => {
     // From reported games: an impassable border has no bar drawn, and a reserve in a locale with one
     // left the whole table blank.
     it('stands in a locale with an impassable border, which has no bar to keep clear of', () => {
-        const game = new TestGame()
-        const bordered = Object.keys(LOCALE_GEOMETRY)
+        const withImpassableBorder = Object.keys(LOCALE_GEOMETRY)
             .map(Number)
             .filter((locale) =>
-                game.hydrated.map.approachesOf(locale).some((approach) => approach.impassable)
+                AUSTERLITZ.approachesOf(locale).some((approach) => approach.impassable)
             )
-        expect(bordered).toContain(58)
-        for (const locale of bordered) {
+        expect(withImpassableBorder).toContain(58)
+        for (const locale of withImpassableBorder) {
             const placed = new TestGame()
             placed.deployBoth()
             arrangeBattlefield(placed, [
