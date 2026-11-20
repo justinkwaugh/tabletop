@@ -344,9 +344,7 @@ describe('R-4.8.3 a win', () => {
         expect(table.state.flow.combat).toBeUndefined()
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
         expect(table.asked).toBe(attackerId)
-        expect(table.state.flow.turn?.followUps).toEqual([
-            { kind: 'military', playerId: attackerId }
-        ])
+        expect(table.state.flow.turn?.followUps).toEqual([{ kind: 'military' }])
         expect(action).toMatchObject({
             metadata: {
                 defendFlipped: false,

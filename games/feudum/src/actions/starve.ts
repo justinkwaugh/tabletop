@@ -89,6 +89,6 @@ export function resolveStarve(
     state.getPlayerState(targetPlayerId).influenceSupply += 1
     const beads = chickenBeadsToPile(state)
     const rankChanges = state.recomputeRanks(actorId)
-    queueFollowUp(state, { kind: 'military', playerId: actorId })
+    queueFollowUp(state, { kind: 'military' })
     return { beads, rankChanges }
 }

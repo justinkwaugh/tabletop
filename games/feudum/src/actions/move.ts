@@ -680,7 +680,7 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
             const player = state.getPlayerState(playerId)
             player.successfulMoves += 1
             if (player.successfulMoves === SuccessfulMovesForVoyage) {
-                queueFollowUp(state, { kind: 'voyage', playerId })
+                queueFollowUp(state, { kind: 'voyage' })
             }
         }
         this.metadata = metadata

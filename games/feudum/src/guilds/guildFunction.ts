@@ -214,7 +214,7 @@ export function scoreFunction(
 
     const reevePoints = actor.feastOf ? 0 : reevePointsIn(state, actor.playerId, guildId)
     player.score += reevePoints
-    const followUp = { kind: 'reeve', playerId: actor.playerId, guildId } as const
+    const followUp = { kind: 'reeve', guildId } as const
     const reeveOffered =
         !actor.feastOf && reevePoints === 0 && reasonDiscRefused(state, followUp) === undefined
     if (reeveOffered) {
@@ -265,8 +265,7 @@ export function scoringPreview(
     if (reevePoints > 0) {
         return { completions, points, reevePoints, reeveOffered: false, drawnCount, keep }
     }
-    const reeveOffered =
-        reasonDiscRefused(state, { kind: 'reeve', playerId: actor.playerId, guildId }) === undefined
+    const reeveOffered = reasonDiscRefused(state, { kind: 'reeve', guildId }) === undefined
     return {
         completions,
         points,

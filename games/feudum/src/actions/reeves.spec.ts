@@ -182,7 +182,7 @@ describe('R-4.7, R-4.7-H1 reeves on every push and pull', () => {
             metadata: { completions: 0, points: 0, reeveOffered: true, drawnWritIds: [] }
         })
         expect(table.hydrated().flow.turn?.followUps).toEqual([
-            { kind: 'reeve', playerId, guildId: 'merchant' }
+            { kind: 'reeve', guildId: 'merchant' }
         ])
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
@@ -211,8 +211,8 @@ describe('R-4.7, R-4.7-H1 reeves on every push and pull', () => {
         })
         expect(action).toMatchObject({ metadata: { points: 3, reeveOffered: true } })
         expect(table.hydrated().flow.turn?.followUps).toEqual([
-            { kind: 'keep-writs', playerId },
-            { kind: 'reeve', playerId, guildId: 'farmer' }
+            { kind: 'keep-writs' },
+            { kind: 'reeve', guildId: 'farmer' }
         ])
         expect(table.state.machineState).toBe(MachineState.KeepingWrits)
     })

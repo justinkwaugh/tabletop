@@ -7,7 +7,7 @@ import {
 import { HydratedPlaceDisc, isPlaceDisc } from '../actions/placeDisc.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { currentFollowUp } from '../model/followUps.js'
+import { currentFollowUp, followUpSeat } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterCardStep } from './cardTurns.js'
 
@@ -27,16 +27,16 @@ export class PlacingDiscStateHandler implements MachineStateHandler<
         playerId: string,
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return currentFollowUp(context.gameState)?.playerId === playerId
+        const state = context.gameState
+        return currentFollowUp(state) && followUpSeat(state) === playerId
             ? [ActionType.PlaceDisc]
             : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
         const state = context.gameState
-        const followUp = currentFollowUp(state)
-        assertExists(followUp, 'R-4.7 A follow-up is being decided')
-        state.activePlayerIds = [followUp.playerId]
+        assertExists(currentFollowUp(state), 'R-4.7 A follow-up is being decided')
+        state.activePlayerIds = [followUpSeat(state)]
     }
 
     onAction(

@@ -218,18 +218,18 @@ describe('flow', () => {
         expect(accepts({ [entry]: named })).toBe(false)
     })
 
-    it('R-4.7, R-4.9.1 follow-ups keep their order and each names its seat', () => {
+    it('R-4.7, R-4.9.1 follow-ups keep their order and name no seat', () => {
         const followUps = [
-            { kind: 'keep-writs', playerId: 'p1' },
-            { kind: 'voyage', playerId: 'p1' },
-            { kind: 'reeve', playerId: 'p1', guildId: 'monk' },
-            { kind: 'military', playerId: 'p1' }
+            { kind: 'keep-writs' },
+            { kind: 'voyage' },
+            { kind: 'reeve', guildId: 'monk' },
+            { kind: 'military' }
         ]
         expect(accepts({ turn: { ...turn, followUps } })).toBe(true)
-        expect(accepts({ turn: { ...turn, followUps: [{ kind: 'voyage' }] } })).toBe(false)
-        expect(accepts({ turn: { ...turn, followUps: [{ kind: 'other', playerId: 'p1' }] } })).toBe(
-            false
-        )
+        expect(
+            accepts({ turn: { ...turn, followUps: [{ kind: 'voyage', playerId: 'p1' }] } })
+        ).toBe(false)
+        expect(accepts({ turn: { ...turn, followUps: [{ kind: 'other' }] } })).toBe(false)
     })
 
     it('R-4.8.1 a combat targets a pawn by (playerId, n), a monster by id, or a feudum', () => {

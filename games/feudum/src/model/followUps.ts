@@ -5,6 +5,7 @@ import type { FollowUp, WritDrawSource } from './flow.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { rankOf } from './guildStatus.js'
 import { nextMilitarySpace, nextVoyageSpace } from './tracks.js'
+import { cardTurnSeat } from './turns.js'
 import { drawWrits } from './writDeck.js'
 
 /** R-4.7, R-4.9.1, R-3.7.5 The follow-ups that offer a disc. */
@@ -63,7 +64,7 @@ export function drawWritsToKeep(
             shovelsOffered: false,
             drawn
         }
-        state.flow.turn.followUps.unshift({ kind: 'keep-writs', playerId })
+        state.flow.turn.followUps.unshift({ kind: 'keep-writs' })
     }
     return drawn.length
 }
@@ -136,20 +137,28 @@ function reasonVoyageRefused(state: HydratedFeudumGameState, playerId: string): 
         : NoFreeDisc
 }
 
-/** R-4.7, R-4.9.1, R-3.7.5 Whether this disc has a free disc and a legal place, for its player. */
+/** R-3.2 Every follow-up is the turn seat's to decide. */
+export function followUpSeat(state: HydratedFeudumGameState): string {
+    const playerId = cardTurnSeat(state)
+    assertExists(playerId, 'R-3.2 A follow-up belongs to the turn being played')
+    return playerId
+}
+
+/** R-4.7, R-4.9.1, R-3.7.5 Whether the turn seat has a free disc and a legal place for it. */
 export function reasonDiscRefused(
     state: HydratedFeudumGameState,
     followUp: DiscFollowUp
 ): string | undefined {
+    const playerId = followUpSeat(state)
     switch (followUp.kind) {
         case 'reeve': {
-            return reasonReeveRefused(state, followUp.playerId, followUp.guildId)
+            return reasonReeveRefused(state, playerId, followUp.guildId)
         }
         case 'military': {
-            return reasonMilitaryRefused(state, followUp.playerId)
+            return reasonMilitaryRefused(state, playerId)
         }
         case 'voyage': {
-            return reasonVoyageRefused(state, followUp.playerId)
+            return reasonVoyageRefused(state, playerId)
         }
     }
 }

@@ -139,7 +139,7 @@ describe('Explore', () => {
             source: 'explore',
             shovelsOffered: true
         })
-        expect(state.flow.turn?.followUps).toEqual([{ kind: 'keep-writs', playerId }])
+        expect(state.flow.turn?.followUps).toEqual([{ kind: 'keep-writs' }])
         expect(action).toMatchObject({
             metadata: { drawnCount: 2, keep: 1, drawnWritIds: drawnOf(table) }
         })

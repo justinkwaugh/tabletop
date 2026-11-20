@@ -304,9 +304,9 @@ describe('R-3.2 follow-ups run in order', () => {
         table.moveTo((state, context) => {
             setMaster(state, playerId, 'farmer')
             state.voyageTrack[playerId] = 'track.voyage.1'
-            queueFollowUp(state, { kind: 'reeve', playerId, guildId: 'farmer' })
-            queueFollowUp(state, { kind: 'voyage', playerId })
-            queueFollowUp(state, { kind: 'military', playerId })
+            queueFollowUp(state, { kind: 'reeve', guildId: 'farmer' })
+            queueFollowUp(state, { kind: 'voyage' })
+            queueFollowUp(state, { kind: 'military' })
             return stateAfterCardStep(context)
         })
         return { table, playerId }
@@ -328,8 +328,8 @@ describe('R-3.2 follow-ups run in order', () => {
         expect(table.state.machineState).toBe(MachineState.KeepingWrits)
         expectAsked(table, playerId, [ActionType.KeepWrits])
         expect(table.state.flow.turn?.followUps).toEqual([
-            { kind: 'keep-writs', playerId },
-            { kind: 'military', playerId }
+            { kind: 'keep-writs' },
+            { kind: 'military' }
         ])
         const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
         const keep = table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
@@ -352,7 +352,7 @@ describe('R-3.2 follow-ups run in order', () => {
         const playerId = table.asked
         table.moveTo((state, context) => {
             state.voyageTrack[playerId] = 'track.voyage.7'
-            queueFollowUp(state, { kind: 'voyage', playerId })
+            queueFollowUp(state, { kind: 'voyage' })
             return stateAfterCardStep(context)
         })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
@@ -369,7 +369,7 @@ describe('R-3.2 follow-ups run in order', () => {
                 drawn: goodCounts(),
                 favours: 0
             }
-            queueFollowUp(state, { kind: 'inspect-harvest', playerId })
+            queueFollowUp(state, { kind: 'inspect-harvest' })
             return stateAfterCardStep(context)
         })
         expect(table.state.machineState).toBe(MachineState.InspectingHarvest)

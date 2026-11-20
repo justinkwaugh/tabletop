@@ -32,9 +32,12 @@ export class NourishingStateHandler implements MachineStateHandler<
             : []
     }
 
-    /** R-4.10-H4 Every seat still deciding, in turn order. */
+    /** R-4.10-H4 */
     enter(context: MachineContext<HydratedFeudumGameState>) {
-        context.gameState.activePlayerIds = [...(context.gameState.flow.nourish?.pending ?? [])]
+        const { flow, turnManager } = context.gameState
+        context.gameState.activePlayerIds = turnManager.turnOrder.filter((playerId) =>
+            flow.nourish?.pending.includes(playerId)
+        )
     }
 
     onAction(

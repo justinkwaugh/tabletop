@@ -1105,7 +1105,7 @@ describe('Move: successful moves', () => {
         ])
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
         expect(table.asked).toBe(playerId)
-        expect(table.state.flow.turn?.followUps).toEqual([{ kind: 'voyage', playerId }])
+        expect(table.state.flow.turn?.followUps).toEqual([{ kind: 'voyage' }])
         expect(action.revealsInfo).toBeFalsy()
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })
         expect(table.hydrated().voyageTrack[playerId]).toBe('track.voyage.1')

@@ -89,14 +89,11 @@ export function shortenWritDeck(state: HydratedFeudumGameState, count: number): 
 }
 
 /** R-4.7, R-4.9.1, R-3.7.5 The seat is asked about this disc; `arrange` sets the table it asks on. */
-export async function atDisc(
-    followUpOf: (seat: string) => DiscFollowUp,
-    arrange?: Arrange
-): Promise<SeatTable> {
+export async function atDisc(followUp: DiscFollowUp, arrange?: Arrange): Promise<SeatTable> {
     const turn = await atPlayingCards(['move', 'tax', 'guild'])
     turn.host.edit((state) => {
         arrange?.(state, turn)
-        queueFollowUp(state, followUpOf(turn.seat))
+        queueFollowUp(state, followUp)
         state.machineState = MachineState.PlacingDisc
         state.activePlayerIds = [turn.seat]
     })

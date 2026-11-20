@@ -8,6 +8,7 @@ import {
     currentFollowUp,
     drawWritsToKeep,
     finishFollowUp,
+    followUpSeat,
     isDiscFollowUp,
     reasonDiscRefused,
     reevePointsIn,
@@ -68,7 +69,7 @@ export function isPlaceDisc(action?: GameAction): action is PlaceDisc {
 /** R-4.7 The disc this seat is being asked about, if any. */
 function discAskedOf(state: HydratedFeudumGameState, playerId: string): DiscFollowUp | undefined {
     const followUp = currentFollowUp(state)
-    return followUp && isDiscFollowUp(followUp) && followUp.playerId === playerId
+    return followUp && isDiscFollowUp(followUp) && followUpSeat(state) === playerId
         ? followUp
         : undefined
 }

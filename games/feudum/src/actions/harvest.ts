@@ -223,7 +223,7 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
                 drawn: { ...drawnCounts },
                 favours: owed
             }
-            queueFollowUp(state, { kind: 'inspect-harvest', playerId: this.playerId })
+            queueFollowUp(state, { kind: 'inspect-harvest' })
             this.metadata = { total, drawn: drawnCounts, vp, beadsFlipped: 0 }
             return
         }

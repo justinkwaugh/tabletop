@@ -475,7 +475,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         ruleOutpost(table, playerId)
         table.send(playerId, { type: ActionType.Explore, revealsInfo: true })
         table.moveTo((state, context) => {
-            queueFollowUp(state, { kind: 'military', playerId })
+            queueFollowUp(state, { kind: 'military' })
             return stateAfterCardStep(context)
         })
         const [kept] = table.hydrated().flow.writDraw?.drawn ?? []

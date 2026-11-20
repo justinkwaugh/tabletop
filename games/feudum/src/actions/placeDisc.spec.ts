@@ -22,14 +22,14 @@ const projector = Visibility.createProjector(FeudumGameState)
 
 /** A table whose turn player's current card has just left these follow-ups. */
 function tableWith(
-    followUps: (playerId: string) => FollowUp[],
+    followUps: readonly FollowUp[],
     edit?: (state: HydratedFeudumGameState, playerId: string) => void
 ): { table: Table; playerId: string } {
     const table = tableAtPlayingCards()
     const playerId = table.order[0]
     table.moveTo((state, context) => {
         edit?.(state, playerId)
-        for (const followUp of followUps(playerId)) {
+        for (const followUp of followUps) {
             queueFollowUp(state, followUp)
         }
         return stateAfterCardStep(context)
@@ -38,18 +38,15 @@ function tableWith(
 }
 
 function voyageAt(space: number | undefined) {
-    return tableWith(
-        (playerId) => [{ kind: 'voyage', playerId }],
-        (state, playerId) => {
-            if (space !== undefined) {
-                state.voyageTrack[playerId] = `track.voyage.${space}`
-            }
+    return tableWith([{ kind: 'voyage' }], (state, playerId) => {
+        if (space !== undefined) {
+            state.voyageTrack[playerId] = `track.voyage.${space}`
         }
-    )
+    })
 }
 
 function reeve(guildId: 'farmer' | 'knight' | 'monk' = 'farmer') {
-    return tableWith((playerId) => [{ kind: 'reeve', playerId, guildId }])
+    return tableWith([{ kind: 'reeve', guildId }])
 }
 
 describe('PlaceDisc: the follow-up', () => {
@@ -85,10 +82,7 @@ describe('PlaceDisc: the follow-up', () => {
 
     it('R-3.2, R-4.7 runs the follow-ups in order, and a disc spent on the first lapses the next', () => {
         const { table, playerId } = tableWith(
-            (id) => [
-                { kind: 'military', playerId: id },
-                { kind: 'reeve', playerId: id, guildId: 'farmer' }
-            ],
+            [{ kind: 'military' }, { kind: 'reeve', guildId: 'farmer' }],
             (state, id) => {
                 state.voyageTrack[id] = 'track.voyage.1'
                 state.militaryService[id] = 'track.military.1'
@@ -102,9 +96,9 @@ describe('PlaceDisc: the follow-up', () => {
     })
 
     it('R-3.2, R-4.7 a follow-up left after a decline runs next, the same disc still free', () => {
-        const { table, playerId } = tableWith((id) => [
-            { kind: 'military', playerId: id },
-            { kind: 'reeve', playerId: id, guildId: 'farmer' }
+        const { table, playerId } = tableWith([
+            { kind: 'military' },
+            { kind: 'reeve', guildId: 'farmer' }
         ])
         table.send(playerId, { type: ActionType.PlaceDisc, place: false })
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
@@ -137,12 +131,9 @@ describe('PlaceDisc: a reeve', () => {
     })
 
     it('R-4.7 is not offered where the seat already has one', () => {
-        const { table } = tableWith(
-            (id) => [{ kind: 'reeve', playerId: id, guildId: 'farmer' }],
-            (state, id) => {
-                state.guilds.tracks.farmer.master = { playerId: id, reeve: true }
-            }
-        )
+        const { table } = tableWith([{ kind: 'reeve', guildId: 'farmer' }], (state, id) => {
+            state.guilds.tracks.farmer.master = { playerId: id, reeve: true }
+        })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(table.order[1])
         expect(table.state.flow.turn?.followUps).toEqual([])
@@ -168,10 +159,11 @@ describe('PlaceDisc: a reeve', () => {
     })
 
     it('R-4.7 needs the seat’s marker on master or journeyman, with the reason', () => {
-        const { table, playerId } = reeve('knight')
+        const { table } = reeve('knight')
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        const playerId = table.asked
         const state = table.hydrated()
-        state.flow.turn?.followUps.push({ kind: 'reeve', playerId, guildId: 'knight' })
+        state.flow.turn?.followUps.push({ kind: 'reeve', guildId: 'knight' })
         expect(reasonPlaceDiscRefused(state, playerId, true)).toBe(
             'You hold no rank a reeve can follow there.'
         )
@@ -183,12 +175,9 @@ describe('PlaceDisc: a reeve', () => {
     })
 
     it('R-1.1 is not offered with no free disc', () => {
-        const { table } = tableWith(
-            (id) => [{ kind: 'reeve', playerId: id, guildId: 'farmer' }],
-            (state, id) => {
-                state.militaryService[id] = 'track.military.3'
-            }
-        )
+        const { table } = tableWith([{ kind: 'reeve', guildId: 'farmer' }], (state, id) => {
+            state.militaryService[id] = 'track.military.3'
+        })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(table.order[1])
     })
@@ -219,13 +208,10 @@ describe('PlaceDisc: the epic voyage', () => {
     })
 
     it('R-3.7-H1 on one space advances the disc, needing no free disc', () => {
-        const { table, playerId } = tableWith(
-            (id) => [{ kind: 'voyage', playerId: id }],
-            (state, id) => {
-                state.voyageTrack[id] = 'track.voyage.2'
-                state.militaryService[id] = 'track.military.2'
-            }
-        )
+        const { table, playerId } = tableWith([{ kind: 'voyage' }], (state, id) => {
+            state.voyageTrack[id] = 'track.voyage.2'
+            state.militaryService[id] = 'track.military.2'
+        })
         expect(table.hydrated().freeDiscs(playerId)).toBe(0)
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
@@ -235,12 +221,9 @@ describe('PlaceDisc: the epic voyage', () => {
     })
 
     it('R-3.7.5 is not offered to start with no free disc', () => {
-        const { table } = tableWith(
-            (id) => [{ kind: 'voyage', playerId: id }],
-            (state, id) => {
-                state.militaryService[id] = 'track.military.3'
-            }
-        )
+        const { table } = tableWith([{ kind: 'voyage' }], (state, id) => {
+            state.militaryService[id] = 'track.military.3'
+        })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(table.order[1])
     })
@@ -286,7 +269,7 @@ describe('PlaceDisc: the epic voyage', () => {
                 metadata: { drawnWritIds: state.flow.writDraw?.drawn }
             })
             // The keep comes next, asked of the drawer.
-            expect(state.flow.turn?.followUps).toEqual([{ kind: 'keep-writs', playerId }])
+            expect(state.flow.turn?.followUps).toEqual([{ kind: 'keep-writs' }])
             expect(table.state.machineState).toBe(MachineState.KeepingWrits)
             expect(table.asked).toBe(playerId)
         }
@@ -367,18 +350,15 @@ describe('PlaceDisc: the epic voyage', () => {
 
     it('R-3.7.5 the keep precedes the card’s other follow-ups', () => {
         const { table, playerId } = tableWith(
-            (id) => [
-                { kind: 'voyage', playerId: id },
-                { kind: 'military', playerId: id }
-            ],
+            [{ kind: 'voyage' }, { kind: 'military' }],
             (state, id) => {
                 state.voyageTrack[id] = 'track.voyage.1'
             }
         )
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })
         expect(table.hydrated().flow.turn?.followUps).toEqual([
-            { kind: 'keep-writs', playerId },
-            { kind: 'military', playerId }
+            { kind: 'keep-writs' },
+            { kind: 'military' }
         ])
         expect(canonicalOf(table.hydrated()).flow.writDraw?.drawn).toHaveLength(2)
     })

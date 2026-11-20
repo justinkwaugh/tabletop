@@ -206,14 +206,14 @@ describe('KeepWrits', () => {
     it('R-3.2 the card’s other follow-ups run after the keep', () => {
         const { table, playerId, drawn } = afterDraw()
         table.moveTo((state) => {
-            queueFollowUp(state, { kind: 'voyage', playerId })
+            queueFollowUp(state, { kind: 'voyage' })
             return MachineState.KeepingWrits
         })
 
         table.send(playerId, { type: ActionType.KeepWrits, keep: [drawn[0]] })
 
         expect(table.hydrated().machineState).toBe(MachineState.PlacingDisc)
-        expect(table.hydrated().flow.turn?.followUps).toEqual([{ kind: 'voyage', playerId }])
+        expect(table.hydrated().flow.turn?.followUps).toEqual([{ kind: 'voyage' }])
         expect(table.asked).toBe(playerId)
     })
 
@@ -244,7 +244,7 @@ describe('KeepWrits', () => {
         const playerId = table.asked
         table.moveTo((state) => {
             state.voyageTrack[playerId] = 'track.voyage.1'
-            queueFollowUp(state, { kind: 'voyage', playerId })
+            queueFollowUp(state, { kind: 'voyage' })
             return MachineState.PlacingDisc
         })
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })

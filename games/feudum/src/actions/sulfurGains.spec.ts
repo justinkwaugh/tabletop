@@ -196,7 +196,7 @@ describe('R-4.10.2 favours chosen from a harvest', () => {
                 drawn,
                 favours: 2
             }
-            giveCardTurn(state, playerId, { followUps: [{ kind: 'inspect-harvest', playerId }] })
+            giveCardTurn(state, playerId, { followUps: [{ kind: 'inspect-harvest' }] })
             return MachineState.InspectingHarvest
         })
         return { table, playerId }

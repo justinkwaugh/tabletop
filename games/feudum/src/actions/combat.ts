@@ -233,6 +233,6 @@ export function resolveCombat(
     const vp = conquerVp(target)
     state.getPlayerState(attackerId).score += vp
     const rankChanges = state.recomputeRanks(attackerId)
-    queueFollowUp(state, { kind: 'military', playerId: attackerId })
+    queueFollowUp(state, { kind: 'military' })
     return { ...fought, vp, rankChanges, conquered }
 }

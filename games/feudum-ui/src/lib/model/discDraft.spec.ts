@@ -8,7 +8,6 @@ import {
     queueFollowUp,
     returnGoodToHaversack,
     Spaces,
-    type DiscFollowUp,
     type HydratedFeudumGameState,
     type SpaceId
 } from '@tabletop/feudum'
@@ -78,23 +77,17 @@ async function press(session: FeudumGameSession, choice: DraftChoice | undefined
 
 /** A voyage disc on this space, or none yet; `arrange` sets the rest. */
 const voyage = (space?: number, arrange?: (state: HydratedFeudumGameState, seat: string) => void) =>
-    atDisc(
-        (playerId): DiscFollowUp => ({ kind: 'voyage', playerId }),
-        (state, { seat }) => {
-            if (space !== undefined) {
-                state.voyageTrack[seat] = `track.voyage.${space}`
-            }
-            arrange?.(state, seat)
+    atDisc({ kind: 'voyage' }, (state, { seat }) => {
+        if (space !== undefined) {
+            state.voyageTrack[seat] = `track.voyage.${space}`
         }
-    )
+        arrange?.(state, seat)
+    })
 
 const military = (arrange?: (state: HydratedFeudumGameState, seat: string) => void) =>
-    atDisc(
-        (playerId): DiscFollowUp => ({ kind: 'military', playerId }),
-        (state, { seat }) => {
-            arrange?.(state, seat)
-        }
-    )
+    atDisc({ kind: 'military' }, (state, { seat }) => {
+        arrange?.(state, seat)
+    })
 
 /** R-3.7.1 One farmer inland and no goods about, so a step is a press and nothing to pilfer. */
 function oneFarmerInland(state: HydratedFeudumGameState, seat: string) {
@@ -354,14 +347,11 @@ describe('S49 R-4.7 The reeve offer', () => {
 
     it('R-4.7 a Place the logic refuses is not drawn, and only the keep is left to press', async () => {
         const table = hold(
-            await atDisc(
-                (playerId) => ({ kind: 'reeve', playerId, guildId: 'merchant' }),
-                (state, { seat }) => {
-                    setMaster(state, seat, 'merchant')
-                    state.recomputeRanks()
-                    state.militaryService[seat] = 'track.military.3'
-                }
-            )
+            await atDisc({ kind: 'reeve', guildId: 'merchant' }, (state, { seat }) => {
+                setMaster(state, seat, 'merchant')
+                state.recomputeRanks()
+                state.militaryService[seat] = 'track.military.3'
+            })
         )
         const { session } = table
         expect(session.discPanel?.place).toBeUndefined()
@@ -455,12 +445,9 @@ describe('R-X.1 Who the question is for', () => {
 
     it('R-X.1 even where only the keep is legal, the keep is a press', async () => {
         const table = hold(
-            await atDisc(
-                (playerId) => ({ kind: 'voyage', playerId }),
-                (state, { seat }) => {
-                    state.militaryService[seat] = 'track.military.3'
-                }
-            )
+            await atDisc({ kind: 'voyage' }, (state, { seat }) => {
+                state.militaryService[seat] = 'track.military.3'
+            })
         )
         const { session } = table
         const count = table.host.actions.length
@@ -549,15 +536,12 @@ describe('DiscDraft minimum tests', () => {
 
     it('8 a staged advance does not carry onto the next disc: the same seat is asked about a reeve', async () => {
         const table = hold(
-            await atDisc(
-                (playerId) => ({ kind: 'reeve', playerId, guildId: 'merchant' }),
-                (state, { seat }) => {
-                    setMaster(state, seat, 'merchant')
-                    state.recomputeRanks()
-                    state.voyageTrack[seat] = 'track.voyage.1'
-                    queueFollowUp(state, { kind: 'voyage', playerId: seat })
-                }
-            )
+            await atDisc({ kind: 'reeve', guildId: 'merchant' }, (state, { seat }) => {
+                setMaster(state, seat, 'merchant')
+                state.recomputeRanks()
+                state.voyageTrack[seat] = 'track.voyage.1'
+                queueFollowUp(state, { kind: 'voyage' })
+            })
         )
         const { session, seat } = table
         await press(session, session.discPanel?.place)

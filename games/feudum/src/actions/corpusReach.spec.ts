@@ -274,7 +274,7 @@ const DrawRoutes: Readonly<
             stackWrit(state, writId)
             giveSeal(state, playerId)
             state.voyageTrack[playerId] = 'track.voyage.1'
-            queueFollowUp(state, { kind: 'voyage', playerId })
+            queueFollowUp(state, { kind: 'voyage' })
             return MachineState.PlacingDisc
         })
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })

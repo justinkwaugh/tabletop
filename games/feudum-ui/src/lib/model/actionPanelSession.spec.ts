@@ -1271,7 +1271,7 @@ describe('Move', () => {
     })
 
     it('S31 R-3.7.5 the voyage question, its Place button and what the disc costs in discs', async () => {
-        const table = hold(await atDisc((playerId) => ({ kind: 'voyage', playerId })))
+        const table = hold(await atDisc({ kind: 'voyage' }))
         const { session } = table
         expect(linesOf(session.actionPanel)).toEqual(['Voyage space 1?', '3/3 discs free'])
         expect(rowLabels(session.actionPanel, 'disc')[0]).toBe('Place')
@@ -1280,12 +1280,9 @@ describe('Move', () => {
 
     it('S31 R-3.7.5 with a disc on 1, the line warns and the press stages for the primary', async () => {
         const table = hold(
-            await atDisc(
-                (playerId) => ({ kind: 'voyage', playerId }),
-                (state, { seat }) => {
-                    state.voyageTrack[seat] = 'track.voyage.1'
-                }
-            )
+            await atDisc({ kind: 'voyage' }, (state, { seat }) => {
+                state.voyageTrack[seat] = 'track.voyage.1'
+            })
         )
         const { session } = table
         expect(linesOf(session.actionPanel)[0]).toBe("To 2? +2 writs · can't be undone")
@@ -1668,12 +1665,9 @@ const Reveals: readonly Reveal[] = [
         type: ActionType.PlaceDisc,
         reach: async () => {
             const table = hold(
-                await atDisc(
-                    (playerId) => ({ kind: 'voyage', playerId }),
-                    (state, { seat }) => {
-                        state.voyageTrack[seat] = `track.voyage.${from}`
-                    }
-                )
+                await atDisc({ kind: 'voyage' }, (state, { seat }) => {
+                    state.voyageTrack[seat] = `track.voyage.${from}`
+                })
             )
             const { session } = table
             expect(linesOf(session.actionPanel)[0]).toContain(CantBeUndone)
@@ -1854,7 +1848,7 @@ describe("R-X.2 every send that can't be undone names itself: the list, not a sa
         expect(primaryLabels(keep.session.actionPanel)).toEqual(['Keep 1 · 2 under the deck'])
         host?.close()
 
-        const voyage = hold(await atDisc((playerId) => ({ kind: 'voyage', playerId })))
+        const voyage = hold(await atDisc({ kind: 'voyage' }))
         expect(linesOf(voyage.session.actionPanel).join()).not.toContain(CantBeUndone)
     })
 })

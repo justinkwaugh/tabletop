@@ -23,7 +23,7 @@ function offered(table: Table, covered = 0): string {
     const playerId = table.asked
     table.moveTo((state, context) => {
         coverService(state, playerId, covered)
-        queueFollowUp(state, { kind: 'military', playerId })
+        queueFollowUp(state, { kind: 'military' })
         return stateAfterCardStep(context)
     })
     return playerId
@@ -120,7 +120,7 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
             state.voyageTrack[playerId] = 'track.voyage.1'
             state.guilds.tracks.farmer.master = { playerId, reeve: true }
             state.militaryService[playerId] = 'track.military.1'
-            queueFollowUp(state, { kind: 'military', playerId })
+            queueFollowUp(state, { kind: 'military' })
             return stateAfterCardStep(context)
         })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
@@ -145,9 +145,7 @@ describe('R-4.9-H1 after a Starve the People', () => {
     it('R-4.9-H1 a successful Starve offers the disc to the actor', () => {
         const combat = tableAtStarve()
         starve(combat)
-        expect(combat.table.state.flow.turn?.followUps).toEqual([
-            { kind: 'military', playerId: combat.attackerId }
-        ])
+        expect(combat.table.state.flow.turn?.followUps).toEqual([{ kind: 'military' }])
         expect(combat.table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 

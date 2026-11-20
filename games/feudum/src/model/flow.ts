@@ -15,15 +15,18 @@ import {
 export type FollowUp = Type.Static<typeof FollowUp>
 export const FollowUp = Type.Union([
     /** R-3.10, R-4.4.1 */
-    Type.Object({ kind: Type.Literal('keep-writs'), playerId: Type.String() }),
+    Type.Object({ kind: Type.Literal('keep-writs') }, { additionalProperties: false }),
     /** R-4.7 */
-    Type.Object({ kind: Type.Literal('reeve'), playerId: Type.String(), guildId: GuildIdSchema }),
+    Type.Object(
+        { kind: Type.Literal('reeve'), guildId: GuildIdSchema },
+        { additionalProperties: false }
+    ),
     /** R-4.9.1 */
-    Type.Object({ kind: Type.Literal('military'), playerId: Type.String() }),
+    Type.Object({ kind: Type.Literal('military') }, { additionalProperties: false }),
     /** R-3.7.5 */
-    Type.Object({ kind: Type.Literal('voyage'), playerId: Type.String() }),
+    Type.Object({ kind: Type.Literal('voyage') }, { additionalProperties: false }),
     /** R-3.11.3 */
-    Type.Object({ kind: Type.Literal('inspect-harvest'), playerId: Type.String() })
+    Type.Object({ kind: Type.Literal('inspect-harvest') }, { additionalProperties: false })
 ])
 
 /** A pawn is (playerId, n); a monster is its id. */
@@ -119,7 +122,7 @@ export const FlowState = Type.Object({
             role: StarveRole
         })
     ),
-    /** R-4.10, R-4.10-H4 The seats still deciding, in turn order; each leaves as it feeds. */
+    /** R-4.10, R-4.10-H4 In no order: the turn manager orders the seats asked. */
     nourish: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
     /** R-4.3.4, R-4.12.3 In no order: the turn manager asks them in turn order. */
     landscapes: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
