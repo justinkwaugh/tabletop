@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { render } from 'svelte/server'
+import { Color } from '@tabletop/common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     ActionCardKinds,
@@ -19,8 +20,8 @@ import {
     MapAsset,
     PrintedColours,
     ringPartAsset,
+    ReeveAsset,
     SealAsset,
-    SeatPieceKinds,
     TargetAsset,
     WritBackAsset,
     beadAsset,
@@ -31,7 +32,6 @@ import {
     guildPanelAsset,
     locationAsset,
     monsterAsset,
-    seatPieceAsset,
     shillingAsset,
     strayFiles,
     tileBackAsset,
@@ -127,12 +127,12 @@ const shownBy = new Map<string, () => string>([
                 props: { faceShown: false, paint: { ...paint, printed }, width: 200 }
             }).body
     ]),
-    ...SeatPieceKinds.flatMap((kind) =>
-        PrintedColours.map((printed): [string, () => string] => [
-            seatPieceAsset(kind, printed),
-            () => render(SeatToken, { props: { kind, paint: { ...paint, printed } } }).body
-        ])
-    ),
+    [
+        ReeveAsset,
+        () =>
+            render(SeatToken, { props: { kind: 'reeve', paint: { ...paint, printed: Color.Red } } })
+                .body
+    ],
     ...(['outpost', 'farm', 'town'] as const).map((kind): [string, () => string] => [
         locationAsset(kind),
         () => render(LocationDisc, { props: { kind } }).body
@@ -289,9 +289,7 @@ const LargestRender: readonly [prefix: string, px: number][] = [
     ['monster.', 67],
     ['vessel.', 40],
     ['target.', 34],
-    ['piece.marker.', 32],
-    ['piece.disc.', 28],
-    ['piece.reeve.', 15]
+    ['piece.reeve', 15]
 ]
 
 /** Readiness gate on images: about twice the largest render serves a HiDPI screen; more is waste. */

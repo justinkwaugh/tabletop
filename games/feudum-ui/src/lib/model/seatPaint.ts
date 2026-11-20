@@ -4,6 +4,10 @@ import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 import type { SeatsAndRows } from './knightLanes.js'
 
+/** A seat's own wooden pieces: an influence marker, a player disc, a reeve. */
+export const SeatPieceKinds = ['marker', 'disc', 'reeve'] as const
+export type SeatPieceKind = (typeof SeatPieceKinds)[number]
+
 /** A seat's paint for its pieces. Colours come only from the session's colourizer (S71). */
 export interface SeatPaint {
     readonly fill: string

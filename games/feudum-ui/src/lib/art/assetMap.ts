@@ -48,14 +48,8 @@ export const PrintedColours = [
 export type PrintedColour = (typeof PrintedColours)[number]
 /** A whole printed card back in its seat colour. */
 export const cardBackAsset = (colour: PrintedColour) => `card.back.${colour}` as const
-/**
- * A seat's wooden pieces as printed: the hexagonal influence marker, a player disc's blank face, and
- * the face printed for a reeve's point.
- */
-export const SeatPieceKinds = ['marker', 'disc', 'reeve'] as const
-export type SeatPieceKind = (typeof SeatPieceKinds)[number]
-export const seatPieceAsset = (kind: SeatPieceKind, colour: PrintedColour) =>
-    `piece.${kind}.${colour}` as const
+/** A reeve's printed point, in ink alone: the seat's disc under it is drawn in the seat fill. */
+export const ReeveAsset = 'piece.reeve'
 /** A guild's printed panel, as it lies on the board: the ground its area's state stands on. */
 export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
 /** The face off a guild's print, cut round and upright, for a desk's side button. */
@@ -83,9 +77,9 @@ export const ringPartAsset = (part: RingPart) => `board.ring.${part}` as const
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
  * `<id>.webp` or `<id>.png`. With no file a component draws its own plain labelled fallback, so
- * the tree builds and plays with none. A card back or piece that takes a seat colour has an id for
- * each printed colour, shown only while the seat's displayed colour is that printed colour's own
- * (`SeatPaint`); an action card's face is its kind's art with the print drawn round it in code.
+ * the tree builds and plays with none. A card back has an id for each printed colour, shown only
+ * while the seat's displayed colour is that printed colour's own (`SeatPaint`); an action card's
+ * face is its kind's art with the print drawn round it in code.
  */
 export const AssetIds = [
     CoverAsset,
@@ -105,9 +99,7 @@ export const AssetIds = [
     ...LandscapeKinds.map(tileBackAsset),
     ...ActionCardKinds.map(cardAsset),
     ...PrintedColours.map(cardBackAsset),
-    ...SeatPieceKinds.flatMap((kind) =>
-        PrintedColours.map((colour) => seatPieceAsset(kind, colour))
-    ),
+    ReeveAsset,
     locationAsset('outpost'),
     locationAsset('farm'),
     locationAsset('town'),

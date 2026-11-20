@@ -3,13 +3,8 @@ import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
 import { ActionCardKinds, LandscapeKinds, RoyalWrits } from '@tabletop/feudum'
-import {
-    SeatPieceKinds,
-    cardAsset,
-    cardBackAsset,
-    seatPieceAsset,
-    type SeatPieceKind
-} from '$lib/art/assetMap.js'
+import { ReeveAsset, cardAsset, cardBackAsset } from '$lib/art/assetMap.js'
+import { SeatPieceKinds, type SeatPaint, type SeatPieceKind } from '$lib/model/seatPaint.js'
 import { handFaceShown, sealFaceShown, writFaceShown } from '$lib/model/perspective.js'
 import { faceTier, shortName } from '$lib/utils/cardShape.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
@@ -335,23 +330,36 @@ describe('printed action cards (R-3.1)', () => {
     })
 })
 
-describe('printed seat pieces (S71)', () => {
+describe('seat pieces (S71)', () => {
     beforeEach(() => {
         folder.files = everyAssetSupplied()
     })
 
-    const token = (kind: SeatPieceKind, piecePaint: typeof paint = redPaint) =>
+    const token = (kind: SeatPieceKind, piecePaint: SeatPaint = redPaint) =>
         render(SeatToken, { props: { kind, paint: piecePaint } }).body
 
-    it.each(SeatPieceKinds)(
-        'a %s in a printed colour is the printed piece, with no letter on it',
-        (kind) => {
-            const piece = token(kind)
-            expect(piece).toContain(`href="/art/${seatPieceAsset(kind, Color.Red)}.webp"`)
-            expect(piece).not.toContain('<text')
-            expect(piece).not.toContain(`fill="${paint.fill}"`)
+    it('a marker is the printed hexagon and a disc the printed blank face, each drawn in the seat fill with no file', () => {
+        for (const piecePaint of [redPaint, paint]) {
+            const marker = token('marker', piecePaint)
+            expect(marker).toMatch(/<polygon points="12,1 21.6,6.5[^"]*"[^>]*fill="#336699"/)
+            const disc = token('disc', piecePaint)
+            expect(disc).toMatch(/<circle cx="12" cy="12" r="10.5" fill="#336699"/)
+            for (const piece of [marker, disc]) {
+                expect(piece).not.toContain('<image')
+                expect(piece).not.toContain('<text')
+            }
         }
-    )
+    })
+
+    it('a reeve in a printed colour is a disc in the seat fill under the one shared print of its point', () => {
+        for (const printed of [Color.Red, Color.Blue] as const) {
+            const reeve = token('reeve', { ...paint, printed })
+            expect(reeve).toMatch(/<circle cx="12" cy="12" r="10.5" fill="#336699"/)
+            expect(reeve).toContain(`href="/art/${ReeveAsset}.webp"`)
+            expect(reeve.indexOf('fill="#336699"')).toBeLessThan(reeve.indexOf('<image'))
+            expect(reeve).not.toContain('<text')
+        }
+    })
 
     it.each(SeatPieceKinds)(
         'a %s names its seat in its accessible name and its tooltip, so colour never stands alone',
@@ -362,15 +370,6 @@ describe('printed seat pieces (S71)', () => {
             }
         }
     )
-
-    it('a player disc shows the blank face, a reeve the face printed for its point', () => {
-        expect(token('disc')).not.toContain('piece.reeve')
-        expect(token('reeve')).not.toContain('piece.disc')
-        const blue = { ...paint, printed: Color.Blue as const }
-        expect(token('reeve', blue)).toContain(
-            `href="/art/${seatPieceAsset('reeve', Color.Blue)}.webp"`
-        )
-    })
 
     it.each(SeatPieceKinds)('a %s in no printed colour is drawn in the seat fill', (kind) => {
         const piece = token(kind, paint)
@@ -398,11 +397,11 @@ describe('printed seat pieces (S71)', () => {
         }
     )
 
-    it.each(SeatPieceKinds)('a %s whose printed file is not in the folder is drawn', (kind) => {
+    it('a reeve whose print is not in the folder is drawn', () => {
         folder.files = Object.fromEntries(
-            Object.entries(everyAssetSupplied()).filter(([path]) => !path.includes('piece.'))
+            Object.entries(everyAssetSupplied()).filter(([path]) => !path.includes(ReeveAsset))
         )
-        const piece = token(kind)
+        const piece = token('reeve')
         expect(piece).not.toContain('<image')
         expect(piece).toContain(`fill="${paint.fill}"`)
     })

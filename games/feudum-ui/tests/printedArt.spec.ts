@@ -107,55 +107,46 @@ test('R-3.1 each printed card fills its face, its art inside the drawn print, an
     }
 })
 
-test('S71 each printed seat piece stands centred where the drawn piece stood', async ({ page }) => {
-    await openTable(page, 'guildPick')
-    const prints = page.locator(
-        ['[data-board-surface]', '[data-guild-view]']
-            .map((holder) => `${holder} svg[role="img"] > image[href*="piece."]`)
-            .join(', ')
-    )
-    const seen = { marker: 0, disc: 0 }
+test('S71 markers and discs are drawn shapes; a reeve’s print stands centred on its disc', async ({
+    page
+}) => {
+    await openTable(page, 'merchantPush')
+    const holders = ['[data-board-surface]', '[data-guild-view]']
+    const within = (inner: string) => page.locator(holders.map((h) => `${h} ${inner}`).join(', '))
+    const reeves = within('svg[role="img"] > image[href*="piece.reeve"]')
+    const seen = { marker: 0, disc: 0, reeve: 0 }
     const check = async () => {
-        for (let index = 0; index < (await prints.count()); index++) {
-            const image = prints.nth(index)
+        await expect(within('image[href*="piece.marker"], image[href*="piece.disc"]')).toHaveCount(
+            0
+        )
+        seen.marker += await within('svg[aria-label$="influence marker"] > polygon').count()
+        seen.disc += await within('svg[aria-label$="player disc"] > circle').count()
+        for (let index = 0; index < (await reeves.count()); index++) {
+            const image = reeves.nth(index)
             const token = image.locator('xpath=..')
-            const box = await boxOf(token)
-            const print = await boxOf(image)
-            const at = centre(print)
-            const middle = centre(box)
+            const at = centre(await boxOf(image))
+            const middle = centre(await boxOf(token))
             expect(Math.abs(at.x - middle.x)).toBeLessThanOrEqual(1)
             expect(Math.abs(at.y - middle.y)).toBeLessThanOrEqual(1)
-            expect(print.width).toBeLessThanOrEqual(box.width + 0.5)
-            expect(print.height).toBeLessThanOrEqual(box.height + 0.5)
-            await expect(token.locator('text')).toHaveCount(0)
-            // A seat's piece names the seat; a dummy Knight row's names its colour (R-1.4-H1); discs
-            // sharing a score space each name every disc there.
-            await expect(token).toHaveAttribute(
-                'aria-label',
-                /^((.+'s|red|blue|yellow|green|purple) (influence marker|player disc|reeve)|Player discs: .+)$/
-            )
-            const href = (await image.getAttribute('href')) ?? ''
-            for (const kind of ['marker', 'disc'] as const) {
-                if (href.includes(`piece.${kind}.`)) {
-                    seen[kind]++
-                }
-            }
+            await expect(token).toHaveAttribute('aria-label', /^.+'s reeve$/)
+            seen.reeve++
         }
     }
     // On a desk the guild tracks' markers stand behind the side buttons: each side in turn.
     const sides = page.locator('[data-guild-side]')
     if ((await sides.count()) === 0) {
-        test.skip((await prints.count()) === 0, 'no printed pieces in the folder')
         await check()
     }
     for (const side of await sides.all()) {
         await side.click()
         await settled(page)
-        test.skip((await prints.count()) === 0, 'no printed pieces in the folder')
         await check()
     }
     expect(seen.marker).toBeGreaterThan(0)
     expect(seen.disc).toBeGreaterThan(0)
+    // Without the supplied art a reeve is drawn, with no print.
+    const supplied = await page.locator('[data-board-surface] image[href*="board.map"]').count()
+    expect(seen.reeve > 0).toBe(supplied > 0)
 })
 
 test('R-1.3 each printed panel fills its guild area; a desk draws no ring print', async ({
