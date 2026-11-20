@@ -4,20 +4,36 @@ import {
     type AxialCoordinates,
     type GameAction
 } from '@tabletop/common'
-import { isCapture, isPlaceMarble } from '@tabletop/zertz'
+import { isCapture, isPlaceMarble, placementSeed, type Ring } from '@tabletop/zertz'
 
-// Seeded by ring and action number, so two marbles placed on one ring at different times differ.
+export { placementSeed } from '@tabletop/zertz'
 
-export function placementSeed(coords: AxialCoordinates, index: number): number {
-    return coordinatesToNumber(coords) + 7919 * (index + 1)
+// A marble carries its seed in the state. Only a marble placed before the state kept seeds, in a
+// game begun before then, has none; the rest of this file reads its seed from the actions that
+// placed and moved it, and can go once no such game is left.
+export function marbleSeed(ring: Ring, legacy: MarbleSeeds): number {
+    return ring.marbleSeed ?? seedAt(legacy, ring.coords)
 }
 
 export type MarbleSeeds = ReadonlyMap<number, number>
 
-export function marbleSeedsAfter(actions: readonly GameAction[]): MarbleSeeds {
+// The marbles on the board once the actions before `actionCount` have been made. Each is seeded by
+// its action's own number, not its place in the list: a hosted game can open with only its latest
+// actions.
+export function marbleSeedsAfter(
+    actions: readonly GameAction[],
+    actionCount = Infinity
+): MarbleSeeds {
     const seeds = new Map<number, number>()
-    actions.forEach((action, index) => applyToSeeds(seeds, action, index))
+    actions.forEach((action, position) => {
+        const index = actionNumber(action, position)
+        if (index < actionCount) applyToSeeds(seeds, action, index)
+    })
     return seeds
+}
+
+export function actionNumber(action: GameAction, position: number): number {
+    return action.index ?? position
 }
 
 export function applyToSeeds(seeds: Map<number, number>, action: GameAction, index: number) {

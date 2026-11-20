@@ -3,7 +3,7 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
+import { coordinatesToNumber, defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
 import { Definition, MarbleColor, ZertzInfo, ZertzRuntime } from '@tabletop/zertz'
 
@@ -40,6 +40,8 @@ function position({ removed = [], placed = [], captured = [marbles(0, 0, 0), mar
             (candidate) => candidate.coords.q === q && candidate.coords.r === r
         )
         ring.marble = color
+        // As a game would, had it begun with the marble on its ring.
+        ring.marbleSeed = coordinatesToNumber({ q, r })
         state.pool[color] -= 1
     }
     state.players.forEach((player, index) => {

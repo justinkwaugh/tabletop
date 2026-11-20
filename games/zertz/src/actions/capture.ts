@@ -10,7 +10,10 @@ export const CaptureMetadata = Type.Object({
     jumper: Type.Enum(MarbleColor),
     over: AxialCoordinates,
     captured: Type.Enum(MarbleColor),
-    continues: Type.Boolean()
+    continues: Type.Boolean(),
+    // None for a marble placed before the state kept its seed.
+    jumperSeed: Type.Optional(Type.Number()),
+    capturedSeed: Type.Optional(Type.Number())
 })
 
 export type Capture = Type.Static<typeof Capture>
@@ -49,7 +52,7 @@ export class HydratedCapture extends HydratableAction<typeof Capture> implements
         if (jump === undefined) {
             throw Error('Invalid Capture action')
         }
-        const { jumper, captured } = state.board.jump(jump)
+        const { jumper, captured, jumperSeed, capturedSeed } = state.board.jump(jump)
         state.getPlayerState(this.playerId).capture(captured)
         state.concludeMove(this.playerId)
 
@@ -59,7 +62,14 @@ export class HydratedCapture extends HydratableAction<typeof Capture> implements
         } else {
             delete state.captureChainFrom
         }
-        this.metadata = { jumper, over: jump.over, captured, continues }
+        this.metadata = {
+            jumper,
+            over: jump.over,
+            captured,
+            continues,
+            ...(jumperSeed === undefined ? {} : { jumperSeed }),
+            ...(capturedSeed === undefined ? {} : { capturedSeed })
+        }
     }
 
     isValid(state: HydratedZertzGameState): boolean {
