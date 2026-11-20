@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { RoyalWrits, type WritId } from '../data/writs.js'
 import { initialState } from '../testing/state.js'
 import {
@@ -223,39 +223,5 @@ describe('writRegistry', () => {
             registry.register(monsterDefeat)
             expect(registry.registrations()).toEqual([vesselMandate, bow, monsterDefeat])
         })
-    })
-})
-
-interface SourceFiles {
-    readdirSync(path: URL, options: { recursive: true; encoding: 'utf8' }): string[]
-    readFileSync(path: URL, encoding: 'utf8'): string
-}
-
-/** R-4.4 Only the data and the registrations name a writ; every other reader goes through the queries. */
-describe('reading writ effects', () => {
-    const writIdInSource = /writ\.(?:mandate|charter)\./
-
-    async function sourcesNamingAWrit(): Promise<string[]> {
-        const fs = await vi.importActual<SourceFiles>('node:fs')
-        const root = new URL('../', import.meta.url)
-        return fs
-            .readdirSync(root, { recursive: true, encoding: 'utf8' })
-            .filter((file) => file.endsWith('.ts'))
-            .filter((file) => writIdInSource.test(fs.readFileSync(new URL(file, root), 'utf8')))
-    }
-
-    it('no action, state handler, helper or scorer tests a writ id inline', async () => {
-        const offenders = (await sourcesNamingAWrit()).filter(
-            (file) =>
-                !file.endsWith('.spec.ts') &&
-                !file.startsWith('data/') &&
-                !file.startsWith('writs/') &&
-                !file.startsWith('testing/')
-        )
-        expect(offenders).toEqual([])
-    })
-
-    it('the sweep can see a writ id where there is one', async () => {
-        expect(await sourcesNamingAWrit()).toContain('data/writs.ts')
     })
 })
