@@ -3,8 +3,12 @@
     import { historyEntries } from '$lib/history/historyEntries.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
     import { holdTallest } from './holdTallest.js'
+    import GameEndPanel from './GameEndPanel.svelte'
 
     const session = getGameSession()
+
+    // The ending takes the panel's place, so the height it holds keeps the board still.
+    const ended = $derived(session.gameState.result !== undefined && !session.isViewingHistory)
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
     const mustPlayGipf = $derived(
@@ -50,7 +54,9 @@
 </script>
 
 <div class="panel" {@attach holdTallest}>
-    {#if session.isViewingHistory || !prompt}
+    {#if ended}
+        <GameEndPanel />
+    {:else if session.isViewingHistory || !prompt}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />
         {:else}

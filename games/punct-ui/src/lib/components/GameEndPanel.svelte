@@ -56,11 +56,60 @@
     )
 </script>
 
-<div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--punct-ink)">
+<div class="ending">
     {#if outcome}
-        <div class="text-[22px] font-semibold tracking-[0.06em]">{outcome.headline}</div>
-        <div class="text-[15px] text-(--punct-ink-quiet)">{outcome.reason}</div>
+        <span class="winner">{outcome.headline}</span>
+        <span class="reason" title={outcome.reason}>{outcome.reason}</span>
     {:else}
         <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
     {/if}
 </div>
+
+<style>
+    /* Inside the action panel, at its height: one row, or on phones the reason on a smaller second
+       line, trimmed rather than wrapped further. */
+    .ending {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.5em;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .winner {
+        flex-shrink: 0;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .reason {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--punct-ink-quiet);
+    }
+
+    .reason::before {
+        content: '· ';
+    }
+
+    @media (max-width: 639px) {
+        .ending {
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            line-height: 1.2;
+        }
+
+        .reason {
+            max-width: 100%;
+            font-size: 13px;
+        }
+
+        .reason::before {
+            content: none;
+        }
+    }
+</style>

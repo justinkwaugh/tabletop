@@ -15,7 +15,6 @@
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
-    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import PoolCount from '$lib/components/PoolCount.svelte'
     import { YinshGameSession } from '$lib/model/session.svelte.js'
@@ -44,11 +43,7 @@
 {#snippet turnControls()}
     <Header />
     <div class="action-card">
-        {#if gameSession.gameState.result && !gameSession.isViewingHistory}
-            <GameEndPanel />
-        {:else}
-            <ActionPanel />
-        {/if}
+        <ActionPanel />
     </div>
     <!-- Rule H3: the game also ends when the pool runs out, so its count stays in view, in its own row so a long name never covers it. -->
     <div class="pointer-events-auto flex justify-center pt-1.5">
