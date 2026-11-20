@@ -13,7 +13,8 @@ import {
     type Game,
     type GameAction,
     type GameState,
-    type HydratedGameState
+    type HydratedGameState,
+    type UserPreferences
 } from '@tabletop/common'
 import {
     BridgedContext,
@@ -198,10 +199,15 @@ export class FeudumHost {
         return this.openSeat(SpectatorSeat)
     }
 
-    /** A seat's own browser, with a session listening to the game. */
-    async openSeat(playerId: string): Promise<FeudumGameSession> {
+    /** A seat's own browser, with a session listening to the game, its user's preferences set. */
+    async openSeat(playerId: string, preferences?: UserPreferences): Promise<FeudumGameSession> {
         this.closeSeat(playerId)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        if (preferences) {
+            const { authorizationService } = appContext
+            const user = authorizationService.getSessionUser()
+            authorizationService.getSessionUser = () => user && { ...user, preferences }
+        }
         this.serve(appContext, playerId)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,
