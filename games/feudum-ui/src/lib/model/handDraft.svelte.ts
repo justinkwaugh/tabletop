@@ -43,7 +43,7 @@ export function handDraftKey(
     return `round-${round.number}:${playerId}`
 }
 
-/** R-3.1, R-3.3, S4, S9 (contract: Hand draft) A draft reads back only under its own key. */
+/** R-3.1, R-3.3, S4, S9 (contract: Shared visual state) A draft reads back only under its own key. */
 export class HandDraft extends StagedDraft<HandDraftValues> {
     private key: string | undefined = $state.raw()
 

@@ -58,7 +58,7 @@ export interface TurnCardRow {
     readonly label: string
     readonly picked: boolean
     readonly press: () => void
-    /** Contract, Hover. */
+    /** Contract, Coexistence and precedence. */
     readonly lights: () => readonly BoardTarget[]
 }
 
@@ -263,7 +263,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
               }
     }
 
-    /** Contract, Hover: what a press on this mode's row would light, staging nothing. */
+    /** Contract, Coexistence and precedence: what a press on this mode's row would light, staging nothing. */
     private lightsOfMode(
         action: CardAction,
         label: string,

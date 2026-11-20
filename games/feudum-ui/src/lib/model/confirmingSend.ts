@@ -5,7 +5,7 @@ export interface SendPreview {
 
 export const CantBeUndone = "can't be undone"
 
-/** R-X.2, Contract, Confirming a send: an auto selection never completes a send. */
+/** R-X.2, Contract, Confirming a send that cannot be undone: an auto selection never completes a send. */
 export function sendsOnPress(
     draft: { readonly allManual: boolean },
     preview?: SendPreview

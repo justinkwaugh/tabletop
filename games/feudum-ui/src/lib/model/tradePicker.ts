@@ -14,7 +14,7 @@ import { paymentTotal, type BenchChoice, type BenchItem, type BenchOffer } from 
 import type { GhostPiece } from './benchView.js'
 import { seatRowId } from './knightLanes.js'
 
-/** Contract, Guild and Feast, The trade picker: it restates no rule and decides nothing. */
+/** Contract, Guild and Feast: the trade picker restates no rule and decides nothing. */
 
 export interface TradeCard {
     readonly item: BenchItem

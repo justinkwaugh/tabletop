@@ -44,7 +44,7 @@ export interface AbandonedVessels {
     readonly count: number
 }
 
-/** R-4.2.2 Abandoned vessels lying on a space. */
+/** R-4.2.2 */
 export function abandonedVessels(vessels: Readonly<VesselCounts>): readonly AbandonedVessels[] {
     return VesselTypes.filter((vessel) => vessels[vessel] > 0).map((vessel) => ({
         vessel,

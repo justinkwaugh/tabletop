@@ -72,7 +72,6 @@ function canonical(state: FeudumProjectedState): FeudumGameState {
     return state
 }
 
-/** Its first synchronisation, or the transition or History step under way, has finished. */
 export async function settled(session: FeudumGameSession) {
     do {
         await new Promise((resolve) => setTimeout(resolve))
@@ -90,20 +89,12 @@ interface OpenSeat {
 
 type HostMove = Record<string, unknown> & { type: ActionType }
 
-/**
- * The server, in a spec: it holds the canonical game and gives each open seat the real session, on
- * its own projected state, with the same notifications and responses the server's would be. A seat
- * that sends is heard by the others; `sendUnheard` and `reconcile` give a real reconciliation.
- */
 export class FeudumHost {
     readonly game: Game
     state: FeudumGameState
     actions: GameAction[] = []
-    /** What a hotseat screen last saved, as a browser's store keeps it. */
     savedLocally: Parameters<HarnessAppContext['gameService']['saveGameLocally']>[0] | undefined
-    /** The Actions a session handed to the server, by seat. */
     readonly sent = new Map<string, GameAction[]>()
-    /** How many times a fixture arranged the table by hand rather than by play. */
     edits = 0
 
     private readonly seats = new Map<string, OpenSeat>()
@@ -148,7 +139,6 @@ export class FeudumHost {
         return playerId
     }
 
-    /** Arranges the table, as a fixture does, before the seats that see it open. */
     edit(change: (state: HydratedFeudumGameState) => void) {
         this.edits += 1
         const state = new HydratedFeudumGameState(structuredClone(this.state))
@@ -160,7 +150,6 @@ export class FeudumHost {
         return playerId === SpectatorSeat ? { kind: 'spectator' } : { kind: 'player', playerId }
     }
 
-    /** The game as this seat's client holds it: the harness's user sits in this seat alone. */
     private gameFor(playerId: string): Game {
         const { state: _state, ...game } = structuredClone(this.game)
         return {
@@ -173,7 +162,6 @@ export class FeudumHost {
         }
     }
 
-    /** The canonical state and history as a perspective receives them, a spectator's included. */
     projected(perspective: Visibility.Perspective) {
         return Visibility.projectActionHistory({
             currentState: this.state,
@@ -194,12 +182,10 @@ export class FeudumHost {
         })
     }
 
-    /** A browser watching the game, in no seat, on what a spectator receives. */
     openSpectator(): Promise<FeudumGameSession> {
         return this.openSeat(SpectatorSeat)
     }
 
-    /** A seat's own browser, with a session listening to the game, its user's preferences set. */
     async openSeat(playerId: string, preferences?: UserPreferences): Promise<FeudumGameSession> {
         this.closeSeat(playerId)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
@@ -233,11 +219,6 @@ export class FeudumHost {
         return session
     }
 
-    /**
-     * One screen playing every seat, as the site plays a hotseat game: it holds the complete state and
-     * sends each Action itself. `developerHarness` opens it as the developer harness does, which plays
-     * the same hotseat game.
-     */
     async openHotseat({ developerHarness = false } = {}): Promise<FeudumGameSession> {
         this.closeSeat(HotseatScreen)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
@@ -426,17 +407,14 @@ export class FeudumHost {
         }
     }
 
-    /** A seat acts from another browser: every open seat hears it, that seat's own included. */
     async send(playerId: string, move: HostMove) {
         await this.tellOthers(undefined, this.execute(this.hostAction(playerId, move)))
     }
 
-    /** A seat acts while the open seats' connections are down, so nobody hears it. */
     sendUnheard(playerId: string, move: HostMove) {
         this.execute(this.hostAction(playerId, move))
     }
 
-    /** The seat's connection comes back: it finds it is out of date and catches up. */
     async reconcile(playerId: string) {
         const seat = this.seats.get(playerId)
         assertExists(seat, `Seat ${playerId} is open`)
@@ -488,7 +466,7 @@ export class FeudumHost {
         }
     }
 
-    /** A seat's browser closing. The harness's notification service is shared by every session. */
+    /** The harness's notification service is shared by every session. */
     private closeSeat(playerId: string) {
         const seat = this.seats.get(playerId)
         if (seat) {

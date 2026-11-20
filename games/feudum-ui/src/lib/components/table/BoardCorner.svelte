@@ -169,7 +169,6 @@
         background: var(--feudum-primary);
     }
 
-    /* 44 px to press, for a button drawn the zoom controls' height. */
     .toggle::after {
         content: '';
         position: absolute;

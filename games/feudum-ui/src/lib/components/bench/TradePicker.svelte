@@ -14,7 +14,7 @@
     import BenchGhostPiece from './BenchGhostPiece.svelte'
     import UprightGuild from './UprightGuild.svelte'
 
-    /** Contract, The trade picker: it reads the bench offer and decides nothing. */
+    /** Contract, Guild and Feast: the trade picker reads the bench offer and decides nothing. */
     let {
         bench,
         compact = false,
@@ -37,7 +37,7 @@
         onPress: (choice: PanelChoice) => void
     } = $props()
 
-    /** Contract, The trade picker: about 310 px upright on a desk, 210 px on a phone. */
+    /** Contract, Guild and Feast; Phone layout: about 310 px upright on a desk, 210 px on a phone. */
     const DeskBoard = 310
     const PhoneBoard = 210
 

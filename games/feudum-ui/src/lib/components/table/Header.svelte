@@ -46,7 +46,7 @@
 </div>
 
 <style>
-    /* 44 px to press on a phone, over the strip beneath the 28 px header. */
+    /* Contract, Phone layout: 44 px to press, over the strip beneath the 28 px header. */
     @media (width < 40rem) {
         .undo {
             position: relative;

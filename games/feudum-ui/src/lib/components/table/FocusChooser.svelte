@@ -90,7 +90,7 @@
         background: var(--feudum-primary);
     }
 
-    /* A 44 px press target for a chip drawn shorter. */
+    /* Contract, Phone layout: a 44 px press target for a chip drawn shorter. */
     .chip::after {
         content: '';
         position: absolute;

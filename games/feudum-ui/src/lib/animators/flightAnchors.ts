@@ -70,7 +70,6 @@ export class DomFlightStage implements FlightStage {
             case 'offer': {
                 const element = this.elementOf(end)
                 if (!element) {
-                    // No seat on screen (full screen, the history tab): the copy crosses the edge.
                     return {
                         x: origin.width + StandInSize,
                         y: origin.height / 2,

@@ -25,7 +25,7 @@
         {#each EpochTrack as sunray (sunray.id)}
             {@const at = trackPlace(EpochRays, sunray.id)}
             {@const mark = trackPlace(EpochRayMarks, sunray.id)}
-            <!-- Each ray's line, number and mark dim as themselves, never the ray as one group. -->
+            <!-- docs/phone-rendering.md, Effects stay piece-sized: each ray's line, number and mark dim as themselves. -->
             <g>
                 <line
                     stroke-opacity={dim}

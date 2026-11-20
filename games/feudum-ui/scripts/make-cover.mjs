@@ -10,7 +10,7 @@ const Root = fileURLToPath(new URL('..', import.meta.url))
 const { width: Width, height: Height } = CoverSize
 const MostBytes = 120 * 1024
 
-// Publisher images, kept out of git: the box front, and the rulebook's cover standing in for it.
+// Publisher images, kept out of git.
 const CoverSource = join(Root, 'src/lib/art/cover-source')
 const SourceNames = ['box-front', 'rulebook-cover']
 const SourceTypes = ['.png', '.jpg', '.jpeg', '.webp']
@@ -70,7 +70,6 @@ function artHref(path) {
 const browser = await chromium.launch()
 const tab = await browser.newPage({ viewport: { width: Width, height: Height } })
 
-/** The image's own size, which the crop rule needs. */
 async function sizeOf(href) {
     return tab.evaluate(async (src) => {
         const image = new Image()

@@ -78,7 +78,7 @@ import {
     type WritId
 } from '@tabletop/feudum'
 
-/** R-3.7.5, R-4.9.1 The printed number of the space a disc took. */
+/** R-3.7.5, R-4.9.1 */
 function spaceNumberOf(spaceId?: VoyageSpaceId | MilitarySpaceId): number | string {
     return spaceId ? printedSpaceNumber(spaceId) : ''
 }
@@ -90,7 +90,7 @@ import { tileName } from './tileName.js'
 import { writName } from './writLabels.js'
 import { plural, titled } from '$lib/utils/words.js'
 
-/** Hidden information: a line reads only the Action as this seat received it. */
+/** docs/hidden-information.md: a line reads only the Action as this seat received it. */
 export interface ActionLineView {
     readonly viewerId: string | undefined
     /** S57 Host View is its own explicit look at the faces. */

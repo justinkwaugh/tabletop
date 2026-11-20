@@ -14,7 +14,6 @@ export type DraftArt = TileArt | PieceArt
 /** Contract, Pick conventions: a dimmed row has its line and no `press`. */
 export interface DraftChoice {
     readonly label: string
-    /** Drawn; the label stays the row's accessible name. */
     readonly art?: DraftArt
     readonly shown?: string
     readonly note?: ChipNote
@@ -22,7 +21,7 @@ export interface DraftChoice {
     readonly refusal?: string
     readonly spent?: boolean
     readonly press?: () => void
-    /** Contract, Hover: what the row brightens on the board. */
+    /** Contract, Coexistence and precedence: what the row brightens on the board. */
     readonly lights?: () => readonly BoardTarget[]
 }
 
@@ -90,7 +89,6 @@ export function oneGoodCost(good: Good, short: boolean, cover: readonly TileId[]
     return { shown: `${tile} for ${good}`, named: `${tile} tile for ${good}` }
 }
 
-/** A shortened label keeps the full words as its accessible name. */
 export function costPrimary(
     words: (cost: string) => string,
     cost: GoodCost,

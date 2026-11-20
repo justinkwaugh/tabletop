@@ -34,7 +34,6 @@ export interface CopySide {
     toggleAttribute(name: string, force: boolean): unknown
 }
 
-/** Tweens write this to the element alone: never reactive state. */
 interface CopyPose {
     x: number
     y: number
@@ -46,7 +45,7 @@ interface CopyPose {
     visible: boolean
 }
 
-/** Contract, Replay: a copy an earlier step left resting, moved in its piece's own frame. */
+/** Contract, Animation plan: a copy an earlier step left resting, moved in its piece's own frame. */
 export interface RestingCopy {
     readonly opacity: number
     moveTo(point: Point): void
@@ -56,7 +55,6 @@ export interface RestingCopy {
 const ArcShare = 0.15
 const DesignSize = 48
 
-/** A copy rests at its end until the state shows, so the swap to the state is one stroke. */
 export class FlightAnimator {
     flights: readonly Flight[] = $state.raw([])
 
@@ -70,7 +68,6 @@ export class FlightAnimator {
 
     constructor(private readonly reduced: () => boolean = () => prefersReducedMotion.current) {}
 
-    /** The layer mounts here. It may move into the full-screen dialog mid-flight: copies carry on. */
     readonly attach = (layer: HTMLElement) => this.useStage(new DomFlightStage(layer))
 
     useStage(stage: FlightStage) {
@@ -79,7 +76,6 @@ export class FlightAnimator {
             if (this.layer === stage) {
                 this.layer = undefined
                 stage.forget()
-                // Torn down rather than moved: no layer came back in the same stroke.
                 queueMicrotask(() => {
                     if (!this.layer) {
                         this.settle()
@@ -89,7 +85,6 @@ export class FlightAnimator {
         }
     }
 
-    /** A copy remounted by full screen is drawn where it had got to. */
     readonly copy = (id: string) => (element: CopyElement) => {
         this.copies.set(id, element)
         const pose = this.poses.get(id)
@@ -113,7 +108,7 @@ export class FlightAnimator {
         }
     }
 
-    /** Contract, Replay: a piece an earlier Action landed stays its copy until the state shows. */
+    /** Contract, Animation plan: a piece an earlier Action landed stays its copy until the state shows. */
     carrier(piece: string): RestingCopy | undefined {
         const flight = this.flights.findLast((one) => this.restsAs(one) === piece)
         const end = flight?.legs.at(-1)?.to
@@ -151,7 +146,7 @@ export class FlightAnimator {
         }
     }
 
-    /** Hidden information: read off public state and the Action as this seat received it. */
+    /** docs/hidden-information.md: read off public state and the Action as this seat received it. */
     plan(change: FlightChange): FlightPlan {
         const { from, to, action, viewerId } = change
         if (!this.layer || (this.reduced() && !action)) {
@@ -232,7 +227,7 @@ export class FlightAnimator {
         return pose
     }
 
-    /** Contract, Replay: a flight from a piece an earlier step left as a copy takes that copy away. */
+    /** Contract, Animation plan: a flight from a piece an earlier step left as a copy takes that copy away. */
     private leaveResting(flight: Flight) {
         const { from } = flight
         if (from.kind !== 'board' || !from.piece || !from.hide) {
@@ -302,7 +297,6 @@ export class FlightAnimator {
         }
     }
 
-    /** Measured every frame: the view may zoom or pan mid-flight. */
     private fly(flight: Flight, source: FlightEnd, leg: FlightLeg, t: number) {
         const pose = this.launch(flight)
         const from = this.place(source)
@@ -322,7 +316,6 @@ export class FlightAnimator {
         this.redraw(flight, pose)
     }
 
-    /** Reduced motion never holds the table for the cinematic's length. */
     private followWithoutTween(
         timeline: AnimationContext['actionTimeline'],
         flight: Flight,

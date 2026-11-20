@@ -85,7 +85,7 @@ export type FlightFace =
     | { readonly kind: 'writ'; readonly faceShown: false }
     | { readonly kind: 'seal' }
     | { readonly kind: 'bead'; readonly value: BeadValue }
-    /** R-6 A score change: the seat's disc carrying what it gained or lost. */
+    /** R-6 */
     | { readonly kind: 'score'; readonly playerId: string; readonly change: number }
 
 export type SeatPart =
@@ -305,7 +305,7 @@ interface MarkerPlace {
     readonly slide?: string
 }
 
-/** R-4.1.2, R-4.5, R-4.8 Where a seat's markers stand. */
+/** R-4.1.2, R-4.5, R-4.8 */
 function markerPlaces(
     state: HydratedFeudumGameState,
     playerId: string
@@ -1086,7 +1086,7 @@ function flyScores(plan: FlightBuilder, { from, to, scoreFlights }: FlightChange
     return ends
 }
 
-/** Fast fallback: with no Action in hand no writ's face can be named, so every writ is a back. */
+/** Contract, Animation plan: with no Action no writ's face can be named, so every writ is a back. */
 export function planDirectFlights(change: Omit<FlightChange, 'action'>): FlightPlan {
     const { flights } = planFlights({
         from: change.from,

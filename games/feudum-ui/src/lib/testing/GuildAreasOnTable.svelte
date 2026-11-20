@@ -7,7 +7,6 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { TableLayers } from '$lib/model/tableLayers.svelte.js'
 
-    /** The board's guild areas on a table, for a spec's markup: alone they take no press. */
     let {
         state,
         paintOf,

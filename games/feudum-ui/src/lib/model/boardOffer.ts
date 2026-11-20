@@ -35,22 +35,22 @@ export type BoardTarget =
     | `voyage:${number}`
     | `military:${number}`
 
-/** R-3.16 A guild's area of the board. */
+/** R-3.16 */
 export function guildTarget(guildId: GuildId): BoardTarget {
     return `guild:${guildId}`
 }
 
-/** R-3.7.5 A space of the epic voyage track. */
+/** R-3.7.5 */
 export function voyageTarget(space: number): BoardTarget {
     return `voyage:${space}`
 }
 
-/** R-4.9.1 A space of the military service track. */
+/** R-4.9.1 */
 export function militaryTarget(space: number): BoardTarget {
     return `military:${space}`
 }
 
-/** R-4.7, R-4.9.1, R-3.7.5 Where the disc asked about would go. */
+/** R-4.7, R-4.9.1, R-3.7.5 */
 export function discTarget(offer: PlaceDiscOffer): BoardTarget {
     switch (offer.disc) {
         case 'reeve': {
@@ -89,7 +89,7 @@ export function stackTarget(region: RegionId): BoardTarget {
     return `stack:${region}`
 }
 
-/** R-3.7.1 A pawn or a monster, whichever the step names. */
+/** R-3.7.1 */
 export function pieceTarget(piece: PieceRef): BoardTarget {
     return piece.kind === 'pawn'
         ? pawnTarget(piece.playerId, piece.n)
@@ -159,7 +159,6 @@ export interface MapPick {
     readonly deciderId: string
     readonly targets: readonly PickTarget[]
     readonly picked: readonly BoardTarget[]
-    /** Others and History View see the outline only where the choice is public. */
     readonly isPublic: boolean
     readonly trail?: readonly TrailStep[]
     /** R-X.1 An ask's outline: the decider answers on its panel, so nothing lights for it. */
@@ -174,12 +173,12 @@ export interface StagePick {
 
 export interface BoardStages {
     readonly startingPawnSpace?: SpaceId
-    /** The turn draft's open flow, for this seat alone (R-3.2). */
+    /** R-3.2 */
     readonly cardPick?: StagePick
-    /** The Move draft's open stage, in place of the flow's, which hands a Move off (R-3.7). */
+    /** R-3.7 */
     readonly movePick?: StagePick
     readonly guildPick?: StagePick
-    /** The at-will row's open list, for this seat alone (R-4.4-H1). */
+    /** R-4.4-H1 */
     readonly atWillPick?: StagePick & { readonly action: ActionType; readonly deciderId: string }
     /** R-4.10, R-4.10-H4 For the seat deciding on this screen: several decide at once. */
     readonly nourishPick?: StagePick & { readonly deciderId: string }

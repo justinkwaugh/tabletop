@@ -72,7 +72,6 @@ export interface StagedLine {
 
 export interface CardRow {
     readonly kind: ActionCardKind
-    /** The printed name: a row is found by it. */
     readonly label: string
     readonly number: number
     readonly picked: boolean
@@ -155,7 +154,7 @@ type PanelBlock =
           readonly kind: 'line'
           readonly role: LineRole
           readonly text: string
-          /** R-X.1 A waiting line's seats, each drawn as its chip: "Waiting on <chip>." */
+          /** Contract, Watching (waiting view): each seat drawn as its chip, "Waiting on <chip>." */
           readonly on?: readonly WaitingSeat[]
           readonly lead?: string
       }
@@ -206,7 +205,7 @@ type PanelBlock =
           readonly tally?: string
       }
     | PrimaryBlock
-    /** Contract, The trade picker: in the tray on a desk, in the bench's sheet on a phone. */
+    /** Contract, Guild and Feast: the trade picker, in the tray on a desk, in the bench's sheet on a phone. */
     | {
           readonly kind: 'trade-picker'
           readonly bench: BenchOffer
@@ -220,7 +219,7 @@ type PanelBlock =
           readonly send?: PrimaryBlock & { readonly tally: NourishSend }
       }
 
-/** R-X.2 A send the seat can press now: one it cannot is not drawn (contract: The primary). */
+/** R-X.2 A send the seat can press now: one it cannot is not drawn (contract: Pick conventions). */
 interface PrimaryBlock {
     readonly kind: 'primary'
     readonly label: string
@@ -316,7 +315,7 @@ function line(role: LineRole, text: string, lead?: string): ActionBlock {
     return { kind: 'line', role, text, ...(lead ? { lead } : {}) }
 }
 
-/** R-X.1 One waiting line for every state. */
+/** Contract, Watching (waiting view): one waiting line for every state. */
 function waitingLine(session: PanelSession, playerIds: readonly string[]): ActionBlock {
     const on = playerIds.map((playerId) => ({
         playerId,
@@ -787,7 +786,7 @@ function landscapesBlocks(
     ]
 }
 
-/** R-4.6 The bench's staged moves as the tray's lines. */
+/** R-4.6 */
 function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
     const state = session.gameState
     const moves = stagedMoves(benchViewOf(bench, state, session.myPlayerId ?? ''), bench)
@@ -853,7 +852,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         : []
     const [send] = sends(primary, () => session.sendTurnCard())
     const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
-    // Contract, The trade picker; R-3.3, R-3.15 the second card and a replay precede a Buy.
+    // Contract, Guild and Feast; R-3.3, R-3.15 the second card and a replay precede a Buy.
     const tray: ActionBlock[] = picker
         ? [
               ...rows('replays', asTurnRows(turn.replays)),
@@ -962,7 +961,7 @@ function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
     ]
 }
 
-/** R-X.1 The waiting view ends with what the previous seat just did, as this seat's log reads it. */
+/** Contract, Watching (waiting view): last, what the previous seat just did, as this seat's log reads it. */
 function previousSeatBlocks({ watchingPanel, previousSeatLine }: PanelSession): ActionBlock[] {
     return watchingPanel?.waitingOn && previousSeatLine ? [line('previous', previousSeatLine)] : []
 }

@@ -49,7 +49,6 @@ import {
     printedVesselForSale
 } from './printedGuilds.js'
 
-/** Board units, one CSS pixel at scale 1, in the printed board's proportions. */
 export const BoardWidth = 2500
 export const BoardHeight = 953
 
@@ -576,7 +575,6 @@ export const GuildBox = { width: 500, height: 354 } as const
 export const GuildViewBox = `0 0 ${GuildBox.width} ${GuildBox.height}`
 export const GuildAreaWidth = 388
 export const GuildAreaHeight = (GuildAreaWidth * GuildBox.height) / GuildBox.width
-/** Fixed for legibility, whatever the board's scale. */
 export const BenchAreaWidth = 440
 
 /** R-1.2.3 */
@@ -664,7 +662,6 @@ export function railOverRect(guild: GuildId): BoundingBox {
     }
 }
 
-/** Asked at each call, so whoever draws or animates an area reads the same layout. */
 export function guildPrinted(guild: GuildId): boolean {
     return assetUrl(guildPanelAsset(guild)) !== undefined
 }
@@ -932,7 +929,6 @@ export function barnColumn(good: Good): Point {
 }
 
 export const ScoreBand = 60
-/** Nearly the band's width, so it reads at desk size. */
 export const ScoreDiscSize = 40
 const ScoreFanStep = ScoreDiscSize / 2
 /** R-1.2.5 The spaces from each corner to the next: 0 bottom-left, 20, 75, 95 at the others. */

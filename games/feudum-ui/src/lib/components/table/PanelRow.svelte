@@ -15,7 +15,7 @@
     import type { PanelChoice } from '$lib/model/cardFlows.js'
     import { crossesEdge } from '$lib/utils/pointerEdge.js'
 
-    /** Contract, Hover: a touch screen, having no hover, gets a "Show on board" preview path. */
+    /** Contract, Coexistence and precedence: a touch screen, having no hover, gets a "Show on board" preview path. */
     let {
         choice,
         onPress,

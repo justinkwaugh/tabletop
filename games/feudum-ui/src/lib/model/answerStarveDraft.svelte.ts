@@ -36,7 +36,7 @@ export interface AnswerStarvePanel {
     readonly letGo: { readonly label: string }
 }
 
-/** R-3.14.2 Nothing here sends: each answer is a press (contract). */
+/** R-3.14.2 Nothing here sends: each answer is a press (contract: Asked out of turn). */
 export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
     constructor(contextOf: () => TurnContext | undefined) {
         super(AnswerStarveStageOrder, contextOf)

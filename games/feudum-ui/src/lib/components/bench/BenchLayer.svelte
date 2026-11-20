@@ -10,7 +10,7 @@
     const gameSession = getGameSession()
     const phone = new PhoneLayout()
 
-    /** Contract, The bench: on a phone the send stands in the sheet's footer. */
+    /** Contract, Phone layout: on a phone the send stands in the bench sheet's footer. */
     let primary = $derived(
         phone.phone
             ? gameSession.actionPanel.blocks.find((block) => block.kind === 'primary')
@@ -24,7 +24,7 @@
             : undefined
     )
 
-    /** Contract, The trade picker: in the tray on a desk, in this sheet on a phone. */
+    /** Contract, Guild and Feast: the trade picker, in the tray on a desk, in this sheet on a phone. */
     let picker = $derived(
         gameSession.actionPanel.blocks.find((block) => block.kind === 'trade-picker')
     )

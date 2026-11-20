@@ -43,7 +43,7 @@ export function isPickable(role: BoardRole): boolean {
     return role === 'lit' || role === 'picked'
 }
 
-/** Contract, Hover: under an open pick a dimmed element stays dimmed. */
+/** Contract, Coexistence and precedence: under an open pick a dimmed element stays dimmed. */
 export function isBright(chrome: BoardChrome, target: BoardTarget): boolean {
     return chrome.bright.has(target) && roleOf(chrome.offer, target) !== 'dimmed'
 }

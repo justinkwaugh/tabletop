@@ -69,7 +69,7 @@
     let room = $state({ width: 0, height: 0 })
     let expanded = $state(false)
 
-    /** Contract, Board focus: never read for an offer. */
+    /** Contract, Shared visual state: never read for an offer. */
     const focus = new BoardFocus({
         view: () => wrapper,
         restScale: () => restScaleOf(viewSize.width, viewSize.height),
@@ -125,7 +125,6 @@
         return () => observer.disconnect()
     }
 
-    /** The room is measured, never the view in it, so the view's own size never feeds back. */
     const measureRoom: Attachment<HTMLElement> = (node) => {
         const read = () => {
             const box = node.getBoundingClientRect()
@@ -143,7 +142,6 @@
 
     const keepWheelInColumn = keepWheelIn('[data-desk-column]')
 
-    /** Full screen is the wrapper's dialog becoming modal. */
     const watchExpansion: Attachment<HTMLElement> = (node) => {
         const dialog = node.closest('dialog')
         if (!dialog) {
@@ -296,7 +294,6 @@
                                 />
                             {/snippet}
                             {#snippet toolbar()}
-                                <!-- Full screen is a modal dialog: the overlays come inside it. -->
                                 <div {@attach watchExpansion}>
                                     {#if expanded}
                                         {@render turnControls()}
@@ -370,7 +367,6 @@
         background-color: var(--feudum-surface-raised);
     }
 
-    /* The seat strip's 44 px chips stay in sight under the sheet. */
     [data-phone='upright'] .action-cap[data-hand-sheet] {
         bottom: 44px;
     }

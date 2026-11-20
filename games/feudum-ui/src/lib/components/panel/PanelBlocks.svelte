@@ -92,7 +92,6 @@
         )
     )
 
-    /** One pinned group: two sends pinned apart would stack on a phone, one over the other. */
     function sendsFrom(
         list: readonly ActionBlock[],
         index: number
@@ -123,7 +122,7 @@
     }
 </script>
 
-<!-- R-X.1 Each seat waited on as its chip, which reads out its name. -->
+<!-- Contract, Watching (waiting view): each seat waited on as its chip, which reads out its name. -->
 {#snippet lineText(block: Extract<ActionBlock, { kind: 'line' }>)}
     {#if block.on}
         <span class="inline-flex flex-wrap items-center gap-1" data-waiting-seats
@@ -209,7 +208,7 @@
             {/each}
         </div>
     {:else if block.kind === 'trade-picker'}
-        <!-- Contract, The trade picker: a phone's stands in the bench's sheet instead. -->
+        <!-- Contract, Phone layout: a phone's trade picker stands in the bench's sheet instead. -->
         {#if !layout.phone}
             <TradePickerLayer {block} />
         {/if}
@@ -305,7 +304,7 @@
     </div>
 {/snippet}
 
-<!-- Contract, The trade picker. -->
+<!-- Contract, Guild and Feast: the trade picker. -->
 {#snippet pickerTray(list: readonly ActionBlock[])}
     {@const controls = list.filter(({ kind }) => kind === 'rows')}
     {@const rest = list.filter(({ kind }) => kind !== 'rows')}
@@ -482,7 +481,7 @@
         margin-left: auto;
     }
 
-    /* Contract, The trade picker: the cards stand in one row. */
+    /* Contract, Guild and Feast: the trade picker's cards stand in one row. */
     .tray.holds-picker {
         flex: 1 1 44rem;
         max-width: none;

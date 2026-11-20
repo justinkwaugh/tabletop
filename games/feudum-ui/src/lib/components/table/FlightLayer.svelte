@@ -11,7 +11,7 @@
     import { sealFaceShown } from '$lib/model/perspective.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /** Contract, Flight layer: what crosses the scaling wrapper flies here, outside it. */
+    /** Contract, Render ownership: what crosses the scaling wrapper flies here, outside it. */
     let {
         animator,
         paintOf

@@ -1,5 +1,3 @@
-/** Path data in a 24 unit box unless a shape says otherwise. */
-
 function gearPath(): string {
     const teeth = 8
     const points: string[] = []
@@ -32,7 +30,7 @@ export const GuildIconPaths = {
     monk: 'M10.5 2 L13.5 2 L13.5 8 L19 8 L19 11 L13.5 11 L13.5 22 L10.5 22 L10.5 11 L5 11 L5 8 L10.5 8 Z'
 } as const
 
-/** So no good is told by its colour alone. */
+/** Contract, Palette: so no good is told by its colour alone. */
 export const GoodPaths = {
     saltpeter: 'M12 2 L19 8 L17 20 L7 20 L5 8 Z',
     sulfur: 'M5 16 C2 11 6 6 10 7 C12 3 18 4 19 9 C23 12 20 19 15 19 C12 21 7 20 5 16 Z',
@@ -51,7 +49,6 @@ export const PawnCube = {
     face: { x: 7.5, y: 16, size: 19.2 }
 } as const
 
-/** In a 48 x 32 box. */
 export const VesselPaths = {
     ship: {
         hull: 'M4 20 L44 20 L38 29 L10 29 Z',
@@ -67,7 +64,6 @@ export const VesselPaths = {
     }
 } as const
 
-/** In a 48 x 48 box. */
 export const MonsterPaths = {
     behemoth: {
         body: 'M24 2 L26 8 C33 8 37 14 37 22 C41 26 41 32 38 34 L37 44 L29 44 L28 38 L20 38 L19 44 L11 44 L10 34 C7 32 7 26 11 22 C11 14 15 8 22 8 Z',
@@ -79,7 +75,6 @@ export const MonsterPaths = {
     }
 } as const
 
-/** In a 100 x 100 box. */
 export const KeepPath =
     'M28 92 L28 44 L22 44 L22 30 L30 30 L30 36 L38 36 L38 30 L46 30 L46 36 L54 36 L54 30 L62 30 L62 36 L70 36 L70 30 L78 30 L78 44 L72 44 L72 92 L58 92 L58 72 A8 8 0 0 0 42 72 L42 92 Z'
 

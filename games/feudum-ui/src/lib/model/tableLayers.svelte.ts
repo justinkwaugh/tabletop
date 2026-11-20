@@ -19,7 +19,7 @@ export type EnlargedFace =
     | {
           readonly kind: 'card'
           readonly faceShown: boolean
-          /** Hidden information: a back of a seat's hand has no kind. */
+          /** docs/hidden-information.md: a back of a seat's hand has no kind. */
           readonly card?: ActionCardKind
           readonly paint: SeatPaint
           readonly number?: number
@@ -69,7 +69,7 @@ export class TableLayers {
     writsOpen: boolean = $state(false)
     private readonly pickKey = $derived.by(() => this.pickFrame()?.key)
     private sideShown: GuildSide | undefined
-    /** Contract, Desk layout and Pick framing: the guild side open over a desk's map. */
+    /** Contract, Desk layout: the guild side open over a desk's map. */
     guildSide: GuildSide | undefined = $derived.by(() => {
         void this.pickKey
         const next = untrack(() => guildSideFollowing(this.pickFrame()))

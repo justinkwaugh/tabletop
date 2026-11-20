@@ -5,7 +5,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import BoardGuildArea from './BoardGuildArea.svelte'
 
-    /** R-1.2.3 The six guild areas where they stand on the board. */
+    /** R-1.2.3 */
     let {
         state,
         paintOf,

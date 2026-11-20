@@ -6,7 +6,6 @@ import { suppliedCover } from '$lib/art/cover.js'
 export const UiDefinition: GameUiDefinition<FeudumProjectedState, HydratedFeudumGameState> = {
     info: {
         ...FeudumInfo,
-        // No drawn cover stands in for the publisher's print.
         thumbnailUrl: suppliedCover ?? ''
     },
     runtime: async () => {

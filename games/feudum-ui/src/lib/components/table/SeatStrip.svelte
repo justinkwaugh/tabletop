@@ -2,7 +2,7 @@
     import { seatOrder } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    /** Hidden information: read from the seat's one derivation, a hand shows only as its count. */
+    /** docs/hidden-information.md: read from the seat's one derivation, a hand shows only as its count. */
     const gameSession = getGameSession()
 
     let chips = $derived(

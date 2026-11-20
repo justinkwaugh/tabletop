@@ -148,7 +148,7 @@ export interface HandPanel {
     readonly finaliseRow: readonly FinaliseRowEntry[]
     readonly drafting?: HandDrafting
     readonly set?: HandSet
-    /** R-3.1-H1 The seats still choosing. */
+    /** R-3.1-H1 */
     readonly waitingOn?: readonly string[]
 }
 
@@ -168,7 +168,7 @@ type SessionOptions = ConstructorParameters<
 export class FeudumGameSession extends GameSession<FeudumProjectedState, HydratedFeudumGameState> {
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
-    /** S71 A seat's paint, named by its seat in every piece's accessible name. */
+    /** S71 */
     readonly paintOf = (playerId: string): SeatPaint =>
         seatPaint(this.colors, playerId, this.getPlayerName(playerId))
     /** R-1.4-H1 A dummy row's colour is one no seat is displayed in. */
@@ -288,14 +288,14 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             this.landscapes,
             this.disc,
             this.offTurnDiscard,
-            // Last, so it is popped first: Undo closes an open list before anything else.
+            // Contract, Coexistence and precedence: last, so Undo closes an open list before anything else.
             this.atWill
         ]) {
             this.localSelections.register(draft.localSelection, 'first')
         }
     }
 
-    /** Contract, Hand draft: it outlives others' Actions, a reconciliation and at-will plays. */
+    /** Contract, Shared visual state: the hand draft outlives others' Actions, a reconciliation and at-will plays. */
     override keepsLocalSelections(transition: PresentedTransition): boolean {
         return (
             transition.kind === 'other-action' ||
@@ -330,7 +330,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         await this.flightAnimator.play(flights, animationContext, flightsAt)
     }
 
-    /** Contract, Replay: a replay covers its entry's span and stops there. */
+    /** Contract, Animation plan: a replay covers its entry's span and stops there. */
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return !this.historyLog.replaying && super.shouldAutoStepAction(action, next)
     }
@@ -384,7 +384,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         { readonly owner: object; readonly lights: () => readonly BoardTarget[] } | undefined =
         $state.raw(undefined)
 
-    /** Contract, Menu pointer: a panel row's hover or keyboard focus. */
+    /** Contract, Shared visual state: the menu pointer, a panel row's hover or keyboard focus. */
     pointAtRow(owner: object, lights: () => readonly BoardTarget[]) {
         this.menuPointer = { owner, lights }
     }
@@ -395,7 +395,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** Contract, Hover: touch has no hover, so a tap on the row's preview path stands in for it. */
+    /** Contract, Coexistence and precedence: touch has no hover, so a tap on the row's preview path stands in for it. */
     toggleRowPreview(owner: object, lights: () => readonly BoardTarget[]) {
         if (this.menuPointer?.owner === owner) {
             this.menuPointer = undefined
@@ -783,7 +783,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return bench !== undefined && bench.collapsed === undefined
     })
 
-    /** Contract, Pick framing: what the open pick shows of the board; none under the bench. */
+    /** Contract, Phone layout: what the open pick shows of the board; none under the bench. */
     pickFrame: PickFrame | undefined = $derived(
         this.benchCovers
             ? undefined
@@ -951,7 +951,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
               })
     )
 
-    /** R-X.1 Who looks is decided here, once; the line reads nothing of the state. */
+    /** docs/hidden-information.md: who looks is decided here, once; the line reads nothing of the state. */
     actionLine(action: GameAction, viewerId = this.myPlayerId): string | undefined {
         return describeAction(action, {
             viewerId,
@@ -962,7 +962,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         })
     }
 
-    /** R-X.1 No line while looking back; R-4.4-H5 an off-turn writ discard is not it. */
+    /** Contract, Watching (waiting view): no line while looking back; R-4.4-H5 an off-turn writ discard is not it. */
     previousSeatLine: string | undefined = $derived.by(() => {
         if (this.isViewingHistory) {
             return undefined

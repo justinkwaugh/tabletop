@@ -27,16 +27,11 @@ import { FeudumHost } from './sessionHarness.js'
 
 export interface TurnTable {
     readonly host: FeudumHost
-    /** The seat asked for a card. */
     readonly seat: string
-    /** The next seat in turn order. */
     readonly other: string
 }
 
-/**
- * R-3.1, R-3.2 The real game up to `PlayingCards`: every seat finalises a legal hand, then the seat
- * asked holds `cards`, of any size, and the others `otherCards`.
- */
+/** R-3.1, R-3.2 The real game up to `PlayingCards`: the seat asked holds `cards`, the others `otherCards`. */
 export async function atPlayingCards(
     cards: readonly ActionCardKind[],
     { pouchGood, otherCards }: { pouchGood?: PouchGood; otherCards?: ActionCardKind[] } = {},
@@ -147,7 +142,6 @@ export function giveTile(state: HydratedFeudumGameState, playerId: string): Tile
     return collectTopTile(state, playerId, region).tile.id
 }
 
-/** A space showing this kind, with no piece nor marker on it, other than those named. */
 export function emptySpaces(state: HydratedFeudumGameState, kind: LocationKind): SpaceId[] {
     const taken = state.players.flatMap(({ pawns }) => pawns.map(({ spaceId }) => spaceId))
     return Spaces.map(({ id }) => id).filter((id) => {

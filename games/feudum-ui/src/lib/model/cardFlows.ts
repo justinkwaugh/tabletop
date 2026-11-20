@@ -159,7 +159,7 @@ export interface PanelChoice {
     readonly refusal?: string
     readonly spent?: boolean
     readonly press?: TurnPress
-    /** Contract, Hover: what this row's press would light, read only while the row is pointed at. */
+    /** Contract, Coexistence and precedence: what this row's press would light, read only while the row is pointed at. */
     readonly lights?: () => readonly BoardTarget[]
 }
 

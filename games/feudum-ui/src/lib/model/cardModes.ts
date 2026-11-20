@@ -337,7 +337,7 @@ export function cardModes(
     return CardModes[kind].flatMap((row) => row(context, input) ?? [])
 }
 
-/** Not an auto stage: Forfeit stays a legal choice, so a press further on still sends. */
+/** R-3.2 Not an auto stage: Forfeit stays a legal choice, so a press further on still sends. */
 export function loneMode(modes: readonly CardMode[]): CardAction | undefined {
     const enabled = modes.filter(({ refusal }) => !refusal)
     return enabled.length === 1 ? enabled[0].action : undefined

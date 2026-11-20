@@ -24,7 +24,7 @@ export interface GameEndColumn {
     readonly shillings: { readonly label: string; readonly vp: number }
     /** R-4.4.3, R-6.2 Every sealed charter, face up with its score. */
     readonly charters: readonly { readonly writId: WritId; readonly vp: number }[]
-    /** R-6.3 The final score. */
+    /** R-6.3 */
     readonly score: number
     readonly winner: boolean
 }

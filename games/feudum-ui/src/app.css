@@ -27,10 +27,8 @@
     --color-secondary-900: #0c4a6e;
 }
 
-/* The table's palette: the only colours a component names. The scope plugin rewrites `:root` to the
-   title's root, `[data-game-ui="feudum"]`. The dusk look holds in both site themes. */
+/* The scope plugin rewrites `:root` to the title's root, `[data-game-ui="feudum"]`. */
 :root {
-    /* 92 % over a light page; the dark rule below is 85 %. */
     --feudum-surface: #221d33eb;
     --feudum-surface-raised: #2e2744;
     --feudum-parchment: #efe3c8;
@@ -101,7 +99,6 @@
     --feudum-font-text: 'IM Fell English', serif;
 }
 
-/* A translucent surface shows the page: over a dark one it can afford more. */
 :where(.dark *) {
     --feudum-surface: #221d33d9;
 }

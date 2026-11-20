@@ -108,7 +108,6 @@
         >
     {/if}
     {#if press}
-        <!-- A pointer on the chip reaches its target; the target's own press stays its button. -->
         <rect
             x={-width / 2}
             y={-Height / 2}

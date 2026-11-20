@@ -4,7 +4,7 @@
     import { GuildIconPaths, KeepPath, LocationPaths } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /** Told by its silhouette as well as its colour, a feudum by its guild's icon. */
+    /** Contract, Palette: told by its silhouette as well as its colour, a feudum by its guild's icon. */
     let {
         kind,
         guild,

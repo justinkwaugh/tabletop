@@ -22,9 +22,7 @@ export interface RoundEndTable {
     readonly host: FeudumHost
     readonly seat: string
     readonly other: string
-    /** Every seat's own session, in seat order. */
     readonly sessions: readonly FeudumGameSession[]
-    /** The seat's own session. */
     readonly session: FeudumGameSession
 }
 
@@ -72,11 +70,7 @@ export function tendLandscape(state: HydratedFeudumGameState, ruler: string, ser
     state.recomputeRanks()
 }
 
-/**
- * R-3.2, R-4.11, R-4.12 Every seat holds one card and forfeits it, as a host would hear it: the last
- * sets off the roll and whatever dawn the stacks trigger, each seat nourishing waits on sending its
- * preselected feeding. `tops` overrides the trigger's stacks.
- */
+/** R-3.2, R-4.11, R-4.12 Every seat forfeits its last card, so the roll and any dawn come. */
 export async function playOutRound(
     epoch: DawnEpoch | undefined,
     arrange?: (state: HydratedFeudumGameState, table: { seat: string; other: string }) => void,

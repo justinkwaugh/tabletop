@@ -53,7 +53,6 @@
         return at ? timeAgo.format(at) : ''
     }
 
-    /** The list follows the displayed state, so what was jumped to is now at the top. */
     async function jump(entry: { readonly jumpIndex?: number }) {
         await log.jump(entry)
         await tick()

@@ -8,7 +8,7 @@
     import RowChoice from '$lib/components/panel/RowChoice.svelte'
     import PanelRow from './PanelRow.svelte'
 
-    /** Contract, Popups: a manual popover, since a press outside it closes nothing. */
+    /** Contract, Coexistence and precedence: a manual popover, since a press outside it closes nothing. */
     let { popup }: { popup: FlowPopup } = $props()
 
     const gameSession = getGameSession()

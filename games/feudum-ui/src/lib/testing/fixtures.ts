@@ -57,7 +57,6 @@ import {
 /** Invented seat names: nobody's, and short enough for a phone's chips. */
 export const SeatNames = ['Ana', 'Bram', 'Cleo', 'Dov', 'Esme'] as const
 
-/** One seat's setup and first hand, by the Actions a seat would send. */
 interface SeatPlan {
     readonly goods: readonly Good[]
     readonly sulfurToBarrel?: boolean
@@ -142,7 +141,6 @@ async function othersForfeitUntil(host: FeudumHost, playerId: string) {
     }
 }
 
-/** Seats, goods and pawns by real Actions; the table waits at `SelectingHands`. */
 async function atHands(plans: readonly SeatPlan[]): Promise<FeudumHost> {
     const host = new FeudumHost(plans.length, SeatNames.slice(0, plans.length))
     await chooseGoods(host, plans)
@@ -150,7 +148,6 @@ async function atHands(plans: readonly SeatPlan[]): Promise<FeudumHost> {
     return host
 }
 
-/** The same, every seat's hand finalised; the first seat is asked. */
 async function atCards(plans: readonly SeatPlan[]): Promise<FeudumHost> {
     const host = await atHands(plans)
     await finalise(host, plans)
@@ -167,11 +164,7 @@ async function influenceThenBack(host: FeudumHost, playerId: string) {
     await othersForfeitUntil(host, playerId)
 }
 
-/**
- * R-3.2 Every seat plays out its cards by forfeit; R-4.10-H4 the seats nourishing asks, all at once,
- * send their preselected feeding, unless `stopAt` is one of them: then every seat asked is left
- * deciding. R-4.11 the round ends, by the real roll.
- */
+/** R-3.2, R-4.10-H4, R-4.11 Every seat forfeits and feeds as preselected, unless `stopAt` is asked. */
 export async function forfeitRound(host: FeudumHost, stopAt?: string) {
     while (host.state.machineState === MachineState.PlayingCards) {
         const asked = askedSeat(host)
@@ -190,15 +183,11 @@ export async function forfeitRound(host: FeudumHost, stopAt?: string) {
 
 export interface FixtureTable {
     readonly host: FeudumHost
-    /** The seat whose browser shows. */
     readonly seat: string
 }
 
 export interface Fixture {
-    /**
-     * Unset: every step was a real Action through the engine. Set: what a hand arranged and why no
-     * short game reaches it; the logic's canonical validator still has to pass.
-     */
+    /** Set: why a hand arranged the table; the logic's canonical validator still has to pass. */
     readonly arranged?: string
     build(): Promise<FixtureTable>
 }
@@ -235,7 +224,7 @@ async function rulingTown(character: Character, hand: readonly ActionCardKind[])
     return { host, seat }
 }
 
-/** R-3.8 The same on a farm. */
+/** R-3.8 */
 async function rulingFarm(character: Character, hand: readonly ActionCardKind[]) {
     const host = await atCards(seats({ goods: Plain, character, on: 'farm', hand }, plain, plain))
     const seat = first(host)
@@ -263,7 +252,6 @@ const mover = (character: Character, space: SpaceId): SeatPlan => ({
     hand: ['move', 'tax', 'guild', 'harvest']
 })
 
-/** A seat that moves first; a hand sets its pieces, since those a Move starts with come by guilds. */
 async function moverArranged(
     character: Character,
     space: SpaceId,
@@ -310,10 +298,7 @@ const ChargeGoods: readonly Good[] = ['saltpeter', 'iron', 'food']
 const NoDefend: readonly ActionCardKind[] = ['tax', 'guild', 'harvest', 'migrate']
 const HoldsDefend: readonly ActionCardKind[] = ['tax', 'guild', 'harvest', 'defend']
 
-/**
- * R-3.6, R-4.8.2 Two rounds of the attacker's Migrate bring it to three pawns on the defender's
- * space: 3 attack against 2 defence. The attacker is asked again, in the second round.
- */
+/** R-3.6, R-4.8.2 Two rounds of Migrate bring the attacker three pawns on the defender's space. */
 async function threeAgainstOne(plans: readonly SeatPlan[]) {
     const host = await atCards(plans)
     const defender = first(host)
@@ -361,10 +346,7 @@ async function defendPlayed() {
     return { host, defender, attacker }
 }
 
-/**
- * R-3.13.2 The first seat's Noble and the second seat's farmer stand on one outpost and each plays
- * Influence: ruler and serf. The Noble's seat is asked for a card.
- */
+/** R-3.13.2 A Noble and a farmer share an outpost as ruler and serf; the Noble's seat is asked. */
 const StarvePlans = seats(
     {
         goods: Plain,
@@ -501,10 +483,7 @@ async function forfeitAllButOne(host: FeudumHost) {
     }
 }
 
-/**
- * R-4.11.2 Epoch I with three stacks showing tile II and two a tile III, so the die's only legal face
- * is Desert's tile I, and taking it shows the fourth tile II.
- */
+/** R-4.11.2 Epoch I stacks set so the die's only legal face is Desert's tile I. */
 const DesertLast = [2, 2, 2, 1, 3, 3] as const
 
 /** R-4.12 A dawn's table: a serf's landscape, a vassal, and the stacks one roll from epoch II. */
@@ -522,11 +501,7 @@ async function dawnNext(
 
 const SulfurCharter: WritId = 'writ.charter.sulfur-barrel'
 
-/**
- * R-6.1, R-6.3 Epoch IV with a stack empty, so the round's end is the V dawn and the game's. The
- * first seat holds the sulfur charter and a seal, so R-4.4.3 seals it at the end; the scores before it are lifted so the first two seats tie on
- * vp, the first with the fuller barrel.
- */
+/** R-6.1, R-6.3, R-4.4.3 The V dawn ends the game; the lifts tie the first two seats, the first's barrel fuller. */
 async function gameEnding(lift: readonly number[]) {
     const host = await atCards(
         seats({ goods: ['sulfur', 'iron', 'food'], sulfurToBarrel: true }, plain, plain)
@@ -557,10 +532,7 @@ async function feedWithFood(host: FeudumHost) {
     }
 }
 
-/**
- * R-3.6 The first seat Migrates a pawn onto its first pawn's space each round, as each character in
- * turn, then holds Migrate again; the others forfeit.
- */
+/** R-3.6 The first seat Migrates onto its first pawn's space each round, as each character in turn. */
 async function migratedOnto(characters: readonly Character[]) {
     const plans = seats(
         {
@@ -610,10 +582,6 @@ async function tyingLifts(): Promise<number[]> {
     return totals.map((total, index) => (index < 2 ? top - total : 0))
 }
 
-/**
- * The named tables a browser spec opens. Each is a position a game can hold: `arranged` says where a
- * hand set one up. Adding one: a row here, with `seat` the browser that shows it.
- */
 export const Fixtures = {
     'setup-goods': {
         build: () => {
@@ -1515,7 +1483,6 @@ function isFixtureName(name: string): name is FixtureName {
     return FixtureNames.includes(name)
 }
 
-/** A name that is no fixture is a mistake in the spec: it stops here, naming what there is. */
 export function fixtureNamed(name: string): Fixture {
     if (!isFixtureName(name)) {
         throw new Error(`No fixture named "${name}". There are: ${FixtureNames.join(', ')}`)

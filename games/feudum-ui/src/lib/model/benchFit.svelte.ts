@@ -14,7 +14,7 @@ export interface BenchRoom {
 export class BenchFit {
     long = $state<number | undefined>(undefined)
 
-    /** Contract, The bench: the areas stand upright side by side. */
+    /** Contract, Guild and Feast: the areas stand upright side by side. */
     fit(room: BenchRoom) {
         const long = BenchFit.areaLong(room)
         if (this.long === undefined || Math.abs(long - this.long) >= 1) {

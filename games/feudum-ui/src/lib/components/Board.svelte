@@ -57,7 +57,7 @@
             {/snippet}
         </MapLayers>
         {#if !desk}
-            <!-- Hidden, not removed: they keep their state and take no presses, by key either. -->
+            <!-- Contract, Render ownership: hidden, not removed, so they keep their state and take no presses. -->
             <g data-layer="guilds" visibility={guildsCovered ? 'hidden' : undefined}>
                 <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
             </g>

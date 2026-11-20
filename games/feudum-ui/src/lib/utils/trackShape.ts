@@ -1,4 +1,4 @@
-/** Drawn shapes for the guild areas and tracks, in a 24 box: none comes from a picture. */
+/** Contract, Drawn in code: none of these shapes comes from a picture. */
 export const BarrelPath =
     'M6 3 Q12 1 18 3 Q21 12 18 21 Q12 23 6 21 Q3 12 6 3 Z M4.6 8 L19.4 8 M4.6 16 L19.4 16'
 export const ChickenPath =

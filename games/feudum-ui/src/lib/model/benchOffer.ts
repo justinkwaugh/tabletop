@@ -193,7 +193,7 @@ export function paramsOf(stages: BenchStages): GuildFunctionParams {
     }
 }
 
-/** R-3.16, R-4.6 A Guild card's function. */
+/** R-3.16, R-4.6 */
 export function guildBenchSource(
     { state, playerId, input }: BenchSeat,
     guildId: GuildId,
@@ -664,7 +664,7 @@ function beadItems(preview: BenchPreview | undefined): readonly BenchItem[] {
     })
 }
 
-/** R-4.6.2 What a payment split costs the seat in all. */
+/** R-4.6.2 */
 export function paymentTotal({ members, charity, generalSupply }: PaymentSplit): number {
     return members.reduce((total, { amount }) => total + amount, 0) + charity.amount + generalSupply
 }
@@ -677,7 +677,7 @@ function seatWord({ playerId, nameOf }: BenchSeat, id: string): string {
     return id === playerId ? 'you' : nameOf(id)
 }
 
-/** R-4.6-H3 The charity's own word, off its id. */
+/** R-4.6-H3 */
 function charityWord(id: string): string {
     return `the ${id.split('.').at(-1) ?? id}`
 }
@@ -697,7 +697,7 @@ function paymentLine(seat: BenchSeat, payment: PaymentSplit): string | undefined
         : undefined
 }
 
-/** R-4.6.5 A pot's shares, and what stays in it. */
+/** R-4.6.5 */
 function splitLine(seat: BenchSeat, { pot, shares, stays }: PotSplit): string | undefined {
     const parts = [
         ...shares
@@ -993,7 +993,7 @@ function stagedPicks(
     }))
 }
 
-/** R-4.6.1 Everything the bench shows, read off the preview. Pure. */
+/** R-4.6.1 */
 export function benchOffer(
     seat: BenchSeat,
     source: BenchSource,
@@ -1084,7 +1084,7 @@ function loneFarmer(seat: BenchSeat, stages: BenchStages): Pick<LoneChoices, 'fa
     }
 }
 
-/** R-4.2.4 A tame with one space to go to. */
+/** R-4.2.4 */
 function loneDeploy(seat: BenchSeat, stages: BenchStages): SpaceId | undefined {
     const { monsters } = knightTradeOffer(seat.state, seat.playerId)
     const spaces = monsters.find(({ monster }) => monster === stages.monster)?.spaces ?? []

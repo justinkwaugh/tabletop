@@ -80,9 +80,9 @@ import {
     trackPlace
 } from '$lib/utils/boardGeometry.js'
 
-/** Hidden information: only public state is read, so no motion reveals another seat's hand. */
+/** docs/hidden-information.md: only public state is read, so no motion reveals another seat's hand. */
 
-/** Without an Action nothing takes longer than this (contract: Fast fallback). */
+/** Contract, Animation plan: without an Action nothing takes longer than this. */
 export const FastSeconds = 0.2
 
 export type PlanRow =
@@ -116,7 +116,7 @@ export interface MotionToken {
     readonly place: Point
     readonly layer: 'under' | 'over'
     readonly scaleX?: number
-    /** Contract, Replay: the piece this token stands for once it lands, until the state shows it. */
+    /** Contract, Animation plan: the piece this token stands for once it lands, until the state shows it. */
     readonly rests?: string
 }
 
@@ -247,7 +247,7 @@ export interface PlacedPiece {
     readonly point: Point
 }
 
-/** R-4.1 Where each piece on a space stands. */
+/** R-4.1 */
 export function placedPieces(state: HydratedFeudumGameState): ReadonlyMap<string, PlacedPiece> {
     const placed = new Map<string, PlacedPiece>()
     for (const { id } of Spaces) {
@@ -263,7 +263,7 @@ export function keyOfRef(ref: PieceRef): string {
     return ref.kind === 'pawn' ? `pawn:${ref.playerId}:${ref.n}` : `monster:${ref.monsterId}`
 }
 
-/** R-1.2.3 A route's line, walked from the space it left. */
+/** R-1.2.3 */
 function routeWalk(routeId: string, from: SpaceId): readonly Point[] {
     const route = [...RoutePaths].find(([id]) => id === routeId)?.[1]
     assertExists(route, `R-1.2.3 The board draws ${routeId}`)
@@ -532,7 +532,7 @@ function slideRanks(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
     return ends
 }
 
-/** R-4.8 Markers fill a Knight row inside the guild area. */
+/** R-4.8 */
 function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
     for (const { rowId, row } of knightRows(to)) {
@@ -1156,7 +1156,7 @@ export function planBoardMotion({
     return plan
 }
 
-/** Contract, Fast fallback: every piece straight to its new place at once. */
+/** Contract, Animation plan: without an Action every piece goes straight to its new place. */
 export function planDirect(
     change: BoardChange,
     scoreRing = true,

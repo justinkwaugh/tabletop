@@ -10,7 +10,7 @@
     import { GuildAreaHeight, GuildAreaWidth, GuildAreas } from '$lib/utils/boardGeometry.js'
     import GuildArea from './GuildArea.svelte'
 
-    /** R-1.2.3 A press enlarges it unless that press picks it (contract: Card preview). */
+    /** R-1.2.3 A press enlarges it unless that press picks it (contract: Shared visual state). */
     let {
         guild,
         state,

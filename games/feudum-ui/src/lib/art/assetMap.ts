@@ -62,7 +62,6 @@ export const CoverAsset = 'cover'
 export const MapAsset = 'board.map'
 export const ringPartAsset = (part: RingPart) => `board.ring.${part}` as const
 
-/** With no file in `./supplied` a component draws its fallback: the tree builds with none. */
 export const AssetIds = [
     CoverAsset,
     MapAsset,
@@ -90,7 +89,6 @@ export const AssetIds = [
 
 export type AssetId = (typeof AssetIds)[number]
 
-/** Paths are relative to this folder, so the record's keys read `./supplied/<id>.<ext>`. */
 export function assetUrlIn(files: Record<string, string>, id: string): string | undefined {
     return files[`./supplied/${id}.webp`] ?? files[`./supplied/${id}.png`]
 }

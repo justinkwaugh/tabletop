@@ -97,7 +97,6 @@
         white-space: nowrap;
     }
 
-    /* Never the accent colour, which asks for a press. */
     .seat.leading {
         border-color: var(--feudum-heading);
         color: var(--feudum-heading);

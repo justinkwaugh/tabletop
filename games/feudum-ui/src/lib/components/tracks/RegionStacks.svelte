@@ -24,7 +24,7 @@
         trackPlace
     } from '$lib/utils/boardGeometry.js'
 
-    /** R-4.3.1, R-4.3.2, R-4.11.1. An unlit stack opens its view (contract: Card preview). */
+    /** R-4.3.1, R-4.3.2, R-4.11.1. An unlit stack opens its view (contract: Shared visual state). */
     let {
         state,
         printed,
@@ -37,7 +37,7 @@
 </script>
 
 {#if !printed}
-    <!-- The drawn chart dims shape by shape and row by row, never as one group. -->
+    <!-- docs/phone-rendering.md, Effects stay piece-sized: the chart dims shape by shape, row by row. -->
     <g data-drawn-chart style:font-family="var(--feudum-font-text)">
         <rect
             fill-opacity={dimmedWithRest(chrome)}

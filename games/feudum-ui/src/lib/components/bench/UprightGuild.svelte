@@ -8,7 +8,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { GuildBox } from '$lib/utils/boardGeometry.js'
 
-    /** Contract, The trade picker: read, not placed, so it takes no press. */
+    /** Contract, Guild and Feast: the trade picker's area is read, not placed, so it takes no press. */
     let {
         area,
         height,

@@ -48,7 +48,6 @@
     )
 </script>
 
-<!-- Upright, the area's own box is the popup's anchor: the turned pick inside it is not. -->
 <div
     class="open-guild"
     style:width="{short}px"

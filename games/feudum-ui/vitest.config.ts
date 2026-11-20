@@ -3,9 +3,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { defineProject, mergeConfig } from 'vitest/config'
 import { VitestConfig, projectRoot } from '@tabletop/vitest-config'
 
-// Unit tests use the plain Svelte plugin rather than sveltekit(): SvelteKit resets Vite's root
-// to the working directory, which breaks this project when Vitest runs from the repo root.
-// The session's rune classes only react when compiled for the client.
+// sveltekit() resets Vite's root, breaking runs from the repo root; runes react only compiled for the client.
 export default defineProject(
     mergeConfig(VitestConfig, {
         root: projectRoot(import.meta.url),

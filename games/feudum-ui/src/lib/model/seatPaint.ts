@@ -18,7 +18,7 @@ export interface SeatPaint {
     readonly fill: string
     readonly ink: string
     readonly edge: string
-    /** No letter on a piece: this name and the platform's colour-blind palette tell seats apart. */
+    /** Contract, Guild standings: no letter on a piece; this name and the platform's colour-blind palette tell seats apart. */
     readonly owner: string
     readonly printed?: PrintedColour
 }

@@ -5,7 +5,6 @@
     import PieceFrame from '$lib/components/pieces/PieceFrame.svelte'
     import { CrestCentre, GuildBox, GuildViewBox } from '$lib/utils/boardGeometry.js'
 
-    /** The printed panel when the art folder holds it, else our own plate. */
     let { guild }: { guild: GuildId } = $props()
 
     const CrestRadius = 30

@@ -5,8 +5,7 @@ const config = createGameUiRolldownConfig({
     packageRootUrl: new URL('.', import.meta.url)
 })
 
-// The shared config leaves import.meta.glob as written, which throws when the bundle loads. The
-// asset map finds its files that way, under Vite and here alike.
+// The shared config leaves import.meta.glob as written, which throws when the bundle loads.
 export default {
     ...config,
     plugins: [

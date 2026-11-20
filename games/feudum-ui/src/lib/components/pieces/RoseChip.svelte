@@ -1,5 +1,5 @@
 <script lang="ts">
-    /** Rose is never a bare red shape: the label and the halo carry it. */
+    /** Contract, Palette: rose is never a bare red shape; the label and the halo carry it. */
     let { label }: { label: string } = $props()
 
     function required(text: string): string {

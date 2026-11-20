@@ -213,7 +213,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         })
     }
 
-    /** One move to a space goes at once; several ask (contract: Popups). */
+    /** One move to a space goes at once; several ask (contract: Move). */
     private spacePicks(
         moves: readonly SpaceMove[],
         ask: (spaceId: SpaceId) => void
@@ -254,7 +254,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             : undefined
     }
 
-    /** Contract, Hover: what staging a Move would light. */
+    /** Contract, Coexistence and precedence: what staging a Move would light. */
     lightsOpening(context: MoveContext): readonly BoardTarget[] {
         const offers = moveOffers(context.state, context.playerId, { steps: [] })
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)
@@ -601,7 +601,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             : { kind: 'role', label: 'Godspeed' }
     }
 
-    /** R-3.7.1, R-4.2 A way as the logic's step names it. */
+    /** R-3.7.1, R-4.2 */
     private wayOfStep({ to, route, vessel, ferry }: RouteStep): Omit<GodspeedStep, 'pawn'> {
         return {
             to,

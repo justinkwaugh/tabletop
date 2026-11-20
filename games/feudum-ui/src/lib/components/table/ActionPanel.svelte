@@ -6,7 +6,7 @@
     const gameSession = getGameSession()
     const phone = new PhoneLayout()
 
-    /** Contract, The bench: on a phone the send stands in the open sheet's footer, in one place. */
+    /** Contract, Phone layout: on a phone the send stands in the open sheet's footer, in one place. */
     let view = $derived(
         phone.phone && gameSession.benchCovers
             ? {

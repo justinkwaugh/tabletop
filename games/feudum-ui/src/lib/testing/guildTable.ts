@@ -99,7 +99,6 @@ export function ruleFarm(
     return spaceId
 }
 
-/** Each bin filled to this many spaces, the rest empty, keeping totals. */
 export function setMarket(state: HydratedFeudumGameState, filled: GoodAmounts): void {
     for (const { id, good, space } of MarketSpaces) {
         const wanted = space <= (filled[good] ?? 0)
@@ -109,7 +108,6 @@ export function setMarket(state: HydratedFeudumGameState, filled: GoodAmounts): 
     }
 }
 
-/** Each cart filled to this many spaces, the rest empty, keeping totals. */
 export function setCarts(state: HydratedFeudumGameState, filled: GoodAmounts): void {
     for (const { id, good, space } of AlchemistCartSpaces) {
         const wanted = space <= (filled[good] ?? 0)
@@ -119,7 +117,6 @@ export function setCarts(state: HydratedFeudumGameState, filled: GoodAmounts): v
     }
 }
 
-/** The seat holds exactly this many shillings, keeping totals. */
 export function setShillings(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -130,7 +127,6 @@ export function setShillings(
     player.shillings = shillings
 }
 
-/** Exactly these vessels are for sale, the rest in the general supply. */
 export function setVesselsForSale(
     state: HydratedFeudumGameState,
     vessels: readonly VesselType[]
@@ -145,7 +141,6 @@ export function setVesselsForSale(
     alchemist.vesselsForSale = [...vessels]
 }
 
-/** Each Knight row, in order, holds this many markers, keeping totals. */
 export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly number[]): void {
     knightRows(state).forEach((entry, index) => {
         const { row } = entry
@@ -160,7 +155,6 @@ export function seatRowIndex(state: HydratedFeudumGameState, playerId: string): 
     return knightRows(state).findIndex(({ row }) => rowSeat(row.owner) === playerId)
 }
 
-/** A seal of this value out of the pile. */
 function sealOfValue(state: HydratedFeudumGameState, value: BeadValue): SealId {
     const vault = state.requireVault()
     const sealId = Seals.filter((seal) => seal.beadValue === value)
@@ -172,10 +166,7 @@ function sealOfValue(state: HydratedFeudumGameState, value: BeadValue): SealId {
     return sealId
 }
 
-/**
- * R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals: the
- * chickens' values fill their spaces in order.
- */
+/** R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals. */
 export function setBeads(
     state: HydratedFeudumGameState,
     { rosary, chickens }: { rosary: readonly BeadValue[]; chickens: readonly BeadValue[] }
@@ -207,7 +198,6 @@ export function setScrolls(state: HydratedFeudumGameState, filled: readonly Scro
     }
 }
 
-/** Nothing on the guild boards, so a spec's offers are only those it arranges. */
 export function clearGuilds(state: HydratedFeudumGameState): void {
     setBarn(state, {})
     setMarket(state, {})
@@ -219,7 +209,6 @@ export function clearGuilds(state: HydratedFeudumGameState): void {
 
 export interface GuildTable extends TurnTable {
     readonly session: FeudumGameSession
-    /** The seat after `other`. */
     readonly third: string
 }
 

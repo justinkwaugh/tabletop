@@ -5,7 +5,6 @@
     import type { SeatPanelView } from '$lib/model/seatPanel.js'
     import { TableLayers } from '$lib/model/tableLayers.svelte.js'
 
-    /** A panel on a table, for a spec's markup: alone its pieces take no press. */
     let {
         view,
         paint,

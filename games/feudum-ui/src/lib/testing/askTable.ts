@@ -14,14 +14,11 @@ import { settled } from './sessionHarness.js'
 import { addPawn, emptySpaces } from './turnTable.js'
 
 export interface AskTable extends SeatTable {
-    /** The seat asked. */
     readonly asked: FeudumGameSession
-    /** A seat neither side of it. */
     readonly third: FeudumGameSession
     readonly spaceId: SpaceId
 }
 
-/** Three seats open at a table where `seat` holds Conquer; nothing is sent yet. */
 async function seated(
     otherCards: readonly ActionCardKind[],
     arrange: (state: HydratedFeudumGameState, seat: string, other: string, at: SpaceId) => void
@@ -33,7 +30,6 @@ async function seated(
             spaceId = emptySpaces(state, 'outpost')[0]
             arrange(state, seat, other, spaceId)
             state.recomputeRanks()
-            // The third seat's own hand stays the same whatever the asked seat holds.
             for (const player of state.players) {
                 if (player.playerId !== seat && player.playerId !== other) {
                     player.hand = ['tax', 'guild']

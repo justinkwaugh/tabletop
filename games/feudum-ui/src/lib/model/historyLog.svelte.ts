@@ -43,12 +43,12 @@ export class HistoryLog {
         return this.replayingNow?.entryId
     }
 
-    /** The shared history refuses while the table is busy; the buttons say so first. */
+    /** The shared history refuses while the table is busy. */
     get available(): boolean {
         return !this.replaying && !this.session.history.isDisabled()
     }
 
-    /** Contract, Jump: enters History View at the entry's own index, on no System Action further. */
+    /** Contract, Game log and history: Jump enters History View at the entry's own index, on no System Action further. */
     async jump({ jumpIndex }: { readonly jumpIndex?: number }) {
         if (jumpIndex === undefined || !this.available) {
             return
@@ -56,7 +56,7 @@ export class HistoryLog {
         await this.session.history.goToActionIndex(jumpIndex, { exact: true })
     }
 
-    /** Contract, Replay: the entry's whole span on the existing animators, then back where it was. */
+    /** Contract, Game log and history: Replay plays the entry's whole span on the existing animators, then goes back. */
     async replay(group: HistoryGroup, options?: { readonly holdMs?: number }) {
         if (!group.replays || !this.available) {
             return

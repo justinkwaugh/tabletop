@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /** `compact` leaves the name to screen readers: a phone's seat strip names the colours. */
+    /** Contract, Phone layout: `compact` leaves the name to screen readers; the seat strip names the colours. */
     let {
         name,
         paint,

@@ -2,7 +2,7 @@
     import BenchGhostPiece from '$lib/components/bench/BenchGhostPiece.svelte'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
 
-    /** R-4.6 What a push or a pull has staged. */
+    /** R-4.6 */
     let { block }: { block: Extract<ActionBlock, { kind: 'staged' }> } = $props()
 
     const PieceSize = 20

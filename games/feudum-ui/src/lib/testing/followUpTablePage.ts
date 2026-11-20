@@ -36,7 +36,6 @@ function byRole(table: AskTable, role: AskRole): FeudumGameSession {
     return { attacker: table.session, asked: table.asked, third: table.third }[role]
 }
 
-/** The real table on a browser's page, its session on the host of a spec. */
 async function show(session: FeudumGameSession) {
     await settled(session)
     const target = document.createElement('div')
@@ -106,10 +105,7 @@ export async function openNourishTable(role: 'seat' | 'other') {
     await show(role === 'seat' ? table.session : await table.host.openSeat(table.other))
 }
 
-/**
- * R-4.10-H4 Two seats asked at once, each with three pawns, a food and a wine: one hotseat screen
- * playing every seat, or the third seat, which nourishing doesn't ask, watching.
- */
+/** R-4.10-H4 Two seats asked at once: one hotseat screen playing every seat, or the third seat watching. */
 export async function openNourishTogetherTable(role: 'hotseat' | 'watcher') {
     const table = await atNourishingTogether((state, { seat, other }) => {
         for (const playerId of [seat, other]) {

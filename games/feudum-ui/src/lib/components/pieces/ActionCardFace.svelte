@@ -56,7 +56,6 @@
     let printedBackUrl = $derived(
         !card && paint.printed ? assetUrl(cardBackAsset(paint.printed)) : undefined
     )
-    /** The print's foot names nothing: the card is named once, in the art's title. */
     let printedFace = $derived(
         card && paint.printed && url
             ? { band: PrintBand[paint.printed], at: PrintedArtAt[card.kind], url }

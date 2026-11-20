@@ -21,7 +21,7 @@
     }: {
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
-        /** Phone rendering, effects stay piece-sized: each cell and disc dims as itself. */
+        /** docs/phone-rendering.md, Effects stay piece-sized: each cell and disc dims as itself. */
         dim?: number
     } = $props()
 

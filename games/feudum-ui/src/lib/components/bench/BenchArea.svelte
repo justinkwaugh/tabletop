@@ -37,7 +37,7 @@
 
     const percent = (value: number, whole: number) => `${(value / whole) * 100}%`
 
-    /** Contract, Upright guild areas: a press reaches 44 px. */
+    /** Contract, Guild and Feast: a press on an upright area reaches 44 px. */
     const Target = 44
 
     /** S68 A Knight row is smaller than a finger at bench scale, so its press reaches past it. */

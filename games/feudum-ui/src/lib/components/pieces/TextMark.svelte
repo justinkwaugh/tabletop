@@ -1,7 +1,7 @@
 <script lang="ts">
     import { StarPath } from '$lib/utils/pieceShapes.js'
 
-    /** A vp or status star in a line of text, drawn so no font has to carry it. */
+    /** Drawn so no font has to carry it. */
     let { kind, label }: { kind: 'vp' | 'star'; label: string } = $props()
 </script>
 

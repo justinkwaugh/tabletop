@@ -23,7 +23,7 @@ export function laneOfRow(state: SeatsAndRows, rowId: KnightRowId): Color {
     return seat.color
 }
 
-/** R-1.4-H1 The id of a seat's own row. */
+/** R-1.4-H1 */
 export function seatRowId(state: SeatsAndRows, playerId: string): KnightRowId | undefined {
     return seatKnightRow(state, playerId)?.rowId
 }

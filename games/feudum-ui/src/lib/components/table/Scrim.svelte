@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
 
-    /** Contract, Open seat, Card preview: it pads by the screen's safe areas. */
+    /** Contract, Shared visual state: it pads by the screen's safe areas. */
     let {
         label,
         layer,
@@ -14,7 +14,7 @@
         layer: string
         onClose: () => void
         sheet?: number
-        /** Contract, Card preview: without one, what the layer holds is its own close press. */
+        /** Contract, Shared visual state: without one, what the layer holds is its own close press. */
         closeButton?: boolean
         children: Snippet
     } = $props()

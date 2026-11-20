@@ -5,7 +5,6 @@
     import type { ActionPanelView } from '$lib/model/actionPanel.js'
     import { TableLayers } from '$lib/model/tableLayers.svelte.js'
 
-    /** The panel's blocks on a table, for a spec's markup: alone a magnifier takes no press. */
     let { view, pointer }: { view: ActionPanelView; pointer: RowPointer } = $props()
 
     setTableLayers(new TableLayers())

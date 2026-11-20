@@ -44,7 +44,6 @@ export interface BoardChangeArgs {
 
 /** The presenter publishes state only after the last Action, so poses carry step to step. */
 export class BoardAnimator {
-    /** Presence only, written once per step; tweens never touch reactive state. */
     tokens: readonly MotionToken[] = $state.raw([])
 
     private surface: MotionSurface | undefined
@@ -55,7 +54,6 @@ export class BoardAnimator {
     private readonly poses = new Map<MotionElement, Pose>()
     private readonly areaPieces = new Map<MotionSurface, Set<MotionElement>>()
 
-    /** @param carrier Moves a replay's piece that rests only as a copy on the flight layer. */
     constructor(
         private readonly reduced: () => boolean = () => prefersReducedMotion.current,
         private readonly carrier: (piece: string) => RestingCopy | undefined = () => undefined
@@ -117,7 +115,6 @@ export class BoardAnimator {
         }
         const timeline = animationContext.actionTimeline
         if (reduced) {
-            // Reduced motion: every piece lands at once, in the tweens' order.
             const landing = [...plan.motions].sort(
                 (a, b) => a.at + a.duration - (b.at + b.duration)
             )
@@ -300,7 +297,6 @@ export class BoardAnimator {
             : undefined
     }
 
-    /** Areas first: a token in an open side's area is drawn there and on the board's svg too. */
     private resolve(target: MotionTarget) {
         const element = this.find(this.selectorOf(target)) ?? this.restingToken(target)
         if (!element) {
@@ -324,7 +320,7 @@ export class BoardAnimator {
         )
     }
 
-    /** Contract, Replay: a piece an earlier step's token brought on is that token until the state shows. */
+    /** Contract, Animation plan: a piece an earlier step's token brought on is that token until the state shows. */
     private restingToken(target: MotionTarget): MotionElement | null | undefined {
         if (!('piece' in target) || target.part !== undefined) {
             return undefined

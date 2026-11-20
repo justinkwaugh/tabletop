@@ -1,7 +1,6 @@
 import { flushSync } from 'svelte'
 import type { ActionBlock, ActionPanelView, ActionRow, LineRole } from '$lib/model/actionPanel.js'
 
-/** Reading a panel as a seat would: what it says, what it offers, and the presses. */
 export function linesOf(view: ActionPanelView, role?: LineRole): readonly string[] {
     return view.blocks.flatMap((block) =>
         block.kind === 'line' && (!role || block.role === role) ? [block.text] : []
@@ -41,7 +40,6 @@ export function blockOf<K extends ActionBlock['kind']>(
 export function primariesOf(
     view: ActionPanelView
 ): readonly Extract<ActionBlock, { kind: 'primary' }>[] {
-    // A trade picker holds its send beneath its choices; the nourish picker, in its summary.
     return view.blocks.flatMap((block): Extract<ActionBlock, { kind: 'primary' }>[] => {
         if (block.kind === 'primary') {
             return [block]
@@ -57,7 +55,6 @@ export function primaryLabels(view: ActionPanelView): readonly string[] {
     return primariesOf(view).map(({ label }) => label)
 }
 
-/** Each send's accessible name: its full words where the label says them shorter. */
 export function primaryNames(view: ActionPanelView): readonly string[] {
     return primariesOf(view).map(({ label, named }) => named ?? label)
 }

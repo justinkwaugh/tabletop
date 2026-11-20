@@ -40,7 +40,7 @@
         colourPaintOf: (colour: Color) => SeatPaint
         pointer: RowPointer
         onPress: (choice: PanelChoice) => void
-        /** Contract, The trade picker: on a phone's sheet, in place of the areas and the footer. */
+        /** Contract, Phone layout: the trade picker, on a phone's sheet, in place of the areas and the footer. */
         picker?: Snippet
     } = $props()
 
@@ -109,7 +109,6 @@
     {#if choice.press}
         <PanelRow {choice} {pointer} {onPress} />
     {:else}
-        <!-- The logic takes the higher by itself: the toggle shows it, with nothing to set. -->
         <span
             class="rounded-lg border px-3 py-1 text-sm text-feudum-text
                 {choice.picked
@@ -226,7 +225,7 @@
 {/if}
 
 <style>
-    /* Contract, The bench: the footer always in view. */
+    /* Contract, Guild and Feast: the bench's footer always in view. */
     .bench-sheet {
         left: 0;
         right: 0;

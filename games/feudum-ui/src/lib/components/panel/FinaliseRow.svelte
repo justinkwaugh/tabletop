@@ -14,7 +14,6 @@
     }
 </script>
 
-<!-- On a phone each seat is its colour and its tick: the seat strip names them. -->
 <div
     class="flex w-full flex-wrap items-center gap-x-3 gap-y-1 max-sm:gap-x-1.5 max-sm:gap-y-0"
     data-finalise-row

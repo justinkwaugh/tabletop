@@ -34,7 +34,6 @@ export type FramedArea = Exclude<FocusArea, 'tracks'>
 export type PlacedArea = FocusArea
 export type GuildSide = 'west' | 'east'
 
-/** The key is the lit set, so one pick frames once. */
 export interface PickFrame {
     readonly key: string
     readonly rect: BoundingBox
@@ -42,7 +41,6 @@ export interface PickFrame {
     readonly holds?: readonly PlacedArea[]
 }
 
-/** Below this fit the board's targets are too small to tap: a phone rests at a cover fit. */
 export const CoverBelowScale = 0.2
 export const ChooserInset = 36
 /** Contract, Symbol key and Supply: the band keeps the zoom row off the score track. */
@@ -113,7 +111,6 @@ export function deskColumnOf(room: RectangleDimensions, seats: number): DeskColu
     return beside > strip ? column : undefined
 }
 
-/** Rounded up, so the room's height, where it binds, stays what binds the wrapper's fit. */
 export function deskColumnViewWidth(
     room: RectangleDimensions,
     seats: number,
@@ -141,7 +138,6 @@ export interface DeskRest extends BoundingBox {
     readonly trail: number
 }
 
-/** The content carries a gutter each side, so the wrapper's own contain fit is the rest. */
 export function deskMapAtRest(
     view: RectangleDimensions,
     seats: number,
@@ -157,7 +153,7 @@ export function deskMapAtRest(
     const left = centred ? Math.max(0, (view.width - width - 2 * SideGutter - beside) / 2) : 0
     const fitted = column ? MapArea.height : deskScaledHeight(seats)
     const top = centred ? Math.max(0, (view.height - fitted * scale) / 2) : 0
-    // The wrapper centres the strip's content itself; the column's fills the view, slack inside.
+    // The wrapper centres the strip's content itself.
     const inset = column ? left : 0
     return {
         x: left + SideGutter,
@@ -180,7 +176,7 @@ export function guildSideOf(target: BoardTarget): GuildSide | undefined {
 
 export type GuildSideFollowing = GuildSide | 'keep' | undefined
 
-/** Contract, Pick framing: a pick opens a desk's guild side when that side holds every target. */
+/** Contract, Desk layout: a pick opens a desk's guild side when that side holds every target. */
 export function guildSideFollowing(frame: PickFrame | undefined): GuildSideFollowing {
     const holds = frame?.holds ?? []
     const sides = holds.filter((area): area is GuildSide => area === 'west' || area === 'east')
@@ -190,7 +186,7 @@ export function guildSideFollowing(frame: PickFrame | undefined): GuildSideFollo
     return sides.length === 1 ? sides[0] : 'keep'
 }
 
-/** Contract, Pick framing: how far past its rest a pick may bring the board. */
+/** Contract, Phone layout: how far past its rest a pick may bring the board. */
 export const PickFrameZoom = 2.5
 const FramePadding = { x: 12, y: 12 }
 const TargetRoom = DiscFrame
@@ -270,7 +266,7 @@ type Placed =
     | { readonly area: 'west' | 'east' }
     | { readonly area: 'tracks'; readonly at?: Point }
 
-/** R-1.2 Where on the board a target stands, by the board's own positions. */
+/** R-1.2 */
 function placeOf(state: HydratedFeudumGameState, target: BoardTarget): Placed {
     const [kind = '', id = ''] = target.split(':')
     switch (kind) {
@@ -307,7 +303,7 @@ function litTargets(offer: BoardOffer): BoardTarget[] {
         .toSorted()
 }
 
-/** Contract, Focus chooser: the areas holding a lit target, for the chips' and buttons' dots. */
+/** Contract, Phone layout: the areas holding a lit target, for the chips' and buttons' dots. */
 export function litAreasOf(
     state: HydratedFeudumGameState,
     offer: BoardOffer
@@ -315,7 +311,7 @@ export function litAreasOf(
     return new Set(litTargets(offer).map((target) => placeOf(state, target).area))
 }
 
-/** Contract, Pick framing: a popup shows only while its anchor is in view, so it is framed too. */
+/** Contract, Phone layout: a popup shows only while its anchor is in view, so it is framed too. */
 export function pickFrameOf(
     state: HydratedFeudumGameState,
     offer: BoardOffer,
@@ -372,7 +368,6 @@ export interface BoardFocusSetting {
 export class BoardFocus {
     chosen: FramedArea | undefined = $state('map')
     private readonly pickKey = $derived.by(() => this.setting.pickFrame()?.key)
-    /** Untracked, so a hand's pan stays until the lit set changes. */
     framed: PickFrame | undefined = $derived.by(() => {
         void this.pickKey
         return untrack(() => this.setting.pickFrame())

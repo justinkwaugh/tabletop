@@ -5,7 +5,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import Magnifier from './Magnifier.svelte'
 
-    /** Departure 6: the magnifier. R-3.1 A drafted card stays dimmed among the eleven. */
+    /** Contract, The principle, departure 6: the magnifier. R-3.1 A drafted card stays dimmed among the eleven. */
     let { row, paint, pointer }: { row: CardRow; paint: SeatPaint; pointer: RowPointer } = $props()
 
     const FaceWidth = 88

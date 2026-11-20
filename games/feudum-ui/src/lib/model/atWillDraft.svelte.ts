@@ -105,7 +105,7 @@ export interface AtWillPanel {
 
 type WritRow = NonNullable<AtWillPanel['writs']>[number]
 
-/** The contract's at-will row: what a seat may do any time its window is open (R-4.4-H1). */
+/** Contract, At-will actions: what a seat may do any time its window is open (R-4.4-H1). */
 export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     constructor(contextOf: () => AtWillContext | undefined) {
         super(AtWillStageOrder, contextOf)

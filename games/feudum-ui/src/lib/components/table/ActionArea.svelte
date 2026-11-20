@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ActionPanel from './ActionPanel.svelte'
 
-    /** Exactly one of these (docs: game UI layout): History's description, or the panel. */
+    /** docs/game-ui-layout.md, Action area views: exactly one, History's description or the panel. */
     const gameSession = getGameSession()
 
     let currentAction = $derived(gameSession.currentAction)

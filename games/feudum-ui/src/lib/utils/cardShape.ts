@@ -80,7 +80,6 @@ export function printRosettes(): { disc: string; rings: [string, string, string]
 
 export type FaceTier = 'compact' | 'standard' | 'full'
 
-/** The contract's three tiers by width: one component, never a second asset. */
 export function faceTier(width: number): FaceTier {
     if (width < 60) {
         return 'compact'
@@ -102,7 +101,6 @@ export function wrapLines(text: string, charactersPerRow: number): string[] {
     return row ? [...rows, row] : rows
 }
 
-/** A word of data cut, never a second string to translate. */
 export function shortName(name: string, characters = 6): string {
     return name.length <= characters ? name : `${name.slice(0, characters - 1)}.`
 }

@@ -22,7 +22,7 @@
     /** An enlarged guild area, upright: its picture's long side, read at a glance (R-1.3). */
     const EnlargedGuildWidth = 640
     const PhoneMargin = 32
-    /** Contract, Seat strip: a seat's sheet stands up to this much of the dynamic viewport. */
+    /** Contract, Phone layout: a seat's sheet stands up to this much of the dynamic viewport. */
     const SeatSheetShare = 85
 
     const phone = new PhoneLayout()

@@ -25,7 +25,6 @@ import { playOutRound, showOnStacks } from './roundEndTable.js'
 import { settled, type FeudumHost } from './sessionHarness.js'
 import { addPawn, atPlayingCards, giveGood } from './turnTable.js'
 
-/** One frame of the page, as it was painted: a piece on the board's own coordinates, and the gate. */
 export interface MotionFrame {
     readonly at: number
     readonly x?: number
@@ -35,7 +34,6 @@ export interface MotionFrame {
     readonly capInert: boolean
     readonly overlaysInert: boolean
     readonly tokens: readonly string[]
-    /** A token is on the layer, unseen, from the start of its Action: these have shown. */
     readonly shownTokens: readonly string[]
     readonly scale: number
     readonly lit: number
@@ -54,7 +52,6 @@ function boardPointOf(element: Element | null): Point | undefined {
     return { x: point.x, y: point.y }
 }
 
-/** Every animation frame until `until` settles: what a watcher would have seen, not what was planned. */
 async function framesOf(
     session: FeudumGameSession,
     piece: string,
@@ -103,7 +100,6 @@ async function show(session: FeudumGameSession) {
     target.dataset.gameUi = 'feudum'
     target.style.height = '100vh'
     document.body.replaceChildren(target)
-    // The same key outside the surface: the bench and the panel draw pieces of their own.
     const stray = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     stray.setAttribute('style', 'position: fixed; width: 0; height: 0')
     document.body.prepend(stray)
@@ -112,7 +108,7 @@ async function show(session: FeudumGameSession) {
     return stray
 }
 
-/** Contract, Replay: the one entry of this kind, through the log as a press on it would. */
+/** Contract, Game log and history: the one entry of this kind, replayed through the log as a press would. */
 function replayOf(session: FeudumGameSession, kind: 'turn' | 'dawn') {
     const group = session.historyLog.entries
         .filter(isHistoryGroup)
@@ -150,7 +146,6 @@ export async function openWalkTable() {
     const pressed = async () => {
         session.pressTurnCard('move')
         flushSync()
-        // A lone pawn is picked as the card is.
         if (roleOf(session.boardOffer, pawnTarget(seat, 1)) !== 'picked') {
             await session.pressTurnTarget(pawnTarget(seat, 1))
             flushSync()
@@ -214,7 +209,6 @@ export async function openPilferTable() {
     })
 }
 
-/** Where a pawn stands on the board, in its units: its piece, or the copy flying or resting for it. */
 export interface PawnFrame {
     readonly at: number
     readonly x: number
@@ -244,11 +238,7 @@ function pawnPointOf(piece: string): Omit<PawnFrame, 'at'> | undefined {
     return { x: point.x, y: point.y, drawn }
 }
 
-/**
- * S64 R-3.3-H1, R-3.7.1 One turn of two Actions: a Migrate brings a pawn onto the board from the
- * seat, then a sequential Move walks it on along the road. `replay` shows the turn again, watched:
- * the pawn as the board or the flight layer draws it, frame by frame.
- */
+/** S64 R-3.3-H1, R-3.7.1 A Migrate, then a Move on along the road, replayed frame by frame. */
 export async function openMigrateMoveTable() {
     const { host, seat } = await atPlayingCards(['migrate', 'move'], { pouchGood: 'sulfur' })
     host.edit((state) => {
@@ -359,7 +349,6 @@ export async function openRoundEndTable() {
     })
 }
 
-/** A piece as painted: a board token, a flight layer copy, or the piece, by its centre on the page. */
 export interface PaintedPiece {
     readonly id: string
     readonly x: number
@@ -371,7 +360,6 @@ export interface PaintedFrame {
     readonly seen: readonly PaintedPiece[]
 }
 
-/** A replay watched: every frame of one row's moving pieces, then the pieces the state draws. */
 export interface WatchedReplay {
     readonly frames: readonly PaintedFrame[]
     readonly pieces: readonly PaintedPiece[]
@@ -382,7 +370,6 @@ function centreOf(element: Element): Omit<PaintedPiece, 'id'> {
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
 }
 
-/** An open side draws its guild areas upright over the map: there the piece is its area's. */
 function piecesPainted(prefix: string): PaintedPiece[] {
     const selector = `[data-motion^="${prefix}"]`
     const upright = [
@@ -420,7 +407,6 @@ function movingPainted(row: 'goods' | 'seals' | 'markers'): PaintedPiece[] {
     return [...tokens, ...copies]
 }
 
-/** Where the frame stands now: what it paints moves with it, so places are read from its corner. */
 function frameOrigin(frame: string): Point {
     const box = document.querySelector(frame)?.getBoundingClientRect()
     return { x: box?.x ?? 0, y: box?.y ?? 0 }
@@ -430,10 +416,7 @@ function fromOrigin(pieces: readonly PaintedPiece[], origin: Point): PaintedPiec
     return pieces.map((piece) => ({ ...piece, x: piece.x - origin.x, y: piece.y - origin.y }))
 }
 
-/**
- * Contract, Replay: the seat's last turn again, through the log, watched frame by frame. Places are
- * read from the corner of `frame`, the board or an open side's area, as the page lays it out then.
- */
+/** Contract, Animation plan: the seat's last turn again, through the log, watched frame by frame. */
 async function watchTurn(
     session: FeudumGameSession,
     row: 'goods' | 'seals' | 'markers',
@@ -478,11 +461,7 @@ async function playDecliningReeves(
     }
 }
 
-/**
- * R-3.15, R-4.6.4, R-4.6.5 One turn of two guild Actions: a Farmer push moves the barn's saltpeter
- * to the market, then Repeat as the journeyman's Alchemist pull takes that same good on to a cart.
- * `replay` shows the turn again: on a phone's board as tokens, or with a desk's side open as copies.
- */
+/** R-3.15, R-4.6.4, R-4.6.5 A Farmer push, then Repeat as the journeyman's Alchemist pull, replayed. */
 export async function openGuildRepeatTable(side?: GuildSide) {
     const { host, seat, other } = await atPlayingCards(['guild', 'repeat'], {
         pouchGood: 'sulfur'
@@ -545,11 +524,7 @@ export async function openGuildRepeatTable(side?: GuildSide) {
     })
 }
 
-/**
- * R-3.15, R-4.6.4 One turn of two guild Actions: the journeyman's Monk pull flips the scroll's seal
- * onto the rosary, then Repeat as its Farmer pull lifts the rosary's high and low beads, that one
- * among them, and lays one on a chicken. `replay` shows the turn again, watched.
- */
+/** R-3.15, R-4.6.4 A Monk pull, then Repeat as its Farmer pull laying a bead on a chicken, replayed. */
 export async function openBeadRepeatTable(side?: GuildSide) {
     const { host, seat } = await atPlayingCards(['guild', 'repeat'], {
         pouchGood: 'sulfur'
@@ -616,11 +591,7 @@ export async function openBeadRepeatTable(side?: GuildSide) {
     })
 }
 
-/**
- * R-3.15, R-4.5.3 One turn of two Migrates, the second by Déjà Vu: the first farmer ties the next
- * seat's master and so brings the seat on as journeyman, the second outranks it and moves the
- * marker up to master. `replay` shows the turn again.
- */
+/** R-3.15, R-4.5.3 Two Migrates, the second by Déjà Vu, taking the seat from journeyman to master. */
 export async function openRankRepeatTable(side?: GuildSide) {
     const { host, seat, other } = await atPlayingCards(['migrate', 'repeat'], {
         pouchGood: 'sulfur'

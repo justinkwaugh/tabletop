@@ -53,7 +53,6 @@ function feastTable(state: HydratedFeudumGameState, seat: string, other: string,
     otherSecond.spaceId = FeastSpace
 }
 
-/** Each moment of the bench, by the contract's scenario, on the guild boards it needs. */
 export const BenchScenes = {
     guildPick: {
         arrange: (state, { seat, other }) => {

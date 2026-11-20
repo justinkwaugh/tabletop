@@ -10,7 +10,7 @@
     import MapPieces from './MapPieces.svelte'
     import MapRoutes from './MapRoutes.svelte'
 
-    /** The map's layers, back to front, as the contract's render ownership sets them. */
+    /** Contract, Render ownership: the map's layers, back to front. */
     let {
         state,
         paintOf,

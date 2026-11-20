@@ -113,10 +113,7 @@ export async function atNourishing(arrange: Arrange): Promise<SeatTable> {
     return { ...turn, session: await turn.host.openSeat(turn.seat) }
 }
 
-/**
- * R-4.10-H4 The seat and the next are both asked, at once; `arrange` sets what each feeds. The third
- * seat watches: nourishing doesn't ask it.
- */
+/** R-4.10-H4 The seat and the next are asked at once; the third seat watches. */
 export async function atNourishingTogether(arrange: Arrange): Promise<SeatTable> {
     const turn = await atPlayingCards(['move', 'tax', 'guild'])
     turn.host.edit((state) => {
@@ -141,10 +138,7 @@ export function threePawns(state: HydratedFeudumGameState, playerId: string): vo
     state.recomputeRanks()
 }
 
-/**
- * R-4.3.4, R-4.12.3 The seat is a serf on two filled landscapes under the next seat, and the one
- * the dawn asks to collect.
- */
+/** R-4.3.4, R-4.12.3 The seat, a serf on two filled landscapes under the next seat, is asked to collect. */
 export async function atCollecting(): Promise<SeatTable & { readonly spaces: readonly SpaceId[] }> {
     const turn = await atPlayingCards(['move', 'tax', 'guild'])
     const spaces: SpaceId[] = []

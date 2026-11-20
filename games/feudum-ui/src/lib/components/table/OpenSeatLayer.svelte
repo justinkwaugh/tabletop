@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Scrim from './Scrim.svelte'
 
-    /** From the displayed state, so it works in History View. */
+    /** Contract, Shared visual state: from the displayed state, so it works in History View. */
     let { playerId, onClose, sheet }: { playerId: string; onClose: () => void; sheet?: number } =
         $props()
 

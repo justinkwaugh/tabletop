@@ -5,7 +5,7 @@
     import Scrim from './Scrim.svelte'
     import { setTableLayers } from './tableLayersContext.js'
 
-    /** Contract, Card preview: the piece is one close press, so no part takes the pointer. */
+    /** Contract, Shared visual state: the piece is one close press, so no part takes the pointer. */
     let { face, width, onClose }: { face: EnlargedFace; width: number; onClose: () => void } =
         $props()
 

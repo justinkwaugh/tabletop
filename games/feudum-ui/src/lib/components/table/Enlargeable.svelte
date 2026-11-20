@@ -3,7 +3,7 @@
     import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
     import { getTableLayers } from './tableLayersContext.js'
 
-    /** Contract, Card preview: `face` reads current props, so a back enlarges as a back. */
+    /** Contract, Shared visual state: `face` reads current props, so a back enlarges as a back. */
     let {
         face,
         label,

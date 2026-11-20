@@ -87,7 +87,7 @@ const GroupOfType: ReadonlyMap<string, HistoryGroupKind> = new Map([
     [ActionType.CollectLandscapes, 'dawn']
 ])
 
-/** Contract, Replay: a turn with one of these moved something on the board. */
+/** Contract, Game log and history: a turn with one of these moved something on the board. */
 const TurnMovesTheBoard: ReadonlySet<string> = new Set([
     ActionType.Migrate,
     ActionType.Move,
