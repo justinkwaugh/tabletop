@@ -46,13 +46,6 @@ import { coverNeeds, loneCover } from './tileCover.js'
 
 type TurnStages = StagedSelectionState<TurnDraftValues>
 
-function stageValue<K extends TurnStage>(
-    stages: TurnStages,
-    stage: K
-): TurnDraftValues[K] | undefined {
-    return getStagedSelectionValue<TurnDraftValues, K>(stages, stage)
-}
-
 export const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
 
 export interface TurnPrimary {
@@ -92,21 +85,6 @@ export interface TurnPanel {
     readonly secondCard?: { readonly label: string; readonly shown: string; readonly on: boolean }
     readonly flow?: FlowView
     readonly primary?: TurnPrimary
-}
-
-/**
- * R-3.13-H1, R-3.15 Why only Forfeit is left, in one short line: a card that can't be last, a Repeat
- * with nothing to replay, or what the first of the card's modes is refused for.
- */
-function forfeitFact(
-    card: ActionCardKind,
-    notLast: boolean,
-    modes: readonly CardMode[]
-): string | undefined {
-    if (card === 'repeat') {
-        return 'Nothing to replay.'
-    }
-    return notLast ? "Can't be played last." : modes.find(({ refusal }) => refusal)?.refusal
 }
 
 /**
@@ -156,7 +134,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
                 ? []
                 : offers.cards.map(({ kind }) => kind)
         )
-        if (stageValue(stages, 'card') === 'repeat') {
+        if (this.stageValue(stages, 'card') === 'repeat') {
             stages = withLoneChoice<TurnDraftValues, 'replay'>(
                 stages,
                 TurnStageOrder,
@@ -166,7 +144,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         }
         const input = this.inputOf(stages, offers)
         const modeNow = this.openMode(stages, context, input)
-        const space = stageValue(stages, 'space')
+        const space = this.stageValue(stages, 'space')
         if (modeNow === ActionType.Improve) {
             const offer = improveOffers(state, playerId).find((row) => row.spaceId === space)
             stages = withLoneChoice<TurnDraftValues, 'guild'>(
@@ -184,7 +162,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
                 tendLandscapeOffers(state, playerId).tiles.map(({ tileId }) => tileId)
             )
         }
-        if (modeNow === ActionType.Migrate && stageValue(stages, 'character')) {
+        if (modeNow === ActionType.Migrate && this.stageValue(stages, 'character')) {
             const needs = coverNeeds(goodsShort(state, playerId, MigrateFood))
             stages = withLoneChoice<TurnDraftValues, 'cover'>(
                 stages,
@@ -197,17 +175,17 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
     }
 
     private inputOf(stages: TurnStages, offers: CardPlayOffers): CardPlayInput {
-        const replay = stageValue(stages, 'replay')
+        const replay = this.stageValue(stages, 'replay')
         const asRepeat = offers.repeats.find(({ kind }) => kind === replay)?.mode
         return {
             ...(asRepeat ? { asRepeat } : {}),
-            ...(stageValue(stages, 'secondCard') ? { secondCard: true } : {})
+            ...(this.stageValue(stages, 'secondCard') ? { secondCard: true } : {})
         }
     }
 
     private playedKind(stages: TurnStages): ActionCardKind | undefined {
-        const card = stageValue(stages, 'card')
-        return card === 'repeat' ? stageValue(stages, 'replay') : card
+        const card = this.stageValue(stages, 'card')
+        return card === 'repeat' ? this.stageValue(stages, 'replay') : card
     }
 
     private modesOf(
@@ -224,7 +202,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         context: TurnContext,
         input: CardPlayInput
     ): CardAction | undefined {
-        return stageValue(stages, 'mode') ?? loneMode(this.modesOf(stages, context, input))
+        return this.stageValue(stages, 'mode') ?? loneMode(this.modesOf(stages, context, input))
     }
 
     private offers: CardPlayOffers | undefined = $derived.by(() => {
@@ -453,7 +431,9 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         const noneOpen = modes.length > 0 && modes.every(({ refusal }) => refusal)
         const forfeitOnly =
             logic?.forfeitOnly === true || noneOpen || (card === 'repeat' && replays.length === 0)
-        const fact = forfeitOnly ? forfeitFact(card, logic?.forfeitOnly === true, modes) : undefined
+        const fact = forfeitOnly
+            ? this.forfeitFact(card, logic?.forfeitOnly === true, modes)
+            : undefined
         const { primary } = this
         return {
             line,
@@ -489,4 +469,26 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             ...(primary && !forfeitOnly ? { primary } : {})
         }
     })
+
+    private stageValue<K extends TurnStage>(
+        stages: TurnStages,
+        stage: K
+    ): TurnDraftValues[K] | undefined {
+        return getStagedSelectionValue<TurnDraftValues, K>(stages, stage)
+    }
+
+    /**
+     * R-3.13-H1, R-3.15 Why only Forfeit is left, in one short line: a card that can't be last, a Repeat
+     * with nothing to replay, or what the first of the card's modes is refused for.
+     */
+    private forfeitFact(
+        card: ActionCardKind,
+        notLast: boolean,
+        modes: readonly CardMode[]
+    ): string | undefined {
+        if (card === 'repeat') {
+            return 'Nothing to replay.'
+        }
+        return notLast ? "Can't be played last." : modes.find(({ refusal }) => refusal)?.refusal
+    }
 }

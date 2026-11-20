@@ -123,30 +123,6 @@ interface GuildView {
 const CostFromPrices = (prices: readonly number[]): ChipNote | undefined =>
     prices.length > 0 ? { kind: 'cost', label: `from ${Math.min(...prices)}s` } : undefined
 
-/** R-4.6.2 What a trade's row says in rose, before anything is picked. */
-function tradeCost(seat: BenchSeat, guildId: GuildId, source: BenchSource): ChipNote | undefined {
-    if (guildId === 'merchant') {
-        return CostFromPrices(
-            merchantTradeOffers(seat.state, seat.playerId).map(({ price }) => price)
-        )
-    }
-    if (guildId === 'alchemist') {
-        return CostFromPrices(alchemistTradeOffers(seat.state).map(({ price }) => price))
-    }
-    if (guildId === 'noble') {
-        return { kind: 'cost', label: `${nobleTradeOffer(seat.state).price}s each` }
-    }
-    const { payment } = source.previewOf({}) ?? {}
-    if (!payment) {
-        return undefined
-    }
-    return { kind: 'cost', label: `${paymentTotal(payment)}s` }
-}
-
-function upToVp(bestVp: number): string {
-    return `up to ${bestVp} vp`
-}
-
 /**
  * R-3.16, R-3.16.3, R-4.6 One guild function or Feast, from its guild or space to its send. The rule
  * is in the logic package and the bench's reading of it in `benchOffer`; this holds the presses.
@@ -326,10 +302,10 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         const name = `${fn.charAt(0).toUpperCase()}${fn.slice(1)}`
         const note =
             fn === 'trade'
-                ? tradeCost(seat, guildId, guildBenchSource(seat, guildId, fn))
+                ? this.tradeCost(seat, guildId, guildBenchSource(seat, guildId, fn))
                 : undefined
         return {
-            label: bestVp > 0 ? `${name} · ${upToVp(bestVp)}` : name,
+            label: bestVp > 0 ? `${name} · ${this.upToVp(bestVp)}` : name,
             picked: false,
             ...(note ? { note } : {}),
             press: () => {
@@ -393,7 +369,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
                     .filter((offer) => offer.spaceId === spaceId && !offer.reason)
                     .map(({ opponentId, guildId, fn, bestVp }): PanelChoice => ({
                         label: `${context.nameOf(opponentId)} · ${GuildById[guildId].name} ${fn}`,
-                        note: { kind: 'gain', label: upToVp(bestVp) },
+                        note: { kind: 'gain', label: this.upToVp(bestVp) },
                         picked: false,
                         press: () => {
                             this.set('feastOf', { opponentId, guildId })
@@ -513,5 +489,33 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
     pickOf(target: BoardTarget): FlowPick | undefined {
         const { view } = this
         return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)
+    }
+
+    /** R-4.6.2 What a trade's row says in rose, before anything is picked. */
+    private tradeCost(
+        seat: BenchSeat,
+        guildId: GuildId,
+        source: BenchSource
+    ): ChipNote | undefined {
+        if (guildId === 'merchant') {
+            return CostFromPrices(
+                merchantTradeOffers(seat.state, seat.playerId).map(({ price }) => price)
+            )
+        }
+        if (guildId === 'alchemist') {
+            return CostFromPrices(alchemistTradeOffers(seat.state).map(({ price }) => price))
+        }
+        if (guildId === 'noble') {
+            return { kind: 'cost', label: `${nobleTradeOffer(seat.state).price}s each` }
+        }
+        const { payment } = source.previewOf({}) ?? {}
+        if (!payment) {
+            return undefined
+        }
+        return { kind: 'cost', label: `${paymentTotal(payment)}s` }
+    }
+
+    private upToVp(bestVp: number): string {
+        return `up to ${bestVp} vp`
     }
 }

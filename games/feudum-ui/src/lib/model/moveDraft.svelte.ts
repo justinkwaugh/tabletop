@@ -127,13 +127,6 @@ function wayNote(way: RouteStep): ChipNote {
     return { kind: 'role', label: way.vessel === 'board' ? `board the ${medium}` : medium }
 }
 
-/** R-3.7.3 What a Godspeed destination says on its space; a ferry's fare keeps its rose chip. */
-function godspeedNote(way: RouteStep): ChipNote {
-    return way.ferry
-        ? { kind: 'cost', label: `Godspeed · ${wayNote(way).label}` }
-        : { kind: 'role', label: 'Godspeed' }
-}
-
 /**
  * R-3.7.1, R-3.7.3 One press a lit space can stand for: a step of the picked piece, or a monk's
  * Godspeed step from where it now stands. The logic folds Godspeed after the steps, so taking it
@@ -178,62 +171,9 @@ export function moveChoices(
     })
 }
 
-/** R-3.7.1, R-4.2 A way as the logic's step names it. */
-function wayOfStep({ to, route, vessel, ferry }: RouteStep): Omit<GodspeedStep, 'pawn'> {
-    return {
-        to,
-        medium: route.medium,
-        ...(vessel ? { vessel } : {}),
-        ...(ferry ? { ferry } : {})
-    }
-}
-
-function sameWay(a: RouteStep, b: RouteStep): boolean {
-    return a.to === b.to && a.route === b.route && a.vessel === b.vessel && a.ferry === b.ferry
-}
-
-/**
- * R-3.7.3 Godspeed's ways are the monk's own steps, so while steps remain a Godspeed way the
- * monk's step offers is that step: taking it as Godspeed would only give up the steps left.
- */
-function godspeedBeyondSteps(offers: MoveOffers): MoveOffers['godspeed'] {
-    return offers.godspeed.map(({ pawn, ways }) => {
-        const steps =
-            offers.pieces.find(({ piece }) => piece.kind === 'pawn' && piece.n === pawn)?.ways ?? []
-        return { pawn, ways: ways.filter((way) => !steps.some((step) => sameWay(step, way))) }
-    })
-}
-
-/** The moves to each space, spaces and moves in the order given. */
-function movesBySpace(moves: readonly SpaceMove[]): ReadonlyMap<SpaceId, readonly SpaceMove[]> {
-    const spaces = new Map<SpaceId, SpaceMove[]>()
-    for (const move of moves) {
-        spaces.set(move.way.to, [...(spaces.get(move.way.to) ?? []), move])
-    }
-    return spaces
-}
-
-function placeOf(state: HydratedFeudumGameState, piece: PieceRef): SpaceId | undefined {
-    return piece.kind === 'pawn'
-        ? state.getPlayerState(piece.playerId).pawns.find(({ n }) => n === piece.n)?.spaceId
-        : state.monsters[piece.monsterId].spaceId
-}
-
-function samePiece(a: PieceRef, b: PieceRef): boolean {
-    return pieceTarget(a) === pieceTarget(b)
-}
-
-function pilferKey({ spaceId, from, resource }: PilferOffer): BoardTarget {
-    return pilferTarget(spaceId, from, resource)
-}
-
 const PilferWord: Partial<Record<PilferResource, string>> = {
     shillings: 'shilling',
     targets: 'target'
-}
-
-function pilferWord(resource: PilferResource): string {
-    return PilferWord[resource] ?? resource
 }
 
 /**
@@ -297,7 +237,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
     private pickedPiece(movable: readonly MovePieceOffer[]): MovePieceOffer | undefined {
         const staged = this.value('piece')
         const piece = staged === 'none' ? undefined : (staged ?? this.steps.at(-1)?.piece)
-        return piece && movable.find((offer) => samePiece(offer.piece, piece))
+        return piece && movable.find((offer) => this.samePiece(offer.piece, piece))
     }
 
     /** Contract, Pick conventions: pressing a pick again unpicks it, whichever way it was picked. */
@@ -312,7 +252,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
     }
 
     private takeStep(piece: PieceRef, way: RouteStep): void {
-        this.push('steps', [...this.steps, { piece, ...wayOfStep(way) }])
+        this.push('steps', [...this.steps, { piece, ...this.wayOfStep(way) }])
     }
 
     /** R-3.7.3 Godspeed is the Move's last step: staging it ends the steps. */
@@ -320,7 +260,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         if (move.kind === 'step') {
             this.takeStep(move.piece, move.way)
         } else {
-            this.set('godspeed', { pawn: move.pawn, ...wayOfStep(move.way) })
+            this.set('godspeed', { pawn: move.pawn, ...this.wayOfStep(move.way) })
         }
     }
 
@@ -329,8 +269,8 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         return monks.flatMap(({ pawn, ways }) => {
             const piece: PieceRef = { kind: 'pawn', playerId: context.playerId, n: pawn }
             const from =
-                this.steps.findLast((step) => samePiece(step.piece, piece))?.to ??
-                placeOf(context.state, piece)
+                this.steps.findLast((step) => this.samePiece(step.piece, piece))?.to ??
+                this.placeOf(context.state, piece)
             assertExists(from, `R-3.7.3 Monk ${pawn} stands on the board`)
             return ways.map((way): SpaceMove => ({ kind: 'godspeed', pawn, from, way }))
         })
@@ -341,11 +281,11 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         moves: readonly SpaceMove[],
         ask: (spaceId: SpaceId) => void
     ): readonly FlowPick[] {
-        return [...movesBySpace(moves)].map(([spaceId, toSpace]): FlowPick => ({
+        return [...this.movesBySpace(moves)].map(([spaceId, toSpace]): FlowPick => ({
             target: spaceTarget(spaceId),
             notes: [
                 ...toSpace.flatMap((move) =>
-                    move.kind === 'godspeed' ? [godspeedNote(move.way)] : []
+                    move.kind === 'godspeed' ? [this.godspeedNote(move.way)] : []
                 ),
                 ...toSpace.flatMap((move) => (move.kind === 'step' ? [wayNote(move.way)] : []))
             ],
@@ -383,7 +323,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         const offers = moveOffers(context.state, context.playerId, { steps: [] })
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)
         const [lone] = movable
-        const monks = movable.length > 0 ? godspeedBeyondSteps(offers) : offers.godspeed
+        const monks = movable.length > 0 ? this.godspeedBeyondSteps(offers) : offers.godspeed
         const ways = [
             ...(movable.length === 1 ? lone.ways : []),
             ...monks.flatMap((monk) => monk.ways)
@@ -409,10 +349,10 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             ...(picked
                 ? picked.ways.map((way): SpaceMove => ({ kind: 'step', piece: picked.piece, way }))
                 : []),
-            ...this.godspeedMoves(context, godspeedBeyondSteps(offers))
+            ...this.godspeedMoves(context, this.godspeedBeyondSteps(offers))
         ]
         const pieces = movable.map(({ piece }): FlowPick => {
-            const isPicked = picked !== undefined && samePiece(picked.piece, piece)
+            const isPicked = picked !== undefined && this.samePiece(picked.piece, piece)
             return {
                 target: pieceTarget(piece),
                 press: () => {
@@ -473,7 +413,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         return (
             pilfer !== undefined &&
             pilfer !== 'none' &&
-            samePiece(pilfer.piece, offer.piece) &&
+            this.samePiece(pilfer.piece, offer.piece) &&
             pilfer.from === offer.from &&
             pilfer.resource === offer.resource
         )
@@ -506,21 +446,21 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             }
         })
         return {
-            anchor: pilferKey(offer),
+            anchor: this.pilferKey(offer),
             choices: [choice('Keep it', false), choice('Into the barrel', true)]
         }
     }
 
     /** R-3.7.4 One resource where a piece that moved now stands, or none. */
     private pilferView(context: MoveContext, offers: readonly PilferOffer[]): MoveView {
-        const once = [...new Map(offers.map((offer) => [pilferKey(offer), offer])).values()]
+        const once = [...new Map(offers.map((offer) => [this.pilferKey(offer), offer])).values()]
         const popup = this.barrelPopup(context, offers)
         const staged = this.value('pilfer')
         return {
             stage: 'pilfer',
             picks: once.map((offer): FlowPick => ({
-                target: pilferKey(offer),
-                notes: [{ kind: 'gain', label: pilferWord(offer.resource) }],
+                target: this.pilferKey(offer),
+                notes: [{ kind: 'gain', label: this.pilferWord(offer.resource) }],
                 press: () => {
                     if (this.isPicked(offer)) {
                         this.clearFrom('pilfer')
@@ -531,7 +471,9 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
                 }
             })),
             unlit: [],
-            picked: once.filter((offer) => this.isPicked(offer)).map(pilferKey),
+            picked: once
+                .filter((offer) => this.isPicked(offer))
+                .map((offer) => this.pilferKey(offer)),
             rows: [
                 {
                     label: 'No pilfer',
@@ -633,7 +575,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         const steps = `Move · ${count} ${count === 1 ? 'step' : 'steps'}`
         const pilfer = this.value('pilfer')
         return pilfer && pilfer !== 'none'
-            ? `${steps} · pilfer 1 ${pilferWord(pilfer.resource)}`
+            ? `${steps} · pilfer 1 ${this.pilferWord(pilfer.resource)}`
             : steps
     }
 
@@ -666,7 +608,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         const at = new Map<BoardTarget, SpaceId | undefined>()
         const walk = (piece: PieceRef, to: SpaceId) => {
             const target = pieceTarget(piece)
-            const from = at.has(target) ? at.get(target) : placeOf(state, piece)
+            const from = at.has(target) ? at.get(target) : this.placeOf(state, piece)
             at.set(target, to)
             return from
         }
@@ -722,5 +664,69 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
     pickOf(target: BoardTarget): FlowPick | undefined {
         const { view } = this
         return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)
+    }
+
+    /** R-3.7.3 What a Godspeed destination says on its space; a ferry's fare keeps its rose chip. */
+    private godspeedNote(way: RouteStep): ChipNote {
+        return way.ferry
+            ? { kind: 'cost', label: `Godspeed · ${wayNote(way).label}` }
+            : { kind: 'role', label: 'Godspeed' }
+    }
+
+    /** R-3.7.1, R-4.2 A way as the logic's step names it. */
+    private wayOfStep({ to, route, vessel, ferry }: RouteStep): Omit<GodspeedStep, 'pawn'> {
+        return {
+            to,
+            medium: route.medium,
+            ...(vessel ? { vessel } : {}),
+            ...(ferry ? { ferry } : {})
+        }
+    }
+
+    /**
+     * R-3.7.3 Godspeed's ways are the monk's own steps, so while steps remain a Godspeed way the
+     * monk's step offers is that step: taking it as Godspeed would only give up the steps left.
+     */
+    private godspeedBeyondSteps(offers: MoveOffers): MoveOffers['godspeed'] {
+        return offers.godspeed.map(({ pawn, ways }) => {
+            const steps =
+                offers.pieces.find(({ piece }) => piece.kind === 'pawn' && piece.n === pawn)
+                    ?.ways ?? []
+            return {
+                pawn,
+                ways: ways.filter((way) => !steps.some((step) => this.sameWay(step, way)))
+            }
+        })
+    }
+
+    /** The moves to each space, spaces and moves in the order given. */
+    private movesBySpace(moves: readonly SpaceMove[]): ReadonlyMap<SpaceId, readonly SpaceMove[]> {
+        const spaces = new Map<SpaceId, SpaceMove[]>()
+        for (const move of moves) {
+            spaces.set(move.way.to, [...(spaces.get(move.way.to) ?? []), move])
+        }
+        return spaces
+    }
+
+    private placeOf(state: HydratedFeudumGameState, piece: PieceRef): SpaceId | undefined {
+        return piece.kind === 'pawn'
+            ? state.getPlayerState(piece.playerId).pawns.find(({ n }) => n === piece.n)?.spaceId
+            : state.monsters[piece.monsterId].spaceId
+    }
+
+    private samePiece(a: PieceRef, b: PieceRef): boolean {
+        return pieceTarget(a) === pieceTarget(b)
+    }
+
+    private pilferKey({ spaceId, from, resource }: PilferOffer): BoardTarget {
+        return pilferTarget(spaceId, from, resource)
+    }
+
+    private pilferWord(resource: PilferResource): string {
+        return PilferWord[resource] ?? resource
+    }
+
+    private sameWay(a: RouteStep, b: RouteStep): boolean {
+        return a.to === b.to && a.route === b.route && a.vessel === b.vessel && a.ferry === b.ferry
     }
 }

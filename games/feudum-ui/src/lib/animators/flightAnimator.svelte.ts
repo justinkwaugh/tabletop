@@ -50,37 +50,6 @@ interface CopyPose {
 const ArcShare = 0.15
 const DesignSize = 48
 
-function drawCopy(element: CopyElement, pose: CopyPose, flash: FlashElement | undefined) {
-    const { style } = element
-    style.visibility = pose.visible ? 'visible' : 'hidden'
-    style.opacity = `${pose.opacity}`
-    const scale = pose.size / DesignSize
-    style.transform = `translate(${pose.x}px, ${pose.y}px) scale(${scale * pose.turn}, ${scale})`
-    if (flash) {
-        flash.style.opacity = `${pose.flash}`
-    }
-    for (const side of element.querySelectorAll('[data-flight-side]')) {
-        const first = side.getAttribute('data-flight-side') === 'first'
-        side.toggleAttribute('hidden', first === pose.turned)
-    }
-}
-
-/** When a flight's copy would reach its end, tweened. */
-function landsAt(flight: Flight): number {
-    const last = flight.legs[flight.legs.length - 1]
-    return last.at + last.duration
-}
-
-/** The board piece a flight's copy stands for once it lands, if it lands as one. */
-function restsAs(flight: Flight): string | undefined {
-    const end = flight.legs.at(-1)?.to
-    return end?.kind === 'board' ? end.rests : undefined
-}
-
-function lerp(from: number, to: number, t: number): number {
-    return from + (to - from) * t
-}
-
 /**
  * The layer's copies: one per piece crossing the wrapper. A copy lives from the moment it leaves until
  * the state shows, resting at its end; so the target, still the old state's, never shows it early, and
@@ -123,7 +92,7 @@ export class FlightAnimator {
         this.copies.set(id, element)
         const pose = this.poses.get(id)
         if (pose) {
-            drawCopy(element, pose, this.flashes.get(id))
+            this.drawCopy(element, pose, this.flashes.get(id))
         }
         return () => {
             if (this.copies.get(id) === element) {
@@ -149,7 +118,7 @@ export class FlightAnimator {
      * carries the copy instead: given a point in the board's units, the copy stands there.
      */
     carrier(piece: string): ((point: Point) => void) | undefined {
-        const flight = this.flights.findLast((one) => restsAs(one) === piece)
+        const flight = this.flights.findLast((one) => this.restsAs(one) === piece)
         const end = flight?.legs.at(-1)?.to
         if (!flight || end?.kind !== 'board') {
             return undefined
@@ -194,7 +163,7 @@ export class FlightAnimator {
         }
         const timeline = animationContext.actionTimeline
         if (this.reduced()) {
-            const landing = [...flights].sort((a, b) => landsAt(a) - landsAt(b))
+            const landing = [...flights].sort((a, b) => this.landsAt(a) - this.landsAt(b))
             for (const flight of landing) {
                 this.followWithoutTween(timeline, flight, generation)
             }
@@ -253,7 +222,7 @@ export class FlightAnimator {
     private redraw(flight: Flight, pose: CopyPose) {
         const element = this.copies.get(flight.id)
         if (element) {
-            drawCopy(element, pose, this.flashes.get(flight.id))
+            this.drawCopy(element, pose, this.flashes.get(flight.id))
         }
     }
 
@@ -311,9 +280,9 @@ export class FlightAnimator {
         const from = this.place(source)
         const to = this.place(leg.to)
         const rise = leg.arc ? Math.hypot(to.x - from.x, to.y - from.y) * ArcShare : 0
-        pose.x = lerp(from.x, to.x, t)
-        pose.y = lerp(from.y, to.y, t) - rise * Math.sin(Math.PI * t)
-        pose.size = lerp(from.size, to.size, t)
+        pose.x = this.lerp(from.x, to.x, t)
+        pose.y = this.lerp(from.y, to.y, t) - rise * Math.sin(Math.PI * t)
+        pose.size = this.lerp(from.size, to.size, t)
         pose.flash = 0
         if (leg.turnTo) {
             pose.turned = t >= 0.5
@@ -352,5 +321,36 @@ export class FlightAnimator {
             undefined,
             0
         )
+    }
+
+    private drawCopy(element: CopyElement, pose: CopyPose, flash: FlashElement | undefined) {
+        const { style } = element
+        style.visibility = pose.visible ? 'visible' : 'hidden'
+        style.opacity = `${pose.opacity}`
+        const scale = pose.size / DesignSize
+        style.transform = `translate(${pose.x}px, ${pose.y}px) scale(${scale * pose.turn}, ${scale})`
+        if (flash) {
+            flash.style.opacity = `${pose.flash}`
+        }
+        for (const side of element.querySelectorAll('[data-flight-side]')) {
+            const first = side.getAttribute('data-flight-side') === 'first'
+            side.toggleAttribute('hidden', first === pose.turned)
+        }
+    }
+
+    /** When a flight's copy would reach its end, tweened. */
+    private landsAt(flight: Flight): number {
+        const last = flight.legs[flight.legs.length - 1]
+        return last.at + last.duration
+    }
+
+    /** The board piece a flight's copy stands for once it lands, if it lands as one. */
+    private restsAs(flight: Flight): string | undefined {
+        const end = flight.legs.at(-1)?.to
+        return end?.kind === 'board' ? end.rests : undefined
+    }
+
+    private lerp(from: number, to: number, t: number): number {
+        return from + (to - from) * t
     }
 }

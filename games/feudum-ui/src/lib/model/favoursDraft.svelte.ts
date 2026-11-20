@@ -47,31 +47,6 @@ export interface FavoursPanel {
     readonly primary: TurnPrimary
 }
 
-function countsOf(goods: readonly Good[]): GoodCounts {
-    const counts = goodCounts()
-    for (const good of goods) {
-        counts[good] += 1
-    }
-    return counts
-}
-
-/** R-3.11.2 What taking them costs: the seat's beads turn to seals. */
-function beadsTurn(beads: number): string {
-    return beads === 1 ? '1 bead turns to a seal' : `${beads} beads turn to seals`
-}
-
-/** R-3.11.3 One way alone to take them: all that was drawn, or all of a single good. */
-function loneFavours(drawn: Readonly<GoodCounts>, favours: number): readonly (readonly Good[])[] {
-    const kinds = Goods.filter((good) => drawn[good] > 0)
-    const total = kinds.reduce((sum, good) => sum + drawn[good], 0)
-    if (kinds.length !== 1 && total !== favours) {
-        return []
-    }
-    return [
-        kinds.flatMap((good) => Array.from({ length: Math.min(drawn[good], favours) }, () => good))
-    ]
-}
-
 /** R-3.11.3 The inspector's favours among the goods in the open. */
 export class FavoursDraft extends DeciderDraft<FavoursValues> {
     constructor(contextOf: () => TurnContext | undefined) {
@@ -88,7 +63,7 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
                   stored,
                   FavoursStageOrder,
                   'goods',
-                  loneFavours(offer.drawn, offer.favours)
+                  this.loneFavours(offer.drawn, offer.favours)
               )
             : stored
     }
@@ -98,7 +73,7 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
         if (!context) {
             return undefined
         }
-        const favours = countsOf(this.value('goods') ?? [])
+        const favours = this.countsOf(this.value('goods') ?? [])
         const barrel = this.value('barrel') ?? 0
         return playUnless(
             reasonChooseFavoursRefused(context.state, context.playerId, favours, barrel),
@@ -168,8 +143,38 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
                       )
                   }
                 : {}),
-            ...(offer.beads > 0 ? { note: beadsTurn(offer.beads) } : {}),
+            ...(offer.beads > 0 ? { note: this.beadsTurn(offer.beads) } : {}),
             primary: { label: `Take ${offer.favours}`, enabled: this.play !== undefined }
         }
     })
+
+    private countsOf(goods: readonly Good[]): GoodCounts {
+        const counts = goodCounts()
+        for (const good of goods) {
+            counts[good] += 1
+        }
+        return counts
+    }
+
+    /** R-3.11.2 What taking them costs: the seat's beads turn to seals. */
+    private beadsTurn(beads: number): string {
+        return beads === 1 ? '1 bead turns to a seal' : `${beads} beads turn to seals`
+    }
+
+    /** R-3.11.3 One way alone to take them: all that was drawn, or all of a single good. */
+    private loneFavours(
+        drawn: Readonly<GoodCounts>,
+        favours: number
+    ): readonly (readonly Good[])[] {
+        const kinds = Goods.filter((good) => drawn[good] > 0)
+        const total = kinds.reduce((sum, good) => sum + drawn[good], 0)
+        if (kinds.length !== 1 && total !== favours) {
+            return []
+        }
+        return [
+            kinds.flatMap((good) =>
+                Array.from({ length: Math.min(drawn[good], favours) }, () => good)
+            )
+        ]
+    }
 }

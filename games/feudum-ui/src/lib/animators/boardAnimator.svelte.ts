@@ -36,29 +36,6 @@ interface Pose {
 
 const WorldPlacement = /translate\(\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*\)/
 
-function worldOf(element: MotionElement): Point {
-    const placed = element.parentElement?.getAttribute('transform')?.match(WorldPlacement)
-    return placed ? { x: Number(placed[1]), y: Number(placed[2]) } : { x: 0, y: 0 }
-}
-
-function rounded(value: number): number {
-    return Math.round(value * 100) / 100
-}
-
-/**
- * The attribute, not GSAP's matrix: Firefox leaves the offset of an SVG matrix transform out of the
- * CSS zoom the board draws at. The nested transforms keep the pose in the board's own units, so the
- * view round the board may frame, zoom or pan as it likes.
- */
-function draw(element: MotionElement, pose: Pose) {
-    const { x, y, rotate, scaleX, scaleY, opacity } = pose
-    element.setAttribute(
-        'transform',
-        `translate(${rounded(x)} ${rounded(y)}) rotate(${rounded(rotate)}) scale(${rounded(scaleX)} ${rounded(scaleY)})`
-    )
-    element.setAttribute('opacity', `${rounded(opacity)}`)
-}
-
 /** Where along the path `t` of its length lies. */
 function along(path: readonly Point[], t: number): Point {
     const lengths = [0]
@@ -286,7 +263,7 @@ export class BoardAnimator {
         }
         pose.opacity = motion.opacity ?? pose.opacity
         pose.scaleX = motion.scaleX ?? pose.scaleX
-        draw(element, pose)
+        this.draw(element, pose)
     }
 
     /** The element, as it stands now, and how a motion's progress draws it. */
@@ -339,7 +316,7 @@ export class BoardAnimator {
             if (motion.turns) {
                 pose.rotate = t < 1 ? 360 * motion.turns * t : 0
             }
-            draw(element, pose)
+            this.draw(element, pose)
         }
     }
 
@@ -352,7 +329,7 @@ export class BoardAnimator {
 
     /** An open side's areas first: a token placed in one is drawn there and on the board's svg. */
     private resolve(target: MotionTarget) {
-        const selector = selectorOf(target)
+        const selector = this.selectorOf(target)
         const element =
             [...this.areas.values()]
                 .map((area) => area.querySelector(selector))
@@ -362,7 +339,7 @@ export class BoardAnimator {
         }
         const pose = this.poses.get(element) ?? this.firstPose(target)
         this.poses.set(element, pose)
-        return { element, pose, world: worldOf(element) }
+        return { element, pose, world: this.worldOf(element) }
     }
 
     private firstPose(target: MotionTarget): Pose {
@@ -377,13 +354,36 @@ export class BoardAnimator {
             opacity: token ? 0 : 1
         }
     }
-}
 
-function selectorOf(target: MotionTarget): string {
-    if ('token' in target) {
-        return `[data-transient="${target.token}"]`
+    private worldOf(element: MotionElement): Point {
+        const placed = element.parentElement?.getAttribute('transform')?.match(WorldPlacement)
+        return placed ? { x: Number(placed[1]), y: Number(placed[2]) } : { x: 0, y: 0 }
     }
-    return target.part === 'rides'
-        ? `[data-motion="${target.piece}"] [data-rides]`
-        : `[data-motion="${target.piece}"]`
+
+    /**
+     * The attribute, not GSAP's matrix: Firefox leaves the offset of an SVG matrix transform out of the
+     * CSS zoom the board draws at. The nested transforms keep the pose in the board's own units, so the
+     * view round the board may frame, zoom or pan as it likes.
+     */
+    private draw(element: MotionElement, pose: Pose) {
+        const { x, y, rotate, scaleX, scaleY, opacity } = pose
+        element.setAttribute(
+            'transform',
+            `translate(${this.rounded(x)} ${this.rounded(y)}) rotate(${this.rounded(rotate)}) scale(${this.rounded(scaleX)} ${this.rounded(scaleY)})`
+        )
+        element.setAttribute('opacity', `${this.rounded(opacity)}`)
+    }
+
+    private selectorOf(target: MotionTarget): string {
+        if ('token' in target) {
+            return `[data-transient="${target.token}"]`
+        }
+        return target.part === 'rides'
+            ? `[data-motion="${target.piece}"] [data-rides]`
+            : `[data-motion="${target.piece}"]`
+    }
+
+    private rounded(value: number): number {
+        return Math.round(value * 100) / 100
+    }
 }

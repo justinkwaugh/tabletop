@@ -34,78 +34,6 @@ const StandInSize = 24
 const TableShare = 0.3
 const TableLargest = 220
 
-function selectorOf(part: SeatPart): string {
-    switch (part.part) {
-        case 'good':
-            return `[data-supply-good="${part.good}"]`
-        case 'barrel':
-            return '[data-barrel]'
-        case 'pouch':
-            return '[data-pouch]'
-        case 'shillings':
-            return '[data-supply-shillings]'
-        case 'markers':
-            return '[data-supply-markers]'
-        case 'tile':
-            return `[data-supply-tile="${part.tileId}"]`
-        case 'writ':
-            return `[data-writ-face="${part.writId}"]`
-        case 'writs':
-            return '[data-writ-count]'
-        case 'bead':
-            return `[data-supply-bead="${part.value}"]`
-        case 'seals':
-            return '[data-seals]'
-        case 'pawns':
-            return '[data-open-seat-of]'
-        case 'score':
-            return '[data-seat-score]'
-    }
-}
-
-function isDrawable(element: Element | null): element is HTMLElement | SVGElement {
-    return element instanceof HTMLElement || element instanceof SVGElement
-}
-
-function centreOf(rect: DOMRect): Point {
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-}
-
-function holds(rect: DOMRect, { x, y }: Point): boolean {
-    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
-}
-
-/**
- * On screen for a watcher: inside each scrolling ancestor, so a sheet's or the action panel's cap can
- * scroll a source out, and the topmost thing there (unless inert: nothing hits an inert element), so a
- * modal over the sidebar rules it out.
- */
-function isOnScreen(element: Element): boolean {
-    const rect = visualClientRect(element)
-    if (rect.width === 0 && rect.height === 0) {
-        return false
-    }
-    const centre = centreOf(rect)
-    for (let up = element.parentElement; up; up = up.parentElement) {
-        const { overflowX, overflowY, display } = getComputedStyle(up)
-        if (display === 'none') {
-            return false
-        }
-        const clips = [overflowX, overflowY].some((one) => one !== 'visible')
-        if (clips && !holds(visualClientRect(up), centre)) {
-            return false
-        }
-    }
-    if (element.closest('[inert]')) {
-        return true
-    }
-    const hit = element.ownerDocument.elementFromPoint(centre.x, centre.y)
-    const seat = element.closest('[data-open-seat], [data-seat-panel], [data-seat-chip]') ?? element
-    // Only the table's own elements count: a hit outside its root is something over it.
-    const root = element.closest('[data-game-ui]')
-    return !!hit && (!root || root.contains(hit)) && (seat.contains(hit) || hit.contains(element))
-}
-
 /**
  * Screen rectangles of the two ends, measured on every frame: the view may frame, zoom or pan the board,
  * and full screen moves everything. Everything is relative to the layer's own rectangle, since inside
@@ -156,16 +84,16 @@ export class DomFlightStage implements FlightStage {
                     }
                 }
                 const rect = visualClientRect(element)
-                const exact = isDrawable(element) && element.matches(this.exactOf(end))
+                const exact = this.isDrawable(element) && element.matches(this.exactOf(end))
                 return {
-                    ...relative(centreOf(rect)),
+                    ...relative(this.centreOf(rect)),
                     size: exact
                         ? Math.min(
                               CopyLargest,
                               Math.max(CopySmallest, Math.min(rect.width, rect.height))
                           )
                         : StandInSize,
-                    ...(exact && isDrawable(element) ? { source: element } : {})
+                    ...(exact && this.isDrawable(element) ? { source: element } : {})
                 }
             }
         }
@@ -175,7 +103,7 @@ export class DomFlightStage implements FlightStage {
         if (end.kind === 'offer') {
             return end.writId ? `[data-writ-offer="${end.writId}"]` : '[data-writ-backs]'
         }
-        return selectorOf(end.part)
+        return this.selectorOf(end.part)
     }
 
     /** The board's scale from its own rectangle: right under CSS zoom, and whatever frames it. */
@@ -200,7 +128,7 @@ export class DomFlightStage implements FlightStage {
         const pieceRect = piece ? visualClientRect(piece) : undefined
         const seen = pieceRect && pieceRect.width + pieceRect.height > 0 ? pieceRect : undefined
         const onScreen = seen
-            ? centreOf(seen)
+            ? this.centreOf(seen)
             : rect
               ? {
                     x: rect.left + (end.point.x - drawn.x) * scale,
@@ -219,7 +147,7 @@ export class DomFlightStage implements FlightStage {
         return {
             ...relative(kept),
             size: Math.max(CopySmallest, end.size * scale),
-            ...(end.hide && piece && isDrawable(piece) ? { source: piece } : {})
+            ...(end.hide && piece && this.isDrawable(piece) ? { source: piece } : {})
         }
     }
 
@@ -237,11 +165,11 @@ export class DomFlightStage implements FlightStage {
         const piece = end.piece ? area.querySelector(`[data-motion="${end.piece}"]`) : null
         const pieceRect = piece ? visualClientRect(piece) : undefined
         const seen = pieceRect && pieceRect.width + pieceRect.height > 0 ? pieceRect : undefined
-        const onScreen = seen ? centreOf(seen) : uprightPoint(guild, end.point, box)
+        const onScreen = seen ? this.centreOf(seen) : uprightPoint(guild, end.point, box)
         return {
             ...relative(onScreen),
             size: Math.max(CopySmallest, (end.size * box.height) / GuildAreaWidth),
-            ...(end.hide && piece && isDrawable(piece) ? { source: piece } : {})
+            ...(end.hide && piece && this.isDrawable(piece) ? { source: piece } : {})
         }
     }
 
@@ -260,12 +188,14 @@ export class DomFlightStage implements FlightStage {
         const page = this.table
         if (end.kind === 'offer') {
             const cap = page.querySelector(this.exactOf(end))
-            if (cap && isOnScreen(cap)) {
+            if (cap && this.isOnScreen(cap)) {
                 return cap
             }
         }
-        const part = end.kind === 'offer' ? selectorOf({ part: 'writs' }) : selectorOf(end.part)
-        const section = end.kind === 'seat' ? sectionOf(end.part) : '[data-seat-section="writs"]'
+        const part =
+            end.kind === 'offer' ? this.selectorOf({ part: 'writs' }) : this.selectorOf(end.part)
+        const section =
+            end.kind === 'seat' ? this.sectionOf(end.part) : '[data-seat-section="writs"]'
         const roots = [`[data-open-seat="${end.playerId}"]`, `[data-seat-panel="${end.playerId}"]`]
         for (const root of roots) {
             const seat = page.querySelector(root)
@@ -275,28 +205,103 @@ export class DomFlightStage implements FlightStage {
             const candidates = [part, section, '[data-open-seat-of]'].map((selector) =>
                 seat.querySelector(selector)
             )
-            const shown = [...candidates, seat].find((one) => one && isOnScreen(one))
+            const shown = [...candidates, seat].find((one) => one && this.isOnScreen(one))
             if (shown) {
                 return shown
             }
         }
         const chip = page.querySelector(`[data-seat-chip="${end.playerId}"]`)
-        return chip && isOnScreen(chip) ? chip : null
+        return chip && this.isOnScreen(chip) ? chip : null
     }
-}
 
-function sectionOf(part: SeatPart): string {
-    switch (part.part) {
-        case 'barrel':
-            return '[data-seat-section="barrel"]'
-        case 'pouch':
-            return '[data-seat-section="pouch"]'
-        case 'writ':
-        case 'writs':
-            return '[data-seat-section="writs"]'
-        case 'score':
-            return '[data-open-seat-of]'
-        default:
-            return '[data-seat-section="supply"]'
+    private selectorOf(part: SeatPart): string {
+        switch (part.part) {
+            case 'good':
+                return `[data-supply-good="${part.good}"]`
+            case 'barrel':
+                return '[data-barrel]'
+            case 'pouch':
+                return '[data-pouch]'
+            case 'shillings':
+                return '[data-supply-shillings]'
+            case 'markers':
+                return '[data-supply-markers]'
+            case 'tile':
+                return `[data-supply-tile="${part.tileId}"]`
+            case 'writ':
+                return `[data-writ-face="${part.writId}"]`
+            case 'writs':
+                return '[data-writ-count]'
+            case 'bead':
+                return `[data-supply-bead="${part.value}"]`
+            case 'seals':
+                return '[data-seals]'
+            case 'pawns':
+                return '[data-open-seat-of]'
+            case 'score':
+                return '[data-seat-score]'
+        }
+    }
+
+    private isDrawable(element: Element | null): element is HTMLElement | SVGElement {
+        return element instanceof HTMLElement || element instanceof SVGElement
+    }
+
+    /**
+     * On screen for a watcher: inside each scrolling ancestor, so a sheet's or the action panel's cap can
+     * scroll a source out, and the topmost thing there (unless inert: nothing hits an inert element), so a
+     * modal over the sidebar rules it out.
+     */
+    private isOnScreen(element: Element): boolean {
+        const rect = visualClientRect(element)
+        if (rect.width === 0 && rect.height === 0) {
+            return false
+        }
+        const centre = this.centreOf(rect)
+        for (let up = element.parentElement; up; up = up.parentElement) {
+            const { overflowX, overflowY, display } = getComputedStyle(up)
+            if (display === 'none') {
+                return false
+            }
+            const clips = [overflowX, overflowY].some((one) => one !== 'visible')
+            if (clips && !this.holds(visualClientRect(up), centre)) {
+                return false
+            }
+        }
+        if (element.closest('[inert]')) {
+            return true
+        }
+        const hit = element.ownerDocument.elementFromPoint(centre.x, centre.y)
+        const seat =
+            element.closest('[data-open-seat], [data-seat-panel], [data-seat-chip]') ?? element
+        // Only the table's own elements count: a hit outside its root is something over it.
+        const root = element.closest('[data-game-ui]')
+        return (
+            !!hit && (!root || root.contains(hit)) && (seat.contains(hit) || hit.contains(element))
+        )
+    }
+
+    private sectionOf(part: SeatPart): string {
+        switch (part.part) {
+            case 'barrel':
+                return '[data-seat-section="barrel"]'
+            case 'pouch':
+                return '[data-seat-section="pouch"]'
+            case 'writ':
+            case 'writs':
+                return '[data-seat-section="writs"]'
+            case 'score':
+                return '[data-open-seat-of]'
+            default:
+                return '[data-seat-section="supply"]'
+        }
+    }
+
+    private centreOf(rect: DOMRect): Point {
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    }
+
+    private holds(rect: DOMRect, { x, y }: Point): boolean {
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
     }
 }

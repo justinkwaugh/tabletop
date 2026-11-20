@@ -36,10 +36,6 @@ export interface AnswerStarvePanel {
     readonly letGo: { readonly label: string }
 }
 
-function needsOf(offer: AnswerStarveOffer): readonly Good[] {
-    return offer.holdsDefend && offer.wildTileNeeded ? ['food'] : []
-}
-
 /** R-3.14.2 The marker's owner, asked. Nothing here sends: each answer is a press (contract). */
 export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
     constructor(contextOf: () => TurnContext | undefined) {
@@ -51,7 +47,7 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
         { state, playerId }: TurnContext
     ): StagedSelectionState<AnswerStarveValues> {
         const offer = answerStarveOffer(state, playerId)
-        const needs = offer ? needsOf(offer) : []
+        const needs = offer ? this.needsOf(offer) : []
         return withLoneChoice<AnswerStarveValues, 'cover'>(
             stored,
             AnswerStarveStageOrder,
@@ -68,7 +64,7 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
             return undefined
         }
         const wildTiles = royalImmunity
-            ? coverSpends(this.value('cover') ?? [], needsOf(offer))
+            ? coverSpends(this.value('cover') ?? [], this.needsOf(offer))
             : []
         return playUnless(
             reasonAnswerStarveRefused(context.state, context.playerId, royalImmunity, wildTiles),
@@ -90,7 +86,7 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
         }
         const { state, playerId, nameOf } = context
         const { regionTiles } = state.getPlayerState(playerId)
-        const needs = needsOf(offer)
+        const needs = this.needsOf(offer)
         const cover = this.value('cover') ?? []
         const line = `${nameOf(offer.actorId)} starves your ${offer.role} at ${spaceLabel(offer.spaceId)}.`
         const anyTile = regionTiles.slice(0, needs.length)
@@ -123,4 +119,8 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
             letGo
         }
     })
+
+    private needsOf(offer: AnswerStarveOffer): readonly Good[] {
+        return offer.holdsDefend && offer.wildTileNeeded ? ['food'] : []
+    }
 }

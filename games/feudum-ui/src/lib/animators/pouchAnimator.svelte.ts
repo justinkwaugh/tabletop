@@ -22,10 +22,6 @@ export interface PouchChange {
     readonly pouchOf: (state: HydratedFeudumGameState, playerId: string) => SeatPouch
 }
 
-function turned(degrees: number): string {
-    return `perspective(12em) rotateY(${degrees}deg)`
-}
-
 /**
  * R-3.1-H1 The pouches turn over, edge on to face up, when every hand is final: one motion of the
  * state change, so it is ordered with the other animators and follows replay and silent restoring.
@@ -81,7 +77,7 @@ export class PouchAnimator {
         // Edge on from the first frame the face is drawn, so it is never seen flat before it turns.
         for (const element of targets) {
             this.turning.add(element)
-            element.style.transform = turned(90)
+            element.style.transform = this.turned(90)
         }
         const clock = { t: 0 }
         animationContext.actionTimeline.to(
@@ -95,7 +91,7 @@ export class PouchAnimator {
                         return
                     }
                     for (const element of targets) {
-                        element.style.transform = turned(Math.round((1 - clock.t) * 90))
+                        element.style.transform = this.turned(Math.round((1 - clock.t) * 90))
                     }
                 }
             },
@@ -113,5 +109,9 @@ export class PouchAnimator {
         if (this.revealing.size > 0) {
             this.revealing = new Map()
         }
+    }
+
+    private turned(degrees: number): string {
+        return `perspective(12em) rotateY(${degrees}deg)`
     }
 }

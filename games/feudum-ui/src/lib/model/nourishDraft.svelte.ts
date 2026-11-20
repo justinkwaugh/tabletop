@@ -92,30 +92,6 @@ export interface NourishPanel {
     readonly primary: TurnPrimary
 }
 
-/**
- * R-4.10.1 The send names how many pawns eat and with what, and how many are left: "Feed 2 · 2
- * food" (drawn as art), "Feed 2 · leave 1", "Leave the merchant".
- */
-function sendLabel({ fed, food, wine }: NourishSend, left: readonly GuildId[]): string {
-    if (left.length === 0) {
-        const paid = [...(food > 0 ? [`${food} food`] : []), ...(wine > 0 ? [`${wine} wine`] : [])]
-        return [`Feed ${fed}`, ...paid].join(' · ')
-    }
-    if (fed > 0) {
-        return `Feed ${fed} · leave ${left.length}`
-    }
-    return left.length === 1 ? `Leave the ${left[0]}` : `Leave ${left.length} pawns`
-}
-
-/** R-4.10.1 The paid good drawn on a fed pawn's chip on the map. */
-function payChip(feed: 'food' | 'wine'): ChipNote {
-    return {
-        kind: 'role',
-        label: `1 ${feed}`,
-        art: [{ kind: 'good', good: FeedArt[feed], count: 1 }]
-    }
-}
-
 function feedOf({ wineFed, unfed }: Feeding, n: PawnNumber): Feed {
     if (wineFed.includes(n)) {
         return 'wine'
@@ -356,7 +332,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             ...(hasCover ? { covers: this.coverRows(context, offer), coverLine: CoverLine } : {}),
             send,
             primary: {
-                label: sendLabel(
+                label: this.sendLabel(
                     send,
                     left.map(({ character }) => character)
                 ),
@@ -381,7 +357,9 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             return {
                 target: pawnTarget(context.playerId, n),
                 notes: [
-                    feed === 'unfed' ? { kind: 'threat' as const, label: 'home' } : payChip(feed)
+                    feed === 'unfed'
+                        ? { kind: 'threat' as const, label: 'home' }
+                        : this.payChip(feed)
                 ],
                 press: () => {
                     this.pressFeed(n, next)
@@ -407,5 +385,32 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
 
     pickOf(target: BoardTarget): FlowPick | undefined {
         return this.picks.find((pick) => pick.target === target)
+    }
+
+    /**
+     * R-4.10.1 The send names how many pawns eat and with what, and how many are left: "Feed 2 · 2
+     * food" (drawn as art), "Feed 2 · leave 1", "Leave the merchant".
+     */
+    private sendLabel({ fed, food, wine }: NourishSend, left: readonly GuildId[]): string {
+        if (left.length === 0) {
+            const paid = [
+                ...(food > 0 ? [`${food} food`] : []),
+                ...(wine > 0 ? [`${wine} wine`] : [])
+            ]
+            return [`Feed ${fed}`, ...paid].join(' · ')
+        }
+        if (fed > 0) {
+            return `Feed ${fed} · leave ${left.length}`
+        }
+        return left.length === 1 ? `Leave the ${left[0]}` : `Leave ${left.length} pawns`
+    }
+
+    /** R-4.10.1 The paid good drawn on a fed pawn's chip on the map. */
+    private payChip(feed: 'food' | 'wine'): ChipNote {
+        return {
+            kind: 'role',
+            label: `1 ${feed}`,
+            art: [{ kind: 'good', good: FeedArt[feed], count: 1 }]
+        }
     }
 }

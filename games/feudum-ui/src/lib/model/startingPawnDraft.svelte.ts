@@ -20,12 +20,6 @@ type MissingStages = Exclude<keyof StartingPawnValues, (typeof StartingPawnStage
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
 
-function samePress(a: StartingPawnPress, b: StartingPawnPress): boolean {
-    return a.kind === 'character'
-        ? b.kind === 'character' && a.character === b.character
-        : b.kind === 'space' && a.spaceId === b.spaceId
-}
-
 /**
  * R-1.4.9 `PlaceStartingPawn` with character and space in either order (contract: Setup; S2). The
  * stages hold presses rather than a fixed character-then-space, since the shared helpers clear
@@ -65,12 +59,18 @@ export class StartingPawnDraft extends StagedDraft<StartingPawnValues> {
     /** Pressing the first pick again unpicks it. */
     press(press: StartingPawnPress): void {
         const first = this.value('first')
-        if (first && samePress(first, press)) {
+        if (first && this.samePress(first, press)) {
             this.clearFrom('first')
         } else if (first && first.kind !== press.kind) {
             this.set('second', press)
         } else {
             this.push('first', press)
         }
+    }
+
+    private samePress(a: StartingPawnPress, b: StartingPawnPress): boolean {
+        return a.kind === 'character'
+            ? b.kind === 'character' && a.character === b.character
+            : b.kind === 'space' && a.spaceId === b.spaceId
     }
 }
