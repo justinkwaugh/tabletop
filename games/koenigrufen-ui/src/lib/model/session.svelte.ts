@@ -24,6 +24,7 @@ import {
     PlayCard,
     SayMeinSpiel,
     Suits,
+    trischakenTalonByTrick,
     type BidChoice,
     type Bonus,
     type CalledKing,
@@ -42,6 +43,7 @@ import { TrickAnimator } from '$lib/animators/trickAnimator.js'
 import { shownTrickOf, type ShownTrick } from '$lib/utils/trickMotion.js'
 import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
+import type { TableRules } from '$lib/utils/contractText.js'
 import { wonCardCount } from '$lib/utils/wonCards.js'
 import {
     announcementSections,
@@ -242,6 +244,11 @@ export class KoenigrufenGameSession extends GameSession<
     // The trick on the table. Each animated transition sets it to the trick it shows (a won trick
     // while it is shown and taken), so arriving cards are drawn before the state swap.
     shownTrick: ShownTrick = $derived(shownTrickOf(this.gameState))
+
+    // House rules this game was created with, for what the table says about the contracts.
+    readonly tableRules: TableRules = $derived({
+        talonByTrick: trischakenTalonByTrick(this.game.config)
+    })
 
     readonly cardPlaces = new CardPlaces()
 

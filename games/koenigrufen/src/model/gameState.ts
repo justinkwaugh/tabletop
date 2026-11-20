@@ -63,7 +63,13 @@ import {
     ScoreChanges
 } from './handScoring.js'
 import { HydratedKoenigrufenPlayerState, KoenigrufenPlayerState } from './playerState.js'
-import { canLayAway, shownDiscards, talonHalves, untouchedTalonHalfForDeclarer } from './talon.js'
+import {
+    canLayAway,
+    shownDiscards,
+    talonHalves,
+    TalonSize,
+    untouchedTalonHalfForDeclarer
+} from './talon.js'
 import {
     CompletedTrick,
     legalPlays,
@@ -611,6 +617,30 @@ export class HydratedKoenigrufenGameState
         return winnerId
     }
 
+    // Trischaken with the talon by trick: each of the first six tricks earns its winner the next
+    // talon card, once the trick is complete.
+    givesTalonCard(talonByTrick: boolean): boolean {
+        const last = this.tricks.at(-1)
+        return (
+            talonByTrick &&
+            this.contract?.contract === Contract.Trischaken &&
+            last !== undefined &&
+            last.talonCardId === undefined &&
+            this.tricks.length <= TalonSize
+        )
+    }
+
+    // The top talon card, shown to everyone and added to the last trick's winner's pile.
+    giveTalonCard(): { playerId: string; cardId: string } {
+        const last = this.tricks.at(-1)
+        assertExists(last, 'No trick has been won')
+        const [cardId, ...rest] = this.knownTalon()
+        assertExists(cardId, 'The talon is empty')
+        this.talon = rest
+        last.talonCardId = cardId
+        return { playerId: last.winnerId, cardId }
+    }
+
     // Play stops once a negative game's declarer has taken more tricks than the contract allows.
     isHandOver(): boolean {
         const allowed = this.contractDefinition().tricksToTake
@@ -726,11 +756,15 @@ export class HydratedKoenigrufenGameState
         }
     }
 
-    // The winner of the last trick takes the whole talon.
+    // The winner of the last trick takes the whole talon, or what is left of it when the first
+    // tricks' winners have each taken a card.
     private endTrischakenHand(): HandResult {
         const definition = this.contractDefinition()
         const declarerId = this.declarerId()
         const talon = this.knownTalon()
+        const given = this.tricks.flatMap((trick) =>
+            trick.talonCardId === undefined ? [] : [trick.talonCardId]
+        )
         const lastWinner = this.tricks.at(-1)?.winnerId
         const piles = this.seats().map((playerId) => {
             const won = this.tricks.filter((trick) => trick.winnerId === playerId)
@@ -738,7 +772,10 @@ export class HydratedKoenigrufenGameState
                 playerId,
                 tricks: won.length,
                 cardIds: [
-                    ...won.flatMap((trick) => trick.plays.map((play) => play.cardId)),
+                    ...won.flatMap((trick) => [
+                        ...trick.plays.map((play) => play.cardId),
+                        ...(trick.talonCardId === undefined ? [] : [trick.talonCardId])
+                    ]),
                     ...(playerId === lastWinner ? talon : [])
                 ]
             }
@@ -753,7 +790,7 @@ export class HydratedKoenigrufenGameState
             playerTricks: Object.fromEntries(piles.map((pile) => [pile.playerId, pile.tricks])),
             made: result.scoreChanges[declarerId] >= 0,
             scoreChanges: result.scoreChanges,
-            talon: [...talon],
+            talon: [...given, ...talon],
             discards: []
         }
     }

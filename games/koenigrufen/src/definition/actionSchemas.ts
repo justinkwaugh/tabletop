@@ -6,6 +6,7 @@ import { ChooseContract } from '../actions/chooseContract.js'
 import { ChooseTalonHalf } from '../actions/chooseTalonHalf.js'
 import { DealHand } from '../actions/dealHand.js'
 import { EndHand } from '../actions/endHand.js'
+import { GiveTalonCard } from '../actions/giveTalonCard.js'
 import { GiveUp } from '../actions/giveUp.js'
 import { LayAway } from '../actions/layAway.js'
 import { Pass } from '../actions/pass.js'
@@ -29,5 +30,6 @@ export const KoenigrufenActionSchemas = {
     [ActionType.LayAway]: LayAway,
     [ActionType.Announce]: Announce,
     [ActionType.PlayCard]: PlayCard,
+    [ActionType.GiveTalonCard]: GiveTalonCard,
     [ActionType.EndHand]: EndHand
 } satisfies Record<ActionType, Type.TSchema>

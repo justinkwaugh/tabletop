@@ -4,6 +4,7 @@
     // Besserrufer unfolds its bird buttons. Without hover, a first tap only unfolds a bid. Closed
     // rows only unfold.
     import type { BidChoice } from '@tabletop/koenigrufen'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { bidRows, type BidRow } from '$lib/utils/bidRows.js'
     import { ChoicePreview } from '$lib/utils/choicePreview.svelte.js'
     import BirdButtons from './BirdButtons.svelte'
@@ -14,7 +15,8 @@
         onchoose
     }: { choices: readonly BidChoice[]; onchoose: (choice: BidChoice) => void } = $props()
 
-    const rows = $derived(bidRows(choices))
+    const gameSession = getGameSession()
+    const rows = $derived(bidRows(choices, gameSession.tableRules))
     const preview = new ChoicePreview<string>()
     const shown = $derived(preview.shownAmong(rows.map((row) => row.key)))
 

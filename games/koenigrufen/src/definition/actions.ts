@@ -12,5 +12,6 @@ export enum ActionType {
     LayAway = 'LayAway',
     Announce = 'Announce',
     PlayCard = 'PlayCard',
+    GiveTalonCard = 'GiveTalonCard',
     EndHand = 'EndHand'
 }

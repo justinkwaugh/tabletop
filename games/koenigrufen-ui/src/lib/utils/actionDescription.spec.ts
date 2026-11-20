@@ -33,6 +33,18 @@ describe('history descriptions', () => {
         expect(describeAction(red, names, uniform)).toBe('P1 played 10♥; P2 won the trick')
     })
 
+    it('names the talon card given for a trick and who took it', () => {
+        const give = {
+            ...base,
+            playerId: undefined,
+            source: ActionSource.System,
+            type: ActionType.GiveTalonCard,
+            revealsInfo: true,
+            metadata: { playerId: 'p3', cardId: 'trump-7' }
+        }
+        expect(describeAction(give, names, StandardStyle)).toBe('P3 took the talon card 7')
+    })
+
     it('describes giving up and the hand it ends', () => {
         const giveUp = { ...base, type: ActionType.GiveUp }
         expect(describeAction(giveUp, names, StandardStyle)).toBe(

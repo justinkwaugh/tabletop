@@ -6,6 +6,7 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { isEndHand } from '../actions/endHand.js'
+import { isGiveTalonCard } from '../actions/giveTalonCard.js'
 import { isPlayCard } from '../actions/playCard.js'
 import { cardPoints, Deck, trumpId } from '../components/cards.js'
 import { Contract } from '../components/contracts.js'
@@ -180,6 +181,64 @@ describe('Trischaken', () => {
         // p0 pays 2 to each as a Bürgermeister and 2 to each for their empty hands; the three
         // tied at 0 settle no highest-to-lowest payment.
         expect(result?.scoreChanges).toEqual({ [p0]: -12, [p1]: 4, [p2]: 4, [p3]: 4 })
+        expect(session.actions.filter(isGiveTalonCard)).toHaveLength(0)
+    })
+
+    describe('with the talon by trick', () => {
+        it('gives the top talon card, shown to all, to each of the first six tricks’ winners', () => {
+            const session = startTestGame({ trischakenTalonByTrick: true })
+            const [p0, p1, p2, p3] = forehandTakesEverything(session)
+            const talon = [...(session.state.talon ?? [])]
+            declareByMeinSpiel(session, Contract.Trischaken)
+            for (let card = 0; card < 4; card++) {
+                play(session)
+            }
+            expect(session.state.tricks[0]?.talonCardId).toBe(talon[0])
+            expect(session.state.talon).toEqual(talon.slice(1))
+            for (const perspective of [
+                { kind: 'spectator' } as const,
+                ...[p0, p1, p2, p3].map((playerId) => ({ kind: 'player', playerId }) as const)
+            ]) {
+                const view = project(session, perspective)
+                expect(view.tricks[0]?.talonCardId).toBe(talon[0])
+                expect(view.talon).toBeUndefined()
+            }
+
+            playOutHand(session)
+            const given = session.actions.filter(isGiveTalonCard)
+            expect(given.map((action) => action.metadata)).toEqual(
+                talon.map((cardId) => ({ playerId: p0, cardId }))
+            )
+            expect(given.every((action) => action.revealsInfo)).toBe(true)
+            const result = lastHandResult(session)
+            expect(result?.talon).toEqual(talon)
+            expect(result?.playerPoints).toEqual({ [p0]: 70, [p1]: 0, [p2]: 0, [p3]: 0 })
+        })
+
+        it('gives the talon in order to the first six winners, whoever they are', () => {
+            for (const seed of ['1', '2', '3', '4', '5'].map((digit) => digit.repeat(32))) {
+                const session = startTestGame({ trischakenTalonByTrick: true }, seed)
+                const talon = [...(session.state.talon ?? [])]
+                declareByMeinSpiel(session, Contract.Trischaken)
+                playOutHand(session)
+                const winners = session.actions
+                    .filter(isPlayCard)
+                    .flatMap((action) => action.metadata?.trickWinnerId ?? [])
+                const given = session.actions.filter(isGiveTalonCard)
+                expect(given.map((action) => action.metadata?.playerId)).toEqual(
+                    winners.slice(0, 6)
+                )
+                expect(given.map((action) => action.metadata?.cardId)).toEqual(talon)
+                expect(lastHandResult(session)?.talon).toEqual(talon)
+            }
+        })
+
+        it('leaves the other contracts’ talons alone', () => {
+            const session = startTestGame({ trischakenTalonByTrick: true })
+            declareByMeinSpiel(session, Contract.Zwiccolo)
+            playOutHand(session)
+            expect(session.actions.filter(isGiveTalonCard)).toHaveLength(0)
+        })
     })
 })
 

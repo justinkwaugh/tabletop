@@ -14,6 +14,7 @@ import {
     isPass,
     isPickUpTalon,
     isPlayCard,
+    isGiveTalonCard,
     isRevealTalon,
     isSayMeinSpiel,
     type CalledKing,
@@ -119,6 +120,10 @@ export function describeAction(
             const played = `${who} played ${cardLabel(action.cardId, style)}`
             return winner ? `${played}; ${names.name(winner)} won the trick` : played
         }
+        case isGiveTalonCard(action):
+            return action.metadata
+                ? `${names.name(action.metadata.playerId)} took the talon card ${cardLabel(action.metadata.cardId, style)}`
+                : 'A talon card was taken'
         case isEndHand(action):
             return action.metadata
                 ? `${describeHandResult(action.metadata, names)} (${describeScoreChanges(action.metadata, names)})`
