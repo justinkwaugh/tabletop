@@ -66,6 +66,33 @@ test('completing a Y wins at once and rings the winning chain', async ({ page })
     expect(await page.locator('svg.y-board .mark.won').count()).toBeGreaterThan(3)
 })
 
+// The harness's own turn bar leaves when the game ends, moving the whole table, so the board is
+// measured from the action card above it.
+function cardAndBoard(page: import('@playwright/test').Page) {
+    return page.evaluate(() => {
+        const card = document.querySelector('.action-card')?.getBoundingClientRect()
+        const board = document.querySelector('svg.y-board')?.getBoundingClientRect()
+        if (!card || !board) throw Error('The table has an action card and a board')
+        return { card: Math.round(card.height), gap: Math.round(board.top - card.bottom) }
+    })
+}
+
+for (const [width, height] of [
+    [1280, 900],
+    [390, 844],
+    [320, 568]
+] as const) {
+    test(`the board stays put when the game ends, ${width} wide`, async ({ page }) => {
+        await page.setViewportSize({ width, height })
+        await openScenario(page, 'One from a y')
+        const before = await cardAndBoard(page)
+        await press(page, 'place on C1')
+        await settle(page)
+        await expect(page.getByText(/^(You win|.+ wins)$/)).toBeVisible()
+        expect(await cardAndBoard(page)).toEqual(before)
+    })
+}
+
 test('a hex board is played in cells named as on a Hex board', async ({ page }) => {
     await createGame(page, { board: 'Hex board, 9 a side' })
     expect(await page.getByRole('button', { name: /^place on / }).count()).toBe(45)
