@@ -18,9 +18,7 @@ export const EpochNames: Readonly<Record<Epoch, string>> = {
 
 export function tileName(tileId: TileId): string {
     const tile = RegionTiles.find(({ id }) => id === tileId)
-    if (!tile) {
-        return tileId
-    }
+    assertExists(tile, `R-1.1 ${tileId} is a region tile`)
     return `${tile.region.charAt(0).toUpperCase()}${tile.region.slice(1)} ${EpochNames[tile.epoch]}`
 }
 

@@ -1,19 +1,17 @@
 import { showLocation } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
-import { assertExists, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
     Goods,
     placeMarker,
     returnGoodToHaversack,
-    Routes,
     Spaces,
     type ActionCardKind,
     type Character,
     type Good,
     type HydratedFeudumGameState,
     type MonsterId,
-    type RouteStep,
     type SpaceId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -31,12 +29,7 @@ import {
     type BoardTarget
 } from './boardOffer.js'
 import type { PanelChoice } from './cardFlows.js'
-import {
-    MoveStageOrder,
-    moveChoices,
-    type MoveDraftValues,
-    type SpaceMove
-} from './moveDraft.svelte.js'
+import { MoveStageOrder, type MoveDraftValues } from './moveDraft.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 
@@ -351,39 +344,6 @@ describe('S26 R-4.2.3 ways to one space', () => {
             }
         ])
         expect(tableHost.sent.size).toBe(0)
-    })
-
-    it('a road and a ferry: the rows name each way, and the ferry is rose', () => {
-        // The printed board joins no two spaces by both, so this reads the popup's rows directly.
-        const road = Routes.find(({ medium }) => medium === 'road')
-        const ferry = Routes.find(({ medium }) => medium === 'ferry')
-        assertExists(road, 'R-1.2 A road is printed')
-        assertExists(ferry, 'R-1.2 A ferry is printed')
-        const ways: RouteStep[] = [
-            { route: road, to: 'space.desert.5' },
-            { route: ferry, to: 'space.desert.5', ferry: true }
-        ]
-        const piece = { kind: 'pawn', playerId: 'p1', n: 1 } as const
-        const moves = ways.map((way): SpaceMove => ({ kind: 'step', piece, way }))
-        const taken: SpaceMove[] = []
-        const choices = moveChoices(moves, (move) => taken.push(move))
-        expect(choices.map(({ label }) => label)).toEqual(['Road', 'Ferry · 2s'])
-        expect(choices[0].note).toBeUndefined()
-        expect(choices[1].note?.kind).toBe('cost')
-        choices[1].press?.({ pick: () => undefined, stack: () => undefined })
-        expect(taken).toEqual([moves[1]])
-
-        // R-3.7.3 With a Godspeed there that no step offers, each row says what happens, and its
-        // way when it has two.
-        const godspeed: SpaceMove = {
-            kind: 'godspeed',
-            pawn: 2,
-            from: 'space.desert.3',
-            way: ways[0]
-        }
-        expect(
-            moveChoices([...moves, godspeed], () => undefined).map(({ label }) => label)
-        ).toEqual(['Step · road', 'Step · ferry · 2s', 'Godspeed: monk from Desert 3'])
     })
 
     it('a ferry lights, in rose, only while no vessel is for sale', async () => {

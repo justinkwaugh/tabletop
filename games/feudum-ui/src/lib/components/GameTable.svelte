@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { keepWheelIn } from '$lib/utils/wheelKeeper.js'
     import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
     import {
@@ -140,12 +141,7 @@
         return () => observer.disconnect()
     }
 
-    /** One lasting listener: WebKit restyles the page whenever a wheel listener comes or goes. */
-    function keepWheelInColumn(event: WheelEvent) {
-        if (event.target instanceof Element && event.target.closest('[data-desk-column]')) {
-            event.stopPropagation()
-        }
-    }
+    const keepWheelInColumn = keepWheelIn('[data-desk-column]')
 
     /** Full screen is the wrapper's dialog becoming modal. */
     const watchExpansion: Attachment<HTMLElement> = (node) => {

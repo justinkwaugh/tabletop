@@ -35,11 +35,13 @@ import {
     type FlowPick,
     type FlowPlay,
     type FlowPopup,
-    type PanelChoice
+    type PanelChoice,
+    pickIn
 } from './cardFlows.js'
 import { primaryLabel } from './confirmingSend.js'
 import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
+import { spaced, titled } from '$lib/utils/words.js'
 
 export type MoveDraftValues = {
     /** R-3.7.1 Stacked: each press is one step, in press order. */
@@ -101,27 +103,6 @@ interface MoveView {
 /** R-3.7.3 The stage names itself; its lit spaces say the rest. */
 const GodspeedLine = 'Godspeed.'
 
-/** R-4.2 A step's medium in words. */
-function words(id: string): string {
-    return id.replaceAll('-', ' ')
-}
-
-function titled(line: string): string {
-    return `${line.charAt(0).toUpperCase()}${line.slice(1)}`
-}
-
-/** R-4.2, R-4.2.2, R-4.2.3 What one way says on its space and in its popup row. */
-function wayNote(way: RouteStep): ChipNote {
-    const medium = words(way.route.medium)
-    if (way.ferry) {
-        return { kind: 'cost', label: `${medium} · ${FerryFare}s` }
-    }
-    if (way.vessel === 'place') {
-        return { kind: 'role', label: `place your ${medium}` }
-    }
-    return { kind: 'role', label: way.vessel === 'board' ? `board the ${medium}` : medium }
-}
-
 /** R-3.7.3 Taking Godspeed while steps remain stops the steps there. */
 export type SpaceMove =
     | { readonly kind: 'step'; readonly piece: PieceRef; readonly way: RouteStep }
@@ -131,31 +112,6 @@ export type SpaceMove =
           readonly from: SpaceId
           readonly way: RouteStep
       }
-
-function sameMover(a: SpaceMove, b: SpaceMove): boolean {
-    return a.kind === 'step' ? b.kind === 'step' : b.kind === 'godspeed' && a.pawn === b.pawn
-}
-
-export function moveChoices(
-    moves: readonly SpaceMove[],
-    take: (move: SpaceMove) => void
-): readonly PanelChoice[] {
-    const monks = new Set(moves.flatMap((move) => (move.kind === 'godspeed' ? [move.pawn] : [])))
-    const mixed = monks.size > 1 || (monks.size > 0 && moves.some(({ kind }) => kind === 'step'))
-    return moves.map((move): PanelChoice => {
-        const note = wayNote(move.way)
-        const what = move.kind === 'step' ? 'Step' : `Godspeed: monk from ${spaceLabel(move.from)}`
-        const ways = moves.filter((other) => sameMover(other, move)).length
-        return {
-            label: !mixed ? titled(note.label) : ways > 1 ? `${what} · ${note.label}` : what,
-            ...(note.kind === 'cost' ? { note } : {}),
-            picked: false,
-            press: () => {
-                take(move)
-            }
-        }
-    })
-}
 
 const PilferWord: Partial<Record<PilferResource, string>> = {
     shillings: 'shilling',
@@ -268,7 +224,9 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
                 ...toSpace.flatMap((move) =>
                     move.kind === 'godspeed' ? [this.godspeedNote(move.way)] : []
                 ),
-                ...toSpace.flatMap((move) => (move.kind === 'step' ? [wayNote(move.way)] : []))
+                ...toSpace.flatMap((move) =>
+                    move.kind === 'step' ? [MoveDraft.wayNote(move.way)] : []
+                )
             ],
             press: () => {
                 const [only] = toSpace
@@ -289,7 +247,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         return spaceId && toSpace.length > 1
             ? {
                   anchor: spaceTarget(spaceId),
-                  choices: moveChoices(toSpace, (move) => {
+                  choices: MoveDraft.moveChoices(toSpace, (move) => {
                       this.takeMove(move)
                   })
               }
@@ -632,16 +590,14 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             : undefined
     })
 
-    /** A press outside an open popup does nothing (contract: Coexistence and precedence). */
     pickOf(target: BoardTarget): FlowPick | undefined {
-        const { view } = this
-        return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)
+        return pickIn(this.view, target)
     }
 
     /** R-3.7.3 What a Godspeed destination says on its space; a ferry's fare keeps its chip. */
     private godspeedNote(way: RouteStep): ChipNote {
         return way.ferry
-            ? { kind: 'cost', label: `Godspeed · ${wayNote(way).label}` }
+            ? { kind: 'cost', label: `Godspeed · ${MoveDraft.wayNote(way).label}` }
             : { kind: 'role', label: 'Godspeed' }
     }
 
@@ -696,5 +652,46 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
 
     private sameWay(a: RouteStep, b: RouteStep): boolean {
         return a.to === b.to && a.route === b.route && a.vessel === b.vessel && a.ferry === b.ferry
+    }
+
+    /** R-4.2, R-4.2.2, R-4.2.3 What one way says on its space and in its popup row. */
+    private static wayNote(way: RouteStep): ChipNote {
+        const medium = spaced(way.route.medium)
+        if (way.ferry) {
+            return { kind: 'cost', label: `${medium} · ${FerryFare}s` }
+        }
+        if (way.vessel === 'place') {
+            return { kind: 'role', label: `place your ${medium}` }
+        }
+        return { kind: 'role', label: way.vessel === 'board' ? `board the ${medium}` : medium }
+    }
+
+    private static sameMover(a: SpaceMove, b: SpaceMove): boolean {
+        return a.kind === 'step' ? b.kind === 'step' : b.kind === 'godspeed' && a.pawn === b.pawn
+    }
+
+    private static moveChoices(
+        moves: readonly SpaceMove[],
+        take: (move: SpaceMove) => void
+    ): readonly PanelChoice[] {
+        const monks = new Set(
+            moves.flatMap((move) => (move.kind === 'godspeed' ? [move.pawn] : []))
+        )
+        const mixed =
+            monks.size > 1 || (monks.size > 0 && moves.some(({ kind }) => kind === 'step'))
+        return moves.map((move): PanelChoice => {
+            const note = MoveDraft.wayNote(move.way)
+            const what =
+                move.kind === 'step' ? 'Step' : `Godspeed: monk from ${spaceLabel(move.from)}`
+            const ways = moves.filter((other) => MoveDraft.sameMover(other, move)).length
+            return {
+                label: !mixed ? titled(note.label) : ways > 1 ? `${what} · ${note.label}` : what,
+                ...(note.kind === 'cost' ? { note } : {}),
+                picked: false,
+                press: () => {
+                    take(move)
+                }
+            }
+        })
     }
 }

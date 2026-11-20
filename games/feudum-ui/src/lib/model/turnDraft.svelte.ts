@@ -30,7 +30,8 @@ import {
     type PanelChoice,
     type TurnDraftValues,
     type TurnPresser,
-    type TurnStage
+    type TurnStage,
+    pickIn
 } from './cardFlows.js'
 import {
     cardModes,
@@ -326,10 +327,8 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             : undefined
     })
 
-    /** A press outside an open popup does nothing (contract: Coexistence and precedence). */
     pickOf(target: BoardTarget): FlowPick | undefined {
-        const { flow } = this
-        return flow?.popup ? undefined : flow?.picks.find((pick) => pick.target === target)
+        return pickIn(this.flow, target)
     }
 
     get sendsNow(): FlowPlay | undefined {

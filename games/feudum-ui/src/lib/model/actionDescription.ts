@@ -88,6 +88,7 @@ import { PouchTitles } from './pouchWords.js'
 import { fillLine, goodsLine } from './roundEnd.js'
 import { tileName } from './tileName.js'
 import { writName } from './writLabels.js'
+import { plural, titled } from '$lib/utils/words.js'
 
 /** Hidden information: a line reads only the Action as this seat received it. */
 export interface ActionLineView {
@@ -114,20 +115,12 @@ function chickenNumber(space: ChickenSpaceId): number {
     return chicken.space
 }
 
-function plural(count: number, one: string, many = `${one}s`): string {
-    return `${count} ${count === 1 ? one : many}`
-}
-
 function listed(items: readonly string[]): string {
     return items.join(', ')
 }
 
 function spoken(word: string): string {
     return word.replaceAll('-', ' ')
-}
-
-function titled(word: string): string {
-    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
 }
 
 function article(word: string): string {
@@ -462,9 +455,7 @@ function influenceLine(action: GameAction, words: Words): string | undefined {
 
 function discFaces(discId: string): Clause {
     const disc = LocationDiscs.find(({ id }) => id === discId)
-    if (!disc) {
-        return undefined
-    }
+    assertExists(disc, `R-1.1 ${discId} is a location disc`)
     return 'faces' in disc && disc.faces.a !== disc.faces.b
         ? `disc ${disc.faces.a}/${disc.faces.b}`
         : undefined

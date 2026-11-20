@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { keepWheelIn } from '$lib/utils/wheelKeeper.js'
     import type { Snippet } from 'svelte'
     import { seatOrder } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -37,12 +38,7 @@
         }
     }
 
-    /** One lasting listener: WebKit restyles the page each time a wheel listener is added. */
-    function keepWheelOnCard(event: WheelEvent) {
-        if (event.target instanceof Element && event.target.closest('.card')) {
-            event.stopPropagation()
-        }
-    }
+    const keepWheelOnCard = keepWheelIn('.card')
 
     function openWrits() {
         open = undefined

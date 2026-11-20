@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import {
     GuildById,
     Mandates,
@@ -15,9 +16,7 @@ type SupplyCounts = Pick<HydratedFeudumGameState['supply'], 'vessels'>
 /** R-7 What a writ is called in a row: a mandate by its number, a charter by its wording. */
 export function writName(writId: WritId): string {
     const writ = RoyalWrits.find(({ id }) => id === writId)
-    if (!writ) {
-        return writId
-    }
+    assertExists(writ, `R-7 ${writId} is a writ`)
     return 'number' in writ ? `Mandate ${writ.number}` : writ.text
 }
 

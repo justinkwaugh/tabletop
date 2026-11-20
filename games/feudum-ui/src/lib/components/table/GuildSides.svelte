@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { keepWheelIn } from '$lib/utils/wheelKeeper.js'
     import type { BoundingBox } from '@tabletop/common'
     import OpenGuild from '$lib/components/guilds/OpenGuild.svelte'
     import {
@@ -44,12 +45,7 @@
         )
     )
 
-    /** One root listener: WebKit restyles the page whenever a wheel listener comes or goes. */
-    function keepWheelInView(event: WheelEvent) {
-        if (event.target instanceof Element && event.target.closest('[data-guild-view]')) {
-            event.stopPropagation()
-        }
-    }
+    const keepWheelInView = keepWheelIn('[data-guild-view]')
 
     function buttonLeft(side: GuildSide): number {
         return side === 'west' ? rest.x - SideGutter : rest.x + rest.width + SideButtonGap

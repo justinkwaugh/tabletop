@@ -11,16 +11,16 @@ export interface BenchRoom {
     readonly around: readonly number[]
 }
 
-/** Contract, The bench: the areas stand upright side by side. */
-export function fittedAreaLong(room: BenchRoom): number {
-    const count = room.around.length
-    const tall = room.height - room.title - room.footer - room.padding - Math.max(...room.around)
-    const across = (room.width - room.gap * (count - 1)) / count
-    return Math.floor(Math.min(tall, (across * GuildBox.width) / GuildBox.height))
-}
-
 export class BenchFit {
     long = $state<number | undefined>(undefined)
+
+    /** Contract, The bench: the areas stand upright side by side. */
+    fit(room: BenchRoom) {
+        const long = BenchFit.areaLong(room)
+        if (this.long === undefined || Math.abs(long - this.long) >= 1) {
+            this.long = long
+        }
+    }
 
     readonly attach: Attachment<HTMLElement> = (node) => {
         const title = node.querySelector<HTMLElement>('[data-bench-title]')
@@ -37,7 +37,7 @@ export class BenchFit {
             const outer = getComputedStyle(node)
             const inner = getComputedStyle(holder)
             const cap = parseFloat(outer.maxHeight)
-            const long = fittedAreaLong({
+            this.fit({
                 height:
                     (Number.isNaN(cap) ? node.clientHeight : cap) -
                     parseFloat(outer.paddingBottom) -
@@ -56,9 +56,6 @@ export class BenchFit {
                         (area.querySelector<HTMLElement>('[data-pick]')?.offsetHeight ?? 0)
                 )
             })
-            if (this.long === undefined || Math.abs(long - this.long) >= 1) {
-                this.long = long
-            }
         }
         // The next frame: a new long side resizes the bench this observer watches.
         let frame = 0
@@ -74,5 +71,13 @@ export class BenchFit {
             cancelAnimationFrame(frame)
             observer.disconnect()
         }
+    }
+
+    private static areaLong(room: BenchRoom): number {
+        const count = room.around.length
+        const tall =
+            room.height - room.title - room.footer - room.padding - Math.max(...room.around)
+        const across = (room.width - room.gap * (count - 1)) / count
+        return Math.floor(Math.min(tall, (across * GuildBox.width) / GuildBox.height))
     }
 }

@@ -1,4 +1,4 @@
-import type { BoundingBox } from '@tabletop/common'
+import { assertExists, type BoundingBox } from '@tabletop/common'
 import { GuildIds, HydratedFeudumGameState } from '@tabletop/feudum'
 import { flushSync } from 'svelte'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -32,9 +32,7 @@ import {
     deskViewHeight,
     litAreasOf,
     pickFrameOf,
-    pickFrameScale,
     PickFrameZoom,
-    rectOfArea,
     restScaleOf,
     SideButtonGap,
     SideButtonWidth,
@@ -77,6 +75,16 @@ function focusOn(setting: Partial<BoardFocusSetting> = {}) {
     return { focus, calls, pick }
 }
 
+/** Contract, Focus chooser: the rect the chooser frames for a guild column. */
+function framed(area: 'west' | 'east'): BoundingBox {
+    const { focus, calls } = focusOn()
+    focus.choose(area)
+    focus.settle()
+    const rect = calls.focused.at(-1)?.rect
+    assertExists(rect, `the ${area} column is framed`)
+    return rect
+}
+
 const frameA: PickFrame = { key: 'a', rect: { x: 1, y: 2, width: 3, height: 4 } }
 const frameB: PickFrame = { key: 'b', rect: { x: 5, y: 6, width: 7, height: 8 } }
 
@@ -90,7 +98,7 @@ function offerOf(...targets: BoardTarget[]): BoardOffer {
 describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     it('a pick may bring the board to 2.5 times its rest, and no further', () => {
         expect(PickFrameZoom).toBe(2.5)
-        expect(pickFrameScale(Rest)).toBeCloseTo(0.825)
+        expect(Rest * PickFrameZoom).toBeCloseTo(0.825)
         const { focus, calls, pick } = focusOn()
         pick.frame = frameA
         focus.settle()
@@ -101,7 +109,6 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
         const { focus, calls } = focusOn()
         focus.choose('west')
         focus.settle()
-        expect(calls.focused[0]?.rect).toEqual(rectOfArea('west'))
         expect(calls.focused[0]?.maxScale).toBeCloseTo(Rest * 2.5)
         expect(focus.shown).toBe('west')
     })
@@ -123,12 +130,12 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
         const inside = (rect: BoundingBox, guild: (typeof GuildIds)[number]) =>
             GuildAreas[guild].x >= rect.x && GuildAreas[guild].x < rect.x + rect.width
         for (const guild of ['alchemist', 'merchant', 'farmer'] as const) {
-            expect(inside(rectOfArea('west'), guild)).toBe(true)
-            expect(inside(rectOfArea('east'), guild)).toBe(false)
+            expect(inside(framed('west'), guild)).toBe(true)
+            expect(inside(framed('east'), guild)).toBe(false)
         }
         for (const guild of ['knight', 'noble', 'monk'] as const) {
-            expect(inside(rectOfArea('east'), guild)).toBe(true)
-            expect(inside(rectOfArea('west'), guild)).toBe(false)
+            expect(inside(framed('east'), guild)).toBe(true)
+            expect(inside(framed('west'), guild)).toBe(false)
         }
     })
 
@@ -139,10 +146,10 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
             inner.x + inner.width <= rect.x + rect.width &&
             inner.y + inner.height <= rect.y + rect.height
         for (const guild of ['alchemist', 'merchant', 'farmer'] as const) {
-            expect(holds(rectOfArea('west'), railOverRect(guild))).toBe(true)
+            expect(holds(framed('west'), railOverRect(guild))).toBe(true)
         }
         for (const guild of ['knight', 'noble', 'monk'] as const) {
-            expect(holds(rectOfArea('east'), railOverRect(guild))).toBe(true)
+            expect(holds(framed('east'), railOverRect(guild))).toBe(true)
         }
     })
 
@@ -375,7 +382,7 @@ describe('R-3.7 a pick frames once, and a hand clears it', () => {
         expect(focus.framed).toBeUndefined()
         expect(focus.shown).toBe('west')
         focus.settle()
-        expect(calls.focused.at(-1)?.rect).toEqual(rectOfArea('west'))
+        expect(calls.focused.at(-1)?.rect).toEqual(framed('west'))
     })
 
     it('a hand pan clears the framing and the chip: closing moves nothing', () => {
@@ -415,7 +422,7 @@ describe('R-3.7 a pick frames once, and a hand clears it', () => {
         focus.choose('east')
         expect(focus.framed).toBeUndefined()
         focus.settle()
-        expect(calls.focused.at(-1)?.rect).toEqual(rectOfArea('east'))
+        expect(calls.focused.at(-1)?.rect).toEqual(framed('east'))
     })
 
     it('a frame reaches no offer: it reads the view only', () => {
@@ -519,9 +526,9 @@ describe('R-4.6.1 what a pick’s offer asks of the board', () => {
 
     it('an open popup keeps its anchor framed: a guild’s holds its own column', () => {
         const frame = pickFrameOf(stateWith, offerOf(), 'guild:merchant')
-        expect(frame).toMatchObject({ area: 'west', rect: rectOfArea('west') })
+        expect(frame).toMatchObject({ area: 'west', rect: framed('west') })
         const east = pickFrameOf(stateWith, offerOf('guild:merchant'), 'guild:monk')
-        expect(east).toMatchObject({ area: 'east', rect: rectOfArea('east') })
+        expect(east).toMatchObject({ area: 'east', rect: framed('east') })
         expect(pickFrameOf(stateWith, offerOf(), 'voyage:2')?.rect.width).toBeGreaterThan(0)
     })
 

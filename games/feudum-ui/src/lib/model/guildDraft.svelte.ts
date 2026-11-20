@@ -42,6 +42,7 @@ import {
     type StagePick
 } from './boardOffer.js'
 import type { FlowPick, FlowPlay, FlowPopup, PanelChoice } from './cardFlows.js'
+import { pickIn } from './cardFlows.js'
 import { printedCost } from './cardModes.js'
 import { sendsOnPress } from './confirmingSend.js'
 import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
@@ -473,10 +474,8 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             : undefined
     })
 
-    /** Contract, Coexistence and precedence: a press outside an open popup does nothing. */
     pickOf(target: BoardTarget): FlowPick | undefined {
-        const { view } = this
-        return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)
+        return pickIn(this.view, target)
     }
 
     /** R-4.6.2 What a trade's row says in rose, before anything is picked. */

@@ -48,6 +48,7 @@ import { guildTarget, spaceTarget, type ChipNote } from './boardOffer.js'
 import type { FlowPick, FlowPopup, PanelChoice } from './cardFlows.js'
 import { primaryLabel } from './confirmingSend.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
+import { plural, spaced, titled } from '$lib/utils/words.js'
 
 export type BenchPick =
     | { readonly kind: 'good'; readonly good: Good }
@@ -167,18 +168,6 @@ const RosaryPlace = 'rosary'
 
 export function knightRowPlace(rowId: KnightRowId): string {
     return `knight-row:${rowId}`
-}
-
-function words(id: string): string {
-    return id.replaceAll('-', ' ')
-}
-
-function titled(line: string): string {
-    return `${line.charAt(0).toUpperCase()}${line.slice(1)}`
-}
-
-function plural(count: number, one: string): string {
-    return `${count} ${one}${count === 1 ? '' : 's'}`
 }
 
 /** R-4.6.1 A pick's params: the function reads its own. */
@@ -380,7 +369,7 @@ function inventionCandidates(
         )
         return {
             pick: { kind: 'invention', invention },
-            label: titled(words(invention)),
+            label: titled(spaced(invention)),
             area,
             note: { kind: 'cost', label: recipeOf(added) }
         }
@@ -504,7 +493,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
             candidates: ({ state }) =>
                 alchemistTradeOffers(state).map(({ vessel, price }) => ({
                     pick: { kind: 'vessel', vessel },
-                    label: titled(words(vessel)),
+                    label: titled(spaced(vessel)),
                     area: 0,
                     note: { kind: 'cost', label: `${price}s` },
                     price
@@ -845,7 +834,7 @@ function sulfurChoices(
 }
 
 function monsterWord(monster: MonsterId): string {
-    return words(monster)
+    return spaced(monster)
 }
 
 interface MapStep {

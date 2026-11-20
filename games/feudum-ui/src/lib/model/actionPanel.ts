@@ -28,6 +28,7 @@ import type { TileArt } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 import { waitingWords } from './watching.js'
 import { writName } from './writLabels.js'
+import { titled } from '$lib/utils/words.js'
 
 export type RowArt =
     | { readonly kind: 'good'; readonly good: Good }
@@ -281,10 +282,6 @@ export type PanelSession = Pick<
     | 'answerAttack'
     | 'answerStarveWith'
 >
-
-function titled(word: string): string {
-    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
-}
 
 function cardFace(kind: ActionCardKind): { readonly number: number; readonly label: string } {
     return {

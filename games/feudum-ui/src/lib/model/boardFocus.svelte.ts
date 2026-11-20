@@ -247,20 +247,12 @@ function columnOf(area: 'west' | 'east'): BoundingBox {
     return unionOf(corners, 0)
 }
 
-export function rectOfArea(area: FramedArea): BoundingBox {
-    return area === 'map' ? MapArea : columnOf(area)
-}
-
 /** As the scaling wrapper reckons its rest. */
 export function restScaleOf(viewWidth: number, viewHeight: number): number {
     const across = viewWidth / BoardWidth
     const down = Math.max(1, viewHeight - ChooserInset) / ScaledHeight
     const contain = Math.min(across, down, 1)
     return contain >= CoverBelowScale ? contain : Math.min(Math.max(across, down), 1)
-}
-
-export function pickFrameScale(restScale: number): number {
-    return restScale * PickFrameZoom
 }
 
 function pieceSpace(state: HydratedFeudumGameState, target: string): string | undefined {
@@ -394,7 +386,7 @@ export class BoardFocus {
 
     private options() {
         return {
-            maxScale: pickFrameScale(this.setting.restScale()),
+            maxScale: this.setting.restScale() * PickFrameZoom,
             padding: FramePadding,
             animate: this.setting.animate()
         }
@@ -412,7 +404,7 @@ export class BoardFocus {
         if (this.restsOn(area)) {
             this.setting.view()?.fitToContent({ animate: this.setting.animate() })
         } else {
-            this.frame(rectOfArea(area))
+            this.frame(BoardFocus.rectOf(area))
         }
     }
 
@@ -432,5 +424,9 @@ export class BoardFocus {
     handMoved() {
         this.chosen = undefined
         this.framed = undefined
+    }
+
+    private static rectOf(area: FramedArea): BoundingBox {
+        return area === 'map' ? MapArea : columnOf(area)
     }
 }

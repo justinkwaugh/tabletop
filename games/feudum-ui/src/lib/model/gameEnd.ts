@@ -9,6 +9,7 @@ import {
     type VoyageSpaceId,
     type WritId
 } from '@tabletop/feudum'
+import { plural } from '$lib/utils/words.js'
 
 export interface GameEndColumn {
     readonly playerId: string
@@ -46,10 +47,6 @@ export interface GameEndSummaryView {
 function voyageLabel(spaceId: VoyageSpaceId | undefined): string {
     const on = spaceId && voyageSpace(spaceId)
     return on ? `Section ${on.section} · space ${on.space}` : 'No disc'
-}
-
-function plural(count: number, one: string, many = `${one}s`): string {
-    return `${count} ${count === 1 ? one : many}`
 }
 
 /** R-6.3 "Tie: most sulfur in the wine barrel; still tied, shared." */

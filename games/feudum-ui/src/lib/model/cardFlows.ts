@@ -74,6 +74,7 @@ import type { SendPreview } from './confirmingSend.js'
 import { dieLabel, rankedDie, type DieArt } from './guildDie.js'
 import { coverAfterPress, coverNeeds, coverSpends } from './tileCover.js'
 import { tileArt, tileName, type TileArt } from './tileName.js'
+import { titled } from '$lib/utils/words.js'
 
 export type TurnDraftValues = {
     card: ActionCardKind
@@ -205,6 +206,14 @@ export interface FlowView {
     readonly handedOff?: ActionType
 }
 
+/** Contract, Coexistence and precedence: a press outside an open popup does nothing. */
+export function pickIn(
+    view: Pick<FlowView, 'picks' | 'popup'> | undefined,
+    target: BoardTarget
+): FlowPick | undefined {
+    return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)
+}
+
 export interface FlowInput extends TurnContext {
     readonly input: CardPlayInput
     readonly read: <K extends TurnStage>(stage: K) => TurnDraftValues[K] | undefined
@@ -217,10 +226,6 @@ const Pick =
     (draft) => {
         draft.pick(stage, value)
     }
-
-function titled(word: string): string {
-    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
-}
 
 export function spaceLabel(spaceId: SpaceId): string {
     return `${titled(regionOf(spaceId))} ${spaceId.split('.')[2]}`
