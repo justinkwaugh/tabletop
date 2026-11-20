@@ -223,7 +223,7 @@ The catalog title image is the supplied cover, `src/lib/art/supplied/cover.webp`
 | Ids                                                    | Count | Component                   | Rendered size       | Natural size          |
 | ------------------------------------------------------ | ----- | --------------------------- | ------------------- | --------------------- |
 | `good.<good>`                                          | 5     | `GoodToken`                 | up to 47 px         | 99 px long side       |
-| `shilling.1`, `shilling.5`                             | 2     | `ShillingToken`             | up to 47 px         | 106 px                |
+| `shilling.1`                                           | 1     | `ShillingToken`             | up to 47 px         | 106 px                |
 | `seal`, `bead.2` to `bead.5`                           | 5     | `SealFace`                  | up to 420 px        | 128 px                |
 | `target.archery`                                       | 1     | `ArcheryTarget`             | up to 34 px         | 64 px                 |
 | `vessel.<vessel>`                                      | 3     | `VesselToken`               | up to 40 x 27 px    | 88 x 61 px            |

@@ -25,7 +25,7 @@ import { suppliedFiles } from './suppliedFiles.js'
 const EpochNumerals = { 1: 'i', 2: 'ii', 3: 'iii', 4: 'iv' } as const
 
 export const BeadValues: readonly BeadValue[] = [2, 3, 4, 5]
-export const ShillingValues = [1, 5] as const
+export const ShillingValues = [1] as const
 export type ShillingValue = (typeof ShillingValues)[number]
 
 export const goodAsset = (good: Good) => `good.${good}` as const

@@ -21,7 +21,6 @@ import {
     ringPartAsset,
     SealAsset,
     SeatPieceKinds,
-    ShillingValues,
     TargetAsset,
     WritBackAsset,
     beadAsset,
@@ -101,10 +100,8 @@ const shownBy = new Map<string, () => string>([
         monsterAsset(monster),
         () => render(MonsterToken, { props: { monster } }).body
     ]),
-    ...ShillingValues.map((value): [string, () => string] => [
-        shillingAsset(value),
-        () => render(ShillingToken, { props: { value } }).body
-    ]),
+    // Every shilling the table and its text draw is a single one (`tokenText.ts`).
+    [shillingAsset(1), () => render(ShillingToken, { props: { value: 1 } }).body],
     ...BeadValues.map((value): [string, () => string] => [
         beadAsset(value),
         () => render(SealFace, { props: { faceShown: true, beadValue: value } }).body
