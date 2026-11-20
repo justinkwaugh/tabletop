@@ -417,7 +417,13 @@
             return
         }
         boardFocus = { target, restore: boardFocus?.restore ?? wrapper.captureView() }
-        if (area) wrapper.focusRect(viewportRect(boardViewport, area), { animate: true })
+        // Markets print along the board's top, so a centred focus on a short (one-row) market pulls
+        // blank space in above it; every market frames from its top edge instead.
+        if (area)
+            wrapper.focusRect(viewportRect(boardViewport, area), {
+                animate: true,
+                align: target === 'Market' ? 'top' : 'center'
+            })
         else wrapper.fitToContent({ animate: true })
     }
     const boardFocusTarget = $derived(
@@ -500,7 +506,7 @@
               ? offeredCityLocationIds
               : !session.privateActions.trackPowerSelection && session.stations.canPlace
                 ? session.stations.locationIds
-                : session.track.locationIds
+                : session.track.pieceLocationIds
     )
     const highlightedPlacementLocationIds = $derived(
         !locationChoice && session.track.showChoices
@@ -977,6 +983,7 @@
         highlightedLocationIds={mapMask?.highlightedLocationIds}
         previewLocationId={session.track.displayedPreview?.locationId ??
             session.stations.preview?.position.locationId}
+        tileGroups={session.track.showChoices ? session.mapView.tileGroups : undefined}
         translucentLocationId={consentPreview?.details.locationId}
         appearance={tileAppearance}
         hexDiameter={MapHexDiameter}
@@ -1029,6 +1036,7 @@
                     companyName={(companyId) => session.companyName(companyId)}
                     zones={session.presentation.marketZones}
                     ledge={session.presentation.marketLedge}
+                    markers={session.marketMarkers}
                 />
                 {#if session.loans.rateTable}<LoanRateTable view={session.loans.rateTable} />{/if}
                 {#if boardInformation && corner}<div
@@ -1530,6 +1538,7 @@
                                                 session.companyName(companyId)}
                                             zones={session.presentation.marketZones}
                                             ledge={session.presentation.marketLedge}
+                                            markers={session.marketMarkers}
                                         />
                                         {#if session.loans.rateTable}<LoanRateTable
                                                 view={session.loans.rateTable}
@@ -1676,6 +1685,7 @@
                 preview={session.historicalMap}
                 revenueStageColors={session.mapView.revenueStageColors}
                 appearance={tileAppearance}
+                tileGroups={session.mapView.tileGroups}
                 onclose={() => session.closeHistoricalMap()}
             />
         {/if}
@@ -1983,6 +1993,15 @@
         letter-spacing: 0.07em;
         text-transform: uppercase;
         line-height: 1;
+        /* A faint dotted rule, like the Companies headers' underline, hints the strip opens the phase
+           chart. A border rather than a text underline runs unbroken across Train limit's flex gap. */
+        padding-bottom: 1px;
+        border-bottom: 1px dotted color-mix(in srgb, currentColor 40%, transparent);
+    }
+    @media (hover: hover) {
+        .game-information:hover .information-label {
+            border-bottom-color: currentColor;
+        }
     }
 
     .railway-table {

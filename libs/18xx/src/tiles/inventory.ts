@@ -322,3 +322,22 @@ export class TileSet {
         ])
     }
 }
+
+/** The inventory with these tiles laid from the supply, each over what lay there before. */
+export function withTiles(
+    tileSet: TileSet,
+    inventory: TileInventory,
+    tiles: readonly BoardTile[]
+): TileInventory {
+    let next = inventory
+    for (const { locationId, definitionId, rotation } of tiles) {
+        const [piece] = tileSet.availablePieces(next, definitionId)
+        assertExists(piece, `Tile ${definitionId} is in the supply`)
+        next = tileSet.replace(next, {
+            locationId,
+            placement: { pieceId: piece.id, definitionId, rotation },
+            returnPrevious: true
+        })
+    }
+    return next
+}

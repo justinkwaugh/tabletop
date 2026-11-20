@@ -108,6 +108,7 @@ export type {
     TokenBadge,
     TrainTokens,
     MarketLedge,
+    MarketMarker,
     MarketZone,
     MarketZoneBanner,
     MarketZoneFill,
@@ -217,6 +218,7 @@ export {
     MarketScenePadding,
     MarketTokenSize,
     MarketZoneBannerHeight,
+    MarketTabHeight,
     marketGeometry
 } from './stock/marketTokenLayout.js'
 

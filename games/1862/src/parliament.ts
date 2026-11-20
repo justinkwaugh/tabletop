@@ -1,10 +1,12 @@
 import {
     FloatCompany,
+    RoundEnd,
     isFloatCompany,
     SystemActionFirstHandler,
     canStartStockRound,
     finiteCashOwnedBy,
     nextCompanyToFloat,
+    roundEnd,
     settleCashPayments,
     startCompanyAtPar,
     startFirstStockRound,
@@ -24,6 +26,7 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { CompanyRules1862, canStart } from './companyRules.js'
+import { EndingRules1862 } from './operating.js'
 import { IpoPoolId } from './pools.js'
 import { ParliamentState, type HydratedState1862, type State1862 } from './state.js'
 import { DirectorShares } from './charters.js'
@@ -382,7 +385,9 @@ export class HydratedStartParliamentRound extends StartAction.Base {
     }
 }
 
-const EndAction = systemAction('EndParliamentRound', {})
+const EndAction = systemAction('EndParliamentRound', {
+    metadata: Type.Optional(Type.Object({ roundEnd: RoundEnd }, { additionalProperties: false }))
+})
 export const EndParliamentRound = EndAction.schema
 export const isEndParliamentRound = EndAction.is
 /**
@@ -390,6 +395,7 @@ export const isEndParliamentRound = EndAction.is
  * a second; the second by the first stock round (§3). Priority does not move (§4.1).
  */
 export class HydratedEndParliamentRound extends EndAction.Base {
+    declare metadata?: Type.Static<typeof EndParliamentRound>['metadata']
     apply(state: HydratedState1862): void {
         const round = requireRound(state)
         assert(
@@ -415,6 +421,9 @@ export class HydratedEndParliamentRound extends EndAction.Base {
             const [priorityId] = state.turnManager.turnOrder
             startFirstStockRound(state, [...state.turnManager.turnOrder])
             state.activePlayerIds = [priorityId]
+        }
+        this.metadata = {
+            roundEnd: roundEnd(state, EndingRules1862, state.operatingSet ? 'title' : 'opening')
         }
     }
 }

@@ -36,7 +36,8 @@ import {
     type MapMarkerArt,
     type MapViewDefinition,
     type StateMarker,
-    type TileLayout
+    type TileLayout,
+    type TilePrintedShape
 } from '@tabletop/18xx-ui'
 import { CompanyNames1828 } from './companyPresentation.js'
 import { PhaseColors1828 } from './trainPresentation.js'
@@ -156,6 +157,24 @@ const coalToken = (at: Point): MapMarkerArt => ({
     token: { imageUrl: CoalArt, place: { near: at } }
 })
 
+/**
+ * The thin line the board prints across the empty tunnel hex, from the Coalfields' side to
+ * Richmond's, where its #4 tile must lie (§14.3.1.2).
+ */
+const TunnelLine: TilePrintedShape = (() => {
+    const [west, east] = [towardTileEdge(1, 43.3), towardTileEdge(4, 43.3)]
+    const across = towardTileEdge(2.5, 0.8)
+    return {
+        points: [
+            { x: west.x + across.x, y: west.y + across.y },
+            { x: east.x + across.x, y: east.y + across.y },
+            { x: east.x - across.x, y: east.y - across.y },
+            { x: west.x - across.x, y: west.y - across.y }
+        ],
+        color: '#000000'
+    }
+})()
+
 const CanadaWestSpikes: NonNullable<TileLayout['printedPaths']> = Object.fromEntries(
     Map1828.location('A13').preprintedTile.paths.map((path) => [path.id, 'spike' as const])
 )
@@ -218,6 +237,7 @@ export const MapView1828: MapViewDefinition = {
         // Canada prints spikes, not track: a route may only start or end there (§11).
         A13: { printedPaths: CanadaWestSpikes },
         A15: { printedPaths: { 'edge-0': 'spike', 'edge-1': 'hidden', 'edge-5': 'spike' } },
+        [TunnelLocationId]: { printedShapes: [TunnelLine] },
         ...Object.fromEntries(
             Object.keys(OffboardNamePositions).map((id) => [
                 id,
@@ -238,7 +258,7 @@ export const MapView1828: MapViewDefinition = {
                 coalToken(CoalfieldsMarkerPoints[index])
             ])
         ),
-        [TunnelMarkerKind]: coalToken({ x: -25, y: -3 })
+        [TunnelMarkerKind]: coalToken({ x: -18, y: -15 })
     },
     stateMarkers: coalMarkers1828,
     locationMarkerNames: {

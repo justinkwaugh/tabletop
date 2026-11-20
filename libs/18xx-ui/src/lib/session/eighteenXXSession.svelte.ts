@@ -68,8 +68,9 @@ import {
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingRoundInProgress } from '../table/roundHeading.js'
 import type { HistoryWording } from '../table/historyDescription.js'
-import { operatingHistory } from '../table/operatingHistory.js'
+import { roundIncomeHistory } from '../table/roundIncomeHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
+import type { RoundProgressTitle } from '../table/roundProgress.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tableTerms, type ResolvedTableTerms } from '../presentation/tableTerms.js'
 import { phaseLabel, phaseName } from '../phases/phaseChart.js'
@@ -105,6 +106,7 @@ import { StockModule } from './stockModule.svelte.js'
 import type { MapRoute } from '../maps/mapDrawing.js'
 import { TableNotices } from './tableNotices.svelte.js'
 import type {
+    MarketMarker,
     TitlePrivateAction,
     PrivateTokenPresentation,
     TitleOperatingStep,
@@ -211,17 +213,22 @@ export class EighteenXXSession<
             })
         }
     }
-    operatingIncomeHistory() {
-        return operatingHistory(this.actions)
+    private get roundProgressTitle(): RoundProgressTitle {
+        return {
+            openingRound: this.presentation.openingRound,
+            titleRounds: this.presentation.titleRounds
+        }
+    }
+    roundIncomeHistory() {
+        return roundIncomeHistory(this.actions, this.roundProgressTitle)
     }
     playerWealthHistory() {
         return wealthHistory(this.actions, this.gameState, {
+            ...this.roundProgressTitle,
             startingCash: this.rules.startingCash({
                 playerCount: this.gameState.players.length,
                 config: this.game.config
-            }),
-            openingRound: this.presentation.openingRound,
-            titleRounds: this.presentation.titleRounds
+            })
         })
     }
     readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
@@ -567,7 +574,8 @@ export class EighteenXXSession<
             this.phases.phases.map((phase) => [phase.id, phase.tileColors])
         ),
         tileColors: this.tileAppearance.colors,
-        tileColorNames: this.tileAppearance.colorNames ?? {}
+        tileColorNames: this.tileAppearance.colorNames ?? {},
+        everyPhase: !!this.presentation.historyMarksEveryPhase
     }))
     // Held as text, so the map redraws when the art changes rather than on every action.
     private playedMarkerArt = $derived.by(() =>
@@ -626,6 +634,10 @@ export class EighteenXXSession<
     })
     /** The rulebook's words for what the table names. */
     readonly terms: ResolvedTableTerms = $derived(tableTerms(this.presentation.terms))
+    /** The title's own markers, hung under the market's spaces. */
+    readonly marketMarkers: readonly MarketMarker[] = $derived(
+        this.presentation.marketMarkers?.(this.gameState) ?? []
+    )
     constructor(
         options: SessionOptions<Schema, State>,
         private readonly rules: EighteenXXSessionRules<Schema, State>,

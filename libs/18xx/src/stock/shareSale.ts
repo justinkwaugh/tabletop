@@ -180,6 +180,7 @@ export function evaluateShareSale(
         market: rules.market,
         charters: rules.charters,
         presidencyCandidates: rules.presidencyCandidates,
+        presidentless: rules.presidentless,
         holdsMarketMove: rules.holdsMarketMove,
         saleTerms: extendingSaleTerms(rules.saleTerms, previous)
     })
@@ -241,6 +242,7 @@ export function evaluateShareDisposal(
         | 'presidencyExchange'
         | 'holdsMarketMove'
         | 'presidencyLapses'
+        | 'presidentless'
     >
 ): ShareSaleResult {
     if (!sales.length || new Set(sales.map((sale) => sale.companyId)).size !== sales.length)
@@ -276,13 +278,15 @@ export function evaluateShareDisposal(
         )
         if ((marketShares + sale.shares) * 100 > terms.marketLimit * shareCount)
             return { reason: 'The Market cannot hold that many shares.' }
-        const presidency = evaluatePresidency(
-            projected,
-            company.id,
-            rules.presidencyCandidates(projected, company.id),
-            { owner: seller, shares: owned - sale.shares },
-            presidencyExchangeTerms(rules)
-        )
+        const presidency = rules.presidentless?.(projected, company.id)
+            ? {}
+            : evaluatePresidency(
+                  projected,
+                  company.id,
+                  rules.presidencyCandidates(projected, company.id),
+                  { owner: seller, shares: owned - sale.shares },
+                  presidencyExchangeTerms(rules)
+              )
         const lapsed =
             presidency.reason && rules.presidencyLapses
                 ? presidencyLapse(projected, company.id, seller, owned - sale.shares, pool.id)

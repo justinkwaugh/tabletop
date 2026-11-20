@@ -1,3 +1,4 @@
+import { ActionSource } from '@tabletop/common'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     cityById,
@@ -59,6 +60,9 @@ export function journeyAnimator(
         if (!from) return
         const mode = motionMode(flights, action)
         if (mode === 'still') return
+        if (action && action.source !== ActionSource.System) {
+            flights.drawJourney(isRideJourney(action) ? action.links : [])
+        }
         if (mode === 'cinematic' && isRideJourney(action) && action.metadata) {
             flights.follow(animationContext)
             await ride(flights, { to, animationContext }, action, startsCentred(action.playerId))

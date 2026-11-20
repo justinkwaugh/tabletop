@@ -153,6 +153,20 @@ export type MarketLedge = {
     edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
 }
 
+/**
+ * A marker of the title's own on the stock market, such as 18RoyalGorge's debt marker, hung as a
+ * tab under its space below the market, clear of the companies' tokens.
+ */
+export type MarketMarker = {
+    id: string
+    spaceId: string
+    /** What the marker is, said when the tab is pointed at. */
+    name: string
+    /** The tab's short word. */
+    label: string
+    color: string
+}
+
 /** What the companies tab shows of companies no one has started. */
 export type UnstartedCompanies<State extends GameState = EighteenXXState> = {
     /** Whether the company could be started in this phase. */
@@ -206,6 +220,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     phaseChartFor?(state: State): PhaseChartData
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>
+    /**
+     * The history marks every phase change in its phase's colour, where phases change within a
+     * colour as events, as 18RoyalGorge's deck cards do.
+     */
+    historyMarksEveryPhase?: true
     marketPoolId: string
     /** The bank's pool of shares not yet sold, where a title has one. */
     ipoPoolId?: string
@@ -326,8 +345,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** A word for an open private's state in place of its income, such as Flipped. */
     privateStatus?(state: State, privateCompanyId: string): string | undefined
     /**
-     * What a private company keeps on its own charter for the player who holds it, said under
-     * its name on that player's card, as 1822's tax haven holds shares and money.
+     * What a private company keeps on its own charter, said under its name on the card of the
+     * player or company that holds it, as 1822's tax haven holds shares and money.
      */
     privateHoldings?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
@@ -354,6 +373,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
     historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions
+    /** Markers of the title's own on the stock market, beside the companies' tokens. */
+    marketMarkers?(state: State): readonly MarketMarker[]
     marketZones?: readonly MarketZone[]
     marketLedge?: MarketLedge
     /** Leaves the zones and ledge out of a legend below the market; each space's tooltip still names its zone. */

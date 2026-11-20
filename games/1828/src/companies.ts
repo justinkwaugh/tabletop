@@ -114,7 +114,7 @@ export const PrivateCatalog1828 = new PrivateCatalog(
                 faceValue: 20,
                 revenue: 5,
                 blocks: blocksWhilePlayerOwned(StctId),
-                description: `Pays $10 once a company owns it. Blocks Sarnia ${place('D10')} while player-owned.`
+                description: `Pays $10 once a company owns it. Blocks ${place('D10')} while player-owned.`
             },
             {
                 id: CslId,
@@ -122,7 +122,7 @@ export const PrivateCatalog1828 = new PrivateCatalog(
                 faceValue: 40,
                 revenue: 10,
                 blocks: blocksWhilePlayerOwned(CslId),
-                description: `The owning company may lay a free yellow tile in Burlington ${place('B24')} at any time in its operations, besides its own lay and without a connection. Blocks ${place('B24')} while player-owned.`
+                description: `The owning company may lay a free yellow tile in ${place('B24')} at any time in its operations, besides its own lay and without a connection. Blocks ${place('B24')} while player-owned.`
             },
             {
                 id: DhId,
@@ -130,7 +130,7 @@ export const PrivateCatalog1828 = new PrivateCatalog(
                 faceValue: 80,
                 revenue: 15,
                 blocks: blocksWhilePlayerOwned(DhId),
-                description: `For $120 the owning company may lay or upgrade a tile in Scranton ${place('F20')} as its lay, without a connection, then place a free station there as its station. Blocks ${place('F20')} while player-owned.`
+                description: `For $120 the owning company may lay or upgrade a tile in ${place('F20')} as its lay, without a connection, then place a free station there as its station. Blocks ${place('F20')} while player-owned.`
             },
             {
                 id: CpId,
@@ -138,7 +138,7 @@ export const PrivateCatalog1828 = new PrivateCatalog(
                 faceValue: 80,
                 revenue: 0,
                 blocks: blocksWhilePlayerOwned(CpId),
-                description: `Its owner lays or upgrades a tile on track connected to Peterborough ${place('C15')} at the start of each operating round, earning half of a 2-train route through it; the other half builds the C&P's treasury. A company buying it takes the treasury and may replace the C&P station with its own; it then pays $15.`
+                description: `Its owner lays or upgrades a tile on track connected to ${place('C15')} at the start of each operating round, earning half of a 2-train route through it; the other half builds the C&P's treasury. A company buying it takes the treasury and may replace the C&P station with its own; it then pays $15.`
             },
             {
                 id: MhId,
@@ -154,7 +154,7 @@ export const PrivateCatalog1828 = new PrivateCatalog(
                 faceValue: 120,
                 revenue: 20,
                 blocks: blocksWhilePlayerOwned(EkId),
-                description: `A company buying it at once lays a yellow tile in Adrian/Ann Arbor ${place('E7')}. Once, the owning company may lay an extra yellow tile for $20 in its track step, not upgrading that round. Blocks ${place('E7')} while player-owned.`
+                description: `A company buying it at once lays a yellow tile in ${place('E7')}. Once, the owning company may lay an extra yellow tile for $20 in its track step, not upgrading that round. Blocks ${place('E7')} while player-owned.`
             },
             {
                 id: CaId,

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushSync } from 'svelte'
+import { assert } from '@tabletop/common'
 import {
     AnimationContext,
     GameContext,
@@ -9,6 +10,7 @@ import {
     ActionType,
     PhaseName,
     cityById,
+    isRideJourney,
     type CityId,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -221,6 +223,40 @@ describe('a journey and the end of round in a session (R-3.3, R-2.5)', () => {
         expect(replayed.every((step) => step.viewing)).toBe(true)
         expect(session.isViewingHistory).toBe(false)
         expect(show).not.toHaveBeenCalled()
+        expect(flights.flyers).toEqual([])
+    }, 15_000)
+
+    // U-7: History View draws the displayed action's journey, and the passenger rides it.
+    it('draws the replayed journey’s line while its passenger travels in History', async () => {
+        const { session, flights } = await staged()
+        await session.rideJourney()
+        await settled(session)
+        const ride = session.actions[0]
+        assert(isRideJourney(ride), 'the first action is a ride')
+        await vi.waitFor(() => expect(session.history.isDisabled()).toBe(false))
+        await session.history.goToActionIndex(-1)
+        await settled(session)
+        expect(session.lastJourney).toEqual([])
+
+        const drawn: unknown[] = []
+        const recorder: GameStateChangeListener<State> = async ({ action, animationContext }) => {
+            if (action?.type !== ActionType.RideJourney) return
+            animationContext.actionTimeline.call(
+                () => {
+                    flushSync()
+                    drawn.push(session.lastJourney)
+                },
+                [],
+                0.1
+            )
+        }
+        session.addGameStateChangeListener(recorder)
+        await vi.waitFor(() => expect(session.history.isDisabled()).toBe(false))
+        await session.history.replayRange(0, 0, { holdMs: 0 })
+        await settled(session)
+        session.removeGameStateChangeListener(recorder)
+
+        expect(drawn).toEqual([ride.links])
         expect(flights.flyers).toEqual([])
     }, 15_000)
 

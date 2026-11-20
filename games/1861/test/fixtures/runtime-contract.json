@@ -18,9 +18,9 @@
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardMergerTrain": "5df22a9b88d6612e5b7bbc1082405c00673cf512fd37b1acb99525158a928b0d",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "6ebbfafe1e39d6429ac8217889870cdb1b72343f25f225a1b43ec512c2417fdb",
+    "DistributeEarnings": "0c47ff62c92db9e8ad5ab11c840d99493acc2c2e9124f0cfad972847fd2e940a",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
-    "EndMergerRound": "92c8dd59d835b7f8eb74306efd7aa0c239ac7e6633923fa1b9ac203fb479ebfb",
+    "EndMergerRound": "87c5af6575d95910882bd3c638a003fdf95b15acd39d4f7c34409c09870714e7",
     "ExchangePrivate": "a4b5a2cf280a4172bdeb3881fa449898b22cd9159c4420ba42ef036a99aa8fc8",
     "ExportTrains": "4d90e5878388ba8dcbcf048793fc8666b439834e602a4db755344ef8f3844647",
     "FinishOperatingTurn": "8b877c97f7e7d336e3fe5d99af046a16cf84183008ccd527f7c9807d620645c3",
@@ -29,8 +29,8 @@
     "FinishTrack": "1a6e9a2521c6c145584a778d9cceb6e8d4fa8ddf810c4aad80322f2fb0f90373",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FormCompany": "00c719deda6ba142d039d53e52e6e26029bdaedb22ec1f599971cb7779015727",
-    "LayPrivateTile": "8fe6bfc7d8f5d5c8f4055e418bc59b2b8680d23734b546f9622c80a1085daed5",
-    "LayTile": "a97510122093676f6fe04f834f75a3735a949727476971890c48b3149e2f25a1",
+    "LayPrivateTile": "060f5917fe0ebfa44a80c7f1e1c080f8c5cbc58ad3d1e22599953f4a44f7eba1",
+    "LayTile": "b76723a83d8af6883f22e941ee88e5e67e6888a6a021e38571fddccb71bd5165",
     "NationaliseCompany": "6e9e32b3bed5e1d4e676bf45c9a0a635608e8c8c278961fff6f8961e2bdd3f62",
     "NominateLot": "3c5d5ad3909871df9997fd484262eeb2ec811bb0aaceb771f77c8efd292927f1",
     "OfferPurchase": "ada2ef3b1e215a94eee8ce5de40283d1dbe277e72a95c29469b2a1a8c19d6fd3",
@@ -44,7 +44,7 @@
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "ResolveSelectionAuction": "4b9c0cad368dca3af02277da083979632cf020833ed25a36fe338e53adf520d4",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
-    "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
+    "RespondToTrackConsent": "3980a4800eb1a7a88fb178937724a4bd6867edd019fd01233bde54eb9df414a1",
     "RunTrains": "db62940db3573a3bfe182ac544b2c981be007a84d4ec1b84cd7a6373ad197884",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "2f3dadebf2c64a055cd16d371337d9dfb90afc5f2c41f5aad20c5346275c9b8c",
@@ -630,6 +630,10 @@
       "earningsDistribution": {
         "additionalProperties": false,
         "properties": {
+          "added": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "bankAdjustment": {
             "type": "integer"
           },

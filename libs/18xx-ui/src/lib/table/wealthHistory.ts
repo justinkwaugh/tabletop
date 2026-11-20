@@ -1,25 +1,7 @@
-import {
-    isCompleteStockRound,
-    isFinishOperatingTurn,
-    isStartOperatingRound,
-    isStartStockRound,
-    recordedRoundEnd,
-    type EighteenXXState,
-    type OperatingRoundIdentity,
-    type PlayerNetWorth,
-    type RoundEnd
-} from '@tabletop/18xx'
-import { assertExists, type GameAction } from '@tabletop/common'
-import type { TitleRound } from '../session/titlePresentation.js'
-import {
-    AuctionHeading,
-    operatingRoundHeading,
-    roundLabel,
-    roundTitle,
-    stockRoundHeading,
-    titleStockRoundHeading,
-    type RoundHeading
-} from './roundHeading.js'
+import type { EighteenXXState, PlayerNetWorth } from '@tabletop/18xx'
+import type { GameAction } from '@tabletop/common'
+import { RoundProgress, type RoundProgressTitle } from './roundProgress.js'
+import { roundLabel, roundTitle, type RoundHeading } from './roundHeading.js'
 
 export type WealthPoint = {
     id: string
@@ -28,33 +10,19 @@ export type WealthPoint = {
     wealth: Readonly<PlayerNetWorth>
 }
 
-type WealthTitleRound = Pick<
-    TitleRound,
-    'name' | 'abbreviation' | 'starts' | 'ends' | 'followsStockRound'
->
-export type WealthHistoryTitle = {
-    startingCash: number
-    openingRound?: Pick<TitleRound, 'name' | 'abbreviation'>
-    titleRounds?: readonly WealthTitleRound[]
-}
+export type WealthHistoryTitle = RoundProgressTitle & { startingCash: number }
 
 /**
  * Every player's wealth at the start of the game and at the end of each round, oldest first,
  * from what the round-ending Actions record. The final wealth ends the round the game ended in.
  *
- * Games stored before rounds recorded their ends lack their opening and title-round points, and
- * take a stock round's end from the next operating round's start, which includes that round's
- * private income.
+ * Games stored before rounds recorded their ends lack their opening and title-round points.
  */
 export function wealthHistory(
     actions: readonly GameAction[],
     state: Pick<EighteenXXState, 'players' | 'finalWealth'>,
     title: WealthHistoryTitle
 ): WealthPoint[] {
-    const titleRounds = title.titleRounds ?? []
-    const opening: RoundHeading = title.openingRound
-        ? { ...title.openingRound, number: '' }
-        : AuctionHeading
     const points: WealthPoint[] = [
         {
             id: 'start',
@@ -74,82 +42,21 @@ export function wealthHistory(
         if (index >= 0) points[index] = point
         else points.push(point)
     }
-    let current = opening
-    let stockRound = 1
-    let operatingRound: OperatingRoundIdentity = { number: 1, roundNumber: 1 }
-    let setUnderWay = false
+    const rounds = new RoundProgress(title)
     // Operating rounds held before the first stock round, as in 1846's two-player opening,
     // belong to the opening.
     let firstStockRoundEnded = false
-    let unrecordedStockRound: number | undefined
-    function titleRoundHeading(round: WealthTitleRound): RoundHeading {
-        return round.followsStockRound && !setUnderWay
-            ? titleStockRoundHeading(stockRound, round)
-            : operatingRoundHeading(setOf(operatingRound), operatingRound.roundNumber, round)
-    }
     for (const action of actions) {
-        if (isStartStockRound(action)) {
-            stockRound++
-            setUnderWay = false
-            current = stockRoundHeading(stockRound)
-        }
-        const startedRound = titleRounds.find((round) => round.starts(action))
-        if (startedRound) current = titleRoundHeading(startedRound)
-        const snapshot = isStartOperatingRound(action)
-            ? action.metadata?.snapshot
-            : isFinishOperatingTurn(action)
-              ? action.metadata
-              : undefined
-        if (isStartOperatingRound(action) && snapshot) {
-            if (unrecordedStockRound !== undefined)
-                record(stockRoundHeading(unrecordedStockRound), snapshot.playerNetWorth)
-            unrecordedStockRound = undefined
-            operatingRound = snapshot
-            setUnderWay = true
-            current = operatingRoundHeading(setOf(snapshot), snapshot.roundNumber)
-        }
-        const end: RoundEnd | undefined =
-            recordedRoundEnd(action) ??
-            (snapshot?.complete
-                ? { round: 'operating', playerNetWorth: snapshot.playerNetWorth }
-                : undefined)
-        if (isCompleteStockRound(action)) {
-            firstStockRoundEnded = true
-            if (!end) unrecordedStockRound = stockRound
-        }
-        if (!end) continue
-        switch (end.round) {
-            case 'opening':
-                record(opening, end.playerNetWorth)
-                current = stockRoundHeading(1)
-                break
-            case 'stock':
-                record(stockRoundHeading(stockRound), end.playerNetWorth)
-                break
-            case 'operating':
-                if (firstStockRoundEnded)
-                    record(
-                        operatingRoundHeading(setOf(operatingRound), operatingRound.roundNumber),
-                        end.playerNetWorth
-                    )
-                break
-            case 'title': {
-                const round = titleRounds.find((candidate) => candidate.ends(action))
-                assertExists(round, 'A title round’s end belongs to one of the title’s rounds')
-                record(titleRoundHeading(round), end.playerNetWorth)
-                break
-            }
+        for (const { round, heading, playerNetWorth } of rounds.advance(action)) {
+            if (round === 'stock') firstStockRoundEnded = true
+            if (!playerNetWorth || (round === 'operating' && !firstStockRoundEnded)) continue
+            record(heading, playerNetWorth)
         }
     }
     if (state.finalWealth)
         record(
-            current,
+            rounds.current,
             Object.fromEntries(state.finalWealth.map(({ playerId, total }) => [playerId, total]))
         )
     return points
-}
-
-/** The set a round is numbered within, none for an endless set's. */
-function setOf(round: OperatingRoundIdentity): number | undefined {
-    return round.endless ? undefined : round.number
 }

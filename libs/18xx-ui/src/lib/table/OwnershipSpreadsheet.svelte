@@ -26,6 +26,7 @@
         sharesOwned,
         trainsOwnedBy,
         type Company,
+        type Station,
         type Owner,
         type PurchaseRequest,
         isObsoleteTrain,
@@ -34,7 +35,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { NumberedShareNames } from './companyPresentation.js'
     import PlayerName from './PlayerName.svelte'
-    import OperatingHistory from './OperatingHistory.svelte'
+    import IncomeHistory from './IncomeHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import { marketValueMark } from '../stock/marketColors.js'
     import '../stock/marketZoneTint.css'
@@ -602,6 +603,12 @@
             (controllerId ? session.colors.getPlayerBgColorValue(controllerId) : undefined)
         )
     }
+    /** A company's stations left of all it has, or a dash for one that has none. */
+    function stationCount(stations: readonly Station[]): string {
+        if (!stations.length) return '—'
+        const available = stations.filter((station) => station.status === 'available').length
+        return `${available}/${stations.length}`
+    }
 </script>
 
 {#snippet companyValueCell(row: CompanyRow, statStart: boolean, operating: boolean)}
@@ -935,9 +942,9 @@
     <div class="sheet-spacing" aria-hidden="true"></div>
     <div class="sheet-content">
         {#if period !== 'Current'}
-            <OperatingHistory
+            <IncomeHistory
                 {money}
-                rounds={session.operatingIncomeHistory()}
+                rounds={session.roundIncomeHistory()}
                 players={seatOrder.map((playerId) => ({
                     playerId,
                     name: session.getPlayerName(playerId),
@@ -1091,9 +1098,7 @@
                                             >{@render companyTrains(row.company.id)}</td
                                         >
                                         <td class="bright-cell token-cell"
-                                            >{row.stations.filter(
-                                                (station) => station.status === 'available'
-                                            ).length}/{row.stations.length}</td
+                                            >{stationCount(row.stations)}</td
                                         >
                                         {#if loansLabel}<td class="company-stat-start bright-cell"
                                                 >{@render loansCell(row)}</td
@@ -1249,9 +1254,7 @@
                                             class:operating-column={row.company.id ===
                                                 operatingCompanyId}
                                             class="bright-cell token-cell"
-                                            >{row.stations.filter(
-                                                (station) => station.status === 'available'
-                                            ).length}/{row.stations.length}</td
+                                            >{stationCount(row.stations)}</td
                                         >
                                     {/each}
                                     {#each ownerStatisticKeys as _, index (index)}<td

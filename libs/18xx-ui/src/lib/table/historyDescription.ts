@@ -678,11 +678,9 @@ function describeShared(
     }
     if (isExportTrains(action)) {
         assertExists(action.metadata, 'Recorded export requires its trains')
-        const definitionIds = action.metadata.trains.map((train) => train.definitionId)
         return {
             text: 'Exported',
-            trainDefinitionIds: [...new Set(definitionIds)],
-            detail: definitionIds.length > 1 ? `${definitionIds.length} trains` : undefined,
+            trainDefinitionIds: action.metadata.trains.map((train) => train.definitionId),
             important: true
         }
     }

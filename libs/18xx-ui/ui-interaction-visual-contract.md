@@ -268,7 +268,10 @@ earlier or later or remove it. Native buttons support pointer, keyboard, and tou
 The shared stock market displays each distinct space and its committed marker
 stack, top to bottom. Its scroll area is keyboard focusable and contained at
 mobile widths. Market order is listed beneath it. Equal prices retain separate
-spaces and stack identities. Previewing a trade does not move markers.
+spaces and stack identities. Previewing a trade does not move markers. A title's
+own market markers (`marketMarkers`, such as 18RoyalGorge's debt marker) hang as
+flat tabs, rounded at the bottom, under their space below the market, clear of the
+companies' stacks; they never enter market order or any rule.
 
 ### Coexistence and precedence
 
@@ -1414,6 +1417,10 @@ Choosing a tile previews its first legal placement. Clicking that same map hex a
 The table action area keeps construction status, cost and Finish Track, with selection controls on the map. The economy workbench retains its existing explicit controls. Verification covers both titles, on-screen arc bounds, preview/rotation/cancel, acceptance, history, reload, Undo, and tab preservation.
 
 The map construction header reserves inline space for the pending cost. Choosing, rotating, cancelling, or accepting a tile must not add a cost row or resize the map viewport.
+
+### Tile groups
+
+A title may declare hexes one tile covers together (`MapViewDefinition.tileGroups`, such as 18RoyalGorge's gorge). While track is being laid, every member of a group with a legal hex is legal itself; hovering, selecting or previewing any member highlights the whole group as one outline, drawn along each member's outer sides only, and choosing any member chooses a legal hex of the piece. Elsewhere, such as station placement or inspection, members highlight one by one; a lay's history map outlines the whole group. The picker centres on the group's middle; its arc keeps clear of the whole group, and its cost and accept/cancel controls stand above and below it; clicking any member again rotates the preview as clicking the hex does. A lay whose rules place companion tiles (`TrackRules.companionTiles`) is drawn in the picker as one piece, in one drawing: the hexes' shadows beneath every hex, their shared sides without a seam, every hex at its board position and scale. Its landed preview shows every hex of the piece on the map before acceptance.
 
 ### Selected tile motion
 

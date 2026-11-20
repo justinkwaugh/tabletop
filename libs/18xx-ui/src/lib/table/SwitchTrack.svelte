@@ -1,8 +1,9 @@
 <script lang="ts">
-    let { on }: { on: boolean } = $props()
+    /** `instant` skips the slide, as when a state is restored silently. */
+    let { on, instant = false }: { on: boolean; instant?: boolean } = $props()
 </script>
 
-<span class="switch-track" class:on aria-hidden="true"></span>
+<span class="switch-track" class:on class:instant aria-hidden="true"></span>
 
 <style>
     .switch-track {
@@ -38,6 +39,10 @@
     .on::after {
         transform: translateX(12px);
         background: #ffffff;
+    }
+    .instant,
+    .instant::after {
+        transition: none;
     }
     @media (prefers-reduced-motion: reduce) {
         .switch-track,

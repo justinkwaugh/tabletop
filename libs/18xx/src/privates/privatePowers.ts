@@ -128,7 +128,7 @@ export function privateTrackConstruction(
                 ? (allowanceState, color, upgrade) => {
                       const allowed = rules.allowance(allowanceState, color, upgrade)
                       return 'cost' in allowed
-                          ? { cost: allowed.cost + (terms.layFee ?? 0) }
+                          ? { ...allowed, cost: allowed.cost + (terms.layFee ?? 0) }
                           : allowed
                   }
                 : () => ({ cost: terms.layFee ?? 0 }),

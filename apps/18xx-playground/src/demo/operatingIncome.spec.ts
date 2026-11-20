@@ -1,9 +1,21 @@
 import { expect, it } from 'vitest'
 import { isFinishOperatingTurn } from '@tabletop/18xx'
-import { operatingHistory } from '../../../../libs/18xx-ui/src/lib/table/operatingHistory.js'
+import type { GameAction } from '@tabletop/common'
+import {
+    isOperatingRoundHistory,
+    roundIncomeHistory
+} from '../../../../libs/18xx-ui/src/lib/table/roundIncomeHistory.js'
+import {
+    identifiedOperatingRoundHeading,
+    roundLabel
+} from '../../../../libs/18xx-ui/src/lib/table/roundHeading.js'
 import { TheOldPrinceEndingRules } from '@tabletop/the-old-prince'
 import { migrateOperatingIncome } from './migrateOperatingIncome.js'
 import { finishedGame } from './finishedGame.js'
+
+function operatingHistory(actions: readonly GameAction[]) {
+    return roundIncomeHistory(actions, {}).filter(isOperatingRoundHistory)
+}
 
 it('builds full-game income from recorded actions without states or replay patches', async () => {
     const { game, state, engine, actions } = await finishedGame(
@@ -24,7 +36,7 @@ it('builds full-game income from recorded actions without states or replay patch
         if (!action.metadata?.complete) continue
         const snapshot = action.metadata
         const round = rounds.find(
-            (entry) => entry.id === `${snapshot.number}.${snapshot.roundNumber}`
+            (entry) => entry.label === roundLabel(identifiedOperatingRoundHeading(snapshot, 1))
         )
         expect(round?.playerNetWorth).toEqual(snapshot.playerNetWorth)
         expect(round?.complete).toBe(true)

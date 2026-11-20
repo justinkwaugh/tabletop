@@ -1,8 +1,9 @@
 import { assertExists } from '@tabletop/common'
+import { recordedRoundEnd } from '@tabletop/18xx'
 import { describe, expect, it } from 'vitest'
 import { turnRecord } from '../../../libs/18xx/test/turnRecord.js'
 import { declineAll, table, type Table } from '../test/kit.js'
-import { charterableCompanies, parliamentDecision } from './parliament.js'
+import { charterableCompanies, isEndParliamentRound, parliamentDecision } from './parliament.js'
 import { CharteredParPrices } from './stockMarket.js'
 
 const lowestPar = Math.min(...CharteredParPrices)
@@ -111,6 +112,21 @@ describe('1862 Parliament turns', () => {
         const series = game.state.turnManager.series
         expect(series.filter((turn) => turn.end === undefined)).toEqual([
             expect.objectContaining({ playerId: p0 })
+        ])
+    })
+
+    it('records the net worth the opening leaves once its second Parliament ends', () => {
+        const game = table(4)
+        declineAll(game)
+        declineAll(game)
+        expect(game.actions.filter(isEndParliamentRound).map(recordedRoundEnd)).toEqual([
+            undefined,
+            {
+                round: 'opening',
+                playerNetWorth: Object.fromEntries(
+                    game.state.players.map(({ playerId }) => [playerId, expect.any(Number)])
+                )
+            }
         ])
     })
 })
