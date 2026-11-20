@@ -460,6 +460,46 @@ function drawn(motion: BoardMotion): boolean {
 
 const RowNames = Object.keys(Scenes).filter((row): row is PlanRow => row in Scenes)
 
+describe('Contract, Replay: a piece an earlier Action brought on, not on the board yet', () => {
+    it('R-3.7.1 its walk carries the resting copy, where a lookup of the piece finds nothing', async () => {
+        const scene = await walkScene()
+        const key = `pawn:${scene.seat}:1`
+        const carried: Point[] = []
+        const asked: string[] = []
+        const animator = new BoardAnimator(
+            () => false,
+            (piece) => {
+                asked.push(piece)
+                return (point) => carried.push(point)
+            }
+        )
+        // As the board's svg does before the state shows the piece: nothing for its key.
+        animator.attach(new KnownSurface([]))
+        const context = new AnimationContext()
+        await animator.onGameStateChange({ ...scene, animationContext: context })
+        play(context)
+        expect(asked).toContain(key)
+        expect(carried.length).toBeGreaterThan(5)
+        const end = carried.at(-1)
+        const first = carried[0]
+        expect(Math.hypot((end?.x ?? 0) - first.x, (end?.y ?? 0) - first.y)).toBeGreaterThan(5)
+    })
+
+    it('R-3.7.1 with reduced motion the copy is simply carried to where the walk ends', async () => {
+        const scene = await walkScene()
+        const carried: Point[] = []
+        const animator = new BoardAnimator(
+            () => true,
+            () => (point) => carried.push(point)
+        )
+        animator.attach(new KnownSurface([]))
+        const context = new AnimationContext()
+        await animator.onGameStateChange({ ...scene, animationContext: context })
+        play(context)
+        expect(carried).toHaveLength(1)
+    })
+})
+
 describe('each row of the animation plan inside the board', () => {
     for (const row of RowNames) {
         it(`R-1.2 ${row}: plays as a tween with an Action, frame by frame`, async () => {

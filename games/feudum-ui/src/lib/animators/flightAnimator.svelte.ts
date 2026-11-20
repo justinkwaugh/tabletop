@@ -1,4 +1,5 @@
 import { tick } from 'svelte'
+import type { Point } from '$lib/utils/boardGeometry.js'
 import { prefersReducedMotion } from 'svelte/motion'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import {
@@ -64,6 +65,12 @@ function drawCopy(element: CopyElement, pose: CopyPose, flash: FlashElement | un
     }
 }
 
+/** The board piece a flight's copy stands for once it lands, if it lands as one. */
+function restsAs(flight: Flight): string | undefined {
+    const end = flight.legs.at(-1)?.to
+    return end?.kind === 'board' ? end.rests : undefined
+}
+
 function lerp(from: number, to: number, t: number): number {
     return from + (to - from) * t
 }
@@ -127,6 +134,30 @@ export class FlightAnimator {
             if (this.flashes.get(id) === element) {
                 this.flashes.delete(id)
             }
+        }
+    }
+
+    /**
+     * Contract, Replay: a piece an earlier Action of a replay brought onto the board is still its copy,
+     * resting where it landed, until the state shows. A later Action's board motion on that piece
+     * carries the copy instead: given a point in the board's units, the copy stands there.
+     */
+    carrier(piece: string): ((point: Point) => void) | undefined {
+        const flight = this.flights.findLast((one) => restsAs(one) === piece)
+        const end = flight?.legs.at(-1)?.to
+        if (!flight || end?.kind !== 'board') {
+            return undefined
+        }
+        return (point) => {
+            const pose = this.poses.get(flight.id)
+            if (!pose) {
+                return
+            }
+            const place = this.place({ kind: 'board', point, size: end.size })
+            pose.x = place.x
+            pose.y = place.y
+            pose.size = place.size
+            this.redraw(flight, pose)
         }
     }
 

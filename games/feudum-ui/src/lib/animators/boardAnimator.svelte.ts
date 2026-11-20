@@ -104,7 +104,15 @@ export class BoardAnimator {
     private steps = 0
     private readonly poses = new Map<MotionElement, Pose>()
 
-    constructor(private readonly reduced: () => boolean = () => prefersReducedMotion.current) {}
+    /**
+     * @param carrier A piece an earlier Action of a replay brought on is not on the board yet but a
+     * resting copy on the flight layer: what moves that copy, given a point in board units.
+     */
+    constructor(
+        private readonly reduced: () => boolean = () => prefersReducedMotion.current,
+        private readonly carrier: (piece: string) => ((point: Point) => void) | undefined = () =>
+            undefined
+    ) {}
 
     /** The board mounts its svg here. */
     readonly attach = (surface: MotionSurface) => {
@@ -259,6 +267,10 @@ export class BoardAnimator {
         }
         const found = this.resolve(motion.target)
         if (!found) {
+            const end = motion.path?.at(-1)
+            if (end) {
+                this.carried(motion.target)?.(end)
+            }
             return
         }
         const { element, pose, world } = found
@@ -282,7 +294,15 @@ export class BoardAnimator {
         }
         const found = this.resolve(motion.target)
         if (!found) {
-            return undefined
+            const carry = this.carried(motion.target)
+            const path = motion.path
+            return carry && path
+                ? (t) => {
+                      if (generation === this.generation) {
+                          carry(along(path, t))
+                      }
+                  }
+                : undefined
         }
         const { element, pose, world } = found
         if (motion.reveal) {
@@ -319,6 +339,13 @@ export class BoardAnimator {
             }
             draw(element, pose)
         }
+    }
+
+    /** A piece on the board only as a resting copy: its walk carries the copy. */
+    private carried(target: MotionTarget): ((point: Point) => void) | undefined {
+        return 'piece' in target && target.part === undefined
+            ? this.carrier(target.piece)
+            : undefined
     }
 
     /** An open side's areas first: a token placed in one is drawn there and on the board's svg. */

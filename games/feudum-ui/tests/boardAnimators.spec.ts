@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import type { MotionFrame } from '../src/lib/testing/motionTablePage.js'
+import type { MotionFrame, PawnFrame } from '../src/lib/testing/motionTablePage.js'
 import { settled } from './helpers.js'
 
 /**
@@ -19,6 +19,7 @@ declare global {
             strayWrites(): string
             seat(): string
             replay(piece?: string): Promise<MotionFrame[]>
+            replayPawn(): Promise<PawnFrame[]>
         }
     }
 }
@@ -127,6 +128,38 @@ test.describe('on the desk', () => {
         expect(last?.tokens).toEqual([])
         await page.screenshot({ path: test.info().outputPath('round-end.png') })
     })
+})
+
+test('S64 R-3.7.1 a replayed turn walks a pawn its first Action brought on: no jump when it shows', async ({
+    page
+}) => {
+    await openTable(page, 'openMigrateMoveTable()')
+    const frames = await page.evaluate(() => window.motionTable.replayPawn())
+    const final = frames.at(-1)
+    expect(final?.drawn).toBe('piece')
+    // Where the Migrate's copy came to rest: the first place it held for three frames.
+    const rest = frames.findIndex(
+        (frame, index) =>
+            index + 2 < frames.length &&
+            [1, 2].every(
+                (ahead) =>
+                    Math.hypot(
+                        frames[index + ahead].x - frame.x,
+                        frames[index + ahead].y - frame.y
+                    ) < 0.25
+            )
+    )
+    expect(rest).toBeGreaterThanOrEqual(0)
+    const after = frames.slice(rest)
+    const landed = after[0]
+    const whole = Math.hypot((final?.x ?? 0) - landed.x, (final?.y ?? 0) - landed.y)
+    expect(whole).toBeGreaterThan(5)
+    // From there the Move walks it along the road, the copy carried, and the piece shows where the
+    // walk ended: every step small against the road, the copy to the piece included.
+    const steps = after
+        .slice(1)
+        .map((one, index) => Math.hypot(one.x - after[index].x, one.y - after[index].y))
+    expect(Math.max(...steps)).toBeLessThan(whole / 2)
 })
 
 test('S65 R-3.7.1 reduced motion: the Move lands with no tween, and what the table reads is the same', async ({

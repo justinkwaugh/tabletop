@@ -114,6 +114,11 @@ export type FlightEnd =
           readonly size: number
           readonly piece?: string
           readonly hide?: boolean
+          /**
+           * The board piece a copy landing here stands for until the state shows it, so a later
+           * Action of the same replay can carry the copy as it would the piece.
+           */
+          readonly rests?: string
       }
     | {
           readonly kind: 'seat'
@@ -257,7 +262,12 @@ function pawnsEntering(plan: FlightBuilder, { from, to }: FlightChange, at: numb
                 'pawns',
                 face,
                 seatOf(player.playerId, { part: 'pawns' }),
-                { kind: 'board', point: pawnPlace(to, key, pawn.spaceId), size: PawnSize },
+                {
+                    kind: 'board',
+                    point: pawnPlace(to, key, pawn.spaceId),
+                    size: PawnSize,
+                    rests: key
+                },
                 launch,
                 { turnTo: face }
             )
@@ -408,7 +418,8 @@ function flyMarkers(plan: FlightBuilder, { from, to }: FlightChange, at: number)
             fly(playerId, seatOf(playerId, { part: 'markers' }, left), {
                 kind: 'board',
                 point: place.point,
-                size: place.size
+                size: place.size,
+                rests: place.piece
             })
         }
         for (const place of lost) {

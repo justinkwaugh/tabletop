@@ -3,9 +3,11 @@ import { assertExists } from '@tabletop/common'
 import {
     ActionType,
     Goods,
+    HydratedFeudumGameState,
     GuildIds,
     MachineState,
     Spaces,
+    migrateOffers,
     returnGoodToHaversack,
     type SpaceId
 } from '@tabletop/feudum'
@@ -203,6 +205,106 @@ export async function openPilferTable() {
         motionTable: {
             replay: () => framesOf(session, `pawn:${seat}:1`, () => replayOf(session, 'turn')),
             tableText: () => document.querySelector('[data-game-ui]')?.textContent ?? ''
+        }
+    })
+}
+
+/** Where a pawn stands on the board, in its units: its piece, or the copy flying or resting for it. */
+export interface PawnFrame {
+    readonly at: number
+    readonly x: number
+    readonly y: number
+    readonly drawn: 'piece' | 'copy'
+}
+
+function pawnPointOf(piece: string): Omit<PawnFrame, 'at'> | undefined {
+    const svg = document.querySelector('[data-board-surface]')
+    const matrix = svg instanceof SVGSVGElement ? svg.getScreenCTM()?.inverse() : undefined
+    if (!matrix) {
+        return undefined
+    }
+    const onBoard = svg?.querySelector(`[data-motion="${piece}"]`)
+    const copy = [...document.querySelectorAll('[data-flight-row="pawns"]')].find(
+        (element) => element instanceof HTMLElement && element.style.visibility === 'visible'
+    )
+    const drawn = copy ? 'copy' : onBoard ? 'piece' : undefined
+    const element = copy?.querySelector('[data-flight-side]:not([hidden])') ?? onBoard
+    if (!drawn || !element) {
+        return undefined
+    }
+    const box = element.getBoundingClientRect()
+    const point = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(
+        matrix
+    )
+    return { x: point.x, y: point.y, drawn }
+}
+
+/**
+ * S64 R-3.3-H1, R-3.7.1 One turn of two Actions: a Migrate brings a pawn onto the board from the
+ * seat, then a sequential Move walks it on along the road. `replay` shows the turn again, watched:
+ * the pawn as the board or the flight layer draws it, frame by frame.
+ */
+export async function openMigrateMoveTable() {
+    const { host, seat } = await atPlayingCards(['migrate', 'move'], { pouchGood: 'sulfur' })
+    host.edit((state) => {
+        for (const player of state.players) {
+            for (const pawn of player.pawns) {
+                delete pawn.spaceId
+            }
+        }
+        giveGood(state, seat, 'food')
+        state.recomputeRanks()
+    })
+    const offers = migrateOffers(new HydratedFeudumGameState(host.state), seat)
+    assertExists(
+        offers.spaces.find((spaceId) => spaceId === RoadStart),
+        'R-3.6 The pawn may enter at the road'
+    )
+    const session = await host.openSeat(seat)
+    await show(session)
+    await host.send(seat, {
+        type: ActionType.Migrate,
+        pawn: offers.pawnsOff[0],
+        onto: { character: 'knight', spaceId: RoadStart },
+        secondCard: true
+    })
+    await host.send(seat, {
+        type: ActionType.Move,
+        steps: [
+            {
+                piece: { kind: 'pawn', playerId: seat, n: offers.pawnsOff[0] },
+                to: RoadEnd,
+                medium: 'road'
+            }
+        ]
+    })
+    await settled(session)
+    const piece = `pawn:${seat}:${offers.pawnsOff[0]}`
+    Object.assign(window, {
+        feudumSession: session,
+        motionTable: {
+            replayPawn: async () => {
+                const frames: PawnFrame[] = []
+                const start = performance.now()
+                let running = true
+                const sample = () => {
+                    if (!running) {
+                        return
+                    }
+                    const point = pawnPointOf(piece)
+                    if (point) {
+                        frames.push({ at: performance.now() - start, ...point })
+                    }
+                    requestAnimationFrame(sample)
+                }
+                requestAnimationFrame(sample)
+                await replayOf(session, 'turn')
+                await settled(session)
+                await new Promise(requestAnimationFrame)
+                await new Promise(requestAnimationFrame)
+                running = false
+                return frames
+            }
         }
     })
 }
