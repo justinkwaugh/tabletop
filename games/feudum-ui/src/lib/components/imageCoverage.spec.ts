@@ -306,6 +306,15 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
         expect(Math.max(width, height)).toBeLessThanOrEqual(2.5 * (largest ?? 0))
     })
 
+    it.each(files.filter((file) => file.startsWith('card.action.')))(
+        '%s is opaque: its print covers every pixel the card shows',
+        (file) => {
+            const bytes = readFileSync(new URL(file, suppliedFolder))
+            expect(webpChunks(bytes)).not.toContain('ALPH')
+            expect(webpChunks(bytes)).toContain('VP8 ')
+        }
+    )
+
     // An sRGB profile tells the browser only what it assumes already: each file ships without one.
     it.each(files)('%s carries no colour profile', (file) => {
         const bytes = readFileSync(new URL(file, suppliedFolder))
