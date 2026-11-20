@@ -180,16 +180,23 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     }
 
     // A new declaration replaces the standing one where nothing has acted on it yet (ADR 0008).
-    // Says what it asked for, as a replacement can land after it returns.
+    // Says what the game holds once the action settles, or nothing when it did not change: a
+    // failed or rejected action resolves all the same, after the game is put back. Read from the
+    // game rather than the state on screen, which catches up only after the motion plays.
     async toggleAutoJump(): Promise<boolean | undefined> {
         if (this.moving || this.busy || !this.canSetAutoJump) return undefined
+        const playerId = this.myPlayer?.id
+        if (playerId === undefined) return undefined
         const on = !this.autoJump
         await this.applyAction(
             this.withSupersededAction(
                 this.createPlayerAction(SetAutoJump, { outOfTurn: true, supersedable: true, on })
             )
         )
-        return on
+        const held = this.actionTarget.state.players.find(
+            (player) => player.playerId === playerId
+        )?.autoJump
+        return (held === true) === on ? on : undefined
     }
 
     // A move's motion is laid out in the view it started in, so turning the board lands it.
