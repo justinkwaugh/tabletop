@@ -2,11 +2,11 @@ import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
     ChooseFavours,
     chooseFavoursOffer,
-    goodCounts,
-    Goods,
-    reasonChooseFavoursRefused,
     type Good,
-    type GoodCounts
+    type GoodCounts,
+    goodCountsOf,
+    Goods,
+    reasonChooseFavoursRefused
 } from '@tabletop/feudum'
 import type { FlowPlay } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
@@ -71,7 +71,7 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
         if (!context) {
             return undefined
         }
-        const favours = this.countsOf(this.value('goods') ?? [])
+        const favours = goodCountsOf(this.value('goods') ?? [])
         const barrel = this.value('barrel') ?? 0
         return playUnless(
             reasonChooseFavoursRefused(context.state, context.playerId, favours, barrel),
@@ -144,14 +144,6 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
             primary: { label: `Take ${offer.favours}`, enabled: this.play !== undefined }
         }
     })
-
-    private countsOf(goods: readonly Good[]): GoodCounts {
-        const counts = goodCounts()
-        for (const good of goods) {
-            counts[good] += 1
-        }
-        return counts
-    }
 
     /** R-3.11.2 What taking them costs: the seat's beads turn to seals. */
     private beadsTurn(beads: number): string {

@@ -1,3 +1,4 @@
+import { shuffled } from '../model/collections.js'
 import {
     assertExists,
     BaseGameInitializer,
@@ -9,7 +10,6 @@ import {
     type Game,
     type GameInitializer,
     type Player,
-    type RandomFunction,
     type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
@@ -116,7 +116,7 @@ export class FeudumGameInitializer
     /** R-1.4.3 The writs go face down in a shuffled deck; the deck's counts stay as the box left them. */
     private static shuffleWritDeck(state: HydratedFeudumGameState) {
         const vault = state.requireVault()
-        vault.writDeck = FeudumGameInitializer.shuffled(
+        vault.writDeck = shuffled(
             vault.writDeck.map(({ writId }) => writId),
             state.getProtectedPrng().random
         ).map((writId, slot) => ({ slot, writId }))
@@ -127,7 +127,7 @@ export class FeudumGameInitializer
         const vault = state.requireVault()
         const { random } = state.getProtectedPrng()
         for (const epoch of TileEpochs) {
-            const landscapes = FeudumGameInitializer.shuffled(EpochLandscapes[epoch], random)
+            const landscapes = shuffled(EpochLandscapes[epoch], random)
             RegionTiles.filter((tile) => tile.epoch === epoch).forEach((tile, index) => {
                 vault.tileLandscapes[tile.id] = landscapes[index]
             })
@@ -136,9 +136,7 @@ export class FeudumGameInitializer
 
     /** R-1.4.3 The 22 setup discs, face up; the other 22 are in the general supply already. */
     private static placeLocationDiscs(state: HydratedFeudumGameState) {
-        state.spaces = placeStartingDiscs(
-            FeudumGameInitializer.shuffled(StartingDiscs, state.getProtectedPrng().random)
-        )
+        state.spaces = placeStartingDiscs(shuffled(StartingDiscs, state.getProtectedPrng().random))
     }
 
     /** R-1.3 The market and the carts, from the haversack. */
@@ -205,11 +203,5 @@ export class FeudumGameInitializer
             assertExists(good, 'R-1.4.6 The haversack cannot run out at setup')
             state.spaces[space.id].goods[good] += 1
         }
-    }
-
-    private static shuffled<T>(items: readonly T[], random: RandomFunction): T[] {
-        const copy = [...items]
-        shuffle(copy, random)
-        return copy
     }
 }

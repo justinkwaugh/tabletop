@@ -4,26 +4,26 @@ import {
     DiscardAnyTime,
     DiscardWrit,
     discardWritOffers,
+    type Good,
     goodsShort,
+    type GuildId,
     MachineState,
+    type MandateAlternativeId,
+    type PawnNumber,
     PlaceVessel,
     placeVesselOffers,
     PlayMandate,
     playMandateOffers,
+    priceOfGoods,
+    reasonPlayMandateRefused,
     ReclaimImmunitySeal,
     reclaimImmunitySealOffers,
-    reasonPlayMandateRefused,
+    type SpaceId,
     SpendRegionTile,
     spendRegionTileOffers,
-    type Good,
-    type GuildId,
     type StarveRole,
-    type PawnNumber,
-    type PlayMandateOffer,
-    type SpaceId,
     type TileId,
     type VesselType,
-    type MandateAlternativeId,
     type WritId
 } from '@tabletop/feudum'
 import { markerTarget, pawnTarget, type BoardTarget, type StagePick } from './boardOffer.js'
@@ -147,7 +147,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
             ? this.mandateOffers(context).find((row) => AtWillDraft.sameMandate(picked, row))
             : undefined
         return offer
-            ? coverNeeds(goodsShort(context.state, context.playerId, AtWillDraft.priceOf(offer)))
+            ? coverNeeds(goodsShort(context.state, context.playerId, priceOfGoods(offer.turnedIn)))
             : []
     }
 
@@ -577,13 +577,5 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
             a.rewardGuild === b.rewardGuild &&
             a.vessel === b.vessel
         )
-    }
-
-    private static priceOf({ turnedIn }: PlayMandateOffer): Partial<Record<Good, number>> {
-        const price: Partial<Record<Good, number>> = {}
-        for (const good of turnedIn) {
-            price[good] = (price[good] ?? 0) + 1
-        }
-        return price
     }
 }

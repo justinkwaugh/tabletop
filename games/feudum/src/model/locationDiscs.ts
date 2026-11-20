@@ -109,6 +109,16 @@ export function locationKindOf(location: LocationState): LocationKind {
     return disc.faces[location.face]
 }
 
+/** R-4.1 What each location the seat rules shows. */
+export function ruledLocationKinds(
+    state: HydratedFeudumGameState,
+    playerId: string
+): LocationKind[] {
+    return state
+        .ruledSpaceIds(playerId)
+        .map((spaceId) => locationKindOf(state.spaces[spaceId].location))
+}
+
 /** R-1.2.4, R-4.1 The guild a feudum's disc shows; no other location has one. */
 export function feudumGuildOf(location: LocationState): GuildId | undefined {
     const disc = locationDisc(location.discId)

@@ -1,3 +1,4 @@
+import { priceOfGoods } from '../model/collections.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
@@ -20,8 +21,7 @@ import {
     canSpendWildTiles,
     goodsShort,
     payGoods,
-    WildTileSpend,
-    type GoodPrice
+    WildTileSpend
 } from '../model/payments.js'
 import { flipSeal, moveConcealedSeal } from '../model/seals.js'
 import {
@@ -118,15 +118,6 @@ function vesselsOffered(reward: MandateReward): readonly (VesselType | undefined
     return reward.kind === 'any-vessel' ? VesselTypes : [undefined]
 }
 
-/** R-7 What an alternative's turned-in goods come to. */
-function priceOf(turnedIn: readonly Good[]): GoodPrice {
-    const price: Partial<Record<Good, number>> = {}
-    for (const good of turnedIn) {
-        price[good] = (price[good] ?? 0) + 1
-    }
-    return price
-}
-
 /** R-4.4.2 Which of a held mandate's alternatives this is, from the seat's standing. */
 function reasonEffectRefused(
     state: HydratedFeudumGameState,
@@ -146,7 +137,7 @@ function reasonEffectRefused(
     if (!canSpendWildTiles(state, playerId, wildTiles)) {
         return "You can't spend those region tiles."
     }
-    if (!canPayGoods(state, playerId, priceOf(turnedIn), wildTiles)) {
+    if (!canPayGoods(state, playerId, priceOfGoods(turnedIn), wildTiles)) {
         return `You can't turn in ${turnedIn.join(', ')}.`
     }
     const reward = rewardTaken(effect.reward, vessel)
@@ -200,7 +191,7 @@ function offerOf(
     effect: MandateAlternativeEffect,
     vessel: VesselType | undefined
 ): PlayMandateOffer {
-    const price = priceOf(effect.turnedIn)
+    const price = priceOfGoods(effect.turnedIn)
     const short = Object.values(goodsShort(state, playerId, price)).some((amount) => amount > 0)
     const wildTileNeeded = short && canCoverWithWildTiles(state, playerId, price)
     const wildTiles: WildTileSpend[] = []
@@ -270,7 +261,7 @@ export class HydratedPlayMandate
         if (!effect) {
             throw Error('R-4.4.2 The reason has found the alternative')
         }
-        payGoods(state, this.playerId, priceOf(effect.turnedIn), this.wildTiles ?? [])
+        payGoods(state, this.playerId, priceOfGoods(effect.turnedIn), this.wildTiles ?? [])
 
         const player = state.getPlayerState(this.playerId)
         const writs = player.requireWrits()

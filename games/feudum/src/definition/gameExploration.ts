@@ -1,3 +1,4 @@
+import { shuffled } from '../model/collections.js'
 import { shuffle, type GameExploration, type RandomFunction } from '@tabletop/common'
 import { RegionTiles, TileEpochs } from '../data/regionTiles.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
@@ -16,12 +17,6 @@ export class FeudumGameExploration implements GameExploration<FeudumProjectedSta
         return hydrated.dehydrate()
     }
 
-    private static shuffled<T>(items: readonly T[], random: RandomFunction): T[] {
-        const copy = [...items]
-        shuffle(copy, random)
-        return copy
-    }
-
     /** R-5.1 Only deck slots no one can place trade writs. */
     private static reshuffleUnknownDeckSlots(
         state: HydratedFeudumGameState,
@@ -34,7 +29,7 @@ export class FeudumGameExploration implements GameExploration<FeudumProjectedSta
             ].map(({ slot }) => slot)
         )
         const unknown = state.requireVault().writDeck.filter(({ slot }) => !known.has(slot))
-        const writIds = FeudumGameExploration.shuffled(
+        const writIds = shuffled(
             unknown.map(({ writId }) => writId),
             random
         )
@@ -49,7 +44,7 @@ export class FeudumGameExploration implements GameExploration<FeudumProjectedSta
             const tiles = RegionTiles.filter(
                 (tile) => tile.epoch === epoch && Object.hasOwn(vault.tileLandscapes, tile.id)
             )
-            const landscapes = FeudumGameExploration.shuffled(
+            const landscapes = shuffled(
                 tiles.map((tile) => vault.tileLandscapes[tile.id]),
                 random
             )

@@ -1,3 +1,4 @@
+import { shillings } from '../model/collections.js'
 import { Goods, type Good } from '../data/components.js'
 import {
     MarketSpaces,
@@ -71,10 +72,6 @@ function spacesBought(state: HydratedFeudumGameState, goods: readonly Good[]): M
         const filled = MarketSpaces.filter((row) => row.good === good && market[row.id])
         return filled.at(-(earlier + 1)) ?? []
     })
-}
-
-function shillings(amount: number): string {
-    return `${amount} shilling${amount === 1 ? '' : 's'}`
 }
 
 function priceOf(spaces: readonly MarketSpace[]): number {

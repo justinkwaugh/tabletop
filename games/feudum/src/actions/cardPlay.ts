@@ -1,3 +1,4 @@
+import { shillings } from '../model/collections.js'
 import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import type { SpaceId } from '../data/board.js'
@@ -160,9 +161,7 @@ function unmetNeed(
             return player.barrel > 0 ? undefined : 'a sulfur in your barrel'
         }
         case 'shillings': {
-            return player.shillings >= need.shillings
-                ? undefined
-                : `${need.shillings} shilling${need.shillings === 1 ? '' : 's'}`
+            return player.shillings >= need.shillings ? undefined : shillings(need.shillings)
         }
     }
 }

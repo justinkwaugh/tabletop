@@ -1,3 +1,4 @@
+import { sum } from './collections.js'
 import { Spaces } from '../data/board.js'
 import { ComponentTotals, GoodRows, MonsterIds, VesselRows } from '../data/components.js'
 import type { Good, VesselType } from '../data/components.js'
@@ -26,10 +27,6 @@ export interface ConservationBreak {
     readonly part?: string
     readonly expected: number
     readonly found: number
-}
-
-function sum(values: readonly number[]): number {
-    return values.reduce((total, value) => total + value, 0)
 }
 
 function total(

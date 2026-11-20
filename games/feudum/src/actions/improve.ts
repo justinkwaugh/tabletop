@@ -1,7 +1,8 @@
+import { regionOf } from '../model/collections.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
-import { Spaces, type SpaceId } from '../data/board.js'
+import type { SpaceId } from '../data/board.js'
 import { Goods, GuildIds, type Good, type GuildId } from '../data/components.js'
 import type { DiscId, LocationKind } from '../data/discs.js'
 import { GuildById } from '../data/guilds.js'
@@ -120,12 +121,6 @@ function stepFrom(kind: LocationKind): ImproveStep | undefined {
 function canPay(state: HydratedFeudumGameState, playerId: string, cost: ImprovementCost): boolean {
     const player = state.getPlayerState(playerId)
     return cost === 'seal' ? player.sealCount > 0 : player.goods[cost] > 0
-}
-
-function regionOf(spaceId: SpaceId): RegionId {
-    const space = Spaces.find(({ id }) => id === spaceId)
-    assertExists(space, `R-1.4 There is a space ${spaceId}`)
-    return space.region
 }
 
 export interface ImproveInput extends CardPlayInput {

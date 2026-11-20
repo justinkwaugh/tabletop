@@ -1,3 +1,4 @@
+import { goodCountsOf } from '../model/collections.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
@@ -10,7 +11,7 @@ import { queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { drawGoods } from '../model/haversack.js'
 import { beadToSeal } from '../model/seals.js'
-import { ComponentCount, GoodCounts, goodCounts, SpaceIdSchema } from '../model/stateSchemas.js'
+import { ComponentCount, GoodCounts, SpaceIdSchema } from '../model/stateSchemas.js'
 import {
     CardPlayFields,
     cardOf,
@@ -214,7 +215,7 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
 
         const drawn = drawGoods(state, total)
         const owed = HydratedHarvest.favoursOwed(drawn, total)
-        const drawnCounts = HydratedHarvest.countsOf(drawn)
+        const drawnCounts = goodCountsOf(drawn)
 
         if (this.mode === 'inspect' && owed > 0) {
             // R-3.11.3 The goods wait in the open for the choice.
@@ -230,9 +231,7 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
         }
         // R-3.11-H1 Drawn at random: the partial, then the rest, unchosen.
         const favours =
-            this.mode === 'favours'
-                ? HydratedHarvest.countsOf(drawn.slice(drawn.length - owed))
-                : undefined
+            this.mode === 'favours' ? goodCountsOf(drawn.slice(drawn.length - owed)) : undefined
         // R-3.11-H2 No good left for a favour: none was taken, so no bead flips.
         const beadsFlipped = settleHarvest(
             state,
@@ -256,14 +255,6 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
         const points = vp === 'variable' ? undefined : vp?.at(0)
         assertExists(points, 'R-3.11.1 Harvest prints its vp')
         return points
-    }
-
-    private static countsOf(goods: readonly Good[]): GoodCounts {
-        const counts = goodCounts()
-        for (const good of goods) {
-            counts[good] += 1
-        }
-        return counts
     }
 
     /** R-3.11-H2 The farm fills first: only what is past the partial can be a favour. */

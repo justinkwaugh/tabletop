@@ -67,6 +67,7 @@ import {
     type PawnLeft,
     printedSpaceNumber,
     type RankChange,
+    regionOf,
     type RowFill,
     type SealId,
     type SpaceId,
@@ -81,7 +82,7 @@ import {
 function spaceNumberOf(spaceId?: VoyageSpaceId | MilitarySpaceId): number | string {
     return spaceId ? printedSpaceNumber(spaceId) : ''
 }
-import { regionOf, spaceLabel } from './cardFlows.js'
+import { spaceLabel } from './cardFlows.js'
 import { handFaceShown, writFaceShown } from './perspective.js'
 import { PouchTitles } from './pouchWords.js'
 import { fillLine, goodsLine } from './roundEnd.js'

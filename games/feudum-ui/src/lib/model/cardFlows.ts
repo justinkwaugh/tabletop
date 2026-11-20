@@ -1,24 +1,37 @@
 import { assertExists, type GameAction } from '@tabletop/common'
 import type { GameSession } from '@tabletop/frontend-components'
 import {
+    type ActionCardKind,
     ActionType,
+    type CardPlayInput,
+    type Character,
+    type CombatStrength,
+    Conquer,
+    type ConquerOffer,
     conquerOffers,
     discChoices,
+    type DiscId,
     Explore,
     exploreOffer,
+    type FeudumProjectedState,
     Goods,
     goodsShort,
     GuildById,
-    harvestOffers,
+    type GuildId,
     Harvest,
+    type HarvestMode,
+    harvestOffers,
+    type HydratedFeudumGameState,
     Improve,
-    improveOffers,
     type ImproveOffer,
+    improveOffers,
     Influence,
     influenceOffers,
+    type LocationKind,
     Migrate,
     MigrateFood,
     migrateOffers,
+    type PawnNumber,
     PlayDefend,
     reasonConquerRefused,
     reasonExploreRefused,
@@ -30,31 +43,18 @@ import {
     reasonStarveThePeopleRefused,
     reasonTaxRefused,
     reasonTendLandscapeRefused,
+    type RegionId,
+    regionOf,
     reinforcementsOffered,
-    Spaces,
+    type SpaceId,
     StartingSpaceIds,
-    Conquer,
+    type StarveOffer,
     starveOffers,
     StarveThePeople,
     Tax,
     TendLandscape,
     tendLandscapeOffers,
     tendLandscapePreview,
-    type ActionCardKind,
-    type CardPlayInput,
-    type Character,
-    type CombatStrength,
-    type ConquerOffer,
-    type DiscId,
-    type FeudumProjectedState,
-    type GuildId,
-    type HarvestMode,
-    type HydratedFeudumGameState,
-    type LocationKind,
-    type PawnNumber,
-    type RegionId,
-    type SpaceId,
-    type StarveOffer,
     type TileId,
     type VesselType,
     writDeckCount
@@ -220,12 +220,6 @@ const Pick =
 
 function titled(word: string): string {
     return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
-}
-
-export function regionOf(spaceId: SpaceId): RegionId {
-    const space = Spaces.find(({ id }) => id === spaceId)
-    assertExists(space, `R-1.4 There is a space ${spaceId}`)
-    return space.region
 }
 
 export function spaceLabel(spaceId: SpaceId): string {

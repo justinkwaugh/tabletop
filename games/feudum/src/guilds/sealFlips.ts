@@ -1,3 +1,4 @@
+import { sum } from '../model/collections.js'
 import type { ScrollSpaceId } from '../data/guilds.js'
 import { rosaryBeadSum, unseenBeadValues } from '../model/beads.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -18,10 +19,6 @@ export function reasonSealPicksRefused(
         (spaceId, index) => !filled.includes(spaceId) || spaces.indexOf(spaceId) < index
     )
     return missing ? 'No seal lies on that scroll space.' : undefined
-}
-
-function sum(values: readonly number[]): number {
-    return values.reduce((total, value) => total + value, 0)
 }
 
 export interface FlipTotals {

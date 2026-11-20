@@ -15,7 +15,7 @@ import {
     type CardPlayInput,
     type RepeatMode
 } from './cardPlay.js'
-import { locationKindOf } from '../model/locationDiscs.js'
+import { ruledLocationKinds } from '../model/locationDiscs.js'
 
 /** R-3.12.1 */
 const TaxBaseShillings = 2
@@ -53,15 +53,9 @@ export function isTax(action?: GameAction): action is Tax {
     return action?.type === ActionType.Tax
 }
 
-function ruledKinds(state: HydratedFeudumGameState, playerId: string) {
-    return state
-        .ruledSpaceIds(playerId)
-        .map((spaceId) => locationKindOf(state.spaces[spaceId].location))
-}
-
 /** R-3.12.1 2 shillings + 1 per other town or feudum ruled, the taxing town being one town. */
 export function taxShillings(state: HydratedFeudumGameState, playerId: string): number {
-    const others = ruledKinds(state, playerId).filter(
+    const others = ruledLocationKinds(state, playerId).filter(
         (kind) => kind === 'town' || kind === 'feudum'
     )
     return TaxBaseShillings + others.length - 1
@@ -114,7 +108,7 @@ export function reasonTaxRefused(
 ): string | undefined {
     return (
         reasonCardPlayRefused(state, playerId, 'tax', input) ??
-        (ruledKinds(state, playerId).includes('town') ? undefined : 'You rule no town.') ??
+        (ruledLocationKinds(state, playerId).includes('town') ? undefined : 'You rule no town.') ??
         reasonCollectRefused(state, playerId, input.collect)
     )
 }

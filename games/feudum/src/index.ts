@@ -74,6 +74,7 @@ export { atWillOffers } from './stateHandlers/atWill.js'
 export { fillLandscape } from './model/landscapes.js'
 export * from './model/canonicalValidator.js'
 export * from './model/combatStrength.js'
+export * from './model/collections.js'
 export * from './model/epochConditions.js'
 export * from './model/flow.js'
 export * from './model/followUps.js'
@@ -88,6 +89,7 @@ export {
     feudumGuildOf,
     locationKindOf,
     replaceLocationDisc,
+    ruledLocationKinds,
     type DiscChoice
 } from './model/locationDiscs.js'
 export * from './model/mapState.js'

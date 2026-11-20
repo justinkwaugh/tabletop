@@ -9,6 +9,7 @@ import {
     MachineState,
     migrateOffers,
     placeMarker,
+    regionOf,
     type SpaceId,
     Spaces,
     taxPreview,
@@ -42,13 +43,7 @@ import {
     chipOf,
     type BoardTarget
 } from './boardOffer.js'
-import {
-    regionOf,
-    spaceLabel,
-    TurnStageOrder,
-    type PanelChoice,
-    type TurnDraftValues
-} from './cardFlows.js'
+import { spaceLabel, TurnStageOrder, type PanelChoice, type TurnDraftValues } from './cardFlows.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 import { tileName } from './tileName.js'

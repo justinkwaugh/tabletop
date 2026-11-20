@@ -1,3 +1,4 @@
+import { goodCountsOf } from './collections.js'
 import { assertExists } from '@tabletop/common'
 import { Goods, type Good } from '../data/components.js'
 import {
@@ -90,14 +91,6 @@ export function movableToMarket(
     return Math.min(cap, goodsTotal(goodsThatFit(state, available)))
 }
 
-function countsOf(goods: readonly Good[]): GoodCounts {
-    const counts = goodCounts()
-    for (const good of goods) {
-        counts[good] += 1
-    }
-    return counts
-}
-
 /** R-4.6.1, R-4.6-H5 No minimum, so a staged input is read too. */
 export function reasonMarketPicksRefused(
     state: HydratedFeudumGameState,
@@ -109,7 +102,7 @@ export function reasonMarketPicksRefused(
     if (goods.length > cap) {
         return `Move at most ${cap} goods.`
     }
-    const picks = countsOf(goods)
+    const picks = goodCountsOf(goods)
     for (const good of Goods) {
         if (picks[good] > available[good]) {
             return `The ${place} holds only ${available[good]} ${good}.`
@@ -246,7 +239,7 @@ export function reasonCartPicksRefused(
     if (goods.length > cap) {
         return `Move at most ${cap} goods.`
     }
-    const picks = countsOf(goods)
+    const picks = goodCountsOf(goods)
     const holds = marketHolds(state)
     for (const good of Goods) {
         if (picks[good] > holds[good]) {

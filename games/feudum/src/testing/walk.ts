@@ -1,3 +1,4 @@
+import { regionOf } from '../model/collections.js'
 import { expect } from 'vitest'
 import {
     ActionSource,
@@ -27,7 +28,7 @@ import { revealPouchOf } from '../actions/revealPouches.js'
 import { starveOffers } from '../actions/starveThePeople.js'
 import { reasonTaxRefused, reinforcementsOffered } from '../actions/tax.js'
 import { tendLandscapeOffers } from '../actions/tendLandscape.js'
-import { Spaces, type SpaceId } from '../data/board.js'
+import type { SpaceId } from '../data/board.js'
 import { ActionCards, type ActionCardKind } from '../data/cards.js'
 import type { GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
@@ -106,9 +107,7 @@ export function walkCount(state: HydratedFeudumGameState): number {
 
 /** The regions whose stacks are nearly out: a location there can empty one. */
 function stackSize(state: HydratedFeudumGameState, spaceId: SpaceId): number {
-    const space = Spaces.find(({ id }) => id === spaceId)
-    assertExists(space, `${spaceId} is a space`)
-    return state.regionStacks[space.region].length
+    return state.regionStacks[regionOf(spaceId)].length
 }
 
 /** The location whose stack is shortest, keeping the walk moving towards the end of the game. */

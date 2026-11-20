@@ -1,3 +1,4 @@
+import { shillings } from '../model/collections.js'
 import {
     NoblePullMarkers,
     NoblePushSeals,
@@ -14,10 +15,6 @@ import { flipSeal, moveConcealedSeal } from '../model/seals.js'
 import { scoringPreview, type GuildFunctionName, type GuildFunctionRow } from './guildFunction.js'
 import { rowsToScrollsRow } from './rowsToScrolls.js'
 import { flipTotals, reasonSealPicksRefused } from './sealFlips.js'
-
-function shillings(amount: number): string {
-    return `${amount} shilling${amount === 1 ? '' : 's'}`
-}
 
 export interface NobleTradeOffer {
     readonly price: number
