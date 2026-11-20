@@ -81,6 +81,10 @@
             data-flight-row={flight.row}
             {@attach animator.copy(flight.id)}
         >
+            {#if flight.flash}
+                <span class="flash-ring" data-flight-flash {@attach animator.flashRing(flight.id)}
+                ></span>
+            {/if}
             {#each sidesOf(flight) as face, side (side)}
                 <div
                     class="flight-side"
@@ -113,6 +117,19 @@
         visibility: hidden;
         transform-origin: 0 0;
         will-change: transform;
+    }
+
+    /* R-3.6 A lost piece's flash: a rose ring round the copy, its opacity alone tweened. */
+    .flash-ring {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 60px;
+        height: 60px;
+        transform: translate(-50%, -50%);
+        border: 4px solid var(--feudum-danger);
+        border-radius: 50%;
+        opacity: 0;
     }
 
     .flight-side {

@@ -160,6 +160,7 @@ class FakeSide implements CopySide {
 
 class FakeCopy implements CopyElement {
     readonly style = { visibility: '', opacity: '', transform: '', filter: '' }
+    readonly flash = { style: { opacity: '', transform: '' } }
     readonly sides = [new FakeSide('first'), new FakeSide('then')]
 
     querySelectorAll() {
@@ -226,6 +227,7 @@ async function played(animator: FlightAnimator, plan: FlightPlan) {
         animator.flights.map(({ id }) => {
             const copy = new FakeCopy()
             animator.copy(id)(copy)
+            animator.flashRing(id)(copy.flash)
             return [id, copy]
         })
     )
@@ -279,6 +281,40 @@ describe('each row of the animation plan that crosses the wrapper', () => {
         const migrate = actionOf(seat, ActionType.Migrate)
         const [gone] = rowOf(planFlights(changeFrom(table, leave, migrate)), 'pawns')
         expect(gone.flash).toBeUndefined()
+    })
+
+    it('R-3.6 a lost pawn flashes a rose ring that fades in and out; the copy itself carries no filter', async () => {
+        const table = await emptyTable()
+        const { seat, host: game } = table
+        game.edit((state) => addPawn(state, seat, 'knight', 'space.desert.3'))
+        const plan = planFlights(
+            changeFrom(
+                table,
+                (to) => {
+                    for (const pawn of to.getPlayerState(seat).pawns) {
+                        delete pawn.spaceId
+                    }
+                },
+                anAction(seat)
+            )
+        )
+        const { animator } = rig()
+        const { copies, timeline } = await played(animator, plan)
+        const flight = animator.flights.find(({ flash }) => flash)
+        assertExists(flight?.flash, 'The pawn going home flashes')
+        const copy = copyOf(copies, flight.id)
+        const opacities: number[] = []
+        for (const share of [0.1, 0.5, 0.9]) {
+            timeline.time(flight.flash.at + share * flight.flash.duration)
+            opacities.push(Number(copy.flash.style.opacity))
+            // Phone rendering: no CSS filter, animated or still, on a flying copy.
+            expect(copy.style.filter).toBe('')
+        }
+        expect(opacities[1]).toBeCloseTo(1, 1)
+        expect(opacities[0]).toBeLessThan(opacities[1])
+        expect(opacities[2]).toBeLessThan(opacities[1])
+        timeline.progress(1)
+        expect(Number(copy.flash.style.opacity)).toBeCloseTo(0, 5)
     })
 
     it('R-4.1.2 a marker lands from its seat and one returned flies home; a swap of roles is the board’s (S37)', async () => {

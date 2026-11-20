@@ -19,8 +19,13 @@ import {
 
 /** All a tween touches on a copy: its style, and which of its two sides shows. */
 export interface CopyElement {
-    readonly style: Pick<CSSStyleDeclaration, 'visibility' | 'opacity' | 'transform' | 'filter'>
+    readonly style: Pick<CSSStyleDeclaration, 'visibility' | 'opacity' | 'transform'>
     querySelectorAll(selector: string): Iterable<CopySide>
+}
+
+/** The rose ring a lost piece's copy flashes in: a shape whose opacity alone is tweened. */
+export interface FlashElement {
+    readonly style: Pick<CSSStyleDeclaration, 'opacity'>
 }
 
 export interface CopySide {
@@ -43,16 +48,16 @@ interface CopyPose {
 
 const ArcShare = 0.15
 const DesignSize = 48
-const FlashGlow = 10
 
-function drawCopy(element: CopyElement, pose: CopyPose) {
+function drawCopy(element: CopyElement, pose: CopyPose, flash: FlashElement | undefined) {
     const { style } = element
     style.visibility = pose.visible ? 'visible' : 'hidden'
     style.opacity = `${pose.opacity}`
     const scale = pose.size / DesignSize
     style.transform = `translate(${pose.x}px, ${pose.y}px) scale(${scale * pose.turn}, ${scale})`
-    style.filter =
-        pose.flash > 0 ? `drop-shadow(0 0 ${pose.flash * FlashGlow}px var(--feudum-danger))` : ''
+    if (flash) {
+        flash.style.opacity = `${pose.flash}`
+    }
     for (const side of element.querySelectorAll('[data-flight-side]')) {
         const first = side.getAttribute('data-flight-side') === 'first'
         side.toggleAttribute('hidden', first === pose.turned)
@@ -75,6 +80,7 @@ export class FlightAnimator {
     private generation = 0
     private steps = 0
     private readonly copies = new Map<string, CopyElement>()
+    private readonly flashes = new Map<string, FlashElement>()
     private readonly poses = new Map<string, CopyPose>()
     private readonly hidden = new Set<HideableSource>()
 
@@ -104,11 +110,22 @@ export class FlightAnimator {
         this.copies.set(id, element)
         const pose = this.poses.get(id)
         if (pose) {
-            drawCopy(element, pose)
+            drawCopy(element, pose, this.flashes.get(id))
         }
         return () => {
             if (this.copies.get(id) === element) {
                 this.copies.delete(id)
+            }
+        }
+    }
+
+    /** A copy's rose ring, drawn inside it for a flight that flashes. */
+    readonly flashRing = (id: string) => (element: FlashElement) => {
+        this.flashes.set(id, element)
+        element.style.opacity = `${this.poses.get(id)?.flash ?? 0}`
+        return () => {
+            if (this.flashes.get(id) === element) {
+                this.flashes.delete(id)
             }
         }
     }
@@ -196,7 +213,7 @@ export class FlightAnimator {
     private redraw(flight: Flight, pose: CopyPose) {
         const element = this.copies.get(flight.id)
         if (element) {
-            drawCopy(element, pose)
+            drawCopy(element, pose, this.flashes.get(flight.id))
         }
     }
 
