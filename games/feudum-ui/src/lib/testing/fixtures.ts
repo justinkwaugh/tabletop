@@ -1357,7 +1357,7 @@ export const Fixtures = {
                     holdWrit(state, playerId, Mandates[index].id)
                 })
                 giveVessel(state, second(host), 'ship')
-                state.militaryService[second(host)] = 1
+                state.militaryService[second(host)] = 'track.military.1'
             })
             return { host, seat }
         }

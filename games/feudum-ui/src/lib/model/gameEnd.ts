@@ -1,10 +1,11 @@
 import type { GameAction } from '@tabletop/common'
 import {
-    EpicVoyageTrack,
     isBeginDawn,
     isScoreGame,
     LastEpoch,
+    voyageSpace,
     type BarrelTieBreak,
+    type VoyageSpaceId,
     type WritId
 } from '@tabletop/feudum'
 
@@ -44,8 +45,8 @@ export interface GameEndSummaryView {
     readonly tieBreak?: GameEndTie
 }
 
-function voyageLabel(space: number | undefined): string {
-    const on = EpicVoyageTrack.find((row) => row.space === space)
+function voyageLabel(spaceId: VoyageSpaceId | undefined): string {
+    const on = spaceId && voyageSpace(spaceId)
     return on ? `Section ${on.section} · space ${on.space}` : 'No disc'
 }
 

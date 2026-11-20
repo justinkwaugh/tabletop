@@ -1,8 +1,7 @@
 import type { Color } from '@tabletop/common'
 import {
-    EpicVoyageTrack,
+    coveredServiceSpaces,
     knightRows,
-    MilitaryServiceTrack,
     RegionTiles,
     ScoreTrack,
     type HydratedFeudumGameState,
@@ -85,10 +84,8 @@ function fanned(
 export function voyageDiscs(state: HydratedFeudumGameState): readonly TrackDisc[] {
     return fanned(
         state.players.flatMap(({ playerId }) => {
-            const reached = EpicVoyageTrack.find(
-                ({ space }) => space === state.voyageTrack[playerId]
-            )
-            return reached ? [{ playerId, spaceId: reached.id, key: `voyage:${playerId}` }] : []
+            const reached = state.voyageTrack[playerId]
+            return reached ? [{ playerId, spaceId: reached, key: `voyage:${playerId}` }] : []
         })
     )
 }
@@ -97,9 +94,7 @@ export function voyageDiscs(state: HydratedFeudumGameState): readonly TrackDisc[
 export function serviceDiscs(state: HydratedFeudumGameState): readonly TrackDisc[] {
     return fanned(
         state.players.flatMap(({ playerId }) =>
-            MilitaryServiceTrack.filter(
-                ({ space }) => space <= (state.militaryService[playerId] ?? 0)
-            ).map(({ id, space }) => ({
+            coveredServiceSpaces(state, playerId).map(({ id, space }) => ({
                 playerId,
                 spaceId: id,
                 key: `service:${playerId}:${space}`

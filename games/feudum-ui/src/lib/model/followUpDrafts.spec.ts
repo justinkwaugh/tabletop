@@ -578,7 +578,7 @@ describe('R-4.8 The commit', () => {
         expect(lastAction(table)).toMatchObject({
             type: ActionType.CommitAttack,
             saltpeter: 1,
-            weapons: [{ writId: 'writ.mandate.3', alternative: 0 }]
+            weapons: [{ writId: 'writ.mandate.3', alternative: 'writ.mandate.3.alt.1' }]
         })
         expect(session.commitPanel).toBeUndefined()
     })
@@ -710,7 +710,7 @@ describe('R-4.8 The commit', () => {
             await press(session, weapon(session, 0))
             await press(session, weapon(session, 1))
             expect(session.commitAttack.value('adds')).toEqual([
-                { kind: 'weapon', writId: 'writ.mandate.3', alternative: 1 }
+                { kind: 'weapon', writId: 'writ.mandate.3', alternative: 'writ.mandate.3.alt.2' }
             ])
             await press(session, weapon(session, 1))
             expect(session.commitAttack.value('adds')).toEqual([])

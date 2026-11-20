@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import type { LocationKind } from '../data/discs.js'
 import type { Epoch } from '../data/tracks.js'
-import { initialState } from '../testing/state.js'
+import { coverService, initialState } from '../testing/state.js'
 import { activeRegionIds, activeRegionVp, disloyaltyVp } from './activeRegions.js'
 
 const OnePerRegion: readonly SpaceId[] = [
@@ -77,7 +77,7 @@ describe('R-4.9.2 vassals', () => {
         const state = initialState()
         state.spaces['space.sea.1'].location.kind = 'feudum'
         state.spaces['space.sea.1'].ruler = { playerId: 'p1', subject: false }
-        state.militaryService.p1 = covered
+        coverService(state, 'p1', covered)
         return state
     }
 
@@ -111,7 +111,7 @@ describe('R-4.9.2 vassals', () => {
 
     it("R-4.9-H2 only the vassal's own discs cover their spaces", () => {
         const state = vassal(0)
-        state.militaryService.p2 = 3
+        state.militaryService.p2 = 'track.military.3'
         expect(disloyaltyVp(state, 'p1', 2)).toBe(-3)
     })
 })

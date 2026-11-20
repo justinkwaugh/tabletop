@@ -20,7 +20,7 @@ export interface EpicVoyageSpace {
 
 const VoyageWritDraw = { draw: 2, keep: 1 }
 
-/** R-3.7.5, R-6.2 */
+/** R-3.7.5, R-6.2 In track order. */
 export const EpicVoyageTrack: readonly EpicVoyageSpace[] = [
     {
         id: 'track.voyage.1',
@@ -89,12 +89,15 @@ export interface MilitaryServiceSpace {
     readonly dueFrom: Epoch
 }
 
-/** R-4.9.2 */
+/** R-4.9.2 In the order discs cover them. */
 export const MilitaryServiceTrack: readonly MilitaryServiceSpace[] = [
     { id: 'track.military.1', space: 1, penalty: -3, dueFrom: 2 },
     { id: 'track.military.2', space: 2, penalty: -4, dueFrom: 4 },
     { id: 'track.military.3', space: 3, penalty: -5, dueFrom: 5 }
 ]
+
+export type VoyageSpaceId = EpicVoyageSpace['id']
+export type MilitarySpaceId = MilitaryServiceSpace['id']
 
 /** R-4.11.2 What the stack tops must show for the epoch to be triggered. */
 export type EpochAdvance =

@@ -30,6 +30,7 @@ import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import { emptySpaces, giveGood, giveSeal, giveTile, returnGoods } from '$lib/testing/turnTable.js'
 import { pawnTarget, spaceTarget, type BoardTarget } from './boardOffer.js'
 import { tileName } from './tileName.js'
+import { mandateChoiceLabel } from './writLabels.js'
 import type { FeudumGameSession } from './session.svelte.js'
 
 let host: FeudumHost | undefined
@@ -554,7 +555,8 @@ describe('R-X.2 "can\'t be undone" on what is drawn', () => {
         const offer = blockOf(session.actionPanel, 'writ-offers')?.offers.find(
             ({ writId }) => writId === revealing.writId
         )
-        const row = offer?.rows[revealing.alternative]
+        const label = mandateChoiceLabel(revealing, session.gameState.supply)
+        const row = offer?.rows.find(({ choice }) => choice.label === label)
         assertExists(row, 'The mandate lists the alternative')
         const count = table.host.actions.length
         await pressRow(row)

@@ -1,6 +1,11 @@
+import { ActionSource } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { CommitAttackValidator } from '../actions/commitAttack.js'
+import { PlayMandateValidator } from '../actions/playMandate.js'
 import { ComponentTotals, StartingSupply } from '../data/components.js'
 import { GuildSetupSpaces, KnightRowIds } from '../data/guilds.js'
+import { Mandates } from '../data/writs.js'
+import { ActionType } from '../definition/actions.js'
 import { FeudumColors } from '../definition/colors.js'
 import { initialState } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
@@ -87,5 +92,79 @@ describe('the state keeps no copy of what it can derive', () => {
         const table = tableAtPlayingCards()
         expect(table.state.flow.turn).toEqual({ secondCard: false, followUps: [] })
         expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(table.asked)
+    })
+})
+
+describe('a disc on a track names its space by id', () => {
+    it('R-3.7.5, R-4.9-H2 no seat starts on either track', () => {
+        const state = initialState()
+        expect(state.voyageTrack).toEqual({})
+        expect(state.militaryService).toEqual({})
+    })
+
+    it('R-3.7.5 the voyage disc keeps the space id, never its printed number', () => {
+        const state = initialState().dehydrate()
+        expect(
+            FeudumGameStateValidator.Check({ ...state, voyageTrack: { p1: 'track.voyage.3' } })
+        ).toBe(true)
+        expect(FeudumGameStateValidator.Check({ ...state, voyageTrack: { p1: 3 } })).toBe(false)
+    })
+
+    it('R-4.9-H2 military service keeps the furthest space covered by id', () => {
+        const state = initialState().dehydrate()
+        expect(
+            FeudumGameStateValidator.Check({
+                ...state,
+                militaryService: { p1: 'track.military.2' }
+            })
+        ).toBe(true)
+        expect(FeudumGameStateValidator.Check({ ...state, militaryService: { p1: 2 } })).toBe(false)
+    })
+})
+
+describe('an Action names a printed alternative by id', () => {
+    const user = { id: 'a1', gameId: 'game-1', source: ActionSource.User, playerId: 'p1' }
+
+    it('R-4.4.2 every printed alternative of a mandate has an id of its own', () => {
+        const ids = Mandates.flatMap((mandate) =>
+            mandate.kind === 'turn-in' ? mandate.alternatives.map(({ id }) => id) : []
+        )
+        expect(ids).toHaveLength(12)
+        expect(new Set(ids).size).toBe(ids.length)
+        for (const mandate of Mandates) {
+            if (mandate.kind === 'turn-in') {
+                expect(mandate.alternatives.map(({ id }) => id)).toEqual([
+                    `${mandate.id}.alt.1`,
+                    `${mandate.id}.alt.2`
+                ])
+            }
+        }
+    })
+
+    it('R-4.4.2 PlayMandate takes the id, never a position', () => {
+        const play = { ...user, type: ActionType.PlayMandate, writId: 'writ.mandate.5' }
+        expect(PlayMandateValidator.Check({ ...play, alternative: 'writ.mandate.5.alt.2' })).toBe(
+            true
+        )
+        expect(PlayMandateValidator.Check({ ...play, alternative: 1 })).toBe(false)
+    })
+
+    it('R-4.4.2 a guild-status mandate names only its guild', () => {
+        const play = { ...user, type: ActionType.PlayMandate, writId: 'writ.mandate.6' }
+        expect(PlayMandateValidator.Check({ ...play, rewardGuild: 'farmer' })).toBe(true)
+    })
+
+    it('R-4.4-H1 a weapon played into an attack takes the id', () => {
+        const commit = { ...user, type: ActionType.CommitAttack, saltpeter: 0 }
+        const weapon = { writId: 'writ.mandate.3' }
+        expect(
+            CommitAttackValidator.Check({
+                ...commit,
+                weapons: [{ ...weapon, alternative: 'writ.mandate.3.alt.2' }]
+            })
+        ).toBe(true)
+        expect(
+            CommitAttackValidator.Check({ ...commit, weapons: [{ ...weapon, alternative: 1 }] })
+        ).toBe(false)
     })
 })

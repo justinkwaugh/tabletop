@@ -151,7 +151,7 @@ export function boxContents(players: FeudumPlayerState[]): BoxContents {
         writDeck: { top: 0, nextBottom: RoyalWrits.length },
         publicDeckWrits: [],
         voyageTrack: {},
-        militaryService: perPlayer(players, () => 0),
+        militaryService: {},
         vault: {
             writDeck: RoyalWrits.map((writ, slot) => ({ slot, writId: writ.id })),
             sealPile: Seals.map((seal) => seal.id),

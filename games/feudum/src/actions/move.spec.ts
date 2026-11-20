@@ -1108,7 +1108,7 @@ describe('Move: successful moves', () => {
         expect(table.state.flow.turn?.followUps).toEqual([{ kind: 'voyage', playerId }])
         expect(action.revealsInfo).toBeFalsy()
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })
-        expect(table.hydrated().voyageTrack[playerId]).toBe(1)
+        expect(table.hydrated().voyageTrack[playerId]).toBe('track.voyage.1')
     })
 
     it('R-3.7.5 a replay with no step isn’t the second', () => {

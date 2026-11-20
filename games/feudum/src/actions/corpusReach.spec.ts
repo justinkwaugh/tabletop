@@ -13,10 +13,12 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { returnGoodToHaversack } from '../model/supply.js'
 import {
+    alternativeOf,
     Charters,
     giveTile,
     returnAllGoods,
     tableInWindow,
+    Weapon,
     type WindowName
 } from '../testing/atWill.js'
 import { meetCharter } from '../testing/charters.js'
@@ -158,7 +160,8 @@ describe('corpus reach: the mandates', () => {
             })
             expect(table.offered(playerId)).not.toContain(ActionType.PlayMandate)
             expect(playMandateOffers(table.hydrated(), playerId)).toEqual([])
-            for (const alternative of [0, 1]) {
+            for (const printed of [1, 2] as const) {
+                const alternative = alternativeOf(writId, printed)
                 expect(() =>
                     table.send(playerId, { type: ActionType.PlayMandate, writId, alternative })
                 ).toThrow(`${writId} has no at-will effect`)
@@ -223,7 +226,8 @@ describe('corpus reach: the mandates', () => {
             expect(commitAttackOffer(combat.table.hydrated(), combat.attackerId)?.weapons).toEqual(
                 []
             )
-            expect(() => commit(combat, { weapons: [{ writId, alternative: 0 }] })).toThrow(
+            const alternative = alternativeOf(Weapon, 1)
+            expect(() => commit(combat, { weapons: [{ writId, alternative }] })).toThrow(
                 `${writId} has no effect in an attack`
             )
         })
@@ -269,7 +273,7 @@ const DrawRoutes: Readonly<
         table.moveTo((state) => {
             stackWrit(state, writId)
             giveSeal(state, playerId)
-            state.voyageTrack[playerId] = 1
+            state.voyageTrack[playerId] = 'track.voyage.1'
             queueFollowUp(state, { kind: 'voyage', playerId })
             return MachineState.PlacingDisc
         })

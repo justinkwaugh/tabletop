@@ -12,6 +12,7 @@ import { playToDawn } from '../testing/dawn.js'
 import { setPawns } from '../testing/guilds.js'
 import { setUp, spaceOfKind } from '../testing/improving.js'
 import { answerStarve, giveFood, starve, tableAtStarve } from '../testing/starve.js'
+import { coverService } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { isBeginDawn } from './beginDawn.js'
 import { placeDiscOffer } from './placeDisc.js'
@@ -21,7 +22,7 @@ import { isScoreGame } from './scoreGame.js'
 function offered(table: Table, covered = 0): string {
     const playerId = table.asked
     table.moveTo((state, context) => {
-        state.militaryService[playerId] = covered
+        coverService(state, playerId, covered)
         queueFollowUp(state, { kind: 'military', playerId })
         return stateAfterCardStep(context)
     })
@@ -37,7 +38,7 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         expect(table.asked).toBe(playerId)
         expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
             disc: 'military',
-            space: 1,
+            space: 'track.military.1',
             penalty: -3,
             revealsInfo: false
         })
@@ -45,9 +46,9 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
 
         const state = table.hydrated()
-        expect(state.militaryService[playerId]).toBe(1)
+        expect(state.militaryService[playerId]).toBe('track.military.1')
         expect(state.freeDiscs(playerId)).toBe(2)
-        expect(action).toMatchObject({ metadata: { disc: 'military', space: 1 } })
+        expect(action).toMatchObject({ metadata: { disc: 'military', space: 'track.military.1' } })
         expect(action.revealsInfo).toBeFalsy()
         expect(table.asked).toBe(table.order[1])
     })
@@ -56,7 +57,7 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         const table = tableAtPlayingCards()
         const playerId = offered(table)
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: false })
-        expect(table.hydrated().militaryService[playerId]).toBe(0)
+        expect(table.hydrated().militaryService[playerId]).toBeUndefined()
         expect(table.hydrated().freeDiscs(playerId)).toBe(3)
         expect(action).toMatchObject({ metadata: { disc: 'military' } })
         expect(table.asked).toBe(table.order[1])
@@ -69,30 +70,36 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
 
         const second = offered(table)
         expect(second).not.toBe(first)
-        expect(placeDiscOffer(table.hydrated(), second)).toMatchObject({ space: 1, penalty: -3 })
+        expect(placeDiscOffer(table.hydrated(), second)).toMatchObject({
+            space: 'track.military.1',
+            penalty: -3
+        })
         table.send(second, { type: ActionType.PlaceDisc, place: true })
 
-        expect(table.hydrated().militaryService).toMatchObject({ [first]: 1, [second]: 1 })
+        expect(table.hydrated().militaryService).toMatchObject({
+            [first]: 'track.military.1',
+            [second]: 'track.military.1'
+        })
     })
 
     it.each([1, 2])('R-4.9.1 with %i covered the next disc takes the next space', (covered) => {
         const table = tableAtPlayingCards()
         const playerId = offered(table, covered)
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
-        expect(table.hydrated().militaryService[playerId]).toBe(covered + 1)
-        expect(action).toMatchObject({ metadata: { space: covered + 1 } })
+        expect(table.hydrated().militaryService[playerId]).toBe(`track.military.${covered + 1}`)
+        expect(action).toMatchObject({ metadata: { space: `track.military.${covered + 1}` } })
     })
 
     it('R-4.9.2 the offer names the next space and the penalty it covers', () => {
         const table = tableAtPlayingCards()
         const playerId = offered(table)
         table.moveTo((state) => {
-            state.militaryService[playerId] = 1
+            state.militaryService[playerId] = 'track.military.1'
             return state.machineState
         })
         expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
             disc: 'military',
-            space: 2,
+            space: 'track.military.2',
             penalty: -4,
             revealsInfo: false
         })
@@ -110,9 +117,9 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         const table = tableAtPlayingCards()
         const playerId = table.asked
         table.moveTo((state, context) => {
-            state.voyageTrack[playerId] = 1
+            state.voyageTrack[playerId] = 'track.voyage.1'
             state.guilds.tracks.farmer.master = { playerId, reeve: true }
-            state.militaryService[playerId] = 1
+            state.militaryService[playerId] = 'track.military.1'
             queueFollowUp(state, { kind: 'military', playerId })
             return stateAfterCardStep(context)
         })
@@ -197,7 +204,7 @@ describe('R-4.9.2, R-4.9-H2 disloyalty at a dawn', () => {
         ({ epoch, covered, vp }) => {
             const { table, processed, order } = playToDawn(epoch, (state, [vassal]) => {
                 ruleFeudum(state, vassal)
-                state.militaryService[vassal] = covered
+                coverService(state, vassal, covered)
             })
 
             const [row] = rowsOf(processed).filter((entry) => entry.playerId === order[0])
@@ -219,7 +226,7 @@ describe('R-4.9.2, R-4.9-H2 disloyalty at a dawn', () => {
     it("R-4.9-H2 another seat's discs cover nothing for the vassal", () => {
         const { processed, order } = playToDawn(2, (state, [vassal, other]) => {
             ruleFeudum(state, vassal)
-            state.militaryService[other] = 3
+            state.militaryService[other] = 'track.military.3'
         })
 
         const [vassal, other] = order

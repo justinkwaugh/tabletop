@@ -82,7 +82,7 @@ const voyage = (space?: number, arrange?: (state: HydratedFeudumGameState, seat:
         (playerId): DiscFollowUp => ({ kind: 'voyage', playerId }),
         (state, { seat }) => {
             if (space !== undefined) {
-                state.voyageTrack[seat] = space
+                state.voyageTrack[seat] = `track.voyage.${space}`
             }
             arrange?.(state, seat)
         }
@@ -209,10 +209,10 @@ describe('S31 R-3.7.5 The voyage disc', () => {
         expect(lastAction(table)).toMatchObject({
             type: ActionType.PlaceDisc,
             place: true,
-            metadata: { disc: 'voyage', space: 1 }
+            metadata: { disc: 'voyage', space: 'track.voyage.1' }
         })
         expect(lastAction(table)?.revealsInfo).toBeFalsy()
-        expect(session.gameState.voyageTrack[seat]).toBe(1)
+        expect(session.gameState.voyageTrack[seat]).toBe('track.voyage.1')
         expect(session.discPanel).toBeUndefined()
     })
 
@@ -239,11 +239,11 @@ describe('S31 R-3.7.5 The voyage disc', () => {
             type: ActionType.PlaceDisc,
             place: true,
             revealsInfo: true,
-            metadata: { disc: 'voyage', space: 2, drawnCount: 2 }
+            metadata: { disc: 'voyage', space: 'track.voyage.2', drawnCount: 2 }
         })
         expect(session.gameState.machineState).toBe(MachineState.KeepingWrits)
         expect(session.keepWritsPanel?.line).toBe('Keep 1 of 2')
-        expect(session.gameState.voyageTrack[seat]).toBe(2)
+        expect(session.gameState.voyageTrack[seat]).toBe('track.voyage.2')
     })
 
     it('S31 a press on the lit space is the same press: it stages a draw, and sends a step that draws none', async () => {
@@ -262,14 +262,14 @@ describe('S31 R-3.7.5 The voyage disc', () => {
         expect(lastAction(plain)).toMatchObject({
             type: ActionType.PlaceDisc,
             place: true,
-            metadata: { space: 3 }
+            metadata: { space: 'track.voyage.3' }
         })
     })
 
     it('R-3.7-H1 with no free disc, a disc on the track still steps', async () => {
         const table = hold(
             await voyage(2, (state, seat) => {
-                state.militaryService[seat] = 2
+                state.militaryService[seat] = 'track.military.2'
             })
         )
         expect(table.session.discPanel?.freeDiscs).toBe('0/3 discs free')
@@ -299,7 +299,7 @@ describe('S31 R-3.7.5 The voyage disc', () => {
         expect(lastAction(empty)).toMatchObject({
             type: ActionType.PlaceDisc,
             place: true,
-            metadata: { space: 2, drawnCount: 0 }
+            metadata: { space: 'track.voyage.2', drawnCount: 0 }
         })
         expect(lastAction(empty)?.revealsInfo).toBeFalsy()
     })
@@ -311,7 +311,7 @@ describe('S31 R-3.7.5 The voyage disc', () => {
         expect(session.discPanel).toBeUndefined()
         expect(lastAction(table)).toMatchObject({ type: ActionType.PlaceDisc, place: false })
         expect(lastAction(table)?.revealsInfo).toBeFalsy()
-        expect(session.gameState.voyageTrack[seat]).toBe(1)
+        expect(session.gameState.voyageTrack[seat]).toBe('track.voyage.1')
     })
 })
 
@@ -359,7 +359,7 @@ describe('S49 R-4.7 The reeve offer', () => {
                 (state, { seat }) => {
                     setMaster(state, seat, 'merchant')
                     state.recomputeRanks()
-                    state.militaryService[seat] = 3
+                    state.militaryService[seat] = 'track.military.3'
                 }
             )
         )
@@ -389,15 +389,15 @@ describe('R-4.9-H1 The military service question', () => {
         expect(lastAction(table)).toMatchObject({
             type: ActionType.PlaceDisc,
             place: true,
-            metadata: { disc: 'military', space: 1 }
+            metadata: { disc: 'military', space: 'track.military.1' }
         })
-        expect(session.gameState.militaryService[seat]).toBe(1)
+        expect(session.gameState.militaryService[seat]).toBe('track.military.1')
     })
 
     it('R-4.9.1, R-1.1 a seat with a disc there is asked about its next space, with the discs left', async () => {
         const { session } = hold(
             await military((state, seat) => {
-                state.militaryService[seat] = 1
+                state.militaryService[seat] = 'track.military.1'
             })
         )
         expect(session.discPanel).toMatchObject({
@@ -411,7 +411,7 @@ describe('R-4.9-H1 The military service question', () => {
         const table = hold(await military())
         await press(table.session, table.session.discPanel?.keep)
         expect(lastAction(table)).toMatchObject({ place: false, metadata: { disc: 'military' } })
-        expect(table.session.gameState.militaryService[table.seat]).toBe(0)
+        expect(table.session.gameState.militaryService[table.seat]).toBeUndefined()
     })
 })
 
@@ -458,7 +458,7 @@ describe('R-X.1 Who the question is for', () => {
             await atDisc(
                 (playerId) => ({ kind: 'voyage', playerId }),
                 (state, { seat }) => {
-                    state.militaryService[seat] = 3
+                    state.militaryService[seat] = 'track.military.3'
                 }
             )
         )
@@ -478,7 +478,7 @@ describe('DiscDraft minimum tests', () => {
         await press(session, session.discPanel?.place)
         await press(session, session.discPanel?.keep)
         expect(lastAction(table)).toMatchObject({ type: ActionType.PlaceDisc, place: false })
-        expect(session.gameState.voyageTrack[table.seat]).toBe(1)
+        expect(session.gameState.voyageTrack[table.seat]).toBe('track.voyage.1')
     })
 
     it('2 Undo pops the staged advance and undoes no action', async () => {
@@ -508,7 +508,7 @@ describe('DiscDraft minimum tests', () => {
         const table = await afterRepeatedMove()
         const { session, seat } = table
         await press(session, session.discPanel?.place)
-        expect(session.gameState.voyageTrack[seat]).toBe(1)
+        expect(session.gameState.voyageTrack[seat]).toBe('track.voyage.1')
         await session.undo()
         await settled(session)
         expect(session.gameState.voyageTrack[seat]).toBeUndefined()
@@ -554,7 +554,7 @@ describe('DiscDraft minimum tests', () => {
                 (state, { seat }) => {
                     setMaster(state, seat, 'merchant')
                     state.recomputeRanks()
-                    state.voyageTrack[seat] = 1
+                    state.voyageTrack[seat] = 'track.voyage.1'
                     queueFollowUp(state, { kind: 'voyage', playerId: seat })
                 }
             )
@@ -579,7 +579,7 @@ describe('DiscDraft minimum tests', () => {
         await table.host.reconcile(seat)
         expect(session.discPanel).toBeUndefined()
         expect(session.disc.selection).toEqual({})
-        expect(session.gameState.voyageTrack[seat]).toBe(1)
+        expect(session.gameState.voyageTrack[seat]).toBe('track.voyage.1')
     })
 })
 

@@ -475,7 +475,7 @@ const RealCardPlays = [
 /** The walk records a guild's reward by its guild, whichever vessel an any-vessel reward took. */
 const MandateKeys = new Map(
     MandateEntries.map(({ componentId, rule, writId, rewardGuild, input }) => {
-        const key = writKey(writId, rewardGuild ?? input.alternative)
+        const key = writKey(writId, input)
         const mode = rewardGuild ? `for ${rewardGuild}` : `alternative ${input.alternative}`
         return [key, { componentId, mode, rule, key }]
     })
@@ -487,7 +487,7 @@ const RealWrits = [
         componentId,
         mode,
         rule,
-        key: writKey(writId, alternative)
+        key: writKey(writId, { alternative })
     })),
     ...CharterEntries.map(({ componentId, mode, rule, writId }) => ({
         componentId,
@@ -503,12 +503,15 @@ const NoCharterScored =
 
 /** What these games do not reach, and why: the fixtures above fire each through the engine. */
 const NotReached: ReadonlyMap<string, string> = new Map([
-    [writKey('writ.mandate.1', 0), NoWeaponAtAnAttack],
-    [writKey('writ.mandate.1', 1), NoWeaponAtAnAttack],
-    [writKey('writ.mandate.3', 0), NoWeaponAtAnAttack],
-    [writKey('writ.mandate.3', 1), NoWeaponAtAnAttack],
-    [writKey('writ.mandate.6', 'alchemist'), 'No holder of this writ reaches 3 Alchemist stars.'],
-    [writKey('writ.mandate.7', 1), 'No holder of this writ has all four goods at once.'],
+    ['writ.mandate.1.alt.1', NoWeaponAtAnAttack],
+    ['writ.mandate.1.alt.2', NoWeaponAtAnAttack],
+    ['writ.mandate.3.alt.1', NoWeaponAtAnAttack],
+    ['writ.mandate.3.alt.2', NoWeaponAtAnAttack],
+    [
+        writKey('writ.mandate.6', { rewardGuild: 'alchemist' }),
+        'No holder of this writ reaches 3 Alchemist stars.'
+    ],
+    ['writ.mandate.7.alt.2', 'No holder of this writ has all four goods at once.'],
     ...CharterCases.map(({ writId }): [string, string] => [writId, NoCharterScored])
 ])
 

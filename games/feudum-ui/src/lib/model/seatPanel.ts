@@ -21,7 +21,9 @@ import {
     type TileEpoch,
     type TileId,
     type VesselType,
-    type WritId
+    type WritId,
+    coveredServiceSpaces,
+    voyageSpaceOf
 } from '@tabletop/feudum'
 import { handFaceShown, writFaceShown } from './perspective.js'
 import { deckNoteOf } from './watching.js'
@@ -319,7 +321,7 @@ export function seatPanelOf({
 }: SeatPanelInput): SeatPanelView {
     const player = state.getPlayerState(playerId)
     const isOwner = viewerId === playerId
-    const voyage = state.voyageTrack[playerId]
+    const voyage = voyageSpaceOf(state, playerId)?.space
     return {
         playerId,
         ribbon: {
@@ -341,7 +343,7 @@ export function seatPanelOf({
         barrel: { sulfur: player.barrel, capacity: WineBarrelCapacity },
         pawnsInSupply: player.pawns.filter(({ spaceId }) => spaceId === undefined).length,
         service: {
-            covered: state.militaryService[playerId] ?? 0,
+            covered: coveredServiceSpaces(state, playerId).length,
             of: MilitaryServiceTrack.length,
             vassal: state.isVassal(playerId)
         },

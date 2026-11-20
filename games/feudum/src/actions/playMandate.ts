@@ -2,7 +2,12 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { VesselTypes, type Good, type GuildId, type VesselType } from '../data/components.js'
-import { MandateStatusStars, type MandateReward, type WritId } from '../data/writs.js'
+import {
+    MandateStatusStars,
+    type MandateAlternativeId,
+    type MandateReward,
+    type WritId
+} from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { markRevealsInfo } from '../definition/revealing.js'
 import { reasonNoAtWillWindow, atWillWindow } from '../model/atWill.js'
@@ -23,6 +28,7 @@ import {
     ComponentCount,
     GoodSchema,
     GuildIdSchema,
+    MandateAlternativeIdSchema,
     SealIdSchema,
     VesselTypeSchema,
     WritIdSchema
@@ -64,9 +70,9 @@ export const PlayMandate = Type.Evaluate(
             metadata: Type.Optional(PlayMandateMetadata),
             /** R-4.4.2 Public: a played writ is shown. */
             writId: WritIdSchema,
-            /** R-4.4.2 The alternative's index; a guild-status mandate reads `rewardGuild`. */
-            alternative: Type.Integer({ minimum: 0 }),
-            /** R-4.4.2 The guild whose reward a guild-status mandate takes. */
+            /** R-4.4.2 A turn-in mandate's printed alternative. */
+            alternative: Type.Optional(MandateAlternativeIdSchema),
+            /** R-4.4.2 Instead of an alternative: the guild whose reward a guild-status mandate takes. */
             rewardGuild: Type.Optional(GuildIdSchema),
             /** R-4.4-H4 The vessel an any-vessel reward takes. */
             vessel: Type.Optional(VesselTypeSchema),
@@ -84,7 +90,7 @@ export function isPlayMandate(action?: GameAction): action is PlayMandate {
 
 export interface PlayMandateInput {
     readonly writId: WritId
-    readonly alternative: number
+    readonly alternative?: MandateAlternativeId
     readonly rewardGuild?: GuildId
     readonly vessel?: VesselType
     readonly wildTiles?: readonly WildTileSpend[]
@@ -179,7 +185,7 @@ export function reasonPlayMandateRefused(
 /** R-4.4.2 One thing a held mandate can do. Dimmed with `refused` when not open now. */
 export interface PlayMandateOffer {
     readonly writId: WritId
-    readonly alternative: number
+    readonly alternative?: MandateAlternativeId
     readonly rewardGuild?: GuildId
     /** R-4.4-H4 The vessel this offer's any-vessel reward takes. */
     readonly vessel?: VesselType
@@ -197,7 +203,6 @@ function offerOf(
     state: HydratedFeudumGameState,
     playerId: string,
     writId: WritId,
-    alternative: number,
     effect: MandateAlternativeEffect,
     vessel: VesselType | undefined
 ): PlayMandateOffer {
@@ -210,7 +215,7 @@ function offerOf(
         : reasonEffectRefused(state, playerId, effect, wildTiles, vessel)
     return {
         writId,
-        alternative,
+        ...(effect.alternative ? { alternative: effect.alternative } : {}),
         ...(effect.rewardGuild ? { rewardGuild: effect.rewardGuild } : {}),
         ...(vessel ? { vessel } : {}),
         turnedIn: effect.turnedIn,
@@ -236,9 +241,9 @@ export function playMandateOffers(
     return (state.getPlayerState(playerId).writs ?? []).flatMap((writId) =>
         writRegistry
             .mandateAlternatives(writId)
-            .flatMap((effect, alternative) =>
+            .flatMap((effect) =>
                 vesselsOffered(effect.reward).map((vessel) =>
-                    offerOf(state, playerId, writId, alternative, effect, vessel)
+                    offerOf(state, playerId, writId, effect, vessel)
                 )
             )
     )
@@ -252,7 +257,7 @@ export class HydratedPlayMandate
     declare playerId: string
     declare metadata?: PlayMandateMetadata
     declare writId: WritId
-    declare alternative: number
+    declare alternative?: MandateAlternativeId
     declare rewardGuild?: GuildId
     declare vessel?: VesselType
     declare wildTiles?: WildTileSpend[]

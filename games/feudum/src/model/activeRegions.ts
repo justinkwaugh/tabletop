@@ -2,6 +2,7 @@ import { Spaces } from '../data/board.js'
 import { RegionIds, type RegionId } from '../data/regionTiles.js'
 import { DisloyaltyDawns, MilitaryServiceTrack, type Epoch } from '../data/tracks.js'
 import type { HydratedFeudumGameState } from './gameState.js'
+import { coveredServiceSpaces } from './tracks.js'
 
 /** R-4.12.1 The vp by number of active regions, 0 to 6. */
 const ActiveRegionScores: readonly number[] = [0, 1, 3, 5, 7, 9, 11]
@@ -32,8 +33,8 @@ export function disloyaltyVp(
     if (!DisloyaltyDawns.includes(dawn) || !state.isVassal(playerId)) {
         return 0
     }
-    const covered = state.militaryService[playerId] ?? 0
+    const covered = coveredServiceSpaces(state, playerId)
     return MilitaryServiceTrack.filter(
-        (space) => space.dueFrom <= dawn && space.space > covered
+        (space) => space.dueFrom <= dawn && !covered.includes(space)
     ).reduce((sum, space) => sum + space.penalty, 0)
 }

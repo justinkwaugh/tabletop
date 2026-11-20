@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { VesselTypes, type Good, type GuildId, type VesselType } from '../data/components.js'
-import { Mandates, type MandateId, type MandateReward } from '../data/writs.js'
+import {
+    Mandates,
+    type MandateAlternativeId,
+    type MandateId,
+    type MandateReward
+} from '../data/writs.js'
 import { commitAttackOffer, commitAttackPreview } from '../actions/commitAttack.js'
 import { playMandateOffers, reasonPlayMandateRefused } from '../actions/playMandate.js'
 import { ActionType } from '../definition/actions.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
-import { giveTile, returnAllGoods, tableInWindow } from '../testing/atWill.js'
+import { alternativeOf, giveTile, returnAllGoods, tableInWindow } from '../testing/atWill.js'
 import {
     addPawn,
     answer,
@@ -115,7 +120,9 @@ describe('R-4.8.2 mandates 1 and 3 in CommitAttack (S36)', () => {
     it.each(Weapons)('%s is free for +1 attack', (_name, writId) => {
         const combat = atCommit(writId)
         const { table, attackerId } = combat
-        const [action] = commit(combat, { weapons: [{ writId, alternative: 0 }] })
+        const [action] = commit(combat, {
+            weapons: [{ writId, alternative: alternativeOf(writId, 1) }]
+        })
         expect(action).toMatchObject({
             metadata: { attack: { weapons: 1 }, weaponStrengths: [{ writId, attack: 1 }] }
         })
@@ -131,7 +138,9 @@ describe('R-4.8.2 mandates 1 and 3 in CommitAttack (S36)', () => {
             )
             const { table, attackerId } = combat
             const haversack = table.state.supply.haversack[good]
-            const [action] = commit(combat, { weapons: [{ writId, alternative: 1 }] })
+            const [action] = commit(combat, {
+                weapons: [{ writId, alternative: alternativeOf(writId, 2) }]
+            })
             expect(action).toMatchObject({
                 metadata: { attack: { weapons: 2 }, weaponStrengths: [{ writId, attack: 2 }] }
             })
@@ -145,16 +154,16 @@ describe('R-4.8.2 mandates 1 and 3 in CommitAttack (S36)', () => {
             setUp(table, (state) => giveGood(state, attackerId, good))
         )
         expect(commitAttackOffer(combat.table.hydrated(), combat.attackerId)?.weapons).toEqual([
-            { writId, alternative: 0, attack: 1, turnedIn: [] },
-            { writId, alternative: 1, attack: 2, turnedIn: [good] }
+            { writId, alternative: alternativeOf(writId, 1), attack: 1, turnedIn: [] },
+            { writId, alternative: alternativeOf(writId, 2), attack: 2, turnedIn: [good] }
         ])
     })
 
     it.each(Weapons)('%s refuses its turn-in with no good to pay', (_name, writId) => {
         const combat = atCommit(writId)
-        expect(() => commit(combat, { weapons: [{ writId, alternative: 1 }] })).toThrow(
-            "You can't pay for that."
-        )
+        expect(() =>
+            commit(combat, { weapons: [{ writId, alternative: alternativeOf(writId, 2) }] })
+        ).toThrow("You can't pay for that.")
     })
 
     it('S36 a saltpeter and the free sword raise three pawns to 5', () => {
@@ -170,34 +179,80 @@ describe('R-4.8.2 mandates 1 and 3 in CommitAttack (S36)', () => {
             commitAttackPreview(state, combat.attackerId, input)?.strength.attack.total
         expect(total({})).toBe(3)
         expect(total({ saltpeter: 1 })).toBe(4)
-        expect(total({ saltpeter: 1, weapons: [{ writId: Sword, alternative: 0 }] })).toBe(5)
+        expect(
+            total({
+                saltpeter: 1,
+                weapons: [{ writId: Sword, alternative: alternativeOf(Sword, 1) }]
+            })
+        ).toBe(5)
     })
 })
 
 describe('R-4.4.2, R-7 mandates 2, 4, 5 and 7 turn in goods', () => {
-    const Rows: readonly (readonly [string, MandateId, number, readonly Good[], MandateReward])[] =
+    const Rows: readonly (readonly [
+        string,
+        MandateId,
+        MandateAlternativeId,
+        readonly Good[],
+        MandateReward
+    ])[] = [
         [
-            ['2 A', 'writ.mandate.2', 0, ['food'], { kind: 'vessel', vessel: 'flying-machine' }],
-            ['2 B', 'writ.mandate.2', 1, ['wood'], { kind: 'vessel', vessel: 'ship' }],
-            ['4 A', 'writ.mandate.4', 0, ['wood'], { kind: 'vessel', vessel: 'ship' }],
-            ['4 B', 'writ.mandate.4', 1, ['iron'], { kind: 'vessel', vessel: 'submersible' }],
-            ['5 A', 'writ.mandate.5', 0, ['food'], { kind: 'shillings', amount: 3 }],
-            ['5 B', 'writ.mandate.5', 1, ['wood', 'food'], { kind: 'shillings', amount: 7 }],
-            [
-                '7 A',
-                'writ.mandate.7',
-                0,
-                ['iron', 'wood', 'food'],
-                { kind: 'shillings', amount: 9 }
-            ],
-            [
-                '7 B',
-                'writ.mandate.7',
-                1,
-                ['sulfur', 'iron', 'wood', 'food'],
-                { kind: 'shillings', amount: 13 }
-            ]
+            '2 A',
+            'writ.mandate.2',
+            'writ.mandate.2.alt.1',
+            ['food'],
+            { kind: 'vessel', vessel: 'flying-machine' }
+        ],
+        [
+            '2 B',
+            'writ.mandate.2',
+            'writ.mandate.2.alt.2',
+            ['wood'],
+            { kind: 'vessel', vessel: 'ship' }
+        ],
+        [
+            '4 A',
+            'writ.mandate.4',
+            'writ.mandate.4.alt.1',
+            ['wood'],
+            { kind: 'vessel', vessel: 'ship' }
+        ],
+        [
+            '4 B',
+            'writ.mandate.4',
+            'writ.mandate.4.alt.2',
+            ['iron'],
+            { kind: 'vessel', vessel: 'submersible' }
+        ],
+        [
+            '5 A',
+            'writ.mandate.5',
+            'writ.mandate.5.alt.1',
+            ['food'],
+            { kind: 'shillings', amount: 3 }
+        ],
+        [
+            '5 B',
+            'writ.mandate.5',
+            'writ.mandate.5.alt.2',
+            ['wood', 'food'],
+            { kind: 'shillings', amount: 7 }
+        ],
+        [
+            '7 A',
+            'writ.mandate.7',
+            'writ.mandate.7.alt.1',
+            ['iron', 'wood', 'food'],
+            { kind: 'shillings', amount: 9 }
+        ],
+        [
+            '7 B',
+            'writ.mandate.7',
+            'writ.mandate.7.alt.2',
+            ['sulfur', 'iron', 'wood', 'food'],
+            { kind: 'shillings', amount: 13 }
         ]
+    ]
 
     it.each(Rows)(
         'mandate %s pays its reward for the goods, which go to the haversack; no barrier',
@@ -252,7 +307,7 @@ describe('R-4.4.2, R-7 mandates 2, 4, 5 and 7 turn in goods', () => {
         expect(playMandateOffers(table.hydrated(), playerId)).toEqual([
             {
                 writId,
-                alternative: 0,
+                alternative: alternativeOf(writId, 1),
                 turnedIn: ['food'],
                 reward: { kind: 'shillings', amount: 3 },
                 revealsInfo: false,
@@ -260,7 +315,7 @@ describe('R-4.4.2, R-7 mandates 2, 4, 5 and 7 turn in goods', () => {
             },
             {
                 writId,
-                alternative: 1,
+                alternative: alternativeOf(writId, 2),
                 turnedIn: ['wood', 'food'],
                 reward: { kind: 'shillings', amount: 7 },
                 revealsInfo: false,
@@ -283,7 +338,7 @@ describe('R-4.4.2, R-7 mandates 2, 4, 5 and 7 turn in goods', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId,
-            alternative: 0,
+            alternative: alternativeOf(writId, 1),
             wildTiles: [{ tileId, good: 'food' }]
         })
         expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 9 } } })
@@ -310,7 +365,6 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
         table.send(playerId, {
             type: ActionType.PlayMandate,
             writId,
-            alternative: 0,
             rewardGuild,
             ...(vessel ? { vessel } : {})
         })
@@ -384,7 +438,6 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
         expect(
             reasonPlayMandateRefused(state, playerId, {
                 writId: GoodsOrCoin,
-                alternative: 0,
                 rewardGuild: 'alchemist'
             })
         ).toBe('Name the vessel the reward takes.')
@@ -392,7 +445,6 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
         expect(
             reasonPlayMandateRefused(merchant.table.hydrated(), merchant.playerId, {
                 writId: GoodsOrCoin,
-                alternative: 0,
                 rewardGuild: 'merchant',
                 vessel: 'ship'
             })
@@ -415,7 +467,6 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
         expect(
             reasonPlayMandateRefused(state, playerId, {
                 writId: GoodsOrCoin,
-                alternative: 0,
                 rewardGuild: 'alchemist',
                 vessel: 'flying-machine'
             })

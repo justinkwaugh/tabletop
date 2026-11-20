@@ -61,18 +61,21 @@ describe('R-6.2 epic voyage', () => {
     ])('R-6.2 at $spaces: $vps, $why', ({ spaces, vps }) => {
         const { metadata, order } = scoreFrom((state, seats) => {
             spaces.forEach((space, index) => {
-                state.voyageTrack[seats[index]] = space
+                state.voyageTrack[seats[index]] = `track.voyage.${space}`
             })
         })
 
         spaces.forEach((space, index) => {
-            expect(rowOf(metadata, order[index]).voyage).toEqual({ space, vp: vps[index] })
+            expect(rowOf(metadata, order[index]).voyage).toEqual({
+                space: `track.voyage.${space}`,
+                vp: vps[index]
+            })
         })
     })
 
     it('R-6.2 a seat with no disc on the track scores nothing for it', () => {
         const { metadata, order } = scoreFrom((state, [other]) => {
-            state.voyageTrack[other] = 1
+            state.voyageTrack[other] = 'track.voyage.1'
         })
 
         expect(rowOf(metadata, order[1]).voyage).toEqual({ vp: 0 })
@@ -369,7 +372,7 @@ describe('R-6.3 the winner', () => {
         const { table, order } = scoreFrom((state, [behind, ahead]) => {
             state.getPlayerState(behind).score = 10
             state.getPlayerState(ahead).score = 11
-            state.voyageTrack[behind] = 7
+            state.voyageTrack[behind] = 'track.voyage.7'
         })
 
         expect(table.state.winningPlayerIds).toEqual([order[0]])
@@ -380,7 +383,7 @@ describe('R-6.2, S56 the final sheet', () => {
     it('R-6.2 a seat’s total is its parts, added to its score', () => {
         const { table, metadata, order } = scoreFrom((state, [seat]) => {
             state.getPlayerState(seat).score = 30
-            state.voyageTrack[seat] = 3
+            state.voyageTrack[seat] = 'track.voyage.3'
             setShillings(state, seat, 7)
             holdSealedCharter(state, seat, Monster)
             meetCharter(state, seat, Monster)

@@ -2,7 +2,7 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import type { Good } from '../data/components.js'
-import type { WritId } from '../data/writs.js'
+import type { MandateAlternativeId, WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { saltpeterAllowed, type CombatStrength } from '../model/combatStrength.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -13,7 +13,7 @@ import {
     WildTileSpend,
     type GoodPrice
 } from '../model/payments.js'
-import { ComponentCount, WritIdSchema } from '../model/stateSchemas.js'
+import { ComponentCount, MandateAlternativeIdSchema, WritIdSchema } from '../model/stateSchemas.js'
 import { putWritsUnderInView } from '../model/writDeck.js'
 import { writRegistry } from '../writs/writRegistry.js'
 import { CombatRecord, conquerVp, resolveCombat, strengthOf } from './combat.js'
@@ -21,7 +21,7 @@ import { CombatRecord, conquerVp, resolveCombat, strengthOf } from './combat.js'
 /** R-4.4-H1 A weapon writ played into the attack, by its printed alternative. */
 const WeaponPlay = Type.Object({
     writId: WritIdSchema,
-    alternative: Type.Integer({ minimum: 0 })
+    alternative: MandateAlternativeIdSchema
 })
 
 export type CommitAttackMetadata = Type.Static<typeof CommitAttackMetadata>
@@ -128,7 +128,7 @@ export function reasonCommitAttackRefused(
 /** R-4.4-H1 One way to use a held weapon. */
 export interface WeaponOffer {
     readonly writId: WritId
-    readonly alternative: number
+    readonly alternative: MandateAlternativeId
     readonly attack: number
     readonly turnedIn: readonly Good[]
 }
@@ -164,22 +164,13 @@ export function commitAttackOffer(
         .requireWrits()
         .flatMap((writId): WeaponOffer[] => {
             const offers: WeaponOffer[] = []
-            for (
-                let alternative = 0, bonus = writRegistry.weaponBonus(writId, alternative);
-                bonus;
-                alternative += 1, bonus = writRegistry.weaponBonus(writId, alternative)
-            ) {
+            for (const { alternative, attack, turnedIn } of writRegistry.weaponBonuses(writId)) {
                 const price: Partial<Record<Good, number>> = {}
-                for (const good of bonus.turnedIn) {
+                for (const good of turnedIn) {
                     price[good] = (price[good] ?? 0) + 1
                 }
                 if (canCoverWithWildTiles(state, playerId, price)) {
-                    offers.push({
-                        writId,
-                        alternative,
-                        attack: bonus.attack,
-                        turnedIn: bonus.turnedIn
-                    })
+                    offers.push({ writId, alternative, attack, turnedIn })
                 }
             }
             return offers

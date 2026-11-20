@@ -20,6 +20,7 @@ import {
     tableAtCombat,
     type CombatTable
 } from '../testing/combat.js'
+import { alternativeOf } from '../testing/atWill.js'
 import { giveGood, setUp } from '../testing/improving.js'
 import {
     commitAttackOffer,
@@ -156,7 +157,7 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
 
         const [action] = commit(combat, {
             saltpeter: 1,
-            weapons: [{ writId: Sword, alternative: 0 }]
+            weapons: [{ writId: Sword, alternative: alternativeOf(Sword, 1) }]
         })
 
         const seat = table.seat(attackerId)
@@ -181,7 +182,9 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
         })
         atCommit(combat)
         const iron = table.seat(attackerId).goods.iron
-        const [action] = commit(combat, { weapons: [{ writId: Sword, alternative: 1 }] })
+        const [action] = commit(combat, {
+            weapons: [{ writId: Sword, alternative: alternativeOf(Sword, 2) }]
+        })
         expect(table.seat(attackerId).goods.iron).toBe(iron - 1)
         expect(action).toMatchObject({
             metadata: { attack: { weapons: 2, total: 3 }, attackerWins: true }
@@ -197,15 +200,18 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
         })
         atCommit(combat)
         const state = table.hydrated()
-        const refusal = (writId: WritId, alternative = 0, copies = 1) =>
+        const refusal = (writId: WritId, alternative = alternativeOf(writId, 1), copies = 1) =>
             reasonCommitAttackRefused(state, attackerId, {
                 saltpeter: 0,
                 weapons: Array.from({ length: copies }, () => ({ writId, alternative })),
                 wildTiles: []
             })
+        const bowAlternative = alternativeOf(Bow, 1)
         expect(refusal(Bow)).toBe("You don't hold that writ.")
-        expect(refusal(Sword, 0, 2)).toBe('Each writ plays once.')
-        expect(refusal(Sword, 2)).toBe(`${Sword} has no such alternative: 2`)
+        expect(refusal(Sword, alternativeOf(Sword, 1), 2)).toBe('Each writ plays once.')
+        expect(refusal(Sword, bowAlternative)).toBe(
+            `${Sword} has no such alternative: ${bowAlternative}`
+        )
         expect(refusal('writ.mandate.2')).toBe('writ.mandate.2 has no effect in an attack')
     })
 
@@ -216,7 +222,7 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
             holdWrit(state, attackerId, Bow)
         })
         atCommit(combat)
-        commit(combat, { weapons: [{ writId: Bow, alternative: 0 }] })
+        commit(combat, { weapons: [{ writId: Bow, alternative: alternativeOf(Bow, 1) }] })
         expect(table.state.publicDeckWrits.map((known) => known.writId)).toContain(Bow)
     })
 
@@ -245,14 +251,19 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
         expect(commitAttackOffer(state, attackerId)).toMatchObject({
             saltpeterMost: 1,
             weapons: [
-                { writId: Sword, alternative: 0, attack: 1, turnedIn: [] },
-                { writId: Sword, alternative: 1, attack: 2, turnedIn: ['iron'] }
+                { writId: Sword, alternative: alternativeOf(Sword, 1), attack: 1, turnedIn: [] },
+                {
+                    writId: Sword,
+                    alternative: alternativeOf(Sword, 2),
+                    attack: 2,
+                    turnedIn: ['iron']
+                }
             ]
         })
         expect(
             commitAttackPreview(state, attackerId, {
                 saltpeter: 1,
-                weapons: [{ writId: Sword, alternative: 0 }]
+                weapons: [{ writId: Sword, alternative: alternativeOf(Sword, 1) }]
             })
         ).toMatchObject({
             strength: { attack: { total: 3 }, defence: { total: 2 }, attackerWins: true },
@@ -619,7 +630,7 @@ describe('R-4.8.3 a win', () => {
         const combat = winning()
         const { table, attackerId, defenderId } = combat
         setUp(table, (state) => {
-            state.militaryService[attackerId] = 3
+            state.militaryService[attackerId] = 'track.military.3'
         })
         conquer(combat, PawnOf(defenderId))
         answer(combat)
@@ -635,7 +646,7 @@ describe('R-4.8.3 a win', () => {
         answer(combat)
         commit(combat)
         table.send(attackerId, { type: ActionType.PlaceDisc, place: true })
-        expect(table.state.militaryService[attackerId]).toBe(1)
+        expect(table.state.militaryService[attackerId]).toBe('track.military.1')
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).not.toBe(attackerId)
     })

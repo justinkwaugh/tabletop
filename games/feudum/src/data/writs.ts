@@ -4,6 +4,7 @@ import { ProvisionalCards } from './provisional.cards.js'
 import type { RegionId } from './regionTiles.js'
 
 export type MandateId = `writ.mandate.${number}`
+export type MandateAlternativeId = `${MandateId}.alt.${number}`
 
 /** R-4.4.2, R-7 What a mandate gives. */
 export type MandateReward =
@@ -16,6 +17,7 @@ export type MandateReward =
     | { readonly kind: 'any-vessel' }
 
 export interface MandateAlternative {
+    readonly id: MandateAlternativeId
     /** The rulebook's summary wording. */
     readonly text: string
     /** R-7 The boxed goods; the unboxed ones on a card are only the recipe picture. */
@@ -84,12 +86,14 @@ export const Mandates: readonly Mandate[] = [
         picture: 'bow / crossbow',
         alternatives: [
             {
+                id: 'writ.mandate.1.alt.1',
                 text: 'Use bow for free: +1 attack',
                 turnedIn: [],
                 reward: attack(1),
                 drawnFromSupply: false
             },
             {
+                id: 'writ.mandate.1.alt.2',
                 text: 'Turn in wood: +2 attack',
                 turnedIn: ['wood'],
                 reward: attack(2),
@@ -105,12 +109,14 @@ export const Mandates: readonly Mandate[] = [
         picture: 'A recipe iron, wood, boxed food; B recipe food, wood, boxed wood',
         alternatives: [
             {
+                id: 'writ.mandate.2.alt.1',
                 text: 'Turn in food: flying machine*',
                 turnedIn: ['food'],
                 reward: vessel('flying-machine'),
                 drawnFromSupply: true
             },
             {
+                id: 'writ.mandate.2.alt.2',
                 text: 'Turn in wood: ship*',
                 turnedIn: ['wood'],
                 reward: vessel('ship'),
@@ -126,12 +132,14 @@ export const Mandates: readonly Mandate[] = [
         picture: 'sword / longsword',
         alternatives: [
             {
+                id: 'writ.mandate.3.alt.1',
                 text: 'Use sword for free: +1 attack',
                 turnedIn: [],
                 reward: attack(1),
                 drawnFromSupply: false
             },
             {
+                id: 'writ.mandate.3.alt.2',
                 text: 'Turn in iron: +2 attack',
                 turnedIn: ['iron'],
                 reward: attack(2),
@@ -147,12 +155,14 @@ export const Mandates: readonly Mandate[] = [
         picture: 'A recipe food, wood, boxed wood; B recipe food, iron, boxed iron',
         alternatives: [
             {
+                id: 'writ.mandate.4.alt.1',
                 text: 'Turn in wood: ship*',
                 turnedIn: ['wood'],
                 reward: vessel('ship'),
                 drawnFromSupply: true
             },
             {
+                id: 'writ.mandate.4.alt.2',
                 text: 'Turn in iron: submersible*',
                 turnedIn: ['iron'],
                 reward: vessel('submersible'),
@@ -168,12 +178,14 @@ export const Mandates: readonly Mandate[] = [
         picture: 'goods column saltpeter, sulfur, iron, wood, food with the turned-in ones boxed',
         alternatives: [
             {
+                id: 'writ.mandate.5.alt.1',
                 text: 'Turn in food: 3s',
                 turnedIn: ['food'],
                 reward: shillings(3),
                 drawnFromSupply: false
             },
             {
+                id: 'writ.mandate.5.alt.2',
                 text: 'Turn in wood & food: 7s',
                 turnedIn: ['wood', 'food'],
                 reward: shillings(7),
@@ -203,12 +215,14 @@ export const Mandates: readonly Mandate[] = [
         picture: 'goods column with the turned-in ones boxed',
         alternatives: [
             {
+                id: 'writ.mandate.7.alt.1',
                 text: 'Turn in iron, wood & food: 9s',
                 turnedIn: ['iron', 'wood', 'food'],
                 reward: shillings(9),
                 drawnFromSupply: false
             },
             {
+                id: 'writ.mandate.7.alt.2',
                 text: 'Turn in sulfur, iron, wood & food: 13s',
                 turnedIn: ['sulfur', 'iron', 'wood', 'food'],
                 reward: shillings(13),

@@ -432,7 +432,7 @@ const Lines: Readonly<
             ...Base,
             type: ActionType.CommitAttack,
             saltpeter: 2,
-            weapons: [{ writId: 'writ.mandate.1', alternative: 1 }],
+            weapons: [{ writId: 'writ.mandate.1', alternative: 'writ.mandate.1.alt.2' }],
             metadata: {
                 defenderId: 'p2',
                 spaceId: 'space.desert.3',
@@ -507,7 +507,7 @@ const Lines: Readonly<
             ...Base,
             type: ActionType.PlayMandate,
             writId: 'writ.mandate.7',
-            alternative: 0,
+            alternative: 'writ.mandate.7.alt.1',
             wildTiles: [{ tileId: 'tile.forest.ii', good: 'iron' }],
             metadata: { slot: 3, received: { kind: 'shillings', amount: 3 } }
         }),
@@ -708,7 +708,7 @@ const Lines: Readonly<
                 sheet: [
                     {
                         playerId: 'p1',
-                        voyage: { space: 12, vp: 5 },
+                        voyage: { space: 'track.voyage.2', vp: 5 },
                         largeEmpire: {
                             outposts: 1,
                             farms: 1,
@@ -1011,7 +1011,7 @@ const Protected: readonly {
             place: true,
             metadata: {
                 disc: 'voyage',
-                space: 7,
+                space: 'track.voyage.7',
                 drawnCount: 2,
                 drawnWritIds: ['writ.mandate.7', 'writ.mandate.8']
             }
@@ -1315,7 +1315,7 @@ describe('R-4.5.4 A rank change is named on the Action that caused it', () => {
                 ...Base,
                 type: ActionType.PlayMandate,
                 writId: 'writ.mandate.7',
-                alternative: 0,
+                alternative: 'writ.mandate.7.alt.1',
                 metadata: {
                     slot: 3,
                     received: { kind: 'shillings', amount: 3 },

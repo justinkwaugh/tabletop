@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import {
-    EpicVoyageTrack,
     HydratedFeudumGameState,
     knightRows,
     MilitaryServiceTrack,
@@ -48,10 +47,13 @@ describe('the track discs (R-3.7.5, R-4.9-H2)', () => {
     it('R-3.7.5 fans the seats sharing a voyage space, the data naming the space', async () => {
         const state = await table()
         const [a, b, c] = state.players.map(({ playerId }) => playerId)
-        state.voyageTrack = { [a]: 3, [b]: 3, [c]: 7 }
+        state.voyageTrack = { [a]: 'track.voyage.3', [b]: 'track.voyage.3', [c]: 'track.voyage.7' }
         const discs = voyageDiscs(state)
-        const spaceOf = (space: number) => EpicVoyageTrack.find((row) => row.space === space)?.id
-        expect(discs.map(({ spaceId }) => spaceId)).toEqual([spaceOf(3), spaceOf(3), spaceOf(7)])
+        expect(discs.map(({ spaceId }) => spaceId)).toEqual([
+            'track.voyage.3',
+            'track.voyage.3',
+            'track.voyage.7'
+        ])
         expect(discs.map(({ index, count }) => [index, count])).toEqual([
             [0, 2],
             [1, 2],
@@ -62,7 +64,7 @@ describe('the track discs (R-3.7.5, R-4.9-H2)', () => {
     it('R-4.9-H2 covers each service space up to the count, one key each', async () => {
         const state = await table()
         const [a, b] = state.players.map(({ playerId }) => playerId)
-        state.militaryService = { [a]: 2, [b]: 1 }
+        state.militaryService = { [a]: 'track.military.2', [b]: 'track.military.1' }
         const discs = serviceDiscs(state)
         expect(discs.map(({ playerId, spaceId }) => [playerId, spaceId])).toEqual([
             [a, MilitaryServiceTrack[0].id],

@@ -49,6 +49,7 @@ import {
     isTendLandscape,
     LocationDiscs,
     MarketSpaces,
+    printedSpaceNumber,
     AlchemistCartSpaces,
     GuildRanks,
     type CollectedLandscape,
@@ -61,6 +62,7 @@ import {
     type GuildId,
     type KnightRowLeft,
     type Migrate,
+    type MilitarySpaceId,
     type Move,
     type MoveStepRecord,
     type PawnLeft,
@@ -68,9 +70,15 @@ import {
     type RowFill,
     type SealId,
     type StarveRecord,
+    type VoyageSpaceId,
     type WildTileSpend,
     type WritId
 } from '@tabletop/feudum'
+
+/** R-3.7.5, R-4.9.1 The printed number of the space a disc took. */
+function spaceNumberOf(spaceId?: VoyageSpaceId | MilitarySpaceId): number | string {
+    return spaceId ? printedSpaceNumber(spaceId) : ''
+}
 import { regionOf, spaceLabel } from './cardFlows.js'
 import { handFaceShown, writFaceShown } from './perspective.js'
 import { PouchTitles } from './pouchWords.js'
@@ -917,10 +925,10 @@ function discLine(action: GameAction, words: Words): string | undefined {
                 metadata.reevePoints ? `+${metadata.reevePoints} vp` : undefined
             )
         case 'military':
-            return `${who} took service space ${metadata.space}`
+            return `${who} took service space ${spaceNumberOf(metadata.space)}`
         case 'voyage':
             return sentence(
-                `${who} took voyage space ${metadata.space}`,
+                `${who} took voyage space ${spaceNumberOf(metadata.space)}`,
                 drawLine(
                     playerId,
                     metadata.drawnCount,

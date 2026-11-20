@@ -292,7 +292,6 @@ describe('R-4.10-H2 a random draw goes to the supply', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: FarmerMandate,
-            alternative: 0,
             rewardGuild: 'farmer'
         })
 

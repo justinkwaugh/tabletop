@@ -4,6 +4,8 @@ import {
     RoyalWrits,
     type Good,
     type HydratedFeudumGameState,
+    type MandateAlternative,
+    type MandateAlternativeId,
     type PlayMandateOffer,
     type WritId
 } from '@tabletop/feudum'
@@ -20,10 +22,15 @@ export function writName(writId: WritId): string {
     return 'number' in writ ? `Mandate ${writ.number}` : writ.text
 }
 
-/** R-4.8.2 A weapon's alternative, in the rulebook's words. */
-export function weaponLabel(writId: WritId, alternative: number): string {
+/** R-4.4.2 A turn-in mandate's alternatives as printed, A first. */
+function printedAlternatives(writId: WritId): readonly MandateAlternative[] {
     const mandate = Mandates.find(({ id }) => id === writId)
-    return mandate?.kind === 'turn-in' ? mandate.alternatives[alternative].text : writId
+    return mandate?.kind === 'turn-in' ? mandate.alternatives : []
+}
+
+/** R-4.8.2 A weapon's alternative, in the rulebook's words. */
+export function weaponLabel(writId: WritId, alternative: MandateAlternativeId): string {
+    return printedAlternatives(writId).find(({ id }) => id === alternative)?.text ?? writId
 }
 
 function counted(goods: readonly Good[]): string {
@@ -54,13 +61,14 @@ function rewardText(reward: PlayMandateOffer['reward'], supply?: SupplyCounts): 
 
 /** R-4.4.2 S50 "A: 1 food → 3s": the letter and what is turned in, or the guild, and the reward. */
 export function mandateChoiceLabel(
-    { alternative, turnedIn, reward, rewardGuild }: PlayMandateOffer,
+    { writId, alternative, turnedIn, reward, rewardGuild }: PlayMandateOffer,
     supply?: SupplyCounts
 ): string {
     const gain = rewardText(reward, supply)
     if (rewardGuild) {
         return `${GuildById[rewardGuild].name} → ${gain}`
     }
-    const letter = String.fromCodePoint(65 + alternative)
+    const printed = printedAlternatives(writId).findIndex(({ id }) => id === alternative)
+    const letter = String.fromCodePoint(65 + printed)
     return turnedIn.length > 0 ? `${letter}: ${counted(turnedIn)} → ${gain}` : `${letter}: ${gain}`
 }

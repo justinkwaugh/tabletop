@@ -13,6 +13,7 @@ import { buildFeudum, holdWrit } from '../testing/combat.js'
 import { placeLandscape, playToDawn } from '../testing/dawn.js'
 import { rowOf, scoredIn } from '../testing/gameEnd.js'
 import { recordedText } from '../testing/guilds.js'
+import { coverService } from '../testing/state.js'
 import { playOutCards, showOnStacks, typesOf } from '../testing/roundEnd.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { isBeginDawn } from './beginDawn.js'
@@ -115,7 +116,7 @@ describe('R-6.1, R-4.12 the V dawn', () => {
     ])('R-4.9.2 a vassal with $covered covered loses $vp, space 3 now due', ({ covered, vp }) => {
         const { processed, order } = playToDawn(5, (state, [vassal]) => {
             buildFeudum(state, vassal)
-            state.militaryService[vassal] = covered
+            coverService(state, vassal, covered)
         })
 
         const dawn = processed.find((action) => isBeginDawn(action))

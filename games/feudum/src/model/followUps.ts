@@ -1,15 +1,10 @@
 import { assert, assertExists } from '@tabletop/common'
 import { GuildIds, PlayerDiscRoles, type GuildId } from '../data/components.js'
-import {
-    EpicVoyageTrack,
-    MilitaryServiceTrack,
-    type EpicVoyageSpace,
-    type MilitaryServiceSpace
-} from '../data/tracks.js'
 import type { WritId } from '../data/writs.js'
 import type { FollowUp, WritDrawSource } from './flow.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { rankOf } from './guildStatus.js'
+import { nextMilitarySpace, nextVoyageSpace } from './tracks.js'
 import { drawWrits } from './writDeck.js'
 
 /** R-4.7, R-4.9.1, R-3.7.5 The follow-ups that offer a disc. */
@@ -81,24 +76,6 @@ export function drawWritsToKeep(
 export function requireDrawnWrits(writDraw: { readonly drawn?: WritId[] }): WritId[] {
     assertExists(writDraw.drawn, 'R-4.4.1 The writs drawn are owner-known')
     return writDraw.drawn
-}
-
-/** R-3.7.5 The space the seat's disc would take; none past the monastery. */
-export function nextVoyageSpace(
-    state: HydratedFeudumGameState,
-    playerId: string
-): EpicVoyageSpace | undefined {
-    const space = (state.voyageTrack[playerId] ?? 0) + 1
-    return EpicVoyageTrack.find((row) => row.space === space)
-}
-
-/** R-4.9.1, R-4.9-H2 The seat's own next uncovered space; none when all are covered. */
-export function nextMilitarySpace(
-    state: HydratedFeudumGameState,
-    playerId: string
-): MilitaryServiceSpace | undefined {
-    const space = (state.militaryService[playerId] ?? 0) + 1
-    return MilitaryServiceTrack.find((row) => row.space === space)
 }
 
 const NoFreeDisc = 'You have no free disc.'

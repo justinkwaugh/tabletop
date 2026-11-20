@@ -2546,7 +2546,7 @@
     "type": "PlayMandate",
     "playerId": "xVxV1Xn5UQq54-oz_yKWU",
     "writId": "writ.mandate.2",
-    "alternative": 0,
+    "alternative": "writ.mandate.2.alt.1",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:57.584Z",
@@ -3668,7 +3668,7 @@
     "createdAt": "2026-11-11T14:40:05.573Z",
     "metadata": {
       "disc": "military",
-      "space": 1
+      "space": "track.military.1"
     },
     "index": 64,
     "undoPatch": [
@@ -3693,9 +3693,8 @@
         "value": "PlacingDisc"
       },
       {
-        "op": "replace",
-        "path": "/militaryService/1xR9m1pAy_W5irFjMM2pw",
-        "value": 0
+        "op": "remove",
+        "path": "/militaryService/1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "add",
@@ -5956,7 +5955,7 @@
     "createdAt": "2026-11-11T14:40:27.014Z",
     "metadata": {
       "disc": "voyage",
-      "space": 1
+      "space": "track.voyage.1"
     },
     "index": 99,
     "undoPatch": [
@@ -15083,7 +15082,7 @@
         {
           "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "voyage": {
-            "space": 1,
+            "space": "track.voyage.1",
             "vp": 5
           },
           "largeEmpire": {

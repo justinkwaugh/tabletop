@@ -190,7 +190,7 @@ describe('R-4.7, R-4.7-H1 reeves on every push and pull', () => {
     it('R-4.7 with no free disc no reeve is offered', () => {
         const { table, playerId } = tableAtGuild((state, seat) => {
             setMaster(state, seat, 'farmer')
-            state.militaryService[seat] = 3
+            state.militaryService[seat] = 'track.military.3'
             oneWoodScores(state)
         })
         const [action] = table.send(playerId, ScoringPush)

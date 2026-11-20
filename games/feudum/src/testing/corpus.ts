@@ -25,6 +25,7 @@ import { writRegistry, type WritRegistration } from '../writs/writRegistry.js'
 import { addPawn, Battlefield, buildFeudum, PawnOf } from './combat.js'
 import { ruleFarm, setBarn, setCarts, setMarket, setMaster, setPawns } from './guilds.js'
 import { giveGood, setUp, spaceOfKind } from './improving.js'
+import { writKey } from './corpusWalk.js'
 import { canonicalOf } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 import { cardTurnSeat } from '../model/turns.js'
@@ -50,9 +51,9 @@ export interface AtWillCase {
 
 /** R-4.4.2, R-4.4-H4 Every alternative of every at-will mandate, an any-vessel reward per vessel. */
 export const AtWill = registered.filter(isTiming('at-will')).flatMap(({ writId, alternatives }) =>
-    alternatives.flatMap(({ turnedIn, reward, rewardGuild }, alternative): AtWillCase[] => {
-        const name = `${writId} ${rewardGuild ?? alternative}`
-        const input = rewardGuild ? { alternative: 0, rewardGuild } : { alternative }
+    alternatives.flatMap(({ alternative, turnedIn, reward, rewardGuild }): AtWillCase[] => {
+        const name = writKey(writId, { alternative, rewardGuild })
+        const input = rewardGuild ? { rewardGuild } : { alternative }
         const guild = rewardGuild ? { rewardGuild } : {}
         return reward.kind === 'any-vessel'
             ? VesselTypes.map((vessel) => ({
@@ -70,8 +71,8 @@ export const AtWill = registered.filter(isTiming('at-will')).flatMap(({ writId, 
 
 /** R-4.4-H1 Every alternative of every weapon. */
 export const WeaponBonuses = registered.filter(isTiming('attack')).flatMap(({ writId, bonuses }) =>
-    bonuses.map(({ turnedIn, attack }, alternative) => ({
-        name: `${writId} ${alternative}`,
+    bonuses.map(({ alternative, turnedIn, attack }) => ({
+        name: writKey(writId, { alternative }),
         writId,
         alternative,
         turnedIn,

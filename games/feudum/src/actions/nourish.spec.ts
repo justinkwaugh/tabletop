@@ -518,7 +518,6 @@ describe('R-4.5-H1 nourishing re-ranks once, from the new totals, when it ends',
         const [mandate] = table.send(order[1], {
             type: ActionType.PlayMandate,
             writId: 'writ.mandate.8',
-            alternative: 0,
             rewardGuild: 'knight'
         })
         expect(mandate).toMatchObject({ metadata: { received: { kind: 'influence' } } })
@@ -683,7 +682,6 @@ describe('R-4.10-H4 every asked seat feeds at once', () => {
         const [mandate] = table.send(second, {
             type: ActionType.PlayMandate,
             writId: FarmerMandate,
-            alternative: 0,
             rewardGuild: 'farmer'
         })
 

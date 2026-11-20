@@ -303,7 +303,7 @@ describe('R-3.2 follow-ups run in order', () => {
         const playerId = table.asked
         table.moveTo((state, context) => {
             setMaster(state, playerId, 'farmer')
-            state.voyageTrack[playerId] = 1
+            state.voyageTrack[playerId] = 'track.voyage.1'
             queueFollowUp(state, { kind: 'reeve', playerId, guildId: 'farmer' })
             queueFollowUp(state, { kind: 'voyage', playerId })
             queueFollowUp(state, { kind: 'military', playerId })
@@ -322,7 +322,7 @@ describe('R-3.2 follow-ups run in order', () => {
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
 
         const [voyage] = table.send(playerId, Disc)
-        expect(voyage).toMatchObject({ metadata: { disc: 'voyage', space: 2 } })
+        expect(voyage).toMatchObject({ metadata: { disc: 'voyage', space: 'track.voyage.2' } })
 
         // R-3.2 The voyage draw's keep comes ahead of the rest.
         expect(table.state.machineState).toBe(MachineState.KeepingWrits)
@@ -351,7 +351,7 @@ describe('R-3.2 follow-ups run in order', () => {
         const table = tableAtPlayingCards()
         const playerId = table.asked
         table.moveTo((state, context) => {
-            state.voyageTrack[playerId] = 7
+            state.voyageTrack[playerId] = 'track.voyage.7'
             queueFollowUp(state, { kind: 'voyage', playerId })
             return stateAfterCardStep(context)
         })

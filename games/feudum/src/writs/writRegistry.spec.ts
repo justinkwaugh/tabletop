@@ -10,6 +10,7 @@ import {
 } from './writRegistry.js'
 
 const shipForWood: MandateAlternativeEffect = {
+    alternative: 'writ.mandate.2.alt.2',
     turnedIn: ['wood'],
     reward: { kind: 'vessel', vessel: 'ship' },
     reveals: 'nothing'
@@ -40,7 +41,7 @@ const bow: WeaponRegistration = {
     writId: 'writ.mandate.1',
     timing: 'attack',
     printedText: 'Use bow for free: +1 attack',
-    bonuses: [{ turnedIn: [], attack: 1 }]
+    bonuses: [{ alternative: 'writ.mandate.1.alt.1', turnedIn: [], attack: 1 }]
 }
 
 const monsterDefeat: CharterRegistration = {
@@ -65,8 +66,8 @@ describe('writRegistry', () => {
             const playerId = state.players[0].playerId
             for (const writId of allWritIds) {
                 expect(registry.mandateAlternatives(writId)).toEqual([])
-                expect(registry.mandateAlternative(writId, 0)).toBeUndefined()
-                expect(registry.weaponBonus(writId, 0)).toBeUndefined()
+                expect(registry.mandateAlternative(writId, 'writ.mandate.1.alt.1')).toBeUndefined()
+                expect(registry.weaponBonus(writId, 'writ.mandate.1.alt.1')).toBeUndefined()
                 expect(registry.charterScore(writId, state, playerId)).toBeUndefined()
             }
             expect(registry.registrations()).toEqual([])
@@ -74,8 +75,12 @@ describe('writRegistry', () => {
 
         it('every refusal names the writ, for an action to refuse with', () => {
             for (const writId of allWritIds) {
-                expect(registry.reasonMandateRefused(writId, 0)).toContain(writId)
-                expect(registry.reasonWeaponRefused(writId, 0)).toContain(writId)
+                expect(registry.reasonMandateRefused(writId, 'writ.mandate.1.alt.1')).toContain(
+                    writId
+                )
+                expect(registry.reasonWeaponRefused(writId, 'writ.mandate.1.alt.1')).toContain(
+                    writId
+                )
                 expect(registry.reasonCharterRefused(writId)).toContain(writId)
             }
         })
@@ -132,34 +137,60 @@ describe('writRegistry', () => {
         it('mandate alternative: cost, reward and what it reveals (R-4.4.2, R-X.2)', () => {
             registry.register(vesselMandate)
             expect(registry.mandateAlternatives('writ.mandate.2')).toEqual([shipForWood])
-            expect(registry.mandateAlternative('writ.mandate.2', 0)).toEqual(shipForWood)
-            expect(registry.reasonMandateRefused('writ.mandate.2', 0)).toBeUndefined()
+            expect(registry.mandateAlternative('writ.mandate.2', 'writ.mandate.2.alt.2')).toEqual(
+                shipForWood
+            )
+            expect(
+                registry.reasonMandateRefused('writ.mandate.2', 'writ.mandate.2.alt.2')
+            ).toBeUndefined()
         })
 
         it('refuses an alternative the mandate does not have (R-4.4.2)', () => {
             registry.register(vesselMandate)
-            expect(registry.mandateAlternative('writ.mandate.2', 1)).toBeUndefined()
-            expect(registry.reasonMandateRefused('writ.mandate.2', 1)).toContain('writ.mandate.2')
+            for (const alternative of ['writ.mandate.2.alt.1', 'writ.mandate.4.alt.1'] as const) {
+                expect(registry.mandateAlternative('writ.mandate.2', alternative)).toBeUndefined()
+                expect(registry.reasonMandateRefused('writ.mandate.2', alternative)).toContain(
+                    'writ.mandate.2'
+                )
+            }
+            expect(registry.reasonMandateRefused('writ.mandate.2')).toContain('writ.mandate.2')
         })
 
         it('a guild-status reward is chosen by its guild alone (R-4.4.2)', () => {
             registry.register(guildMandate)
-            expect(registry.mandateAlternative('writ.mandate.6', 0, 'farmer')).toEqual(threeGoods)
-            expect(registry.mandateAlternative('writ.mandate.6', 0)).toBeUndefined()
-            expect(registry.mandateAlternative('writ.mandate.6', 0, 'merchant')).toBeUndefined()
-            expect(registry.reasonMandateRefused('writ.mandate.6', 0, 'merchant')).toContain(
-                'merchant'
+            expect(registry.mandateAlternative('writ.mandate.6', undefined, 'farmer')).toEqual(
+                threeGoods
             )
+            expect(registry.mandateAlternative('writ.mandate.6')).toBeUndefined()
+            expect(
+                registry.mandateAlternative('writ.mandate.6', 'writ.mandate.6.alt.1', 'farmer')
+            ).toBeUndefined()
+            expect(
+                registry.mandateAlternative('writ.mandate.6', undefined, 'merchant')
+            ).toBeUndefined()
+            expect(
+                registry.reasonMandateRefused('writ.mandate.6', undefined, 'merchant')
+            ).toContain('merchant')
         })
 
         it('weapon bonus, only for the attack (R-4.4-H1, R-4.8.2)', () => {
             registry.register(bow)
-            expect(registry.weaponBonus('writ.mandate.1', 0)).toEqual({ turnedIn: [], attack: 1 })
-            expect(registry.reasonWeaponRefused('writ.mandate.1', 0)).toBeUndefined()
-            expect(registry.weaponBonus('writ.mandate.1', 1)).toBeUndefined()
-            expect(registry.reasonWeaponRefused('writ.mandate.1', 1)).toContain('writ.mandate.1')
+            expect(registry.weaponBonus('writ.mandate.1', 'writ.mandate.1.alt.1')).toEqual({
+                alternative: 'writ.mandate.1.alt.1',
+                turnedIn: [],
+                attack: 1
+            })
+            expect(
+                registry.reasonWeaponRefused('writ.mandate.1', 'writ.mandate.1.alt.1')
+            ).toBeUndefined()
+            expect(registry.weaponBonus('writ.mandate.1', 'writ.mandate.1.alt.2')).toBeUndefined()
+            expect(
+                registry.reasonWeaponRefused('writ.mandate.1', 'writ.mandate.1.alt.2')
+            ).toContain('writ.mandate.1')
             expect(registry.mandateAlternatives('writ.mandate.1')).toEqual([])
-            expect(registry.reasonMandateRefused('writ.mandate.1', 0)).toContain('writ.mandate.1')
+            expect(
+                registry.reasonMandateRefused('writ.mandate.1', 'writ.mandate.1.alt.1')
+            ).toContain('writ.mandate.1')
         })
 
         it('charter score, only for a charter (R-4.4.3, R-6.2)', () => {

@@ -9,8 +9,6 @@ import {
     drawWritsToKeep,
     finishFollowUp,
     isDiscFollowUp,
-    nextMilitarySpace,
-    nextVoyageSpace,
     reasonDiscRefused,
     reevePointsIn,
     requireDrawnWrits,
@@ -18,8 +16,16 @@ import {
 } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf } from '../model/guildStatus.js'
+import { nextMilitarySpace, nextVoyageSpace } from '../model/tracks.js'
 import { writDeckCount } from '../model/writDeck.js'
-import { ComponentCount, GuildIdSchema, WritIdSchema } from '../model/stateSchemas.js'
+import {
+    ComponentCount,
+    GuildIdSchema,
+    MilitarySpaceIdSchema,
+    VoyageSpaceIdSchema,
+    WritIdSchema
+} from '../model/stateSchemas.js'
+import type { MilitarySpaceId, VoyageSpaceId } from '../data/tracks.js'
 
 export type PlaceDiscMetadata = Type.Static<typeof PlaceDiscMetadata>
 export const PlaceDiscMetadata = Type.Object({
@@ -30,7 +36,7 @@ export const PlaceDiscMetadata = Type.Object({
     /** R-4.7 What the reeve scored on placing. */
     reevePoints: Type.Optional(ComponentCount),
     /** R-4.9.1, R-3.7.5 The track space taken; absent when the disc was kept. */
-    space: Type.Optional(Type.Integer({ minimum: 1 })),
+    space: Type.Optional(Type.Union([VoyageSpaceIdSchema, MilitarySpaceIdSchema])),
     /** R-3.7.5, R-4.4-H2 Writs drawn by the step; the count is public, the writs are not. */
     drawnCount: Type.Optional(ComponentCount),
     /** R-3.7.5 Actor-known. */
@@ -90,7 +96,7 @@ export type PlaceDiscOffer =
     | {
           readonly disc: 'military'
           /** R-4.9.1 The track space the disc would take. */
-          readonly space: number
+          readonly space: MilitarySpaceId
           /** R-4.9.2 What a disc on that space covers at a dawn. */
           readonly penalty: number
           readonly revealsInfo: false
@@ -98,7 +104,7 @@ export type PlaceDiscOffer =
     | {
           readonly disc: 'voyage'
           /** R-3.7.5 The track space the disc would take. */
-          readonly space: number
+          readonly space: VoyageSpaceId
           /** R-3.7-H1 A disc is already on the track, so this takes no free disc. */
           readonly advances: boolean
           /** R-3.7.5, R-4.4-H2 Writs the step draws: what the deck has of what the space asks. */
@@ -125,7 +131,7 @@ export function placeDiscOffer(
             return (
                 row && {
                     disc: 'military',
-                    space: row.space,
+                    space: row.id,
                     penalty: row.penalty,
                     revealsInfo: false
                 }
@@ -139,7 +145,7 @@ export function placeDiscOffer(
             const draw = Math.min(row.writDraw?.draw ?? 0, writDeckCount(state))
             return {
                 disc: 'voyage',
-                space: row.space,
+                space: row.id,
                 advances: Object.hasOwn(state.voyageTrack, playerId),
                 draw,
                 revealsInfo: draw > 0
@@ -207,24 +213,24 @@ export class HydratedPlaceDisc extends HydratableAction<typeof PlaceDisc> implem
     private placeMilitary(state: HydratedFeudumGameState) {
         const row = nextMilitarySpace(state, this.playerId)
         assert(row, 'R-4.9.1 The reason has found a space')
-        state.militaryService[this.playerId] = row.space
-        return { space: row.space }
+        state.militaryService[this.playerId] = row.id
+        return { space: row.id }
     }
 
     /** R-3.7.5, R-X.2 A draw is the only barrier here; R-4.4-H2 an empty deck draws nothing. */
     private stepVoyage(state: HydratedFeudumGameState) {
         const row = nextVoyageSpace(state, this.playerId)
         assert(row, 'R-3.7.5 The reason has found a space')
-        state.voyageTrack[this.playerId] = row.space
+        state.voyageTrack[this.playerId] = row.id
         if (!row.writDraw) {
-            return { space: row.space }
+            return { space: row.id }
         }
         const drawnCount = drawWritsToKeep(state, this.playerId, row.writDraw, 'voyage')
         const { writDraw } = state.flow
         if (!writDraw) {
-            return { space: row.space, drawnCount }
+            return { space: row.id, drawnCount }
         }
         markRevealsInfo(this, true)
-        return { space: row.space, drawnCount, drawnWritIds: [...requireDrawnWrits(writDraw)] }
+        return { space: row.id, drawnCount, drawnWritIds: [...requireDrawnWrits(writDraw)] }
     }
 }

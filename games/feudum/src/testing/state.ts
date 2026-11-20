@@ -9,6 +9,7 @@ import {
     type Player,
     type UninitializedGameState
 } from '@tabletop/common'
+import { MilitaryServiceTrack } from '../data/tracks.js'
 import { FeudumGameInitializer } from '../definition/initializer.js'
 import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStartingGoods.js'
 import {
@@ -71,6 +72,20 @@ export function canonicalOf(state: HydratedFeudumGameState): FeudumGameState {
     const data = state.dehydrate()
     assert(FeudumGameStateValidator.Check(data), 'A host-side state is complete')
     return data
+}
+
+/** R-4.9-H2 The seat has covered its first `covered` spaces. */
+export function coverService(
+    state: Pick<FeudumGameState, 'militaryService'>,
+    playerId: string,
+    covered: number
+): void {
+    const furthest = MilitaryServiceTrack[covered - 1]
+    if (furthest) {
+        state.militaryService[playerId] = furthest.id
+    } else {
+        delete state.militaryService[playerId]
+    }
 }
 
 /** A game as initialization leaves it, as complete canonical data. */

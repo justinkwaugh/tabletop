@@ -485,8 +485,8 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
         host.edit((state) => {
             tile = giveTile(state, Owner)
             fillBarrel(state, Owner, 2)
-            state.voyageTrack[Owner] = 3
-            state.militaryService[Owner] = 1
+            state.voyageTrack[Owner] = 'track.voyage.3'
+            state.militaryService[Owner] = 'track.military.1'
         })
         const state = new HydratedFeudumGameState(structuredClone(host.state))
         const player = state.getPlayerState(Owner)
@@ -537,8 +537,8 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
     it('R-3.7.5, R-4.9.2, R-4.9-H2 Service and voyage: discs covered, vassal, the voyage space', () => {
         const host = new FeudumHost(3)
         host.edit((state) => {
-            state.militaryService[Owner] = 2
-            state.voyageTrack[Owner] = 4
+            state.militaryService[Owner] = 'track.military.2'
+            state.voyageTrack[Owner] = 'track.voyage.4'
             buildFeudum(state, Owner, emptySpace(state, 'town'))
         })
         const state = new HydratedFeudumGameState(structuredClone(host.state))

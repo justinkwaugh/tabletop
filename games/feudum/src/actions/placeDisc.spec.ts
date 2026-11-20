@@ -42,7 +42,7 @@ function voyageAt(space: number | undefined) {
         (playerId) => [{ kind: 'voyage', playerId }],
         (state, playerId) => {
             if (space !== undefined) {
-                state.voyageTrack[playerId] = space
+                state.voyageTrack[playerId] = `track.voyage.${space}`
             }
         }
     )
@@ -90,8 +90,8 @@ describe('PlaceDisc: the follow-up', () => {
                 { kind: 'reeve', playerId: id, guildId: 'farmer' }
             ],
             (state, id) => {
-                state.voyageTrack[id] = 1
-                state.militaryService[id] = 1
+                state.voyageTrack[id] = 'track.voyage.1'
+                state.militaryService[id] = 'track.military.1'
             }
         )
         expect(table.hydrated().freeDiscs(playerId)).toBe(1)
@@ -186,7 +186,7 @@ describe('PlaceDisc: a reeve', () => {
         const { table } = tableWith(
             (id) => [{ kind: 'reeve', playerId: id, guildId: 'farmer' }],
             (state, id) => {
-                state.militaryService[id] = 3
+                state.militaryService[id] = 'track.military.3'
             }
         )
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
@@ -200,7 +200,7 @@ describe('PlaceDisc: the epic voyage', () => {
         const deck = writDeckCount(table.hydrated())
         expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
             disc: 'voyage',
-            space: 1,
+            space: 'track.voyage.1',
             advances: false,
             draw: 0,
             revealsInfo: false
@@ -209,11 +209,11 @@ describe('PlaceDisc: the epic voyage', () => {
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
 
         const state = table.hydrated()
-        expect(state.voyageTrack[playerId]).toBe(1)
+        expect(state.voyageTrack[playerId]).toBe('track.voyage.1')
         expect(state.freeDiscs(playerId)).toBe(2)
         expect(writDeckCount(state)).toBe(deck)
         expect(state.flow.writDraw).toBeUndefined()
-        expect(action).toMatchObject({ metadata: { disc: 'voyage', space: 1 } })
+        expect(action).toMatchObject({ metadata: { disc: 'voyage', space: 'track.voyage.1' } })
         expect(action.revealsInfo).toBeFalsy()
         expect(table.asked).toBe(table.order[1])
     })
@@ -222,23 +222,23 @@ describe('PlaceDisc: the epic voyage', () => {
         const { table, playerId } = tableWith(
             (id) => [{ kind: 'voyage', playerId: id }],
             (state, id) => {
-                state.voyageTrack[id] = 2
-                state.militaryService[id] = 2
+                state.voyageTrack[id] = 'track.voyage.2'
+                state.militaryService[id] = 'track.military.2'
             }
         )
         expect(table.hydrated().freeDiscs(playerId)).toBe(0)
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
-        expect(table.hydrated().voyageTrack[playerId]).toBe(3)
+        expect(table.hydrated().voyageTrack[playerId]).toBe('track.voyage.3')
         expect(table.hydrated().freeDiscs(playerId)).toBe(0)
-        expect(action).toMatchObject({ metadata: { disc: 'voyage', space: 3 } })
+        expect(action).toMatchObject({ metadata: { disc: 'voyage', space: 'track.voyage.3' } })
     })
 
     it('R-3.7.5 is not offered to start with no free disc', () => {
         const { table } = tableWith(
             (id) => [{ kind: 'voyage', playerId: id }],
             (state, id) => {
-                state.militaryService[id] = 3
+                state.militaryService[id] = 'track.military.3'
             }
         )
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
@@ -248,7 +248,7 @@ describe('PlaceDisc: the epic voyage', () => {
     it('R-3.7.5 is not offered past the monastery', () => {
         const { table, playerId } = voyageAt(7)
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
-        expect(table.hydrated().voyageTrack[playerId]).toBe(7)
+        expect(table.hydrated().voyageTrack[playerId]).toBe('track.voyage.7')
     })
 
     it.each([2, 4, 6])(
@@ -258,7 +258,7 @@ describe('PlaceDisc: the epic voyage', () => {
             const deck = writDeckCount(table.hydrated())
             expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
                 disc: 'voyage',
-                space,
+                space: `track.voyage.${space}`,
                 advances: true,
                 draw: 2,
                 revealsInfo: true
@@ -268,10 +268,10 @@ describe('PlaceDisc: the epic voyage', () => {
 
             expect(action.revealsInfo).toBe(true)
             expect(action).toMatchObject({
-                metadata: { disc: 'voyage', space, drawnCount: 2 }
+                metadata: { disc: 'voyage', space: `track.voyage.${space}`, drawnCount: 2 }
             })
             const state = table.hydrated()
-            expect(state.voyageTrack[playerId]).toBe(space)
+            expect(state.voyageTrack[playerId]).toBe(`track.voyage.${space}`)
             expect(writDeckCount(state)).toBe(deck - 2)
             expect(state.flow.writDraw).toMatchObject({
                 playerId,
@@ -304,7 +304,7 @@ describe('PlaceDisc: the epic voyage', () => {
         const deck = writDeckCount(table.hydrated())
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: false })
         expect(action.revealsInfo).toBeFalsy()
-        expect(table.hydrated().voyageTrack[playerId]).toBe(1)
+        expect(table.hydrated().voyageTrack[playerId]).toBe('track.voyage.1')
         expect(writDeckCount(table.hydrated())).toBe(deck)
         expect(table.asked).toBe(table.order[1])
     })
@@ -356,9 +356,11 @@ describe('PlaceDisc: the epic voyage', () => {
             revealsInfo: false
         })
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
-        expect(action).toMatchObject({ metadata: { disc: 'voyage', space: 2, drawnCount: 0 } })
+        expect(action).toMatchObject({
+            metadata: { disc: 'voyage', space: 'track.voyage.2', drawnCount: 0 }
+        })
         expect(action.revealsInfo).toBeFalsy()
-        expect(table.hydrated().voyageTrack[playerId]).toBe(2)
+        expect(table.hydrated().voyageTrack[playerId]).toBe('track.voyage.2')
         expect(table.hydrated().flow.writDraw).toBeUndefined()
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
     })
@@ -370,7 +372,7 @@ describe('PlaceDisc: the epic voyage', () => {
                 { kind: 'military', playerId: id }
             ],
             (state, id) => {
-                state.voyageTrack[id] = 1
+                state.voyageTrack[id] = 'track.voyage.1'
             }
         )
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })

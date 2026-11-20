@@ -1,19 +1,19 @@
 import * as Type from 'typebox'
 import { LocationKinds, type LocationKind } from '../data/discs.js'
 import { LargeEmpireSetSize, LargeEmpireVp, ShillingsPerVp } from '../data/finalScoring.js'
-import { EpicVoyageTrack } from '../data/tracks.js'
 import type { WritId } from '../data/writs.js'
 import { writRegistry } from '../writs/writRegistry.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { moveConcealedSeal } from './seals.js'
-import { ComponentCount, WritIdSchema } from './stateSchemas.js'
+import { ComponentCount, VoyageSpaceIdSchema, WritIdSchema } from './stateSchemas.js'
+import { voyageSpaceOf } from './tracks.js'
 
 /** R-6.2 One seat's row of the final sheet. */
 export type FinalSheetRow = Type.Static<typeof FinalSheetRow>
 export const FinalSheetRow = Type.Object({
     playerId: Type.String(),
     /** R-6.2 `space` is absent with no disc on the track. */
-    voyage: Type.Object({ space: Type.Optional(ComponentCount), vp: ComponentCount }),
+    voyage: Type.Object({ space: Type.Optional(VoyageSpaceIdSchema), vp: ComponentCount }),
     /** R-6.2 */
     largeEmpire: Type.Object({
         outposts: ComponentCount,
@@ -41,17 +41,17 @@ export const BarrelTieBreak = Type.Array(
 
 /** R-6.2 The furthest-on disc in the section, and any tied with it, score the higher value. */
 function voyageRow(state: HydratedFeudumGameState, playerId: string): FinalSheetRow['voyage'] {
-    const on = EpicVoyageTrack.find(({ space }) => space === state.voyageTrack[playerId])
+    const on = voyageSpaceOf(state, playerId)
     if (!on) {
         return { vp: 0 }
     }
-    const section = EpicVoyageTrack.filter((row) => row.section === on.section).map(
-        (row) => row.space
-    )
     const furthest = Math.max(
-        ...Object.values(state.voyageTrack).filter((space) => section.includes(space))
+        ...state.players.flatMap((player) => {
+            const space = voyageSpaceOf(state, player.playerId)
+            return space?.section === on.section ? [space.space] : []
+        })
     )
-    return { space: on.space, vp: on.space === furthest ? on.vp.higher : on.vp.lower }
+    return { space: on.id, vp: on.space === furthest ? on.vp.higher : on.vp.lower }
 }
 
 /**

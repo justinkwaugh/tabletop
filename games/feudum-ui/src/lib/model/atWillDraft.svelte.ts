@@ -23,6 +23,7 @@ import {
     type SpaceId,
     type TileId,
     type VesselType,
+    type MandateAlternativeId,
     type WritId
 } from '@tabletop/feudum'
 import { markerTarget, pawnTarget, type BoardTarget, type StagePick } from './boardOffer.js'
@@ -47,7 +48,7 @@ export type AtWillList = 'writs' | 'tiles' | 'vessels' | 'immunity'
 
 export interface MandatePick {
     readonly writId: WritId
-    readonly alternative: number
+    readonly alternative?: MandateAlternativeId
     readonly rewardGuild?: GuildId
     /** R-4.4-H4 The vessel an any-vessel reward takes. */
     readonly vessel?: VesselType
@@ -363,7 +364,9 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                             () => {
                                 this.pressMandate({
                                     writId,
-                                    alternative: offer.alternative,
+                                    ...(offer.alternative
+                                        ? { alternative: offer.alternative }
+                                        : {}),
                                     ...(offer.rewardGuild
                                         ? { rewardGuild: offer.rewardGuild }
                                         : {}),

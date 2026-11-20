@@ -139,8 +139,8 @@ async function midGame(page: Page) {
             player.beads = vault.sealPile.splice(0, 1)
             player.sealCount = 2
             player.barrel = 2
-            next.voyageTrack[player.playerId] = 3
-            next.militaryService[player.playerId] = 2
+            next.voyageTrack[player.playerId] = 'track.voyage.3'
+            next.militaryService[player.playerId] = 'track.military.2'
         })
         session.gameState = next
         return held

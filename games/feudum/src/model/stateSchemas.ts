@@ -14,7 +14,8 @@ import { LocationDiscs } from '../data/discs.js'
 import { LandscapeKinds, RegionTiles } from '../data/regionTiles.js'
 import { ChickenSpaces, KnightRowIds, ScrollSpaces } from '../data/guilds.js'
 import { Seals } from '../data/seals.js'
-import { RoyalWrits } from '../data/writs.js'
+import { EpicVoyageTrack, MilitaryServiceTrack } from '../data/tracks.js'
+import { Mandates, RoyalWrits } from '../data/writs.js'
 
 /** R-1.1 A number of components: never negative, never a fraction. */
 export const ComponentCount = Type.Integer({ minimum: 0 })
@@ -29,7 +30,14 @@ export const SpaceIdSchema = Type.Enum(Spaces.map((space) => space.id))
 export const TileIdSchema = Type.Enum(RegionTiles.map((tile) => tile.id))
 export const DiscIdSchema = Type.Enum(LocationDiscs.map((disc) => disc.id))
 export const SealIdSchema = Type.Enum(Seals.map((seal) => seal.id))
+export const VoyageSpaceIdSchema = Type.Enum(EpicVoyageTrack.map((space) => space.id))
+export const MilitarySpaceIdSchema = Type.Enum(MilitaryServiceTrack.map((space) => space.id))
 export const WritIdSchema = Type.Enum(RoyalWrits.map((writ) => writ.id))
+export const MandateAlternativeIdSchema = Type.Enum(
+    Mandates.flatMap((mandate) =>
+        mandate.kind === 'turn-in' ? mandate.alternatives.map(({ id }) => id) : []
+    )
+)
 export const ScrollSpaceIdSchema = Type.Enum(ScrollSpaces.map((space) => space.id))
 export const ChickenSpaceIdSchema = Type.Enum(ChickenSpaces.map((space) => space.id))
 export const KnightRowIdSchema = Type.Enum(KnightRowIds)

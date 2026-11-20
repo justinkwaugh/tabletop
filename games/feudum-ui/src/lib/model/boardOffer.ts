@@ -3,6 +3,7 @@ import {
     cardTurnSeat,
     MachineState,
     placeDiscOffer,
+    printedSpaceNumber,
     reasonPlaceDiscRefused,
     serfAsked,
     setupSeat,
@@ -57,10 +58,10 @@ export function discTarget(offer: PlaceDiscOffer): BoardTarget {
             return guildTarget(offer.guildId)
         }
         case 'military': {
-            return militaryTarget(offer.space)
+            return militaryTarget(printedSpaceNumber(offer.space))
         }
         case 'voyage': {
-            return voyageTarget(offer.space)
+            return voyageTarget(printedSpaceNumber(offer.space))
         }
     }
 }

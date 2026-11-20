@@ -13,11 +13,7 @@ function revealOf(reward: MandateReward): MandateReveal {
     }
 }
 
-/**
- * R-4.4.2, R-4.4-H1, R-4.8.2, R-7 A mandate's registration, read from the card's own row, which
- * holds its printed text beside its values: a weapon's alternatives apply in its holder's attack,
- * any other mandate's at will, by index or by the guild pictured.
- */
+/** R-4.4.2, R-4.4-H1, R-4.8.2 A weapon applies in its holder's attack, any other mandate at will. */
 function registrationOf(mandate: Mandate): MandateRegistration | WeaponRegistration {
     const writId = mandate.id
     if (mandate.kind === 'guild-status') {
@@ -39,8 +35,10 @@ function registrationOf(mandate: Mandate): MandateRegistration | WeaponRegistrat
             writId,
             timing: 'attack',
             printedText,
-            bonuses: mandate.alternatives.flatMap(({ turnedIn, reward }) =>
-                reward.kind === 'attack' ? [{ turnedIn, attack: reward.amount }] : []
+            bonuses: mandate.alternatives.flatMap(({ id, turnedIn, reward }) =>
+                reward.kind === 'attack'
+                    ? [{ alternative: id, turnedIn, attack: reward.amount }]
+                    : []
             )
         }
     }
@@ -48,7 +46,8 @@ function registrationOf(mandate: Mandate): MandateRegistration | WeaponRegistrat
         writId,
         timing: 'at-will',
         printedText,
-        alternatives: mandate.alternatives.map(({ turnedIn, reward }) => ({
+        alternatives: mandate.alternatives.map(({ id, turnedIn, reward }) => ({
+            alternative: id,
             turnedIn,
             reward,
             reveals: revealOf(reward)

@@ -10,6 +10,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import {
+    alternativeOf,
     AnyTime,
     Charter,
     Charters,
@@ -146,7 +147,11 @@ describe('R-4.4-H1 the at-will windows', () => {
         const moves: (Record<string, unknown> & { type: ActionType })[] = [
             { type: ActionType.SpendRegionTile, tileId, good: 'iron' },
             { type: ActionType.ReclaimImmunitySeal, spaceId: Battlefield, role: 'serf' },
-            { type: ActionType.PlayMandate, writId: ShillingMandate, alternative: 0 },
+            {
+                type: ActionType.PlayMandate,
+                writId: ShillingMandate,
+                alternative: alternativeOf(ShillingMandate, 1)
+            },
             { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime }
         ]
         for (const move of moves) {
@@ -235,7 +240,7 @@ describe('R-4.4.4 the writ limit', () => {
         table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
-            alternative: 0
+            alternative: alternativeOf(ShillingMandate, 1)
         })
         const state = table.hydrated()
         expect(state.machineState).toBe(MachineState.PlayingCards)
@@ -250,7 +255,11 @@ describe('R-4.4-H1 weapons', () => {
         })
         expect(table.offered(playerId)).not.toContain(ActionType.PlayMandate)
         expect(() =>
-            table.send(playerId, { type: ActionType.PlayMandate, writId: Weapon, alternative: 0 })
+            table.send(playerId, {
+                type: ActionType.PlayMandate,
+                writId: Weapon,
+                alternative: alternativeOf(Weapon, 1)
+            })
         ).toThrow(`${Weapon} has no at-will effect`)
     })
 })

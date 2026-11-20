@@ -67,7 +67,7 @@ describe('the charter registrations (R-4.4.3)', () => {
     it('R-4.4.3 a charter has no at-will or attack effect', () => {
         for (const { id } of Charters) {
             expect(writRegistry.mandateAlternatives(id)).toEqual([])
-            expect(writRegistry.weaponBonus(id, 0)).toBeUndefined()
+            expect(writRegistry.weaponBonus(id, 'writ.mandate.1.alt.1')).toBeUndefined()
         }
     })
 })

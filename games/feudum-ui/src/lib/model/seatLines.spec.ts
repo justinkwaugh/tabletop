@@ -177,8 +177,8 @@ describe('The ribbon shield and the pawns note (contract: Seat panel)', () => {
 
     it('R-3.7.5, R-4.9.2, R-4.9-H2 The shield says service, vassal and voyage', () => {
         const state = table((row) => {
-            row.militaryService[Owner] = 1
-            row.voyageTrack[Owner] = 4
+            row.militaryService[Owner] = 'track.military.1'
+            row.voyageTrack[Owner] = 'track.voyage.4'
             buildFeudum(row, Owner, emptySpace(row, 'town'))
         })
         const view = seatPanelOf({ state, playerId: Owner, viewerId: Other, nameOf })

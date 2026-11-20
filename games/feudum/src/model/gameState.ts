@@ -24,19 +24,22 @@ import {
     type MonsterId
 } from '../data/components.js'
 import { RegionIds, type LandscapeKind, type RegionId, type TileId } from '../data/regionTiles.js'
-import { EpicVoyageTrack, MilitaryServiceTrack, type Epoch } from '../data/tracks.js'
+import type { Epoch, MilitarySpaceId, VoyageSpaceId } from '../data/tracks.js'
 import { FlowState } from './flow.js'
 import { recomputeRanks, statusStars, type RankChange } from './guildStatus.js'
 import { GuildsState } from './guildsState.js'
 import { MonsterState, SpaceState } from './mapState.js'
 import { SupplyState } from './supplyState.js'
+import { coveredServiceSpaces } from './tracks.js'
 import { FeudumVault } from './vault.js'
 import {
     ComponentCount,
     EpochSchema,
     LandscapeKindSchema,
+    MilitarySpaceIdSchema,
     recordOf,
     TileIdSchema,
+    VoyageSpaceIdSchema,
     WritIdSchema
 } from './stateSchemas.js'
 
@@ -72,15 +75,9 @@ export const FeudumGameState = Type.Object({
     /** R-4.4.2, R-4.4.4 Writs the table saw go under the deck. */
     publicDeckWrits: Type.Array(Type.Object({ slot: ComponentCount, writId: WritIdSchema })),
     /** R-3.7.5 By playerId; absent: no disc on the track yet. */
-    voyageTrack: Type.Record(
-        Type.String(),
-        Type.Integer({ minimum: 1, maximum: EpicVoyageTrack.length })
-    ),
-    /** R-4.9-H2 By playerId: spaces covered. */
-    militaryService: Type.Record(
-        Type.String(),
-        Type.Integer({ minimum: 0, maximum: MilitaryServiceTrack.length })
-    ),
+    voyageTrack: Type.Record(Type.String(), VoyageSpaceIdSchema),
+    /** R-4.9-H2 By playerId, the furthest space covered; absent: none covered. */
+    militaryService: Type.Record(Type.String(), MilitarySpaceIdSchema),
     vault: Visibility.protect(FeudumVault, { policy: Visibility.Policy.HostOnly }),
     flow: FlowState
 })
@@ -119,8 +116,8 @@ export class HydratedFeudumGameState
     declare supply: SupplyState
     declare writDeck: FeudumGameState['writDeck']
     declare publicDeckWrits: FeudumGameState['publicDeckWrits']
-    declare voyageTrack: Record<string, number>
-    declare militaryService: Record<string, number>
+    declare voyageTrack: Record<string, VoyageSpaceId>
+    declare militaryService: Record<string, MilitarySpaceId>
     declare vault?: FeudumVault
     declare flow: FeudumProjectedState['flow']
 
@@ -156,7 +153,8 @@ export class HydratedFeudumGameState
             return [master, journeyman, apprentice]
         }).filter((holder) => holder?.playerId === playerId && holder.reeve).length
         const voyage = Object.hasOwn(this.voyageTrack, playerId) ? 1 : 0
-        return PlayerDiscRoles.shared - reeves - voyage - (this.militaryService[playerId] ?? 0)
+        const service = coveredServiceSpaces(this, playerId).length
+        return PlayerDiscRoles.shared - reeves - voyage - service
     }
 
     /** R-4.1.4 Derived: the spaces this player rules. */

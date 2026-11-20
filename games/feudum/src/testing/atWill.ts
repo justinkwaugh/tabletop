@@ -1,9 +1,9 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import type { ActionCardKind } from '../data/cards.js'
 import { Goods } from '../data/components.js'
 import type { TileId } from '../data/regionTiles.js'
 import { RegionIds } from '../data/regionTiles.js'
-import type { WritId } from '../data/writs.js'
+import { Mandates, type MandateAlternativeId, type WritId } from '../data/writs.js'
 import { DiscardAnyTime } from '../actions/discardWrit.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -31,6 +31,13 @@ export const Charters: readonly WritId[] = [
     'writ.charter.eastern-kingdom',
     'writ.charter.western-kingdom'
 ]
+
+/** R-4.4.2 A turn-in mandate's printed alternative, first or second. */
+export function alternativeOf(writId: WritId, printed: 1 | 2): MandateAlternativeId {
+    const mandate = Mandates.find(({ id }) => id === writId)
+    assert(mandate?.kind === 'turn-in', `${writId} prints no alternatives`)
+    return mandate.alternatives[printed - 1].id
+}
 
 /** Every good of this seat back in the haversack, keeping totals. */
 export function returnAllGoods(state: HydratedFeudumGameState, playerId: string): void {

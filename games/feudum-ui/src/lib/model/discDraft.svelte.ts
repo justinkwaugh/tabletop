@@ -3,6 +3,7 @@ import {
     PlaceDisc,
     placeDiscOffer,
     PlayerDiscRoles,
+    printedSpaceNumber,
     reasonPlaceDiscRefused,
     type PlaceDiscOffer
 } from '@tabletop/feudum'
@@ -46,19 +47,22 @@ function questionOf(offer: PlaceDiscOffer): string {
             return 'Service disc?'
         }
         case 'voyage': {
+            const space = printedSpaceNumber(offer.space)
             if (!offer.advances) {
-                return `Voyage space ${offer.space}?`
+                return `Voyage space ${space}?`
             }
             return offer.draw > 0
-                ? primaryLabel(`To ${offer.space}? +${offer.draw} ${writWord(offer.draw)}`, offer)
-                : `To ${offer.space}?`
+                ? primaryLabel(`To ${space}? +${offer.draw} ${writWord(offer.draw)}`, offer)
+                : `To ${space}?`
         }
     }
 }
 
 /** R-3.7-H1 The placement's button: a disc on the track advances. */
 function placementOf(offer: PlaceDiscOffer): string {
-    return offer.disc === 'voyage' && offer.advances ? `Advance to ${offer.space}` : 'Place'
+    return offer.disc === 'voyage' && offer.advances
+        ? `Advance to ${printedSpaceNumber(offer.space)}`
+        : 'Place'
 }
 
 /**
@@ -125,7 +129,9 @@ export class DiscDraft extends DeciderDraft<DiscValues> {
         return {
             line: questionOf(offer),
             ...(offer.disc === 'military'
-                ? { covers: `Space ${offer.space} · covers −${Math.abs(offer.penalty)}` }
+                ? {
+                      covers: `Space ${printedSpaceNumber(offer.space)} · covers −${Math.abs(offer.penalty)}`
+                  }
                 : {}),
             freeDiscs: `${free}/${PlayerDiscRoles.shared} discs free`,
             ...(this.refusal

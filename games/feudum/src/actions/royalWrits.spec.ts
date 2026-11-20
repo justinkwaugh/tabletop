@@ -11,6 +11,7 @@ import { queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { drawWrits, writDeckCount } from '../model/writDeck.js'
 import {
+    alternativeOf,
     AnyTime,
     Charter,
     FarmerMandate,
@@ -242,7 +243,7 @@ describe('KeepWrits', () => {
         const table = tableAtPlayingCards(() => ({ cards: HAND }))
         const playerId = table.asked
         table.moveTo((state) => {
-            state.voyageTrack[playerId] = 1
+            state.voyageTrack[playerId] = 'track.voyage.1'
             queueFollowUp(state, { kind: 'voyage', playerId })
             return MachineState.PlacingDisc
         })
@@ -450,7 +451,7 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
-            alternative: 0
+            alternative: alternativeOf(ShillingMandate, 1)
         })
 
         const state = table.hydrated()
@@ -480,7 +481,7 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
-            alternative: 1
+            alternative: alternativeOf(ShillingMandate, 2)
         })
         expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 7 } } })
         expect(table.seat(playerId).goods).toMatchObject({ food: 0, wood: 0 })
@@ -490,24 +491,28 @@ describe('PlayMandate', () => {
         const { table, playerId } = holdingMandate(ShillingMandate)
         const state = table.hydrated()
         const other = table.order.find((seat) => seat !== playerId) ?? ''
-        const input = { writId: ShillingMandate, alternative: 0 }
+        const input = { writId: ShillingMandate, alternative: alternativeOf(ShillingMandate, 1) }
         expect(reasonPlayMandateRefused(state, other, input)).toBe("It isn't your turn.")
         expect(
-            reasonPlayMandateRefused(state, playerId, { writId: VesselMandate, alternative: 0 })
+            reasonPlayMandateRefused(state, playerId, {
+                writId: VesselMandate,
+                alternative: alternativeOf(VesselMandate, 1)
+            })
         ).toBe(NOT_HELD)
-        expect(reasonPlayMandateRefused(state, playerId, { ...input, alternative: 5 })).toBe(
-            `${ShillingMandate} has no such alternative: 5`
+        const another = alternativeOf(VesselMandate, 1)
+        expect(reasonPlayMandateRefused(state, playerId, { ...input, alternative: another })).toBe(
+            `${ShillingMandate} has no such alternative: ${another}`
         )
         expect(() =>
-            table.send(playerId, { type: ActionType.PlayMandate, ...input, alternative: 5 })
-        ).toThrow(`${ShillingMandate} has no such alternative: 5`)
+            table.send(playerId, { type: ActionType.PlayMandate, ...input, alternative: another })
+        ).toThrow(`${ShillingMandate} has no such alternative: ${another}`)
     })
 
     it('R-4.4.2 refuses what the goods and named tiles do not cover', () => {
         const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) =>
             setGoods(state, seat, 'food', 0)
         )
-        const input = { writId: ShillingMandate, alternative: 0 }
+        const input = { writId: ShillingMandate, alternative: alternativeOf(ShillingMandate, 1) }
         expect(reasonPlayMandateRefused(table.hydrated(), playerId, input)).toBe(
             "You can't turn in food."
         )
@@ -532,7 +537,7 @@ describe('PlayMandate', () => {
         table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
-            alternative: 0,
+            alternative: alternativeOf(ShillingMandate, 1),
             wildTiles: [{ tileId, good: 'food' }]
         })
         const state = table.hydrated()
@@ -549,7 +554,6 @@ describe('PlayMandate', () => {
         expect(
             reasonPlayMandateRefused(state, playerId, {
                 writId: FarmerMandate,
-                alternative: 0,
                 rewardGuild: 'merchant'
             })
         ).toBe('You need 3 status stars in that guild.')
@@ -578,7 +582,6 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: FarmerMandate,
-            alternative: 0,
             rewardGuild: 'farmer'
         })
         expect(action.revealsInfo).toBe(true)
@@ -603,7 +606,6 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: FarmerMandate,
-            alternative: 0,
             rewardGuild: 'farmer'
         })
         expect(action).toMatchObject({ metadata: { received: { kind: 'goods', goods: [] } } })
@@ -620,7 +622,6 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: FarmerMandate,
-            alternative: 0,
             rewardGuild: 'merchant'
         })
         expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 2 } } })
@@ -634,7 +635,7 @@ describe('PlayMandate', () => {
             state.getPlayerState(seat).vessels.ship += state.supply.vessels.ship
             state.supply.vessels.ship = 0
         })
-        const input = { writId: VesselMandate, alternative: 1 }
+        const input = { writId: VesselMandate, alternative: alternativeOf(VesselMandate, 2) }
         expect(reasonPlayMandateRefused(table.hydrated(), playerId, input)).toBe(
             'The general supply has no ship.'
         )
@@ -658,7 +659,6 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: KnightMandate,
-            alternative: 0,
             rewardGuild: 'knight'
         })
         expect(action).toMatchObject({
@@ -681,7 +681,6 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: KnightMandate,
-            alternative: 0,
             rewardGuild: 'noble'
         })
         expect(table.seat(playerId).sealCount).toBe(sealCount + 1)
@@ -697,7 +696,6 @@ describe('PlayMandate', () => {
         const [flip] = flipped.table.send(flipped.playerId, {
             type: ActionType.PlayMandate,
             writId: KnightMandate,
-            alternative: 0,
             rewardGuild: 'monk'
         })
         expect(flip.revealsInfo).toBe(true)
@@ -713,7 +711,6 @@ describe('PlayMandate', () => {
         const [none] = empty.table.send(empty.playerId, {
             type: ActionType.PlayMandate,
             writId: KnightMandate,
-            alternative: 0,
             rewardGuild: 'monk'
         })
         expect(none).toMatchObject({ metadata: { received: { kind: 'bead', sealIds: [] } } })
@@ -748,7 +745,7 @@ describe('PlayMandate', () => {
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
-            alternative: 0
+            alternative: alternativeOf(ShillingMandate, 1)
         })
         expect(actionProjector.project(action, spectator, { config: {} })).toMatchObject({
             writId: ShillingMandate

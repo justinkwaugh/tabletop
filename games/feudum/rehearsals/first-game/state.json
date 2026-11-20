@@ -1688,11 +1688,10 @@
     }
   ],
   "voyageTrack": {
-    "1xR9m1pAy_W5irFjMM2pw": 1
+    "1xR9m1pAy_W5irFjMM2pw": "track.voyage.1"
   },
   "militaryService": {
-    "1xR9m1pAy_W5irFjMM2pw": 1,
-    "xVxV1Xn5UQq54-oz_yKWU": 0
+    "1xR9m1pAy_W5irFjMM2pw": "track.military.1"
   },
   "vault": {
     "writDeck": [

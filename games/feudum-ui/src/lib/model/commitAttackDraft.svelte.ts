@@ -9,6 +9,7 @@ import {
     type Good,
     type TileId,
     type WeaponOffer,
+    type MandateAlternativeId,
     type WritId
 } from '@tabletop/feudum'
 import { tallyLines, type FlowPlay, type TallyLine } from './cardFlows.js'
@@ -30,7 +31,11 @@ type GoodPrice = Partial<Record<Good, number>>
 
 export type CommitAdd =
     | { readonly kind: 'saltpeter' }
-    | { readonly kind: 'weapon'; readonly writId: WritId; readonly alternative: number }
+    | {
+          readonly kind: 'weapon'
+          readonly writId: WritId
+          readonly alternative: MandateAlternativeId
+      }
 
 export type CommitAttackValues = {
     /** R-4.8.2 Stacked, in press order, so Undo takes back the latest (S36). */

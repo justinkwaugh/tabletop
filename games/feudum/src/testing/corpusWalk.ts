@@ -17,11 +17,12 @@ import { isPlayMandate, playMandateOffers } from '../actions/playMandate.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import { ActionCards, type ActionCardKind } from '../data/cards.js'
 import { Goods, VesselTypes, type Good, type GuildId } from '../data/components.js'
-import { RoyalWrits } from '../data/writs.js'
+import { RoyalWrits, type MandateAlternativeId, type WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { GuildFunctionName, GuildFunctionParams } from '../guilds/guildFunction.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { writRegistry } from '../writs/writRegistry.js'
 import {
     cardMove,
     handFor,
@@ -39,9 +40,12 @@ export function cardKey(kind: ActionCardKind, mode: string): string {
     return `${cardOf(kind).id} ${mode}`
 }
 
-/** One way a writ fires, as a line of the sweep names it. */
-export function writKey(writId: string, alternative: string | number): string {
-    return `${writId} ${alternative}`
+/** One way a writ fires, as a line of the sweep names it: a printed alternative by its id. */
+export function writKey(
+    writId: WritId,
+    { alternative, rewardGuild }: { alternative?: MandateAlternativeId; rewardGuild?: GuildId }
+): string {
+    return alternative ?? `${writId} ${rewardGuild}`
 }
 
 /** What one user Action fired: the cards in `played`, the writs in its Actions. */
@@ -57,10 +61,10 @@ export function firedBy({ processed, after }: WalkStep): string[] {
     )
     const writs = processed.flatMap((action): string[] => {
         if (isPlayMandate(action)) {
-            return [writKey(action.writId, action.rewardGuild ?? action.alternative)]
+            return [writKey(action.writId, action)]
         }
         if (isCommitAttack(action)) {
-            return action.weapons.map(({ writId, alternative }) => writKey(writId, alternative))
+            return action.weapons.map((weapon) => writKey(weapon.writId, weapon))
         }
         if (isScoreGame(action)) {
             return (action.metadata?.sheet ?? []).flatMap(({ charters }) =>
@@ -161,9 +165,7 @@ export class CorpusSeats implements WalkPlan {
     private atWillMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
         const mandate = playMandateOffers(state, playerId).find(
             (offer) =>
-                !offer.refused &&
-                !offer.wildTileNeeded &&
-                this.wants(writKey(offer.writId, offer.rewardGuild ?? offer.alternative))
+                !offer.refused && !offer.wildTileNeeded && this.wants(writKey(offer.writId, offer))
         )
         if (!mandate) {
             return undefined
@@ -173,7 +175,7 @@ export class CorpusSeats implements WalkPlan {
             type: ActionType.PlayMandate,
             playerId,
             writId,
-            alternative,
+            ...(alternative ? { alternative } : {}),
             ...(rewardGuild ? { rewardGuild } : {}),
             ...(vessel ? { vessel } : {})
         }
@@ -372,9 +374,12 @@ export class CorpusSeats implements WalkPlan {
         if (!offer) {
             return undefined
         }
-        const wanted = (writId: string) =>
+        const wanted = (writId: WritId) =>
             this.wants(writId) ||
-            [0, 1].some((alternative) => this.wants(writKey(writId, alternative)))
+            [
+                ...writRegistry.mandateAlternatives(writId),
+                ...writRegistry.weaponBonuses(writId)
+            ].some((choice) => this.wants(writKey(writId, choice)))
         const keep = [...offer.drawn]
             .sort((a, b) => Number(wanted(b)) - Number(wanted(a)))
             .slice(0, offer.keep)
@@ -405,7 +410,7 @@ export class CorpusSeats implements WalkPlan {
         const weapon = offer?.weapons.find(
             ({ writId, alternative, turnedIn }) =>
                 turnedIn.every((good) => goods[good] > 0) &&
-                this.wants(writKey(writId, alternative))
+                this.wants(writKey(writId, { alternative }))
         )
         return weapon && offer
             ? {

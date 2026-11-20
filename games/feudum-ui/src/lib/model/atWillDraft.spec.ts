@@ -35,6 +35,7 @@ import type { DraftChoice } from './deciderDraft.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 import { tileName } from './tileName.js'
+import { mandateChoiceLabel } from './writLabels.js'
 
 let host: FeudumHost | undefined
 
@@ -135,7 +136,7 @@ describe('R-4.4-H1 The at-will row', () => {
         expect(lastAction(table)).toMatchObject({
             type: ActionType.PlayMandate,
             writId: Mandate5,
-            alternative: 0
+            alternative: 'writ.mandate.5.alt.1'
         })
         expect(session.gameState.getPlayerState(seat).writCount).toBe(0)
         expect(session.atWill.selection).toEqual({})
@@ -227,7 +228,11 @@ describe('R-4.4.2 PlayMandate', () => {
         assertExists(revealing, 'R-4.4-H4 Three goods from the supply show what they are')
         await open(session, 'writs')
         const count = table.host.actions.length
-        await press(session, writChoices(session, revealing.writId)[revealing.alternative])
+        const label = mandateChoiceLabel(revealing, session.gameState.supply)
+        await press(
+            session,
+            writChoices(session, revealing.writId).find((choice) => choice.label === label)
+        )
         expect(table.host.actions).toHaveLength(count)
         expect(session.atWillPanel?.primary?.label).toMatch(/can't be undone$/)
         await session.sendFollowUp()
@@ -235,7 +240,7 @@ describe('R-4.4.2 PlayMandate', () => {
         expect(lastAction(table)).toMatchObject({
             type: ActionType.PlayMandate,
             writId: revealing.writId,
-            alternative: revealing.alternative,
+            rewardGuild: revealing.rewardGuild,
             revealsInfo: true
         })
     })

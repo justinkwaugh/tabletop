@@ -260,9 +260,9 @@ describe('derived, not stored', () => {
         state.guilds.tracks.farmer.journeyman = { playerId: 'p1', reeve: false }
         state.guilds.tracks.noble.journeyman = { playerId: 'p2', reeve: true }
         expect(state.freeDiscs('p1')).toBe(2)
-        state.voyageTrack.p1 = 1
+        state.voyageTrack.p1 = 'track.voyage.1'
         expect(state.freeDiscs('p1')).toBe(1)
-        state.militaryService.p1 = 1
+        state.militaryService.p1 = 'track.military.1'
         expect(state.freeDiscs('p1')).toBe(0)
         expect(state.freeDiscs('p2')).toBe(2)
     })

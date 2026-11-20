@@ -8,6 +8,7 @@ import { MachineState } from '../definition/states.js'
 import { atWillWindow } from '../model/atWill.js'
 import { queueFollowUp } from '../model/followUps.js'
 import {
+    alternativeOf,
     AnyTime,
     FarmerMandate,
     KnightMandate,
@@ -394,7 +395,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
-            alternative: 0
+            alternative: alternativeOf(ShillingMandate, 1)
         })
 
         expect(table.seat(playerId).writCount).toBe(3)

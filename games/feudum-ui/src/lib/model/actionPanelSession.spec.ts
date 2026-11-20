@@ -69,6 +69,7 @@ import {
     type TurnTable
 } from '$lib/testing/turnTable.js'
 import { CantBeUndone } from './confirmingSend.js'
+import { mandateChoiceLabel } from './writLabels.js'
 import { handDraftKey } from './handDraft.svelte.js'
 import {
     guildTarget,
@@ -1282,7 +1283,7 @@ describe('Move', () => {
             await atDisc(
                 (playerId) => ({ kind: 'voyage', playerId }),
                 (state, { seat }) => {
-                    state.voyageTrack[seat] = 1
+                    state.voyageTrack[seat] = 'track.voyage.1'
                 }
             )
         )
@@ -1670,7 +1671,7 @@ const Reveals: readonly Reveal[] = [
                 await atDisc(
                     (playerId) => ({ kind: 'voyage', playerId }),
                     (state, { seat }) => {
-                        state.voyageTrack[seat] = from
+                        state.voyageTrack[seat] = `track.voyage.${from}`
                     }
                 )
             )
@@ -1705,9 +1706,10 @@ const Reveals: readonly Reveal[] = [
                 session.atWillPanel?.chips.find(({ list }) => list === 'writs') ?? {}
             )
             flushSync()
-            const choice = session.atWillPanel?.writs?.find(
-                ({ writId }) => writId === revealing.writId
-            )?.choices[revealing.alternative]
+            const offered = mandateChoiceLabel(revealing, session.gameState.supply)
+            const choice = session.atWillPanel?.writs
+                ?.find(({ writId }) => writId === revealing.writId)
+                ?.choices.find((writChoice) => writChoice.label === offered)
             assertExists(choice, 'The writ offers this alternative')
             await session.pressDraftChoice(choice)
             flushSync()

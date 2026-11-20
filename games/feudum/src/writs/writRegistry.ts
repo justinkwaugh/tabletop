@@ -3,6 +3,7 @@ import type { Good, GuildId } from '../data/components.js'
 import {
     RoyalWrits,
     type CharterId,
+    type MandateAlternativeId,
     type MandateId,
     type MandateReward,
     type RoyalWrit,
@@ -18,8 +19,9 @@ export type WritTiming = 'at-will' | 'attack' | 'end-scoring'
 /** R-X.2 What a mandate reward puts in view: goods drawn from the haversack, or a seal flipped to a bead. */
 export type MandateReveal = 'nothing' | 'draw' | 'flip'
 
-/** R-4.4.2, R-7 */
+/** R-4.4.2, R-7 A turn-in alternative names its printed id, a guild-status reward its guild. */
 export interface MandateAlternativeEffect {
+    readonly alternative?: MandateAlternativeId
     readonly turnedIn: readonly Good[]
     readonly reward: MandateReward
     /** R-4.4.2 A reward taken only for a guild where its player has the status stars. */
@@ -29,6 +31,7 @@ export interface MandateAlternativeEffect {
 
 /** R-4.4-H1, R-4.8.2 */
 export interface WeaponBonus {
+    readonly alternative: MandateAlternativeId
     readonly turnedIn: readonly Good[]
     readonly attack: number
 }
@@ -123,42 +126,47 @@ export class WritRegistry {
         return this.mandates.get(writId)?.alternatives ?? []
     }
 
-    /** R-4.4.2 A turn-in alternative by its index, a guild-status reward by its guild. */
+    /** R-4.4.2 A turn-in alternative by its id, a guild-status reward by its guild; never both. */
     mandateAlternative(
         writId: WritId,
-        alternative: number,
+        alternative?: MandateAlternativeId,
         rewardGuild?: GuildId
     ): MandateAlternativeEffect | undefined {
-        const alternatives = this.mandateAlternatives(writId)
-        if (rewardGuild !== undefined) {
-            return alternatives.find((effect) => effect.rewardGuild === rewardGuild)
+        if ((alternative === undefined) === (rewardGuild === undefined)) {
+            return undefined
         }
-        const effect = alternatives[alternative]
-        return effect?.rewardGuild === undefined ? effect : undefined
+        return this.mandateAlternatives(writId).find(
+            (effect) => effect.alternative === alternative && effect.rewardGuild === rewardGuild
+        )
     }
 
     /** R-4.4.2 */
     reasonMandateRefused(
         writId: WritId,
-        alternative: number,
+        alternative?: MandateAlternativeId,
         rewardGuild?: GuildId
     ): string | undefined {
         if (!this.mandates.has(writId)) {
             return `${writId} has no at-will effect`
         }
         if (this.mandateAlternative(writId, alternative, rewardGuild) === undefined) {
-            return `${writId} has no such alternative: ${rewardGuild ?? alternative}`
+            return `${writId} has no such alternative: ${rewardGuild ?? alternative ?? 'none'}`
         }
         return undefined
     }
 
-    /** R-4.4-H1, R-4.8.2 */
-    weaponBonus(writId: WritId, alternative: number): WeaponBonus | undefined {
-        return this.weapons.get(writId)?.bonuses[alternative]
+    /** R-4.4-H1, R-4.8.2 What the weapon adds in its holder's attack; nothing at will. */
+    weaponBonuses(writId: WritId): readonly WeaponBonus[] {
+        return this.weapons.get(writId)?.bonuses ?? []
     }
 
     /** R-4.4-H1, R-4.8.2 */
-    reasonWeaponRefused(writId: WritId, alternative: number): string | undefined {
+    weaponBonus(writId: WritId, alternative: MandateAlternativeId): WeaponBonus | undefined {
+        return this.weaponBonuses(writId).find((bonus) => bonus.alternative === alternative)
+    }
+
+    /** R-4.4-H1, R-4.8.2 */
+    reasonWeaponRefused(writId: WritId, alternative: MandateAlternativeId): string | undefined {
         if (!this.weapons.has(writId)) {
             return `${writId} has no effect in an attack`
         }
