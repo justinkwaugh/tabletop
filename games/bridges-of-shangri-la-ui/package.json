@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/bridges-of-shangri-la-ui",
-    "version": "5.2.0",
+    "version": "5.2.1",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
