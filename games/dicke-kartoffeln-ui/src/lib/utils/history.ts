@@ -1,4 +1,10 @@
-import { ActionSource, type GameAction, type Round } from '@tabletop/common'
+import {
+    ActionSource,
+    isCallGameAction,
+    type CallGameAction,
+    type GameAction,
+    type Round
+} from '@tabletop/common'
 import {
     MachineState,
     isCalculateMarket,
@@ -31,7 +37,9 @@ export type PlanningEntry = {
 
 export type EventEntry = { kind: 'event'; key: string; round: MachineState; action: GameAction }
 
-export type HistoryEntry = YearEntry | PlanningEntry | EventEntry
+export type CallEntry = { kind: 'call'; key: string; action: CallGameAction }
+
+export type HistoryEntry = YearEntry | PlanningEntry | EventEntry | CallEntry
 
 const EVENT_ROUNDS: readonly [(action: GameAction) => boolean, MachineState][] = [
     [isGrowSunflowers, MachineState.GrowingSunflowers],
@@ -74,6 +82,11 @@ export function historyEntries(
         if (actionYear !== undefined && actionYear !== year) {
             year = actionYear
             entries.push({ kind: 'year', key: `year-${year}`, year, firstIndex: index })
+        }
+        if (isCallGameAction(action)) {
+            entries.push({ kind: 'call', key: action.id, action })
+            open = undefined
+            continue
         }
         if (action.source === ActionSource.User && action.playerId) {
             const round = planningRound(action.simultaneousGroupId)

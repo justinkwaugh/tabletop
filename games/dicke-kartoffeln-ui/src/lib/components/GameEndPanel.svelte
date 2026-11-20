@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -10,28 +10,36 @@
 </script>
 
 <div class="end">
-    <div class="title">
-        {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
-            {#if index > 0}<span>and</span>{/if}
-            <PlayerName {playerId} />
-        {/each}
-        <span>{gameSession.gameState.winningPlayerIds.length > 1 ? 'share the win' : 'wins'}</span>
-    </div>
-    <table>
-        <thead>
-            <tr><th>Farmer</th><th>Economy</th><th>Ecology</th><th>Points</th></tr>
-        </thead>
-        <tbody>
-            {#each standings as standing (standing.playerId)}
-                <tr>
-                    <td><PlayerName playerId={standing.playerId} /></td>
-                    <td>{standing.economy} <small>({standing.economyPoints})</small></td>
-                    <td>{standing.ecology} <small>({standing.ecologyPoints})</small></td>
-                    <td class="points">{standing.points}</td>
-                </tr>
+    {#if gameSession.gameCall}
+        <CalledGameEnding class="called" />
+    {:else}
+        <div class="title">
+            {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
+                {#if index > 0}<span>and</span>{/if}
+                <PlayerName {playerId} />
             {/each}
-        </tbody>
-    </table>
+            <span
+                >{gameSession.gameState.winningPlayerIds.length > 1
+                    ? 'share the win'
+                    : 'wins'}</span
+            >
+        </div>
+        <table>
+            <thead>
+                <tr><th>Farmer</th><th>Economy</th><th>Ecology</th><th>Points</th></tr>
+            </thead>
+            <tbody>
+                {#each standings as standing (standing.playerId)}
+                    <tr>
+                        <td><PlayerName playerId={standing.playerId} /></td>
+                        <td>{standing.economy} <small>({standing.economyPoints})</small></td>
+                        <td>{standing.ecology} <small>({standing.ecologyPoints})</small></td>
+                        <td class="points">{standing.points}</td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+    {/if}
 </div>
 
 <style>
@@ -44,6 +52,10 @@
         font-family: 'Kartoffeln Letters', 'Comic Sans MS', cursive;
         text-transform: uppercase;
         color: #3d2410;
+    }
+
+    .end :global(.called) {
+        font-size: 18px;
     }
 
     .title {

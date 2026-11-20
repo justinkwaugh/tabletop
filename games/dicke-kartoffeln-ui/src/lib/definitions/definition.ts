@@ -1,4 +1,7 @@
-import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { DickeKartoffelnInfo } from '@tabletop/dicke-kartoffeln'
 import type {
     DickeKartoffelnProjectedState,
@@ -12,7 +15,8 @@ export const UiDefinition: GameUiDefinition<
 > = {
     info: {
         ...DickeKartoffelnInfo,
-        thumbnailUrl: coverImg
+        thumbnailUrl: coverImg,
+        clientCapabilities: gameClientCapabilities()
     },
     runtime: async () => {
         return (await import('./runtime.js')).DickeKartoffelnUiRuntime

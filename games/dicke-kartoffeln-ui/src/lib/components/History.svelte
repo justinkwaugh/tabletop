@@ -1,12 +1,20 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeSystemAction, outcomeReceipt, type ReceiptLine } from '$lib/utils/describe.js'
-    import { historyEntries, type HistoryEntry, type YearEntry } from '$lib/utils/history.js'
+    import {
+        historyEntries,
+        type CallEntry,
+        type HistoryEntry,
+        type YearEntry
+    } from '$lib/utils/history.js'
     import { roundLabel } from '$lib/utils/rounds.js'
     import DescriptionText from './Description.svelte'
 
-    type LedgerRow = { entry: Exclude<HistoryEntry, YearEntry>; lines: ReceiptLine[]; number: number }
+    type LedgerEntry = Exclude<HistoryEntry, YearEntry | CallEntry>
+    type LedgerRow =
+        | { kind: 'entry'; key: string; entry: LedgerEntry; lines: ReceiptLine[]; number: number }
+        | { kind: 'call'; key: string; entry: CallEntry }
     type LedgerPage = { year: YearEntry | undefined; rows: LedgerRow[] }
 
     const gameSession = getGameSession()
@@ -23,18 +31,21 @@
                 result.push({ year: entry, rows: [] })
                 continue
             }
+            if (result.length === 0) result.push({ year: undefined, rows: [] })
+            const rows = result[result.length - 1].rows
+            if (entry.kind === 'call') {
+                rows.push({ kind: 'call', key: entry.key, entry })
+                continue
+            }
             const lines = receiptLines(entry)
             if (lines.length === 0) continue
             number += 1
-            if (result.length === 0) result.push({ year: undefined, rows: [] })
-            result[result.length - 1].rows.push({ entry, lines, number })
+            rows.push({ kind: 'entry', key: entry.key, entry, lines, number })
         }
-        return result
-            .map((page) => ({ ...page, rows: page.rows.toReversed() }))
-            .toReversed()
+        return result.map((page) => ({ ...page, rows: page.rows.toReversed() })).toReversed()
     })
 
-    function receiptLines(entry: Exclude<HistoryEntry, YearEntry>): ReceiptLine[] {
+    function receiptLines(entry: LedgerEntry): ReceiptLine[] {
         if (entry.kind === 'planning') {
             return (
                 entry.reveal?.metadata?.outcomes.map(outcomeReceipt) ??
@@ -44,7 +55,7 @@
         return describeSystemAction(entry.action).map((description) => ({ description }))
     }
 
-    function lastIndex(entry: HistoryEntry): number | undefined {
+    function lastIndex(entry: YearEntry | LedgerEntry): number | undefined {
         switch (entry.kind) {
             case 'year':
                 return entry.firstIndex
@@ -55,14 +66,14 @@
         }
     }
 
-    async function jumpTo(entry: HistoryEntry) {
+    async function jumpTo(entry: YearEntry | LedgerEntry) {
         const index = lastIndex(entry)
         if (index !== undefined) {
             await gameSession.history.goToActionIndex(index)
         }
     }
 
-    function onKey(event: KeyboardEvent, entry: HistoryEntry) {
+    function onKey(event: KeyboardEvent, entry: YearEntry | LedgerEntry) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
             void jumpTo(entry)
@@ -88,7 +99,7 @@
         <div class="title">FARM LEDGER</div>
         <div class="subtitle">All sums in marks</div>
     </div>
-    {#if gameSession.gameState.result}
+    {#if gameSession.gameState.result && !gameSession.gameCall}
         <div class="final">
             <div class="banner">*** HARVEST HOME ***</div>
             <div class="winners">
@@ -115,33 +126,42 @@
                 <span>YEAR {year.year}</span><span>{pageNumber(year.year)}</span>
             </div>
         {/if}
-        {#each page.rows as { entry, lines, number } (entry.key)}
-            {@const label = roundLabel(entry.round)}
-            <section class="entry">
-                <div
-                    class="head jump"
-                    role="button"
-                    tabindex="0"
-                    title="Show the table after this"
-                    onclick={() => jumpTo(entry)}
-                    onkeydown={(event) => onKey(event, entry)}
-                >
-                    <span class="number">{String(number).padStart(4, '0')}</span>
-                    <span class="round"
-                        >{label ? `${label.number} ${label.name}` : 'Final reckoning'}</span
+        {#each page.rows as row (row.key)}
+            {#if row.kind === 'call'}
+                <section class="entry">
+                    <div class="line"><CalledGameDescription action={row.entry.action} /></div>
+                </section>
+            {:else}
+                {@const { entry, lines, number } = row}
+                {@const label = roundLabel(entry.round)}
+                <section class="entry">
+                    <div
+                        class="head jump"
+                        role="button"
+                        tabindex="0"
+                        title="Show the table after this"
+                        onclick={() => jumpTo(entry)}
+                        onkeydown={(event) => onKey(event, entry)}
                     >
-                </div>
-                {#each lines as line, index (index)}
-                    <div class="line">
-                        <span class="text"><DescriptionText description={line.description} /></span>
-                        {#if line.amount !== undefined}
-                            <span class="amount" class:debit={line.amount < 0}
-                                >{amountText(line.amount)}</span
-                            >
-                        {/if}
+                        <span class="number">{String(number).padStart(4, '0')}</span>
+                        <span class="round"
+                            >{label ? `${label.number} ${label.name}` : 'Final reckoning'}</span
+                        >
                     </div>
-                {/each}
-            </section>
+                    {#each lines as line, index (index)}
+                        <div class="line">
+                            <span class="text"
+                                ><DescriptionText description={line.description} /></span
+                            >
+                            {#if line.amount !== undefined}
+                                <span class="amount" class:debit={line.amount < 0}
+                                    >{amountText(line.amount)}</span
+                                >
+                            {/if}
+                        </div>
+                    {/each}
+                </section>
+            {/if}
         {/each}
         <div class="tear" aria-hidden="true"></div>
     {/each}
