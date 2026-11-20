@@ -41,10 +41,7 @@ export function markerImmune(space: SpaceState, role: StarveRole): boolean {
     return (role === 'serf' ? space.serf?.immune : space.ruler?.subjectImmune) === true
 }
 
-/**
- * R-3.14-H3, R-3.14-H4 Royal Immunity could be paid for and placed, from what the table can see: a
- * food or a tile to bring one, and a seal in the pile.
- */
+/** R-3.14-H3, R-3.14-H4 From public state alone. */
 function immunityInReach(state: HydratedFeudumGameState, playerId: string): boolean {
     return canCoverWithWildTiles(state, playerId, ImmunityFood) && state.supply.sealPileCount > 0
 }
@@ -67,10 +64,7 @@ function chickenBeadsToPile(state: HydratedFeudumGameState): SealId[] {
     return beads
 }
 
-/**
- * R-3.13.2, R-4.9-H1 The marker goes home, unopposed and for no vp; then the chicken beads go to the
- * pile, status is recomputed and the military follow-up queued.
- */
+/** R-3.13.2, R-4.9-H1 */
 export function resolveStarve(
     state: HydratedFeudumGameState,
     target: {

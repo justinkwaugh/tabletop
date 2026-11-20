@@ -124,10 +124,7 @@ function guildsOfPieces(
     ]
 }
 
-/**
- * R-3.16.3, R-4.2.4, R-4.2-H1 A pawn of the seat's stands here: a monster never feasts, and a pin
- * stops only steps, so a pinned pawn may.
- */
+/** R-3.16.3, R-4.2.4, R-4.2-H1 A pin stops only steps, so a pinned pawn may feast. */
 function reasonPawnRefused(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -189,10 +186,7 @@ export interface FeastOffer {
     readonly bestVp: number
 }
 
-/**
- * R-3.16.2, R-3.16.3 Each opponent's own function the seat could feast on: one per space, opponent
- * and guild, however many of their pieces stand there. Empty when the card or sulfur isn't there.
- */
+/** R-3.16.2, R-3.16.3 One per space, opponent and guild, however many pieces stand there. */
 export function feastOffers(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -281,10 +275,7 @@ export class HydratedFeast extends HydratableAction<typeof Feast> implements Fea
         super(data, FeastValidator)
     }
 
-    /**
-     * R-3.16.2, R-3.16.3, R-3.16-H1, R-3.16-H2 The sulfur goes to the haversack, the opponent's
-     * function runs for this seat, and the feast's vp scores on top. No reeve scores.
-     */
+    /** R-3.16.2, R-3.16.3, R-3.16-H1, R-3.16-H2 No reeve scores. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonFeastRefused(state, this.playerId, this)
         if (reason) {

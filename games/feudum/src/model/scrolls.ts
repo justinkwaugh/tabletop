@@ -38,10 +38,7 @@ export function filledScrollSpaces(state: HydratedFeudumGameState): ScrollSpaceI
     return ScrollSpaces.filter((space) => scrolls[space.id]).map((space) => space.id)
 }
 
-/**
- * R-4.6.1 The lines seals placed on these spaces would complete: only lines this completes count.
- * It reads public occupancy alone, so a preview can call it.
- */
+/** R-4.6.1 Reads public occupancy alone, so a preview can call it. */
 export function scrollLinesCompleted(
     state: HydratedFeudumGameState,
     spaces: readonly ScrollSpaceId[]

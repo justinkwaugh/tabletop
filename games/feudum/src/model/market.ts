@@ -98,10 +98,7 @@ function countsOf(goods: readonly Good[]): GoodCounts {
     return counts
 }
 
-/**
- * R-4.6.1 Picks that could go to the market from `available`, with no minimum: a staged input is
- * read too. `R-4.6-H5`'s "as many as fit" is the caller's, against `movableToMarket`.
- */
+/** R-4.6.1, R-4.6-H5 No minimum, so a staged input is read too. */
 export function reasonMarketPicksRefused(
     state: HydratedFeudumGameState,
     goods: readonly Good[],

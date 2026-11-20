@@ -45,11 +45,7 @@ export function nextOpenFollowUp(state: HydratedFeudumGameState): FollowUp | und
     return undefined
 }
 
-/**
- * R-4.4.1, R-4.4-H2 A writ draw resolves in the Action that triggers it, so the barrier sits there,
- * and the keep comes next, ahead of the card's other follow-ups. An empty deck draws nothing and
- * leaves nothing to keep. Returns how many were drawn.
- */
+/** R-4.4.1, R-4.4-H2 The draw is the barrier; the keep comes next. Returns how many. */
 export function drawWritsToKeep(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -88,10 +84,7 @@ function reeveCount(state: HydratedFeudumGameState, playerId: string): number {
     }).length
 }
 
-/**
- * R-4.7 A reeve on this guild's marker scores 1, and 1 more with the seat's other reeve in another
- * guild; no reeve there, nothing.
- */
+/** R-4.7 */
 export function reevePointsIn(
     state: HydratedFeudumGameState,
     playerId: string,

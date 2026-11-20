@@ -82,10 +82,7 @@ export interface TendInput extends CardPlayInput {
     readonly sulfurToBarrel?: number
 }
 
-/**
- * R-3.9.3, R-3.4, R-4.10.2 A wood, a tile collected, a space where the seat is serf and no landscape
- * lies; a sulfur for the barrel only from a sulfur mine collected at once.
- */
+/** R-3.9.3, R-3.4, R-4.10.2 */
 export function reasonTendLandscapeRefused(
     state: HydratedFeudumGameState,
     playerId: string,

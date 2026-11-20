@@ -21,10 +21,7 @@ export function activeRegionVp(state: HydratedFeudumGameState, playerId: string)
     return ActiveRegionScores[activeRegionIds(state, playerId).length]
 }
 
-/**
- * R-4.9.2, R-4.9-H2 What a vassal loses at this dawn: the penalty of every space due by then that
- * their own discs have not covered. Negative, or 0.
- */
+/** R-4.9.2, R-4.9-H2 Negative, or 0. */
 export function disloyaltyVp(
     state: HydratedFeudumGameState,
     playerId: string,

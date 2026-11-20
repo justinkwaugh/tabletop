@@ -10,12 +10,7 @@ import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 
 export type NourishingAction = AtWillAction | HydratedNourish | HydratedNourishPawns
 
-/**
- * R-4.10, R-4.10-H4 `NourishPawns` feeds every seat without a choice and names the rest in
- * `flow.nourish.pending`. All of them are asked at once, as hands are chosen (R-3.1-H1); each may act
- * at will until it feeds (R-4.4-H1), and its `Nourish` takes it off the list. With nobody left, the
- * progress die (R-4.11.1).
- */
+/** R-4.10, R-4.10-H4, R-3.1-H1, R-4.4-H1, R-4.11.1 */
 export class NourishingStateHandler implements MachineStateHandler<
     NourishingAction,
     HydratedFeudumGameState

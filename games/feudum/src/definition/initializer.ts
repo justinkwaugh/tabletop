@@ -89,10 +89,7 @@ export class FeudumGameInitializer
         )
     }
 
-    /**
-     * R-1.4.1 to R-1.4.6, in the rulebook's order, from the box to the table. Every draw is on the
-     * protected stream. The order of the draws is permanent, since a recorded game depends on it.
-     */
+    /** R-1.4.1 to R-1.4.6 The order of the draws is permanent: recorded games depend on it. */
     private static layOutTable(state: HydratedFeudumGameState) {
         FeudumGameInitializer.dealPersonalSupplies(state)
         FeudumGameInitializer.shuffleWritDeck(state)
@@ -156,10 +153,7 @@ export class FeudumGameInitializer
         }
     }
 
-    /**
-     * R-1.3, R-1.4-H1 A row per seat, then dummy rows in unused colours, under ids in that order; their
-     * markers come from the general supply, a dummy row's from its colour's own.
-     */
+    /** R-1.3, R-1.4-H1 Seat rows, then dummy rows in unused colours, under ids in that order. */
     private static fillKnightRows(state: HydratedFeudumGameState) {
         const markers = GuildSetupSpaces.knight.markersPerRow
         const dummyColours = FeudumColors.filter(

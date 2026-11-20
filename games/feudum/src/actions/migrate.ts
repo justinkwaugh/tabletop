@@ -160,10 +160,7 @@ export function reasonMigrateRefused(
         : reasonEnterRefused(state, playerId, input.onto.spaceId, input)
 }
 
-/**
- * R-3.6.1, R-3.6-H1 The pawn goes home with no space and no character. Its vessel stays on the
- * space (R-4.2.2) and its wine sulfur goes to the haversack.
- */
+/** R-3.6.1, R-3.6-H1, R-4.2.2 */
 export function leaveBoard(
     state: HydratedFeudumGameState,
     playerId: string,

@@ -56,10 +56,7 @@ export class HydratedBeginDawn extends HydratableAction<typeof BeginDawn> implem
         super(data, BeginDawnValidator)
     }
 
-    /**
-     * R-4.12, R-4.11-H1 The marker moves, then in order: scores, disloyalty, the fill. R-4.12.3 The serfs
-     * with something to collect are named in turn order. Everything is public: never a barrier.
-     */
+    /** R-4.12, R-4.11-H1, R-4.12.3 Scores, disloyalty, the fill; never a barrier. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         beginPhase(state, PhaseName.Dawn)
         const epoch = state.flow.epochTriggered

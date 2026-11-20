@@ -155,10 +155,7 @@ function refillBarn(state: HydratedFeudumGameState): GuildRefill['barn'] {
     return drawn
 }
 
-/**
- * R-4.12.5, R-4.12-H2 Every guild's setup spaces, in the order setup filled them; extras stay. The
- * order of the draws is permanent, since a recorded game depends on it.
- */
+/** R-4.12.5, R-4.12-H2 The order of the draws is permanent: recorded games depend on it. */
 export function refillGuilds(state: HydratedFeudumGameState): GuildRefill {
     return {
         market: refillMarket(state),

@@ -45,10 +45,7 @@ const MonkTrade: GuildFunctionRow = {
 
     reasonRefused: reasonTradeClosed,
 
-    /**
-     * R-4.6.3, R-4.6-H2, R-4.6.2 The bead drawn is kept, the other stays: a barrier. The draw comes
-     * first, so a projected state defers before any public change.
-     */
+    /** R-4.6.3, R-4.6-H2 A barrier; drawn first, so a projection defers before any change. */
     perform(state, { playerId }) {
         const { high, low, bead } = hiddenBeadDraw(state)
         moveBead(state, bead, { kind: 'rosary' }, { kind: 'player', playerId })
@@ -149,10 +146,7 @@ const MonkPush: GuildFunctionRow = {
 
     reasonRefused: reasonBeadToChickenClosed,
 
-    /**
-     * R-4.6.5, R-4.6-H2 A bead onto an empty chicken, then the coffer split as the purse: a barrier,
-     * whatever it scores. R-3.16.3 On a Feast, the opponent's share goes to the actor.
-     */
+    /** R-4.6.5, R-4.6-H2, R-3.16.3 A barrier, whatever it scores. */
     perform(state, actor) {
         const { high, low, bead, chicken, chickenSum } = drawBeadToChicken(state)
         const { monk } = state.guilds

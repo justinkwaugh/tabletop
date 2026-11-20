@@ -15,11 +15,7 @@ import { stateAfterCardStep } from './cardTurns.js'
 /** R-4.4.4 A discard (R-4.4-H5, sent at any time) or what the turn player may do at will. */
 type WritLimitAction = HydratedDiscardWrit | AtWillAction
 
-/**
- * R-4.4.4, R-4.4-H9 A seat over the writ limit, on its turn or not, discards down before play goes on; the
- * turn player may also act at will (R-4.4-H1). No charter is sealed during play (R-4.4-H6), so the
- * seat always holds a writ to discard. Then the card goes on where it stopped.
- */
+/** R-4.4.4, R-4.4-H9, R-4.4-H1, R-4.4-H6 */
 export class DiscardingWritsStateHandler implements MachineStateHandler<
     WritLimitAction,
     HydratedFeudumGameState

@@ -12,10 +12,7 @@ const EpochNumerals = { 1: 'i', 2: 'ii', 3: 'iii', 4: 'iv' } as const
 
 export type TileId = `tile.${RegionId}.${(typeof EpochNumerals)[TileEpoch]}`
 
-/**
- * R-4.3.1 A position in a region's stack. The id is permanent and names the position, not a
- * landscape: which landscape a position holds is decided at setup (R-1.4-H2).
- */
+/** R-4.3.1, R-1.4-H2 The id names a stack position; its landscape is dealt at setup. */
 export interface RegionTile {
     readonly id: TileId
     readonly region: RegionId

@@ -60,10 +60,7 @@ export class HydratedRollProgressDie
         super(data, RollProgressDieValidator)
     }
 
-    /**
-     * R-4.11.1, R-4.11.2 The die, then the check for the next epoch, which sees the tile it removed.
-     * R-X.2 A roll is a barrier; with no roll nothing was revealed.
-     */
+    /** R-4.11.1, R-4.11.2, R-X.2 A roll is a barrier; with no roll nothing was revealed. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         beginPhase(state, PhaseName.Progress)
         const faces = HydratedRollProgressDie.rollFaces(state)
@@ -79,10 +76,7 @@ export class HydratedRollProgressDie
         }
     }
 
-    /**
-     * R-4.11.1, R-6.1-H1 Rolls until a face shows a legal top tile, on the protected stream. No roll
-     * with no legal tile anywhere, or with the condition for epoch V already met.
-     */
+    /** R-4.11.1, R-6.1-H1 On the protected stream. */
     private static rollFaces(state: HydratedFeudumGameState): RegionId[] {
         const legal = legalStackRegions(state)
         if (legal.length === 0 || triggeredEpoch(state) === LastEpoch) {

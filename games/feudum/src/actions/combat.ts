@@ -85,10 +85,7 @@ export function defenderAsked(state: HydratedFeudumGameState, defenderId: string
     return handCount > 0 && !played.some((card) => card.kind === 'defend')
 }
 
-/**
- * R-4.8-H5 From what the table can see alone: goods on hand, a tile for a saltpeter, or an unsealed
- * writ that could be a weapon. So the prompt says nothing about what the writs are.
- */
+/** R-4.8-H5 From public state alone, so the prompt tells nothing of the writs. */
 export function attackerMayAdd(state: HydratedFeudumGameState, attackerId: string): boolean {
     const { goods, regionTiles, writCount, sealedCharterCount } = state.getPlayerState(attackerId)
     return (
@@ -135,11 +132,7 @@ function monsterFalls(
     state.getPlayerState(attackerId).defeatedMonster = true
 }
 
-/**
- * R-4.8.3 The feudum gives way to an outpost: markers go home, except the attacking serf's, which
- * takes the rule. R-4.8-H2 The lowest outpost disc in supply replaces it; R-4.8-H3 seals under
- * markers go to the markers' owners. Goods and landscape stay.
- */
+/** R-4.8.3, R-4.8-H2, R-4.8-H3 */
 function feudumFalls(
     state: HydratedFeudumGameState,
     attackerId: string,
@@ -213,10 +206,7 @@ function pieceFalls(
     }
 }
 
-/**
- * R-4.8.2, R-4.8.3, R-4.9-H1 Ends the combat in `flow.combat`. A win takes the piece, scores 2 or
- * 4 vp, recomputes status and queues the military follow-up; a loss changes nothing more.
- */
+/** R-4.8.2, R-4.8.3, R-4.9-H1 */
 export function resolveCombat(
     state: HydratedFeudumGameState,
     saltpeter: number,

@@ -24,10 +24,7 @@ export interface Seal {
     readonly beadValue: BeadValue
 }
 
-/**
- * R-1.1 One two-sided disc each, a king's seal one side and a rosary bead the other. The discs carry
- * no id, so `seal.<n>` numbers them by assigning the values in order.
- */
+/** R-1.1 The discs carry no id, so `seal.<n>` numbers them in value order. */
 export const Seals: readonly Seal[] = SealBeadCounts.flatMap(({ beadValue, count }) =>
     Array.from({ length: count }, () => beadValue)
 ).map((beadValue, index) => ({ id: `seal.${index + 1}`, beadValue }))

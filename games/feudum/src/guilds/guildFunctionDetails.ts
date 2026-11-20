@@ -168,10 +168,7 @@ const MonkPushDetails = Type.Object({
     chickenSum: Type.Integer({ minimum: 0 })
 })
 
-/**
- * What one guild function did, for the history sentence. Each guild function adds one member,
- * told apart by `kind`.
- */
+/** What one guild function did, for the history line. */
 export type GuildFunctionDetails = Type.Static<typeof GuildFunctionDetails>
 export const GuildFunctionDetails = Type.Union([
     FarmerTradeDetails,

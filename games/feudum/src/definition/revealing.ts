@@ -1,11 +1,7 @@
 import { assert } from '@tabletop/common'
 import { ActionType } from './actions.js'
 
-/**
- * R-X.2 Every Action that can reveal hidden information, so can't be undone: those whose every send
- * reveals (their schema fixes `revealsInfo` to true) and those whose `apply` decides. An Action sets
- * the flag only through `markRevealsInfo`, which holds it to this list.
- */
+/** R-X.2 The Actions that can reveal hidden information; `markRevealsInfo` holds the flag to it. */
 export const RevealingActionTypes: readonly ActionType[] = [
     ActionType.FinaliseHand,
     ActionType.PlaceDisc,

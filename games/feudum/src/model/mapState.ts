@@ -9,10 +9,7 @@ import {
     VesselCounts
 } from './stateSchemas.js'
 
-/**
- * R-4.1 The disc on a space and the location it shows. The face showing and a feudum's guild are
- * the disc's own, printed (`feudumGuildOf`).
- */
+/** R-4.1 A feudum's guild is the disc's own (`feudumGuildOf`). */
 export type LocationState = Type.Static<typeof LocationState>
 export const LocationState = Type.Object({
     kind: Type.Enum(LocationKinds),

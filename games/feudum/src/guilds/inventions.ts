@@ -100,10 +100,7 @@ export interface InventionsMade {
     readonly barrels: RowFill[][]
 }
 
-/**
- * R-4.6.5, R-4.6.6 Goods go from the carts to the haversack, vessels onto the vessel space, and each
- * barrel fills the Knight rows. The input is the caller's to have checked. A Knight pull calls this.
- */
+/** R-4.6.5, R-4.6.6 The caller has checked the input. */
 export function makeInventions(
     state: HydratedFeudumGameState,
     inventions: readonly InventionChoice[]

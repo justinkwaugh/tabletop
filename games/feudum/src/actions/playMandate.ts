@@ -53,10 +53,7 @@ export const PlayMandateMetadata = Type.Object({
     /** R-4.4.2, R-5.1 The slot it took under the deck. */
     slot: ComponentCount,
     received: MandateReceived,
-    /**
-     * R-4.5-H1, R-4.5-H3 Markers won may fill a rank the seat was owed. While nourishing, the ranks
-     * wait for the one recompute that ends it, so none are recorded here.
-     */
+    /** R-4.5-H1, R-4.5-H3 None while nourishing: the recompute that ends it records them. */
     rankChanges: Type.Optional(Type.Array(RankChange))
 })
 
@@ -158,10 +155,7 @@ function reasonEffectRefused(
         : undefined
 }
 
-/**
- * R-4.4.2, R-4.4-H1, R-4.4-H7 In an at-will window, a writ held and an alternative it has; a guild's
- * reward only with 3 stars there; the goods paid, tiles first.
- */
+/** R-4.4.2, R-4.4-H1, R-4.4-H7 */
 export function reasonPlayMandateRefused(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -226,11 +220,7 @@ function offerOf(
     }
 }
 
-/**
- * R-4.4.2, R-4.4-H1, R-4.4-H4 Every alternative of every mandate this seat holds, in an at-will
- * window, an any-vessel reward once per vessel. Read from the seat's own projection; weapons have no
- * alternatives here. Read-only.
- */
+/** R-4.4.2, R-4.4-H1, R-4.4-H4 An any-vessel reward once per vessel. Read-only. */
 export function playMandateOffers(
     state: HydratedFeudumGameState,
     playerId: string

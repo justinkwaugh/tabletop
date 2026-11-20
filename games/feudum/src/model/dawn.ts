@@ -146,10 +146,7 @@ export function serfsWithFilledLandscapes(state: HydratedFeudumGameState): strin
     )
 }
 
-/**
- * R-4.12.4, R-5.2, R-1.1-H1 One random good beside each region's lettered space, even with goods
- * already there; on a farm these are its harvest. A haversack run dry leaves the last regions out.
- */
+/** R-4.12.4, R-5.2, R-1.1-H1 */
 export function replenishMap(state: HydratedFeudumGameState): MapGood[] {
     const { mapDirection } = sunrayOf(state.epoch)
     return Regions.flatMap(({ region, spaces }) => {

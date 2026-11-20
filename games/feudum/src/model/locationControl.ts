@@ -17,10 +17,7 @@ export function presenceSpaceIds(state: HydratedFeudumGameState, playerId: strin
     })
 }
 
-/**
- * R-4.1.1, R-4.1.2 The role this player would take by adding a marker, or none when the space
- * refuses it: at most 3 markers, from at most 2 players, at most 2 from one player.
- */
+/** R-4.1.1, R-4.1.2 */
 export function nextMarkerRole(space: SpaceState, playerId: string): MarkerRole | undefined {
     const { ruler, serf } = space
     if (!ruler) {
@@ -47,10 +44,7 @@ export function canPlaceMarker(
     )
 }
 
-/**
- * R-4.1.2 Adds a marker from the player's supply and returns the role it gives them. A change of
- * ruler moves status stars: the caller recomputes ranks (R-4.5.4).
- */
+/** R-4.1.2, R-4.5.4 The caller recomputes ranks. */
 export function placeMarker(
     state: HydratedFeudumGameState,
     playerId: string,

@@ -54,10 +54,7 @@ function voyageRow(state: HydratedFeudumGameState, playerId: string): FinalSheet
     return { space: on.id, vp: on.space === furthest ? on.vp.higher : on.vp.lower }
 }
 
-/**
- * R-6.2, R-6.2-H3 The most sets of alike locations these make. Full sets come first; each feudum is
- * wild in one set only, topping up whichever kind needs fewest, and any left are alike themselves.
- */
+/** R-6.2, R-6.2-H3 Each feudum is wild in one set only. */
 export function largeEmpireSets(kinds: readonly LocationKind[]): number {
     const counts = LocationKinds.filter((kind) => kind !== 'feudum').map(
         (kind) => kinds.filter((held) => held === kind).length
@@ -118,11 +115,7 @@ function scoreFinalRow(state: HydratedFeudumGameState, playerId: string): FinalS
     return { playerId, voyage, largeEmpire, shillings, charters, total, score: player.score }
 }
 
-/**
- * R-4.4.3, R-4.4-H6 At the end of the game each held seal goes, unseen, on one held charter, the
- * best-paying first. A seal held scores nothing else, so this is the seat's best placement and
- * nothing is left to ask.
- */
+/** R-4.4.3, R-4.4-H6 Best-paying first: a held seal scores nothing else, so nothing is asked. */
 function sealCharters(state: HydratedFeudumGameState, playerId: string): void {
     const player = state.getPlayerState(playerId)
     const writs = player.requireWrits()
@@ -146,10 +139,7 @@ export function scoreFinal(state: HydratedFeudumGameState): FinalSheetRow[] {
     return turnOrder.map((playerId) => scoreFinalRow(state, playerId))
 }
 
-/**
- * R-6.3 Most vp; among those tied, most sulfur in the barrel (R-6.2-H2: none on a pawn); whoever is
- * still tied shares it. `barrelTieBreak` is there only when the vp were tied.
- */
+/** R-6.3, R-6.2-H2 `barrelTieBreak` only when the vp were tied. */
 export function decideWinners(state: HydratedFeudumGameState): {
     winners: string[]
     barrelTieBreak?: BarrelTieBreak

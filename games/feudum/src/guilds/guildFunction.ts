@@ -32,10 +32,7 @@ export type GuildFunctionName = (typeof GuildFunctionNames)[number]
 /** R-3.16.1 */
 export const GuildFunctionSchema = Type.Enum(GuildFunctionNames)
 
-/**
- * R-3.16, R-4.6 What a guild function's input may carry; each function reads its own. A guild
- * function adds its fields here, each optional, and refuses in `reasonRefused` what it lacks.
- */
+/** R-3.16, R-4.6 Each function reads its own optional fields and refuses what it lacks. */
 export type GuildFunctionParams = Type.Static<typeof GuildFunctionParams>
 export const GuildFunctionParams = Type.Object({
     /** R-4.6.3 Farmer trade: the ruled farm whose goods go to the barn. */
@@ -61,10 +58,7 @@ export const GuildFunctionParams = Type.Object({
     scrollSpaces: Type.Optional(Type.Array(ScrollSpaceIdSchema))
 })
 
-/**
- * Who performs a function. A Guild card's seat performs its own; `feastOf` names the opponent whose
- * rank a Feast borrows (R-3.16.3), so a function reads the rank and the share through this.
- */
+/** R-3.16.3 `feastOf` names the opponent whose rank a Feast borrows. */
 export interface FunctionActor {
     readonly playerId: string
     readonly feastOf?: string
@@ -164,12 +158,7 @@ export interface PreviewedFunction {
     readonly details?: GuildFunctionDetails
 }
 
-/**
- * One row of the registry: everything one guild function of one guild knows. `reasonClosed` is
- * whether it can happen at all, input aside; `reasonRefused` adds the input, and is only read when
- * `reasonClosed` is clear. `preview` must not read the vault or the protected stream, and gives
- * undefined for an input that cannot happen; a staged input short of legal is still read.
- */
+/** `reasonRefused` is read only once `reasonClosed` is clear; `preview` reads no vault. */
 export interface GuildFunctionRow {
     reasonClosed(state: HydratedFeudumGameState, actor: FunctionActor): string | undefined
     reasonRefused(
@@ -208,12 +197,7 @@ export interface ScoredFunction {
     readonly drawnWritIds: WritId[]
 }
 
-/**
- * R-4.6.1, R-4.6.4, R-4.6.5 Points and writs for the level reached; below a threshold neither.
- * R-4.7, R-4.7-H1 Every push and pull scores the reeve: one already there scores now; otherwise one
- * is offered, and scores when placed. R-3.16.3 A Feast scores no reeve. A pull's keep comes ahead of
- * the reeve.
- */
+/** R-4.6.1, R-4.6.4, R-4.6.5, R-4.7, R-4.7-H1, R-3.16.3 A pull's keep comes ahead of the reeve. */
 export function scoreFunction(
     state: HydratedFeudumGameState,
     actor: FunctionActor,
@@ -302,11 +286,7 @@ function placedReevePoints(state: HydratedFeudumGameState, playerId: string): nu
     return elsewhere ? 2 : 1
 }
 
-/**
- * R-4.6.5 A pot splits between master and journeyman, the odd shilling to the master. A missing
- * member's half stays. R-3.16.3 On a Feast, the opponent's share goes to the actor. The caller sets
- * the pot to `stays`.
- */
+/** R-4.6.5, R-3.16.3 The odd shilling to the master; a missing member's half stays. */
 export function splitPot(
     state: HydratedFeudumGameState,
     pot: string,

@@ -3,11 +3,7 @@ import { Goods, type Good } from '../data/components.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import type { GoodCounts } from './stateSchemas.js'
 
-/**
- * R-5.2 One good, weighted by the public counts: a roll over all the goods held, walked in the
- * order of `Goods`. That order is permanent, since a recorded draw depends on it. Nothing held,
- * nothing rolled.
- */
+/** R-5.2 The walk follows `Goods`, permanent since recorded draws depend on it. */
 export function pickGood(counts: GoodCounts, random: RandomFunction): Good | undefined {
     const total = Goods.reduce((sum, good) => sum + counts[good], 0)
     if (total === 0) {
@@ -20,10 +16,7 @@ export function pickGood(counts: GoodCounts, random: RandomFunction): Good | und
     })
 }
 
-/**
- * R-5.2 Up to `count` goods out of the haversack, on the protected stream; R-1.1-H1 a haversack
- * that runs short gives what remains. The caller puts them where they go.
- */
+/** R-5.2, R-1.1-H1 On the protected stream. */
 export function drawGoods(state: HydratedFeudumGameState, count: number): Good[] {
     const { random } = state.getProtectedPrng()
     const drawn: Good[] = []

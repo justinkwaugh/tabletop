@@ -2,10 +2,7 @@ import { Charters, type Charter, type KingdomCharter } from '../data/writs.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import type { CharterRegistration } from './writRegistry.js'
 
-/**
- * R-4.4.3 Ruled spaces among the card's marked ones, so one space counts for every charter marking
- * it. R-6.2-H1 More than the printed values cover score the top one.
- */
+/** R-4.4.3, R-6.2-H1 */
 function kingdomScore(
     { spaces, vpByLocationsRuled }: KingdomCharter,
     state: HydratedFeudumGameState,

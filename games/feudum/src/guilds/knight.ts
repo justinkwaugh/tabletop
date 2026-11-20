@@ -38,10 +38,7 @@ function monsterName(monster: MonsterId): string {
     return monster.replace('-', ' ')
 }
 
-/**
- * R-4.6.3 A space holding the seat's pawn or marker, that a route the monster may use touches. A
- * port is such a space for the sea serpent (FAQ).
- */
+/** R-4.6.3 A port counts for the sea serpent (FAQ). */
 function deploySpaces(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -59,10 +56,7 @@ export interface MonsterOffer {
 export interface KnightTradeOffer {
     readonly price: number
     readonly markers: number
-    /**
-     * R-4.6.3, R-4.6-H10 With 3 or more markers, each monster in the guild that has a space to
-     * go to.
-     */
+    /** R-4.6.3, R-4.6-H10 */
     readonly monsters: readonly MonsterOffer[]
 }
 
@@ -144,10 +138,7 @@ const KnightTrade: GuildFunctionRow = {
             : undefined
     },
 
-    /**
-     * R-4.6.3, R-4.6.2, R-4.2.4 Every marker in the seat's row comes home. A tame returns 3 of them:
-     * one lies on the monster's icon, the rest go to the seat's markers in the general supply (R-1.4.2).
-     */
+    /** R-4.6.3, R-4.6.2, R-4.2.4, R-1.4.2 A tame leaves one marker on the monster's icon. */
     perform(state, { playerId }, params) {
         const details = tradeDetails(state, playerId, params)
         const row = seatRow(state, playerId)

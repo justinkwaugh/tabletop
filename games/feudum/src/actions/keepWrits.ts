@@ -83,10 +83,7 @@ function drawOf(state: HydratedFeudumGameState, playerId: string) {
     return writDraw?.playerId === playerId ? writDraw : undefined
 }
 
-/**
- * R-3.10.2, R-3.10-H2, R-3.10-H3 After the keep from an Explore draw, once, for an iron, with a
- * writ to draw. The writs not kept go under first, so they count as there to draw.
- */
+/** R-3.10.2, R-3.10-H2, R-3.10-H3 The unkept go under first, so they count as there to draw. */
 function reasonShovelsRefused(
     state: HydratedFeudumGameState,
     playerId: string,

@@ -306,10 +306,7 @@ function reasonStepRefused(
         : reasonMonsterStepRefused(state, playerId, step, piece)
 }
 
-/**
- * R-4.2 Takes one step whose reason has passed: a pawn leaves any vessel the route doesn't use on
- * the space it leaves (R-4.2.2), takes up the one it names, and pays a ferry (R-4.2.3).
- */
+/** R-4.2, R-4.2.2, R-4.2.3 */
 function takeStep(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -424,10 +421,7 @@ function reasonPilferRefused(
     return reasonSulfurToBarrelRefused(state, playerId, pilfer.resource)
 }
 
-/**
- * R-3.7.4, R-3.7-H2, R-4.3.4, R-4.10.2 The resource reaches the seat; a target as one of its
- * markers.
- */
+/** R-3.7.4, R-3.7-H2, R-4.3.4, R-4.10.2 */
 function takePilfer(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -498,10 +492,7 @@ function reasonMovePressRefused(
     return input.steps.length > allowance ? `Your movement allowance is ${allowance}.` : undefined
 }
 
-/**
- * R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 The steps fold in press order on this state, so each is judged
- * from where the last left the board: their records, or the first refusal.
- */
+/** R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 Each step is judged from where the last left the board. */
 function foldMove(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -612,10 +603,7 @@ function pilferOffers(
     })
 }
 
-/**
- * R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 What the next press may be, once the draft's steps have folded
- * on a copy. The draft came from these offers, so its steps are legal.
- */
+/** R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 */
 export function moveOffers(
     state: HydratedFeudumGameState,
     playerId: string,

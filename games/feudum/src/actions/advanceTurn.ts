@@ -60,11 +60,7 @@ export class HydratedAdvanceTurn
         super(data, AdvanceTurnValidator)
     }
 
-    /**
-     * R-3.2, R-3.3-H1 A card and its follow-ups are done, and no seat is over the writ limit
-     * (R-4.4.4): a declared second card comes first, and only then does the turn pass. The handler
-     * reads the next state from what this leaves.
-     */
+    /** R-3.2, R-3.3-H1, R-4.4.4 A declared second card comes before the turn passes. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const { turn } = state.flow
         const turnPlayerId = cardTurnSeat(state)

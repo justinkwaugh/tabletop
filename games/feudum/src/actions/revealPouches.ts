@@ -12,10 +12,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import type { HydratedFeudumPlayerState } from '../model/playerState.js'
 import { PouchGood } from './finaliseHand.js'
 
-/**
- * R-3.1-H1, R-3.3 One seat's part of the reveal: its hand's size is told, and a committed good
- * leaves its supply for the pouch. Returns that good.
- */
+/** R-3.1-H1, R-3.3 */
 export function revealPouchOf(player: HydratedFeudumPlayerState): PouchGood | undefined {
     player.handCount = player.requireHand().length
     const good = player.committedPouch
@@ -67,11 +64,7 @@ export class HydratedRevealPouches
         super(data, RevealPouchesValidator)
     }
 
-    /**
-     * R-3.1-H1, R-3.3 Once every seat has finalised, each committed good leaves its owner's supply
-     * for the pouch and each hand's size is told, all at once. Reads every seat's owner-known hand
-     * and pouch good, so only the host runs it.
-     */
+    /** R-3.1-H1, R-3.3 Reads every owner-known hand and pouch good, so only the host runs it. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const pouches: RevealPouchesMetadata['pouches'] = []
         for (const playerId of state.turnManager.turnOrder) {

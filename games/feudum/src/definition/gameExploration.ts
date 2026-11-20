@@ -3,10 +3,7 @@ import { RegionTiles, TileEpochs } from '../data/regionTiles.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
 import type { FeudumVault } from '../model/vault.js'
 
-/**
- * R-5-H1 No `createFromProjectedState`: a seal returned from a bead keeps an identity the table saw,
- * and where it can lie afterwards turns on concealed moves no Action records.
- */
+/** R-5-H1 No projected population: a returned seal's place turns on moves no Action records. */
 export class FeudumGameExploration implements GameExploration<FeudumProjectedState> {
     /** R-5.1, R-5-H1, R-1.4-H2 Every known position kept; no one knows seals apart outside the pile. */
     createFromCanonicalState(state: FeudumProjectedState): FeudumProjectedState {

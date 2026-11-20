@@ -78,10 +78,7 @@ export function payGuild(
     return split
 }
 
-/**
- * R-4.3.3, R-4.10.2 Each tile is held, named once, and the haversack holds every good named; only
- * sulfur goes in the barrel, as far as it has room.
- */
+/** R-4.3.3, R-4.10.2 */
 export function canSpendWildTiles(
     state: HydratedFeudumGameState,
     playerId: string,

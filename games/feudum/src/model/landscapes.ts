@@ -34,10 +34,7 @@ function requireLandscape(state: HydratedFeudumGameState, spaceId: SpaceId): Lan
     return landscape
 }
 
-/**
- * R-4.3.4, R-1.1-H1 Adds up to 3 of the landscape's resource, or what remains of it. An amount
- * lying here is out of its supply until collected. Returns how many were added.
- */
+/** R-4.3.4, R-1.1-H1 Returns how many were added. */
 export function fillLandscape(state: HydratedFeudumGameState, spaceId: SpaceId): number {
     const landscape = requireLandscape(state, spaceId)
     const { resource } = landscapeOf(state, landscape.tileId)
@@ -115,10 +112,7 @@ export function sulfurKeptAt(state: HydratedFeudumGameState, spaceId: SpaceId): 
         : 0
 }
 
-/**
- * R-4.3.4 The serf takes everything lying here and pays 1 of it to the ruler. Sulfur reaches their
- * supplies: the caller moves what the serf named for its barrel, and the ruler's stays (R-4.10-H2).
- */
+/** R-4.3.4, R-4.10-H2 The caller moves what the serf named for its barrel. */
 export function collectLandscape(
     state: HydratedFeudumGameState,
     spaceId: SpaceId

@@ -6,11 +6,7 @@ import { cardTurnSeat } from './turns.js'
 /** R-4.4-H1, R-4.4-H5 The moments a seat may act at will. */
 export type AtWillWindow = 'before-card' | 'hand-selection' | 'nourishing' | 'writ-limit'
 
-/**
- * R-4.4-H1 The one test of whether this seat may act at will now, and in which window: the turn
- * player before a card or while it is over the writ limit, a seat yet to finalise (R-3.1-H1), a
- * seat nourishing asks that has yet to feed (R-4.10-H4). A seat off its turn over the limit may only discard (R-4.4-H5).
- */
+/** R-4.4-H1, R-3.1-H1, R-4.10-H4, R-4.4-H5 */
 export function atWillWindow(
     state: HydratedFeudumGameState,
     playerId: string

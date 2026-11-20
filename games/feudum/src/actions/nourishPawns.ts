@@ -26,10 +26,7 @@ export const NourishPawnsMetadata = Type.Object({
             ...FedPawns.properties
         })
     ),
-    /**
-     * R-4.5-H1, R-4.5.2 When no seat is asked, nourishing ends here: the ranks the unfed pawns moved,
-     * from the new totals at once.
-     */
+    /** R-4.5-H1, R-4.5.2 Only when no seat is asked. */
     rankChanges: Type.Optional(Type.Array(RankChange))
 })
 
@@ -63,10 +60,7 @@ export class HydratedNourishPawns
         super(data, NourishPawnsValidator)
     }
 
-    /**
-     * R-4.10, R-4.10-H4 Seats in turn order: one with a real choice or an at-will play waits to
-     * be asked, and the game feeds every other. Everything is public: never a barrier.
-     */
+    /** R-4.10, R-4.10-H4 All public: never a barrier. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         beginPhase(state, PhaseName.Nourish)
         const pending: string[] = []
@@ -92,10 +86,7 @@ export class HydratedNourishPawns
         }
     }
 
-    /**
-     * R-4.10, R-4.10-H4 A seat with pawns to feed waits to be asked when it has a feeding choice
-     * or may act at will first; the game feeds every other.
-     */
+    /** R-4.10, R-4.10-H4 */
     private static nourishWaits(state: HydratedFeudumGameState, playerId: string): boolean {
         return (
             pawnsToFeed(state, playerId).length > 0 &&
@@ -104,11 +95,7 @@ export class HydratedNourishPawns
         )
     }
 
-    /**
-     * R-4.10-H4, R-4.4-H1, R-4.4.2, R-5.1 Whether the seat may have an at-will play once asked, read
-     * from what every seat sees, so who is asked never tells the table what a hand holds: an unsealed
-     * writ (any may be a mandate), a region tile to spend, or an Immunity seal to reclaim.
-     */
+    /** R-4.10-H4, R-4.4-H1, R-5.1 From public state, so who is asked tells nothing of a hand. */
     private static mayActAtWill(state: HydratedFeudumGameState, playerId: string): boolean {
         const { writCount, sealedCharterCount, regionTiles } = state.getPlayerState(playerId)
         return (

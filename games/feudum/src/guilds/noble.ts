@@ -62,10 +62,7 @@ const NobleTrade: GuildFunctionRow = {
             : `Those seals cost ${shillings(price)}.`
     },
 
-    /**
-     * R-4.6-H1, R-4.6.2, R-5-H1 Each seal goes to the buyer red side up, unseen, so nothing is revealed
-     * and this is no barrier. The seals go first: a projected state defers before any public change.
-     */
+    /** R-4.6-H1, R-4.6.2, R-5-H1 Unseen: no barrier. Moved first, so a projection defers. */
     perform(state, { playerId }, { scrollSpaces = [] }) {
         for (const spaceId of scrollSpaces) {
             moveConcealedSeal(state, { kind: 'scroll', spaceId }, { kind: 'held', playerId })
@@ -128,10 +125,7 @@ const NoblePush: GuildFunctionRow = {
         }
     },
 
-    /**
-     * R-4.6.5, R-5-H1 The seals are unseen, so both ends: the unseen seals' highest at the top, and
-     * their lowest. The picks are read for what could happen; any pick reaches the same totals.
-     */
+    /** R-4.6.5, R-5-H1 The seals are unseen, so the range their values allow. */
     preview(state, actor, { scrollSpaces = [] }) {
         const flips = flipsNow(state)
         if (flips === 0 || reasonSealPicksRefused(state, scrollSpaces, 'Flip', NoblePushSeals)) {

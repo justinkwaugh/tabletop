@@ -52,10 +52,7 @@ export function reasonNotInHandRefused(
         : `${cardOf(kind).printedName} isn't in your hand.`
 }
 
-/**
- * R-3.13-H1 A not-last card needs another unplayed card, which a second card counts as. Only the
- * regular and special plays ask this; `ForfeitCard` is the way to play it last.
- */
+/** R-3.13-H1 A not-last card needs another unplayed card; `ForfeitCard` plays the last. */
 export function reasonNotLastRefused(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -78,10 +75,7 @@ export function reasonSecondCardRefused(player: HydratedFeudumPlayerState): stri
     return player.requireHand().length > 1 ? undefined : 'You have no second card to play.'
 }
 
-/**
- * R-3.15.1, R-3.15.2, R-3.15-H2 A played card: by Repeat if it shows x2, by Déjà Vu if it shows
- * none; never one with the crossed x2. R-3.15-H1 A card forfeited earlier in the round was played.
- */
+/** R-3.15.1, R-3.15.2, R-3.15-H1, R-3.15-H2 Repeat needs an x2, Déjà Vu none. */
 export function reasonRepeatRefused(
     player: HydratedFeudumPlayerState,
     kind: ActionCardKind,
@@ -111,10 +105,7 @@ export function reasonRepeatRefused(
     return player.goods.saltpeter > 0 ? undefined : 'Déjà Vu needs a saltpeter.'
 }
 
-/**
- * R-3.2, R-3.3-H1, R-3.13-H1, R-3.15 What every regular or special play asks first. Each action's
- * own `reasonXRefused` calls this, then adds what its card needs.
- */
+/** R-3.2, R-3.3-H1, R-3.13-H1, R-3.15 Asked first by every regular or special play. */
 export function reasonCardPlayRefused(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -176,10 +167,7 @@ function unmetNeed(
     }
 }
 
-/**
- * R-3.4, R-3.4-H1 Every game uses the advanced rules: a special is refused only for an unmet need.
- * `spaceId` is the space an action has named, for a card showing a pawn at the location.
- */
+/** R-3.4, R-3.4-H1 Advanced rules always: a special is refused only for an unmet need. */
 export function reasonSpecialRefused(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -247,10 +235,7 @@ export function cardPlayOffers(state: HydratedFeudumGameState, playerId: string)
     return { cards, repeats, secondCard: reasonSecondCardRefused(player) === undefined }
 }
 
-/**
- * R-4.3-H3 A special whose only unmet need is a good a tile could bring. Its payment takes no tile,
- * so the seat spends one at will first; the price is what the card prints.
- */
+/** R-4.3-H3 Its payment takes no tile, so the seat spends one at will first. */
 export function specialShortOfGood(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -280,10 +265,7 @@ function tileBrings(state: HydratedFeudumGameState, playerId: string, need: Spec
     }
 }
 
-/**
- * R-3.15.2, R-4.3-H3 The played cards Déjà Vu would replay but for its saltpeter, which a tile could
- * bring: spent at will first, since Déjà Vu's payment takes no tile.
- */
+/** R-3.15.2, R-4.3-H3 Déjà Vu's payment takes no tile, so the seat spends one at will first. */
 export function dejaVuShortKinds(
     state: HydratedFeudumGameState,
     playerId: string
@@ -313,11 +295,7 @@ export function playOutOfTurn(
     player.played.push({ kind, use })
 }
 
-/**
- * R-3.2, R-3.3, R-3.15 The card leaves the hand for `played` with its use. Replaying, that card is
- * Repeat and `kind` is what it replays. Sets `flow.turn.secondCard` from this card's declaration:
- * true while a declared second card is owed. Call after the action's reason has passed.
- */
+/** R-3.2, R-3.3, R-3.15 Call once the reason has passed; a replay's `kind` is the card replayed. */
 export function playCard(
     state: HydratedFeudumGameState,
     playerId: string,

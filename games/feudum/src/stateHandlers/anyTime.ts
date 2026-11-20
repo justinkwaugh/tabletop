@@ -5,11 +5,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 
 type FeudumStateHandler = MachineStateHandler<HydratedAction, HydratedFeudumGameState>
 
-/**
- * R-4.4.4, R-4.4-H5 A writ may be discarded at any time, so every state takes `DiscardWrit` from
- * any seat holding one. The state that asks for the discard (the writ limit) decides what follows
- * it; in every other state play stays where it was.
- */
+/** R-4.4.4, R-4.4-H5 The writ limit decides what follows; elsewhere play stays. */
 export function withDiscardAnyTime(handler: FeudumStateHandler): FeudumStateHandler {
     return {
         isValidAction: (action, context) =>

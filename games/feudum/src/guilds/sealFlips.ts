@@ -30,10 +30,7 @@ export interface FlipTotals {
     readonly highestTotal: number
 }
 
-/**
- * R-4.6.4, R-4.6.5, R-5-H1 The rosary now, and the lowest and highest it could reach by flipping
- * this many: the unseen seals' values, without reading them.
- */
+/** R-4.6.4, R-4.6.5, R-5-H1 Reads no vault: the range the unseen values allow. */
 export function flipTotals(state: HydratedFeudumGameState, flips: number): FlipTotals {
     const rosaryTotal = rosaryBeadSum(state)
     const unseen = unseenBeadValues(state)

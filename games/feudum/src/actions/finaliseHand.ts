@@ -48,10 +48,7 @@ export function isFinaliseHand(action?: GameAction): action is FinaliseHand {
     return action?.type === ActionType.FinaliseHand
 }
 
-/**
- * R-3.1-H1 Every seat finalises at once, so a round's finalises share one simultaneous group:
- * a seat sending from a state another seat's finalise has since moved on is still taken.
- */
+/** R-3.1-H1 Finalises are simultaneous, so one sent from a superseded state is still taken. */
 export function handSelectionGroup(state: HydratedFeudumGameState): string {
     return `hands-${state.roundManager.currentRound?.number ?? 0}`
 }
@@ -150,11 +147,7 @@ export class HydratedFinaliseHand
         super(data, FinaliseHandValidator)
     }
 
-    /**
-     * R-3.1, R-3.3, R-3.1-H1 The hand and the pouch good are owner-known until `RevealPouches`: the
-     * good stays in the supply and the hand's size is not told, so the table learns only that the
-     * seat has finalised. The input names every fact its history line needs.
-     */
+    /** R-3.1, R-3.3, R-3.1-H1 Owner-known until `RevealPouches`. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonFinaliseRefused(state, this.playerId, this.cards, this.pouchGood)
         if (reason) {

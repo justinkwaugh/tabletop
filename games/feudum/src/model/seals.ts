@@ -32,10 +32,7 @@ export function immunityKey(spaceId: SpaceId, role: ImmunityRole): string {
     return `${spaceId}.${role}`
 }
 
-/**
- * R-5-H1 A seal moves unseen, staying red side up. Nothing is returned: the mover learns nothing and
- * no record can name it. Public counts and occupancy follow on both ends.
- */
+/** R-5-H1 Returns nothing, so no record can name the seal. */
 export function moveConcealedSeal(
     state: HydratedFeudumGameState,
     from: ConcealedSealSource,
@@ -44,10 +41,7 @@ export function moveConcealedSeal(
     placeConcealedSeal(state, to, takeConcealedSeal(state, from))
 }
 
-/**
- * R-4.1-H1 A serf's marker became the subject and kept its seal: the vault's key follows. Public
- * occupancy moves with the marker, so this is the vault's half alone.
- */
+/** R-4.1-H1 The vault's half; public occupancy moves with the marker. */
 export function immunitySealFollowsMarker(state: HydratedFeudumGameState, spaceId: SpaceId): void {
     const { immunitySeals } = state.requireVault()
     const serfKey = immunityKey(spaceId, 'serf')

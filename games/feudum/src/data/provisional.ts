@@ -11,12 +11,7 @@ export type DataBlockedSpec =
     | 'seals.spec.ts'
     | 'writs.spec.ts'
 
-/**
- * A printed value no source has settled. The data reads `placeholder` from here, so that a
- * confirmed value changes one place: confirming it deletes the entry and its line in
- * `known-deviations.md` in the same change. A value confirmed after release also bumps
- * `feudumRevision` (R-X.3).
- */
+/** A printed value no source has settled; confirmed after release, it bumps `feudumRevision`. */
 export interface ProvisionalEntry<T = unknown> {
     /** The id in `components.md`; `*` stands for every id of the group. */
     readonly componentId: string
@@ -28,10 +23,7 @@ export interface ProvisionalEntry<T = unknown> {
     readonly dataBlockedIn: readonly DataBlockedSpec[]
 }
 
-/**
- * Every provisional value. An entry is added to the group file for its component, and a line to
- * `known-deviations.md` ("Not covered by specs"); `provisional.spec.ts` checks one against the other.
- */
+/** Each entry has its line in `known-deviations.md`, checked by `provisional.spec.ts`. */
 export const ProvisionalRegistry: readonly ProvisionalEntry[] = [
     ...Object.values(ProvisionalGuilds),
     ...Object.values(ProvisionalCards)

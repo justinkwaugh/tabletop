@@ -65,11 +65,7 @@ export interface CharterScore {
     readonly vp: number
 }
 
-/**
- * R-4.4 Writ effects by writ id and timing. Actions and the scorer read them only through these
- * queries, never by testing a writ id. A writ with no registration gives nothing, and the `reason`
- * queries give what an action refuses with.
- */
+/** R-4.4 Actions and the scorer read writ effects only here, never by testing a writ id. */
 export class WritRegistry {
     private readonly mandates = new Map<WritId, MandateRegistration>()
     private readonly weapons = new Map<WritId, WeaponRegistration>()
@@ -202,10 +198,7 @@ export class WritRegistry {
     }
 }
 
-/**
- * The game's registry. It takes its registrations here, not from modules that add to it on load: the
- * package declares no side effects, so a bundler may drop a module imported only for that.
- */
+/** Registered here, not on module load: the package declares no side effects. */
 export const writRegistry = new WritRegistry()
 for (const registration of [...MandateRegistrations, ...CharterRegistrations]) {
     writRegistry.register(registration)

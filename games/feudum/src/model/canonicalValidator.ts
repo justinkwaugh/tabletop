@@ -218,10 +218,7 @@ function sealsBreaks(state: FeudumGameState): ConservationBreak[] {
     ]
 }
 
-/**
- * R-4.3.1, R-4.3.3 Every tile is in a stack, collected, a landscape or out of the game.
- * R-1.4-H2 Each has one landscape, hidden while in a stack; each epoch's six make the printed mix.
- */
+/** R-4.3.1, R-4.3.3, R-1.4-H2 */
 function tilesBreaks(state: FeudumGameState): ConservationBreak[] {
     const stacked = RegionIds.flatMap((region) => state.regionStacks[region])
     const taken = [

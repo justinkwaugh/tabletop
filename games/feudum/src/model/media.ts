@@ -19,10 +19,7 @@ export function placeVesselUnderPawn(
     pawn.vessel = vessel
 }
 
-/**
- * R-4.2.2, R-4.2-H2 A vessel left on a space stays there, abandoned. Left during a turn, it is
- * boarded only on a later turn, so the turn keeps where it lies.
- */
+/** R-4.2.2, R-4.2-H2 The turn keeps where it lies: it is boarded only on a later turn. */
 export function abandonVessel(
     state: HydratedFeudumGameState,
     spaceId: SpaceId,
@@ -106,10 +103,7 @@ function pawnOf(
     return state.getPlayerState(playerId).pawns.find((pawn) => pawn.n === n)
 }
 
-/**
- * R-4.2.4 It can only migrate off, conquer the monster, or wait for it to leave. R-4.2-H1 The pin
- * stops its steps and nothing else: it may still pilfer where it stands.
- */
+/** R-4.2.4, R-4.2-H1 */
 export function isPinned(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -124,10 +118,7 @@ export function vesselOfMedium(medium: RouteMedium): VesselType | undefined {
     return VesselTypes.find((vessel) => vessel === medium)
 }
 
-/**
- * R-4.2.1 to R-4.2.4 The ways this pawn may take this route from where it stands. None if pinned,
- * off the board or elsewhere. Boarding and placing are both listed when both are possible.
- */
+/** R-4.2.1 to R-4.2.4 */
 export function pawnRouteOptions(
     state: HydratedFeudumGameState,
     playerId: string,

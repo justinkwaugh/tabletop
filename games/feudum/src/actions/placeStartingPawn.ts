@@ -93,10 +93,7 @@ export class HydratedPlaceStartingPawn
         super(data, PlaceStartingPawnValidator)
     }
 
-    /**
-     * R-1.4.9, R-4.5-H1 Every pawn is worth the same stars and a holder keeps a space against a
-     * tie, so the recompute gives the printed order: master, journeyman, apprentice where used.
-     */
+    /** R-1.4.9, R-4.5-H1 Equal stars, and holders kept on a tie, give the printed order. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonStartingPawnRefused(this.spaceId)
         if (reason) {

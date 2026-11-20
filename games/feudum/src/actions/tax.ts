@@ -79,10 +79,7 @@ function reinforcementSource(
     return own && own.row.markers > 0 ? 'knight-row' : undefined
 }
 
-/**
- * R-3.12.2, R-3.12-H1 The seat may collect Reinforcements: it has a Knight pawn on the board and a
- * marker can come. Only then is it asked.
- */
+/** R-3.12.2, R-3.12-H1 */
 export function reinforcementsOffered(state: HydratedFeudumGameState, playerId: string): boolean {
     return (
         specialOffered(state, playerId, 'tax') && reinforcementSource(state, playerId) !== undefined

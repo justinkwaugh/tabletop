@@ -1,6 +1,3 @@
-// Export all the things to be used by the UI and backend
-// It doesn't have to be everything, just whatever is needed externally
-
 export * from './actions/cardPlay.js'
 export * from './actions/chooseFavours.js'
 export * from './actions/chooseStartingGoods.js'

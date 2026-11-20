@@ -41,10 +41,7 @@ type HydratedCardPlay =
     | HydratedConquer
     | HydratedStarveThePeople
 
-/**
- * R-3.2, R-4.4-H1 What the turn player may send here, an at-will action playing no card and so
- * ending no step, and the System Action that closes each card.
- */
+/** R-3.2, R-4.4-H1 */
 type PlayingCardsAction = HydratedCardPlay | AtWillAction | HydratedAdvanceTurn
 
 /** R-3.5 The Actions that play a card, regular or special. A new card adds its row here. */

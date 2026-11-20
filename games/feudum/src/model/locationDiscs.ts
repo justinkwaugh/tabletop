@@ -46,10 +46,7 @@ export interface DiscChoice {
     readonly other?: LocationKind
 }
 
-/**
- * R-3.9-H1, R-3.9-H2 One candidate per other face, the lowest id of each. A plain back is an other
- * face of its own. More than one is the seat's choice; one is taken unasked.
- */
+/** R-3.9-H1, R-3.9-H2 The lowest id of each other face; a plain back is a face of its own. */
 export function discChoices(
     state: HydratedFeudumGameState,
     kind: LocationKind,

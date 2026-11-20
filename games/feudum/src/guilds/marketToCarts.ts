@@ -17,10 +17,7 @@ function performMove(
     return { kind, moves, completed }
 }
 
-/**
- * R-4.6.4, R-4.6.5 The Merchant push and the Alchemist pull differ in how many move and what the
- * completed carts and piles reach; both move market goods into them, as many as fit.
- */
+/** R-4.6.4, R-4.6.5 The Merchant push and the Alchemist pull. */
 export function marketToCartsRow(
     kind: 'merchant-push' | 'alchemist-pull',
     cap: number,

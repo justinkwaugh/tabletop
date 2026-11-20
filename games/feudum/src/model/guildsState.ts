@@ -81,10 +81,7 @@ export const GuildsState = Type.Object({
         vesselsForSale: Type.Array(VesselTypeSchema)
     }),
     knight: Type.Object({
-        /**
-         * R-1.3, R-1.4-H1 The rows in play, by row id. R-4.2.4 A monster's icon holds its
-         * controller's marker; who that is lies on the monster (`monsters`).
-         */
+        /** R-1.3, R-1.4-H1, R-4.2.4 By row id; a monster's controller lies on the monster. */
         rows: Type.Unsafe<Partial<Record<KnightRowId, KnightRow>>>(
             Type.Partial(Type.Record(KnightRowIdSchema, KnightRow), { additionalProperties: false })
         )

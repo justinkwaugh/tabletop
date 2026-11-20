@@ -37,10 +37,7 @@ export function isPlayDefend(action?: GameAction): action is PlayDefend {
     return action?.type === ActionType.PlayDefend
 }
 
-/**
- * R-3.14.1 What the card prints. R-3.14-H5 Royal Immunity, which replaces this action, scores
- * none.
- */
+/** R-3.14.1, R-3.14-H5 Royal Immunity scores none. */
 export function defendVp(): number {
     const { vp } = cardOf('defend')
     assert(vp !== null && vp !== 'variable', 'R-3.14.1 Defend prints its vp')

@@ -32,10 +32,7 @@ export function payShillingsToSupply(
     state.supply.shillings += amount
 }
 
-/**
- * R-4.3.4 A target acquired returns to the supply and becomes one of the seat's markers from the
- * general supply; with none of its left there, it is simply discarded. Returns whether it became one.
- */
+/** R-4.3.4 Returns whether it became one of the seat's markers. */
 export function targetToMarker(state: HydratedFeudumGameState, playerId: string): boolean {
     const player = state.getPlayerState(playerId)
     const { influence } = state.supply
@@ -81,10 +78,7 @@ export function barrelRoom(state: HydratedFeudumGameState, playerId: string): nu
     return WineBarrelCapacity - state.getPlayerState(playerId).barrel
 }
 
-/**
- * R-4.10.2 Of the sulfur an action brings the seat, how many it names for the barrel: no more than
- * it gains, or than fit.
- */
+/** R-4.10.2 */
 export function reasonSulfurCountToBarrelRefused(
     state: HydratedFeudumGameState,
     playerId: string,

@@ -361,10 +361,7 @@ export interface KnightSection {
 /** R-1.4-H1 Dummy rows make up the difference at 2 and 3 players. */
 export const MinimumKnightRows = 4
 
-/**
- * R-1.3, R-1.4-H1 A Knight row's id, given at setup (the seats' rows in seat order, then the dummy
- * rows) and never changed; one row per colour in the box at most.
- */
+/** R-1.3, R-1.4-H1 Given at setup and never changed. */
 export const KnightRowIds = FeudumColors.map((_, index) => `knight-row-${index + 1}` as const)
 export type KnightRowId = (typeof KnightRowIds)[number]
 
@@ -499,10 +496,7 @@ export interface GuildSetupFill {
     readonly monk: { readonly beads: number }
 }
 
-/**
- * R-1.3 What setup puts in each guild, and R-4.12.5 what the third dawn refills: these spaces and
- * amounts, with anything already beyond them staying where it is.
- */
+/** R-1.3, R-4.12.5 Anything already beyond these stays. */
 export const GuildSetupSpaces: GuildSetupFill = {
     farmer: {
         barnGoods: FarmerBarn.setupGoods,

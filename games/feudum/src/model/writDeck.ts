@@ -8,11 +8,7 @@ export function writDeckCount(state: HydratedFeudumGameState): number {
     return state.writDeck.nextBottom - state.writDeck.top
 }
 
-/**
- * R-5.1 A draw takes slot `top` and increments it. R-4.4-H2 A draw larger than the deck draws what
- * is there; an empty deck draws nothing. A known position is in the deck while its slot is at or
- * above `top`, so an entry drops once its writ is drawn and the rest need no rewriting.
- */
+/** R-5.1, R-4.4-H2 A known position drops once its slot is below `top`. */
 export function drawWrits(state: HydratedFeudumGameState, count: number): WritId[] {
     const vault = state.requireVault()
     const drawn = vault.writDeck.splice(0, Math.min(count, writDeckCount(state)))
@@ -35,10 +31,7 @@ export function putWritsUnderInView(state: HydratedFeudumGameState, writIds: rea
     state.publicDeckWrits.push(...writIds.map((writId) => putWritUnder(state, writId)))
 }
 
-/**
- * R-4.4.1, R-4.4-H3, R-4.4.4 A draw's unkept writs, in the order drawn, and a discard: only the
- * seat that puts them under sees them.
- */
+/** R-4.4.1, R-4.4-H3, R-4.4.4 */
 export function putWritsUnderUnseen(
     state: HydratedFeudumGameState,
     playerId: string,

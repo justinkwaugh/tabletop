@@ -39,10 +39,7 @@ export interface PerformedGuildFunction {
     readonly revealsInfo: boolean
 }
 
-/**
- * R-4.6, R-4.7 Runs one guild function, then scores what it reached. The caller has checked the
- * reason and set the Action's `metadata` and `revealsInfo` from this. Feast calls this too.
- */
+/** R-4.6, R-4.7 The caller has checked the reason and sets `metadata` and `revealsInfo`. */
 export function performGuildFunction(
     state: HydratedFeudumGameState,
     actor: FunctionActor,

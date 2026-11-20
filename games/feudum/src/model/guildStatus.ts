@@ -67,13 +67,7 @@ function tieOrder(state: HydratedFeudumGameState, actingPlayerId?: string): stri
     return [...order.slice(start), ...order.slice(0, start)]
 }
 
-/**
- * R-4.5.3, R-4.5-H1, R-4.5-H2, R-4.7 Ranks one guild from the current stars. Candidates are the
- * holders with stars and the players with stars and a marker in supply. Most stars first; a holder
- * beats a non-holder and a higher holder a lower one on a tie; `order` settles non-holders. Returns
- * whether the track changed. Markers move to and from the supply; a reeve survives only on master
- * or journeyman.
- */
+/** R-4.5.3, R-4.5-H1, R-4.5-H2, R-4.7 Returns whether the track changed. */
 function rankGuild(state: HydratedFeudumGameState, guildId: GuildId, order: string[]): boolean {
     const previous = state.guilds.tracks[guildId]
     const heldIndex = (playerId: string): number => {
@@ -143,12 +137,7 @@ function trackChanges(
     })
 }
 
-/**
- * R-4.5.4, R-4.5-H1 The one recompute, after anything that can move status stars or return a
- * marker. A marker coming back in one guild can make a waiting player a member of another
- * (R-4.5.2), so ranking starts over after each change, from the Farmer (R-4.5-H3). It settles: a
- * track only changes to hold more stars, and stars do not move here. Returns the net changes.
- */
+/** R-4.5.4, R-4.5-H1, R-4.5.2, R-4.5-H3 Starts over after each change. Returns the net changes. */
 export function recomputeRanks(
     state: HydratedFeudumGameState,
     actingPlayerId?: string

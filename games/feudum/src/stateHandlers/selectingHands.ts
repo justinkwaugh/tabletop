@@ -8,10 +8,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 
-/**
- * R-2.2, R-3.1-H1, R-4.4-H1 `StartRound` opens the state and `RevealPouches` closes it; the rest are
- * each seat's that has yet to finalise.
- */
+/** R-2.2, R-3.1-H1, R-4.4-H1 */
 type SelectingHandsAction =
     HydratedStartRound | HydratedFinaliseHand | HydratedRevealPouches | AtWillAction
 
@@ -44,10 +41,7 @@ export class SelectingHandsStateHandler implements MachineStateHandler<
         return [ActionType.FinaliseHand, ...atWillOffers(state, playerId)]
     }
 
-    /**
-     * R-3.1-H1 Every seat yet to finalise, in turn order; nobody until `StartRound` has run, nor once
-     * all have finalised and `RevealPouches` is to come.
-     */
+    /** R-3.1-H1 Nobody before `StartRound` or once all have finalised. */
     enter(context: MachineContext<HydratedFeudumGameState>) {
         const state = context.gameState
         const { selection } = state.flow
@@ -56,10 +50,7 @@ export class SelectingHandsStateHandler implements MachineStateHandler<
             : []
     }
 
-    /**
-     * R-3.1-H1, R-3.2 After the last finaliser every pouch good is revealed together; then cards begin
-     * with no turn open: `PlayingCards` asks.
-     */
+    /** R-3.1-H1, R-3.2 */
     onAction(
         action: SelectingHandsAction,
         context: MachineContext<HydratedFeudumGameState>

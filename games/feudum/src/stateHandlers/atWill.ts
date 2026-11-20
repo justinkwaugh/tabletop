@@ -22,10 +22,7 @@ import {
 import { ActionType } from '../definition/actions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 
-/**
- * R-4.4-H1, R-3.14-H2 What a seat may send in any at-will window. R-4.4-H5 `DiscardWrit` is not one:
- * it may be sent at any time (`withDiscardAnyTime`).
- */
+/** R-4.4-H1, R-3.14-H2, R-4.4-H5 */
 export type AtWillAction =
     | HydratedPlayMandate
     | HydratedSpendRegionTile
@@ -42,11 +39,7 @@ export function isAtWillAction(action: HydratedAction): action is AtWillAction {
     )
 }
 
-/**
- * R-4.4-H1, R-4.2.2 What this seat is offered at will now: nothing outside a window, and
- * each action its own offers decide. Reads the seat's writs only through offers that take a
- * projected state, so a viewer who isn't that seat is offered what the public counts show.
- */
+/** R-4.4-H1, R-4.2.2 Reads writs only through offers that take a projected state. */
 export function atWillOffers(state: HydratedFeudumGameState, playerId: string): ActionType[] {
     const open = (offered: boolean, type: ActionType) => (offered ? [type] : [])
     return [

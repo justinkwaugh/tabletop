@@ -112,10 +112,7 @@ function emptyGuilds(): GuildsState {
     }
 }
 
-/**
- * R-1.1 Every component in its general supply, unshuffled, each disc and tile in catalogue order:
- * the table R-1.4's setup steps deal from. Conservation already holds here.
- */
+/** R-1.1 What R-1.4's setup steps deal from. */
 export function boxContents(players: FeudumPlayerState[]): BoxContents {
     const haversack = goodCounts()
     for (const row of GoodRows) {

@@ -16,10 +16,7 @@ function rowsWithMarkers(state: HydratedFeudumGameState): KnightRowId[] {
     return knightRows(state).flatMap(({ rowId, row }) => (row.markers > 0 ? [rowId] : []))
 }
 
-/**
- * R-4.6.1, R-4.6-H5, R-4.6-H9 As many as can move: each marker needs a row of its own, an empty
- * scroll space and a seal in the general supply.
- */
+/** R-4.6.1, R-4.6-H5, R-4.6-H9 */
 function movableToScrolls(state: HydratedFeudumGameState, cap: number): number {
     return Math.min(
         cap,
@@ -108,11 +105,7 @@ export interface RowsToScrollsRules {
     reached(lines: number): number
 }
 
-/**
- * R-4.6.4, R-4.6.5, R-X.2 The Noble pull and the Knight push differ in how many move and what the
- * lines reach; both send markers to the general supply and lay pile seals on empty scroll spaces,
- * unseen. A seal's identity stays in the vault and in no record, so this is no barrier.
- */
+/** R-4.6.4, R-4.6.5, R-X.2 The seals stay unseen and in no record, so no barrier. */
 export function rowsToScrollsRow(rules: RowsToScrollsRules): GuildFunctionRow {
     const { cap, moveAll, outcome, reached } = rules
     return {

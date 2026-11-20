@@ -155,10 +155,7 @@ function moneyPrice(): number {
     return need.shillings
 }
 
-/**
- * R-3.8.3 The lone ruler drops to serf and the seat's marker goes on top, though only tied. A seat
- * already the serf takes the space as R-4.1.2 does, its serf becoming the subject.
- */
+/** R-3.8.3, R-4.1.2 Only tied, the marker still goes on top. */
 function unseatLoneRuler(state: HydratedFeudumGameState, playerId: string, spaceId: SpaceId): void {
     payShillingsToSupply(state, playerId, moneyPrice())
     const space = state.spaces[spaceId]

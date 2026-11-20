@@ -141,10 +141,7 @@ export interface HarvestOffers {
     readonly inspect: boolean
 }
 
-/**
- * R-3.11 Each ruled farm under 10 goods with its total and its split. The goods themselves are
- * hidden until the draw, so there is nothing to preview on a copy.
- */
+/** R-3.11 The goods are hidden until the draw, so there is no preview. */
 export function harvestOffers(state: HydratedFeudumGameState, playerId: string): HarvestOffers {
     const total = harvestTotal(state, playerId)
     const { partial, favors } = chartRow(total)
@@ -162,11 +159,7 @@ export function harvestOffers(state: HydratedFeudumGameState, playerId: string):
     }
 }
 
-/**
- * R-3.11.1, R-3.11.2 The drawn goods go where they go: the favours to the seat, the rest to the farm.
- * Taking favours flips every bead the seat holds, each identity into the vault as a held seal.
- * Returns how many flipped.
- */
+/** R-3.11.1, R-3.11.2 Favours flip every bead the seat holds into the vault. Returns how many. */
 export function settleHarvest(
     state: HydratedFeudumGameState,
     playerId: string,

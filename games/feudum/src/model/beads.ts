@@ -22,10 +22,7 @@ export function rosaryBeadSum(state: HydratedFeudumGameState): number {
     return state.guilds.monk.rosary.reduce((sum, bead) => sum + beadValue(bead), 0)
 }
 
-/**
- * R-5-H1, R-4.6.5 The values any concealed seal could show, lowest first: every seal but the beads
- * in public state. It reads no vault, so it says what might be flipped and not what will be.
- */
+/** R-5-H1, R-4.6.5 Reads no vault: what might be flipped, not what will be. */
 export function unseenBeadValues(state: HydratedFeudumGameState): BeadValue[] {
     const shown = new Set<SealId>([
         ...state.guilds.monk.rosary,
@@ -42,10 +39,7 @@ export interface BeadCandidates {
     readonly low: SealId
 }
 
-/**
- * R-4.6-H2 The rosary's highest and lowest beads, or undefined with fewer than two on it. Of equal
- * beads, the first is the low and the last the high, so they are always two beads.
- */
+/** R-4.6-H2 Of equal beads the first is the low, so they are always two. */
 export function hiddenBeadCandidates(state: HydratedFeudumGameState): BeadCandidates | undefined {
     const { rosary } = state.guilds.monk
     const [first] = rosary
@@ -71,10 +65,7 @@ export interface HiddenBeadDraw extends BeadCandidates {
     readonly bead: SealId
 }
 
-/**
- * R-4.6-H2 The Hidden-bead draw: the highest or the lowest, at random, on the protected stream. It
- * moves nothing; the caller puts the bead where it goes. A deviation: see `known-deviations.md`.
- */
+/** R-4.6-H2 On the protected stream. A deviation: see `known-deviations.md`. */
 export function hiddenBeadDraw(state: HydratedFeudumGameState): HiddenBeadDraw {
     const candidates = hiddenBeadCandidates(state)
     assertExists(candidates, 'R-4.6-H2 The rosary holds two beads to draw from')

@@ -76,10 +76,7 @@ export class HydratedDiscardWrit
         super(data, DiscardWritValidator)
     }
 
-    /**
-     * R-4.4.4, R-4.4-H8 Under the deck face down: only the discarder knows its slot. Play goes
-     * on.
-     */
+    /** R-4.4.4, R-4.4-H8 Only the discarder knows its slot. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonDiscardWritRefused(state, this.playerId, this.writId)
         if (reason) {

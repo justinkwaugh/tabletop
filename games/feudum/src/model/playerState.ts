@@ -95,10 +95,7 @@ export const FeudumPlayerState = Type.Object({
     hand: Visibility.protect(Type.Array(ActionCardKindSchema), OwnerKnown),
     /** R-3.2 In play order. */
     played: Type.Array(PlayedCard),
-    /**
-     * R-3.1-H1, R-3.3 Owner-known: the good committed when the hand is finalised, still in `goods`,
-     * until every seat has finalised and `RevealPouches` moves it to `pouch`.
-     */
+    /** R-3.1-H1, R-3.3 Owner-known until `RevealPouches`. */
     committedPouch: Visibility.protect(
         Type.Optional(Type.Union([Type.Literal('saltpeter'), Type.Literal('sulfur')])),
         OwnerKnown

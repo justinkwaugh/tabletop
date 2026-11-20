@@ -62,10 +62,7 @@ export const ImproveMetadata = Type.Object({
             vp: ComponentCount
         })
     ),
-    /**
-     * R-4.3.1, R-4.3.2 Why no tile was taken: the region's stack is empty, or its top tile is of a
-     * later epoch and stays there. Absent when a tile was taken.
-     */
+    /** R-4.3.1, R-4.3.2 Absent when a tile was taken. */
     noTile: Type.Optional(Type.Union([Type.Literal('empty'), Type.Literal('prohibited')])),
     rankChanges: Type.Array(RankChange)
 })
@@ -267,10 +264,7 @@ export function improveOffers(state: HydratedFeudumGameState, playerId: string):
     })
 }
 
-/**
- * R-4.3-H3 Ruled locations whose improvement lacks only a good a tile could bring. Improve takes no
- * tile in its payment, so the seat spends one at will first.
- */
+/** R-4.3-H3 Improve takes no tile, so the seat spends one at will first. */
 export function improveShortSpaces(state: HydratedFeudumGameState, playerId: string): SpaceId[] {
     return state.ruledSpaceIds(playerId).filter((spaceId) => {
         const step = stepFrom(state.spaces[spaceId].location.kind)
