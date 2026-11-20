@@ -5,16 +5,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { GuildIconPaths } from '$lib/utils/pieceShapes.js'
 
-    /**
-     * Contract, Guild standings: one guild's rail, drawn at its own size and scaled to its place.
-     * It shows only what exists: the guild, then its master boxed with the larger marker, stars and
-     * a ringed dot for a reeve, or an empty marker outline, solid, with no words; then the lower
-     * places held, and muted, the seats with stars and no place. Markers carry no letters, so each
-     * place's words are its accessible name and tooltip, and a press says them at the rail's foot,
-     * where a touch screen has no tooltip. Spelled out, in the desk's strip, each holder's name
-     * follows the stars, a lower place is lettered (J, A), and a seat with no place shows its reason,
-     * so nothing needs a hover.
-     */
+    /** Contract, Guild standings: a press says a place at the rail's foot; touch has no tooltip. */
     let {
         row,
         paintOf,
@@ -27,7 +18,6 @@
 
     let LeadMarker = $derived(spelled ? 17 : 19)
     const Marker = 13
-    /** A lower place's letter, spelled out. */
     const Letters: Readonly<Record<GuildRank, string>> = {
         master: 'M',
         journeyman: 'J',
@@ -86,7 +76,6 @@
 
 <section class="rail" class:spelled aria-label="{row.name} standing" data-standing-row={row.guild}>
     {#if spelled && !master.holder}
-        <!-- Spelled out, an open master shares the heading's line, so a line is left for each seat. -->
         <div class="top">
             {@render heading()}
             {@render open()}
@@ -261,7 +250,6 @@
         gap: 0 8px;
     }
 
-    /* Spelled out, a place is one line as wide as the rail at most; a long name ends in an ellipsis. */
     .spelled .place {
         max-width: 100%;
     }

@@ -79,11 +79,7 @@ import {
     trackPlace
 } from '$lib/utils/boardGeometry.js'
 
-/**
- * What each change on the board looks like, as a plan and nothing else: no element, no clock. It reads
- * only the displayed states and the Action as this seat received it, and of the state only what every
- * seat sees: no hand, pouch, writ or sealed charter, so no motion differs by what another seat holds.
- */
+/** Hidden information: only public state is read, so no motion reveals another seat's hand. */
 
 /** Without an Action nothing takes longer than this (contract: Fast fallback). */
 export const FastSeconds = 0.2
@@ -91,7 +87,6 @@ export const FastSeconds = 0.2
 export type PlanRow =
     'pieces' | 'markers' | 'goods' | 'tiles' | 'discs' | 'die' | 'dawn' | 'combat' | 'score'
 
-/** What a transient token draws. It stands for a piece the state has not yet put there. */
 export type TokenFace =
     | { readonly kind: 'good'; readonly good: Good; readonly size: number }
     | {
@@ -126,15 +121,11 @@ export type MotionTarget =
     { readonly piece: string; readonly part?: 'rides' } | { readonly token: string }
 
 export interface MotionChange {
-    /** Points on the element's own canvas; the first gives way to wherever the element stands. */
     readonly path?: readonly Point[]
-    /** A token shows from its motion's start. */
     readonly reveal?: boolean
     readonly opacity?: number
     readonly scaleX?: number
-    /** Up to this scale and back. */
     readonly pulse?: number
-    /** Whole turns, ending as it began. */
     readonly turns?: number
 }
 
@@ -148,7 +139,6 @@ export interface BoardMotion extends MotionChange {
 export interface BoardPlan {
     readonly tokens: readonly MotionToken[]
     readonly motions: readonly BoardMotion[]
-    /** When the flight layer's copies leave: after the board's own rows, before the score slides. */
     readonly flightsAt?: number
 }
 
@@ -199,7 +189,6 @@ class PlanBuilder implements BoardPlan {
         return { token: id }
     }
 
-    /** Adds a motion and gives the time it ends. */
     move(
         row: PlanRow,
         target: MotionTarget,
@@ -243,15 +232,13 @@ export function guildPoint(guild: GuildId, { x, y }: Point): Point {
     return { x: area.x + x * GuildScale, y: area.y + y * GuildScale }
 }
 
-// Pawns and monsters
-
 export interface PlacedPiece {
     readonly piece: MapPiece
     readonly spaceId: SpaceId
     readonly point: Point
 }
 
-/** Where each piece a space shows stands (R-4.1), in the map's own slots. */
+/** R-4.1 Where each piece on a space stands. */
 export function placedPieces(state: HydratedFeudumGameState): ReadonlyMap<string, PlacedPiece> {
     const placed = new Map<string, PlacedPiece>()
     for (const { id } of Spaces) {
@@ -331,11 +318,7 @@ function waysOf(action: Move): readonly MoveWay[] {
     return ways
 }
 
-/**
- * R-3.7.1 Each named piece steps along its route, one after another in the order pressed. R-4.2.2 The
- * vessel rides under its pawn: the pawn's own while it stays on, else a token taken up from the space.
- * R-4.2.3 The ferry crosses with it. R-3.7.3 Godspeed's step comes after a pause.
- */
+/** R-3.7.1 Steps in the order pressed; R-4.2.2, R-4.2.3 vessel and ferry ride along; R-3.7.3. */
 function playWays(
     plan: PlanBuilder,
     action: Move,
@@ -414,7 +397,7 @@ function playWays(
     return { ends: cursor, named }
 }
 
-/** R-3.7.4 The good hops from its space onto the piece that took it; the seat's leg is off the board. */
+/** R-3.7.4 The good hops onto the piece that took it. */
 function playPilfer(
     plan: PlanBuilder,
     action: Move,
@@ -441,10 +424,7 @@ function playPilfer(
     return plan.move('goods', token, at, GoodFlight, { path: flight, reveal: true })
 }
 
-/**
- * A piece not named moves only as far as the state put it. Among a Move's pieces one left on its space
- * settles into its slot; R-4.2.4 a pinned pawn keeps still whatever the slots do.
- */
+/** R-4.2.4 A pinned pawn keeps still whatever the slots do. */
 function slidePieces(
     plan: PlanBuilder,
     { from, to }: BoardChange,
@@ -476,8 +456,6 @@ function sameness(a: Point, b: Point): boolean {
     return a.x === b.x && a.y === b.y
 }
 
-// Markers
-
 interface HeldRole {
     readonly role: 'ruler' | 'subject' | 'serf'
     readonly playerId: string
@@ -492,7 +470,7 @@ function rolesOn(state: HydratedFeudumGameState, spaceId: SpaceId): readonly Hel
     ]
 }
 
-/** R-4.1.2 A marker that changes role on its space slides there: ruler and serf swap places. */
+/** R-4.1.2 Ruler and serf swap places. */
 function slideRoles(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
     for (const { id } of Spaces) {
@@ -516,7 +494,7 @@ function slideRoles(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
     return ends
 }
 
-/** R-4.5.2 A rank's marker slides between its guild's rank spaces, its reeve with it. */
+/** R-4.5.2 A rank's marker slides between its rank spaces, its reeve with it. */
 function slideRanks(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
     for (const space of GuildTrackSpaces) {
@@ -547,7 +525,7 @@ function slideRanks(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
     return ends
 }
 
-/** R-4.8 Markers fill a Knight row inside the guild area, one a beat after another. */
+/** R-4.8 Markers fill a Knight row inside the guild area. */
 function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
     for (const { rowId, row } of knightRows(to)) {
@@ -652,8 +630,6 @@ function slideTrackDiscs(plan: PlanBuilder, { from, to }: BoardChange, at: numbe
     return ends
 }
 
-// Discs
-
 /** R-4.3.4 A location disc that changes flips: edge-on, then its new face. */
 function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
@@ -681,11 +657,8 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
     return ends
 }
 
-// Goods
-
 export interface GoodPlace {
     readonly point: Point
-    /** The token that may leave its stack: a counted stack keeps its one token until the state changes. */
     readonly key?: string
 }
 
@@ -714,18 +687,13 @@ function barnGoodPlace(state: HydratedFeudumGameState, good: Good): GoodPlace {
     }
 }
 
-/** A place on the board that holds goods, how many of `good`, and where one stands. */
 interface GoodHolder {
     readonly count: (state: HydratedFeudumGameState, good: Good) => number
     readonly place: (state: HydratedFeudumGameState, good: Good) => GoodPlace | undefined
-    /** The guild area it lies in. */
     readonly guild?: GuildId
 }
 
-/**
- * Contract, Desk layout: the guild areas a desk's open side shows, stood upright over the map. The
- * board's own motion stays out of them: a good to or from one is the flight layer's.
- */
+/** Contract, Desk layout: a good to or from a guild area shown upright is the flight layer's. */
 export type GuildsApart = readonly GuildId[]
 
 const GoodHolders: readonly GoodHolder[] = [
@@ -761,28 +729,22 @@ const GoodHolders: readonly GoodHolder[] = [
     })),
     {
         count: (state, good) => state.supply.haversack[good],
-        // Contract, Supply: the haversack is drawn in the Supply card; its goods cross at the corner.
+        // Contract, Supply: the haversack's goods cross at the Supply card's corner.
         place: () => ({ point: SupplyCorner })
     }
 ]
 
-/** One good at a place on the board, on its way to or from somewhere. */
 export interface GoodCrossing {
     readonly good: Good
     readonly place: GoodPlace
 }
 
 interface GoodCrossings {
-    /** A good that left one place on the board and reached another. */
     readonly pairs: readonly {
         readonly good: Good
         readonly from: GoodPlace
         readonly to: GoodPlace
     }[]
-    /**
-     * What has no such pair: it crossed to or from a seat, or to or from a guild area apart from the
-     * board, so it is the flight layer's.
-     */
     readonly leaving: readonly GoodCrossing[]
     readonly arriving: readonly GoodCrossing[]
 }
@@ -810,7 +772,6 @@ function goodCrossings(
                 arriving.push(holder)
             }
         }
-        // A holder apart from the board pairs with nothing on it: the flight layer carries its goods.
         const onBoard = (holder: GoodHolder) => !holder.guild || !apart.includes(holder.guild)
         const leavingOn = leaving.filter(onBoard)
         const arrivingOn = arriving.filter(onBoard)
@@ -842,7 +803,7 @@ function goodCrossings(
     return { pairs, leaving: left, arriving: reached }
 }
 
-/** R-3.7.4 What the board leaves to the flight layer: the goods with no partner on the board. */
+/** R-3.7.4 Goods with no partner on the board are the flight layer's. */
 export function goodsOffTheBoard(
     change: BoardChange,
     action?: GameAction,
@@ -853,11 +814,7 @@ export function goodsOffTheBoard(
     return { leaving, arriving }
 }
 
-/**
- * R-1.1 Goods that left one place on the board and reached another fly a short arc, one after another a
- * few frames apart. A good with no such pair crossed to or from a seat, or a guild area apart from the
- * board, which is the flight layer's.
- */
+/** R-1.1 Goods moving between places on the board fly a short arc. */
 function flyGoods(
     plan: PlanBuilder,
     change: BoardChange,
@@ -882,9 +839,7 @@ function flyGoods(
     return ends
 }
 
-// Score
-
-/** R-1.2.5 A seat's disc among these scores, and where it rests, fanned with any on its space. */
+/** R-1.2.5 Discs sharing a score space fan out. */
 function scoreRest(scores: readonly SeatScore[], playerId: string) {
     const disc = scoreDiscs(scores).find((seat) => seat.playerId === playerId)
     if (!disc) {
@@ -897,10 +852,7 @@ function withScore(scores: readonly SeatScore[], playerId: string, score: number
     return scores.map((seat) => (seat.playerId === playerId ? { playerId, score } : seat))
 }
 
-/**
- * R-1.2.5 The disc walks the ring, score by score, however far it goes: from where it rests,
- * along the middle of each space, to where it rests among the discs it joins.
- */
+/** R-1.2.5 The disc walks the ring score by score, however far it goes. */
 function ringWalk(
     playerId: string,
     before: readonly SeatScore[],
@@ -949,8 +901,6 @@ function slideScores(plan: PlanBuilder, { from, to }: BoardChange, at: number): 
     return ends
 }
 
-// Dawn
-
 function epochPlace(state: HydratedFeudumGameState): Point | undefined {
     const ray = EpochTrack.find(({ epoch }) => epoch === state.epoch)
     return ray ? trackPlace(EpochRays, ray.id) : undefined
@@ -975,10 +925,7 @@ function slideEpoch(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
     return ends
 }
 
-/**
- * R-4.12.1 Each seat's disc slides as its row of the sheet appears; R-4.9.2 a disloyal seat's slides
- * back from what it gained, with a rose chip.
- */
+/** R-4.12.1 Discs slide as their sheet rows appear; R-4.9.2 a disloyal seat's slides back. */
 function playDawn(
     plan: PlanBuilder,
     sheet: readonly { playerId: string; disloyaltyVp: number; total: number }[],
@@ -1014,12 +961,7 @@ function playDawn(
     return cursor
 }
 
-// The die
-
-/**
- * R-4.11.1 The die tumbles and settles on a region's face; a reroll tumbles again. The stack it named
- * pulses, and R-4.11-H2 a removed tile fades out of it.
- */
+/** R-4.11.1 A reroll tumbles again; R-4.11-H2 a removed tile fades from its stack. */
 function playDie(
     plan: PlanBuilder,
     faces: readonly RegionId[],
@@ -1059,8 +1001,6 @@ function playDie(
     }
     return cursor
 }
-
-// Combat
 
 interface CombatFigures {
     readonly spaceId: SpaceId
@@ -1133,9 +1073,6 @@ function playCombatOf(
     return cursor
 }
 
-// Plans
-
-/** What is the same between states shown to any change: markers, discs and goods. */
 function playStateRows(
     plan: PlanBuilder,
     change: BoardChange,
@@ -1165,11 +1102,6 @@ function pilferedHolder(action: Move): { good: Good; holder: GoodHolder } | unde
         : undefined
 }
 
-/**
- * The cinematic: what an Action shows, each row in turn at an explicit time. Where the board draws no
- * score ring (`scoreRing` off, a desk), no disc slides: the flight layer carries each score to its seat.
- * A good to or from a guild area `apart` from the board (a desk's open side) is the flight layer's.
- */
 export function planBoardMotion({
     from,
     to,
@@ -1201,7 +1133,7 @@ export function planBoardMotion({
     cursor = playCombatOf(plan, action, from, cursor)
     cursor = playStateRows(plan, change, cursor, apart, pilfered)
     if (flightRoom > 0 && plan.pilferToken) {
-        // R-3.7.4 The good's last leg, from the piece to the seat, is the flight layer's from here.
+        // R-3.7.4 The good's last leg, from the piece to the seat, is the flight layer's.
         plan.move('goods', plan.pilferToken, cursor, 0, { opacity: 0 })
     }
     plan.flightsAt = cursor
@@ -1218,7 +1150,7 @@ export function planBoardMotion({
     return plan
 }
 
-/** Fast fallback: every piece straight to its new place at once, flips and fades cut to the bound. */
+/** Contract, Fast fallback: every piece straight to its new place at once. */
 export function planDirect(
     change: BoardChange,
     scoreRing = true,

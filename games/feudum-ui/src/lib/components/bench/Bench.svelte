@@ -16,12 +16,7 @@
     import BenchArea from './BenchArea.svelte'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
-    /**
-     * The guild bench (contract: Guild and Feast, Render ownership): over the board's container,
-     * outside the scaled SVG, drawing the guild areas with the board's own component. It reads the
-     * bench offer and decides nothing. For a map pick it closes down to its header. Undo closes it,
-     * never Escape: it is not one of the layers Escape walks.
-     */
+    /** Contract, Guild and Feast, Render ownership: Undo closes it, never Escape. */
     let {
         bench,
         sheet = false,
@@ -36,11 +31,8 @@
         picker
     }: {
         bench: BenchOffer
-        /** On a phone: a bottom sheet, its footer in view, and collapsed to a header over the board's foot. */
         sheet?: boolean
-        /** The send, when it stands in the footer here. */
         primary?: Extract<ActionBlock, { kind: 'primary' }>
-        /** R-4.6 The staged moves, when they stand in the footer here, above the send. */
         staged?: Extract<ActionBlock, { kind: 'staged' }>
         state: HydratedFeudumGameState
         playerId: string
@@ -61,10 +53,8 @@
         return held && ownerPaint(held.owner, paintOf, colourPaintOf)
     }
 
-    /** The long side at which every area stands whole above the footer, side by side. */
     const fit = new BenchFit()
 
-    /** Stands where the board's container is, in the page or in the full screen dialog. */
     function overTheBoard(fillsIt: boolean): Attachment<HTMLElement> {
         return (node) => {
             if (fillsIt && sheet) {
@@ -234,7 +224,7 @@
 {/if}
 
 <style>
-    /* Contract, The bench: up to 80 % of the dynamic viewport, and the footer always in view. */
+    /* Contract, The bench: the footer always in view. */
     .bench-sheet {
         left: 0;
         right: 0;

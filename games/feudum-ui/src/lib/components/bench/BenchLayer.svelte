@@ -5,7 +5,6 @@
     import Bench from './Bench.svelte'
     import TradePickerLayer from './TradePickerLayer.svelte'
 
-    /** The bench of this seat's staged function, on the displayed state, with the session's presses. */
     let { bench }: { bench: BenchOffer } = $props()
 
     const gameSession = getGameSession()

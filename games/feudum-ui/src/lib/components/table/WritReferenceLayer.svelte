@@ -5,13 +5,9 @@
     import Enlargeable from './Enlargeable.svelte'
     import Scrim from './Scrim.svelte'
 
-    /**
-     * Contract, Supply: the writ reference, every writ in the game as its face, mandates and charters
-     * apart, each enlarging with its rules note. It reads no state, so every viewer sees the same.
-     */
+    /** Contract, Supply: it reads no state, so every viewer sees the same. */
     let { onClose, sheet }: { onClose: () => void; sheet?: number } = $props()
 
-    /** On a desk a group's eight faces stand in one row; on a phone's sheet, four to a row. */
     const WritWidth = 100
     const SheetWritWidth = 84
 </script>
@@ -45,10 +41,7 @@
 </Scrim>
 
 <style>
-    /*
-     * Contract, Spacing: as wide as a group's faces in one row, or the screen; the group gap between
-     * the blocks, the faces keeping their art's spacing.
-     */
+    /* Contract, Spacing: the group gap between blocks; the faces keep their art's spacing. */
     .reference {
         display: flex;
         flex-direction: column;
@@ -70,7 +63,6 @@
         border-radius: 0;
     }
 
-    /* The heading's line leaves the layer's Close button its corner. */
     .title {
         margin: 0;
         padding-right: 4.5rem;

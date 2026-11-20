@@ -19,12 +19,7 @@
     import { CrownPath } from '$lib/utils/pieceShapes.js'
     import { SackPath } from '$lib/utils/trackShape.js'
 
-    /**
-     * Contract, Supply: the general supply in one grouped card, each piece drawn with its count and
-     * its name. Counts only, the same for every viewer: nothing of the deck's order or of what lies
-     * in it shows (R-4.4.1, R-4.4.2). R-5.1 the writ deck, R-5.4-H1 the haversack, R-1.4.2 the
-     * seals, vessels, targets, discs and influence by colour, R-3.2 the start player.
-     */
+    /** Contract, Supply: counts only, the same for every viewer (R-4.4.1, R-4.4.2). */
     let {
         state,
         paintOf,
@@ -36,7 +31,6 @@
         paintOf: (playerId: string) => SeatPaint
         colourPaintOf: (colour: Color) => SeatPaint
         nameOf: (playerId: string) => string
-        /** Opens the writ reference, where the table offers it. */
         openWrits?: () => void
     } = $props()
 
@@ -273,7 +267,7 @@
         color: var(--feudum-text-muted);
     }
 
-    /* Contract, Spacing: the deck's count and its button read as one group, the button after it. */
+    /* Contract, Spacing: the deck's count and its button read as one group. */
     .line {
         display: flex;
         flex-wrap: wrap;

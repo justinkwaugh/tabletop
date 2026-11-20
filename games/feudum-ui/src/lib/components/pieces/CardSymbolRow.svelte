@@ -2,7 +2,7 @@
     import type { ActionCard } from '@tabletop/feudum'
     import { StarPath } from '$lib/utils/pieceShapes.js'
 
-    /** R-3.4 A card's corner symbols, right to left from data; each has its own drawn form. */
+    /** R-3.4 A card's corner symbols, right to left. */
     let {
         card,
         right,

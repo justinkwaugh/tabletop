@@ -3,7 +3,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import TradePicker from './TradePicker.svelte'
 
-    /** The trade picker on the displayed state, with the session's presses. */
     let {
         block,
         compact = false

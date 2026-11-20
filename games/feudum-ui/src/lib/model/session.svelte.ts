@@ -79,24 +79,19 @@ import {
 export interface PrimaryButton {
     readonly label: string
     readonly enabled: boolean
-    /** A second line under the label: what the press does beyond its name. */
     readonly note?: string
 }
 
 export interface StartingGoodsPanel {
     readonly deciderId: string
-    /** This seat chooses; otherwise only the counts apply, and others wait on `deciderId`. */
     readonly deciding: boolean
     readonly goods: readonly {
         readonly good: Good
         readonly count: number
         readonly picked: boolean
-        /** None to pick: the panel does not draw it. */
         readonly refusal?: string
-        /** Its room held by the three picked: dimmed, and a press does nothing. */
         readonly spent?: true
     }[]
-    /** R-1.4.8 Where the picked sulfur goes; only while sulfur is picked. */
     readonly sulfurTo?: SulfurDestination
     readonly primary?: PrimaryButton
 }
@@ -106,12 +101,11 @@ export interface StartingPawnPanel {
     readonly deciding: boolean
     readonly characters: readonly {
         readonly character: Character
-        /** R-4.5 The rank this character would give now; absent, none. */
+        /** R-4.5 The rank this character would give now. */
         readonly rank?: GuildRank
         readonly picked: boolean
     }[]
     readonly pickedSpace?: SpaceId
-    /** The character popup beside the picked space. */
     readonly asksCharacter: boolean
 }
 
@@ -120,40 +114,30 @@ export interface FinaliseRowEntry {
     readonly finalised: boolean
 }
 
-/** R-3.1-H1 This seat's hand once finalised, and its pouch good, which no other seat sees yet. */
+/** R-3.1-H1 No other seat sees the pouch good yet. */
 export interface HandSet {
-    /** The hand in the order it was chosen. */
     readonly cards: readonly ActionCardKind[]
     readonly pouch?: { readonly good: PouchGood; readonly title: string }
-    /** "Round 4" */
     readonly line: string
 }
 
 export interface HandDrafting {
-    /** The eleven; a picked one carries the number of the slot it fills. */
     readonly cards: readonly {
         readonly kind: ActionCardKind
         readonly picked: boolean
         readonly slot?: number
     }[]
-    /**
-     * R-3.1 The plan: the picked cards in the order pressed, then an empty slot for each the hand
-     * still needs. The order is the seat's own; the cards may be played in any order.
-     */
+    /** R-3.1 The order is the seat's own; the cards may be played in any order. */
     readonly slots: readonly (ActionCardKind | undefined)[]
-    /** R-3.3 The two pouch goods; none is chosen until a press, and a second press clears it. */
+    /** R-3.3 None is chosen until a press; a second press clears it. */
     readonly pouch: readonly {
         readonly good: PouchGood
-        /** The full words, the choice's accessible name. */
         readonly label: string
-        /** The short name beside its art. */
         readonly title: string
         readonly picked: boolean
         readonly refusal?: string
     }[]
-    /** "Round 4" */
     readonly line: string
-    /** "4 of 5" */
     readonly count: string
     readonly conquerWarning?: string
     readonly primary: PrimaryButton
@@ -161,11 +145,9 @@ export interface HandDrafting {
 
 export interface HandPanel {
     readonly finaliseRow: readonly FinaliseRowEntry[]
-    /** This seat's draft; absent once it has finalised, and for anyone watching. */
     readonly drafting?: HandDrafting
-    /** This seat's hand once it has finalised, until the reveal. */
     readonly set?: HandSet
-    /** R-3.1-H1 The seats still choosing, once this seat has nothing left to send. */
+    /** R-3.1-H1 The seats still choosing. */
     readonly waitingOn?: readonly string[]
 }
 
@@ -178,25 +160,17 @@ const PouchRows: readonly {
     { good: 'sulfur', label: 'Sulfur: two cards back to back', title: PouchTitles.sulfur }
 ]
 
-/** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
 type SessionOptions = ConstructorParameters<
     typeof GameSession<FeudumProjectedState, HydratedFeudumGameState>
 >[0]
 
-/**
- * Components read this session and call its methods; it builds and sends every Action. Each staged
- * flow has one draft, registered with `localSelections`, which gives the contextual Undo.
- */
 export class FeudumGameSession extends GameSession<FeudumProjectedState, HydratedFeudumGameState> {
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
-    /** S71 A seat's paint from the colourizer, named by its seat in every piece's accessible name. */
+    /** S71 A seat's paint, named by its seat in every piece's accessible name. */
     readonly paintOf = (playerId: string): SeatPaint =>
         seatPaint(this.colors, playerId, this.getPlayerName(playerId))
-    /**
-     * R-1.4-H1 A dummy row's colour, and its supply pool's: shown in a colour no seat is displayed in,
-     * from the same colourizer, so a preferred colour never makes a seat look like a dummy row.
-     */
+    /** R-1.4-H1 A dummy row's colour is one no seat is displayed in. */
     readonly colourPaintOf = (colour: Color): SeatPaint =>
         dummyPaint(this.colors, this.gameState, colour)
 
@@ -210,7 +184,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
     readonly hand = new HandDraft(() => this.handKey)
-    /** What is open over the table: the enlarged card, the open seat, the stack view. */
     readonly layers = new TableLayers(() => this.pickFrame)
     readonly turn = new TurnDraft(
         () => this.turnContext,
@@ -249,7 +222,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly atWill = new AtWillDraft(() => this.atWillContext)
     readonly offTurnDiscard = new OffTurnDiscardDraft(() => this.offTurnDiscardContext)
 
-    /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
     private readonly oneStateDrafts = [
         this.startingGoods,
         this.startingPawn,
@@ -267,7 +239,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.atWill
     ]
 
-    /** The one send each follow-up's primary makes; the at-will list comes first, as it does for Undo. */
     private readonly followUps = [
         this.atWill,
         this.keepWrits,
@@ -283,10 +254,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
     )
 
-    /**
-     * R-4.10-H4 The decision a nourish draft belongs to: this seat, this round, since its own last
-     * Action. Another seat's `Nourish` leaves it; this seat's own at-will play ends it, as before.
-     */
+    /** R-4.10-H4 A nourish draft lasts for this seat's decision this round. */
     private nourishKey: string | undefined = $derived.by(() => {
         const me = this.myPlayerId
         const round = this.gameState.roundManager.currentRound?.number
@@ -326,10 +294,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /**
-     * Contract, Hand draft: it survives another seat's Action and a reconciliation. It also survives this
-     * seat's own at-will Action; its own `FinaliseHand` ends its key, so it reads as empty.
-     */
+    /** Contract, Hand draft: it outlives others' Actions, a reconciliation and at-will plays. */
     override keepsLocalSelections(transition: PresentedTransition): boolean {
         return (
             transition.kind === 'other-action' ||
@@ -338,10 +303,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         )
     }
 
-    /**
-     * The board's rows, then the copies crossing the wrapper, then what follows them on the board. S63 A
-     * connection coming back shows the state with no motion at all.
-     */
+    /** S63 A connection coming back shows the state with no motion at all. */
     override async onGameStateChange(
         change: Parameters<BoardAnimator['onGameStateChange']>[0] & { readonly kind?: string }
     ) {
@@ -367,15 +329,11 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         await this.flightAnimator.play(flights, animationContext, flightsAt)
     }
 
-    /**
-     * Contract, Replay: a replay covers its entry's span and stops there. The shared step otherwise
-     * runs on through the System Actions after a span that ends on one, and the next seat's Action.
-     */
+    /** Contract, Replay: a replay covers its entry's span and stops there. */
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return !this.historyLog.replaying && super.shouldAutoStepAction(action, next)
     }
 
-    /** Every other draft ends with the displayed state, whatever the transition. */
     override beforeNewState() {
         this.boardAnimator.settle()
         this.flightAnimator.settle()
@@ -411,8 +369,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         )
     )
 
-    // The board's chrome
-
     private menuPointer:
         { readonly owner: object; readonly lights: () => readonly BoardTarget[] } | undefined =
         $state.raw(undefined)
@@ -422,7 +378,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.menuPointer = { owner, lights }
     }
 
-    /** Its lifetime: the row's leave, blur or unmount. */
     leaveRow(owner: object) {
         if (this.menuPointer?.owner === owner) {
             this.menuPointer = undefined
@@ -467,7 +422,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     })
 
-    /** One popup at a time: a guild's, a Move's, the card flow's, or setup's character. */
     boardPopup: FlowPopup | undefined = $derived.by(() => {
         const flowPopup =
             this.guildPanel?.popup ?? this.movePanel?.popup ?? this.turnPanel?.flow?.popup
@@ -491,7 +445,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : undefined
     })
 
-    /** A dimmed row has no press. */
     async pressPopupChoice(choice: PanelChoice) {
         if (this.boardPopup && choice.press) {
             choice.press(this.turn)
@@ -499,10 +452,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /**
-     * A lit element's press. With a popup open a press outside it does nothing and closes nothing
-     * (contract: Coexistence and precedence); Undo removes the popup.
-     */
+    /** Contract, Coexistence and precedence: with a popup open, a press outside it does nothing. */
     async pressBoardTarget(target: BoardTarget) {
         if (this.boardPopup) {
             return
@@ -514,8 +464,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
         await this.pressTurnTarget(target)
     }
-
-    // Setup: goods
 
     private choosingStartingGoods: boolean = $derived(
         this.isOffered(ActionType.ChooseStartingGoods)
@@ -555,14 +503,14 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     })
 
-    /** R-1.4.8 Why this good can't be picked: none in the haversack. */
+    /** R-1.4.8 Refused when none is in the haversack. */
     private startingGoodRefusal(good: Good): string | undefined {
         return this.startingGoods.goods.includes(good)
             ? undefined
             : reasonStartingGoodRefused(this.gameState, good)
     }
 
-    /** R-1.4.8 Three are picked already: a press on this one does nothing until one is unpicked. */
+    /** R-1.4.8 Three are picked already. */
     private startingGoodSpent(good: Good): boolean {
         const { goods } = this.startingGoods
         return (
@@ -584,7 +532,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** The primary button. Always a press: a lone legal pick stages and waits for it. */
     async sendStartingGoods() {
         const { goods, sulfurTo, ready } = this.startingGoods
         const sulfurToBarrel = sulfurTo === 'barrel'
@@ -602,8 +549,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             })
         )
     }
-
-    // Setup: pawn
 
     private placingStartingPawn: boolean = $derived(this.isOffered(ActionType.PlaceStartingPawn))
 
@@ -649,7 +594,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** The press that completes an undoable Action sends at once. */
     private async sendStartingPawnIfCompleted() {
         if (this.startingPawn.complete && sendsOnPress(this.startingPawn)) {
             await this.sendStartingPawn()
@@ -664,8 +608,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             )
         }
     }
-
-    // Hand selection
 
     private drafted = $derived(this.hand.hand)
 
@@ -704,7 +646,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     })
 
-    /** R-3.1-H1 The seat's own hand and good, owner-known, as it finalised them. */
+    /** R-3.1-H1 Owner-known: the seat's own hand and good. */
     private handSet(me: string): HandSet {
         const { hand, committedPouch } = this.gameState.getPlayerState(me)
         const pouch = PouchRows.find(({ good }) => good === committedPouch)
@@ -763,7 +705,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** R-3.3 A press chooses the good, or clears it when chosen; one the seat can't commit isn't drawn, and does nothing. */
+    /** R-3.3 A press chooses the good, or clears it when chosen. */
     choosePouch(good: PouchGood) {
         const me = this.myPlayerId
         if (!this.handKey || !me) {
@@ -793,8 +735,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         )
     }
 
-    // Turn: card plays. The rules and the stages are in the turn draft; a press comes through here.
-
     private turnContext: TurnContext | undefined = $derived.by(() => {
         const me = this.myPlayerId
         return me && this.isOffered(ActionType.ForfeitCard)
@@ -806,7 +746,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : undefined
     })
 
-    /** R-3.7 The card's own draft takes over from the flow, which hands it off. */
     private moveContext: MoveContext | undefined = $derived.by(() => {
         const context = this.turnContext
         return context && this.turn.mode === ActionType.Move
@@ -814,7 +753,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : undefined
     })
 
-    /** R-3.16, R-3.16.3 As Move: the card's own draft takes over. */
     private guildContext: GuildContext | undefined = $derived.by(() => {
         const context = this.turnContext
         const mode = this.turn.mode
@@ -829,13 +767,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     guildPanel: GuildPanel | undefined = $derived(this.guild.panel)
 
-    /** The bench stands over the board; for a map pick it closes down to its header. */
     benchCovers: boolean = $derived.by(() => {
         const bench = this.guildPanel?.bench
         return bench !== undefined && bench.collapsed === undefined
     })
 
-    /** Contract, Pick framing: what the open pick shows of the board, none while the bench covers it. */
+    /** Contract, Pick framing: what the open pick shows of the board; none under the bench. */
     pickFrame: PickFrame | undefined = $derived(
         this.benchCovers
             ? undefined
@@ -846,7 +783,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.turnPanel?.cards.find((card) => card.kind === kind)?.press()
     }
 
-    /** Contract, Seat panel: every view of a seat reads this one derivation, on the displayed state. */
+    /** Contract, Seat panel: every view of a seat reads this one derivation. */
     seatPanel(playerId: string): SeatPanelView {
         const view = seatPanelOf({
             state: this.gameState,
@@ -862,7 +799,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return revealing ? { ...view, pouch: revealing } : view
     }
 
-    /** A dimmed row has no press: it gives its line and does nothing. */
     async pressTurnChoice(choice: PanelChoice) {
         if (this.turnPanel && choice.press) {
             choice.press(this.turn)
@@ -898,7 +834,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** The press that completes an undoable Action sends at once. */
     private async sendTurnIfCompleted() {
         await this.sendTurnPlay(
             this.atWill.sendsNow ??
@@ -909,7 +844,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         )
     }
 
-    /** The primary button. */
     async sendTurnCard() {
         await this.sendTurnPlay(this.guild.play ?? this.move.play ?? this.turn.flow?.play)
     }
@@ -918,8 +852,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     async forfeitTurnCard() {
         await this.sendTurnPlay(this.turn.forfeitPlay)
     }
-
-    // Follow-ups, asks and the at-will row: each draft reads only for the seat its state names.
 
     private contextFor(playerId: string): TurnContext {
         return {
@@ -934,10 +866,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return me && this.isOffered(type) ? this.contextFor(me) : undefined
     }
 
-    /**
-     * R-4.4.4 The limit's own panel reads in its state, for the seat it asks: any seat holding a writ
-     * is offered `DiscardWrit` at any time (R-4.4-H5).
-     */
+    /** R-4.4.4 The writ limit's own panel, for the seat its state asks. */
     private writLimitContext: TurnContext | undefined = $derived(
         this.gameState.machineState === MachineState.DiscardingWrits &&
             this.gameState.activePlayerIds.includes(this.myPlayerId ?? '')
@@ -945,10 +874,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : undefined
     )
 
-    /**
-     * R-4.4-H1 Open while no card is picked, for what this seat can do now (S50); R-4.4-H5 a discard
-     * is offered at any time, on the seat's turn or not.
-     */
+    /** R-4.4-H1 Open while no card is picked (S50); R-4.4-H5 a discard at any time. */
     private atWillContext: AtWillContext | undefined = $derived.by(() => {
         const me = this.myPlayerId
         if (!me || this.isViewingHistory || this.turn.card) {
@@ -960,10 +886,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return offered.length > 0 ? { ...this.contextFor(me), offered } : undefined
     })
 
-    /**
-     * R-4.4-H5 A hotseat plays every seat on one screen, which shows the seat the state asks; the
-     * others holding a writ discard from here.
-     */
+    /** R-4.4-H5 On a hotseat the seats not asked discard from here. */
     private offTurnDiscardContext: OffTurnDiscardContext | undefined = $derived.by(() => {
         if (
             !this.game.hotseat ||
@@ -1017,10 +940,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
               })
     )
 
-    /**
-     * R-X.1 The log's line for an Action, as this seat reads it: who looks is decided here, once,
-     * and the line reads nothing of the state.
-     */
+    /** R-X.1 Who looks is decided here, once; the line reads nothing of the state. */
     actionLine(action: GameAction, viewerId = this.myPlayerId): string | undefined {
         return describeAction(action, {
             viewerId,
@@ -1031,10 +951,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         })
     }
 
-    /**
-     * R-X.1 What the previous seat just did, for the waiting view; no line while looking back. A writ
-     * another seat discards at any time is not it (R-4.4-H5).
-     */
+    /** R-X.1 No line while looking back; R-4.4-H5 an off-turn writ discard is not it. */
     previousSeatLine: string | undefined = $derived.by(() => {
         if (this.isViewingHistory) {
             return undefined
@@ -1046,12 +963,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return last && this.actionLine(last)
     })
 
-    /** R-4.10, R-4.12.3 One read for the seat asked and the seats waiting (contract: Render ownership). */
+    /** R-4.10, R-4.12.3 One read for the asked and waiting seats (contract: Render ownership). */
     orderRow: OrderRow | undefined = $derived.by(() =>
         this.isViewingHistory ? undefined : orderRowOf(this.gameState)
     )
 
-    /** R-4.8.2 As the flow holds it, for every seat; only the attacker's own draft previews more. */
+    /** R-4.8.2 As the flow holds it; only the attacker's own draft previews more. */
     combatTally: CombatTallyRow | undefined = $derived.by(() =>
         this.isViewingHistory ? undefined : combatTallyOf(this.gameState)
     )
@@ -1077,7 +994,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     /** The panel of this moment, in the order it stands (contract: Visual intents). */
     actionPanel: ActionPanelView = $derived(actionPanelOf(this))
 
-    /** A dimmed row has no press: it gives its line and does nothing. */
     async pressDraftChoice(choice: { readonly press?: () => void }) {
         if (choice.press) {
             choice.press()
@@ -1087,7 +1003,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** The primary button of whichever follow-up is open. */
     async sendFollowUp() {
         await this.sendTurnPlay(this.followUps.find(({ play }) => play)?.play)
     }

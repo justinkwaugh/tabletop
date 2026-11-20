@@ -13,11 +13,7 @@
     } from '$lib/utils/boardGeometry.js'
     import GuildRail from './GuildRail.svelte'
 
-    /**
-     * Contract, Guild standings: on a desk the six rails stand in one strip under the map, in board
-     * units so they scale with it: the West guilds' then the East's, each in its area's order down
-     * its edge, spelled out so nothing needs a hover.
-     */
+    /** Contract, Guild standings: on a desk the six rails stand in one strip under the map. */
     let {
         view,
         paintOf,
@@ -28,7 +24,6 @@
         seats: number
     } = $props()
 
-    /** West before East, then down the edge, as the areas stand on the board. */
     let rows = $derived(
         [...view.rows].sort(
             (a, b) =>
@@ -78,7 +73,7 @@
         flex: none;
     }
 
-    /* As the phone's rails: the zoom off, the scale by transform (`GuildRails`). */
+    /* Safari's 9px text floor: the zoom off, the scale by transform, as in `GuildRails`. */
     .drawing {
         zoom: var(--render-unzoom, 1);
         transform-origin: 0 0;

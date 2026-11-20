@@ -8,7 +8,6 @@ import type { SeatPouch } from '$lib/model/seatPanel.js'
 /** R-3.1-H1 How long a pouch takes to turn over at the reveal. */
 export const PouchTurnSeconds = 0.42
 
-/** All the turn touches on a pouch: its transform, written by the tween alone. */
 export interface PouchElement {
     readonly style: Pick<CSSStyleDeclaration, 'transform'>
 }
@@ -18,20 +17,11 @@ export interface PouchChange {
     readonly to: HydratedFeudumGameState
     readonly action?: GameAction
     readonly animationContext: AnimationContext
-    /** The pouch as this viewer's panel shows it on a state. */
     readonly pouchOf: (state: HydratedFeudumGameState, playerId: string) => SeatPouch
 }
 
-/**
- * R-3.1-H1 The pouches turn over, edge on to face up, when every hand is final: one motion of the
- * state change, so it is ordered with the other animators and follows replay and silent restoring.
- * With the Action, each pouch the reveal turns shows its face before the state does (a pre-reactivity
- * override) and turns on the action timeline, every one from the same moment for the same time.
- * Without one (Undo, a step through history) the pouch simply shows what the state says, either
- * way, so nothing turns backwards; a silent restore never reaches here.
- */
+/** R-3.1-H1 The pouches turn face up together when every hand is final. */
 export class PouchAnimator {
-    /** The seats whose pouch the reveal is turning, with the face it turns to. */
     revealing: ReadonlyMap<string, SeatPouch> = $state.raw(new Map())
 
     private readonly elements = new Map<string, Set<PouchElement>>()
@@ -40,7 +30,6 @@ export class PouchAnimator {
 
     constructor(private readonly reduced: () => boolean = () => prefersReducedMotion.current) {}
 
-    /** Each view of a seat's pouch registers here for as long as it is drawn. */
     readonly pouch = (playerId: string) => (element: PouchElement) => {
         const views = this.elements.get(playerId) ?? new Set<PouchElement>()
         views.add(element)
@@ -74,7 +63,7 @@ export class PouchAnimator {
         const targets = [...revealed.keys()].flatMap((playerId) => [
             ...(this.elements.get(playerId) ?? [])
         ])
-        // Edge on from the first frame the face is drawn, so it is never seen flat before it turns.
+        // Edge on from the first drawn frame, so the face is never seen flat before it turns.
         for (const element of targets) {
             this.turning.add(element)
             element.style.transform = this.turned(90)
@@ -99,7 +88,6 @@ export class PouchAnimator {
         )
     }
 
-    /** The state is about to show: the override gives way to it, and no pouch stays turned. */
     settle() {
         this.generation += 1
         for (const element of this.turning) {

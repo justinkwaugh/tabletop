@@ -27,15 +27,11 @@
     import StateNote from './StateNote.svelte'
     import { ChickenPath } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-1.3 The barn, with its limit from the data. R-1.4-H3 The chickens, each a bead or nothing;
-     * their spaces come from the provisional registry through the data. R-4.6.2 The farmer's purse.
-     */
+    /** R-1.3 The barn; R-1.4-H3 the chickens, each a bead or nothing; R-4.6.2 the purse. */
     let { state }: { state: HydratedFeudumGameState } = $props()
 
     let farmer = $derived(state.guilds.farmer)
     let purse = $derived(guildSlot(FarmerPurse.id))
-    /** The printed panel draws the farmyard, the hens and the purse; the counts stand on pills. */
     let printed = $derived(guildPrinted('farmer'))
 </script>
 

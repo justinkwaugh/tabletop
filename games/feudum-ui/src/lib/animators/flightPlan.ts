@@ -68,10 +68,7 @@ import {
 export type FlightRow =
     'pawns' | 'markers' | 'goods' | 'shillings' | 'tiles' | 'writs' | 'seals' | 'score'
 
-/**
- * What a moving copy draws. A writ's back carries no id, by type: nothing in the layer's markup can name
- * a writ a seat may not see. A seal carries no id either: red side up they are all the same disc (R-5-H1).
- */
+/** R-5-H1 A writ's back and a red-side-up seal carry no id: the markup names nothing hidden. */
 export type FlightFace =
     | { readonly kind: 'good'; readonly good: Good }
     | { readonly kind: 'marker'; readonly playerId: string }
@@ -91,7 +88,6 @@ export type FlightFace =
     /** R-6 A score change: the seat's disc carrying what it gained or lost. */
     | { readonly kind: 'score'; readonly playerId: string; readonly change: number }
 
-/** Which part of a seat a copy leaves or reaches. */
 export type SeatPart =
     | { readonly part: 'good'; readonly good: Good }
     | {
@@ -102,10 +98,6 @@ export type SeatPart =
     | { readonly part: 'writ'; readonly writId: WritId }
     | { readonly part: 'bead'; readonly value: BeadValue }
 
-/**
- * Where a copy stands: a place on the board, a part of a seat, a writ the action panel offers, or over
- * the middle of the table. `hide`: what stands there is the copy's source and is hidden while it flies.
- */
 export type FlightEnd =
     | {
           readonly kind: 'board'
@@ -113,10 +105,6 @@ export type FlightEnd =
           readonly size: number
           readonly piece?: string
           readonly hide?: boolean
-          /**
-           * The board piece a copy landing here stands for until the state shows it, so a later
-           * Action of the same replay can carry the copy as it would the piece.
-           */
           readonly rests?: string
       }
     | {
@@ -138,9 +126,8 @@ export interface FlightLeg {
     readonly at: number
     readonly duration: number
     readonly arc?: boolean
-    /** The copy turns over on this leg, and shows this after. */
     readonly turnTo?: FlightFace
-    /** The copy fades on this leg: a removed tile (R-4.3). */
+    /** R-4.3 A removed tile. */
     readonly fade?: boolean
 }
 
@@ -150,7 +137,7 @@ export interface Flight {
     readonly face: FlightFace
     readonly from: FlightEnd
     readonly legs: readonly FlightLeg[]
-    /** R-3.6 A rose flash on the source before it leaves: a pawn conquered or unfed. */
+    /** R-3.6 A pawn conquered or unfed. */
     readonly flash?: { readonly at: number; readonly duration: number }
 }
 
@@ -162,12 +149,11 @@ export interface FlightPlan {
 export interface FlightChange {
     readonly from: HydratedFeudumGameState
     readonly to: HydratedFeudumGameState
-    /** Absent, the plan is the fast fallback, and draws nothing an Action would have told it. */
     readonly action?: GameAction
     readonly viewerId?: string
-    /** Contract, Animation plan: the board draws no score ring (a desk), so each score flies to its seat. */
+    /** Contract, Animation plan: a desk draws no score ring, so each score flies to its seat. */
     readonly scoreFlights?: boolean
-    /** Contract, Desk layout: the guild areas an open side shows; a good to or from one flies here. */
+    /** Contract, Desk layout: the guild areas an open side shows. */
     readonly apart?: GuildsApart
 }
 
@@ -183,13 +169,12 @@ const BeadSize = GuildSizes.bead * GuildScale
 const RosaryBeadSize = BeadSize
 const ScrollSealSize = ImmunitySealSize
 
-/** Contract, Supply: the deck, the seal pile and the haversack fly from and to the board's corner. */
+/** Contract, Supply: the deck, the seal pile and the haversack sit at the board's corner. */
 const Deck: FlightEnd = { kind: 'board', point: SupplyCorner, size: SupplyToken }
 const SealPile: FlightEnd = { kind: 'board', point: SupplyCorner, size: SupplyToken }
-/** R-1.1 The general supply: goods and coin alike leave and reach the haversack, at the corner. */
+/** R-1.1 Goods and coin alike leave and reach the general supply. */
 const GeneralSupply: FlightEnd = { kind: 'board', point: SupplyCorner, size: SupplyToken }
 
-/** A good drawn at its own size, leaving or reaching the haversack. */
 const Haversack: FlightEnd = { kind: 'board', point: SupplyCorner, size: GoodSize }
 
 class FlightBuilder {
@@ -213,7 +198,6 @@ class FlightBuilder {
         return Math.max(...legs.map(({ at, duration }) => at + duration))
     }
 
-    /** One straight or arced leg, starting at `at`. */
     fly(
         row: FlightRow,
         face: FlightFace,
@@ -230,10 +214,7 @@ function seatOf(playerId: string, part: SeatPart, hide = false): FlightEnd {
     return { kind: 'seat', playerId, part, ...(hide ? { hide } : {}) }
 }
 
-/**
- * R-4.1, R-4.2 A pawn's place on the map, in the slots the map shows; a space too full to show it sends
- * the copy to the space's middle.
- */
+/** R-4.1, R-4.2 A space too full to show a pawn sends the copy to its middle. */
 function pawnPlace(state: HydratedFeudumGameState, key: string, spaceId: string): Point {
     const placed = placedPieces(state).get(key)?.point
     const space = Spaces.find(({ id }) => id === spaceId)
@@ -324,7 +305,7 @@ interface MarkerPlace {
     readonly slide?: string
 }
 
-/** R-4.1.2, R-4.5, R-4.8 Where a seat's markers stand, by the key the board draws each under. */
+/** R-4.1.2, R-4.5, R-4.8 Where a seat's markers stand. */
 function markerPlaces(
     state: HydratedFeudumGameState,
     playerId: string
@@ -376,11 +357,7 @@ function markerPlaces(
     return places
 }
 
-/**
- * R-4.1.2, R-4.5.2, R-4.8 A marker from a seat lands on its place; one returned flies home. What slides
- * within a space or a guild's track, what fills a Knight row and what moves onto a monster's icon are
- * the board's own motions: nothing here draws those a second time.
- */
+/** R-4.1.2, R-4.5.2, R-4.8 What the board itself slides is not drawn a second time here. */
 function flyMarkers(plan: FlightBuilder, { from, to }: FlightChange, at: number): number {
     let launch = at
     let ends = at
@@ -466,11 +443,7 @@ function pilferedGood({
         : undefined
 }
 
-/**
- * R-1.1, R-3.3, R-4.10.2 Goods between the board, a seat, its barrel and its pouch, one after another a
- * few frames apart. Only counts are read, and the pouch's good once the seat has finalised (R-3.3): a
- * draft is the session's, and never reaches a plan.
- */
+/** R-1.1, R-3.3, R-4.10.2 Only counts are read, and the pouch's good only once finalised. */
 function flyGoods(plan: FlightBuilder, change: FlightChange, at: number): number {
     const { from, to, action, apart } = change
     const board = goodsOffTheBoard({ from, to }, action, apart)
@@ -543,7 +516,7 @@ interface CoinHolder {
     readonly seat?: string
 }
 
-/** R-4.6.2 Coin moves payer to master, journeyman and charity in order; what is left comes after. */
+/** R-4.6.2 Coin moves payer to master, journeyman and charity in order; the rest after. */
 function flyShillings(plan: FlightBuilder, { from, to, action }: FlightChange, at: number): number {
     const seats: CoinHolder[] = to.players.map((player) => ({
         end: seatOf(player.playerId, { part: 'shillings' }, player.shillings === 0),
@@ -581,7 +554,6 @@ function flyShillings(plan: FlightBuilder, { from, to, action }: FlightChange, a
             launch += GoodGap
         }
     }
-    // Nobody received it on the table: it goes to the supply, one coin to say so.
     for (const payer of payers) {
         if (payees.length === 0) {
             ends = plan.fly('shillings', { kind: 'shilling' }, payer.end, GeneralSupply, launch)
@@ -603,10 +575,7 @@ function tileFace(tileId: TileId, shown: boolean, state: HydratedFeudumGameState
     }
 }
 
-/**
- * R-4.3 A tile flies from its stack, or the space that held it, to a seat; a landscape flips to its back
- * as it lands on a space; a tile spent or removed fades where it stood.
- */
+/** R-4.3 A landscape flips to its back as it lands; a tile spent or removed fades. */
 function flyTiles(plan: FlightBuilder, { from, to }: FlightChange, at: number): number {
     let launch = at
     let ends = at
@@ -728,12 +697,8 @@ function shownWrits(action?: GameAction): { playerId: string; writId: WritId }[]
 const WritBack: FlightFace = { kind: 'writ', faceShown: false }
 
 /**
- * R-4.4.1, R-4.4-H2, R-4.4-H3 What flies is decided by public counts alone, so the same copies leave at
- * the same moments at every seat. A writ's face is the only difference: a drawn writ shows to its drawer,
- * by `writFaceShown` and only if the Action as this seat received it names it; R-4.4.2, R-5.3 a writ
- * played or used as a weapon is public, shows over the table and goes under the deck. R-4.4.4 A
- * discarded writ goes under face down: its back flies from the seat to the deck, the same at every seat.
- * R-4.4.3, R-4.4-H6 A charter is sealed unseen at game end: no flight says which writ, or that one moved.
+ * R-4.4.1, R-4.4-H2, R-4.4-H3 Public counts alone decide what flies, the same at every seat; a
+ * drawn writ's face shows only to its drawer. R-4.4-H6 A charter sealed at game end flies nothing.
  */
 function flyWrits(plan: FlightBuilder, change: FlightChange, at: number): number {
     const { from, to, action, viewerId } = change
@@ -884,11 +849,10 @@ function beadEnd(sealId: SealId, spot: BeadSpot, source: boolean): FlightEnd {
 interface ConcealedPlace {
     readonly end: FlightEnd
     readonly seat?: string
-    /** The board slides a seal in under its marker; nothing flies for it. */
     readonly silent?: boolean
 }
 
-/** What public state says of where red-side-up seals left and arrived: places and counts, no ids. */
+/** R-5-H1 Red-side-up seals by places and counts alone, no ids. */
 function concealedChanges({ from, to }: FlightChange) {
     const lost: ConcealedPlace[] = []
     const gained: ConcealedPlace[] = []
@@ -907,7 +871,7 @@ function concealedChanges({ from, to }: FlightChange) {
             seat,
             end: seatOf(seat, { part: 'seals' }, player.sealCount === 0)
         })
-        // R-4.4-H6 A seal under a charter lies with the writ: that it was sealed is the seat's count.
+        // R-4.4-H6 A seal under a charter lies with the writ: its sealing is the seat's count.
         shift(player.sealedCharterCount - before.sealedCharterCount, {
             seat,
             silent: true,
@@ -928,7 +892,7 @@ function concealedChanges({ from, to }: FlightChange) {
     }
     shift(to.supply.sealPileCount - from.supply.sealPileCount, { end: SealPile })
     for (const { id } of Spaces) {
-        // R-4.1-H1 A serf's marker that becomes the subject keeps its seal: the count stands, no flight.
+        // R-4.1-H1 A serf's marker that becomes the subject keeps its seal: no flight.
         const immunity = (state: HydratedFeudumGameState) =>
             (state.spaces[id].serf?.immune ? 1 : 0) +
             (state.spaces[id].ruler?.subjectImmune ? 1 : 0)
@@ -952,10 +916,7 @@ function takeFor(places: ConcealedPlace[], playerId: string | undefined) {
     return found >= 0 ? places.splice(found, 1)[0] : undefined
 }
 
-/**
- * R-4.6-H2 The two candidates lift together, the same height and for the same time whichever is drawn, so
- * nothing shows before the one settles: then it goes on and the other returns, in the same time again.
- */
+/** R-4.6-H2 Both candidates lift alike whichever is drawn, so nothing shows before one settles. */
 function liftCandidates(
     plan: FlightBuilder,
     candidates: { readonly high: SealId; readonly low: SealId },
@@ -995,11 +956,7 @@ function liftCandidates(
     return ends
 }
 
-/**
- * R-5-H1 Seals and beads. A bead's value is public wherever it lies. A red-side-up seal is one more
- * anonymous disc, known by places and counts alone. A seal flips where it lies to show its bead, then
- * moves; R-3.11.2 a bead back to a seat or the pile turns to its seal side.
- */
+/** R-5-H1 A seal flips where it lies, then moves; R-3.11.2 a bead sent back turns seal side up. */
 function flySeals(plan: FlightBuilder, change: FlightChange, at: number): number {
     const { from, to } = change
     const was = beadSpots(from)
@@ -1079,10 +1036,7 @@ function secondsOf(flights: readonly Flight[]): number {
     )
 }
 
-/**
- * Contract, Animation plan: one row after another, the order the scenarios name: a pawn, then its marker
- * (S2); a tile, then the goods it yields (S17); goods, then an unfed pawn (S53); beads last (S20).
- */
+/** Contract, Animation plan: rows in the order S2, S17, S53 and S20 name. */
 export function planFlights(change: FlightChange): FlightPlan {
     const plan = new FlightBuilder()
     const rows = [
@@ -1104,13 +1058,9 @@ export function planFlights(change: FlightChange): FlightPlan {
     return { flights: plan.flights, seconds: secondsOf(plan.flights) }
 }
 
-/** The disc that carries a score change over the table: about a seat panel's score's size. */
 const ScoreCopySize = 40
 
-/**
- * R-6 Where the board draws no score ring (a desk), each seat whose score changed sends its disc,
- * carrying the change, from over the table to its seat panel's score, in turn order, last of all.
- */
+/** R-6 On a desk each changed score flies to its seat panel, in turn order, last of all. */
 function flyScores(plan: FlightBuilder, { from, to, scoreFlights }: FlightChange, at: number) {
     if (!scoreFlights) {
         return at
@@ -1133,10 +1083,7 @@ function flyScores(plan: FlightBuilder, { from, to, scoreFlights }: FlightChange
     return ends
 }
 
-/**
- * Fast fallback: every copy straight to its end at once, within the bound, flips, holds, lifts, flashes
- * and fades cut. With no Action in hand no writ's face can be named: every writ is a back.
- */
+/** Fast fallback: with no Action in hand no writ's face can be named, so every writ is a back. */
 export function planDirectFlights(change: Omit<FlightChange, 'action'>): FlightPlan {
     const { flights } = planFlights({
         from: change.from,

@@ -8,12 +8,7 @@
     import SeatHoldings from './SeatHoldings.svelte'
     import SeatSupply from './SeatSupply.svelte'
 
-    /**
-     * Contract, Seat panel: a sealed charter roll, a parchment sheet hung from a wooden roller, the
-     * seat colour its ribbon and wax seal. It draws one derivation of the seat and reads nothing
-     * else: the ribbon, then three lines (cards; goods, shillings, seals; what the seat holds).
-     * Guild places are the standings'. `reading` is the same panel at the open seat's size.
-     */
+    /** Contract, Seat panel: a sealed charter roll, drawn from one derivation of the seat. */
     let {
         view,
         paint,
@@ -172,10 +167,7 @@
         cursor: pointer;
     }
 
-    /*
-     * The waiting ring pulses by its opacity alone, which the compositor runs without repainting the
-     * ribbon each frame; it lies within the ribbon's padding, clear of its words.
-     */
+    /* Opacity alone, which the compositor runs without repainting the ribbon each frame. */
     .ribbon.deciding::after {
         content: '';
         position: absolute;

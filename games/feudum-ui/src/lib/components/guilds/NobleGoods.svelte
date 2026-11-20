@@ -6,10 +6,9 @@
     import { GuildSizes, ScrollCell, guildPrinted, guildSlot } from '$lib/utils/boardGeometry.js'
     import { PrintedSizes } from '$lib/utils/printedGuilds.js'
 
-    /** R-1.3 Six scroll spaces in rows of 3, 2, 1. R-5-H1 A seal there is the same crowned disc to all. */
+    /** R-1.3 Scrolls in rows of 3, 2, 1. R-5-H1 A seal there is one crowned disc to all. */
     let { state }: { state: HydratedFeudumGameState } = $props()
 
-    /** The printed panel draws the scrolls; the seals stand on them. */
     let printed = $derived(guildPrinted('noble'))
     let seal = $derived(printed ? PrintedSizes.seal : GuildSizes.seal)
 </script>

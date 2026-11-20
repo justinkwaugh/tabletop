@@ -14,12 +14,7 @@
     import CountChip from './CountChip.svelte'
     import PickChrome from './PickChrome.svelte'
 
-    /**
-     * R-4.1 Pawns, pawns on their vessels (R-4.2.2), monsters with a collar when controlled (R-4.2.4).
-     * Up to four sit round a space at fixed slots; more show as a count chip, and a piece the offer
-     * lights takes a slot first so it can be pressed (`shownOn`). Their chips stand in the chip
-     * layer, in a row with the space's own (`MapChips`).
-     */
+    /** R-4.1 Pawns, on vessels (R-4.2.2); R-4.2.4 a controlled monster wears a collar. */
     let {
         state,
         paintOf,

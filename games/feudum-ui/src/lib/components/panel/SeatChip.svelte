@@ -1,12 +1,7 @@
 <script lang="ts">
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /**
-     * A seat as the panel names it: its colour and its name in a pill. A solid ring in the accent
-     * marks a seat being waited on (`ringLabel` reads out why); a tick, a seat that is done.
-     * `compact` keeps the name for a screen reader alone on a phone, where the seat strip names the
-     * colours. `spoken` is read out after the name and not shown ("(you)", "choosing").
-     */
+    /** `compact` leaves the name to screen readers: a phone's seat strip names the colours. */
     let {
         name,
         paint,

@@ -19,11 +19,6 @@
     } from '$lib/utils/boardGeometry.js'
     import RouteGlyph from './RouteGlyph.svelte'
 
-    /**
-     * What stands in for a piece while it moves. Each token is written once, hidden, at its first
-     * place; the animator owns its transform and opacity from then until the state shows. In a guild
-     * area stood upright off the board, each turns back upright about its centre, as the pieces do.
-     */
     let {
         tokens,
         paintOf,

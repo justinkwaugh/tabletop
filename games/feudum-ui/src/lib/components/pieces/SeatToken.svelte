@@ -15,12 +15,11 @@
         size?: number
         x?: number
         y?: number
-        /** Its accessible name and tooltip where the place says more than whose it is. */
         label?: string
     } = $props()
 
     const Names = { marker: 'influence marker', disc: 'player disc', reeve: 'reeve' } as const
-    /** R-4.7 A reeve is a player disc showing its printed point, so it fills its box as a disc does. */
+    /** R-4.7 A reeve is a player disc showing its printed point. */
     const DiscRadius = 10.5
     const DrawnReeveRadius = 7.5
     const PrintBox = { x: 1.5, y: 1.5, width: 21, height: 21 } as const

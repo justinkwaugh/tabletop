@@ -4,7 +4,7 @@
     import { GoodPaths } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /** A good: its own silhouette as well as its colour, so none is told by colour alone. */
+    /** Its own silhouette as well as its colour, so no good is told by colour alone. */
     let { good, size = 24, x, y }: { good: Good; size?: number; x?: number; y?: number } = $props()
 </script>
 

@@ -12,7 +12,6 @@ import { PrintedColours } from '$lib/utils/boardGeometry.js'
 
 export interface ScoreOnTrack {
     readonly space: number
-    /** What the disc's space can't say: the laps past 149, or a score below 0. */
     readonly chip?: string
 }
 
@@ -33,7 +32,6 @@ export interface SeatScore {
     readonly score: number
 }
 
-/** A seat's score disc, and its place among the discs on the same space, in turn order. */
 export interface ScoreDisc extends ScoreOnTrack {
     readonly playerId: string
     readonly score: number
@@ -62,7 +60,6 @@ export function scoreDiscs(scores: readonly SeatScore[]): readonly ScoreDisc[] {
     })
 }
 
-/** A seat's disc on a track, and its place among the discs on the same space. */
 export interface TrackDisc {
     readonly playerId: string
     readonly spaceId: string
@@ -116,8 +113,7 @@ export function stackView(state: HydratedFeudumGameState, region: RegionId): Sta
     return { region, count: stack.length, ...(top ? { topEpoch: top.epoch } : {}) }
 }
 
-/** R-4.3.1 A stack's tiles by epoch: only the top's epoch and the count show on the board, but the
- * stack's epochs are public; its landscapes are not. */
+/** R-4.3.1 A stack's epochs are public; its landscapes are not. */
 export function stackTilesByEpoch(
     state: HydratedFeudumGameState,
     region: RegionId
@@ -133,14 +129,10 @@ export function stackTilesByEpoch(
 export interface InfluencePool {
     readonly colour: Color
     readonly count: number
-    /** The seat whose pool it is; a dummy row's pool has none. */
     readonly playerId?: string
 }
 
-/**
- * R-1.4.2, R-1.4-H1 The general supply's influence, in print order: each seat's pool by its
- * playerId, and each dummy row's by its colour, so no colour stands for a seat.
- */
+/** R-1.4.2, R-1.4-H1 A dummy row's pool goes by its colour, so no colour stands for a seat. */
 export function influencePools(state: HydratedFeudumGameState): InfluencePool[] {
     const pools: (InfluencePool | undefined)[] = [
         ...state.players.map(({ color, playerId }) => {

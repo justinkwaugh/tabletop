@@ -2,10 +2,7 @@
     import SessionStandings from '$lib/components/standings/SessionStandings.svelte'
     import Scrim from './Scrim.svelte'
 
-    /**
-     * A phone's Guilds sheet (contract: Phone layout): the guild standings table, opened from the
-     * seat strip's Guilds chip. It is for looking and holds no target.
-     */
+    /** Contract, Phone layout: the Guilds sheet is for looking and holds no target. */
     let { onClose }: { onClose: () => void } = $props()
 
     const SheetShare = 80

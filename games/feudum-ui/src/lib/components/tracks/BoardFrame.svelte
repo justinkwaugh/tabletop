@@ -3,15 +3,6 @@
     import { RingSource } from '$lib/art/ringPieces.js'
     import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * The board under everything: the printed score ring, its corners and the frame round the map and
-     * the guild panels when the folder holds it, else a plain frame for the drawn ring to sit on. The
-     * map and the panels lie over it in their own rects. A desk draws no ring (`printed` off): it
-     * loads no print, and the plain frame stands between the map and the panels.
-     *
-     * The print comes in parts (`ringPieces.ts`): each file is drawn over its part's own rect of the
-     * supplied board, which is fitted to the board's rect and centred, as one picture of it would be.
-     */
     let { printed = true }: { printed?: boolean } = $props()
 
     const label = "The board's edge"

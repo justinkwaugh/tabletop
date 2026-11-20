@@ -9,11 +9,7 @@
     import type { SiteCard, SiteSeat } from '$lib/model/siteCard.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /**
-     * R-4.1 Everything on one site at once, each row its pieces and its words: the markers by role,
-     * the pawns by seat, monsters, the landscape, the goods by kind with their counts, and abandoned
-     * vessels. A seat is its chip. It shows only what the table shows.
-     */
+    /** R-4.1 Everything on one site at once; it shows only what the table shows. */
     let {
         card,
         paintOf,

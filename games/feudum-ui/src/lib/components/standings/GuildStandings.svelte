@@ -5,13 +5,7 @@
     import type { GuildStandingsView } from '$lib/model/guildStandings.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /**
-     * Contract, Guild standings: one row per guild, its die face with no badge, then the track's
-     * places from the top, each the holder's influence marker and stars, the master's outlined so
-     * the leader reads first and a reeve as a ringed dot; last, muted, the seats with stars and no
-     * place. A place's words are its accessible name and tooltip; a press says them in the line
-     * under the heading, where a touch screen has no tooltip.
-     */
+    /** Contract, Guild standings: a press says a place's words; a touch screen has no tooltip. */
     let {
         view,
         paintOf

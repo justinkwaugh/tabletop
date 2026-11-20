@@ -13,11 +13,7 @@
         scoreDiscAt
     } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * R-1.2.5 The 0 to 149 track round the board's edge. R-6 A score is uncapped: past 149 the disc
-     * wraps and carries a "+150" chip. Discs sharing a space fan along the track in turn order, and
-     * each one's tooltip names every disc there.
-     */
+    /** R-1.2.5 The 0 to 149 track. R-6 A score is uncapped: past 149 it wraps with "+150". */
     let {
         state,
         paintOf,
@@ -25,12 +21,11 @@
     }: {
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
-        /** Dimmed with the rest of the board: each cell and disc as itself, never the ring as one. */
+        /** Phone rendering, effects stay piece-sized: each cell and disc dims as itself. */
         dim?: number
     } = $props()
 
     const labelled = (space: number) => space % ScoreTrack.labelEvery === 0
-    /** With the printed ring under the board, its cells and numbers are the print's; ours stay bare. */
     const printed = ringPrint() !== undefined
 
     let discs = $derived(scoreDiscs(seatScores(state)))

@@ -8,10 +8,6 @@
     import TextMark from './TextMark.svelte'
     import VesselToken from './VesselToken.svelte'
 
-    /**
-     * A panel or history line, with what it names drawn as its piece, so the table and the
-     * sentences share one vocabulary. Each token keeps the word as its label; a guild keeps its name.
-     */
     let { text }: { text: string } = $props()
 
     let parts = $derived(tokenParts(text))

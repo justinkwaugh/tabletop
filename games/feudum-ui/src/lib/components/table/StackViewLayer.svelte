@@ -6,10 +6,7 @@
     import Enlargeable from './Enlargeable.svelte'
     import Scrim from './Scrim.svelte'
 
-    /**
-     * A region stack's tiles by epoch, each a back (R-4.3.1). Reads the displayed state, so it works
-     * in History View.
-     */
+    /** R-4.3.1 Each tile a back; from the displayed state, so it works in History View. */
     let { view, onClose }: { view: StackViewOf; onClose: () => void } = $props()
 
     const gameSession = getGameSession()

@@ -2,7 +2,6 @@
     import { TargetAsset, assetUrl } from '$lib/art/assetMap.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /** An archery target, held by a landscape or in supply. */
     let { size = 24, x, y }: { size?: number; x?: number; y?: number } = $props()
 
     const Rings = [

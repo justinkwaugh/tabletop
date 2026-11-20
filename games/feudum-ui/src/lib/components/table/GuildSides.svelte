@@ -12,19 +12,11 @@
     import { GuildBox, guildsDownSide } from '$lib/utils/boardGeometry.js'
     import GuildFaces from './GuildFaces.svelte'
 
-    /**
-     * Contract, Desk layout: a desk's guild areas stand behind two tall buttons at the map's sides,
-     * "West guilds" and "East guilds", each the map's height at its rest. A button opens its three
-     * areas upright over the map's box, under a dim scrim, as large as the box allows; the button
-     * again, Escape or a press on the scrim closes it, and the other button switches. A button's dot
-     * says its side holds a lit target; a pick wholly on one side opens it (Pick framing). A button is
-     * a wooden rod with a gold edge, its label over its side's three faces (`GuildFaces`).
-     */
+    /** Contract, Desk layout: a desk's guild areas stand behind two buttons at the map's sides. */
     let {
         rest,
         lit
     }: {
-        /** The map's box at its rest, in the view's pixels. */
         rest: BoundingBox
         lit: ReadonlySet<FocusArea>
     } = $props()
@@ -37,14 +29,11 @@
         { side: 'west', label: 'West guilds' },
         { side: 'east', label: 'East guilds' }
     ]
-    /** Room round the open areas and between them, in pixels. */
     const Padding = 16
     const Gap = 12
 
     let open = $derived(layers.guildSide)
-    /** Down its edge of the board, as the bench and the strip order them. */
     let guilds = $derived(open ? guildsDownSide(open === 'west') : [])
-    /** Each area's long side: three side by side, whole inside the box. */
     let long = $derived(
         Math.max(
             0,
@@ -55,11 +44,7 @@
         )
     )
 
-    /**
-     * A wheel over an open side never zooms the board beneath. The one listener is the root's own,
-     * there for as long as the buttons are: WebKit restyles the whole page each time a wheel listener
-     * is added or removed, which a listener on the open view would do at every opening.
-     */
+    /** One root listener: WebKit restyles the page whenever a wheel listener comes or goes. */
     function keepWheelInView(event: WheelEvent) {
         if (event.target instanceof Element && event.target.closest('[data-guild-view]')) {
             event.stopPropagation()
@@ -93,7 +78,6 @@
         </button>
     {/each}
     {#if open}
-        <!-- Over the map's box: a press here never pans or zooms the board beneath. -->
         <div
             class="view"
             role="presentation"
@@ -133,7 +117,6 @@
 </div>
 
 <style>
-    /* Wood as the seat panels' rollers turn it, lit across its width; a gold edge round it. */
     .side {
         --wood: linear-gradient(
             90deg,
@@ -177,7 +160,6 @@
         outline-offset: 3px;
     }
 
-    /* The West's label reads up its button, the East's down. */
     .label {
         writing-mode: vertical-rl;
         white-space: nowrap;

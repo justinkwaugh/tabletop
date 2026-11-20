@@ -18,13 +18,11 @@ import {
     type FlightPlan
 } from './flightPlan.js'
 
-/** All a tween touches on a copy: its style, and which of its two sides shows. */
 export interface CopyElement {
     readonly style: Pick<CSSStyleDeclaration, 'visibility' | 'opacity' | 'transform'>
     querySelectorAll(selector: string): Iterable<CopySide>
 }
 
-/** The rose ring a lost piece's copy flashes in: a shape whose opacity alone is tweened. */
 export interface FlashElement {
     readonly style: Pick<CSSStyleDeclaration, 'opacity'>
 }
@@ -34,13 +32,12 @@ export interface CopySide {
     toggleAttribute(name: string, force: boolean): unknown
 }
 
-/** Where a copy is drawn. Written by tweens to the element alone: never reactive state. */
+/** Tweens write this to the element alone: never reactive state. */
 interface CopyPose {
     x: number
     y: number
     size: number
     opacity: number
-    /** How far over the copy has turned, from flat at 1 to edge-on at 0. */
     turn: number
     turned: boolean
     flash: number
@@ -50,11 +47,7 @@ interface CopyPose {
 const ArcShare = 0.15
 const DesignSize = 48
 
-/**
- * The layer's copies: one per piece crossing the wrapper. A copy lives from the moment it leaves until
- * the state shows, resting at its end; so the target, still the old state's, never shows it early, and
- * the swap is one stroke. Presence is written once per step; tweens write nothing reactive.
- */
+/** A copy rests at its end until the state shows, so the swap to the state is one stroke. */
 export class FlightAnimator {
     flights: readonly Flight[] = $state.raw([])
 
@@ -71,7 +64,6 @@ export class FlightAnimator {
     /** The layer mounts here. It may move into the full-screen dialog mid-flight: copies carry on. */
     readonly attach = (layer: HTMLElement) => this.useStage(new DomFlightStage(layer))
 
-    /** What the copies measure against, until the returned function stands it down. */
     useStage(stage: FlightStage) {
         this.layer = stage
         return () => {
@@ -87,7 +79,7 @@ export class FlightAnimator {
         }
     }
 
-    /** Each copy's element; a copy remounted by full screen is drawn where it had got to. */
+    /** A copy remounted by full screen is drawn where it had got to. */
     readonly copy = (id: string) => (element: CopyElement) => {
         this.copies.set(id, element)
         const pose = this.poses.get(id)
@@ -101,7 +93,6 @@ export class FlightAnimator {
         }
     }
 
-    /** A copy's rose ring, drawn inside it for a flight that flashes. */
     readonly flashRing = (id: string) => (element: FlashElement) => {
         this.flashes.set(id, element)
         element.style.opacity = `${this.poses.get(id)?.flash ?? 0}`
@@ -112,11 +103,7 @@ export class FlightAnimator {
         }
     }
 
-    /**
-     * Contract, Replay: a piece an earlier Action of a replay brought onto the board is still its copy,
-     * resting where it landed, until the state shows. A later Action's board motion on that piece
-     * carries the copy instead: given a point in the board's units, the copy stands there.
-     */
+    /** Contract, Replay: a piece an earlier Action landed stays its copy until the state shows. */
     carrier(piece: string): ((point: Point) => void) | undefined {
         const flight = this.flights.findLast((one) => this.restsAs(one) === piece)
         const end = flight?.legs.at(-1)?.to
@@ -136,7 +123,7 @@ export class FlightAnimator {
         }
     }
 
-    /** What flies: read off public state and the Action as this seat received it. */
+    /** Hidden information: read off public state and the Action as this seat received it. */
     plan(change: FlightChange): FlightPlan {
         const { from, to, action, viewerId } = change
         if (!this.layer || (this.reduced() && !action)) {
@@ -174,10 +161,7 @@ export class FlightAnimator {
         }
     }
 
-    /**
-     * The state is about to show: in one synchronous stroke every source is back and the layer is empty, so
-     * no frame paints a hidden source or a doubled piece. A tween still running writes nothing more.
-     */
+    /** One synchronous stroke, so no frame paints a hidden source or a doubled piece. */
     settle() {
         this.generation += 1
         for (const element of this.hidden) {
@@ -194,7 +178,6 @@ export class FlightAnimator {
         return this.layer?.locate(end) ?? { x: 0, y: 0, size: 0 }
     }
 
-    /** The copy appears on its source, and the source goes. */
     private launch(flight: Flight): CopyPose {
         const known = this.poses.get(flight.id)
         if (known) {
@@ -274,7 +257,7 @@ export class FlightAnimator {
         }
     }
 
-    /** Both ends measured again, every frame: the view may frame, zoom or pan as it likes. */
+    /** Measured every frame: the view may zoom or pan mid-flight. */
     private fly(flight: Flight, source: FlightEnd, leg: FlightLeg, t: number) {
         const pose = this.launch(flight)
         const from = this.place(source)
@@ -294,10 +277,7 @@ export class FlightAnimator {
         this.redraw(flight, pose)
     }
 
-    /**
-     * No tween and no wait: each copy is simply at its end, in the order the tweens would land them,
-     * so reduced motion never holds the table for the cinematic length.
-     */
+    /** Reduced motion never holds the table for the cinematic's length. */
     private followWithoutTween(
         timeline: AnimationContext['actionTimeline'],
         flight: Flight,
@@ -338,13 +318,11 @@ export class FlightAnimator {
         }
     }
 
-    /** When a flight's copy would reach its end, tweened. */
     private landsAt(flight: Flight): number {
         const last = flight.legs[flight.legs.length - 1]
         return last.at + last.duration
     }
 
-    /** The board piece a flight's copy stands for once it lands, if it lands as one. */
     private restsAs(flight: Flight): string | undefined {
         const end = flight.legs.at(-1)?.to
         return end?.kind === 'board' ? end.rests : undefined

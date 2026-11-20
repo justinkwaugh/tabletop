@@ -2,30 +2,20 @@ import { Color, type Point } from '@tabletop/common'
 import type { ActionCardKind } from '@tabletop/feudum'
 import type { PrintedColour } from '$lib/art/assetMap.js'
 
-/**
- * A card or writ in its own units. The band round the art is the part a seat colour fills on an
- * action card, so the art never has to carry one.
- */
 export const CardBox = { width: 250, height: 380 }
 export const CardArt = { x: 17.5, y: 15, width: 215, height: 348 }
 
-/** A printed action card, in its own pixels: drawn whole and centred in `CardBox`, never stretched. */
 export const PrintedCard = { width: 580, height: 938 } as const
 const PrintScale = CardBox.height / PrintedCard.height
 
-/** Where the print stands in `CardBox`: its pixels scaled to the card's height, centred across. */
 export const PrintedCardPlace = {
     x: (CardBox.width - PrintedCard.width * PrintScale) / 2,
     scale: PrintScale
 } as const
 
-/** The print's corner, where it is cut round. */
 export const PrintedCardCorner = 24
 
-/**
- * The band round a printed card and its foot, one flat colour in each printed colour, measured on
- * the print (the palette's `print-frame`).
- */
+/** Measured on the print (the palette's `print-frame`). */
 export const PrintBand: Record<PrintedColour, string> = {
     [Color.Red]: 'var(--feudum-print-frame-red)',
     [Color.Blue]: 'var(--feudum-print-frame-blue)',
@@ -34,20 +24,14 @@ export const PrintBand: Record<PrintedColour, string> = {
     [Color.Yellow]: 'var(--feudum-print-frame-yellow)'
 }
 
-/**
- * The printed frame inside the band, in the print's pixels, measured on it: a gold bar between two
- * dark lines, `bar` wide, its outer edge here; the foot is the band under it. A quarter rosette
- * fills each inner corner.
- */
+/** Measured on the print, in its pixels. */
 export const PrintFrame = { x: 6, y: 2, width: 566, height: 909, bar: 15, round: 9, rosette: 30 }
 
-/** The frame's bars as one rect each stroke is centred on, `inset` in from its outer edge. */
 export function printFrameRect(inset: number) {
     const { x, y, width, height } = PrintFrame
     return { x: x + inset, y: y + inset, width: width - 2 * inset, height: height - 2 * inset }
 }
 
-/** The art shows between the side bars, from the frame's top to its foot: it carries both. */
 export const PrintArtWindow = {
     x: PrintFrame.x + PrintFrame.bar,
     y: PrintFrame.y,
@@ -55,11 +39,7 @@ export const PrintArtWindow = {
     height: PrintFrame.height
 }
 
-/**
- * Where each kind's art file (`card.action.<kind>`, 618 x 1000) stands in its print: at 0.9 of its
- * size, its top left at these pixels. Found by matching each file to the printed card of its kind;
- * each file is cut a little differently, so each has its own place.
- */
+/** Found by matching each art file to its printed card: each is cut a little differently. */
 export const PrintedArtScale = 0.9
 export const PrintedArtAt: Record<ActionCardKind, Point> = {
     conquer: { x: 14, y: 4 },
@@ -76,10 +56,6 @@ export const PrintedArtAt: Record<ActionCardKind, Point> = {
 }
 export const PrintedArtFile = { width: 618, height: 1000 } as const
 
-/**
- * The four inner corners' rosettes: a quarter disc, then three rings (dark, gold, dark), each an arc
- * from one bar to the other.
- */
 export function printRosettes(): { disc: string; rings: [string, string, string] }[] {
     const { x, y, width, height, bar, rosette } = PrintFrame
     const left = x + bar
@@ -104,7 +80,7 @@ export function printRosettes(): { disc: string; rings: [string, string, string]
 
 export type FaceTier = 'compact' | 'standard' | 'full'
 
-/** The contract's three tiers, by the width a face is given: one component, never a second asset. */
+/** The contract's three tiers by width: one component, never a second asset. */
 export function faceTier(width: number): FaceTier {
     if (width < 60) {
         return 'compact'
@@ -112,7 +88,6 @@ export function faceTier(width: number): FaceTier {
     return width < 180 ? 'standard' : 'full'
 }
 
-/** Breaks a line of data for an SVG text row, at about this many characters a row. */
 export function wrapLines(text: string, charactersPerRow: number): string[] {
     const rows: string[] = []
     let row = ''
@@ -127,7 +102,7 @@ export function wrapLines(text: string, charactersPerRow: number): string[] {
     return row ? [...rows, row] : rows
 }
 
-/** A compact face's short name: a word of data cut, never a second string to translate. */
+/** A word of data cut, never a second string to translate. */
 export function shortName(name: string, characters = 6): string {
     return name.length <= characters ? name : `${name.slice(0, characters - 1)}.`
 }

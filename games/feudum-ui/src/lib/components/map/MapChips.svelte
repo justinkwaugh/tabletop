@@ -5,11 +5,7 @@
     import { spaceChips } from '$lib/model/spaceChips.js'
     import PickChip from './PickChip.svelte'
 
-    /**
-     * Contract, Pick conventions: every chip on a space, its own and its pieces', over all the pieces
-     * so each stays readable, in one row so none covers another (`spaceChips`). A press on a chip is
-     * its target's press; the presses themselves stay the space's and the pieces', under the chips.
-     */
+    /** Contract, Pick conventions: every chip over all the pieces, in one row, so each reads. */
     let { state, chrome = PlainChrome }: { state: HydratedFeudumGameState; chrome?: BoardChrome } =
         $props()
 

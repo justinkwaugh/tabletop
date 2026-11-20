@@ -1,13 +1,9 @@
 import { serfAsked, strengthOf, type HydratedFeudumGameState } from '@tabletop/feudum'
 import { tallyLines, type TallyLine } from './cardFlows.js'
 
-/**
- * The rows of a shared step, read from `flow` on the displayed state and from no seat's own: the seat
- * deciding and the seats waiting draw the same one (contract: Render ownership).
- */
+/** Contract, Render ownership: read from `flow`, not a seat's own, so every seat draws the same. */
 export interface OrderRowEntry {
     readonly playerId: string
-    /** Not asked, or already answered. */
     readonly done: boolean
     /** R-4.12.3 The one seat asked, the others answering after it. */
     readonly next?: boolean
@@ -55,11 +51,7 @@ export function orderRowOf(state: HydratedFeudumGameState): OrderRow | undefined
         : undefined
 }
 
-/**
- * R-4.8.2 The combat as it stands: what the flow holds, a flipped Defend once it is face up, and
- * nothing the attacker has not committed. It reads no hand, so it can't differ with one (S34). Who
- * answers is the waiting line's to say, to every seat but the one answering (R-3.14.1).
- */
+/** R-4.8.2 It reads no hand, so it can't differ with one (S34). */
 export function combatTallyOf(state: HydratedFeudumGameState): CombatTallyRow | undefined {
     const { combat } = state.flow
     if (!combat) {

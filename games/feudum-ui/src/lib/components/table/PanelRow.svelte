@@ -1,7 +1,6 @@
 <script lang="ts" module>
     import type { FeudumGameSession as Session } from '$lib/model/session.svelte.js'
 
-    /** Who hears a row's hover: the session, in a game. */
     export type RowPointer = Pick<
         Session,
         'pointAtRow' | 'leaveRow' | 'toggleRowPreview' | 'isRowPointedAt'
@@ -17,16 +16,8 @@
     import { crossesEdge } from '$lib/utils/pointerEdge.js'
 
     /**
-     * One row of a panel or popup. A row's hover or focus brightens what its press would light, and a
-     * touch screen, having no hover, has a preview path beside the row that reads "Show on board";
-     * a phone's card has none, its press being undoable and itself the preview (contract: Hover,
-     * Phone layout). A refused row stays pressable, to show the line why, and sends nothing. `lead` stands before the
-     * label; where the art stands for part of it (a tile for its name), `shown` is the text beside
-     * it and the label stays the row's accessible name. `face` takes the label's place on a card or
-     * writ, whose corner holds the magnifier. `piece` is a piece that is itself the press, a guild's
-     * die: no button chrome, the label its accessible name and tooltip, its preview beneath it.
-     * A special's printed cost is drawn after its name (R-3.4). A `quiet` row, Forfeit, is drawn
-     * without fill, last in its tray (R-3.2).
+     * Contract, Hover: a touch screen, having no hover, gets a "Show on board" preview path.
+     * R-3.4 A special's printed cost follows its name. R-3.2 Forfeit is quiet, last in its tray.
      */
     let {
         choice,
@@ -52,7 +43,6 @@
 
     let refusalShown = $state(false)
     let refused = $derived(choice.refusal !== undefined)
-    /** Refused, or spent: other picks hold its room. Either is dimmed; only a refusal has a line. */
     let dimmed = $derived(refused || choice.spent === true)
     let previewing = $derived(pointer.isRowPointedAt(owner))
     let lights: (() => readonly BoardTarget[]) | undefined = $derived(choice.lights)
@@ -223,7 +213,6 @@
         display: none;
     }
 
-    /* A die has no room beside it: its preview stands beneath, as wide as the die, short label. */
     .touch-preview.beneath {
         width: 100%;
         min-width: 0;
@@ -245,16 +234,12 @@
         }
     }
 
-    /*
-     * Contract, Phone layout: a phone's card has no preview path. A press on it is undoable and
-     * itself lights the places; the hand stays one row of faces.
-     */
+    /* Contract, Phone layout: a phone's card has no preview path; its press is undoable. */
     @media (max-width: 40rem), (max-height: 520px) and (orientation: landscape) {
         .touch-preview.on-face {
             display: none;
         }
 
-        /* Six dice stand in one row on a phone: the die is the press, with no margin round it. */
         .piece-press {
             padding: 0;
         }

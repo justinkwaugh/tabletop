@@ -9,7 +9,7 @@
     import type { KnightRowId } from '@tabletop/feudum'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /** A piece as it would land. R-5-H1 A seal is the same crowned disc to all. */
+    /** R-5-H1 A seal is the same crowned disc to all. */
     let {
         piece,
         size,

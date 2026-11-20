@@ -4,12 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { StarPath } from '$lib/utils/pieceShapes.js'
 
-    /**
-     * Contract, Supply: the desk's score line, at the zoom row's end, since a desk's board draws no
-     * score ring: every seat in turn order, its colour, name and score, the leader marked. For looking
-     * only: it offers no target and changes no offer. In the side column (`stacked`) it stands over
-     * the zoom row, two seats a line.
-     */
+    /** Contract, Supply: a desk's board draws no score ring, so this line stands in for it. */
     let { stacked = false }: { stacked?: boolean } = $props()
 
     const gameSession = getGameSession()
@@ -62,7 +57,6 @@
 </ul>
 
 <style>
-    /* In the zoom row, at its end, drawn as its buttons are; it gives way before they do. */
     .line {
         display: flex;
         align-items: center;
@@ -81,7 +75,6 @@
         pointer-events: auto;
     }
 
-    /* In the side column: two seats a line, as many lines as the seats need, its frame 12 px tall. */
     .line.stacked {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -104,7 +97,7 @@
         white-space: nowrap;
     }
 
-    /* The leader: a heading-coloured outline and star, never the accent, which asks for a press. */
+    /* Never the accent colour, which asks for a press. */
     .seat.leading {
         border-color: var(--feudum-heading);
         color: var(--feudum-heading);

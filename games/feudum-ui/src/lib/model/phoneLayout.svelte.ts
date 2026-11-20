@@ -5,7 +5,6 @@ const PhoneUpright = '(width < 40rem)'
 const PhoneSideways = '(max-height: 520px) and (orientation: landscape)'
 const ReducedMotion = '(prefers-reduced-motion: reduce)'
 
-/** Which of the contract's phone layouts the window is in, if any, read reactively. */
 export class PhoneLayout {
     private readonly uprightQuery = new MediaQuery(PhoneUpright)
     private readonly sidewaysQuery = new MediaQuery(PhoneSideways)

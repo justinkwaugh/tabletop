@@ -10,13 +10,7 @@
     import { GuildAreaHeight, GuildAreaWidth, GuildAreas } from '$lib/utils/boardGeometry.js'
     import GuildArea from './GuildArea.svelte'
 
-    /**
-     * R-1.2.3 One guild area where it stands on the board, in board units: on a phone's board, or
-     * behind a desk's side button. A press on it enlarges it, at any time, unless the same press picks
-     * it (contract: Card preview). The press stands under the area, so a bead on it still enlarges
-     * alone. Where the area stands upright off the board its chip is drawn upright beside it instead
-     * (`drawsChip`).
-     */
+    /** R-1.2.3 A press enlarges it unless that press picks it (contract: Card preview). */
     let {
         guild,
         state,

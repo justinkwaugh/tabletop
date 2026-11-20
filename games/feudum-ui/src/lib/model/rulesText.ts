@@ -11,17 +11,13 @@ import {
 import { spaceLabel } from './cardFlows.js'
 import type { EnlargedFace } from './tableLayers.svelte.js'
 
-/**
- * What stands beside an enlarged card, writ or guild area: a short reading of what it does, in this
- * game's own words, from the rules digest and the rulings. Nothing here is the rulebook's wording.
- */
+/** In this game's own words, from the rules digest: nothing here is the rulebook's wording. */
 export interface RulesNote {
     readonly title: string
     readonly lines: readonly RulesLine[]
 }
 
 export interface RulesLine {
-    /** What the line is about: the regular action, a special ability, a guild function. */
     readonly term: string
     readonly text: string
 }
@@ -196,7 +192,7 @@ const Charter: RulesLine = {
     text: 'It scores only if a king’s seal is laid on it at the end of the game.'
 }
 
-/** R-4.4.2, R-4.4-H1, R-4.4-H4, R-7 Read from each card's alternatives and rewards. */
+/** R-4.4.2, R-4.4-H1, R-4.4-H4, R-7 */
 const MandateNotes: Readonly<Record<string, RulesNote>> = {
     'writ.mandate.1': {
         title: 'Mandate 1',
@@ -280,7 +276,7 @@ function kingdomTitle(charter: KingdomCharter): string {
     return `${charter.kingdom.charAt(0).toUpperCase()}${charter.kingdom.slice(1)} Kingdom`
 }
 
-/** R-6.2-H1 What a kingdom charter pays, read from its card's spaces and points. */
+/** R-6.2-H1 */
 function kingdomNote(charter: KingdomCharter): RulesNote {
     const counts = charter.vpByLocationsRuled.map((_, index) => index + 1)
     const most = counts.length
@@ -440,7 +436,6 @@ const GuildNotes: Readonly<Record<GuildNoteId, RulesNote>> = {
     }
 }
 
-/** Every note, keyed by the id of what it reads. */
 export const RulesNotes: Readonly<Record<string, RulesNote>> = {
     ...CardNotes,
     ...MandateNotes,
@@ -448,14 +443,12 @@ export const RulesNotes: Readonly<Record<string, RulesNote>> = {
     ...GuildNotes
 }
 
-/** Every id that the enlarged view shows face up and so must read. */
 export const NotedIds: readonly string[] = [
     ...ActionCardKinds.map((kind): ActionCardId => `card.action.${kind}`),
     ...RoyalWrits.map(({ id }) => id),
     ...GuildIds.map((guild): GuildNoteId => `guild.${guild}`)
 ]
 
-/** The note beside an enlarged piece: a face, never a back; a tile or bead has none. */
 export function rulesNoteOf(face: EnlargedFace): RulesNote | undefined {
     switch (face.kind) {
         case 'card':

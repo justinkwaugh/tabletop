@@ -11,10 +11,7 @@
         marketBinRow
     } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * R-1.3 The market: five bins by four spaces, each with its price from the data. The printed
-     * panel says the bins and prices itself, so only the goods stand over it.
-     */
+    /** R-1.3 The printed panel shows the bins and prices, so only the goods stand over it. */
     let { state }: { state: HydratedFeudumGameState } = $props()
 
     let printed = $derived(guildPrinted('merchant'))

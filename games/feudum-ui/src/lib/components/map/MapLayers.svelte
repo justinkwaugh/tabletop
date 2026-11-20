@@ -24,7 +24,6 @@
     } = $props()
 </script>
 
-<!-- The map's one veil, over its ground and its drawn routes, is the routes' (`MapRoutes`). -->
 <g data-layer="ground"><MapGround /></g>
 <g data-layer="routes"><MapRoutes {chrome} /></g>
 <g data-layer="locations"><MapLocations {state} {paintOf} {chrome} /></g>

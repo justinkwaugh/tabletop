@@ -10,11 +10,7 @@
     import { EpochNumerals } from '$lib/model/turnDraft.svelte.js'
     import Scrim from './Scrim.svelte'
 
-    /**
-     * A phone's Tracks sheet (contract: Phone layout): the tracks lie scattered round the board, so
-     * this redraws them in one column, each by the board's own component on the plain chrome. It is
-     * for looking: it holds no target, and a pick that lights a track frames it on the board instead.
-     */
+    /** Contract, Phone layout: the tracks, scattered round the board, redrawn in one column. */
     let { onClose }: { onClose: () => void } = $props()
 
     const SheetShare = 80

@@ -1,46 +1,29 @@
 import type { BoundingBox } from '@tabletop/common'
-/**
- * The catalog cover's page, composed for `scripts/make-cover.mjs` to render: 4:5 at twice the large
- * card's height, with the title band the script draws over a scene that has no title of its own. It
- * takes its colours from a token lookup, so it holds no raw colour.
- */
+/** 4:5 at twice the catalog's large card height, for `scripts/make-cover.mjs` to render. */
 export const CoverSize = { width: 544, height: 680 } as const
 
 type Token = (name: string) => string | undefined
 
 const { width: Width, height: Height } = CoverSize
 
-/** An image's size, in its own pixels. */
 export interface ImageSize {
     readonly width: number
     readonly height: number
 }
 
-/** Where a cover's printed title runs across it, as fractions of the source's width. */
 export interface PrintedTitle {
     readonly left: number
     readonly right: number
 }
 
-/**
- * The box front's printed title, FEUDUM in its scrolled frame, measured on the 2400 × 1618 source:
- * from the foot of the F to the tail of the M.
- */
+/** FEUDUM in its scrolled frame on the 2400 × 1618 box front, from the F's foot to the M's tail. */
 export const BoxFrontTitle: PrintedTitle = { left: 495 / 2400, right: 1890 / 2400 }
 
-/** The clear space the crop keeps on either side of a printed title, in the cover's units. */
 export const TitleMargin = 16
 
 /**
- * The crop rule for a cover that prints its own title. Without the title's place, the image is
- * scaled to the cover's full width, so a title printed across it is never cut at the sides, and
- * centred top to bottom: a source taller than 4:5 loses equal strips above and below, and a wider
- * one stands whole between two bands of the page's ground.
- *
- * With the title's place, a wide source such as the box front shows as much of its scene as the
- * title allows: it fills the cover's height when the title then fits between the margins, and
- * otherwise the title and its margins fill the width, with bands of ground above and below. The
- * title is centred across the cover unless that would show past the image's edge.
+ * A printed title is never cut: without its place the image takes the full width; with it, a wide
+ * source fills the height when the title then fits between the margins.
  */
 export function coverPlacement(source: ImageSize, title?: PrintedTitle): BoundingBox {
     const fullWidth = Width / source.width
@@ -60,20 +43,11 @@ export function coverPlacement(source: ImageSize, title?: PrintedTitle): Boundin
     return { x, y: (Height - height) / 2, width, height }
 }
 
-/**
- * What stands on the cover: a supplied image. One that prints its own title (`titled`) is the whole
- * cover, placed by `coverPlacement` around that title when its place is known; one without a title
- * fills the page behind the drawn title band.
- */
 export type CoverScene =
     | { href: string; titled: false; size: ImageSize }
     | { href: string; titled: true; size: ImageSize; title?: PrintedTitle }
 
-/**
- * Where a scene without a title stands: scaled to cover the whole page and centred, so the page's
- * edge crops what lies past it. Sized here rather than by `preserveAspectRatio="slice"`, which
- * browsers draw differently.
- */
+/** Sized here, not by `preserveAspectRatio="slice"`, which browsers draw differently. */
 export function coverFill(source: ImageSize): BoundingBox {
     const scale = Math.max(Width / source.width, Height / source.height)
     const width = source.width * scale
@@ -90,7 +64,6 @@ function titleBand(token: Token) {
         font-family="MedievalSharp, 'IM Fell English', serif">Feudum</text>`
 }
 
-/** The cover as one SVG of `CoverSize`. */
 export function coverSvg(scene: CoverScene, token: Token): string {
     const band = scene.titled ? '' : titleBand(token)
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${Width}" height="${Height}" viewBox="0 0 ${Width} ${Height}">

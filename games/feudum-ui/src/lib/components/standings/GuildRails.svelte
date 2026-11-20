@@ -4,10 +4,7 @@
     import { RailOver, railOverRect, westGuild } from '$lib/utils/boardGeometry.js'
     import GuildRail from './GuildRail.svelte'
 
-    /**
-     * Contract, Guild standings: one column's rails, in board units, over the map's inner edge in a
-     * phone's guild view, each level with its area.
-     */
+    /** Contract, Guild standings: one column's rails, over the map's edge in the guild view. */
     let {
         view,
         paintOf,
@@ -53,10 +50,7 @@
         position: absolute;
     }
 
-    /*
-     * HTML under the board's view-scale zoom would be laid out again at each zoom and hit Safari's
-     * 9px text floor: the drawing takes the zoom off and is scaled by its transform instead.
-     */
+    /* Safari's 9px text floor: HTML under the view-scale zoom is unzoomed and scaled instead. */
     .drawing {
         zoom: var(--render-unzoom, 1);
         transform-origin: 0 0;

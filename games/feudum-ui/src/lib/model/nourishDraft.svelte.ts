@@ -25,7 +25,7 @@ export interface Feeding {
 }
 
 export type NourishValues = {
-    /** R-4.3.3 Stacked: each press one tile, before the feeding, which is read after them. */
+    /** R-4.3.3 Stacked: one tile per press, read before the feeding. */
     cover: readonly WildTileSpend[]
     /** R-4.10.1 The preselection is its `auto` entry (S53); each press stacks. */
     feeding: Feeding
@@ -38,11 +38,7 @@ export type Feed = 'food' | 'wine' | 'unfed'
 const FeedOrder: readonly Feed[] = ['food', 'wine', 'unfed']
 const FeedLabels: Readonly<Record<Feed, string>> = { food: 'Food', wine: 'Wine', unfed: 'Unfed' }
 
-/**
- * Contract, Round end: food and wine are their pieces; "unfed" is its word. Wine alone keeps a
- * line, its cost: R-4.10.2 it feeds this round and the next, and next round the pawn's strength
- * is 0.
- */
+/** Contract, Round end; R-4.10.2 wine feeds two rounds, and the pawn's strength is 0 the next. */
 const FeedShown: Readonly<Record<Feed, string>> = { food: '', wine: '', unfed: 'unfed' }
 const WineCost = '2 rounds · 0 strength'
 const FeedArt = { food: 'food', wine: 'sulfur' } as const
@@ -50,16 +46,12 @@ const FeedArt = { food: 'food', wine: 'sulfur' } as const
 /** R-4.3.3 The tile line: shown only when food and wine fall short and a tile could cover it. */
 export const CoverLine = 'A tile feeds 1'
 
-/**
- * One feed for one pawn. `spent` is a feed every unit of which another pawn eats: a press still
- * moves it here, and the pawn pressed into it last takes this one's feed (R-4.10.1).
- */
+/** R-4.10.1 A `spent` feed is all eaten by others; a press swaps out the last pawn into it. */
 export interface NourishOption extends DraftChoice {
     readonly feed: Feed
-    /** Wine's cost, beneath its piece; no other feed has a line. */
     readonly caption?: string
     readonly spent: boolean
-    /** The good the feed pays, drawn: R-4.10.2 wine is a barrel's sulfur. */
+    /** R-4.10.2 Wine is a barrel's sulfur. */
     readonly good?: 'food' | 'sulfur'
 }
 
@@ -67,9 +59,7 @@ export interface NourishPawnRow {
     readonly n: PawnNumber
     readonly character: GuildId
     readonly spaceId: SpaceId
-    /** The pawn's character, as a name. */
     readonly name: string
-    /** The space it stands on. */
     readonly place: string
     readonly label: string
     readonly feed: Feed
@@ -77,7 +67,6 @@ export interface NourishPawnRow {
     readonly choices: readonly NourishOption[]
 }
 
-/** The send's counts, which it draws as art. */
 export interface NourishSend {
     readonly fed: number
     readonly food: number
@@ -118,10 +107,7 @@ function capacities(offer: NourishOffer): Readonly<Record<Feed, number>> {
     }
 }
 
-/**
- * R-4.10.1 The feeding after a press: the pawn goes to that feed, and if the feed is full, the pawn
- * pressed last into it comes back to where this one was, so no pawn it could feed goes unfed.
- */
+/** R-4.10.1 A full feed sends its last pawn back, so no pawn it could feed goes unfed. */
 export function feedingAfterPress(
     offer: NourishOffer,
     feeding: Feeding,
@@ -143,10 +129,8 @@ export function feedingAfterPress(
 }
 
 /**
- * R-4.10, R-4.10-H4 A seat nourishing asks. Every asked seat decides at once, so the draft outlives
- * another seat's Action; it is read back only under its own key (`keyOf`: the seat, the round, and
- * the seat's own last Action), so a shared screen never shows it to the next seat, and the seat's
- * own at-will play starts it afresh. Its choice always ends on the primary button.
+ * R-4.10, R-4.10-H4 Every asked seat decides at once, so the draft outlives another seat's Action;
+ * it is read back only under `keyOf`, so a shared screen never shows it to the next seat.
  */
 export class NourishDraft extends DeciderDraft<NourishValues> {
     private key: string | undefined = $state.raw()
@@ -227,7 +211,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         }
     }
 
-    /** R-4.3.3 A tile's good: pressed again it comes off, and a new preselection follows. */
+    /** R-4.3.3 Pressed again, a tile's good comes off. */
     private pressCover(spend: WildTileSpend) {
         const cover = this.value('cover') ?? []
         const same = cover.some(
@@ -238,10 +222,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         this.push('cover', same ? others : [...others, spend])
     }
 
-    /**
-     * R-4.3.3, R-4.10-H4 What the haversack holds for each tile is the offer's: another seat's
-     * feeding, applied first, can take the last of a good, and the rows then say so.
-     */
+    /** R-4.3.3, R-4.10-H4 Another seat's feeding, applied first, can take the last of a good. */
     private coverRows(
         { state, playerId }: TurnContext,
         offer: NourishOffer
@@ -251,7 +232,6 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             const food: WildTileSpend = { tileId, good: 'food' }
             const wine: WildTileSpend = { tileId, good: 'sulfur', sulfurToBarrel: true }
             const spent = cover.find((spend) => spend.tileId === tileId)
-            /** A good the haversack can't bring for this isn't drawn, unless it is picked. */
             const row = (
                 spend: WildTileSpend,
                 name: string,
@@ -298,8 +278,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             wine: preview.wine
         }
         const left = offer.pawns.filter(({ n }) => feedOfPawn(n) === 'unfed')
-        // R-4.10-H3 A feed stands while there is some of it to give; "Unfed" only when both fall
-        // short. A feed another pawn eats stands, and a press moves it (R-4.10.1).
+        // R-4.10-H3 A feed stands while there is some of it to give.
         const shown = FeedOrder.filter((one) => room[one] > 0)
         return {
             pawns: offer.pawns.map(({ n, character, spaceId }) => {
@@ -387,10 +366,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         return this.picks.find((pick) => pick.target === target)
     }
 
-    /**
-     * R-4.10.1 The send names how many pawns eat and with what, and how many are left: "Feed 2 · 2
-     * food" (drawn as art), "Feed 2 · leave 1", "Leave the merchant".
-     */
+    /** R-4.10.1 "Feed 2 · 2 food", "Feed 2 · leave 1", "Leave the merchant". */
     private sendLabel({ fed, food, wine }: NourishSend, left: readonly GuildId[]): string {
         if (left.length === 0) {
             const paid = [
@@ -405,7 +381,6 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         return left.length === 1 ? `Leave the ${left[0]}` : `Leave ${left.length} pawns`
     }
 
-    /** R-4.10.1 The paid good drawn on a fed pawn's chip on the map. */
     private payChip(feed: 'food' | 'wine'): ChipNote {
         return {
             kind: 'role',

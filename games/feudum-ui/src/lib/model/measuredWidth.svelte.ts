@@ -1,6 +1,5 @@
 import type { Attachment } from 'svelte/attachments'
 
-/** An element's width in CSS pixels as it stands, kept as it changes. */
 export class MeasuredWidth {
     width = $state<number | undefined>(undefined)
 

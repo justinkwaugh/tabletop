@@ -25,10 +25,7 @@ export function combatTargetName(
     return pawn?.character ?? 'pawn'
 }
 
-/**
- * R-3.14.1 The defender's two presses, built from the offer. No auto stage and no draft: an answer
- * always waits for its own press, and whether the seat holds Defend reads nowhere else (S34).
- */
+/** R-3.14.1 No auto stage and no draft: an answer always waits for its own press (S34). */
 export function answerAttackPanelOf({
     state,
     playerId,
@@ -44,7 +41,6 @@ export function answerAttackPanelOf({
     const gain = offer.defenceIfFlipped - offer.defence
     return {
         line: `${nameOf(combat.attackerId)} conquers your ${name} at ${place}: ${offer.attack} vs ${offer.defence}`,
-        // Without Defend the flip is not drawn, and Let it stand is the one press.
         ...(offer.holdsDefend
             ? {
                   flip: {

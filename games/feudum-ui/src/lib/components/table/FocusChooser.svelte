@@ -3,12 +3,6 @@
     import type { Attachment } from 'svelte/attachments'
     import type { BoardFocus, FocusArea } from '$lib/model/boardFocus.svelte.js'
 
-    /**
-     * A phone's focus chooser: four chips over the board's top edge. Map and the guild chips frame
-     * that part of the board, the Tracks chip opens the sheet. A chip's dot says its area holds a lit
-     * target. It also follows the open pick, which is the one place a choice moves the focus. A desk
-     * has none: its guilds stand behind the side buttons (`GuildSides`).
-     */
     let {
         focus,
         lit,
@@ -17,7 +11,6 @@
     }: {
         focus: BoardFocus
         lit: ReadonlySet<FocusArea>
-        /** Which way up the phone is: the chosen view fits again when it turns. */
         turned: boolean
         onTracks: () => void
     } = $props()
@@ -29,10 +22,7 @@
         { area: 'tracks', label: 'Tracks' }
     ]
 
-    /**
-     * The scaling wrapper's view is an imperative camera: it moves to what the board stands on when
-     * that changes or the phone turns. Nothing here writes the focus.
-     */
+    /** The scaling wrapper's view is an imperative camera, so it is moved, not bound. */
     const moveTheView: Attachment<HTMLElement> = () => {
         void [focus.framed, focus.chosen, turned]
         untrack(() => focus.settle())
@@ -100,7 +90,7 @@
         background: var(--feudum-primary);
     }
 
-    /* 44 px to press, over the board's edge, for a chip drawn no taller than the budget allows. */
+    /* A 44 px press target for a chip drawn shorter. */
     .chip::after {
         content: '';
         position: absolute;

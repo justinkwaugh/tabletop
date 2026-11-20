@@ -17,13 +17,7 @@
     import BoardGuildArea from './BoardGuildArea.svelte'
     import UprightArea from './UprightArea.svelte'
 
-    /**
-     * Contract, Desk layout: one guild area behind a desk's side button, stood upright at `long`
-     * pixels and live as on the board: its pieces, its pick's ring and press, and its enlarging
-     * press, from the board offer. Its chip stands upright at its head; its upright box anchors a
-     * popup beside it. Its svg is a motion surface: what moves inside the area moves here, and the
-     * tokens that stand for pieces placed in it are drawn here, turned back upright.
-     */
+    /** Contract, Desk layout: one guild area behind a desk's side button, stood upright. */
     let {
         guild,
         long,
@@ -40,7 +34,6 @@
         chrome: BoardChrome
     } = $props()
 
-    /** The chip's height in pixels over the area's head, whatever the area's size. */
     const ChipScale = 0.8
     const ChipHeight = 34
 
@@ -64,7 +57,6 @@
     data-pick-anchor={target}
 >
     <UprightArea {guild} {long}>
-        <!-- Unclipped, as on the board, so a pick's ring shows whole round the area. -->
         <svg
             class="surface"
             width={long}

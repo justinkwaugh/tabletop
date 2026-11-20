@@ -1,8 +1,5 @@
 <script lang="ts">
-    /**
-     * A cost or threat. Rose is never a bare red shape, so the label is required and the halo is
-     * part of the chip; a seal, a game piece, has neither.
-     */
+    /** Rose is never a bare red shape: the label and the halo carry it. */
     let { label }: { label: string } = $props()
 
     function required(text: string): string {

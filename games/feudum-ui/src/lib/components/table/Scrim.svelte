@@ -1,10 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
 
-    /**
-     * A layer over the table: its backdrop closes it, its close button too, and it pads by the
-     * screen's safe areas (contract: Open seat, Card preview).
-     */
+    /** Contract, Open seat, Card preview: it pads by the screen's safe areas. */
     let {
         label,
         layer,
@@ -16,9 +13,8 @@
         label: string
         layer: string
         onClose: () => void
-        /** On a phone it stands as a bottom sheet, up to this much of the dynamic viewport. */
         sheet?: number
-        /** Without one, what the layer holds is its own close press (contract: Card preview). */
+        /** Contract, Card preview: without one, what the layer holds is its own close press. */
         closeButton?: boolean
         children: Snippet
     } = $props()

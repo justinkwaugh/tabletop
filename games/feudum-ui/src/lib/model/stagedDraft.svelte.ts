@@ -14,14 +14,9 @@ import {
 
 type StageOf<TValues extends Record<string, unknown>> = Extract<keyof TValues, string>
 
-/**
- * One staged flow's draft: the session owns one for each flow, registers `localSelection`, and
- * components read it and press through the session. A subclass names the flow's stages and presses.
- */
 export class StagedDraft<TValues extends Record<string, unknown>> {
     private stages: StagedSelectionState<TValues> = $state.raw({})
 
-    /** Undo pops through this; a draft that reads stages conditionally overrides `read`. */
     readonly localSelection: LocalSelection
 
     constructor(readonly stageOrder: readonly StageOf<TValues>[]) {
@@ -54,7 +49,6 @@ export class StagedDraft<TValues extends Record<string, unknown>> {
         return getStagedSelectionValue(this.read(), stage)
     }
 
-    /** Sets a stage and clears every later one. A second set replaces it, with no history. */
     set<TStage extends StageOf<TValues>>(
         stage: TStage,
         value: TValues[TStage],
@@ -63,7 +57,6 @@ export class StagedDraft<TValues extends Record<string, unknown>> {
         this.write(setStagedSelectionValue(this.read(), this.stageOrder, stage, value, source))
     }
 
-    /** One manual press on a stacked stage: Undo restores the value it replaced. */
     push<TStage extends StageOf<TValues>>(stage: TStage, value: TValues[TStage]): void {
         this.write(pushStagedSelectionValue(this.read(), this.stageOrder, stage, value))
     }
@@ -80,18 +73,13 @@ export class StagedDraft<TValues extends Record<string, unknown>> {
         return hasManualStagedSelection(this.read(), this.stageOrder)
     }
 
-    /** Every filled stage came from a press, so a completing press may send. */
     get allManual(): boolean {
         const stages = this.read()
         return this.stageOrder.every((stage) => stages[stage]?.source !== 'auto')
     }
 }
 
-/**
- * A lone legal choice as an `auto` stage (contract: Pick conventions). Stage-gated: a filled stage
- * stays as it is. Cardinality-gated: only exactly one choice. Idempotent, and it never sends, so a
- * draft can read through it with no effect.
- */
+/** Contract, Pick conventions: a lone legal choice as an `auto` stage; it never sends. */
 export function withLoneChoice<
     TValues extends Record<string, unknown>,
     TStage extends StageOf<TValues>

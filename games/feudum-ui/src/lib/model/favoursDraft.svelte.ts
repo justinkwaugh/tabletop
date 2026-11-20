@@ -31,9 +31,7 @@ export const FavoursStageOrder: readonly (keyof FavoursValues)[] = ['goods', 'ba
 
 export interface FavourRow extends DraftChoice {
     readonly good: Good
-    /** How many of this good were drawn. */
     readonly count: number
-    /** How many of them are picked. */
     readonly taken: number
 }
 
@@ -125,7 +123,6 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
                         : draftChoice(`${good} ${count}`, taken > 0, () => {
                               this.pressGood(good, picks, taken, room)
                           })),
-                    // The good is its cube beside the count drawn.
                     shown: String(count)
                 }
             }),

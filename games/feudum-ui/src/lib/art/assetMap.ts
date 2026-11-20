@@ -37,7 +37,6 @@ export const tileFrontAsset = (epoch: TileEpoch) => `tile.front.${EpochNumerals[
 export const tileBackAsset = (landscape: LandscapeKind) => `tile.back.${landscape}` as const
 export const cardAsset = (kind: ActionCardKind) => `card.action.${kind}` as const
 
-/** The five colours the publisher printed its cards and seat pieces in. */
 export const PrintedColours = [
     Color.Red,
     Color.Blue,
@@ -46,16 +45,11 @@ export const PrintedColours = [
     Color.Purple
 ] as const
 export type PrintedColour = (typeof PrintedColours)[number]
-/** A whole printed card back in its seat colour. */
 export const cardBackAsset = (colour: PrintedColour) => `card.back.${colour}` as const
-/** A reeve's printed point, in ink alone: the seat's disc under it is drawn in the seat fill. */
 export const ReeveAsset = 'piece.reeve'
-/** A guild's printed panel, as it lies on the board: the ground its area's state stands on. */
 export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
-/** The face off a guild's print, cut round and upright, for a desk's side button. */
 export const guildFaceAsset = (guild: GuildId) => `face.${guild}` as const
 
-/** A feudum's disc is told by its guild's icon; the other kinds have one face each. */
 export function locationAsset(kind: LocationKind, guild?: GuildId) {
     return kind === 'feudum'
         ? (`location.feudum.${guild ?? 'farmer'}` as const)
@@ -66,21 +60,10 @@ export const SealAsset = 'seal'
 export const TargetAsset = 'target.archery'
 export const WritBackAsset = 'writ.back'
 export const CoverAsset = 'cover'
-/** The board's printed map, sky and bottom strip included, with the terrain and every route on it. */
 export const MapAsset = 'board.map'
-/**
- * The board round the map and the guild panels: the printed score ring, its corners and the frame,
- * one file for each part of it (`ringPieces.ts`).
- */
 export const ringPartAsset = (part: RingPart) => `board.ring.${part}` as const
 
-/**
- * Every publisher image the components can show, id to file. A file lives in `./supplied` as
- * `<id>.webp` or `<id>.png`. With no file a component draws its own plain labelled fallback, so
- * the tree builds and plays with none. A card back has an id for each printed colour, shown only
- * while the seat's displayed colour is that printed colour's own (`SeatPaint`); an action card's
- * face is its kind's art with the print drawn round it in code.
- */
+/** With no file in `./supplied` a component draws its fallback: the tree builds with none. */
 export const AssetIds = [
     CoverAsset,
     MapAsset,
@@ -114,20 +97,17 @@ export function assetUrlIn(files: Record<string, string>, id: string): string | 
     return files[`./supplied/${id}.webp`] ?? files[`./supplied/${id}.png`]
 }
 
-/** The file for an id, or undefined when the folder doesn't hold it. */
 export function assetUrl(id: AssetId): string | undefined {
     return assetUrlIn(suppliedFiles, id)
 }
 
 type RingPrintPart = (typeof RingParts)[number] & { readonly url: string }
 
-/** The ring's parts, each with its file, or undefined unless the folder holds every one. */
 export function ringPrint(): readonly RingPrintPart[] | undefined {
     const parts = RingParts.map((ring) => ({ ...ring, url: assetUrl(ringPartAsset(ring.part)) }))
     return parts.every((ring): ring is RingPrintPart => ring.url !== undefined) ? parts : undefined
 }
 
-/** Files in the folder that no id asks for: a crop the map doesn't know, or a misnamed one. */
 export function strayFiles(files: Record<string, string>): string[] {
     const known = new Set<string>(AssetIds)
     return Object.keys(files).filter((path) => {

@@ -28,13 +28,9 @@
     import { PrintedSizes } from '$lib/utils/printedGuilds.js'
     import { BarrelPath } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-1.3 The carts and piles, and the vessels for sale over the ferry symbol. R-4.6.5 The inventions
-     * with their recipes, from the data.
-     */
+    /** R-1.3 The carts, piles and vessels for sale. R-4.6.5 The inventions with their recipes. */
     let { state }: { state: HydratedFeudumGameState } = $props()
 
-    /** The printed panel says the carts, the vessel space and the recipes; the goods stand over it. */
     let printed = $derived(guildPrinted('alchemist'))
     let cartGood = $derived(printed ? PrintedSizes.cartGood : GuildSizes.good)
     let vesselSize = $derived(vesselForSaleSize())

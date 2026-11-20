@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Scrim from './Scrim.svelte'
 
-    /** One seat at reading size, from the displayed state, so it works in History View. */
+    /** From the displayed state, so it works in History View. */
     let { playerId, onClose, sheet }: { playerId: string; onClose: () => void; sheet?: number } =
         $props()
 

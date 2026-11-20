@@ -1,8 +1,4 @@
-/**
- * The drawn forms of the pieces, as path data in a 24 unit box unless a shape says otherwise. One
- * source for the components and the cover script, so a piece looks the same everywhere. No colour
- * here: each caller paints with tokens or a seat colour.
- */
+/** Path data in a 24 unit box unless a shape says otherwise. */
 
 function gearPath(): string {
     const teeth = 8
@@ -23,10 +19,9 @@ function gearPath(): string {
     return `M${points.join(' L')} Z M12 8.5 A3.5 3.5 0 1 0 12 15.5 A3.5 3.5 0 1 0 12 8.5 Z`
 }
 
-/** The crown of a seal, a card back and the noble's icon. */
 export const CrownPath = 'M3 19 L3 8 L8 13 L12 5 L16 13 L21 8 L21 19 Z'
 
-/** The six characters' icons (R-4.5.1), told by shape on a medallion, a keep and a crest. */
+/** R-4.5.1 */
 export const GuildIconPaths = {
     farmer: 'M6 16 L6 20 L8 20 L8 17 L15 17 L15 20 L17 20 L17 16 A5 5 0 0 0 18 12 A3 3 0 0 0 21 9 A3 3 0 0 0 16 7 A5.5 5.5 0 0 0 7 8 A4.5 4.5 0 0 0 6 16 Z',
     merchant:
@@ -37,7 +32,7 @@ export const GuildIconPaths = {
     monk: 'M10.5 2 L13.5 2 L13.5 8 L19 8 L19 11 L13.5 11 L13.5 22 L10.5 22 L10.5 11 L5 11 L5 8 L10.5 8 Z'
 } as const
 
-/** Each good's silhouette, so none is told by its colour alone. */
+/** So no good is told by its colour alone. */
 export const GoodPaths = {
     saltpeter: 'M12 2 L19 8 L17 20 L7 20 L5 8 Z',
     sulfur: 'M5 16 C2 11 6 6 10 7 C12 3 18 4 19 9 C23 12 20 19 15 19 C12 21 7 20 5 16 Z',
@@ -46,23 +41,17 @@ export const GoodPaths = {
     food: 'M11 21 L11 12 C7 11 5 7 6 3 C9 4 11 6 12 9 C13 6 15 4 18 3 C19 7 17 11 13 12 L13 21 Z'
 } as const
 
-/**
- * A pawn as the wooden cube it is, in a 40 unit square seen in three-quarter view: the front face
- * square-on, the top and the right side going back from it, and where its character is printed on
- * the front, in the guild icons' 24 unit box.
- */
 export const PawnCube = {
     box: 40,
     front: { x: 3, y: 13, width: 28, height: 25 },
     top: 'M3 13 L10 4 L38 4 L31 13 Z',
     side: 'M31 13 L38 4 L38 29 L31 38 Z',
-    /** The cube's silhouette, and the edges between its faces. */
     outline: 'M3 13 L10 4 L38 4 L38 29 L31 38 L3 38 Z',
     edges: 'M3 13 L31 13 L38 4 M31 13 L31 38',
     face: { x: 7.5, y: 16, size: 19.2 }
 } as const
 
-/** Vessels, in a 48 x 32 box: hull and the part that names its medium. */
+/** In a 48 x 32 box. */
 export const VesselPaths = {
     ship: {
         hull: 'M4 20 L44 20 L38 29 L10 29 Z',
@@ -78,7 +67,7 @@ export const VesselPaths = {
     }
 } as const
 
-/** Monsters, in a 48 x 48 box: own silhouettes, with the band a controlled one wears. */
+/** In a 48 x 48 box. */
 export const MonsterPaths = {
     behemoth: {
         body: 'M24 2 L26 8 C33 8 37 14 37 22 C41 26 41 32 38 34 L37 44 L29 44 L28 38 L20 38 L19 44 L11 44 L10 34 C7 32 7 26 11 22 C11 14 15 8 22 8 Z',
@@ -90,7 +79,7 @@ export const MonsterPaths = {
     }
 } as const
 
-/** A keep on its hill, in a 100 x 100 box, for the feudum's fallback and the cover. */
+/** In a 100 x 100 box. */
 export const KeepPath =
     'M28 92 L28 44 L22 44 L22 30 L30 30 L30 36 L38 36 L38 30 L46 30 L46 36 L54 36 L54 30 L62 30 L62 36 L70 36 L70 30 L78 30 L78 44 L72 44 L72 92 L58 92 L58 72 A8 8 0 0 0 42 72 L42 92 Z'
 
@@ -101,7 +90,7 @@ export const LocationPaths = {
     town: 'M2 21 L2 11 L7 5 L12 11 L17 5 L22 11 L22 21 Z'
 } as const
 
-/** What a landscape tile shows when turned (R-4.3), each told by shape. */
+/** R-4.3 Each told by shape. */
 export const LandscapePaths = {
     orchard:
         'M11 21 L11 14 C7 15 3 13 3 9 C3 5 7 2 12 2 C17 2 21 5 21 9 C21 13 17 15 13 14 L13 21 Z',
@@ -111,8 +100,6 @@ export const LandscapePaths = {
     'sulfur-mine': 'M12 2 C15 7 19 11 19 15 A7 7 0 0 1 5 15 C5 11 9 7 12 2 Z'
 } as const
 
-/** The drop a drunk pawn carries. */
 export const DropPath = LandscapePaths['sulfur-mine']
 
-/** A five-pointed star in the 24 unit box, with no font behind it. */
 export const StarPath = 'M12 2 L15 9 L22 9.5 L16.5 14 L18.5 21 L12 17 L5.5 21 L7.5 14 L2 9.5 L9 9 Z'

@@ -5,10 +5,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { EpochNumerals } from '$lib/model/turnDraft.svelte.js'
 
-    /**
-     * A phone's status strip: epoch and round, and this seat's goods, shillings, barrel and free
-     * discs, all from the one derivation of the seat. Someone with no seat sees the epoch and round.
-     */
     const gameSession = getGameSession()
 
     const Token = 15

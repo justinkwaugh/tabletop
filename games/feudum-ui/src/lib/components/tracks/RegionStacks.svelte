@@ -24,12 +24,7 @@
         trackPlace
     } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * R-4.3.1 Six stacks, the top tile showing its epoch; the print's V shows under an empty one.
-     * R-4.11.1 The progress die stands beside them. `printed` false draws our own stack spaces, V and
-     * R-4.3.2 chart; the print holds those itself, so they are not drawn a second time over it. A
-     * stack no pick lights opens its stack view on a press (contract: Card preview).
-     */
+    /** R-4.3.1, R-4.3.2, R-4.11.1. An unlit stack opens its view (contract: Card preview). */
     let {
         state,
         printed,

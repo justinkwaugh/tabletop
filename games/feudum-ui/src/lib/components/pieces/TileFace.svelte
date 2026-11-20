@@ -4,11 +4,7 @@
     import { LandscapePaths } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /**
-     * R-4.3 A region tile. Its epoch side is what a stack shows; `faceShown` turns it to its
-     * landscape, and only then does anything of the landscape reach the markup. The perspective rule
-     * decides, never whether the data happens to be here.
-     */
+    /** R-4.3 Only `faceShown` lets the landscape reach the markup, by the perspective rule. */
     let {
         faceShown,
         epoch,

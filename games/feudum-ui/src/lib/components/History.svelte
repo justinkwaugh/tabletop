@@ -23,7 +23,6 @@
     let log = $derived(gameSession.historyLog)
     let scroller: HTMLDivElement | undefined = $state()
 
-    /** Newest first, each interstitial under the entries it opens (as Indonesia's are). */
     let entries = $derived(log.entries.toReversed())
     let finished = $derived(
         gameSession.game.finishedAt && (!gameSession.isViewingHistory || log.replaying)
@@ -197,7 +196,7 @@
 </div>
 
 <style>
-    /* The timeline's own dot and connector beside each entry: hidden, in this list only. */
+    /* Flowbite's own timeline dot and connector, hidden in this list only. */
     [data-history-list] :global(.timeline-item > div) {
         display: none;
     }

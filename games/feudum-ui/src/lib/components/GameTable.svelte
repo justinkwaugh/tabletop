@@ -65,15 +65,10 @@
 
     let wrapper = $state<ScalingWrapper>()
     let viewSize = $state({ width: 0, height: 0 })
-    /** A desk's room: the game column's width and the height the panel leaves the board. */
     let room = $state({ width: 0, height: 0 })
-    /** The wrapper shows full screen only as its dialog becoming modal (`watchExpansion`). */
     let expanded = $state(false)
 
-    /**
-     * Contract, Board focus: never read for an offer. A phone's chooser stands over the board. A desk
-     * has one view, the map at the wrapper's own fit, its guilds behind the side buttons.
-     */
+    /** Contract, Board focus: never read for an offer. */
     const focus = new BoardFocus({
         view: () => wrapper,
         restScale: () => restScaleOf(viewSize.width, viewSize.height),
@@ -82,10 +77,7 @@
         pickFrame: () => feudumSession.pickFrame
     })
 
-    /**
-     * Contract, Phone layout: a phone drafts its hand in a bottom sheet over the board, and keeps it
-     * there, short, once the hand is set.
-     */
+    /** Contract, Phone layout: the hand drafts in a bottom sheet, kept once the hand is set. */
     let handSheet = $derived(
         phone.phone &&
             (feudumSession.handPanel?.drafting !== undefined ||
@@ -94,11 +86,7 @@
 
     let seats = $derived(feudumSession.gameState.players.length)
 
-    /**
-     * Contract, Desk layout: where the map's height binds, the standings and the zoom row stand in a
-     * column right of the East button. The room alone decides it, so each size has one layout; in full
-     * screen the wrapper's own view is the room.
-     */
+    /** Contract, Desk layout: the room alone decides the column, so each size has one layout. */
     let pageColumn = $derived(
         phone.phone || !(room.width > 0) ? undefined : deskColumnOf(room, seats)
     )
@@ -106,14 +94,7 @@
         phone.phone ? undefined : expanded ? deskColumnOf(viewSize, seats) : pageColumn
     )
 
-    /**
-     * Contract, Supply: on a desk the board's view is as tall as the map, the standings' strip and
-     * the zoom row's band at the room's width less the side buttons, so the row stands under the
-     * strip; where the action area leaves less (the hand tray), it gives way and the wrapper fits it
-     * all to the height left. With the side column it takes the room's height and ends with the
-     * column. Until the room is measured it takes the map's shape. A phone's view takes the column's
-     * height.
-     */
+    /** Contract, Supply: on a desk the zoom row stands under the standings' strip. */
     let deskView = $derived.by(() => {
         if (!(room.width > 0)) {
             return `aspect-ratio:${MapArea.width} / ${deskScaledHeight(seats)}`
@@ -136,17 +117,14 @@
                 }
             }
         }
-        // The next frame: refitting inside the observer's own delivery would resize what it watches.
+        // The next frame: refitting inside the observer's delivery would resize what it watches.
         const observer = new ResizeObserver(() => requestAnimationFrame(read))
         observer.observe(viewport)
         read()
         return () => observer.disconnect()
     }
 
-    /**
-     * The room is measured, never the view in it, so the view's own size never feeds back. Whole
-     * pixels, rounded down, so a view sized from it never runs past it.
-     */
+    /** The room is measured, never the view in it, so the view's own size never feeds back. */
     const measureRoom: Attachment<HTMLElement> = (node) => {
         const read = () => {
             const box = node.getBoundingClientRect()
@@ -162,10 +140,7 @@
         return () => observer.disconnect()
     }
 
-    /**
-     * A wheel over the desk column never zooms the board. The overlay's root holds the one listener
-     * for as long as the table stands: WebKit restyles the page whenever a wheel listener comes or goes.
-     */
+    /** One lasting listener: WebKit restyles the page whenever a wheel listener comes or goes. */
     function keepWheelInColumn(event: WheelEvent) {
         if (event.target instanceof Element && event.target.closest('[data-desk-column]')) {
             event.stopPropagation()
@@ -187,17 +162,10 @@
         return () => observer.disconnect()
     }
 
-    /**
-     * Contract, Desk layout: where the map rests between the side buttons. The content carries a
-     * gutter each side of it, and the column's room on the right, so the wrapper's own fit leaves the
-     * buttons and the column their room.
-     */
+    /** Contract, Desk layout: where the map rests between the side buttons. */
     let deskRest = $derived(deskMapAtRest(viewSize, seats, expanded, column))
 
-    /**
-     * Contract, Coexistence and precedence: Escape closes one layer at a time, and only with none
-     * open does it reach the wrapper, to leave full screen. Taken on the way down, before the dialog.
-     */
+    /** Contract, Coexistence and precedence: Escape closes a layer before full screen. */
     function onEscape(event: KeyboardEvent) {
         if (event.key === 'Escape' && feudumSession.layers.escape()) {
             event.preventDefault()
@@ -296,7 +264,6 @@
                                           : 'strip'}
                                 />
                                 {#if !column}
-                                    <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
                                     <div
                                         class="block"
                                         style:height="{ZoomRowBand}px"
@@ -333,7 +300,7 @@
                                 />
                             {/snippet}
                             {#snippet toolbar()}
-                                <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
+                                <!-- Full screen is a modal dialog: the overlays come inside it. -->
                                 <div {@attach watchExpansion}>
                                     {#if expanded}
                                         {@render turnControls()}
@@ -360,12 +327,6 @@
         display: contents;
     }
 
-    /*
-     * A desk's room: the game column's height under the panel, whatever the board view in it takes.
-     * The view is its own shape at the room's width, no taller, and shorter where the action area
-     * leaves less height; nothing is reserved for the tallest action area. With the side column it
-     * is the room's height, and only as wide as the map, the buttons and the column.
-     */
     .feudum-table:not([data-phone]) .board-room {
         flex: 1 1 0;
         width: 100%;
@@ -380,8 +341,6 @@
         display: contents;
     }
 
-    /* The column's height is the action area's measure, in the page and in full screen alike. */
-    /* The column is the hand sheet's frame, so it stands from the column's foot. */
     [data-phone] .game-stack {
         position: relative;
         display: flex;
@@ -404,11 +363,6 @@
         overflow-y: auto;
     }
 
-    /*
-     * The hand draft's bottom sheet: it stands over the board from the column's foot. Once the hand
-     * is set it holds only the hand, the sealed pouch and the waiting line, so it is short; it gives
-     * the board back at the reveal.
-     */
     [data-phone] .action-cap[data-hand-sheet] {
         position: absolute;
         inset-inline: 0;
@@ -420,7 +374,7 @@
         background-color: var(--feudum-surface-raised);
     }
 
-    /* Upright, the seat strip stays in sight under the sheet: its 44 px chips open the seats. */
+    /* The seat strip's 44 px chips stay in sight under the sheet. */
     [data-phone='upright'] .action-cap[data-hand-sheet] {
         bottom: 44px;
     }

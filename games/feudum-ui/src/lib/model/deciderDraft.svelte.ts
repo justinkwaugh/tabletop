@@ -9,26 +9,20 @@ import { coverAfterPress } from './tileCover.js'
 import { tileArt, tileName, type TileArt } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 
-/**
- * The piece a follow-up's row offers: a held tile, a writ's back, a seal or a vessel. Each stands in
- * for the words, which stay the row's accessible name.
- */
 export type DraftArt = TileArt | PieceArt
 
-/** One row of a follow-up's panel. A dimmed row has its line and no `press` (contract: Pick conventions). */
+/** Contract, Pick conventions: a dimmed row has its line and no `press`. */
 export interface DraftChoice {
     readonly label: string
-    /** The piece the row offers, drawn; the label stays the row's accessible name. */
+    /** Drawn; the label stays the row's accessible name. */
     readonly art?: DraftArt
-    /** The text beside the art, which stands for the tile's name. */
     readonly shown?: string
     readonly note?: ChipNote
     readonly picked: boolean
     readonly refusal?: string
-    /** Dimmed with no line: other picks hold its room, and a press does nothing until one goes. */
     readonly spent?: boolean
     readonly press?: () => void
-    /** What the row brightens on the board while pointed at (contract: Hover). */
+    /** Contract, Hover: what the row brightens on the board. */
     readonly lights?: () => readonly BoardTarget[]
 }
 
@@ -47,7 +41,6 @@ export function heldChoice(label: string, picked: boolean): DraftChoice {
     return { label, picked, spent: true }
 }
 
-/** Defined once the logic's refusal has passed. */
 export function playUnless(
     refused: string | undefined,
     build: FlowPlay['build'],
@@ -56,10 +49,7 @@ export function playUnless(
     return refused ? undefined : { ...preview, build }
 }
 
-/**
- * R-4.4-H1 The tile rows: each picked tile, drawn, brings the next good owed. Once every short good
- * has its tile, the others wait, dimmed, with no line: the send appearing says it.
- */
+/** R-4.4-H1 Each picked tile brings the next good owed; once all are covered, the rest wait. */
 export function coverChoices(
     state: Parameters<typeof tileArt>[0],
     tiles: readonly TileId[],
@@ -83,16 +73,12 @@ export function coverChoices(
     })
 }
 
-/** A one-good cost as a button shows it, and in full words, its accessible name. */
 export interface GoodCost {
     readonly shown: string
     readonly named: string
 }
 
-/**
- * R-4.4-H1 What a button names as its one good's cost: the good, or the tile that brings it
- * ("Desert I for iron", named "Desert I tile for iron").
- */
+/** R-4.4-H1 The good, or the tile that brings it ("Desert I for iron"). */
 export function oneGoodCost(good: Good, short: boolean, cover: readonly TileId[]): GoodCost {
     if (!short) {
         return { shown: `1 ${good}`, named: `1 ${good}` }
@@ -104,7 +90,7 @@ export function oneGoodCost(good: Good, short: boolean, cover: readonly TileId[]
     return { shown: `${tile} for ${good}`, named: `${tile} tile for ${good}` }
 }
 
-/** A send whose label says a cost shorter keeps the full words as its accessible name. */
+/** A shortened label keeps the full words as its accessible name. */
 export function costPrimary(
     words: (cost: string) => string,
     cost: GoodCost,
@@ -116,10 +102,7 @@ export function costPrimary(
     return { label, ...(named === label ? {} : { named }), enabled }
 }
 
-/**
- * A follow-up's draft: it reads only while the session names this seat its decider (R-X.1), and a
- * lone choice reads through as an `auto` stage.
- */
+/** R-X.1 It reads only while the session names this seat its decider. */
 export abstract class DeciderDraft<
     TValues extends Record<string, unknown>,
     TContext = TurnContext

@@ -12,10 +12,6 @@
         outlineD
     } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * The map's ground: the printed map when its file is there, else our own terrain. Each region is
-     * a fill in its token with one hatching motif, drawn once in the defs and repeated.
-     */
     const Painted = ['sea', 'island', 'desert', 'forest', 'badlands', 'mountain'] as const
 </script>
 

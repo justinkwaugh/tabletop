@@ -4,11 +4,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import type { SeatCardsItem } from '$lib/model/seatLines.js'
 
-    /**
-     * Contract, Seat panel, the cards line: another seat's hand as backs with the count, the seat's
-     * own as a count (its desk shows the hand), then the played cards, each use but regular a corner
-     * badge that the card's tooltip names.
-     */
+    /** Contract, Seat panel: another seat's hand shows as backs, the seat's own as a count. */
     let {
         items,
         paint,
@@ -59,7 +55,7 @@
         {:else if entry.item === 'in-hand'}
             <span class="label" data-in-hand={entry.count}>{entry.count} in hand</span>
         {:else if entry.item === 'choosing'}
-            <!-- R-3.1 A hand still being chosen: one back, which names the state. -->
+            <!-- R-3.1 A hand still being chosen shows one back. -->
             <span
                 class="flex"
                 role="img"

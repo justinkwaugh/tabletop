@@ -1,8 +1,4 @@
-/**
- * The publisher's cover in the asset folder (`cover` in the asset map), or undefined when the
- * folder holds none. It has its own glob so the UI entry, which the site loads to list its
- * library, carries neither the asset map nor the logic tables the map is built from.
- */
+/** Its own glob, so the UI entry the site loads to list its library carries no asset map. */
 const files = import.meta.glob<string>('./supplied/cover.{webp,png}', {
     eager: true,
     import: 'default'

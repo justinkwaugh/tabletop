@@ -5,12 +5,7 @@
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { EpochNames } from '$lib/model/tileName.js'
 
-    /**
-     * R-4.12 One row per seat: guild ranks, landscapes, active regions, disloyalty in rose, the total;
-     * then the fills. The one drawing of the sheet, the same for every seat: a
-     * table at a desk; on a phone, where five columns run past the width, each seat's row runs on as a
-     * line under its name and total (contract: Phone layout).
-     */
+    /** R-4.12 One row per seat; on a phone each row runs on as a line (contract: Phone layout). */
     let { sheet, seats }: { sheet: DawnSheetView; seats: SeatNames } = $props()
 
     const phone = new PhoneLayout()

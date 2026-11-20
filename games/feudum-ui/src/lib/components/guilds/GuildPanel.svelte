@@ -5,10 +5,7 @@
     import PieceFrame from '$lib/components/pieces/PieceFrame.svelte'
     import { CrestCentre, GuildBox, GuildViewBox } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * A guild area's ground, in its local units: the printed panel as it lies on the board when the
-     * folder holds it, else our own plate with the crest and the name. State stands over it.
-     */
+    /** The printed panel when the art folder holds it, else our own plate. */
     let { guild }: { guild: GuildId } = $props()
 
     const CrestRadius = 30

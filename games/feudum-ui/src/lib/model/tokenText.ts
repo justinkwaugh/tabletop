@@ -31,10 +31,6 @@ function vesselOf(word: string): VesselType {
     return word === 'flying machine' ? 'flying-machine' : word === 'ship' ? 'ship' : 'submersible'
 }
 
-/**
- * Splits a panel or history line so a good, shilling, seal, bead, vp, vessel or monster it names
- * is drawn as its piece, the word kept as the image's alt text. One vocabulary for table and text.
- */
 export function tokenParts(text: string): TokenPart[] {
     const parts: TokenPart[] = []
     let at = 0

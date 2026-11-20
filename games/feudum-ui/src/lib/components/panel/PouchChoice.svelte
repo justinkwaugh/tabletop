@@ -2,11 +2,7 @@
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import type { ActionRow } from '$lib/model/actionPanel.js'
 
-    /**
-     * R-3.3 One pouch choice: its good and its short name; the full words are its accessible name.
-     * The chosen one is ringed, and a second press clears it. One the seat can't commit is not
-     * drawn.
-     */
+    /** R-3.3 A pouch choice the seat can't commit is not drawn. */
     let { row }: { row: ActionRow } = $props()
 
     const GoodSize = 22

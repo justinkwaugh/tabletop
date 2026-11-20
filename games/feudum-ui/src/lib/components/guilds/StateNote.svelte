@@ -2,10 +2,6 @@
     import type { SVGAttributes } from 'svelte/elements'
     import Level from './Level.svelte'
 
-    /**
-     * A count the print can't say (a purse, a coffer, a rosary's total, a barn's fill), on a parchment
-     * pill so it reads over the panel's art.
-     */
     let {
         x,
         y,

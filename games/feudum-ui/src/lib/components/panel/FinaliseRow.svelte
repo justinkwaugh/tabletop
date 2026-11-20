@@ -2,15 +2,9 @@
     import type { FinaliseEntry } from '$lib/model/actionPanel.js'
     import SeatChip from './SeatChip.svelte'
 
-    /**
-     * R-3.1, R-3.1-H1 The hand selection's heading, the round, then the seats in turn order, each its
-     * chip: a tick on each seat finalised, and once the viewer's hand is set a solid ring on each
-     * seat it waits on. "(you)", "choosing" and "finalised" are read out, not shown. No chip holds a
-     * pouch good: no seat sees another's until all have finalised.
-     */
+    /** R-3.1-H1 No chip holds a pouch good: none is seen until every hand is final. */
     let { entries, lead }: { entries: readonly FinaliseEntry[]; lead?: string } = $props()
 
-    /** What a screen reader hears after the name, beside the tick's and the ring's own words. */
     function spokenOf(entry: FinaliseEntry): string | undefined {
         const words = [
             ...(entry.you ? ['(you)'] : []),

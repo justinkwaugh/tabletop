@@ -15,7 +15,6 @@ import type { TurnPrimary } from './turnDraft.svelte.js'
 import { writName } from './writLabels.js'
 
 export type WritLimitValues = {
-    /** R-4.4.4 */
     writ: WritId
 }
 
@@ -27,7 +26,7 @@ export interface WritLimitPanel {
     readonly primary: TurnPrimary
 }
 
-/** R-4.4.4 Over the limit at the end of a turn. The discard goes under face down, after a press. */
+/** R-4.4.4 Over the limit at a turn's end: the discard goes under face down. */
 export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
     constructor(contextOf: () => TurnContext | undefined) {
         super(WritLimitStageOrder, contextOf)

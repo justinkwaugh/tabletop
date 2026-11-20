@@ -7,11 +7,6 @@
     import WritFace from '$lib/components/pieces/WritFace.svelte'
     import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
 
-    /**
-     * One card, writ, tile, bead or guild area at any size, as its owner shows it. A guild area lies
-     * sideways on the board; enlarged, it stands upright as the trade picker shows it, turned a
-     * quarter, and `width` is its long side.
-     */
     let { face, width }: { face: EnlargedFace; width: number } = $props()
 </script>
 

@@ -13,12 +13,7 @@
         type PlacedArt
     } from '$lib/model/spaceChips.js'
 
-    /**
-     * Contract, Pick conventions: a short note on a target. Rose carries a cost or a threat, amber
-     * what is yours to take; each over the dark halo, so no ground stands in for it. A chip drawn as
-     * art shows its pieces (a disc, the arrow of a step, a good or seal with its count) in place of
-     * the words, which stay its accessible name.
-     */
+    /** Contract, Pick conventions: rose a cost or a threat, amber what is yours to take. */
     let {
         chip,
         y = 0,
@@ -26,7 +21,6 @@
     }: {
         chip: BoardChip
         y?: number
-        /** A press on the chip is a press on its target, where that target may be pressed now. */
         press?: () => void
     } = $props()
 
@@ -45,10 +39,7 @@
     let rose = $derived(chip.tone === 'rose')
     let ink = $derived(rose ? 'var(--feudum-danger)' : 'var(--feudum-accent)')
 
-    /**
-     * The chip's own listener, not one delegated to the page: a touch browser aims a tap at the
-     * nearest thing that answers a press, and a delegated listener leaves the chip looking deaf.
-     */
+    /** A touch browser aims a tap at the nearest listener; a delegated one leaves it deaf. */
     function answers(onPress: () => void): Attachment<SVGRectElement> {
         return (node) => {
             node.addEventListener('click', onPress)

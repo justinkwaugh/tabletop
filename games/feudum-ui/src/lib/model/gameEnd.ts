@@ -27,10 +27,7 @@ export interface GameEndColumn {
     readonly winner: boolean
 }
 
-/**
- * R-6.3 The seats tied on vp. The barrel broke the tie only when it left fewer winners than were
- * tied; then each tied seat stands with its barrel sulfur, and a win still shared says so.
- */
+/** R-6.3 The barrel broke the tie only when it left fewer winners than were tied. */
 export interface GameEndTie {
     readonly broken: boolean
     readonly seats: readonly { readonly playerId: string; readonly barrel: number }[]

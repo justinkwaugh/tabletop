@@ -4,7 +4,7 @@
     import { GuildIconPaths, KeepPath, LocationPaths } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /** A location disc: told by its silhouette as well as its colour, a feudum by its guild's icon. */
+    /** Told by its silhouette as well as its colour, a feudum by its guild's icon. */
     let {
         kind,
         guild,
@@ -22,7 +22,6 @@
     } = $props()
 
     let label = $derived(kind === 'feudum' && guild ? `${guild} feudum` : kind)
-    // A feudum not yet built has no guild: its keep is drawn, never one guild's printed disc.
     let url = $derived(
         kind === 'feudum' && !guild ? undefined : assetUrl(locationAsset(kind, guild))
     )

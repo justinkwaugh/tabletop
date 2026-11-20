@@ -49,27 +49,16 @@ import {
     printedVesselForSale
 } from './printedGuilds.js'
 
-/**
- * The board in board units: one CSS pixel at scale 1. The surface has the printed board's
- * proportions, so a position here lands on the printed space when the map's art is shown, and on the
- * drawn terrain when it isn't. Authored once by hand; nothing is measured from a picture at run time.
- */
+/** Board units, one CSS pixel at scale 1, in the printed board's proportions. */
 export const BoardWidth = 2500
 export const BoardHeight = 953
 
-/**
- * The map in the board's centre, the sky and the strip of stacks and barrels included. Contract, Desk
- * layout: the part of the board a desk draws, its guild areas behind the side buttons and its score
- * ring's band left out (its scores are the seat panels' and the zoom row's).
- */
+/** Contract, Desk layout: the part of the board a desk draws. */
 export const MapArea = { x: 452, y: 60, width: 1598, height: 833 } as const
 export const MapViewBox = `${MapArea.x} ${MapArea.y} ${MapArea.width} ${MapArea.height}`
-/** Where the drawn terrain starts under the epoch sky. */
 export const SkyBottom = 150
 
-/** The frame a location disc is drawn in; the disc itself fills 84 % of it. */
 export const DiscFrame = 72
-/** The ring a space's pick draws round its disc. */
 export const SpaceRingFrame = DiscFrame + 10
 export const PawnSize = 46
 export const MarkerSize = 26
@@ -78,9 +67,8 @@ export const GoodSize = 22
 export const LandscapeSize = 46
 export const VesselSize = 36
 export const MonsterSize = 54
-/** R-4.1 Goods in the barn show one token each up to this many of a kind, then one with a count. */
+/** R-4.1 Barn goods show one token each up to this many of a kind, then one with a count. */
 export const GoodsShownSingly = 4
-/** Up to this many pieces sit round a space; more show as a count chip. */
 export const PieceSlotCount = 4
 
 /** R-1.2.1 Where each space's disc goes on the printed board. */
@@ -109,7 +97,6 @@ export const SpaceCentres: Record<SpaceId, Point> = {
     'space.mountain.2': { x: 1987, y: 444 }
 }
 
-/** Where a space's contents and pieces stand, from its centre. */
 const ContentOffsets = {
     pieceSlots: [
         { x: -56, y: -56 },
@@ -131,11 +118,6 @@ const ContentOffsets = {
     letters: { x: 0, y: 48 }
 } as const
 
-/**
- * A space against the map's edge keeps its contents on the map: mirrored, so what stands on one
- * side stands on the other, shifted along the edge, and with its vessels set where there is room.
- * Its markers keep to its disc.
- */
 const EdgeFit: Partial<
     Record<
         SpaceId,
@@ -165,7 +147,6 @@ const EdgeFit: Partial<
     }
 }
 
-/** Where a space's goods plate starts, at its top corner nearest the disc, and which way it grows. */
 export interface GoodsPlate {
     readonly at: Point
     readonly toward: 1 | -1
@@ -173,13 +154,11 @@ export interface GoodsPlate {
 
 export const PlateGood = { size: 24, step: 34, pad: 6, height: 34 } as const
 
-/** The centre of the plate slot for the good kind at `index`. */
 export function plateSlot({ at, toward }: GoodsPlate, index: number): Point {
     const along = PlateGood.pad + PlateGood.step / 2 + index * PlateGood.step
     return { x: at.x + toward * along, y: at.y + PlateGood.height / 2 }
 }
 
-/** The plate holding `kinds` good kinds. */
 export function plateBox({ at, toward }: GoodsPlate, kinds: number): BoundingBox {
     const width = kinds * PlateGood.step + 2 * PlateGood.pad
     return { x: toward > 0 ? at.x : at.x - width, y: at.y, width, height: PlateGood.height }
@@ -189,12 +168,12 @@ export interface SpaceGeometry {
     readonly centre: Point
     readonly pieceSlots: readonly Point[]
     readonly countChip: Point
-    /** R-4.1.2 A ruler's marker below the disc on one side, a subject under it, a serf beside that. */
+    /** R-4.1.2 */
     readonly ruler: Point
     readonly subject: Point
     readonly serf: Point
     readonly landscape: Point
-    /** R-1.1 The plate the goods stand on, one slot per kind present, packed from the first. */
+    /** R-1.1 One slot per kind present. */
     readonly plate: GoodsPlate
     readonly vessels: Readonly<Record<VesselType, Point>>
     readonly letters: Point
@@ -230,7 +209,6 @@ function spaceGeometryOf(spaceId: SpaceId): SpaceGeometry {
     }
 }
 
-/** Every space's slots, by id. */
 export const SpaceGeometries: ReadonlyMap<SpaceId, SpaceGeometry> = new Map(
     Spaces.map(({ id }) => [id, spaceGeometryOf(id)])
 )
@@ -243,10 +221,7 @@ export function spaceGeometry(spaceId: SpaceId): SpaceGeometry {
     return geometry
 }
 
-/**
- * R-1.2-H1 Each route's two control points; its ends are its spaces' centres. Fitted to the trail on
- * the printed board, one cubic each, so a river's bends are rounded off.
- */
+/** R-1.2-H1 Fitted to the printed trail, one cubic each, so a river's bends round off. */
 export const RouteControls: Record<RouteId, readonly [Point, Point]> = {
     'route.road.forest-1--forest-2': [
         { x: 925, y: 214 },
@@ -414,7 +389,6 @@ export const RouteControls: Record<RouteId, readonly [Point, Point]> = {
     ]
 }
 
-/** Where two media join the same pair of spaces, how far apart their paths run. */
 export const SideBySideSpacing = 12
 
 export interface RoutePath {
@@ -424,7 +398,6 @@ export interface RoutePath {
     readonly to: Point
 }
 
-/** The media joining this route's pair of spaces, in medium order. */
 function mediaOfPair(a: SpaceId, b: SpaceId): readonly RouteMedium[] {
     return RouteMedia.filter((medium) =>
         Routes.some((route) => route.medium === medium && route.a === a && route.b === b)
@@ -453,7 +426,7 @@ function routePathOf(routeId: RouteId): RoutePath {
     }
 }
 
-/** R-1.2.2 Every route's path, with its side-by-side offset applied. */
+/** R-1.2.2 */
 export const RoutePaths: ReadonlyMap<RouteId, RoutePath> = new Map(
     Routes.map(({ id }) => [id, routePathOf(id)])
 )
@@ -463,7 +436,6 @@ export function routeD({ from, control1, control2, to }: RoutePath): string {
     return `M${point(from)} C${point(control1)} ${point(control2)} ${point(to)}`
 }
 
-/** A point along a route's path, `t` from 0 to 1. */
 export function routePointAt({ from, control1, control2, to }: RoutePath, t: number): Point {
     const u = 1 - t
     const along = (a: number, b: number, c: number, d: number) =>
@@ -474,10 +446,7 @@ export function routePointAt({ from, control1, control2, to }: RoutePath, t: num
     }
 }
 
-/**
- * The drawn terrain, schematic and our own: a rough outline round each region's spaces, in the
- * board's order. The sea is the ground under the rest and has no edge of its own but the map's.
- */
+/** Schematic and our own, not the printed map; the sea is the ground under the rest. */
 export const RegionOutlines: Record<RegionId, readonly (readonly Point[])[]> = {
     sea: [
         [
@@ -564,7 +533,6 @@ export const RegionOutlines: Record<RegionId, readonly (readonly Point[])[]> = {
     ]
 }
 
-/** Where the drawn terrain names each region. */
 export const RegionLabels: Record<RegionId, Point> = {
     sea: { x: 640, y: 180 },
     island: { x: 590, y: 800 },
@@ -574,13 +542,12 @@ export const RegionLabels: Record<RegionId, Point> = {
     mountain: { x: 1930, y: 640 }
 }
 
-/** The drawn river through the desert and badlands, under the routes. Schematic and our own. */
+/** Schematic and our own. */
 export const RiverPaths: readonly string[] = [
     'M1030 545 C1180 470 1380 500 1532 425 S1640 340 1760 340 S1960 320 2040 170',
     'M1950 300 C1930 360 1970 400 1985 440'
 ]
 
-/** A closed outline with its corners rounded off: the path runs through each side's midpoint. */
 export function outlineD(points: readonly Point[]): string {
     const middle = (a: Point, b: Point) => `${(a.x + b.x) / 2} ${(a.y + b.y) / 2}`
     const start = middle(points[points.length - 1], points[0])
@@ -591,7 +558,6 @@ export function outlineD(points: readonly Point[]): string {
     return `M${start} ${curves.join(' ')} Z`
 }
 
-/** Whether a point is inside an outline's polygon. */
 export function isInside({ x, y }: Point, outline: readonly Point[]): boolean {
     let inside = false
     outline.forEach((point, index) => {
@@ -606,16 +572,14 @@ export function isInside({ x, y }: Point, outline: readonly Point[]): boolean {
     return inside
 }
 
-/** One local box for every guild area, so the board and the bench draw the same component. */
 export const GuildBox = { width: 500, height: 354 } as const
 export const GuildViewBox = `0 0 ${GuildBox.width} ${GuildBox.height}`
-/** A guild area's width on the board. */
 export const GuildAreaWidth = 388
 export const GuildAreaHeight = (GuildAreaWidth * GuildBox.height) / GuildBox.width
-/** A guild area's width on the bench: fixed for legibility, whatever the board's scale. */
+/** Fixed for legibility, whatever the board's scale. */
 export const BenchAreaWidth = 440
 
-/** R-1.2.3 Where each area stands on the board: the ring up the west edge and down the east. */
+/** R-1.2.3 */
 export const GuildAreas: Record<GuildId, Point> = {
     alchemist: { x: 62, y: 62 },
     merchant: { x: 62, y: 339 },
@@ -625,33 +589,25 @@ export const GuildAreas: Record<GuildId, Point> = {
     monk: { x: 2051, y: 616 }
 }
 
-/** R-1.2.3 Alchemist, Merchant and Farmer stand up the west edge; the others down the east. */
 export function westGuild(guild: GuildId): boolean {
     return GuildAreas[guild].x < MapArea.x
 }
 
-/** A side's three guilds down its edge of the board, as the bench and the strip order them. */
 export function guildsDownSide(west: boolean): GuildId[] {
     return GuildIds.filter((guild) => westGuild(guild) === west).toSorted(
         (a, b) => GuildAreas[a].y - GuildAreas[b].y
     )
 }
 
-/**
- * R-1.2.3 The quarter turn, in degrees, that stands a guild area's print upright off the board: the
- * print lies on its side with its top toward the board's nearer edge, so a west print turns
- * clockwise and an east one counter-clockwise.
- */
+/** R-1.2.3 The print lies on its side, its top toward the board's nearer edge. */
 export function uprightTurn(guild: GuildId): number {
     return westGuild(guild) ? 90 : -90
 }
 
-/** R-1.2.3 That turn about the area's centre, as a CSS transform of a box centred on its holder. */
 export function uprightTransform(guild: GuildId): string {
     return `translate(-50%, -50%) rotate(${uprightTurn(guild)}deg)`
 }
 
-/** R-1.2.3 The guild area a point on the board lies in, if any. */
 export function guildAreaAt({ x, y }: Point): GuildId | undefined {
     return GuildIds.find((guild) => {
         const area = GuildAreas[guild]
@@ -664,11 +620,6 @@ export function guildAreaAt({ x, y }: Point): GuildId | undefined {
     })
 }
 
-/**
- * R-1.2.3 Where a point of a guild area stands once the area is stood upright in `box` (its upright
- * box on the page, short side across): turned about the area's centre as the area is, and scaled to
- * the box.
- */
 export function uprightPoint(guild: GuildId, point: Point, box: BoundingBox): Point {
     const area = GuildAreas[guild]
     const scale = box.height / GuildAreaWidth
@@ -681,39 +632,26 @@ export function uprightPoint(guild: GuildId, point: Point, box: BoundingBox): Po
     }
 }
 
-/**
- * Contract, Guild standings: on a desk the six rails stand in one strip under the map, the West
- * guilds' then the East's, each in its area's order. In board units: `gap` above the strip and
- * between two rails, `divide` more between the West's and the East's. A rail's own drawing is
- * `drawing` pixels wide, and as tall as its heading and one line for each seat: the master's line
- * and the rest held, or with no master the heading's line holds the empty outline and every seat may
- * stand placeless under it, so every place fits however the places fall.
- */
+/** Contract, Guild standings: a line per seat, so every place fits however the places fall. */
 export const StandingsStrip = {
     gap: 20,
     divide: 40,
     drawing: { width: 170, head: 36, line: 19 }
 } as const
-/** One rail's width in the strip, in board units: the strip runs the map's width. */
 export const StripRailWidth =
     (MapArea.width - 5 * StandingsStrip.gap - StandingsStrip.divide) / GuildIds.length
-/** Board units to a pixel of a strip rail's own drawing. */
 export const StripRailScale = StripRailWidth / StandingsStrip.drawing.width
 
-/** A strip rail's own drawing height at this many seats. */
 export function stripRailDrawingHeight(seats: number): number {
     return StandingsStrip.drawing.head + StandingsStrip.drawing.line * seats
 }
 
-/** The strip's height under the board in board units, the gap above it included. */
 export function standingsStripHeight(seats: number): number {
     return StandingsStrip.gap + stripRailDrawingHeight(seats) * StripRailScale
 }
 
-/** On a phone it stands over the map's inner edge, inside its column's view. */
 export const RailOver = { width: 168, gap: 8, inset: 6, scale: 168 / 96 } as const
 
-/** Where a guild's rail stands over the map on a phone, level with its area. */
 export function railOverRect(guild: GuildId): BoundingBox {
     const x = westGuild(guild)
         ? MapArea.x + RailOver.gap
@@ -726,17 +664,12 @@ export function railOverRect(guild: GuildId): BoundingBox {
     }
 }
 
-/**
- * A guild area stands on its printed panel when the folder holds the panel's file, else on our own
- * drawing; the two place its parts apart. Asked at each call, so whoever draws or animates an area
- * reads the same layout.
- */
+/** Asked at each call, so whoever draws or animates an area reads the same layout. */
 export function guildPrinted(guild: GuildId): boolean {
     return assetUrl(guildPanelAsset(guild)) !== undefined
 }
 
-/** Sizes in a guild area's local units. */
-/** R-4.7 A reeve stands at the influence marker's size, so its printed point reads. */
+/** R-4.7 A reeve stands at the marker's size, so its printed point reads. */
 const GuildMarkerSize = 36
 
 export const GuildSizes = {
@@ -752,14 +685,13 @@ export const GuildSizes = {
 
 export const CrestCentre: Point = { x: 44, y: 38 }
 export const RankRadius = 28
-/** A reeve stands beside the rank's marker. */
 export const ReeveOffset: Point = { x: 34, y: 18 }
 
 export function reeveOffset(guild: GuildId): Point {
     return guildPrinted(guild) ? printedReeveOffset(guild) : ReeveOffset
 }
 
-/** R-1.3 One row per good; a slot is where the good's token stands in its cell. */
+/** R-1.3 One row per good. */
 export const MarketCell = { width: 98, height: 46, tokenOffset: 28 } as const
 export const CartCell = { width: 50, height: 46 } as const
 export const KnightCell = 42
@@ -769,7 +701,7 @@ export const VesselSpaceBox = { x: 254, y: 80, width: 236, height: 98 } as const
 export const BarnBox = { x: 14, y: 80, width: 270, height: 264 } as const
 export const CofferBox = { x: 370, y: 90, width: 120, height: 180 } as const
 export const MonsterBox = { width: 140, height: 128 } as const
-/** R-4.1 The first of a barn column's tokens stands highest, each further one below it. */
+/** R-4.1 A barn column's first token stands highest. */
 export const BarnStackStep = 40
 
 const MarketSpacesPerBin = 4
@@ -782,7 +714,6 @@ const RankPlaces: Record<(typeof GuildRanks)[number], Point> = {
     master: { x: 440, y: 32 }
 }
 
-/** The goods in the Alchemist's rows, in the data's order. */
 export const CartGoods: readonly Good[] = [...new Set(AlchemistCartSpaces.map(({ good }) => good))]
 
 export function cartGoodRow(good: Good): Point {
@@ -793,7 +724,6 @@ export function marketBinRow(good: Good): Point {
     return { x: 36, y: GoodRowY(Goods.indexOf(good)) }
 }
 
-/** A market bin's whole row, from its swatch to its last space; on the print, its column. */
 export function marketBinBox(good: Good): BoundingBox {
     if (guildPrinted('merchant')) {
         return printedMarketBinBox(good)
@@ -804,7 +734,7 @@ export function marketBinBox(good: Good): BoundingBox {
     return { x: left, y: y - 25, width: right - left, height: 50 }
 }
 
-/** R-1.3 The colours of the printed rows and barrels, in the data's order. */
+/** R-1.3 */
 export const PrintedColours: readonly Color[] = [
     ...new Set(KnightRowSections.map(({ colour }) => colour))
 ]
@@ -813,14 +743,13 @@ function drawnKnightCell(colour: Color, column: number): Point {
     return { x: 72 + (column - 1) * 48, y: 126 + PrintedColours.indexOf(colour) * 48 }
 }
 
-/** R-1.3 A Knight cell: a colour's row, a column 1 to 6. A row keeps its lane whoever plays. */
+/** R-1.3 A row keeps its lane whoever plays. */
 export function knightCell(colour: Color, column: number): Point {
     return guildPrinted('knight')
         ? printedKnightCell(colour, column)
         : drawnKnightCell(colour, column)
 }
 
-/** The disc naming a Knight row. */
 export function knightRowLabel(colour: Color): Point {
     return guildPrinted('knight')
         ? printedKnightRowLabel(colour)
@@ -830,7 +759,6 @@ export function knightRowLabel(colour: Color): Point {
 const KnightRowHeight = 46
 const KnightRowEndGap = 4
 
-/** A Knight row's whole lane, from its disc to its last cell. */
 export function knightRowBox(colour: Color): BoundingBox {
     if (guildPrinted('knight')) {
         return printedKnightRowBox(colour)
@@ -841,7 +769,7 @@ export function knightRowBox(colour: Color): BoundingBox {
     return { x: start, y: y - KnightRowHeight / 2, width: right - start, height: KnightRowHeight }
 }
 
-/** R-1.3 The middle of a section's columns, above the rows or in any one of them. */
+/** R-1.3 */
 export function knightSectionMiddle(firstColumn: number, lastColumn: number) {
     return drawnKnightCell(PrintedColours[0], (firstColumn + lastColumn) / 2).x
 }
@@ -858,7 +786,7 @@ const inventionPlace = (index: number): Point => ({
     y: 228 + Math.floor(index / 3) * 80
 })
 
-/** R-1.4-H3 Two chickens to a row; the spaces come from the provisional registry through the data. */
+/** R-1.4-H3 Two chickens to a row. */
 const chickenPlace = (space: number): Point => ({
     x: 340 + ((space - 1) % 2) * 100,
     y: 124 + Math.floor((space - 1) / 2) * 80
@@ -880,11 +808,6 @@ export function rosaryBead(index: number): Point {
 export const RosaryPlaces = SealTotal
 export const RosaryTotalAt: Point = { x: 190, y: 330 }
 
-/**
- * Every guild grid space, part and track space by the data's id, in the guild's local units: a
- * market or cart space's token, a section's middle, the centre of a part. The bench lights what it
- * offers from this table, as the board draws from it.
- */
 export const GuildSlots: ReadonlyMap<string, Point> = new Map<string, Point>([
     ...GuildTrackSpaces.map(({ id, rank }): [string, Point] => [id, RankPlaces[rank]]),
     ...MarketSpaces.map(({ id, good, space }): [string, Point] => [
@@ -913,7 +836,6 @@ export const GuildSlots: ReadonlyMap<string, Point> = new Map<string, Point>([
     ['guild.monk.coffer', { x: 430, y: 180 }]
 ])
 
-/** Which guild's area holds a slot, so its layout can be asked. */
 const SlotGuilds: ReadonlyMap<string, GuildId> = new Map<string, GuildId>([
     ...GuildTrackSpaces.map(({ id, guild }): [string, GuildId] => [id, guild]),
     ...MarketSpaces.map(({ id }): [string, GuildId] => [id, 'merchant']),
@@ -930,7 +852,6 @@ const SlotGuilds: ReadonlyMap<string, GuildId> = new Map<string, GuildId>([
     ['guild.monk.coffer', 'monk']
 ])
 
-/** A slot's place in its area's layout: on the printed panel when the file is there. */
 export function guildSlot(id: string): Point {
     const guild = SlotGuilds.get(id)
     const slot = (guild && guildPrinted(guild) ? PrintedGuildSlots : GuildSlots).get(id)
@@ -942,14 +863,13 @@ export function guildSlot(id: string): Point {
 
 const DrawnScrollBox = { width: ScrollCell.width + 6, height: ScrollCell.height + 6 } as const
 
-/** A scroll space's whole roll. */
 export function scrollBox(id: string): BoundingBox {
     const { width, height } = guildPrinted('noble') ? PrintedScrollBox : DrawnScrollBox
     const { x, y } = guildSlot(id)
     return { x: x - width / 2, y: y - height / 2, width, height }
 }
 
-/** R-4.2.4 A monster icon's controller: its marker beside the beast. */
+/** R-4.2.4 */
 export function monsterIconMarker(id: string): Point {
     const slot = guildSlot(id)
     return guildPrinted('knight')
@@ -957,12 +877,12 @@ export function monsterIconMarker(id: string): Point {
         : { x: slot.x + 46, y: slot.y - 40 }
 }
 
-/** The size a vessel for sale stands at: the printed glass box is narrow. */
+/** The printed glass box is narrow. */
 export function vesselForSaleSize(): number {
     return guildPrinted('alchemist') ? PrintedVesselSize : GuildSizes.vessel
 }
 
-/** R-4.5.3 A vessel for sale of each type, covering the ferry symbol. */
+/** R-4.5.3 Covering the ferry symbol. */
 export function vesselForSale(vessel: VesselType): Point {
     if (guildPrinted('alchemist')) {
         return printedVesselForSale(vessel)
@@ -973,14 +893,13 @@ export function vesselForSale(vessel: VesselType): Point {
 
 const DrawnVesselBox = 72
 
-/** The press around a vessel for sale. */
 export function vesselForSaleBox(vessel: VesselType): BoundingBox {
     const size = guildPrinted('alchemist') ? PrintedVesselSize : DrawnVesselBox
     const { x, y } = vesselForSale(vessel)
     return { x: x - size / 2, y: y - size / 2, width: size, height: size }
 }
 
-/** R-4.1 A barn column's token `index` from its first, the first highest. */
+/** R-4.1 */
 export function barnTokenAt(good: Good, index: number): Point {
     const { x, y } = barnColumn(good)
     const step = guildPrinted('farmer') ? PrintedBarnStackStep : BarnStackStep
@@ -990,7 +909,7 @@ export function barnTokenAt(good: Good, index: number): Point {
 const BarnBottomGap = 6
 const BarnColumnPress = 48
 
-/** R-4.6.1 A kind of good's whole column in the barn. */
+/** R-4.6.1 */
 export function barnColumnBox(good: Good): BoundingBox {
     if (guildPrinted('farmer')) {
         return printedBarnColumnBox(good)
@@ -1005,7 +924,6 @@ export function barnColumnBox(good: Good): BoundingBox {
     }
 }
 
-/** A good's column in the barn: its first token. */
 export function barnColumn(good: Good): Point {
     if (guildPrinted('farmer')) {
         return printedBarnColumn(good)
@@ -1013,11 +931,9 @@ export function barnColumn(good: Good): Point {
     return { x: BarnBox.x + 36 + Goods.indexOf(good) * 50, y: BarnBox.y + 66 }
 }
 
-/** The score ring's band round the board's edge. */
 export const ScoreBand = 60
-/** A score disc is nearly the band's width, so it reads at desk size. */
+/** Nearly the band's width, so it reads at desk size. */
 export const ScoreDiscSize = 40
-/** Discs sharing a space overlap by half along the track. */
 const ScoreFanStep = ScoreDiscSize / 2
 /** R-1.2.5 The spaces from each corner to the next: 0 bottom-left, 20, 75, 95 at the others. */
 const ScoreRun = [
@@ -1071,7 +987,7 @@ function scoreSpacesOf(): readonly ScoreSpace[] {
     })
 }
 
-/** R-1.2.5 The 150 spaces, 0 to 149, up the west edge, along the top, down the east, back along the bottom. */
+/** R-1.2.5 The 150 spaces, up the west edge and clockwise round. */
 export const ScoreSpaces: readonly ScoreSpace[] = scoreSpacesOf()
 
 const InwardBySide: Record<ScoreSide, Point> = {
@@ -1081,7 +997,6 @@ const InwardBySide: Record<ScoreSide, Point> = {
     bottom: { x: 0, y: -1 }
 }
 
-/** The way the track runs along each side, from 0 upwards. */
 const AlongBySide: Record<ScoreSide, Point> = {
     left: { x: 0, y: -1 },
     top: { x: 1, y: 0 },
@@ -1089,11 +1004,7 @@ const AlongBySide: Record<ScoreSide, Point> = {
     bottom: { x: -1, y: 0 }
 }
 
-/**
- * R-1.2.5 The index-th of count discs on one space: alone it stands on the space; sharing it
- * fans along the track, centred on the space, overlapping the next by half. On a corner the fan
- * runs from the corner along the track, so it stays on the board.
- */
+/** R-1.2.5 On a corner the fan runs along the track from it, so it stays on the board. */
 export function scoreDiscAt(space: number, index = 0, count = 1): Point {
     const { centre, side, corner } = ScoreSpaces[space]
     const along = corner ? index * ScoreFanStep : fanOffset(index, count, ScoreFanStep)
@@ -1101,13 +1012,11 @@ export function scoreDiscAt(space: number, index = 0, count = 1): Point {
     return { x: centre.x + way.x * along, y: centre.y + way.y * along }
 }
 
-/** Where a disc's "+150" chip stands, from the disc: towards the board, clear of the disc. */
 export function scoreChipOffset(space: number): Point {
     const inward = InwardBySide[ScoreSpaces[space].side]
     return { x: inward.x * 46, y: inward.y * 34 }
 }
 
-/** Discs sharing a track space stand side by side, centred on it. */
 export function fanOffset(index: number, count: number, step: number): number {
     return (index - (count - 1) / 2) * step
 }
@@ -1116,7 +1025,7 @@ export const TrackDiscSize = 22
 export const VoyageFanStep = 16
 export const ServiceFanStep = 14
 
-/** R-3.7.5 The epic voyage, up the mountains to the monastery; fitted to the print. */
+/** R-3.7.5 Fitted to the print. */
 const VoyageCentres: readonly Point[] = [
     { x: 1604, y: 143 },
     { x: 1653, y: 123 },
@@ -1127,14 +1036,14 @@ const VoyageCentres: readonly Point[] = [
     { x: 2013, y: 80 }
 ]
 
-/** R-4.9.2 The military service spaces on the shore; fitted to the print. */
+/** R-4.9.2 Fitted to the print. */
 const ServiceCentres: readonly Point[] = [
     { x: 690, y: 871 },
     { x: 788, y: 859 },
     { x: 878, y: 839 }
 ]
 
-/** R-4.11 Where the epoch marker stands on each sunray, over its numeral. */
+/** R-4.11 Over each sunray's numeral. */
 const RayCentres: readonly Point[] = [
     { x: 863, y: 167 },
     { x: 893, y: 147 },
@@ -1143,7 +1052,7 @@ const RayCentres: readonly Point[] = [
     { x: 1027, y: 173 }
 ]
 
-/** R-4.12 Where a sunray shows its dawn's marks, further out along the ray. */
+/** R-4.12 Further out along each ray. */
 const RayMarks: readonly Point[] = [
     { x: 778, y: 123 },
     { x: 855, y: 93 },
@@ -1152,12 +1061,11 @@ const RayMarks: readonly Point[] = [
     { x: 1094, y: 137 }
 ]
 
-/** The sunrays' middle, for the drawn sky. */
 export const SunCentre: Point = { x: 945, y: 186 }
 
 const ChartRowY = [797, 816, 836, 854, 874]
 
-/** R-4.3.2 The region tile chart's box, and each row of it. */
+/** R-4.3.2 */
 export const TileChart = {
     x: 1600,
     y: 766,
@@ -1174,7 +1082,6 @@ function placedBy<T extends { readonly id: string }>(
     return new Map(rows.map((row, index) => [row.id, place(row, index)]))
 }
 
-/** Each track space by the data's id, in board units. */
 export const VoyageSpaces = placedBy(EpicVoyageTrack, (_, index) => VoyageCentres[index])
 export const ServiceSpaces = placedBy(MilitaryServiceTrack, (_, index) => ServiceCentres[index])
 export const EpochRays = placedBy(EpochTrack, (_, index) => RayCentres[index])
@@ -1192,7 +1099,7 @@ export function trackPlace(table: ReadonlyMap<string, Point>, id: string): Point
     return place
 }
 
-/** R-4.3.1 Each region's stack on the strip below the map. */
+/** R-4.3.1 */
 export const StackCentres: Record<RegionId, Point> = {
     sea: { x: 1034, y: 856 },
     island: { x: 1116, y: 856 },
@@ -1204,11 +1111,11 @@ export const StackCentres: Record<RegionId, Point> = {
 export const StackSize = 72
 export const StackCountOffset: Point = { x: 30, y: -32 }
 
-/** R-4.11.1 The progress die, beside the stacks. */
+/** R-4.11.1 */
 export const DieCentre: Point = { x: 966, y: 866 }
 export const DieSize = 44
 
-/** R-4.10.2 One barrel per printed colour; each seat's stands at its own colour. */
+/** R-4.10.2 One barrel per printed colour. */
 export const BarrelCentres: Partial<Record<Color, Point>> = {
     [Color.Blue]: { x: 1784, y: 802 },
     [Color.Yellow]: { x: 1784, y: 862 },
@@ -1218,7 +1125,6 @@ export const BarrelCentres: Partial<Record<Color, Point>> = {
 }
 export const BarrelSize = 54
 export const BarrelSulfurSize = 16
-/** The seat's disc on the barrel head, and each barrel sulfur beneath it. */
 export const BarrelDisc: Point = { x: 0, y: -12 }
 export const BarrelSulfur: readonly Point[] = [
     { x: -16, y: 10 },
@@ -1234,10 +1140,6 @@ export function barrelCentre(colour: Color): Point {
     return centre
 }
 
-/**
- * Contract, Supply: the general supply has no place on the board; it opens as a card from the Supply
- * button over the board's lower-left corner. A piece that leaves or reaches the supply (the writ
- * deck, the seal pile, the haversack) flies from or to this corner, inside the board.
- */
+/** Contract, Supply: the supply has no place on the board; its pieces fly from this corner. */
 export const SupplyCorner: Point = { x: 60, y: BoardHeight - 60 }
 export const SupplyToken = 34

@@ -9,11 +9,7 @@ import {
 } from '@tabletop/feudum'
 import { seatOrder } from './seatPanel.js'
 
-/**
- * The guild standings (contract: Guild standings): each guild's track places from the top, then
- * the seats with stars and no place, read from the state alone. It recomputes no rank: the track
- * already holds the places the rules gave (R-4.5.3, R-4.5-H1).
- */
+/** Contract, Guild standings: no rank is recomputed; the track holds the places (R-4.5-H1). */
 
 export interface StandingHolder {
     readonly playerId: string
@@ -25,7 +21,6 @@ export interface StandingHolder {
 export interface StandingPlace {
     readonly rank: GuildRank
     readonly holder: StandingHolder | undefined
-    /** The place in words: "Farmer master: Ana, 3 stars". */
     readonly label: string
 }
 
@@ -44,13 +39,12 @@ export interface StandingRow {
     readonly guild: GuildId
     readonly name: string
     readonly places: readonly StandingPlace[]
-    /** In seat order. */
     readonly others: readonly StandingOther[]
     readonly othersLabel: string
 }
 
 export interface GuildStandingsView {
-    /** The places in play, from the top (R-4.5.3: an apprentice only at four or five seats). */
+    /** R-4.5.3 An apprentice only at four or five seats. */
     readonly ranks: readonly GuildRank[]
     readonly rows: readonly StandingRow[]
 }

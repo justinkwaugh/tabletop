@@ -8,11 +8,7 @@ import type {
     SeatWrits
 } from './seatPanel.js'
 
-/**
- * Contract, Seat panel: the panel's three lines under its ribbon, read from the one derivation of
- * the seat. Cards first, then what the seat spends, then what it holds. An optional piece the seat
- * has none of is not on a line; the five goods always are, so a missing good reads as 0.
- */
+/** Contract, Seat panel: the five goods always stand on a line, so a missing good reads as 0. */
 export type SeatCardsItem =
     | { readonly item: 'backs'; readonly count: number }
     | { readonly item: 'in-hand'; readonly count: number }
@@ -102,10 +98,7 @@ export function seatLinesOf(view: SeatPanelView): SeatLines {
     return { cards: cardsLine(view), supply: supplyLine(view), holdings: holdingsLine(view) }
 }
 
-/**
- * R-3.7.5, R-4.9.2 The ribbon's shield, when the seat has served or is a vassal: what the board's
- * service and voyage tracks say of this seat, as its tooltip. Absent otherwise.
- */
+/** R-3.7.5, R-4.9.2 The ribbon's shield, when the seat has served or is a vassal. */
 export function serviceShieldOf({ service, voyage }: SeatPanelView): string | undefined {
     if (service.covered === 0 && !service.vassal) {
         return undefined

@@ -17,11 +17,10 @@
     import { PrintedCounts } from '$lib/utils/printedGuilds.js'
     import StateNote from './StateNote.svelte'
 
-    /** R-4.6.5 The rosary's beads are public, and so its total. R-4.6.2 The church coffer's shillings. */
+    /** R-4.6.5 The rosary's beads are public, and so its total. */
     let { state }: { state: HydratedFeudumGameState } = $props()
 
     let coffer = $derived(guildSlot('guild.monk.coffer'))
-    /** The printed panel draws the string and the chest; the beads and the counts stand on it. */
     let printed = $derived(guildPrinted('monk'))
 </script>
 

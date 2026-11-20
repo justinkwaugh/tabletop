@@ -27,10 +27,7 @@
     } from '$lib/utils/boardGeometry.js'
     import { WritPath } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-3.7.5 Each seat's voyage disc; R-4.9-H2 its discs on the military service spaces it covered.
-     * The print has both tracks; `printed` false draws our own spaces with their values from the data.
-     */
+    /** R-3.7.5 Each seat's voyage disc; R-4.9-H2 its discs on the service spaces it covered. */
     let {
         state,
         printed,
@@ -59,7 +56,6 @@
 </script>
 
 {#if !printed}
-    <!-- Each drawn space dims as itself: the tracks round the board never fade as one group. -->
     <g data-drawn-tracks style:font-family="var(--feudum-font-text)">
         {#each EpicVoyageTrack as space (space.id)}
             {@const at = trackPlace(VoyageSpaces, space.id)}

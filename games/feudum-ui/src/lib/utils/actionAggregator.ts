@@ -16,21 +16,15 @@ import {
 } from '@tabletop/feudum'
 import { isOffTurnDiscard } from './decisionPress.js'
 
-/** What a group of Actions is, for the log: `single` stands alone and grows by nothing. */
 export type HistoryGroupKind = 'single' | 'hands' | 'turn' | 'nourishing' | 'progress' | 'dawn'
 
-/** One entry of Actions, each exactly as this seat received it. */
 export interface HistoryGroup {
     readonly kind: HistoryGroupKind
-    /** Holds still as the entry grows. */
     readonly id: string
-    /** The seat whose turn it is; only a turn has one. */
     readonly playerId?: string
     readonly actions: readonly GameAction[]
-    /** The span a replay covers. */
     readonly firstIndex: number
     readonly lastIndex: number
-    /** Where a jump lands, on the entries that have one. */
     readonly jumpIndex?: number
     readonly replays: boolean
 }
@@ -57,18 +51,13 @@ export function isHistoryGroup(entry: HistoryEntry): entry is HistoryGroup {
     return entry.kind !== 'epoch' && entry.kind !== 'round'
 }
 
-/**
- * R-4.10 The Actions of an entry that the log gives a line, in order. A seat that answered Nourish
- * fed or lost a pawn, so the game's own feeding, when it fed nobody, would say no pawn needed
- * feeding against it: that line is left out. The entry still holds the Action, and its span.
- */
+/** R-4.10 A seat that answered Nourish makes the game's "nobody needed feeding" line false. */
 export function linedActions({ kind, actions }: HistoryGroup): readonly GameAction[] {
     return kind === 'nourishing' && actions.some((action) => isNourish(action))
         ? actions.filter((action) => !gameFedNobody(action))
         : actions
 }
 
-/** The public facts the interstitials come from. */
 export interface HistoryTable {
     readonly rounds: readonly Round[]
     readonly epoch: Epoch
@@ -77,7 +66,6 @@ export interface HistoryTable {
 /** R-4.11.2 One epoch at a time, so a dawn names the epoch before it. */
 const EpochBefore: Readonly<Record<TriggeredEpoch, Epoch>> = { 2: 1, 3: 2, 4: 3, 5: 4 }
 
-/** Actions that always open or join this kind of entry, whatever is open. */
 const GroupOfType: ReadonlyMap<string, HistoryGroupKind> = new Map([
     [ActionType.ChooseStartingGoods, 'single'],
     [ActionType.PlaceStartingPawn, 'single'],
@@ -117,7 +105,6 @@ function leftUnfedPawns(action: GameAction): boolean {
     )
 }
 
-/** R-4.10, R-4.10-H4 The game's own feeding, when it fed no seat: on its own line it says nobody needed feeding. */
 function gameFedNobody(action: GameAction): boolean {
     return isNourishPawns(action) && (action.metadata?.fed.length ?? 0) === 0
 }
@@ -170,12 +157,8 @@ function formed({ kind, actions, firstIndex, lastIndex }: Forming): HistoryGroup
 }
 
 /**
- * R-2.2, R-5-H1 The log's entries, oldest first (contract: Game log and history). Reads the Actions as
- * the seat received them and the public series beside them: never a patch, never a hidden field.
- * `AdvanceTurn` and `StartRound` are bookkeeping and only mark where entries end: an `AdvanceTurn`
- * that leaves the turn with its seat ends nothing. `EndRound` joins whatever entry the round ended on.
- * Any seat may discard at any time, so a discard never makes a turn its seat's: one by another seat
- * than the turn's stands alone, between turns or in the middle of one.
+ * R-2.2, R-5-H1 (contract: Game log and history) From the Actions as the seat received them and
+ * the public series: never a patch, never a hidden field.
  */
 export function aggregateHistory(
     actions: readonly GameAction[],
@@ -191,7 +174,6 @@ export function aggregateHistory(
     let open: Forming | undefined
     let last: Forming | undefined
     let selecting = false
-    /** The seat the last AdvanceTurn gave the turn to; none in a round's first turn. */
     let turnSeat: string | undefined
 
     const add = (action: GameAction, index: number, kind: HistoryGroupKind) => {
@@ -202,7 +184,7 @@ export function aggregateHistory(
             open.actions.every(isDiscardWrit) &&
             open.actions[0].playerId !== action.playerId
         ) {
-            // R-4.4-H5 The turn is its first card's seat's: another seat's discards before it stand alone.
+            // R-4.4-H5 Another seat's discards before a turn's first card stand alone.
             open.kind = 'single'
             open = undefined
         }
@@ -236,8 +218,7 @@ export function aggregateHistory(
         }
         const seat = open?.kind === 'turn' ? open.actions[0].playerId : turnSeat
         if (!selecting && seat !== undefined && isOffTurnDiscard(action, seat)) {
-            // R-4.4-H5 Any seat may discard at any time: another seat's discard is not its turn, nor
-            // part of the turn it falls in, which goes on growing after it.
+            // R-4.4-H5 Another seat's discard is not part of the turn it falls in.
             slots.push({
                 kind: 'single',
                 actions: [action],

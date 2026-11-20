@@ -12,11 +12,7 @@
     import WritFace from '$lib/components/pieces/WritFace.svelte'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /**
-     * Contract, Symbol key: the table's vocabulary in one compact card, each piece beside its name.
-     * The menus draw pieces in place of words; this is where a player reads what each one is. The
-     * seat pieces are drawn in `paint`, the viewer's own colour.
-     */
+    /** Contract, Symbol key: each piece beside its name, seat pieces in the viewer's colour. */
     let { paint }: { paint: SeatPaint } = $props()
 
     const Piece = 22

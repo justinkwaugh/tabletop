@@ -4,10 +4,7 @@ const PieceTurnKey = Symbol('feudum-piece-turn')
 
 type Turn = () => number
 
-/**
- * R-1.2.3 Inside a guild area stood upright off the board, the turn in degrees that stands a piece or
- * a word of ours upright again about its own centre; on the board, none.
- */
+/** R-1.2.3 Off the board a guild area stands upright, so its pieces turn back. */
 export function setPieceTurn(turn: Turn): void {
     setContext(PieceTurnKey, turn)
 }

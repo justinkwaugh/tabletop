@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import GuildStandings from './GuildStandings.svelte'
 
-    /** The guild standings of the state the session shows, in each seat's paint (S71). */
+    /** S71 In each seat's paint. */
     const gameSession = getGameSession()
     let view = $derived(
         guildStandingsOf(gameSession.gameState, (playerId) => gameSession.getPlayerName(playerId))

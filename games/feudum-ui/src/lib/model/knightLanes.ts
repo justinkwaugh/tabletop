@@ -7,16 +7,12 @@ import {
     type KnightRowOwner
 } from '@tabletop/feudum'
 
-/** The seats and their colours, and the guilds: all a row's lane reads. */
 export interface SeatsAndRows {
     readonly players: readonly { readonly playerId: string; readonly color: Color }[]
     readonly guilds: KnightRowsHolder['guilds']
 }
 
-/**
- * R-1.3 The printed lane a Knight row stands in on the board: its seat's colour's lane, or its dummy
- * colour's. Where it is drawn only; whose it is comes from its owner, and its paint from the session.
- */
+/** R-1.3 Its seat's colour's lane, or its dummy colour's; never whose row it is. */
 export function rowLane(state: Pick<SeatsAndRows, 'players'>, owner: KnightRowOwner): Color {
     if ('dummyColour' in owner) {
         return owner.dummyColour
@@ -36,7 +32,6 @@ export function seatRowId(state: SeatsAndRows, playerId: string): KnightRowId | 
     return seatKnightRow(state, playerId)?.rowId
 }
 
-/** A Knight row's marker in a column, as the board and its motion know it. */
 export function knightMarkerPiece(rowId: KnightRowId, column: number): string {
     return `knight:${rowId}:${column}`
 }

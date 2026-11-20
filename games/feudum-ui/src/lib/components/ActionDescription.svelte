@@ -5,7 +5,7 @@
     import TokenText from '$lib/components/pieces/TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    /** One Action's line in the log (contract: Game log and history), led by who took it. */
+    /** Contract, Game log and history: one Action's line, led by who took it. */
     let { action, viewerId }: { action: GameAction; viewerId?: string } = $props()
 
     const gameSession = getGameSession()

@@ -1,7 +1,6 @@
 /**
- * Whether a viewer sees a hidden thing's face. Decided from who looks, never from whether the data
- * happens to be present: a Local game holds every field and still shows backs. Host View is its own
- * explicit look at the faces (S57), which its derivation asks for by name; it is no viewer here.
+ * Decided from who looks, never from what data is present: a Local game holds every field.
+ * S57 Host View asks for faces by name; it is no viewer here.
  */
 
 /** R-3.1, R-5.1 A hand's cards: their owner sees faces, everyone else backs and a count. */
@@ -18,10 +17,7 @@ export function writFaceShown(
     return revealedAtGameEnd || viewerId === ownerId
 }
 
-/**
- * R-5-H1 A seal red side up is the same crowned disc for everyone, its holder included; only a
- * flip to a bead shows its value, and then to all.
- */
+/** R-5-H1 A seal is the same crowned disc to all, its holder included, until flipped. */
 export function sealFaceShown(flippedToBead: boolean): boolean {
     return flippedToBead
 }

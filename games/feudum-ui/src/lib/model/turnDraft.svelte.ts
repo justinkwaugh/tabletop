@@ -50,7 +50,6 @@ export const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
 
 export interface TurnPrimary {
     readonly label: string
-    /** The full words, its accessible name, where the label says them shorter. */
     readonly named?: string
     readonly enabled: boolean
 }
@@ -60,7 +59,7 @@ export interface TurnCardRow {
     readonly label: string
     readonly picked: boolean
     readonly press: () => void
-    /** Contract, Hover: what this row's press would light. */
+    /** Contract, Hover. */
     readonly lights: () => readonly BoardTarget[]
 }
 
@@ -68,37 +67,24 @@ export interface TurnPanel {
     /** "Card 2 of 4", or "2nd card" (R-3.3). */
     readonly line: string
     readonly cards: readonly TurnCardRow[]
-    /** Repeat's played cards the seat can replay now (R-3.15); one it can't is not drawn. */
+    /** R-3.15 Repeat's played cards the seat can replay now. */
     readonly replays: readonly PanelChoice[]
-    /** The modes open now; a refused one is not drawn. Empty when only Forfeit is left. */
     readonly modes: readonly PanelChoice[]
     /** R-3.13-H1, R-3.15 The engine refuses every other mode. */
     readonly forfeitOnly: boolean
-    /** With only Forfeit left, one short line why ("Can't be played last."). */
     readonly fact?: string
-    /** Present once a card is picked: R-3.2. */
+    /** R-3.2 Present once a card is picked. */
     readonly forfeit?: string
-    /**
-     * R-3.3 Present while the pouch holds an unused sulfur: "2 cards" and the sulfur it spends, its
-     * label the accessible name.
-     */
+    /** R-3.3 Present while the pouch holds an unused sulfur. */
     readonly secondCard?: { readonly label: string; readonly shown: string; readonly on: boolean }
     readonly flow?: FlowView
     readonly primary?: TurnPrimary
 }
 
-/**
- * R-3.2 The turn draft (contract: Shared visual state): card, mode, then that mode's targets and
- * popups, then the cover for a short payment. The rules stay in the logic package's offers and
- * refusals: `cardModes` asks which modes are open, `cardFlows` turns the open one into a view.
- */
+/** R-3.2 The turn draft (contract: Shared visual state); the rules stay in the logic's offers. */
 export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPresser {
     private readonly seeing: TurnStages = $derived.by(() => this.withLoneChoices(super.read()))
 
-    /**
-     * `onReselect`: a later draft's stages end when a card, replay or mode is pressed.
-     * `lightsOfHandOff`: what opening a mode another draft builds would light.
-     */
     constructor(
         private readonly contextOf: () => TurnContext | undefined,
         private readonly onReselect?: () => void,
@@ -214,7 +200,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return this.value('card')
     }
 
-    /** What the Action's input carries: for a later draft that builds a card's Action. */
     cardInput: CardPlayInput = $derived.by(() =>
         this.offers ? this.inputOf(this.selection, this.offers) : {}
     )
@@ -224,7 +209,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return context ? this.modesOf(this.selection, context, this.cardInput) : []
     })
 
-    /** The picked or lone mode: Move and the guild functions read this to open their own draft. */
     mode: CardAction | undefined = $derived.by(() => {
         const context = this.contextOf()
         return context ? this.openMode(this.selection, context, this.cardInput) : undefined
@@ -306,7 +290,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             : flow.picks.map(({ target }) => target)
     }
 
-    /** A card with a lone open mode opens it at once; any other press lights nothing yet. */
     private lightsOfCard(kind: ActionCardKind): readonly BoardTarget[] {
         const context = this.contextOf()
         if (!context || kind === 'repeat') {
@@ -318,7 +301,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return action && label ? this.lightsOfMode(action, label, kind) : []
     }
 
-    /** R-3.15 A replay opens that card's stages: what they would light, with the repeat it carries. */
+    /** R-3.15 A replay opens that card's stages, with the repeat it carries. */
     private lightsOfReplay(kind: ActionCardKind, asRepeat: RepeatMode): readonly BoardTarget[] {
         const context = this.contextOf()
         if (!context) {
@@ -331,7 +314,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return action && label ? this.lightsOfMode(action, label, undefined, input) : []
     }
 
-    /** What the board lights for the open flow. */
     cardPick:
         | { readonly targets: readonly PickTarget[]; readonly picked: readonly BoardTarget[] }
         | undefined = $derived.by(() => {
@@ -353,7 +335,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return flow?.popup ? undefined : flow?.picks.find((pick) => pick.target === target)
     }
 
-    /** The press just made finishes an undoable Action, so it sends rather than asks. */
     get sendsNow(): FlowPlay | undefined {
         const { flow } = this
         return flow?.play && !flow.confirms && sendsOnPress(this, flow.play) ? flow.play : undefined
@@ -410,7 +391,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         const player = state.getPlayerState(playerId)
         const { card, mode, modes, flow, cardInput } = this
         const hand = offers.cards
-        // The epoch and round stand on the board and the phone's status strip.
         const line = state.flow.turn?.secondCard
             ? '2nd card'
             : `Card ${player.played.length + 1} of ${player.played.length + hand.length}`
@@ -477,10 +457,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return getStagedSelectionValue<TurnDraftValues, K>(stages, stage)
     }
 
-    /**
-     * R-3.13-H1, R-3.15 Why only Forfeit is left, in one short line: a card that can't be last, a Repeat
-     * with nothing to replay, or what the first of the card's modes is refused for.
-     */
+    /** R-3.13-H1, R-3.15 Why only Forfeit is left, in one short line. */
     private forfeitFact(
         card: ActionCardKind,
         notLast: boolean,

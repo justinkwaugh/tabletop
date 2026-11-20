@@ -9,11 +9,7 @@
     import GuildIcon from './GuildIcon.svelte'
     import PieceFrame from './PieceFrame.svelte'
 
-    /**
-     * R-4.4.4 A royal writ. The perspective rule sets `faceShown`; a back is one crowned writ whichever
-     * writ it is, and carries a wax seal when sealed. A sealed writ's face, shown to its holder, is
-     * dimmed and says so. One component by width; R-7, R-4.4.3 a face lays out its data.
-     */
+    /** R-4.4.4 Every writ's back is the same; a sealed one carries a wax seal. */
     let {
         faceShown,
         writId,

@@ -4,12 +4,7 @@
     import { chipOf, roleOf, type BoardTarget } from '$lib/model/boardOffer.js'
     import PickChip from './PickChip.svelte'
 
-    /**
-     * One target's pick chrome, in the layer that draws the target: the ring over its halo, its chip
-     * and its press. What it shows is the board offer's and nothing else (contract: Pick conventions).
-     * It stands whatever the role, so a popup always has its anchor. A layer that draws the chip over
-     * what stands on the target leaves it out here.
-     */
+    /** Contract, Pick conventions: drawn whatever the role, so a popup always has its anchor. */
     let {
         target,
         chrome,

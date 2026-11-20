@@ -126,7 +126,6 @@ export class KeepWritsDraft extends DeciderDraft<KeepWritsValues> {
             line: `Keep ${offer.keep} of ${offer.drawn.length}`,
             writs: offer.drawn.map((writId) => {
                 const picked = keep.includes(writId)
-                // With the keep full, the others stand dimmed until a pick is pressed off.
                 return {
                     writId,
                     ...(!picked && keep.length >= offer.keep

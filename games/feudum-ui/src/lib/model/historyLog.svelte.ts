@@ -5,17 +5,12 @@ import {
 } from '$lib/utils/actionAggregator.js'
 import type { FeudumGameSession } from './session.svelte.js'
 
-/** What the list holds to while a replay steps the table back and forward. */
 interface Replaying {
     readonly entryId: string
     readonly entries: readonly HistoryEntry[]
     readonly viewerId: string | undefined
 }
 
-/**
- * The log's entries as this seat reads them, and the two things a press on one may do. Neither sends
- * anything nor changes the game: both only move what the shared history shows.
- */
 export class HistoryLog {
     private replayingNow = $state.raw<Replaying | undefined>(undefined)
 
@@ -30,7 +25,6 @@ export class HistoryLog {
         })
     })
 
-    /** Oldest first; a replay's stepping doesn't reach the list. */
     get entries(): readonly HistoryEntry[] {
         return this.replayingNow?.entries ?? this.displayed
     }

@@ -3,13 +3,7 @@
     import { RankBadges, type DieRank } from '$lib/model/guildDie.js'
     import { GuildIconPaths } from '$lib/utils/pieceShapes.js'
 
-    /**
-     * A guild as its progress-die face: the guild's one icon in ink on light wood. `rank` is the
-     * badge on its corner, M, J, A or a dimmed dash for none; without it the die has no badge.
-     * `caption` names the guild beneath it on a desk; a phone drops the caption, and the name stays
-     * in the accessible name of whatever holds the die. `size` is the face's side on a desk,
-     * `phoneSize` on a phone (contract: Phone layout).
-     */
+    /** Contract, Phone layout: a phone drops the caption; the name stays accessible. */
     let {
         guild,
         rank,

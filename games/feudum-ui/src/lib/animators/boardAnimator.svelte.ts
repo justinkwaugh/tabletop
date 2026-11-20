@@ -12,19 +12,16 @@ import {
     type MotionToken
 } from './boardPlan.js'
 
-/** The little of an element a motion uses, so that it never reads layout. */
 export interface MotionElement {
     readonly parentElement: { getAttribute(name: string): string | null } | null
     setAttribute(name: string, value: string): void
     removeAttribute(name: string): void
 }
 
-/** The board's svg: every lookup stays inside it, so nothing outside the board is touched. */
 export interface MotionSurface {
     querySelector(selector: string): MotionElement | null
 }
 
-/** Where an animated element stands, relative to its world placement, and how it is drawn. */
 interface Pose {
     x: number
     y: number
@@ -36,7 +33,6 @@ interface Pose {
 
 const WorldPlacement = /translate\(\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*\)/
 
-/** Where along the path `t` of its length lies. */
 function along(path: readonly Point[], t: number): Point {
     const lengths = [0]
     for (let index = 1; index < path.length; index += 1) {
@@ -60,15 +56,10 @@ export interface BoardChangeArgs {
     readonly from?: HydratedFeudumGameState
     readonly action?: GameAction
     readonly animationContext: AnimationContext
-    /** How long the flight layer's copies take, so that what follows them on the board waits. */
     readonly flightRoom?: number
 }
 
-/**
- * Motion inside the board's svg. The presenter gives each Action its own context, one after another,
- * and publishes state only after the last: so a pose lasts from step to step, and the next step takes
- * up its piece from where the last left it. Publishing settles everything at once.
- */
+/** The presenter publishes state only after the last Action, so poses carry step to step. */
 export class BoardAnimator {
     /** Presence only, written once per step; tweens never touch reactive state. */
     tokens: readonly MotionToken[] = $state.raw([])
@@ -80,17 +71,13 @@ export class BoardAnimator {
     private steps = 0
     private readonly poses = new Map<MotionElement, Pose>()
 
-    /**
-     * @param carrier A piece an earlier Action of a replay brought on is not on the board yet but a
-     * resting copy on the flight layer: what moves that copy, given a point in board units.
-     */
+    /** @param carrier Moves a replay's piece that rests only as a copy on the flight layer. */
     constructor(
         private readonly reduced: () => boolean = () => prefersReducedMotion.current,
         private readonly carrier: (piece: string) => ((point: Point) => void) | undefined = () =>
             undefined
     ) {}
 
-    /** The board mounts its svg here. */
     readonly attach = (surface: MotionSurface) => {
         this.surface = surface
         return {
@@ -103,10 +90,6 @@ export class BoardAnimator {
         }
     }
 
-    /**
-     * A desk's open side mounts each upright guild area's svg here, so what moves inside the area moves
-     * there, in the board's own units, turned as the area is.
-     */
     readonly attachArea = (surface: MotionSurface, guild: GuildId) => {
         this.areas.set(guild, surface)
         return {
@@ -118,7 +101,6 @@ export class BoardAnimator {
         }
     }
 
-    /** Gives the second on this Action's timeline at which the flight layer's copies may leave. */
     async onGameStateChange({
         to,
         from,
@@ -133,9 +115,7 @@ export class BoardAnimator {
         if (reduced && !action) {
             return 0
         }
-        // A desk's board draws no score ring: its scores fly to the seats instead.
         const scoreRing = this.surface.querySelector('[data-score-ring]') !== null
-        // A good to or from an open side's area crosses out of the board's svg: the flight layer's.
         const apart = [...this.areas.keys()]
         const built = action
             ? planBoardMotion({ from, to, action, flightRoom, scoreRing, apart })
@@ -152,8 +132,7 @@ export class BoardAnimator {
         }
         const timeline = animationContext.actionTimeline
         if (reduced) {
-            // Reduced motion holds the table for no time: every piece simply lands, in the order the
-            // tweens would land it, and the flight layer's copies follow at once.
+            // Reduced motion: every piece lands at once, in the tweens' order.
             const landing = [...plan.motions].sort(
                 (a, b) => a.at + a.duration - (b.at + b.duration)
             )
@@ -168,10 +147,7 @@ export class BoardAnimator {
         return flightsAt
     }
 
-    /**
-     * The state is about to show: every pose goes in one synchronous stroke, so no frame paints the old
-     * pose over the new world. A tween still running writes nothing more, and a step is never lost.
-     */
+    /** One synchronous stroke, so no frame paints an old pose over the new state. */
     settle() {
         this.generation += 1
         for (const element of this.poses.keys()) {
@@ -224,7 +200,6 @@ export class BoardAnimator {
         )
     }
 
-    /** No tween and no wait: the piece is simply there, called in the order the tweens would land. */
     private followWithoutTween(
         timeline: AnimationContext['actionTimeline'],
         motion: BoardMotion,
@@ -266,7 +241,6 @@ export class BoardAnimator {
         this.draw(element, pose)
     }
 
-    /** The element, as it stands now, and how a motion's progress draws it. */
     private begin(motion: BoardMotion, generation: number): ((t: number) => void) | undefined {
         if (generation !== this.generation) {
             return undefined
@@ -320,14 +294,13 @@ export class BoardAnimator {
         }
     }
 
-    /** A piece on the board only as a resting copy: its walk carries the copy. */
     private carried(target: MotionTarget): ((point: Point) => void) | undefined {
         return 'piece' in target && target.part === undefined
             ? this.carrier(target.piece)
             : undefined
     }
 
-    /** An open side's areas first: a token placed in one is drawn there and on the board's svg. */
+    /** Areas first: a token in an open side's area is drawn there and on the board's svg too. */
     private resolve(target: MotionTarget) {
         const selector = this.selectorOf(target)
         const element =
@@ -360,11 +333,7 @@ export class BoardAnimator {
         return placed ? { x: Number(placed[1]), y: Number(placed[2]) } : { x: 0, y: 0 }
     }
 
-    /**
-     * The attribute, not GSAP's matrix: Firefox leaves the offset of an SVG matrix transform out of the
-     * CSS zoom the board draws at. The nested transforms keep the pose in the board's own units, so the
-     * view round the board may frame, zoom or pan as it likes.
-     */
+    /** The attribute, not GSAP's matrix: Firefox leaves an SVG matrix's offset out of CSS zoom. */
     private draw(element: MotionElement, pose: Pose) {
         const { x, y, rotate, scaleX, scaleY, opacity } = pose
         element.setAttribute(

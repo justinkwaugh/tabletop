@@ -14,13 +14,7 @@
     import { widenedBoxes } from '$lib/utils/benchPresses.js'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
-    /**
-     * One guild area on the bench: the board's own component, stood upright (R-1.2.3), its long side
-     * the bench's fixed length. Each lit, picked or dimmed item is a press over where it stands, in
-     * percent of the area, inside the turned box, so it lands on its printed space; the area itself is
-     * an image, so a press can't be inside it. Ghosts draw inside it, upright. `fit` shortens it, so
-     * the bench's room holds both areas whole, side by side.
-     */
+    /** R-1.2.3 The area stands upright; presses lie over it, since an image holds no children. */
     let {
         area,
         fit,
@@ -43,14 +37,10 @@
 
     const percent = (value: number, whole: number) => `${(value / whole) * 100}%`
 
-    /** The touch-target minimum, in CSS pixels (contract: Touch targets). */
+    /** Contract, Touch targets. */
     const Target = 44
 
-    /**
-     * S68 A Knight row is narrower or shorter than a finger at bench scale, so each row that takes a
-     * press reaches past its place, as far as the target asks and its pressing neighbours allow; its
-     * ring stays over the row.
-     */
+    /** S68 A Knight row is smaller than a finger at bench scale, so its press reaches past it. */
     let long = $derived(Math.min(fit ?? BenchAreaWidth, BenchAreaWidth))
     let short = $derived((long * GuildBox.height) / GuildBox.width)
     let ghostTurn = $derived(-uprightTurn(area.guild))
@@ -187,12 +177,10 @@
         height: 100%;
     }
 
-    /* A place that takes no press lets a neighbour's wider press through. */
     .item.still {
         pointer-events: none;
     }
 
-    /* A used row refuses a second press, and it stays the brightest thing there. */
     .item[data-bench-role='picked'] :global(.opacity-50) {
         opacity: 1;
     }
@@ -249,7 +237,6 @@
         line-height: 1;
     }
 
-    /* Beside the printed prices, not over them: a bin's swatch, above a bead. */
     .wide .note {
         top: 50%;
         right: auto;

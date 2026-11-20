@@ -4,31 +4,19 @@ import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 import type { SeatsAndRows } from './knightLanes.js'
 
-/** A seat's own wooden pieces: an influence marker, a player disc, a reeve. */
 export const SeatPieceKinds = ['marker', 'disc', 'reeve'] as const
 export type SeatPieceKind = (typeof SeatPieceKinds)[number]
 
-/** A seat's paint for its pieces. Colours come only from the session's colourizer (S71). */
+/** S71 Colours come only from the session's colourizer. */
 export interface SeatPaint {
     readonly fill: string
     readonly ink: string
     readonly edge: string
-    /**
-     * Whose pieces these are, as their accessible names and tooltips begin: the seat's name
-     * ("Ana's influence marker"), or the colour for a piece no seat stands behind ("red influence
-     * marker", a dummy Knight row). No piece carries a letter: colour is told apart by this name
-     * and, for those who need it, by the platform's colour-blind palette.
-     */
+    /** No letter on a piece: this name and the platform's colour-blind palette tell seats apart. */
     readonly owner: string
-    /**
-     * The publisher's printed colour this paint shows, so a card or piece may be its printed one.
-     * Absent when the displayed fill is not that colour's own (another palette), so the drawn
-     * piece keeps the colour the palette chose.
-     */
     readonly printed?: PrintedColour
 }
 
-/** The palette the printed colours stand for: a fill the session shows that is not one of these is drawn. */
 const PrintedPalette = new FeudumGameColorizer()
 
 function printedColour(colour: Color | undefined, fill: string): PrintedColour | undefined {
@@ -57,9 +45,7 @@ export function contrast(first: number, second: number): number {
     return (light + 0.05) / (dark + 0.05)
 }
 
-/** Above this a seat fill takes dark ink; below it, light (the two halo and text tokens). */
 const DarkInkAbove = 0.179
-/** Near black needs a light edge to stay off the terrain. */
 const LightEdgeBelow = 0.03
 
 function paintOfFill(fill: string, owner: string, colour?: Color): SeatPaint {
@@ -89,7 +75,7 @@ export function seatPaint(
     )
 }
 
-/** What a colour with no seat behind it wears, a dummy Knight row (R-1.4-H1): named by its colour. */
+/** R-1.4-H1 A colour with no seat behind it, a dummy Knight row, is named by its colour. */
 export function colourPaint(
     colors: { getUiColor(color: Color): string },
     colour: Color
@@ -97,11 +83,7 @@ export function colourPaint(
     return paintOfFill(colors.getUiColor(colour), colour, colour)
 }
 
-/**
- * R-1.4-H1, Player relationships: the colour a dummy row and its supply pool are shown in. Its own
- * while no seat is displayed in it; else the first of the game's colours that no seat is displayed
- * in and no other dummy row keeps. A preferred colour can take a dummy row's colour, never its look.
- */
+/** R-1.4-H1 A preferred colour can take a dummy row's colour, never its look. */
 export function dummyColourShown(
     seatColours: readonly Color[],
     dummyColours: readonly Color[],
@@ -117,13 +99,12 @@ export function dummyColourShown(
     return spare.at(moved.indexOf(dummy)) ?? dummy
 }
 
-/** The session's colours, as a dummy row's paint reads them. */
 export interface DummyPaintColours {
     getPlayerColor(playerId?: string): Color
     getUiColor(color: Color): string
 }
 
-/** R-1.4-H1 A dummy row's paint, in a colour no seat is displayed in, and named by that colour. */
+/** R-1.4-H1 A dummy row's paint, in a colour no seat is displayed in. */
 export function dummyPaint(
     colors: DummyPaintColours,
     state: SeatsAndRows,

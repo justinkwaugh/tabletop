@@ -4,11 +4,6 @@
     import type { PanelChoice } from '$lib/model/cardFlows.js'
     import type { DieArt } from '$lib/model/guildDie.js'
 
-    /**
-     * A guild choice as its die: the die is the press, badged with the rank the pick would give,
-     * captioned with the guild's name on a desk. The label ("Farmer, journeyman") is the press's
-     * accessible name and tooltip.
-     */
     let {
         choice,
         art,

@@ -128,47 +128,34 @@ void stageCoverage
 
 export type TurnStage = (typeof TurnStageOrder)[number]
 
-/** How a press changes the draft; rows and picks carry theirs, so a component only calls it. */
 export interface TurnPresser {
-    /** A set; the same value again unpicks it. */
     pick<K extends TurnStage>(stage: K, value: TurnDraftValues[K]): void
-    /** One press on a stacked stage. */
     stack<K extends 'spaces' | 'cover'>(stage: K, value: TurnDraftValues[K]): void
 }
 export type TurnPress = (draft: TurnPresser) => void
 
-/** A location disc as a choice: `back` peeks out behind it, the face that leaves the supply with it. */
 export interface DiscArt {
     readonly kind: 'disc'
     readonly location: LocationKind
     readonly back?: LocationKind
 }
 
-/** A held piece a row offers: a writ's back, a king's seal or a vessel. */
 export type PieceArt =
     | { readonly kind: 'writ-back' }
     | { readonly kind: 'seal' }
     | { readonly kind: 'vessel'; readonly vessel: VesselType }
 
-/**
- * The piece a row shows before its label. A guild's die is the whole choice, with the label as its
- * accessible name.
- */
 export type ChoiceArt = TileArt | DieArt | DiscArt | PieceArt
 
 export interface PanelChoice {
     readonly label: string
-    /** Its piece, with the label kept as the row's accessible name. */
     readonly art?: ChoiceArt
-    /** The text beside the art when the art stands for part of the label (a tile for its name). */
     readonly shown?: string
     readonly note?: ChipNote
     /** R-3.4 A special's printed cost, drawn after its name. */
     readonly cost?: PrintedCost
     readonly picked: boolean
-    /** Dimmed, with the line a press gives; it has no `press`. */
     readonly refusal?: string
-    /** Dimmed with no line: other picks hold its room, and a press does nothing until one goes. */
     readonly spent?: boolean
     readonly press?: TurnPress
     /** Contract, Hover: what this row's press would light, read only while the row is pointed at. */
@@ -183,7 +170,6 @@ export interface FlowPick {
 
 export interface FlowPopup {
     readonly anchor: BoardTarget
-    /** What the choice decides, said once above it. */
     readonly heading?: string
     readonly choices: readonly PanelChoice[]
 }
@@ -193,7 +179,6 @@ type ActionMaker = Pick<
     'createPlayerAction'
 >
 
-/** Defined once the logic's refusal has passed: what a press or the primary sends. */
 export interface FlowPlay extends SendPreview {
     readonly build: (maker: ActionMaker) => GameAction
 }
@@ -209,18 +194,14 @@ export interface FlowView {
     readonly picked: readonly BoardTarget[]
     readonly rows: readonly PanelChoice[]
     readonly popup?: FlowPopup
-    /** "Pick a space.", "Place 2 of 3", "Pick an earlier tile." */
     readonly line?: string
     readonly tally?: readonly TallyLine[]
     readonly tallyNote?: string
     /** R-X.2 Names the primary button, when this flow can show one. */
     readonly primaryName?: string
-    /** The primary's full words, its accessible name, where `primaryName` says it shorter. */
     readonly primaryNamed?: string
-    /** The primary is the only press that sends, whatever the preview says. */
     readonly confirms?: boolean
     readonly play?: FlowPlay
-    /** This mode's stages are another draft's: Move and the guild functions. */
     readonly handedOff?: ActionType
 }
 
@@ -247,7 +228,6 @@ export function regionOf(spaceId: SpaceId): RegionId {
     return space.region
 }
 
-/** "Desert 4" */
 export function spaceLabel(spaceId: SpaceId): string {
     return `${titled(regionOf(spaceId))} ${spaceId.split('.')[2]}`
 }
@@ -258,10 +238,7 @@ const VesselNames: Readonly<Record<VesselType, string>> = {
     'flying-machine': 'a flying machine'
 }
 
-/**
- * "Knight at Desert 4, on a ship": R-1.1 a seat's pawns are alike, so one is told from another
- * only by where it stands, its character and the vessel under it (R-4.2.2), never by its number.
- */
+/** R-1.1 A seat's pawns are alike: one is told by place, character and vessel, never number. */
 export function pawnPlace({
     character,
     spaceId,
@@ -290,7 +267,7 @@ function playIf(
     return reason === undefined ? { ...preview, build } : undefined
 }
 
-/** R-3.6.1 The food a pawn from supply costs, as its goods: the chip draws them, the label names them. */
+/** R-3.6.1 The food a pawn from supply costs. */
 function priceNote(): ChipNote {
     const goods = Goods.flatMap((good) => {
         const count = MigrateFood[good]
@@ -303,15 +280,11 @@ function priceNote(): ChipNote {
     }
 }
 
-/** The tray's line while a pick lights places with chips; the chips say the rest. */
 const MigrateLine = 'Pick a space.'
 const HarvestLine = 'Pick a farm.'
 const ConquerLine = 'Pick a place.'
 
-/**
- * R-3.6.1 Why no pawn may come onto the board, in the logic's words: with none in supply, any pawn
- * asked for draws its "no pawn in supply".
- */
+/** R-3.6.1 With none in supply, any pawn asked for draws "no pawn in supply". */
 function reasonNoneEnter(
     { state, playerId, input }: FlowInput,
     pawnsOff: readonly PawnNumber[]
@@ -330,8 +303,8 @@ function migrateFlow(flow: FlowInput): FlowView {
     const offers = migrateOffers(state, playerId)
     const pawn = read('pawn')
     const spaceId = read('space')
-    // R-1.1 Pawns in supply stand nowhere and have no character, so nothing tells them apart: a
-    // space press takes the first. R-3.6.2 A starting space open only by Distant Kin declares it.
+    // R-1.1 Pawns in supply are alike, so a space press takes the first.
+    // R-3.6.2 A starting space open only by Distant Kin declares it.
     const [entering] = offers.pawnsOff
     const picks: FlowPick[] = [
         ...offers.spaces.map((id) => ({
@@ -418,7 +391,6 @@ function migrateFlow(flow: FlowInput): FlowView {
                 art: tileArt(state, tileId),
                 shown: `for ${needs.join(', ')}`,
                 picked: cover.includes(tileId),
-                // Spent: every short good has its tile, so this one waits, dimmed, until one goes.
                 ...(next
                     ? {
                           press: (draft: TurnPresser) => {
@@ -502,10 +474,7 @@ function influenceFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }
 }
 
-/**
- * R-3.9.1 The step a lit place would take and what it costs, drawn: the disc it shows, an arrow,
- * the disc it becomes, then the good or seal paid. The words stay its accessible name.
- */
+/** R-3.9.1 The step a lit place would take and what it costs. */
 function improveStepNote({ from, to, cost }: ImproveOffer): ChipNote {
     return {
         kind: 'cost',
@@ -519,7 +488,6 @@ function improveStepNote({ from, to, cost }: ImproveOffer): ChipNote {
     }
 }
 
-/** The tray's line while Improve lights its places; the chips say each step, cost and tile. */
 const ImproveLine = 'Pick a place.'
 
 /** R-4.3-H1 What the chip says of the tile: said before the press, since a press may send. */
@@ -536,10 +504,7 @@ function improveTileNote({ tile }: ImproveOffer): ChipNote {
     }
 }
 
-/**
- * R-4.3-H1, R-4.3.2 The step once a place whose tile is prohibited is picked: an earlier stack,
- * whose chips say "no vp". With none to take, the chip said "no tile" before the press.
- */
+/** R-4.3-H1, R-4.3.2 A prohibited tile's step: an earlier stack, whose chips say "no vp". */
 function improveTileLine({ tile }: ImproveOffer): string | undefined {
     return tile.kind === 'prohibited' && tile.candidates.length > 0
         ? 'Pick an earlier tile.'
@@ -626,11 +591,7 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
     return { ...view, ...(play ? { play } : {}) }
 }
 
-/**
- * R-3.9-H1, R-3.9-H2 The discs that differ in their back, each drawn with its back peeking behind
- * it: the back leaves the general supply with the disc, and no other improvement can take that face
- * until the disc is replaced and returns. A farm or town is never reduced (R-3.13.1).
- */
+/** R-3.9-H1, R-3.9-H2 The back leaves the supply with the disc until it is replaced. */
 function discPopup(
     anchor: BoardTarget,
     to: LocationKind,
@@ -842,10 +803,7 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }
 }
 
-/**
- * R-3.12, R-3.12-H1 With Reinforcements to collect, two rows ask whether to; the button, which says
- * what the card will do, sends once answered. Without, the one press is the button.
- */
+/** R-3.12, R-3.12-H1 With Reinforcements to collect, two rows ask whether to. */
 function taxFlow({ state, playerId, input, read }: FlowInput, name: string): FlowView {
     if (!reinforcementsOffered(state, playerId)) {
         const play = playIf(reasonTaxRefused(state, playerId, input), (maker) =>
@@ -967,7 +925,6 @@ function conquerFlow(flow: FlowInput): FlowView {
         picks,
         picked: [target],
         tally: tallyLines(offer.strength),
-        // Who may answer stays the press's accessible name; the History tells the answer.
         primaryName: `Conquer ${name}`,
         ...(offer.revealsInfo
             ? { primaryNamed: `Conquer ${name} · ${nameOf(offer.defenderId)} may answer` }
@@ -1013,10 +970,6 @@ function starveFlow({ state, playerId, input, read, nameOf }: FlowInput): FlowVi
 
 const handedOff = (action: ActionType) => (): FlowView => ({ ...Empty, handedOff: action })
 
-/**
- * One row per mode. Move and the guild functions keep a row with `handedOff`: the draft that builds
- * them reads `TurnDraft.mode` and `TurnDraft.cardInput` and shows its own stages.
- */
 const Flows: Readonly<Record<CardAction, (flow: FlowInput, modeLabel: string) => FlowView>> = {
     [ActionType.Migrate]: migrateFlow,
     [ActionType.Move]: handedOff(ActionType.Move),

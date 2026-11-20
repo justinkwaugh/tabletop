@@ -2,7 +2,6 @@
     import { assetUrl, shillingAsset, type ShillingValue } from '$lib/art/assetMap.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /** A one-shilling coin: every shilling the table draws is a single one. */
     let {
         value,
         size = 24,

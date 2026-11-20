@@ -4,10 +4,6 @@
     import { scoreWords } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    /**
-     * One seat from the session's one derivation of it, in the column or, `reading`, as the open
-     * seat. The ribbon opens the seat; on the open seat it closes it.
-     */
     let { playerId, reading = false }: { playerId: string; reading?: boolean } = $props()
 
     const gameSession = getGameSession()

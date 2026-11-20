@@ -45,15 +45,12 @@ export interface ActionRow {
     readonly quiet?: true
 }
 
-/** R-4.10.1 One feed of one pawn, as the nourish picker draws it: its words, and beneath them its caption. */
 export type NourishOptionRow = ActionRow & {
     readonly feed: Feed
-    /** Wine's cost beneath its piece. */
     readonly caption?: string
     readonly spent: boolean
 }
 
-/** R-4.10.1 One pawn the picker feeds: its cube, its name and place, and its feeds. */
 export interface NourishPickerPawn {
     readonly n: PawnNumber
     readonly character: Character
@@ -64,11 +61,9 @@ export interface NourishPickerPawn {
     readonly options: readonly NourishOptionRow[]
 }
 
-/** R-4.6 One staged move in the tray: its piece and its words. Undo takes a press back. */
 export interface StagedLine {
     readonly item: string
     readonly piece?: GhostPiece
-    /** A Knight row's marker: its row's paint. */
     readonly paint?: SeatPaint
     readonly text: string
     readonly words: string
@@ -86,7 +81,6 @@ export interface CardRow {
     readonly press: () => void | Promise<void>
 }
 
-/** R-3.1 One slot of the plan: its number, and the card in it, whose press takes it back. */
 export interface PlanSlot {
     readonly at: number
     readonly card?: CardRow
@@ -103,20 +97,17 @@ export interface FinaliseEntry {
     readonly name: string
     readonly paint: SeatPaint
     readonly finalised: boolean
-    /** The seat looking: its chip reads out "(you)". */
     readonly you: boolean
     /** S8 A seat still choosing while the one looking, its hand set, waits on it. */
     readonly awaited: boolean
 }
 
-/** A writ's face with what it offers beneath it: a mandate's alternatives, a charter's seal. */
 export interface WritOffer {
     readonly writId: WritId
     readonly name: string
     readonly rows: readonly ActionRow[]
 }
 
-/** A seat as its chip: its colour and its name. */
 export interface WaitingSeat {
     readonly playerId: string
     readonly name: string
@@ -131,11 +122,6 @@ export interface SeatNames {
 export type LineRole =
     'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'previous' | 'refusal'
 
-/**
- * Where a block stands when it is not in the panel's own run: in the tray beside the picked card
- * (R-3.2, its modes and send), at the end of the hand's line (the at-will chips), or beside the
- * eleven of a hand draft (R-3.1: the finalise row, the plan, the pouch and the send).
- */
 export type BlockPlace = 'tray' | 'hand-end' | 'draft'
 
 export type ActionBlock = PanelBlock & { readonly stands?: BlockPlace }
@@ -144,7 +130,6 @@ type PanelBlock =
     | {
           readonly kind: 'finalise'
           readonly entries: readonly FinaliseEntry[]
-          /** "Round 4": the round's heading. */
           readonly lead?: string
       }
     /** R-3.1-H1 Tray A once this seat has finalised: the hand as set, and the pouch sealed. */
@@ -204,9 +189,7 @@ type PanelBlock =
     | {
           readonly kind: 'rows'
           readonly name: string
-          /** A small heading before the rows: the attack's saltpeter count, a landscape's place. */
           readonly heading?: string
-          /** It stands on a line of its own: the starting sulfur's destination. */
           readonly line?: true
           readonly rows: readonly ActionRow[]
       }
@@ -222,20 +205,13 @@ type PanelBlock =
           readonly tally?: string
       }
     | PrimaryBlock
-    /**
-     * Contract, The trade picker: a guild's trade read as choice cards, in the tray on a desk and in
-     * the bench's sheet on a phone, holding the send. The card's modes stand in the tray's control
-     * row above it.
-     */
+    /** Contract, The trade picker: in the tray on a desk, in the bench's sheet on a phone. */
     | {
           readonly kind: 'trade-picker'
           readonly bench: BenchOffer
           readonly send?: PrimaryBlock
       }
-    /**
-     * Contract, Round end: the nourish picker. A row per pawn, then R-4.3.3 a tile's rows when one
-     * could feed, and the send, which says what is paid and how many are left.
-     */
+    /** Contract, Round end: the nourish picker; R-4.3.3 a tile's rows when one could feed. */
     | {
           readonly kind: 'nourish-picker'
           readonly pawns: readonly NourishPickerPawn[]
@@ -247,9 +223,7 @@ type PanelBlock =
 interface PrimaryBlock {
     readonly kind: 'primary'
     readonly label: string
-    /** Its accessible name, where the label says it shorter. */
     readonly named?: string
-    /** A second line under the label. */
     readonly note?: string
     readonly send: () => void | Promise<void>
 }
@@ -258,7 +232,6 @@ export interface ActionPanelView {
     readonly blocks: readonly ActionBlock[]
 }
 
-/** What the panel reads of a session; it restates no rule of its own. */
 export type PanelSession = Pick<
     FeudumGameSession,
     | 'paintOf'
@@ -324,10 +297,7 @@ function plainChoice(label: string, picked: boolean, refusal?: string): PanelCho
     return { label, picked, ...(refusal ? { refusal } : {}) }
 }
 
-/**
- * R-X.2 The send, once the picks are complete: until it can be pressed it is not drawn, so the
- * step's choices stand alone and the send appears with the last of them.
- */
+/** R-X.2 Until it can be pressed the send is not drawn, so it appears with the last pick. */
 function sends(
     primary: (TurnPrimary & { readonly note?: string }) | undefined,
     send: () => void | Promise<void>
@@ -349,7 +319,7 @@ function line(role: LineRole, text: string, lead?: string): ActionBlock {
     return { kind: 'line', role, text, ...(lead ? { lead } : {}) }
 }
 
-/** R-X.1 The one waiting line, for every state: "Waiting on <chip>." */
+/** R-X.1 One waiting line for every state. */
 function waitingLine(session: PanelSession, playerIds: readonly string[]): ActionBlock {
     const on = playerIds.map((playerId) => ({
         playerId,
@@ -359,7 +329,6 @@ function waitingLine(session: PanelSession, playerIds: readonly string[]): Actio
     return { kind: 'line', role: 'waiting', text: waitingWords(on.map(({ name }) => name)), on }
 }
 
-/** The tray's stage line, with its phone wording when the card's flow has one. */
 function trayLine(text: string): ActionBlock {
     return { kind: 'line', role: 'flow', text }
 }
@@ -382,16 +351,12 @@ function draftRow(
     }
 }
 
-/** A turn row with its piece. */
 function turnRow(session: PanelSession, choice: PanelChoice): ActionRow {
     const { art } = choice
     return { choice, press: () => session.pressTurnChoice(choice), ...(art ? { art } : {}) }
 }
 
-/**
- * R-1.4.8 The picked sulfur's destination, on a line of its own under the goods, in the Merchant
- * basket's words; each choice's name says what it does.
- */
+/** R-1.4.8 The picked sulfur's destination, in the Merchant basket's words. */
 const SulfurChoices = [
     { to: 'supply', label: 'Keep the sulfur', shown: 'Keep it' },
     { to: 'barrel', label: 'Put the sulfur into the barrel', shown: 'Into the barrel' }
@@ -428,8 +393,7 @@ function goodsBlocks(
             }
         ]
     }
-    // R-1.4.8 Each good is its piece and the haversack's count, its name the row's accessible name.
-    // One the haversack lacks is not drawn; with three picked the others stand dimmed, spent.
+    // R-1.4.8 One the haversack lacks is not drawn; with three picked the others stand spent.
     return [
         ...rows(
             'goods',
@@ -553,7 +517,7 @@ function handBlocks(
     ]
 }
 
-/** R-4.4-H1 The at-will row under the hand, and the one list open: what the draft offers, drawn. */
+/** R-4.4-H1 The at-will row under the hand. */
 function atWillBlocks(session: PanelSession): ActionBlock[] {
     const panel = session.atWillPanel
     if (!panel) {
@@ -712,7 +676,7 @@ function answerStarveBlocks(
     ]
 }
 
-/** R-4.8 The attacker's own preview of the tally, the stepper and the weapons. */
+/** R-4.8 The attacker's own preview of the tally. */
 function commitBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['commitPanel']>
@@ -826,12 +790,7 @@ function landscapesBlocks(
     ]
 }
 
-/**
- * R-3.2 The hand in one line, its at-will chips at the line's end; once a card is picked, all that
- * card asks stands in a tray beside it: its line, modes, follow-up rows and send, then Forfeit, last
- * and quiet (contract: Playing a card).
- */
-/** R-4.6 The bench's staged moves as the tray's lines, each with its take-back. */
+/** R-4.6 The bench's staged moves as the tray's lines. */
 function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
     const state = session.gameState
     const moves = stagedMoves(benchViewOf(bench, state, session.myPlayerId ?? ''), bench)
@@ -897,8 +856,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         : []
     const [send] = sends(primary, () => session.sendTurnCard())
     const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
-    // Contract, The trade picker: one control row heads the tray (the replay, the card's modes with
-    // R-3.16.3 Feast, the second card, then Forfeit), and the picker with its send stands under it.
+    // Contract, The trade picker: a control row heads the tray, the picker under it.
     // R-3.3, R-3.15 The second card and a replay are declared before a Buy that sends.
     const tray: ActionBlock[] = picker
         ? [
@@ -945,7 +903,6 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     ] satisfies ActionBlock[]
 }
 
-/** The decision of this moment, or the line of what the table waits for. */
 function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
     const goods = session.startingGoodsPanel
     const pawn = session.startingPawnPanel
@@ -1021,10 +978,7 @@ function seatNames(session: PanelSession): SeatNames {
     }
 }
 
-/**
- * The live rows of a shared step: one read for every seat (contract: Render ownership). A seat with
- * its own preview of the tally, the attacker committing, draws that instead through the same block.
- */
+/** Contract, Render ownership: a shared step's live rows are one read for every seat. */
 function sharedBlocks(session: PanelSession): readonly ActionBlock[] {
     const { orderRow, combatTally, commitPanel } = session
     return [
@@ -1052,12 +1006,6 @@ function roundEndBlocks(session: PanelSession): readonly ActionBlock[] {
     return [{ kind: 'dawn-sheet', sheet: roundEnd.dawn, seats: seatNames(session) }]
 }
 
-/**
- * The action panel of this moment, in the order it stands: read from the session's panels, which
- * read the logic's offers. One moment at a time: setup, then selection, then what the seat is asked
- * or owes, then its card, or else the line of what the table waits for. The first line names the step
- * for everyone, and a shared step's live row stands right under it; at game end the summary alone.
- */
 export function actionPanelOf(session: PanelSession): ActionPanelView {
     const { gameEnd } = session
     if (gameEnd) {

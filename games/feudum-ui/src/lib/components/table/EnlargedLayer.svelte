@@ -5,14 +5,7 @@
     import Scrim from './Scrim.svelte'
     import { setTableLayers } from './tableLayersContext.js'
 
-    /**
-     * Contract, Card preview: the enlarged piece over everything. A press on the piece closes it, as
-     * a press beside it or Escape does; no close button stands over it. What it holds is drawn
-     * plain, so a bead on an enlarged guild area is part of the one press. A face-up card, writ or
-     * guild area reads its rules beside it, under it on a phone; the note is for reading, and a press
-     * on it closes nothing. Nothing inside the piece answers the pointer, so no part's own name
-     * rises over it as a tooltip: the whole piece is the close press.
-     */
+    /** Contract, Card preview: the piece is one close press, so no part takes the pointer. */
     let { face, width, onClose }: { face: EnlargedFace; width: number; onClose: () => void } =
         $props()
 

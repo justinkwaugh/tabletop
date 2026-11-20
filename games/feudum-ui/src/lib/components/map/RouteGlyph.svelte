@@ -3,7 +3,7 @@
     import { FerryFare, type RouteMedium } from '@tabletop/feudum'
     import { VesselPaths } from '$lib/utils/pieceShapes.js'
 
-    /** A route's medium as a glyph at its middle, so none is told by colour alone. */
+    /** A glyph for each medium, so no route is told by colour alone. */
     let { medium, x, y }: { medium: RouteMedium } & Point = $props()
 
     const FerryHull = 'M4 18 L44 18 L36 28 L12 28 Z M22 6 L26 6 L26 18 L22 18 Z'

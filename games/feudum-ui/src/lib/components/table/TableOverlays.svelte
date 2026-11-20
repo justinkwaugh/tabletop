@@ -15,13 +15,6 @@
     import TracksSheet from './TracksSheet.svelte'
     import WritReferenceLayer from './WritReferenceLayer.svelte'
 
-    /**
-     * What stands over the table, drawn in one place only: after the layout, or inside the dialog in
-     * full screen. What is open wins: an enlarged card over an open seat, stack view, writ reference
-     * or the bench, those over the table. A popup's draft waits under them, and a popover would stand
-     * over everything, so it is held back while one is open. A site card gives way to a popup and to
-     * every layer.
-     */
     const gameSession = getGameSession()
     const layers = gameSession.layers
 
@@ -37,16 +30,11 @@
     const { paintOf } = gameSession
 
     /**
-     * The screen's width as the layers stand on it. The window's `innerWidth` is the phone's layout
-     * viewport, which a page wider than the screen widens and which narrows again with no resize
-     * event when the page fits once more; a fixed strip across the screen is measured as it stands.
-     * The strip is there only while a piece is enlarged, the one time its width is read: watched
-     * all the time, it would be caught up in the page settling to the screen, and the browser would
-     * report the loop.
+     * A phone's `innerWidth` is its layout viewport, which narrows with no resize event, so a fixed
+     * strip is measured, and only while enlarged, or the browser reports a resize-observer loop.
      */
     const screen = new MeasuredWidth()
     let across = $derived((screen.width ?? EnlargedWidth + PhoneMargin) - PhoneMargin)
-    /** A guild area stands upright, so its short side is the one the screen's width holds. */
     let enlargedWidth = $derived(
         layers.enlarged?.kind === 'guild'
             ? Math.min(EnlargedGuildWidth, (across * GuildBox.width) / GuildBox.height)
@@ -54,10 +42,7 @@
     )
     let popup = $derived(gameSession.boardPopup)
     let bench = $derived(gameSession.guildPanel?.bench)
-    /**
-     * Contract, Desk layout: on a desk a popup beside a guild area stands only while its side is
-     * open; closed by hand, the popup waits for it, as its draft does.
-     */
+    /** Contract, Desk layout: a popup beside a guild area stands only while its side is open. */
     let anchorShut = $derived.by(() => {
         const side = popup && guildSideOf(popup.anchor)
         return !phone.phone && !gameSession.benchCovers && !!side && layers.guildSide !== side
@@ -72,7 +57,6 @@
     )
 </script>
 
-<!-- Nothing here is pressed while the table catches up with what it shows. -->
 <div class="contents" data-motion-gate inert={gameSession.updatingVisibleState}>
     {#if bench}
         <BenchLayer {bench} />

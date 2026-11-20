@@ -6,9 +6,7 @@ export type StartingPawnPress =
     | { readonly kind: 'space'; readonly spaceId: SpaceId }
 
 export type StartingPawnValues = {
-    /** Character or space, whichever was pressed first; a press of the same kind replaces it. */
     first: StartingPawnPress
-    /** The other kind, which completes the Action. */
     second: StartingPawnPress
 }
 
@@ -21,9 +19,8 @@ const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
 
 /**
- * R-1.4.9 `PlaceStartingPawn` with character and space in either order (contract: Setup; S2). The
- * stages hold presses rather than a fixed character-then-space, since the shared helpers clear
- * every later stage and a space pressed first must survive the character press.
+ * R-1.4.9 (contract: Setup; S2) Stages hold presses in either order: the shared helpers clear
+ * every later stage, and a space pressed first must survive the character press.
  */
 export class StartingPawnDraft extends StagedDraft<StartingPawnValues> {
     constructor() {
@@ -47,7 +44,6 @@ export class StartingPawnDraft extends StagedDraft<StartingPawnValues> {
         return this.held('space')?.spaceId
     }
 
-    /** The space was pressed first, so the character popup is open beside it. */
     get asksCharacter(): boolean {
         return this.spaceId !== undefined && this.character === undefined
     }
@@ -56,7 +52,6 @@ export class StartingPawnDraft extends StagedDraft<StartingPawnValues> {
         return this.character !== undefined && this.spaceId !== undefined
     }
 
-    /** Pressing the first pick again unpicks it. */
     press(press: StartingPawnPress): void {
         const first = this.value('first')
         if (first && this.samePress(first, press)) {

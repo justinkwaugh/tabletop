@@ -7,12 +7,7 @@
     import { writName } from '$lib/model/writLabels.js'
     import SeatChip from './SeatChip.svelte'
 
-    /**
-     * R-6.2, R-6.3 Every category per seat, sealed charters face up, and the winner: one column per
-     * seat at a desk. On a phone, one row per seat, its categories running on as a line and its
-     * charters small beside them, a press enlarging one, so every seat stands whole in the action
-     * area (contract: Phone layout). The winners, and the seats tied on vp, stand as their chips.
-     */
+    /** R-6.2, R-6.3 The final scores; a phone shows one row per seat (contract: Phone layout). */
     let { summary, seats }: { summary: GameEndSummaryView; seats: SeatNames } = $props()
 
     const CharterWidth = 72

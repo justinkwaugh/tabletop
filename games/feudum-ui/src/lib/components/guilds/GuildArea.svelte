@@ -14,12 +14,6 @@
     import MonkGoods from './MonkGoods.svelte'
     import NobleGoods from './NobleGoods.svelte'
 
-    /**
-     * One guild area in its own local units: its panel, printed or drawn, and the track and goods on it, all from state. The board
-     * and the bench draw this same component, the width alone setting the scale. It nests in the
-     * board's SVG or stands in HTML; `over` draws in local units, above everything, for what a user
-     * of it adds (lights, ghosts).
-     */
     let {
         guild,
         state,

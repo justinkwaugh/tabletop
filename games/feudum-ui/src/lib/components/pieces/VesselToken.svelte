@@ -4,7 +4,6 @@
     import { VesselPaths } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /** A vessel: a hull, with the sail, periscope or wings that name its medium in the route's token. */
     let {
         vessel,
         size = 48,

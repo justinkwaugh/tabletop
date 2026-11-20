@@ -12,10 +12,8 @@
     import { BoardHeight, BoardWidth, MapArea } from '$lib/utils/boardGeometry.js'
 
     /**
-     * Contract, Guild standings: where the guild rails stand. In one strip under the board on a
-     * desk; on a phone only in a guild column's view, over the map's inner edge; none otherwise.
-     * Contract, Desk layout: a desk draws only the map (`desk`), its guild areas behind the side
-     * buttons (`GuildSides`) and no score ring or its print; a phone draws the whole board.
+     * Contract, Guild standings: `rails` is the strip on a desk, a guild column's edge on a phone.
+     * Contract, Desk layout: a desk draws only the map, with no score ring.
      */
     let { rails, desk = false }: { rails?: 'strip' | 'west' | 'east'; desk?: boolean } = $props()
 
@@ -24,7 +22,6 @@
     let gameSession = getGameSession()
     let chrome = $derived(gameSession.boardChrome)
     let tokens = $derived(gameSession.boardAnimator.tokens)
-    /** The bench draws the guild areas over the board; the trade picker stands beside it instead. */
     let guildsCovered = $derived.by(() => {
         const bench = gameSession.guildPanel?.bench
         return gameSession.benchCovers && !(bench && takesTradePicker(bench))
@@ -63,7 +60,7 @@
             {/snippet}
         </MapLayers>
         {#if !desk}
-            <!-- Under the bench the board's own guild areas keep their state and take no presses, by key either. -->
+            <!-- Hidden, not removed: they keep their state and take no presses, by key either. -->
             <g data-layer="guilds" visibility={guildsCovered ? 'hidden' : undefined}>
                 <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
             </g>

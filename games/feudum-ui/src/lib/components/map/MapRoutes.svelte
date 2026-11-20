@@ -6,11 +6,7 @@
     import DimVeil from './DimVeil.svelte'
     import RouteGlyph from './RouteGlyph.svelte'
 
-    /**
-     * R-1.2.2 The five media, each with its own line and glyph. The printed map carries its routes,
-     * so with its file there this layer draws nothing at rest. R-3.7.1 A Move's trail is lit over
-     * either, each step numbered in press order.
-     */
+    /** R-1.2.2 The printed map carries its routes; R-3.7.1 a Move's trail is lit over either. */
     let { chrome = PlainChrome }: { chrome?: BoardChrome } = $props()
 
     const Lines: Record<
@@ -57,7 +53,6 @@
     {/each}
 </g>
 {#if dimmedWithRest(chrome) !== undefined}
-    <!-- The ground and the routes dim with the rest under one veil; the Move's trail stays over it. -->
     <DimVeil x={MapArea.x} y={MapArea.y} width={MapArea.width} height={MapArea.height} />
 {/if}
 {#each trail as { step, path, middle } (step.n)}

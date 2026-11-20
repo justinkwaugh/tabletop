@@ -2,10 +2,7 @@
     import { Spaces, type SpaceId } from '@tabletop/feudum'
     import { MapArea, MapViewBox, SpaceCentres } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * R-4.4.3 The Kingdom charter's small map: the board's spaces, its qualifying ones dotted, at the
-     * same positions as the board. Its ground is plain, so the dots are what reads.
-     */
+    /** R-4.4.3 The Kingdom charter's map: the board's spaces, its qualifying ones dotted. */
     let {
         spaces,
         width,

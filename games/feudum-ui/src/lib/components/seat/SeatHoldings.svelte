@@ -12,12 +12,8 @@
     import { writName } from '$lib/model/writLabels.js'
 
     /**
-     * Contract, Seat panel, the holdings line: influence markers in supply, free discs, the wine
-     * barrel, the writs, then tiles, vessels and the pouch good when held. Another seat's writs are
-     * a back with the count (R-4.4.4); the owner's are faces, and the deck note is their tooltip.
-     * Until every hand is final a seat's pouch is sealed: its own good beside a lock, another's a lock
-     * alone, with no words (R-3.1-H1). At the reveal every pouch turns over at once, turned by the
-     * state-change animator through `pouchMotion`.
+     * R-4.4.4 Another seat's writs are a back with the count.
+     * R-3.1-H1 A pouch stays sealed until every hand is final.
      */
     let {
         items,
@@ -259,7 +255,6 @@
         border-radius: 0.2em;
     }
 
-    /* R-3.1-H1 A sealed pouch's lock. */
     .sealed {
         color: var(--feudum-text-muted);
     }

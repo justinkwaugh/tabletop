@@ -49,7 +49,6 @@ import type { FlowPick, FlowPopup, PanelChoice } from './cardFlows.js'
 import { primaryLabel } from './confirmingSend.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 
-/** One press on the bench. Goods and inventions repeat; a row or a scroll goes once. */
 export type BenchPick =
     | { readonly kind: 'good'; readonly good: Good }
     | { readonly kind: 'invention'; readonly invention: InventionChoice }
@@ -57,7 +56,6 @@ export type BenchPick =
     | { readonly kind: 'row'; readonly row: KnightRowId }
     | { readonly kind: 'scroll'; readonly spaceId: ScrollSpaceId }
 
-/** What the seat has staged on the bench; the draft holds these. */
 export interface BenchStages {
     readonly farm?: SpaceId
     readonly takeFood?: number
@@ -69,7 +67,6 @@ export interface BenchStages {
     readonly count?: CompletionCount
 }
 
-/** What a bench press does; each is one staged press. */
 export interface BenchPresser {
     picks(picks: readonly BenchPick[]): void
     take(): void
@@ -94,7 +91,6 @@ export type BenchPreview = GuildFunctionPreview & {
     readonly feastPoints?: number
 }
 
-/** The function on the bench, performed by a Guild card or a Feast. */
 export interface BenchSource {
     readonly guildId: GuildId
     readonly fn: GuildFunctionName
@@ -103,36 +99,28 @@ export interface BenchSource {
     reasonOf(params: GuildFunctionParams): string | undefined
 }
 
-/** A panel row whose press takes no draft: the bench's presses are closures. */
 export interface BenchChoice extends PanelChoice {
     readonly press?: () => void
 }
 
 export type BenchItemRole = 'lit' | 'picked' | 'dimmed'
 
-/** One thing on the bench. Its press goes through the session, as any panel row's does. */
 export interface BenchItem extends BenchChoice {
     readonly id: string
-    /** Which of the offer's `areas` it sits in. */
     readonly area: number
     readonly role: BenchItemRole
-    /** How many more of it the area holds. */
     readonly count?: number
-    /** R-4.6.2 A trade's price for it, in shillings: the rose note's number. */
+    /** R-4.6.2 A trade's price for it, in shillings. */
     readonly price?: number
 }
 
-/** A picked item drawn where it would land. `at` is a board space, or a place the bench names. */
 export interface BenchGhost {
     readonly item: string
     readonly at: string
     readonly count?: number
 }
 
-/**
- * R-4.6 One kind of thing the seat has staged to move, in the order first pressed: its item and how
- * many. A staged scroll comes off by pressing it again on the bench; Undo takes back the latest press.
- */
+/** R-4.6 One kind staged to move, in the order first pressed. */
 export interface BenchStagedPick {
     readonly item: string
     readonly label: string
@@ -140,7 +128,6 @@ export interface BenchStagedPick {
 }
 
 export interface BenchResult {
-    /** Points and writs, or the price, with the warning a send that can't be undone carries. */
     readonly line: string
     readonly moved?: string
     readonly payment?: string
@@ -152,10 +139,8 @@ export interface BenchOffer {
     readonly title: string
     readonly guild: GuildId
     readonly fn: GuildFunctionName
-    /** Trade: its guild. Pull: from-guild, guild. Push: guild, to-guild. */
     readonly areas: readonly GuildId[]
     readonly line?: string
-    /** Set while a map pick is open: the bench closes down to this header. */
     readonly collapsed?: string
     readonly items: readonly BenchItem[]
     readonly ghosts: readonly BenchGhost[]
@@ -166,7 +151,6 @@ export interface BenchOffer {
     readonly popup?: FlowPopup
     readonly map?: readonly FlowPick[]
     readonly primary: TurnPrimary
-    /** The last press finishes the function, so it sends rather than asks. */
     readonly fixed: boolean
     readonly completes: boolean
     readonly params: GuildFunctionParams
@@ -174,7 +158,6 @@ export interface BenchOffer {
     readonly refused?: string
     /** R-4.6-H5 The step's limit, where it states one: "Move up to 4". */
     readonly most?: number
-    /** What a push or a pull has staged to move from its first area. */
     readonly staged: readonly BenchStagedPick[]
 }
 
@@ -265,7 +248,6 @@ export function feastBenchSource(
     }
 }
 
-/** One thing a function may move, before the logic says whether it can go next. */
 interface Candidate {
     readonly pick: BenchPick
     readonly label: string
@@ -278,25 +260,18 @@ interface Candidate {
 interface BenchRow {
     /** R-4.6-H5 "Move up to 3". */
     readonly line?: (seat: BenchSeat) => string
-    /** That limit, where it is a number the logic states. */
     readonly most?: number
     readonly candidates?: (
         seat: BenchSeat,
         stages: BenchStages,
         source: BenchSource
     ) => readonly Candidate[]
-    /** The primary's name for what is staged. */
     readonly name: (stages: BenchStages) => string
     readonly ghosts?: (stages: BenchStages, preview: BenchPreview) => readonly BenchGhost[]
-    /** The last press finishes it. */
     readonly fixed?: boolean
-    /** A press replaces the pick; the same press takes it back. */
     readonly pickOne?: boolean
-    /** A candidate that would cost too much dims, rather than a primary refusing later. */
     readonly dimsOnRefusal?: boolean
-    /** The count toggle: `sets` is a stage; `shows` is read-only, since the logic takes no count. */
     readonly counts?: 'sets' | 'shows'
-    /** What the staged input lacks, that its params can't tell the logic. */
     readonly ready?: (stages: BenchStages) => boolean
 }
 
@@ -313,7 +288,6 @@ function goodsOf(stages: BenchStages): readonly Good[] {
     return picksOf(stages, 'good').map(({ good }) => good)
 }
 
-/** Each good a place still holds, by kind. */
 function goodCandidates(
     held: Readonly<Record<Good, number>>,
     stages: BenchStages,
@@ -633,10 +607,7 @@ function repeats({ kind }: BenchPick): boolean {
     return kind === 'good' || kind === 'invention'
 }
 
-/**
- * R-4.6.1 Lit while the logic reads the next picks. One it refuses is not offered, unless picks
- * already staged hold its room: then it stays, dimmed, with no line and no press.
- */
+/** R-4.6.1 A refused pick stays, dimmed, only while staged picks hold its room. */
 function benchItem(
     row: BenchRow,
     source: BenchSource,
@@ -816,7 +787,6 @@ function resultOf(
     }
 }
 
-/** The higher count, ties to rows: what the logic takes with no count named. */
 function higherCount(rows: number, columns: number): CompletionCount {
     return columns > rows ? 'columns' : 'rows'
 }
@@ -878,7 +848,6 @@ function monsterWord(monster: MonsterId): string {
     return words(monster)
 }
 
-/** A trade that goes to the map, and the popups on the way. */
 interface MapStep {
     readonly collapsed?: string
     readonly popup?: FlowPopup
@@ -1133,7 +1102,6 @@ function loneDeploy(seat: BenchSeat, stages: BenchStages): SpaceId | undefined {
     return only(spaces)
 }
 
-/** The single pick a one-pick function leaves, when the logic takes it. */
 function lonePicks(
     seat: BenchSeat,
     source: BenchSource,

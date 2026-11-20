@@ -10,13 +10,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ScoreLine from './ScoreLine.svelte'
 
-    /**
-     * Contract, Desk layout: the side column, right of the East button where the map's height binds.
-     * Top to bottom it holds the guild standings and the score line; the zoom row (Key, Supply and the
-     * zoom buttons) stands under them, along the column's foot (`BoardCorner`). For looking only, as
-     * the strip is: a press, a drag or a wheel here never pans or zooms the map (the wheel is kept by
-     * the table's overlay).
-     */
+    /** Contract, Desk layout: for looking only; a press, drag or wheel here never pans the map. */
     let { box, column }: { box: BoundingBox; column: DeskColumn } = $props()
 
     const gameSession = getGameSession()

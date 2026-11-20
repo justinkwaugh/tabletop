@@ -1,8 +1,5 @@
 <script lang="ts">
-    /**
-     * R-3.1-H1 A padlock on a sealed pouch, drawn so no font has to carry it. With a `label` it
-     * names itself ("sealed"); without one a reader skips it, as words beside it say the same.
-     */
+    /** R-3.1-H1 Drawn so no font must carry it; unlabelled, the words beside it say the same. */
     let { size = 12, label }: { size?: number; label?: string } = $props()
 </script>
 

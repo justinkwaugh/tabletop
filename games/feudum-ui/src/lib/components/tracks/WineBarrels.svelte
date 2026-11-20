@@ -14,10 +14,7 @@
     } from '$lib/utils/boardGeometry.js'
     import { BarrelPath } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-4.10.2 A seat's barrel, 0 to 3 sulfur. The print has a barrel per colour, so over it only the
-     * seat's disc and its sulfur are drawn; `printed` false draws the barrel too, in the seat's paint.
-     */
+    /** R-4.10.2 A seat's barrel holds 0 to 3 sulfur. */
     let {
         state,
         printed,
@@ -27,7 +24,6 @@
         state: HydratedFeudumGameState
         printed: boolean
         paintOf: (playerId: string) => SeatPaint
-        /** Dimmed with the rest of the board: each barrel as itself. */
         dim?: number
     } = $props()
 </script>

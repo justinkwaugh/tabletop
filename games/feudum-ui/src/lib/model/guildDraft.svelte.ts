@@ -90,7 +90,7 @@ void stageCoverage
 
 export type GuildStageName = 'guild' | 'feast-space' | 'function' | 'opponent' | 'bench'
 
-/** Present only while this seat's card is a guild function or a Feast: R-X.1. */
+/** R-X.1 Present only while this seat's card is a guild function or a Feast. */
 export interface GuildContext {
     readonly state: HydratedFeudumGameState
     readonly playerId: string
@@ -123,10 +123,7 @@ interface GuildView {
 const CostFromPrices = (prices: readonly number[]): ChipNote | undefined =>
     prices.length > 0 ? { kind: 'cost', label: `from ${Math.min(...prices)}s` } : undefined
 
-/**
- * R-3.16, R-3.16.3, R-4.6 One guild function or Feast, from its guild or space to its send. The rule
- * is in the logic package and the bench's reading of it in `benchOffer`; this holds the presses.
- */
+/** R-3.16, R-3.16.3, R-4.6 The rule is in the logic package; this holds the presses. */
 export class GuildDraft extends StagedDraft<GuildDraftValues> {
     private readonly seeing: StagedSelectionState<GuildDraftValues> = $derived.by(() =>
         this.withLoneChoices(super.read())
@@ -136,7 +133,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         super(GuildStageOrder)
     }
 
-    /** R-X.1 Others and History View have no draft. Lone choices read through as `auto`. */
+    /** R-X.1 Others and History View have no draft. */
     protected override read(): StagedSelectionState<GuildDraftValues> {
         return this.seeing
     }
@@ -177,7 +174,6 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         return source ? this.withLoneBench(context, source, first) : first
     }
 
-    /** Each stage in turn: a lone farm opens its split, a lone seal its send. */
     private withLoneBench(
         context: GuildContext,
         source: BenchSource,
@@ -219,7 +215,6 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         }
     }
 
-    /** The function on the bench, once its guild and function, or its Feast, are chosen. */
     private sourceIn(
         context: GuildContext,
         stages: StagedSelectionState<GuildDraftValues>
@@ -266,8 +261,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         }
     }
 
-    /** R-3.16, R-4.6.1 Each guild's lit or dimmed area. */
-    /** Contract, Hover: what staging the function or the Feast would light. */
+    /** R-3.16, R-4.6.1 Contract, Hover: what staging the function or Feast would light. */
     lightsOpening(context: GuildContext): readonly BoardTarget[] {
         const { picks } =
             context.mode === ActionType.GuildAction
@@ -324,7 +318,6 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             picked: [guildTarget(guildId)],
             popup: {
                 anchor: guildTarget(guildId),
-                // Rule: a function the seat can't perform now is not drawn.
                 choices: offers
                     .filter((offer) => offer.guildId === guildId && !offer.reason)
                     .map((offer) => this.functionRow(context, offer))
@@ -422,7 +415,6 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         return spaceId ? this.opponentPopup(context, spaceId) : this.feastSpaceView(context)
     })
 
-    /** Defined once the logic's refusal has passed: what a completing press or the primary sends. */
     play: FlowPlay | undefined = $derived.by(() => {
         const context = this.contextOf()
         const bench = this.view?.bench
@@ -468,7 +460,6 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         }
     })
 
-    /** What the board lights; only the seat whose card it is has one. */
     pick: StagePick | undefined = $derived.by(() => {
         const { view } = this
         return view
@@ -485,7 +476,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             : undefined
     })
 
-    /** A press outside an open popup does nothing (contract: Coexistence and precedence). */
+    /** Contract, Coexistence and precedence: a press outside an open popup does nothing. */
     pickOf(target: BoardTarget): FlowPick | undefined {
         const { view } = this
         return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)

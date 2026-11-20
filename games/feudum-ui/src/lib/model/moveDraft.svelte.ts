@@ -44,13 +44,10 @@ import type { TurnPrimary } from './turnDraft.svelte.js'
 export type MoveDraftValues = {
     /** R-3.7.1 Stacked: each press is one step, in press order. */
     steps: readonly MoveStep[]
-    /** The piece a space press moves; absent, the one that last stepped; 'none', unpicked. */
     piece: PieceRef | 'none'
-    /** A space several ways reach: its popup is open. */
     to: SpaceId
     /** R-3.7.1 The steps ended early, by the seat. */
     stopped: true
-    /** The same popup, once the steps have ended and only Godspeed is left. */
     godspeedTo: SpaceId
     godspeed: GodspeedStep | 'none'
     /** R-3.7.4 */
@@ -73,10 +70,9 @@ type MissingStages = Exclude<keyof MoveDraftValues, (typeof MoveStageOrder)[numb
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
 
-/** Where the card's flow has got to; `send` has nothing left to choose. */
 export type MoveStageName = 'steps' | 'godspeed' | 'pilfer' | 'send'
 
-/** Present only while this seat's card is a Move: R-X.1. */
+/** R-X.1 Present only while this seat's card is a Move. */
 export interface MoveContext {
     readonly state: HydratedFeudumGameState
     readonly playerId: string
@@ -88,7 +84,6 @@ export interface MovePanel {
     /** R-3.7.1 "3 of 4 steps left"; R-3.7.3 "Godspeed." once the steps have ended. */
     readonly line: string
     readonly stage: MoveStageName
-    /** Empty while a popup waits for its answer. */
     readonly rows: readonly PanelChoice[]
     readonly popup?: FlowPopup
     readonly primary?: TurnPrimary
@@ -103,7 +98,7 @@ interface MoveView {
     readonly popup?: FlowPopup
 }
 
-/** R-3.7.3 The Godspeed stage names itself; its lit spaces and "No Godspeed" say the rest. */
+/** R-3.7.3 The stage names itself; its lit spaces say the rest. */
 const GodspeedLine = 'Godspeed.'
 
 /** R-4.2 A step's medium in words. */
@@ -127,11 +122,7 @@ function wayNote(way: RouteStep): ChipNote {
     return { kind: 'role', label: way.vessel === 'board' ? `board the ${medium}` : medium }
 }
 
-/**
- * R-3.7.1, R-3.7.3 One press a lit space can stand for: a step of the picked piece, or a monk's
- * Godspeed step from where it now stands. The logic folds Godspeed after the steps, so taking it
- * while steps remain is stopping there.
- */
+/** R-3.7.3 Taking Godspeed while steps remain stops the steps there. */
 export type SpaceMove =
     | { readonly kind: 'step'; readonly piece: PieceRef; readonly way: RouteStep }
     | {
@@ -145,11 +136,6 @@ function sameMover(a: SpaceMove, b: SpaceMove): boolean {
     return a.kind === 'step' ? b.kind === 'step' : b.kind === 'godspeed' && a.pawn === b.pawn
 }
 
-/**
- * The popup's rows for the moves to one space; only a cost keeps its chip. A row names what
- * happens only when the space mixes a step with a Godspeed, or two monks, and its way only when
- * its mover has several.
- */
 export function moveChoices(
     moves: readonly SpaceMove[],
     take: (move: SpaceMove) => void
@@ -176,11 +162,7 @@ const PilferWord: Partial<Record<PilferResource, string>> = {
     targets: 'target'
 }
 
-/**
- * R-3.7 The Move draft (contract: Shared visual state): stacked steps, then the Godspeed step, then
- * the pilfer. The rules stay in `moveOffers` and `reasonMoveRefused`; this says which stage is open
- * and what each press stages. A Move always sends on the primary: nothing here completes on a press.
- */
+/** R-3.7 Steps, then Godspeed, then the pilfer (contract: Shared visual state). */
 export class MoveDraft extends StagedDraft<MoveDraftValues> {
     private readonly seeing: StagedSelectionState<MoveDraftValues> = $derived.by(() =>
         this.withLoneChoices(super.read())
@@ -233,14 +215,13 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         )
     })
 
-    /** The piece a space press moves: the one pressed, or else the one that last stepped. */
     private pickedPiece(movable: readonly MovePieceOffer[]): MovePieceOffer | undefined {
         const staged = this.value('piece')
         const piece = staged === 'none' ? undefined : (staged ?? this.steps.at(-1)?.piece)
         return piece && movable.find((offer) => this.samePiece(offer.piece, piece))
     }
 
-    /** Contract, Pick conventions: pressing a pick again unpicks it, whichever way it was picked. */
+    /** Contract, Pick conventions: pressing a pick again unpicks it, however it was picked. */
     private pressPiece(piece: PieceRef, picked: boolean): void {
         if (!picked) {
             this.set('piece', piece)
@@ -315,10 +296,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             : undefined
     }
 
-    /**
-     * Contract, Hover: what staging a Move would light: its pieces and a lone piece's ways, or the
-     * Godspeed destinations when no piece can step.
-     */
+    /** Contract, Hover: what staging a Move would light. */
     lightsOpening(context: MoveContext): readonly BoardTarget[] {
         const offers = moveOffers(context.state, context.playerId, { steps: [] })
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)
@@ -334,10 +312,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         ]
     }
 
-    /**
-     * R-3.7.1 Steps until the allowance is spent or the seat stops; S30 takes no press. R-3.7.3 A
-     * Godspeed way that is no step lights alongside: taking it stops the steps there.
-     */
+    /** R-3.7.1 S30 takes no press. R-3.7.3 Taking a Godspeed way that is no step stops there. */
     private stepsView(
         context: MoveContext,
         offers: MoveOffers,
@@ -419,7 +394,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         )
     }
 
-    /** R-4.10.2 The logic says whether this pilfer could go to the barrel; the seat says if it does. */
+    /** R-4.10.2 The logic says if this pilfer may go to the barrel; the seat says if it does. */
     private barrelPopup(
         context: MoveContext,
         offers: readonly PilferOffer[]
@@ -530,7 +505,6 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         }
     }
 
-    /** Every stage has its answer: only the primary is left. */
     private answered: boolean = $derived.by(() => {
         const { view } = this
         return (
@@ -540,7 +514,6 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         )
     })
 
-    /** What the primary sends, once the logic's refusal has passed. */
     play: FlowPlay | undefined = $derived.by(() => {
         const context = this.contextOf()
         if (!context || !this.answered) {
@@ -641,7 +614,6 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         })
     }
 
-    /** What the board lights; only the seat whose card it is has one. */
     pick: StagePick | undefined = $derived.by(() => {
         const context = this.contextOf()
         const { view } = this
@@ -666,7 +638,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         return view?.popup ? undefined : view?.picks.find((pick) => pick.target === target)
     }
 
-    /** R-3.7.3 What a Godspeed destination says on its space; a ferry's fare keeps its rose chip. */
+    /** R-3.7.3 What a Godspeed destination says on its space; a ferry's fare keeps its chip. */
     private godspeedNote(way: RouteStep): ChipNote {
         return way.ferry
             ? { kind: 'cost', label: `Godspeed · ${wayNote(way).label}` }
@@ -683,10 +655,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         }
     }
 
-    /**
-     * R-3.7.3 Godspeed's ways are the monk's own steps, so while steps remain a Godspeed way the
-     * monk's step offers is that step: taking it as Godspeed would only give up the steps left.
-     */
+    /** R-3.7.3 Godspeed's ways are the monk's own steps: while steps remain, they are steps. */
     private godspeedBeyondSteps(offers: MoveOffers): MoveOffers['godspeed'] {
         return offers.godspeed.map(({ pawn, ways }) => {
             const steps =
@@ -699,7 +668,6 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         })
     }
 
-    /** The moves to each space, spaces and moves in the order given. */
     private movesBySpace(moves: readonly SpaceMove[]): ReadonlyMap<SpaceId, readonly SpaceMove[]> {
         const spaces = new Map<SpaceId, SpaceMove[]>()
         for (const move of moves) {

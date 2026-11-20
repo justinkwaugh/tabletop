@@ -16,7 +16,6 @@ import {
 
 export type SiteRole = 'ruler' | 'subject' | 'serf'
 
-/** A seat as the card draws it: its chip, which reads out its name. */
 export interface SiteSeat {
     readonly playerId: string
     readonly name: string
@@ -24,7 +23,6 @@ export interface SiteSeat {
 
 export interface SiteMarker extends SiteSeat {
     readonly role: SiteRole
-    /** The role's word before the seat's chip: "Ruler". */
     readonly label: string
     readonly immune: boolean
 }
@@ -32,23 +30,19 @@ export interface SiteMarker extends SiteSeat {
 export interface SitePawns extends SiteSeat {
     readonly characters: readonly Character[]
     readonly drunk: readonly boolean[]
-    /** The characters after the seat's chip: "Knight, Monk". */
     readonly label: string
 }
 
 export interface SiteMonster {
     readonly monster: MonsterId
-    /** Whose it is, as a chip after its name. */
     readonly seat?: SiteSeat
     readonly label: string
 }
 
-/** Everything that stands on one space, as a press or hover on its disc lists it. */
 export interface SiteCard {
     readonly spaceId: SpaceId
     readonly title: string
     readonly markers: readonly SiteMarker[]
-    /** Each seat's pawns, in one line of chips and characters. */
     readonly pawns: readonly SitePawns[]
     readonly monsters: readonly SiteMonster[]
     readonly landscape?: string

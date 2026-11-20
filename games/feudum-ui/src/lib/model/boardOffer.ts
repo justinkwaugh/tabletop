@@ -23,7 +23,6 @@ import {
     type SpaceId
 } from '@tabletop/feudum'
 
-/** What a board layer can be asked about. Later picks add their element kinds here. */
 export type BoardTarget =
     | `space:${SpaceId}`
     | `pawn:${string}:${PawnNumber}`
@@ -111,10 +110,6 @@ export type BoardRole = 'lit' | 'picked' | 'being-decided' | 'dimmed' | 'plain'
 export type ChipKind = 'cost' | 'threat' | 'role' | 'gain'
 export type ChipTone = 'rose' | 'amber'
 
-/**
- * One piece of a chip drawn as art: a good or a seal with its count, a location disc, or the arrow
- * of a step from one disc to the next.
- */
 export type ChipArt =
     | { readonly kind: 'good'; readonly good: Good; readonly count: number }
     | { readonly kind: 'seal'; readonly count: number }
@@ -123,9 +118,7 @@ export type ChipArt =
 
 export interface ChipNote {
     readonly kind: ChipKind
-    /** The chip's words, and its accessible name when it is drawn as art. */
     readonly label: string
-    /** Drawn as these pieces in place of the words: "farm → town, iron 1". */
     readonly art?: readonly ChipArt[]
 }
 
@@ -137,7 +130,6 @@ export interface BoardChip extends ChipNote {
 const ChipPrecedence: readonly ChipKind[] = ['cost', 'threat', 'role', 'gain']
 const RoseChips: readonly ChipKind[] = ['cost', 'threat']
 
-/** The one chip a target shows of everything a pick says about it. */
 export function strongestChip(notes: readonly ChipNote[]): BoardChip | undefined {
     const note = notes.toSorted(
         (a, b) => ChipPrecedence.indexOf(a.kind) - ChipPrecedence.indexOf(b.kind)
@@ -154,17 +146,14 @@ export interface PickTarget {
 
 /** R-3.7.1, R-3.7.3 One step staged but not sent: the numbered trail. */
 export interface TrailStep {
-    /** "1", "2": press order. */
     readonly n: number
     readonly piece: PieceRef
     readonly from: SpaceId
     readonly to: SpaceId
     readonly medium: RouteMedium
-    /** Drawn lighter. */
     readonly godspeed?: boolean
 }
 
-/** An open pick on the map: what one seat chooses among, in the displayed state. */
 export interface MapPick {
     readonly action: ActionType
     readonly deciderId: string
@@ -172,20 +161,17 @@ export interface MapPick {
     readonly picked: readonly BoardTarget[]
     /** Others and History View see the outline only where the choice is public. */
     readonly isPublic: boolean
-    /** The deciding seat's staged steps. */
     readonly trail?: readonly TrailStep[]
     /** R-X.1 An ask's outline: the decider answers on its panel, so nothing lights for it. */
     readonly outlineOnly?: true
 }
 
-/** A draft's open pick, as the session hands it to the board. */
 export interface StagePick {
     readonly targets: readonly PickTarget[]
     readonly picked: readonly BoardTarget[]
     readonly trail?: readonly TrailStep[]
 }
 
-/** The drafts' stages a pick reads. Each is read only while its flow applies. */
 export interface BoardStages {
     readonly startingPawnSpace?: SpaceId
     /** The turn draft's open flow, for this seat alone (R-3.2). */
@@ -296,7 +282,6 @@ function discPick(state: HydratedFeudumGameState, stages: BoardStages): MapPick 
     }
 }
 
-/** One row per machine state with a map pick; a later draft adds its row and its stages. */
 const MapPicks: Partial<
     Record<
         MachineState,
@@ -343,7 +328,6 @@ export interface BoardTargetOffer {
 
 export interface BoardOffer {
     readonly targets: ReadonlyMap<BoardTarget, BoardTargetOffer>
-    /** A map pick is open for this seat, so everything it doesn't name dims. */
     readonly dimsRest: boolean
     /** This seat's staged steps; absent for anyone else (R-X.1). */
     readonly trail?: readonly TrailStep[]
@@ -361,7 +345,6 @@ export function chipOf(offer: BoardOffer, target: BoardTarget): BoardChip | unde
 
 export interface BoardViewer {
     readonly viewerId?: string
-    /** The displayed state's valid actions for this seat. */
     readonly validActions: readonly string[]
     readonly viewingHistory: boolean
     readonly updatingVisibleState: boolean
@@ -411,7 +394,6 @@ export function offerOfPick(pick: MapPick | undefined, viewer: BoardViewer): Boa
     }
 }
 
-/** The board offer: derived, never stored, from the displayed state, valid actions and stages. */
 export function deriveBoardOffer(
     state: HydratedFeudumGameState,
     stages: BoardStages,

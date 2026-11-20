@@ -4,10 +4,7 @@
     import { EpochRayMarks, EpochRays, SunCentre, trackPlace } from '$lib/utils/boardGeometry.js'
     import { CatapultPath, RefillPath, SunRays } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-4.11 The epoch marker on its sunray. The print has the rays and their marks; `printed` false
-     * draws our own: R-4.12 each dawn's map direction, catapult and refill.
-     */
+    /** R-4.12 Without the print: each dawn's map direction, catapult and refill. */
     let {
         state,
         printed,
@@ -15,7 +12,6 @@
     }: {
         state: HydratedFeudumGameState
         printed: boolean
-        /** Dimmed with the rest of the board: each ray and the marker as itself. */
         dim?: number
     } = $props()
 

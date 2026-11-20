@@ -7,14 +7,7 @@
     import PrimaryButton from './PrimaryButton.svelte'
     import RowChoice from './RowChoice.svelte'
 
-    /**
-     * Contract, Round end: the nourish picker. Each pawn is its cube, its name and the space it
-     * stands on, and its feeds: food and wine (R-4.10.2) as their pieces, wine with its cost, and
-     * "unfed". An unfed pawn's row is rose (R-4.10.1). Under the rows, R-4.3.3 a tile's rows when
-     * one could feed, and the send, which draws what is paid as art. A phone's rows are compact,
-     * with no preview path (a press is undoable, and the map rings each fed pawn with its payment),
-     * and its send stays in sight under them.
-     */
+    /** Contract, Round end: the nourish picker. R-4.10.1 An unfed pawn's row is rose. */
     let {
         block,
         pointer
@@ -27,7 +20,6 @@
     const OptionGood = 24
     const SendGood = 16
 
-    /** The send draws its counts as art while every pawn eats; else its words. */
     let allFed = $derived(block.pawns.every(({ unfed }) => !unfed))
 
     function optionClasses(option: NourishOptionRow): string {
@@ -146,7 +138,7 @@
 </div>
 
 <style>
-    /* Contract, Phone layout: compact rows, and the send in sight in the action area's cap. */
+    /* Contract, Phone layout: no preview, as a press is undoable; the send stays in sight. */
     @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {
         [data-nourish-rows] :global(.touch-preview) {
             display: none;

@@ -2,17 +2,12 @@
     import type { Snippet } from 'svelte'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
 
-    /**
-     * The send, wherever it stands: the panel, or a phone's bench footer. It is drawn only once it
-     * can be pressed (R-X.2). `children` draws it in place of its label, which stays its accessible
-     * name; `named`, where given, is its accessible name in full words.
-     */
+    /** R-X.2 Drawn only once it can be pressed. */
     let {
         block,
         children
     }: { block: Extract<ActionBlock, { kind: 'primary' }>; children?: Snippet } = $props()
 
-    /** A second line's parts: a phone keeps the last, "can't be undone". */
     let noteParts = $derived(block.note?.split(' · ') ?? [])
 </script>
 

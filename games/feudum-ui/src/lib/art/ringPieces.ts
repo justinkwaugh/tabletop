@@ -1,13 +1,6 @@
 /**
- * The printed board outside the map, cut into the parts of its frame. The supplied board is
- * 3750 x 1430 px with the map and the six guild areas cleared, so most of it is empty: the files
- * keep only the frame, the score ring's bands and columns and the strips between the guild areas,
- * each part its own file, `board.ring.<part>`, so nothing drawn is larger than its part.
- *
- * Each row gives, in px of the supplied board, the rect the part is drawn over (`draw`) and the
- * rect its file holds (`file`): the drawn rect with a margin of the board round it, so the edge of
- * a scaled draw reads the same pixels the whole board did. Drawn rects overlap their neighbours by
- * a few px, so no seam shows where two meet.
+ * `file` is `draw` plus a margin, so a scaled draw's edge reads the same pixels the whole board
+ * did; drawn rects overlap their neighbours a few px, so no seam shows.
  */
 export const RingSource = { width: 3750, height: 1430 } as const
 

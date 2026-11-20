@@ -3,10 +3,6 @@
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    /**
-     * The action panel: what this seat can do now, read from the session's panels, which read the
-     * logic's offers. It restates no rule.
-     */
     const gameSession = getGameSession()
     const phone = new PhoneLayout()
 

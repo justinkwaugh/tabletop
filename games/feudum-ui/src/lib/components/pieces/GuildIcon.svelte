@@ -2,7 +2,6 @@
     import type { GuildId } from '@tabletop/feudum'
     import { GuildIconPaths } from '$lib/utils/pieceShapes.js'
 
-    /** A guild's one icon, on medallions, keeps, card needs and in text. Takes the ink it stands in. */
     let {
         guild,
         size = 24,

@@ -5,13 +5,7 @@
     import { GuildAreas, stripRailDrawingHeight, westGuild } from '$lib/utils/boardGeometry.js'
     import GuildRail from './GuildRail.svelte'
 
-    /**
-     * Contract, Guild standings: on a desk whose map's height binds, the six rails stand in the side
-     * column, spelled out as in the strip. One a row, the West guilds' then the East's, each in its
-     * area's order down its edge; two a row, the West's on the left and the East's on the right, row
-     * by row. Each is the column's width and its own height, scaled down only where the column is
-     * too short to hold them all.
-     */
+    /** Contract, Guild standings: a desk's side column, when the map's height binds. */
     let {
         view,
         paintOf,
@@ -24,7 +18,6 @@
         perRow: 1 | 2
     } = $props()
 
-    /** West before East, then down the edge, as the areas stand on the board. */
     let rows = $derived(
         [...view.rows].sort(
             (a, b) =>
@@ -67,7 +60,6 @@
 </div>
 
 <style>
-    /* It takes the column's height left over the score line; its rails never push it taller. */
     .column {
         display: grid;
         flex: 1 1 0;
@@ -78,7 +70,6 @@
         pointer-events: none;
     }
 
-    /* Two a row: the West's three down the left, the East's down the right. */
     .column.paired {
         grid-template-rows: repeat(3, auto);
         grid-template-columns: repeat(2, minmax(0, 1fr));

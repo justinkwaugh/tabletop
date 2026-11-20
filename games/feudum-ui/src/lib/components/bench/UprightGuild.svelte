@@ -8,11 +8,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { GuildBox } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * Contract, The trade picker: the guild's area turned a quarter, so its print stands upright at a
-     * readable size. It lies sideways on the table; here it is read, not placed, so it takes no
-     * press: its rings say which places the cards beside it offer.
-     */
+    /** Contract, The trade picker: read, not placed, so it takes no press. */
     let {
         area,
         height,
@@ -21,7 +17,6 @@
         colourPaintOf
     }: {
         area: BenchAreaView
-        /** In CSS pixels: the area's long side, upright. */
         height: number
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint

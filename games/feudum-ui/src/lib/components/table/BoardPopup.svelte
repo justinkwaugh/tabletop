@@ -8,26 +8,19 @@
     import PanelRow from './PanelRow.svelte'
 
     /**
-     * A popup beside its anchor, over the board (contract: Popups). A manual popover, since a press
-     * outside it does nothing and closes nothing; Undo removes it. Guild choices stand as their dice
-     * in rows of three; R-3.9-H1 discs side by side, each drawn with its back. A heading, when the
-     * popup has one, says once what the choice decides.
+     * Contract, Popups: a manual popover, since a press outside it closes nothing.
+     * R-3.9-H1 Discs stand side by side, each drawn with its back.
      */
     let { popup }: { popup: FlowPopup } = $props()
 
     const gameSession = getGameSession()
     const phone = new PhoneLayout()
 
-    /** A popup's die face, smaller than the panel's so the grid sits beside its space. */
     const PopupDie = 56
 
     const dice = $derived(popup.choices.every(({ art }) => art?.kind === 'die'))
     const discs = $derived(popup.choices.every(({ art }) => art?.kind === 'disc'))
 
-    /**
-     * Under an open bench its own guild area is the anchor; the board's is covered. On a desk a guild
-     * area is the anchor in its open side; a side closed by hand hides the popup until it opens again.
-     */
     const reference = $derived(
         gameSession.benchCovers
             ? `[data-bench] [data-pick="${popup.anchor}"]`

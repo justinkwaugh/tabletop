@@ -2,13 +2,7 @@
     import BenchGhostPiece from '$lib/components/bench/BenchGhostPiece.svelte'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
 
-    /**
-     * R-4.6 What a push or a pull has staged: a line for each thing moved, its piece and count and
-     * where it goes, said in words to a screen reader; then the count against the step's limit. A
-     * line has no press of its own: a staged row comes off by pressing it again on the bench, and Undo
-     * takes back the latest press. In the tray on a desk, above the send in the bench's sheet on a
-     * phone.
-     */
+    /** R-4.6 What a push or a pull has staged. */
     let { block }: { block: Extract<ActionBlock, { kind: 'staged' }> } = $props()
 
     const PieceSize = 20

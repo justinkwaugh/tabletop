@@ -1,11 +1,7 @@
 import { MachineState, type HydratedFeudumGameState } from '@tabletop/feudum'
 
-/**
- * R-X.1 What a seat that isn't deciding reads about the seats that are: "Waiting on" and their
- * chips. What they are deciding is the History's to say once they send.
- */
+/** R-X.1 What they are deciding is the History's to say once they send. */
 export interface WatchingPanel {
-    /** The seats being waited on, in the order they decide. */
     readonly waitingOn?: readonly string[]
     /** R-4.4.1 How many face-down writs the drawer is holding. */
     readonly backs?: number
@@ -16,14 +12,12 @@ export interface WatchingInput {
     readonly viewerId: string | undefined
 }
 
-/** "Ana", "Ana and Ben", "Ana, Ben and Cy". */
 export function namesInWords(names: readonly string[]): string {
     return names.length > 1
         ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
         : names.join('')
 }
 
-/** "Waiting on Ana.", "Waiting on Ana and Ben.": the waiting line's words, which its chips draw. */
 export function waitingWords(names: readonly string[]): string {
     return `Waiting on ${namesInWords(names)}.`
 }
@@ -38,11 +32,7 @@ const OneDecides: ReadonlySet<MachineState> = new Set([
     MachineState.CollectingLandscapes
 ])
 
-/**
- * R-X.1 Whom the viewer waits on while another seat decides. It's built from public facts alone,
- * so it can't differ with what the asked seat holds (S34). The live rows of a step are
- * `sharedRows`' own.
- */
+/** R-X.1 From public facts alone, so it can't differ with what the asked seat holds (S34). */
 export function watchingPanelOf({ state, viewerId }: WatchingInput): WatchingPanel | undefined {
     const { combat, starve, writDraw } = state.flow
     const on = (playerIds: readonly string[], extra: Omit<WatchingPanel, 'waitingOn'> = {}) => {

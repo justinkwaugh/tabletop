@@ -31,7 +31,6 @@ import {
     type HydratedFeudumGameState
 } from '@tabletop/feudum'
 
-/** Every Action a card's own stage can name. */
 export type CardAction =
     | ActionType.Migrate
     | ActionType.Move
@@ -65,15 +64,9 @@ export type PrintedCost =
 
 export interface CardMode {
     readonly action: CardAction
-    /** The mode's name with its cost in words: its accessible name. */
     readonly label: string
-    /** A special's name alone, where its cost stands beside it as art. */
     readonly shown?: string
     readonly cost?: PrintedCost
-    /**
-     * The engine refuses this mode now: the tray does not draw it, and when every mode is refused
-     * the first one's reason is the card's one line.
-     */
     readonly refusal?: string
 }
 
@@ -184,7 +177,6 @@ function reasonTendModeRefused(
     return spaceIds.length === 0 ? 'You are serf on no space without a landscape.' : undefined
 }
 
-/** A mode the engine has no list for yet refuses by the shared card checks, then by its offers. */
 function reasonOfOffers(
     { state, playerId }: TurnContext,
     kind: ActionCardKind,
@@ -345,10 +337,7 @@ export function cardModes(
     return CardModes[kind].flatMap((row) => row(context, input) ?? [])
 }
 
-/**
- * The mode that opens by itself. Not an auto stage: Forfeit stays a legal choice, so this is no lone
- * legal choice, and a press further on still completes the send.
- */
+/** Not an auto stage: Forfeit stays a legal choice, so a press further on still sends. */
 export function loneMode(modes: readonly CardMode[]): CardAction | undefined {
     const enabled = modes.filter(({ refusal }) => !refusal)
     return enabled.length === 1 ? enabled[0].action : undefined

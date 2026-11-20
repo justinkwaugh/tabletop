@@ -3,12 +3,7 @@
     import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
     import { getTableLayers } from './tableLayersContext.js'
 
-    /**
-     * Contract, Card preview: a press on a card, writ, tile or bead enlarges it, here on the board's
-     * SVG (`tag` "g") or in a panel (`tag` "div"). `face` reads the owner's current props, so a back
-     * enlarges as a back. `off` while the same press would pick (a lit space under a tile), or where
-     * no table holds it, it is the plain piece.
-     */
+    /** Contract, Card preview: `face` reads current props, so a back enlarges as a back. */
     let {
         face,
         label,

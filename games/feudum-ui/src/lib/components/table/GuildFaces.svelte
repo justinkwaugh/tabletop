@@ -3,13 +3,7 @@
     import type { GuildSide } from '$lib/model/boardFocus.svelte.js'
     import { guildsDownSide } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * Contract, Desk layout: under a side button's label, its three guilds' faces, top to bottom in
-     * the bench's order, each a small file cut round from that guild's print and stood upright
-     * (`face.<guild>`, `scripts/make-faces.mjs`), so the prints themselves stay unloaded until a side
-     * opens. They are decoration, so the button's name stays its label's. A guild whose face the
-     * folder lacks shows none.
-     */
+    /** Contract, Desk layout: small cut faces, so the prints stay unloaded until a side opens. */
     let { side }: { side: GuildSide } = $props()
 
     let faces = $derived(

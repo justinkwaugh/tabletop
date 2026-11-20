@@ -2,11 +2,7 @@
     import type { BoundingBox } from '@tabletop/common'
     import { VeilOpacity } from '$lib/model/boardChrome.js'
 
-    /**
-     * Phone rendering, effects stay piece-sized: a raster too large to dim on its own (the map, a
-     * guild area's print) dims under this, one plain shape in the board's ground colour, drawn over
-     * it and under whatever stays lit. It takes no presses.
-     */
+    /** Phone rendering, effects stay piece-sized: a raster too large to dim dims under this. */
     let { x, y, width, height }: BoundingBox = $props()
 </script>
 

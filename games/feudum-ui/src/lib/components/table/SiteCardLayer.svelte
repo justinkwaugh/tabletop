@@ -6,11 +6,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import SiteCard from './SiteCard.svelte'
 
-    /**
-     * The site card beside its disc (contract: Site card), from the state the table shows, so it
-     * works in History View. A manual popover: a second press on the disc, its close or Escape
-     * closes it.
-     */
+    /** Contract, Site card: from the displayed state, so it works in History View. */
     let { spaceId, onClose }: { spaceId: SpaceId; onClose: () => void } = $props()
 
     const gameSession = getGameSession()

@@ -5,10 +5,7 @@
     import Magnifier from './Magnifier.svelte'
     import RowChoice from './RowChoice.svelte'
 
-    /**
-     * R-4.4.2, R-4.4.3, R-4.8.2 Each writ as a face, with what it offers as buttons beneath: a
-     * mandate's alternatives, a charter's seal, a weapon's turn-ins.
-     */
+    /** R-4.4.2, R-4.4.3, R-4.8.2 Each writ as a face, what it offers as buttons beneath. */
     let { offers, pointer }: { offers: readonly WritOffer[]; pointer: RowPointer } = $props()
 
     const FaceWidth = 110

@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { TallyLine } from '$lib/model/cardFlows.js'
 
-    /** R-4.8 Attack and defence by source. The one drawing of the tally (contract: Render ownership). */
+    /** R-4.8 Attack and defence by source (contract: Render ownership). */
     let { lines, note }: { lines: readonly TallyLine[]; note?: string } = $props()
 </script>
 

@@ -14,14 +14,7 @@
     import BenchGhostPiece from './BenchGhostPiece.svelte'
     import UprightGuild from './UprightGuild.svelte'
 
-    /**
-     * Contract, The trade picker: the guild's board upright at the left, and beside it, left aligned
-     * in one reading order, the header with the purse right after its line, one choice card per
-     * offer, the basket where picks add up, the bench's further choices (sulfur into the barrel),
-     * and the send. On a desk it stands in the picked card's tray, under the tray's control
-     * row; on a phone, in the bench's bottom sheet, its cards as compact rows. It reads the bench
-     * offer and decides nothing.
-     */
+    /** Contract, The trade picker: it reads the bench offer and decides nothing. */
     let {
         bench,
         compact = false,
@@ -34,7 +27,6 @@
         onPress
     }: {
         bench: BenchOffer
-        /** A phone's sheet: a shorter board and compact rows, so more of the map shows. */
         compact?: boolean
         send?: Extract<ActionBlock, { kind: 'primary' }>
         state: HydratedFeudumGameState
@@ -259,7 +251,7 @@
         align-self: flex-start;
     }
 
-    /* Contract, The trade picker on a phone: compact rows, art and name, then cost → gain and Buy. */
+    /* Contract, The trade picker on a phone: compact rows. */
     .compact {
         gap: 0.5rem;
     }
@@ -294,7 +286,6 @@
         font-size: 0.875rem;
     }
 
-    /* Six bins in two rows of three: each its good and price, its name in the press's name. */
     .compact .bin {
         flex: 1 1 3.5rem;
         min-width: 3.25rem;

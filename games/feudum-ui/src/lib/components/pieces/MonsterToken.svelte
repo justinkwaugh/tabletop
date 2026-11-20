@@ -5,11 +5,7 @@
     import { MonsterPaths } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /**
-     * A monster. A controlled one takes its seat's colour from the session (S71): a collar on the
-     * drawn form, and on either form a disc in that colour. The seat is named in its accessible name
-     * and tooltip ("Ana's behemoth"), so colour never stands alone; no letter is drawn on it.
-     */
+    /** S71 Its seat's colour, with the seat in its name so colour never stands alone. */
     let {
         monster,
         paint,

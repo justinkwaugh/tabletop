@@ -86,22 +86,17 @@ import { fillLine, goodsLine } from './roundEnd.js'
 import { EpochNames, tileName } from './tileName.js'
 import { writName } from './writLabels.js'
 
-/**
- * Who reads a line. A line is built from the Action as this seat received it and from nothing else,
- * so what a projection took out has nowhere to come back from.
- */
+/** Hidden information: a line reads only the Action as this seat received it. */
 export interface ActionLineView {
     readonly viewerId: string | undefined
     /** S57 Host View is its own explicit look at the faces. */
     readonly hostView?: boolean
     readonly nameOf: (playerId: string) => string
-    /** R-1.4-H1 A dummy row's colour as the table shows it; its own colour when absent. */
+    /** R-1.4-H1 A dummy row's colour as the table shows it. */
     readonly dummyName?: (colour: Color) => string
-    /** The game's seats, for a line that names those it says nothing of (the reveal's "none"). */
     readonly seats?: readonly string[]
 }
 
-/** A clause of a line, in the order it reads; nothing when it says nothing. */
 type Clause = string | undefined
 
 const Separator = ' · '
@@ -110,7 +105,6 @@ function sentence(...clauses: readonly Clause[]): string {
     return clauses.filter((clause) => clause).join(Separator)
 }
 
-/** R-1.3 A chicken by its space's number. */
 function chickenNumber(space: ChickenSpaceId): number {
     const chicken = ChickenSpaces.find(({ id }) => id === space)
     assertExists(chicken, `R-1.3 There is a chicken ${space}`)
@@ -144,22 +138,18 @@ class Words {
         return this.view.seats
     }
 
-    /** A seat as the subject of a sentence: "You moved", "Ana moved". */
     who(playerId: string): string {
         return playerId === this.view.viewerId ? 'You' : this.view.nameOf(playerId)
     }
 
-    /** A seat as an object: "asked you", "asked Ana". */
     whom(playerId: string): string {
         return playerId === this.view.viewerId ? 'you' : this.view.nameOf(playerId)
     }
 
-    /** R-1.4-H1 A dummy row by the colour it is shown in: "the green row". */
     dummy(colour: Color): string {
         return this.view.dummyName?.(colour) ?? colour
     }
 
-    /** "your knight", "Ben's knight". */
     whose(playerId: string): string {
         return playerId === this.view.viewerId ? 'your' : `${this.view.nameOf(playerId)}'s`
     }
@@ -236,7 +226,7 @@ function cardName(kind: string): string {
     return ActionCards.find((card) => card.kind === kind)?.printedName ?? titled(kind)
 }
 
-/** R-3.15, R-3.3-H1 How the card came to be played, when it isn't the plain way. */
+/** R-3.15, R-3.3-H1 */
 function playedAs(action: { asRepeat?: 'repeat' | 'deja-vu'; secondCard?: true }): Clause {
     return sentence(
         action.asRepeat === 'repeat' ? 'by Repeat' : undefined,
@@ -283,10 +273,7 @@ function finaliseLine(action: GameAction, words: Words): string | undefined {
     )
 }
 
-/**
- * R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together in one line: each
- * good with its seat, then the seats without one.
- */
+/** R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together. */
 function revealLine(action: GameAction, words: Words): string | undefined {
     if (!isRevealPouches(action)) {
         return undefined
@@ -338,7 +325,7 @@ function stepPiece(step: Move['steps'][number], record?: MoveStepRecord): string
     return record?.character ?? 'pawn'
 }
 
-/** R-4.2 One hop of a path: its way, its fare, and what happened to a vessel. */
+/** R-4.2 */
 function hop(
     { to, medium, vessel, ferry }: Move['steps'][number],
     record: MoveStepRecord | undefined
@@ -601,7 +588,7 @@ function taxLine(action: GameAction, words: Words): string | undefined {
     )
 }
 
-/** R-4.8 The strengths, who won, the points and what went home. */
+/** R-4.8 */
 function combatLine(combat: CombatRecord | undefined, words: Words): readonly Clause[] {
     if (!combat) {
         return []
@@ -760,7 +747,7 @@ function rowName({ owner }: KnightRowLeft | RowFill, words: Words): string {
         : `the ${words.dummy(owner.dummyColour)} row`
 }
 
-/** R-4.6 What a function moved, and where; R-5-H1 a seal is named only when it flips to a bead. */
+/** R-5-H1 A seal is named only when it flips to a bead. */
 function detailsLine(
     details: GuildFunctionDetails,
     params: GuildFunctionParams,
@@ -1135,11 +1122,7 @@ function endRoundLine(action: GameAction, words: Words): string | undefined {
     )
 }
 
-/** R-6.2, R-4.4.3 Each sealed charter is revealed here, in the record itself, to everyone. */
-/**
- * R-6.3 "Tie: most sulfur in the wine barrel; still tied, shared." The barrel broke the tie only
- * when it left fewer winners than were tied on vp.
- */
+/** R-6.3 The barrel breaks a tie only when it leaves fewer winners than were tied on vp. */
 function barrelLine(named: string, tied: number, winners: number): string {
     if (winners >= tied) {
         return `tie on vp and on barrel sulfur: ${named}`
@@ -1286,10 +1269,7 @@ const Writers: readonly ((action: GameAction, words: Words) => string | undefine
     scoreLine
 ]
 
-/**
- * R-X.1 The log's line for an Action (contract: Game log and history): past tense after the name,
- * "You" for whoever looks, spaces as region and number. Undefined for a type that isn't this game's.
- */
+/** R-X.1 (contract: Game log and history): past tense after the name, "You" for the viewer. */
 export function describeAction(action: GameAction, view: ActionLineView): string | undefined {
     const words = new Words(view)
     for (const write of Writers) {

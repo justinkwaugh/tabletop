@@ -12,10 +12,7 @@
     } from '$lib/utils/boardGeometry.js'
     import { hexagonPoints } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-1.3 A guild's three track spaces, left to right. R-4.5.2 A marker on a rank is membership;
-     * R-4.7 its reeve stands beside it. R-4.5.3 The apprentice space is used only at 4 and 5 players: drawn dim, or veiled on the print.
-     */
+    /** R-4.5.3 The apprentice space is used only at 4 and 5 players. */
     let {
         guild,
         state,
@@ -31,7 +28,6 @@
     let printed = $derived(guildPrinted(guild))
     let reeve = $derived(reeveOffset(guild))
 
-    /** The veil over a printed space no seat may take. */
     const VeilRadius = 22
 </script>
 

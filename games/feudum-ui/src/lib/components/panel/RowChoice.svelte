@@ -10,11 +10,7 @@
     import type { ActionRow } from '$lib/model/actionPanel.js'
     import DieChoice from './DieChoice.svelte'
 
-    /**
-     * One row with its art. A held tile shows its landscape once known (R-4.3), its epoch side before. A guild's die is the
-     * whole row. Contract, Pick conventions: art first, words second; the words stay the row's
-     * accessible name. R-3.9-H1 A disc choice is the disc with its back peeking out behind it.
-     */
+    /** R-4.3 A held tile shows its landscape once known, its epoch side before. */
     let { row, pointer }: { row: ActionRow; pointer: RowPointer } = $props()
 
     const GoodSize = 18
@@ -67,7 +63,6 @@
 {/if}
 
 <style>
-    /* The back sits up and to the right, behind the face, as a stacked disc's edge would. */
     .disc {
         position: relative;
         display: inline-block;

@@ -1,17 +1,10 @@
 import type { BoundingBox } from '@tabletop/common'
-/** A press's extent across a guild area, in the area's own units. */
 export interface Span {
     readonly x: number
     readonly width: number
 }
 
-/**
- * S68 (contract: Touch targets) A press narrower than `least` grows across toward it, still covering
- * its own span, never past the area's edges (0 to `whole`) and never over a neighbouring press. Each
- * grows evenly to both sides where there is room; where two neighbours want more of the room between
- * them than there is, they share it by what each wants; and a press still short takes what is left on
- * either side. Three spans side by side leave the middle one only what lies between the other two.
- */
+/** S68 (contract: Touch targets) A press under `least` grows across, never over a neighbour. */
 export function widenedSpans(spans: readonly Span[], whole: number, least: number): Span[] {
     const order = spans.map((_, index) => index).sort((a, b) => spans[a]!.x - spans[b]!.x)
     const lanes = order.map((index) => spans[index]!)
@@ -20,7 +13,6 @@ export function widenedSpans(spans: readonly Span[], whole: number, least: numbe
     const left = need.map((wanted) => wanted / 2)
     const right = need.map((wanted) => wanted / 2)
 
-    // The room to each lane's left: the area's edge, or the gap it shares with its neighbour.
     const roomLeft = lanes.map((lane, at) =>
         at === 0 ? lane.x : lane.x - (lanes[at - 1]!.x + lanes[at - 1]!.width)
     )
@@ -39,7 +31,6 @@ export function widenedSpans(spans: readonly Span[], whole: number, least: numbe
         }
     }
 
-    // What is left of each side's room once both its presses have taken their share.
     const spareLeft = lanes.map((_, at) =>
         at === 0
             ? Math.max(0, roomLeft[0]!) - left[0]!
@@ -76,11 +67,7 @@ export function widenedSpans(spans: readonly Span[], whole: number, least: numbe
     return widened
 }
 
-/**
- * S68 Each box grows toward `least` across and down, as `widenedSpans` grows a span. Along each
- * axis its neighbours are the boxes that share some of its extent on the other axis: the printed
- * Knight rows, side by side, are neighbours across; the drawn ones, stacked, are neighbours down.
- */
+/** S68 Each box grows toward `least` across and down, as `widenedSpans` grows a span. */
 export function widenedBoxes(
     boxes: readonly BoundingBox[],
     whole: { readonly width: number; readonly height: number },
@@ -109,7 +96,6 @@ function along(
     const order = boxes
         .map((_, index) => index)
         .sort((a, b) => boxes[a]![otherStart] - boxes[b]![otherStart])
-    // Boxes whose extents on the other axis overlap, one after another, share this axis.
     const groups: number[][] = []
     let reach = -Infinity
     for (const index of order) {

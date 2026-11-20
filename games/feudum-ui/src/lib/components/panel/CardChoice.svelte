@@ -5,14 +5,9 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import Magnifier from './Magnifier.svelte'
 
-    /**
-     * A card of the hand: a press on the face picks it, its magnifier enlarges it (Departure 6). R-3.1
-     * A drafted card stands dimmed among the eleven with the number of the slot it fills; its press
-     * takes it back.
-     */
+    /** Departure 6: the magnifier. R-3.1 A drafted card stays dimmed among the eleven. */
     let { row, paint, pointer }: { row: CardRow; paint: SeatPaint; pointer: RowPointer } = $props()
 
-    /** The face's drawing width; the column it stands in scales it. */
     const FaceWidth = 88
 </script>
 

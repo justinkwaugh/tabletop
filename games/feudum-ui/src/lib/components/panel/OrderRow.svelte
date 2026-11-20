@@ -3,12 +3,7 @@
     import type { OrderRow } from '$lib/model/sharedRows.js'
     import SeatChip from './SeatChip.svelte'
 
-    /**
-     * R-4.10, R-4.12.3 The seats in turn order, each its chip: a tick on each done, a solid ring on
-     * the next (landscapes) or on every seat deciding (nourishing, R-4.10-H4). A phone's chips are
-     * their colours, and still read out their names. The one drawing of the nourish and landscapes
-     * rows (contract: Render ownership).
-     */
+    /** R-4.10, R-4.12.3 The seats in turn order. R-4.10-H4 Every seat deciding is ringed. */
     let {
         step,
         entries,

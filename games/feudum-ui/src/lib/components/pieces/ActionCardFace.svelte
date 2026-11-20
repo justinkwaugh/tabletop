@@ -27,12 +27,8 @@
     import ShillingToken from './ShillingToken.svelte'
 
     /**
-     * R-3.1 An action card. The perspective rule sets `faceShown`; a back draws from the seat alone,
-     * so nothing of the card reaches the markup. While the seat shows a printed colour (`paint.printed`),
-     * a face is drawn as the print in that colour round the kind's art file, and a back is the printed
-     * back in that colour, each when the folder holds its file. Otherwise the back and the band round
-     * the art take the seat colour from the session (S71).
-     * R-3.5 One component by width.
+     * R-3.1 A back draws from the seat alone, so nothing of the card reaches the markup.
+     * R-3.5 One component by width; S71 seat colours come from the session.
      */
     let {
         faceShown,
@@ -63,12 +59,7 @@
     let printedBackUrl = $derived(
         !card && paint.printed ? assetUrl(cardBackAsset(paint.printed)) : undefined
     )
-    /**
-     * A face in a printed colour: the print's band and foot in that colour, its frame, and the kind's
-     * art where the print holds it, all in the print's pixels and centred in the card at the print's
-     * proportion. The foot names nothing, so the card is named once, in the art's title; the
-     * accessible name and tooltip carry it at every size.
-     */
+    /** The print's foot names nothing: the card is named once, in the art's title. */
     let printedFace = $derived(
         card && paint.printed && url
             ? { band: PrintBand[paint.printed], at: PrintedArtAt[card.kind], url }

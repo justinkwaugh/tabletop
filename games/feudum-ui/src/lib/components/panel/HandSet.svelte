@@ -4,15 +4,9 @@
     import LockMark from '$lib/components/pieces/LockMark.svelte'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
 
-    /**
-     * R-3.1-H1 Tray A once the seat has finalised: "Hand" over the cards in the order chosen, then
-     * "Pouch" over its good and a lock: no other seat sees it until the reveal. Nothing in it can be
-     * pressed: the hand is final. On a phone the labels give way and the cards and the pouch share
-     * one line.
-     */
+    /** R-3.1-H1 No other seat sees the pouch until the reveal. */
     let { block }: { block: Extract<ActionBlock, { kind: 'hand-set' }> } = $props()
 
-    /** The face is drawn at this width and scales to its place. */
     const FaceWidth = 64
     const GoodSize = 22
 </script>
@@ -95,7 +89,6 @@
         height: auto;
     }
 
-    /* The pouch row takes the cards' width rather than widening the column. */
     .set-pouch {
         width: 0;
         min-width: 100%;

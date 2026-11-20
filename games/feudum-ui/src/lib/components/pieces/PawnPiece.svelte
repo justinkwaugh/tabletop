@@ -4,12 +4,8 @@
     import { DropPath, GuildIconPaths, PawnCube } from '$lib/utils/pieceShapes.js'
 
     /**
-     * R-4.5.1 A pawn takes a seat colour, so it is always drawn: the wooden cube in the seat's fill
-     * from the session (S71), seen in three-quarter view, with its character printed pale on the
-     * front face with a dark outline, as on the printed cubes. Like every wooden piece the cube has
-     * a dark outline and a small shadow, drawn as shapes so a phone renders them. R-4.8.2 A drunk
-     * pawn tilts and carries a sulfur drop. A pawn in supply has no character yet (R-3.6), so its
-     * front face is bare.
+     * R-4.5.1 A pawn takes its seat's colour (S71). R-4.8.2 A drunk pawn tilts and carries a drop.
+     * R-3.6 One in supply has no character. Its shadow is a shape, so a phone renders it.
      */
     let {
         paint,
@@ -27,7 +23,6 @@
         y?: number
     } = $props()
 
-    /** Room round the cube for its tilt and its drop. */
     const Margin = 2
     const OutlineWidth = 5
     const ShadowDrop = 3

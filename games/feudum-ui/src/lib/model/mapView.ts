@@ -14,7 +14,6 @@ import {
 } from '@tabletop/feudum'
 import { GoodsShownSingly, PieceSlotCount } from '$lib/utils/boardGeometry.js'
 
-/** One kind of good on a space: `tokens` tokens, and a count on them past the fourth. */
 export interface GoodStack {
     readonly good: Good
     readonly tokens: number
@@ -96,7 +95,6 @@ export function piecesOn(state: HydratedFeudumGameState, spaceId: SpaceId): read
     return [...pawns, ...monsters]
 }
 
-/** Up to four pieces sit round a space; the rest are a count on a chip. */
 export function slottedPieces(pieces: readonly MapPiece[]): {
     readonly shown: readonly MapPiece[]
     readonly more: number

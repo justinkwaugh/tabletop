@@ -14,12 +14,12 @@ import { untrack } from 'svelte'
 import { guildSideFollowing, type GuildSide, type PickFrame } from './boardFocus.svelte.js'
 import type { SeatPaint } from './seatPaint.js'
 
-/** What the enlarged view draws: its owner's props, so a back stays a back (R-4.4.4). */
+/** R-4.4.4 Its owner's props, so a back stays a back. */
 export type EnlargedFace =
     | {
           readonly kind: 'card'
           readonly faceShown: boolean
-          /** A back of a seat's hand has none: its kind is nowhere on this side of the perspective. */
+          /** Hidden information: a back of a seat's hand has no kind. */
           readonly card?: ActionCardKind
           readonly paint: SeatPaint
           readonly number?: number
@@ -47,7 +47,6 @@ export type EnlargedFace =
           readonly colourPaintOf: (colour: Color) => SeatPaint
       }
 
-/** A region stack's tiles by epoch. */
 export interface StackViewOf {
     readonly kind: 'region'
     readonly region: RegionId
@@ -58,31 +57,19 @@ interface Enlarged {
     readonly read: () => EnlargedFace
 }
 
-/**
- * What is open over the table (contract: Shared visual state). It stands apart from every draft: it
- * offers no choice, and it works in History View, reading the displayed state.
- */
+/** Contract, Shared visual state: no draft, so it works in History View. */
 export class TableLayers {
     private enlargedBy: Enlarged | undefined = $state.raw(undefined)
 
     openSeatId: string | undefined = $state(undefined)
     stackView: StackViewOf | undefined = $state.raw(undefined)
-    /** A phone's Tracks sheet: for looking, with no target in it. */
     tracksOpen: boolean = $state(false)
-    /** A phone's Guilds sheet: the guild standings, for looking. */
     guildsOpen: boolean = $state(false)
-    /** Contract, Supply: the writ reference, every writ in the game, for looking. */
+    /** Contract, Supply: the writ reference. */
     writsOpen: boolean = $state(false)
     private readonly pickKey = $derived.by(() => this.pickFrame()?.key)
-    /** The side shown last, which a pick in both sides keeps. */
     private sideShown: GuildSide | undefined
-    /**
-     * Contract, Desk layout and Pick framing: the guild side open over a desk's map, one at a time.
-     * A pick new to it opens the side that holds every target, keeps the side as it is when its
-     * targets stand in both sides, and closes it when one stands on the map or a track, as the
-     * pick's end does. A button opens, switches or closes it until the pick changes; with no pick
-     * open a side opened by hand is a look, and stays open.
-     */
+    /** Contract, Desk layout and Pick framing: the guild side open over a desk's map. */
     guildSide: GuildSide | undefined = $derived.by(() => {
         void this.pickKey
         const next = untrack(() => guildSideFollowing(this.pickFrame()))
@@ -92,7 +79,6 @@ export class TableLayers {
         return this.sideShown
     })
 
-    /** A site's card: the one pressed open, else the one under a desk pointer; a side opening closes it. */
     private sitePressed: SpaceId | undefined = $derived.by(() => {
         void this.guildSide
         return undefined
@@ -107,7 +93,6 @@ export class TableLayers {
         return this.sitePressed ?? this.siteHovered
     }
 
-    /** Read through its owner, so it follows the owner's current props. */
     enlarged: EnlargedFace | undefined = $derived(this.enlargedBy?.read())
 
     enlarge(owner: object, read: () => EnlargedFace): void {
@@ -118,14 +103,12 @@ export class TableLayers {
         this.enlargedBy = undefined
     }
 
-    /** The preview's lifetime ends with its owner. */
     ownerGone(owner: object): void {
         if (this.enlargedBy?.owner === owner) {
             this.enlargedBy = undefined
         }
     }
 
-    /** A second press on the same site closes its card. */
     openSite(spaceId: SpaceId): void {
         this.sitePressed = this.sitePressed === spaceId ? undefined : spaceId
     }
@@ -184,7 +167,6 @@ export class TableLayers {
         this.writsOpen = true
     }
 
-    /** Its button opens a side, switches from the other, or closes it again. */
     toggleGuildSide(side: GuildSide): void {
         if (this.guildSide === side) {
             this.closeGuildSide()
@@ -210,10 +192,7 @@ export class TableLayers {
         this.writsOpen = false
     }
 
-    /**
-     * Contract, Coexistence and precedence: Escape closes one layer at a time. False once none of
-     * these is open, so the key goes on to full screen. The bench is no layer: Undo closes it.
-     */
+    /** Contract, Coexistence and precedence: Escape closes one layer at a time. */
     escape(): boolean {
         if (this.enlargedBy) {
             this.closeEnlarged()

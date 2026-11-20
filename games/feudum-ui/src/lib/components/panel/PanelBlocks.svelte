@@ -22,12 +22,7 @@
     import WritChoice from './WritChoice.svelte'
     import WritOffers from './WritOffers.svelte'
 
-    /**
-     * The panel's blocks in the order they stand, left aligned, the send right after the step's last
-     * choice (Contract, Spacing). The hand
-     * stands in one line: the picked card's tray right after it, holding all the card asks (R-3.2),
-     * and the at-will chips at the line's end.
-     */
+    /** Contract, Spacing: the send stands right after the step's last choice. */
     let { view, pointer }: { view: ActionPanelView; pointer: RowPointer } = $props()
 
     const layout = new PhoneLayout()
@@ -56,16 +51,12 @@
         }[role]
     }
 
-    /** Contract, Playing a card: what stands beside the picked card, and at the hand line's end. */
+    /** Contract, Playing a card. */
     let main = $derived(view.blocks.filter(({ stands }) => !stands))
     let tray = $derived(view.blocks.filter(({ stands }) => stands === 'tray'))
     let handEnd = $derived(view.blocks.filter(({ stands }) => stands === 'hand-end'))
 
-    /**
-     * Contract, Hand selection: tray A. The heading over the eleven; beside them one tray, its labels
-     * in one column and its rows in the other: the hand's slots, the pouch, then the send. The
-     * at-will chips stand under the eleven.
-     */
+    /** Contract, Hand selection: tray A. */
     type DraftPlace = 'head' | 'count' | 'slots' | 'pouch' | 'send' | 'more'
 
     function placeOf(block: ActionBlock): DraftPlace {
@@ -101,10 +92,7 @@
         )
     )
 
-    /**
-     * The sends that stand together from this block on: one pinned group, so two answers stay in
-     * sight together on a phone rather than one pinned over the other.
-     */
+    /** One pinned group: two sends pinned apart would stack on a phone, one over the other. */
     function sendsFrom(
         list: readonly ActionBlock[],
         index: number
@@ -119,10 +107,7 @@
         return sends
     }
 
-    /**
-     * R-3.1-H1 The waiting line once the seat's hand is set: beside tray A on a desk and under it on
-     * a phone, in the accent.
-     */
+    /** R-3.1-H1 The waiting line once the seat's hand is set. */
     const SetWaitingClasses =
         'w-full sm:w-auto sm:min-w-0 sm:flex-1 text-lg font-bold text-feudum-accent max-sm:text-sm'
 
@@ -130,17 +115,15 @@
         return block.kind === 'line' && block.role === 'waiting' && before?.kind === 'hand-set'
     }
 
-    /** The draft's eleven stand in rows of six. */
     const DraftColumns = 'repeat(6, minmax(0, 72px))'
 
-    /** The card the tray stands beside: the picked one, or the last while none is picked. */
     function trayAfter(rows: readonly CardRow[]): number {
         const picked = rows.findIndex(({ picked }) => picked)
         return picked >= 0 ? picked : rows.length - 1
     }
 </script>
 
-<!-- R-X.1 "Waiting on <chip>.": each seat waited on as its chip, which reads out its name. -->
+<!-- R-X.1 Each seat waited on as its chip, which reads out its name. -->
 {#snippet lineText(block: Extract<ActionBlock, { kind: 'line' }>)}
     {#if block.on}
         <span class="inline-flex flex-wrap items-center gap-1" data-waiting-seats
@@ -251,10 +234,6 @@
     {/if}
 {/snippet}
 
-<!--
-    The tray's stage line. A desk heads the tray with the card's name; a phone puts the name at the
-    line's head, so the line stays one.
--->
 {#snippet stageLine(block: Extract<ActionBlock, { kind: 'line' }>, card: string)}
     {#if layout.phone}
         <p class="stage-line w-full text-feudum-text" data-tray-line>
@@ -266,12 +245,7 @@
     {/if}
 {/snippet}
 
-<!--
-    Contract, Hand selection: tray A. The round's heading, then the eleven in rows of six and, beside
-    them, one tray: "Hand" over its count and the slots, "Pouch" and its two choices under them, and
-    the send under those, each as wide as the slots. A phone stands it in a bottom sheet over the
-    board: the heading, the eleven, then the tray.
--->
+<!-- Contract, Hand selection: tray A; a phone stands it in a bottom sheet over the board. -->
 {#snippet draftView(block: Extract<ActionBlock, { kind: 'cards' }>)}
     {@const head = draftAt('head')}
     {@const more = draftAt('more')}
@@ -321,7 +295,7 @@
                     {@render blockView(draftPouch, 0, [draftPouch])}
                 </div>
             {/if}
-            <!-- R-X.2 The send's row keeps its room before the send appears, so the tray keeps its size. -->
+            <!-- R-X.2 The send's row keeps its room before the send appears. -->
             <div class="tray-row tray-send" data-tray-row="send">
                 {#each send as inner, index (index)}
                     {@render blockView(inner, index, send)}
@@ -331,10 +305,7 @@
     </div>
 {/snippet}
 
-<!--
-    Contract, The trade picker: one control row heads the tray, the card's choices then Forfeit, the
-    group gap between them; any refusal under it; then the picker, left aligned under the row.
--->
+<!-- Contract, The trade picker. -->
 {#snippet pickerTray(list: readonly ActionBlock[])}
     {@const controls = list.filter(({ kind }) => kind === 'rows')}
     {@const rest = list.filter(({ kind }) => kind !== 'rows')}
@@ -411,11 +382,6 @@
     /* Contract, Hand selection: tray A's places on a desk. */
     .hand-draft {
         display: grid;
-        /*
-         * The eleven, six 72 px faces a row, give way first on a narrow desk; the tray keeps its
-         * size. The faces scale to their cell, so the column names its width. The last column takes
-         * what is left, so the heading runs the panel's width with the seats at its end.
-         */
         grid-template-columns: minmax(0, calc(6 * 72px + 5 * 0.375rem)) max-content minmax(0, 1fr);
         justify-content: start;
         grid-template-areas:
@@ -428,7 +394,6 @@
         align-items: start;
     }
 
-    /* The heading spans both columns: it wraps in what they leave, rather than widening the tray's. */
     .draft-head {
         grid-area: head;
         width: 0;
@@ -443,7 +408,6 @@
         grid-area: more;
     }
 
-    /* One grid: the labels' column, then the rows', every edge lined up with the slots. */
     .hand-tray {
         --slot-width: 62px;
         grid-area: tray;
@@ -470,7 +434,6 @@
         color: var(--feudum-text-muted);
     }
 
-    /* The rows under the slots take the slots' width rather than widening the column. */
     .tray-row[data-tray-row='pouch'],
     .tray-send {
         width: 0;
@@ -497,11 +460,7 @@
         width: 100%;
     }
 
-    /*
-     * Contract, Desk layout: on a desk the hand's 48 px faces keep card play's row about 120 px tall,
-     * so the board has the height; a phone's are 72 px. They give way on a narrow line; the picked
-     * one lifts.
-     */
+    /* Contract, Desk layout: 48 px faces keep card play's row about 120 px tall. */
     .hand-card {
         flex: 0 1 48px;
         min-width: 0;
@@ -512,11 +471,7 @@
         transform: translateY(-6px);
     }
 
-    /*
-     * R-3.2 The tray stands right of the picked card and points at it, as wide as what it holds, up
-     * to 36rem; the rest of the hand stands at the line's right end, so no card moves as the tray's
-     * contents change from step to step.
-     */
+    /* R-3.2 The rest of the hand stands at the line's end, so no card moves as the tray changes. */
     .tray {
         position: relative;
         flex: 0 1 auto;
@@ -527,10 +482,7 @@
         margin-left: auto;
     }
 
-    /*
-     * Contract, The trade picker: the board and its cards take the line's room, so the cards stand in
-     * one row; what it holds stays left aligned in it.
-     */
+    /* Contract, The trade picker: the cards stand in one row. */
     .tray.holds-picker {
         flex: 1 1 44rem;
         max-width: none;
@@ -552,7 +504,7 @@
         }
     }
 
-    /* Contract, Phone layout: the send, and the hand's pouch beside it, stay in sight in the cap. */
+    /* Contract, Phone layout: the send and the hand's pouch stay in sight in the cap. */
     @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {
         .pinned {
             position: sticky;
@@ -560,16 +512,11 @@
             background-color: var(--feudum-surface-raised);
         }
 
-        /*
-         * Each send takes its own width and the line's spare room: two that fit share a line, and one
-         * that would wrap beside the other takes a line of its own, reading on one line there.
-         */
         .sends > :global([data-primary]) {
             flex: 1 1 auto;
             width: auto;
         }
 
-        /* The tray takes the line under the hand, pointing up at the picked card. */
         .tray {
             order: 1;
             flex-basis: 100%;
@@ -585,11 +532,7 @@
             flex-basis: 72px;
         }
 
-        /*
-         * Contract, Phone layout: the tray fits the cap without scrolling. Its name stands at the
-         * line's head in place of a heading, the line in its short words. No hover, so no preview
-         * path: a press on a card or a mode is undoable and itself lights the places.
-         */
+        /* Contract, Phone layout: the tray fits the cap without scrolling; a phone has no hover. */
         .tray :global([data-preview]) {
             display: none;
         }
@@ -599,7 +542,7 @@
             line-height: 1rem;
         }
 
-        /* Contract, Phone layout: the sheet's hand: the heading, the eleven, then tray A. */
+        /* Contract, Phone layout: the sheet's hand. */
         .hand-draft {
             grid-template-columns: minmax(0, 1fr);
             grid-template-areas:
@@ -612,7 +555,6 @@
             row-gap: 0.25rem;
         }
 
-        /* A magnifier's 44 px reaches below its card: the tray stands clear of it. */
         .draft-cards {
             column-gap: 0.25rem;
             row-gap: 0.5rem;
@@ -641,7 +583,6 @@
             min-width: 0;
         }
 
-        /* Side by side. */
         .pouch-choices {
             flex-direction: row;
         }

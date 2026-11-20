@@ -1,5 +1,4 @@
 <script lang="ts">
-    /** A count on the map: neutral, with the halo that keeps it readable on any ground. */
     let { count, x = 0, y = 0 }: { count: string | number; x?: number; y?: number } = $props()
 
     let width = $derived(10 + `${count}`.length * 9)

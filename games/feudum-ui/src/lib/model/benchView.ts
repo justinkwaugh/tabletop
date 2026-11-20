@@ -30,7 +30,6 @@ import {
 import { knightRowPlace, type BenchGhost, type BenchItem, type BenchOffer } from './benchOffer.js'
 import { laneOfRow, rowLane, seatRowId } from './knightLanes.js'
 
-/** A place on a guild area, in its local units. */
 export interface BenchBox extends BoundingBox {
     readonly round?: true
 }
@@ -51,25 +50,21 @@ export interface PlacedGhost {
     readonly point?: Point
 }
 
-/** One item on its guild area. */
 export interface PlacedItem {
     readonly item: BenchItem
     readonly box: BenchBox
-    /** It takes its press where it stands. */
     readonly presses: boolean
 }
 
 export interface BenchAreaView {
     readonly guild: GuildId
     readonly placed: readonly PlacedItem[]
-    /** What the contract words as a button: an invention's recipe, the seat's row with its price. */
     readonly buttons: readonly BenchItem[]
     readonly ghosts: readonly PlacedGhost[]
 }
 
 export interface BenchView {
     readonly areas: readonly BenchAreaView[]
-    /** Ghosts bound for the seat or the map: no area on the bench holds them. */
     readonly tray: readonly PlacedGhost[]
 }
 
@@ -83,7 +78,6 @@ function around({ x, y }: Point, width: number, height = width, round?: true): B
     }
 }
 
-/** R-4.6.1 A kind of good: its bin's whole row in the market, its column in the barn. */
 function goodBox(guild: GuildId, good: Good): BenchBox | undefined {
     if (guild === 'farmer') {
         return barnColumnBox(good)
@@ -139,7 +133,6 @@ function itemBox(
 
 const isInvention = ({ id }: BenchItem) => id.startsWith('invention:')
 
-/** An invention is only a button. The seat's row takes its press where it stands too. */
 function isButton(item: BenchItem): boolean {
     return isInvention(item) || item.id === 'row:seat'
 }
@@ -192,7 +185,6 @@ function guildOfSpace(at: string): GuildId | undefined {
     return ScrollSpaces.some(({ id }) => id === at) ? 'noble' : undefined
 }
 
-/** One ghost's markers fill a row's next cells, after any barrel staged ahead of it. */
 function markerGhosts(
     ghost: BenchGhost,
     row: KnightRowId,
@@ -221,7 +213,6 @@ interface GhostPlacing {
     readonly ghosts: readonly PlacedGhost[]
 }
 
-/** Where a ghost lands: the offer names the place; this says which area holds it, and the point. */
 function placeGhost(
     ghost: BenchGhost,
     index: number,
@@ -257,7 +248,7 @@ function placeGhost(
     return guild ? { guild, ghosts: one(guildSlot(at)) } : { ghosts: one() }
 }
 
-/** R-4.6.1 Where the bench's offer stands on its areas. The offer decides; this only places. */
+/** R-4.6.1 The offer decides; this only places. */
 export function benchViewOf(
     bench: BenchOffer,
     state: HydratedFeudumGameState,
@@ -291,27 +282,19 @@ export function benchViewOf(
     }
 }
 
-/** R-4.6 One staged move, as the tray lists it. */
 export interface StagedMove {
     readonly item: string
     readonly piece?: GhostPiece
-    /** "2 · Merchant → Alchemist", beside the sulfur's piece. */
     readonly text: string
-    /** Its accessible name: "2 sulfur from the Merchant to the Alchemist". */
     readonly words: string
 }
 
 export interface StagedMoves {
     readonly lines: readonly StagedMove[]
-    /** "1 of 4 moved", where the step states its limit. */
     readonly tally?: string
 }
 
-/**
- * R-4.6 What a push or a pull has staged, from the bench's own picks: each item's count, its
- * piece, the area it leaves and the area its ghosts land in, as the bench draws them. Nothing here
- * reads a rule: where a thing lands is the preview's, through the ghosts.
- */
+/** R-4.6 Where a thing lands is the preview's, through the ghosts. */
 export function stagedMoves(view: BenchView, bench: BenchOffer): StagedMoves | undefined {
     if (bench.staged.length === 0) {
         return undefined
@@ -329,7 +312,6 @@ export function stagedMoves(view: BenchView, bench: BenchOffer): StagedMoves | u
         lines: bench.staged.map(({ item, label, count }) => {
             const { to, piece } = landing(item)
             const what = piece?.kind === 'good' ? `${count} ${piece.good}` : `${count} ${label}`
-            // A good or a row's marker is drawn beside it, so the line counts it and says where it goes.
             const drawn = piece && (item.startsWith('good:') || item.startsWith('row:'))
             const shown = drawn ? `${count}` : what
             return {

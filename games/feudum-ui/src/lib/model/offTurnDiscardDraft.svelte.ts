@@ -12,7 +12,6 @@ import { DeciderDraft, draftChoice, playUnless, type DraftChoice } from './decid
 import { writName } from './writLabels.js'
 
 export type OffTurnDiscardValues = {
-    /** The seat whose writs are open. */
     seat: string
     /** R-4.4.4 */
     writ: WritId
@@ -22,13 +21,11 @@ export const OffTurnDiscardStageOrder: readonly (keyof OffTurnDiscardValues)[] =
 
 export interface OffTurnDiscardContext {
     readonly state: HydratedFeudumGameState
-    /** The seats off the clock that hold a writ, in turn order. */
     readonly seats: readonly string[]
     readonly nameOf: (playerId: string) => string
 }
 
 export interface OffTurnDiscardPanel {
-    /** One chip a seat: its writs stay closed until it is pressed. */
     readonly chips: readonly (DraftChoice & { readonly seat: string })[]
     readonly writs?: readonly {
         readonly writId: WritId
@@ -37,10 +34,7 @@ export interface OffTurnDiscardPanel {
     }[]
 }
 
-/**
- * R-4.4-H5 A hotseat shows one seat, the one the state asks; a writ is discarded at any time, so each
- * other seat holding one has a chip that opens its own writs.
- */
+/** R-4.4-H5 A writ is discarded at any time, so each other seat holding one has a chip. */
 export class OffTurnDiscardDraft extends DeciderDraft<OffTurnDiscardValues, OffTurnDiscardContext> {
     constructor(contextOf: () => OffTurnDiscardContext | undefined) {
         super(OffTurnDiscardStageOrder, contextOf)
@@ -63,7 +57,6 @@ export class OffTurnDiscardDraft extends DeciderDraft<OffTurnDiscardValues, OffT
             : undefined
     })
 
-    /** The press on "Discard" sends: it can be undone. */
     sendsNow: FlowPlay | undefined = $derived.by(() =>
         this.play && sendsOnPress(this, this.play) ? this.play : undefined
     )

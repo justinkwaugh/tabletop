@@ -2,7 +2,6 @@
     import Enlargeable from '$lib/components/table/Enlargeable.svelte'
     import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
 
-    /** The corner of a card or writ in a panel: it enlarges the piece and picks nothing. */
     let { label, face }: { label: string; face: () => EnlargedFace } = $props()
 </script>
 
@@ -22,10 +21,7 @@
 </div>
 
 <style>
-    /*
-     * Contract, Phone layout: 44 px targets. Under a finger off the phone layout, the glass keeps its
-     * size and its press reaches 12 px around it.
-     */
+    /* Contract, Phone layout: 44 px targets; off the phone layout the press reaches 12 px out. */
     @media (pointer: coarse) {
         .corner :global([data-enlarge]) {
             display: flex;
@@ -37,10 +33,7 @@
         }
     }
 
-    /*
-     * Contract, Phone layout: 44 px targets. The foot of a phone's card is the magnifier, reaching
-     * into the gap beneath, and what stands above it is the pick.
-     */
+    /* Contract, Phone layout: 44 px targets; a phone card's foot is its magnifier. */
     @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {
         .corner {
             top: max(44px, calc(100% - 44px));

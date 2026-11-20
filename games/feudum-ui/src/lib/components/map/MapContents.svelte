@@ -40,14 +40,7 @@
     import CountChip from './CountChip.svelte'
     import PickChrome from './PickChrome.svelte'
 
-    /**
-     * What lies on a space: its landscape, goods, abandoned vessels and influence markers. R-1.1 The
-     * goods by kind on one plate below the disc, each kind a token with its count past one. R-4.1.2
-     * The ruler's marker at the disc's lower left, a subject under it in the same colour, a serf
-     * beside that in the other;
-     * R-3.14.2 an immunity seal under the marker it guards. R-3.7.4 What a piece may pilfer stands in
-     * a row above the space, each its own target.
-     */
+    /** R-1.1, R-4.1.2, R-3.14.2, R-3.7.4: goods, markers, immunity seals and pilfer targets. */
     let {
         state,
         paintOf,

@@ -3,11 +3,7 @@
     import type { Snippet } from 'svelte'
     import { pieceTurn } from '$lib/components/guilds/pieceTurn.js'
 
-    /**
-     * A piece on the board: world placement on the outer node, and an inner node at the piece's
-     * centre that has no transform of its own, which an animation may own. On a guild area stood
-     * upright off the board, a node inside it turns the piece back about its centre (R-1.2.3).
-     */
+    /** The inner node has no transform of its own, so an animation may own it. */
     let { at, piece, children }: { at: Point; piece: string; children: Snippet } = $props()
 
     const turn = pieceTurn()

@@ -2,10 +2,6 @@
     import type { BoundingBox } from '@tabletop/common'
     import type { Snippet } from 'svelte'
 
-    /**
-     * The root of every piece: an SVG that stands in HTML or nests in the board's SVG, labelled for
-     * anyone who can't see it. Shows the file when the folder holds one, else draws the fallback.
-     */
     let {
         label,
         url,

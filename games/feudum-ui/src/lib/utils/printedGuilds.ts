@@ -21,12 +21,7 @@ import {
     type VesselType
 } from '@tabletop/feudum'
 
-/**
- * Where each guild's parts stand on its printed panel, in the same local units as the drawn area
- * (500 x 354 to the area). Measured on the board's print: each panel lies on its side, the west
- * three reading from the board's west edge and the east three from its east edge, so a column of the
- * print is a row of the game. The pieces stand upright over it.
- */
+/** Measured on the print, whose panels lie on their side: a print column is a game row. */
 
 const West: readonly GuildId[] = ['alchemist', 'merchant', 'farmer']
 
@@ -64,7 +59,6 @@ const PrintedRanks: Record<GuildId, Record<GuildRank, Point>> = {
     }
 }
 
-/** A reeve stands beside its marker, on the panel's open side of the track. */
 export function printedReeveOffset(guild: GuildId): Point {
     return { x: West.includes(guild) ? 40 : -40, y: 0 }
 }
@@ -81,7 +75,6 @@ const MarketRowY = (space: number) => 305 - (space - 1) * 43
 const MarketBinTop = 150
 const MarketBinBottom = 330
 
-/** The printed carts, each good's three spaces in the order the data counts them. */
 const CartPlaces: Record<Good, readonly Point[]> = {
     wood: [
         { x: 205, y: 189 },
@@ -110,11 +103,9 @@ const CartPlaces: Record<Good, readonly Point[]> = {
     ]
 }
 
-/** The printed vessel space: a tall glass box, so the three types stand one above another. */
 const VesselSpace: Point = { x: 432, y: 62 }
 export const PrintedVesselSize = 34
 
-/** Pieces a little smaller than the drawn area's where the print's spaces sit closer. */
 export const PrintedSizes = { cartGood: 26, seal: 40, knightMarker: 32 } as const
 const VesselStep = 34
 
@@ -122,7 +113,6 @@ const VesselStep = 34
 const InventionX = [97, 135, 167, 220, 252, 285]
 const InventionY = 318
 
-/** The colours of the printed rows, in the data's order: the first is the panel's westmost row. */
 const RowColours: readonly Color[] = [...new Set(KnightRowSections.map(({ colour }) => colour))]
 
 /** R-1.3 The Knight's printed hexagons: a colour's row runs down the panel, its column 1 at the top. */
@@ -171,7 +161,6 @@ const RosaryString: readonly Point[] = [
     { x: 80, y: 260 },
     { x: 75, y: 314 }
 ]
-/** Past the printed beads, the rest of the box's beads stand in two rows beside the string. */
 const RosaryOverflowX = [160, 206, 252, 298, 344]
 const RosaryOverflowY = [175, 221]
 
@@ -213,12 +202,10 @@ export function printedKnightCell(colour: Color, column: number): Point {
     return { x: KnightRowX(RowColours.indexOf(colour)), y: KnightColumnY[column - 1] }
 }
 
-/** The disc naming a Knight row, at the row's foot. */
 export function printedKnightRowLabel(colour: Color): Point {
     return { x: printedKnightCell(colour, 1).x, y: KnightLabelY }
 }
 
-/** A Knight row's whole column, label to last space. */
 export function printedKnightRowBox(colour: Color): BoundingBox {
     const { x } = printedKnightCell(colour, 1)
     const top = KnightColumnY[0] - PrintedKnightCell / 2
@@ -230,7 +217,6 @@ export function printedKnightRowBox(colour: Color): BoundingBox {
     }
 }
 
-/** A monster icon's controller: its marker beside the printed beast. */
 export function printedMonsterIconMarker(slot: Point): Point {
     return { x: slot.x + 39, y: slot.y }
 }
@@ -268,7 +254,6 @@ export function printedRosaryBead(index: number): Point {
     return { x: RosaryOverflowX[past % RosaryOverflowX.length], y: RosaryOverflowY[row] }
 }
 
-/** State the print can't say: the rosary's total, the purse's and coffer's shillings, the barn's count. */
 export const PrintedCounts = {
     rosary: { x: 175, y: 342 },
     coffer: { x: 130, y: 104 },
@@ -276,11 +261,7 @@ export const PrintedCounts = {
     barn: { x: 236, y: 190 }
 } as const
 
-/**
- * Contract, Desk layout: the face of the figure on each guild's print, as a desk's side button shows
- * it, cut round in a circle of `PrintedFaceRadius`; lying, as the print lies on the board. The face
- * files are cut here and turned upright by `printedFaceTurn` (`scripts/make-faces.mjs`).
- */
+/** Contract, Desk layout: the faces are cut by `scripts/make-faces.mjs`, lying as on the board. */
 export const PrintedFaces: Record<GuildId, Point> = {
     alchemist: { x: 241, y: 87.5 },
     merchant: { x: 236, y: 53.5 },
@@ -291,7 +272,6 @@ export const PrintedFaces: Record<GuildId, Point> = {
 }
 export const PrintedFaceRadius = 53
 
-/** The quarter turn that stands a face upright: a west print a quarter clockwise, an east one back. */
 export function printedFaceTurn(guild: GuildId): number {
     return West.includes(guild) ? 90 : -90
 }

@@ -6,20 +6,15 @@ import type { GuildsApart } from './boardPlan.js'
 import type { FlightEnd, SeatPart } from './flightPlan.js'
 import { BoardWidth, GuildAreaWidth, guildAreaAt, uprightPoint } from '$lib/utils/boardGeometry.js'
 
-/** All a flight does to the piece it copies: hide it, and show it again. */
 export interface HideableSource {
     readonly style: Pick<CSSStyleDeclaration, 'visibility' | 'removeProperty'>
 }
 
-/** Where a flight's end stands now, in the layer's own pixels. */
 export interface StagePlace extends Point {
-    /** The copy's width at this end. */
     readonly size: number
-    /** The very thing a source names, hidden while it flies. A stand-in never is. */
     readonly source?: HideableSource
 }
 
-/** The little of the page a flight reads: the unit specs give their own rectangles. */
 export interface FlightStage {
     locate(end: FlightEnd): StagePlace
     /** Contract, Animation plan: where the board draws no score ring, a score flies to its seat. */
@@ -34,17 +29,12 @@ const StandInSize = 24
 const TableShare = 0.3
 const TableLargest = 220
 
-/**
- * Screen rectangles of the two ends, measured on every frame: the view may frame, zoom or pan the board,
- * and full screen moves everything. Everything is relative to the layer's own rectangle, since inside
- * the wrapper's dialog a fixed layer is positioned by the dialog.
- */
+/** Relative to the layer: inside the wrapper's dialog, the dialog positions a fixed layer. */
 export class DomFlightStage implements FlightStage {
     private readonly found = new Map<FlightEnd, Element | null>()
 
     constructor(private readonly layer: HTMLElement) {}
 
-    /** Every lookup stays inside the table's own root. */
     private get table(): ParentNode {
         return titleRootOf(this.layer)
     }
@@ -55,7 +45,6 @@ export class DomFlightStage implements FlightStage {
     readonly guildsApart = (): GuildsApart =>
         GuildIds.filter((guild) => this.openArea(guild) !== null)
 
-    /** A guild area stood upright in a desk's open side, if its side is open. */
     private openArea(guild: GuildId): Element | null {
         return this.table.querySelector(`[data-open-guild="${guild}"] [data-upright-area]`)
     }
@@ -76,7 +65,7 @@ export class DomFlightStage implements FlightStage {
             case 'offer': {
                 const element = this.elementOf(end)
                 if (!element) {
-                    // No seat on screen: full screen, or the history tab. The copy crosses the edge.
+                    // No seat on screen (full screen, the history tab): the copy crosses the edge.
                     return {
                         x: origin.width + StandInSize,
                         y: origin.height / 2,
@@ -119,7 +108,6 @@ export class DomFlightStage implements FlightStage {
         const surface = this.table.querySelector('[data-board-surface]')
         const piece = end.piece ? surface?.querySelector(`[data-motion="${end.piece}"]`) : undefined
         const rect = surface ? visualClientRect(surface) : undefined
-        // The part of the board the surface draws: the whole board, or a desk's crop of it.
         const drawn =
             surface instanceof SVGSVGElement && surface.viewBox.baseVal.width > 0
                 ? surface.viewBox.baseVal
@@ -137,7 +125,6 @@ export class DomFlightStage implements FlightStage {
               : end.point
         const view = surface?.closest('dialog:modal') ?? surface?.closest('[data-board-view]')
         const framed = view ? visualClientRect(view) : undefined
-        // A framed board can put an end out of the view: the copy leaves or enters at the view's edge.
         const kept = framed
             ? {
                   x: Math.min(framed.right, Math.max(framed.left, onScreen.x)),
@@ -151,10 +138,7 @@ export class DomFlightStage implements FlightStage {
         }
     }
 
-    /**
-     * Contract, Desk layout: an end in a guild area that an open side shows stands at its place in the
-     * upright area, turned as the area is: its own piece where it has one, else its point.
-     */
+    /** Contract, Desk layout: an end in an open side's guild area stands in the upright area. */
     private locateInOpenArea(
         guild: GuildId,
         area: Element,
@@ -247,11 +231,7 @@ export class DomFlightStage implements FlightStage {
         return element instanceof HTMLElement || element instanceof SVGElement
     }
 
-    /**
-     * On screen for a watcher: inside each scrolling ancestor, so a sheet's or the action panel's cap can
-     * scroll a source out, and the topmost thing there (unless inert: nothing hits an inert element), so a
-     * modal over the sidebar rules it out.
-     */
+    /** Topmost at its centre, unless inert: elementFromPoint never hits an inert element. */
     private isOnScreen(element: Element): boolean {
         const rect = visualClientRect(element)
         if (rect.width === 0 && rect.height === 0) {
@@ -274,7 +254,6 @@ export class DomFlightStage implements FlightStage {
         const hit = element.ownerDocument.elementFromPoint(centre.x, centre.y)
         const seat =
             element.closest('[data-open-seat], [data-seat-panel], [data-seat-chip]') ?? element
-        // Only the table's own elements count: a hit outside its root is something over it.
         const root = element.closest('[data-game-ui]')
         return (
             !!hit && (!root || root.contains(hit)) && (seat.contains(hit) || hit.contains(element))

@@ -10,7 +10,6 @@ import {
     type WritId
 } from '@tabletop/feudum'
 
-/** The general supply's counts a label reads. */
 type SupplyCounts = Pick<HydratedFeudumGameState['supply'], 'vessels'>
 
 /** R-7 What a writ is called in a row: a mandate by its number, a charter by its wording. */
@@ -47,8 +46,7 @@ function rewardText(reward: PlayMandateOffer['reward'], supply?: SupplyCounts): 
             return `+${reward.amount} attack`
         case 'vessel': {
             const name = reward.vessel.replaceAll('-', ' ')
-            // Contract, Supply: a vessel reward says how many the general supply has left; with
-            // none left the logic refuses it, and it is not drawn.
+            // Contract, Supply: a vessel reward says how many the general supply has left.
             return supply ? `${name} · ${supply.vessels[reward.vessel]} left` : name
         }
         case 'goods':

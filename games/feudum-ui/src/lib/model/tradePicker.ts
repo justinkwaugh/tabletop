@@ -14,27 +14,17 @@ import { paymentTotal, type BenchChoice, type BenchItem, type BenchOffer } from 
 import type { GhostPiece } from './benchView.js'
 import { seatRowId } from './knightLanes.js'
 
-/**
- * Contract, Guild and Feast, The trade picker: a guild's trade read as choice cards beside its board
- * turned upright. It reads the bench offer, whose prices, limits and presses are the logic's; it
- * restates no rule and decides nothing.
- */
+/** Contract, Guild and Feast, The trade picker: it restates no rule and decides nothing. */
 
-/** One offer of the trade: its art, name, a few words, and cost → gain. */
 export interface TradeCard {
     readonly item: BenchItem
     readonly name: string
     readonly words?: string
     readonly price?: number
-    /** What a Buy brings, in art. */
     readonly gain: readonly GhostPiece[]
-    /** What a Buy brings, in words, where art can't say it: the beads a draw chooses between. */
     readonly gainWords?: string
-    /** The card's accessible name: "Ship: 3s → ship". */
     readonly label: string
-    /** "3 in bin", "2 bought". */
     readonly stock?: string
-    /** The card's press: a Buy that sends, or a pick that adds to the basket. */
     readonly press?: BenchChoice
 }
 
@@ -46,15 +36,11 @@ export interface TradeBasket {
 
 export interface TradePicker {
     readonly guild: GuildId
-    /** "Alchemist trade". */
     readonly title: string
-    /** "Buy 1". */
     readonly line: string
-    /** What the seat can spend. */
     readonly purse: number
     readonly cards: readonly TradeCard[]
     readonly basket?: TradeBasket
-    /** `each`: each card's Buy is the send. `one`: the picks add up, sent once under them. */
     readonly sends: 'each' | 'one'
 }
 
@@ -63,7 +49,6 @@ export function takesTradePicker(bench: BenchOffer): boolean {
     return bench.fn === 'trade' && bench.guild !== 'farmer' && bench.collapsed === undefined
 }
 
-/** Up to this many of a gain are drawn; past it the words carry the number. */
 const MostDrawn = 6
 
 function shillings(price: number | undefined): string {
@@ -78,20 +63,14 @@ function idOf(item: BenchItem): string {
     return item.id.slice(item.id.indexOf(':') + 1)
 }
 
-/** The good a bench id names after its `good:` prefix, if it names one. */
 function goodOf(id: string): Good | undefined {
     return Goods.find((good) => `good:${good}` === id)
 }
 
-/** The vessel a bench id names after its `vessel:` prefix, if it names one. */
 function vesselOf(id: string): VesselType | undefined {
     return VesselTypes.find((vessel) => `vessel:${vessel}` === id)
 }
 
-/**
- * The press a card takes, named for the card, with no rose note: the card says the price. One whose
- * room the basket holds stays, dimmed.
- */
 function pressOf(item: BenchItem, label: string, shown?: string): BenchChoice | undefined {
     if (!item.press && !item.spent) {
         return undefined
@@ -105,7 +84,6 @@ function pressOf(item: BenchItem, label: string, shown?: string): BenchChoice | 
     }
 }
 
-/** "Buy", its price on the cost line beside it; the full words stay its accessible name. */
 function buy(item: BenchItem, gain: string): BenchChoice | undefined {
     return pressOf(item, `Buy ${gain} · ${shillings(item.price)}`, 'Buy')
 }
@@ -190,7 +168,6 @@ function merchantCards(bench: BenchOffer): readonly TradeCard[] {
     })
 }
 
-/** "r1c2" → "row 1, space 2". */
 function scrollWords(item: BenchItem): string {
     const [, row, column] = /r(\d)c(\d)$/.exec(item.id) ?? []
     return row && column ? `row ${row}, space ${column}` : idOf(item)

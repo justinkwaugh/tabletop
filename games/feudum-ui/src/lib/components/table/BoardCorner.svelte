@@ -5,16 +5,7 @@
     import SupplyCard from './SupplyCard.svelte'
     import SymbolKeyCard from './SymbolKeyCard.svelte'
 
-    /**
-     * The board's lower-left corner, beside the zoom controls: two looking-only buttons, each opening
-     * its card over the corner. Neither offers a target or changes an offer; one card is open at a time.
-     *
-     * Contract, Symbol key: "Key" opens the table's vocabulary; a second press or Escape closes it.
-     * Contract, Supply: "Supply" opens the general supply's counts; Escape, or a press anywhere,
-     * on the card or off it, closes it. On a desk the rest of the zoom row follows them (`row`).
-     * Contract, Desk layout: with the side column the row stands at the view's lower-right corner
-     * instead, along the column's foot, the zoom buttons last (`end`).
-     */
+    /** Contract, Symbol key, Supply, Desk layout: looking-only cards; one open at a time. */
     let { row, end = false }: { row?: Snippet; end?: boolean } = $props()
 
     const gameSession = getGameSession()
@@ -22,7 +13,6 @@
     let open: 'key' | 'supply' | undefined = $state()
     let supplyToggle: HTMLButtonElement | undefined = $state()
 
-    /** The viewer's own colour; a spectator's key borrows the first seat's. */
     let paint = $derived.by(() => {
         const playerId = gameSession.myPlayerId ?? seatOrder(gameSession.gameState)[0] ?? ''
         return paintOf(playerId)
@@ -40,7 +30,6 @@
         }
     }
 
-    /** A press off the supply card closes it; its own button toggles it instead. */
     function closeOnPress(event: PointerEvent) {
         const onToggle = event.target instanceof Node && supplyToggle?.contains(event.target)
         if (open === 'supply' && !onToggle) {
@@ -48,11 +37,7 @@
         }
     }
 
-    /**
-     * A card scrolls by itself: a wheel over it never zooms the board beneath. The one listener is
-     * the corner's own, there for as long as the board is: WebKit restyles the whole page each time a
-     * wheel listener is added or removed, which a listener on each card would do at every opening.
-     */
+    /** One lasting listener: WebKit restyles the page each time a wheel listener is added. */
     function keepWheelOnCard(event: WheelEvent) {
         if (event.target instanceof Element && event.target.closest('.card')) {
             event.stopPropagation()
@@ -78,7 +63,6 @@
             <SymbolKeyCard {paint} />
         </div>
     {:else if open === 'supply'}
-        <!-- Looking only: a press on the card closes it, and never pans the board beneath. -->
         <div
             class="card"
             id="feudum-supply"
@@ -125,7 +109,6 @@
 </div>
 
 <style>
-    /* Over the board's lower-left corner, the buttons beside the zoom controls, the card above them. */
     .layer {
         position: absolute;
         inset: 0.5rem 0 0 0;
@@ -138,7 +121,6 @@
         z-index: 10;
     }
 
-    /* With the side column: at the lower-right corner, the zoom buttons there, Key and Supply before them. */
     .layer.end {
         align-items: flex-end;
     }

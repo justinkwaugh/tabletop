@@ -22,10 +22,7 @@ export interface DawnSheetView {
     readonly fills: readonly string[]
 }
 
-/**
- * R-4.11 The roll itself is the history's to tell; the action area keeps only the dawn's sheet. The
- * map's new goods and the guild refill (R-4.12.4, R-5) are the history's too.
- */
+/** R-4.11 The roll, the map's new goods and the guild refill are the history's to tell. */
 export interface RoundEndView {
     readonly dawn: DawnSheetView
 }
@@ -39,10 +36,7 @@ export function goodsLine(goods: readonly MapGood[]): string {
     return `New goods: ${named.join(', ')}`
 }
 
-/**
- * The actions since the last press that opened a decision. A collection belongs to the dawn, and a
- * writ discarded at any time off the turn (R-4.4-H5) moves no decision on, so neither closes the sheet.
- */
+/** R-4.4-H5 An off-turn writ discard moves no decision on, nor does a dawn collection. */
 function sinceLastDecision(
     actions: readonly GameAction[],
     turns: readonly Turn[]
@@ -56,10 +50,8 @@ function sinceLastDecision(
 }
 
 /**
- * R-4.12 The dawn the round's end played, read from the Actions on the displayed state, not from
- * `flow`: the flow holds no dawn, and a host's batch publishes only its last state, so no state of the
- * machine ever shows one. It stands from the dawn until the first press of the next decision, the
- * same for every seat.
+ * R-4.12 Read from the Actions, not `flow`: a host's batch publishes only its last state, so no
+ * state shows the dawn.
  */
 export function roundEndOf(
     actions: readonly GameAction[],

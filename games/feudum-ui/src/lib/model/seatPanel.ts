@@ -48,12 +48,7 @@ export interface SeatPlayedCard extends SeatCardFace {
     readonly mark: string
 }
 
-/**
- * R-3.1, R-3.2, R-5.1 For another seat `handBacks` counts the hand and no face is read. While the
- * seat's own desk shows its hand (its card-play turn), its panel says only how many (`handOnDesk`);
- * otherwise the panel shows its faces. Host View's look at another seat shows the hand's faces; the
- * set-aside cards are never on the panel.
- */
+/** R-3.1, R-3.2, R-5.1 Another seat's hand is counted, never read; set-aside cards never show. */
 export interface SeatCards {
     readonly played: readonly SeatPlayedCard[]
     readonly handFaces: readonly SeatCardFace[]
@@ -112,7 +107,6 @@ export interface SeatPanelView {
     readonly supply: SeatSupply
     readonly writs: SeatWrits
     readonly barrel: { readonly sulfur: number; readonly capacity: number }
-    /** R-1.1 Pawns off the board, in the seat's supply. */
     readonly pawnsInSupply: number
     readonly service: { readonly covered: number; readonly of: number; readonly vassal: boolean }
     /** R-3.7.5 Absent: this seat's disc has not set out. */
@@ -137,7 +131,7 @@ export function seatOrder(state: HydratedFeudumGameState): readonly string[] {
     return state.players.map(({ playerId }) => playerId)
 }
 
-/** R-6 The seats holding the top score while some seat scores less: none while every score is level. */
+/** R-6 The top scorers, while some seat scores less: none while every score is level. */
 export function leadersOf(state: HydratedFeudumGameState): ReadonlySet<string> {
     const scores = state.players.map(({ score }) => score)
     const top = Math.max(...scores)
@@ -156,7 +150,7 @@ export interface ScoreLineSeat {
     readonly leading: boolean
 }
 
-/** Contract, Supply: the desk zoom row's score line: every seat in turn order, its score, the leader marked. */
+/** Contract, Supply: the desk zoom row's score line, the leader marked. */
 export function scoreLineOf(
     state: HydratedFeudumGameState,
     nameOf: (playerId: string) => string
@@ -170,7 +164,6 @@ export function scoreLineOf(
     }))
 }
 
-/** R-6 A score in words, as its accessible name and tooltip read it. */
 export function scoreWords(score: number, leading: boolean): string {
     return `${score} vp${leading ? ', leading' : ''}`
 }
@@ -289,7 +282,7 @@ function writsOf(
     }
 }
 
-/** R-3.1-H1 A seat's pouch as one viewer's panel shows it; the viewer's own draft shows to it alone. */
+/** R-3.1-H1 The viewer's own pouch draft shows to it alone. */
 export function seatPouchOf(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -305,11 +298,7 @@ export function seatPouchOf(
     )
 }
 
-/**
- * Contract, Seat panel: one seat as one viewer sees it, for every view of that seat. Nothing hidden
- * is read unless this viewer may see it, whatever the state happens to hold, so what it returns for
- * another seat cannot carry a face.
- */
+/** Contract, Seat panel: nothing hidden is read unless this viewer may see it. */
 export function seatPanelOf({
     state,
     playerId,

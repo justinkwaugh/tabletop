@@ -11,11 +11,7 @@
     import { sealFaceShown } from '$lib/model/perspective.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
-    /**
-     * Contract, Flight layer: what crosses the scaling wrapper is drawn here, above the table and outside
-     * the wrapper, in the full-screen dialog while it is open. Each copy is written once; its animator
-     * owns its style from then until the state shows. Nothing here is ever pressed or read.
-     */
+    /** Contract, Flight layer: what crosses the scaling wrapper flies here, outside it. */
     let {
         animator,
         paintOf

@@ -24,7 +24,6 @@ export function coverAfterPress(
     return picked.length < needs.length ? [...picked, tileId] : undefined
 }
 
-/** Holding exactly as many tiles as goods owed, the whole list is the lone choice. */
 export function loneCover(
     state: HydratedFeudumGameState,
     playerId: string,

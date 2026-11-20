@@ -16,14 +16,7 @@
     import BoardPiece from './BoardPiece.svelte'
     import PickChrome from './PickChrome.svelte'
 
-    /**
-     * R-1.2.1 Each space's disc, with the start ring in map ink, and R-4.1.2 a ruled space's ring
-     * under it in its ruler's paint on a map-ink keyline. The letters are printed on
-     * the map, so they are drawn only on our own terrain. A space's chrome stands on its disc: the
-     * space itself, or the feudum there when the pick is of feudums. A disc with nothing lit on it
-     * opens the card of what is there (contract: Site card). The space's chip stands in its own
-     * layer over the pieces (`MapChips`).
-     */
+    /** R-1.2.1, R-4.1.2 The letters are printed on the map, so only our own terrain draws them. */
     let {
         state,
         paintOf,

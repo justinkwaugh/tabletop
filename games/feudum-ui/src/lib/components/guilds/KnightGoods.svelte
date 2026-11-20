@@ -27,10 +27,7 @@
     import { PrintedSizes } from '$lib/utils/printedGuilds.js'
     import { BarrelPath } from '$lib/utils/trackShape.js'
 
-    /**
-     * R-1.3 One row per seat and dummy row, each of three barrel sections, in its printed lane; a dummy
-     * row wears a colour no seat is shown in and is named by it, with no seat behind it (R-1.4-H1). R-4.2.4 Each monster's icon carries the marker of whoever controls it.
-     */
+    /** R-1.4-H1 A dummy row wears a colour no seat is shown in. R-1.3, R-4.2.4. */
     let {
         state,
         paintOf,
@@ -45,7 +42,6 @@
         Array.from({ length: lastColumn - firstColumn + 1 }, (_, index) => firstColumn + index)
     )
     const RowDisc = 34
-    /** The printed panel draws the sections, the cells and the beasts; rows and markers stand on it. */
     let printed = $derived(guildPrinted('knight'))
     let marker = $derived(printed ? PrintedSizes.knightMarker : GuildSizes.marker)
 </script>

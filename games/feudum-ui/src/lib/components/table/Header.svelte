@@ -3,11 +3,7 @@
     import { MachineState } from '@tabletop/feudum'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    /**
-     * Whose turn it is, or History, or the game's end; and the one Undo. While hands are chosen no
-     * seat is next (R-3.1-H1): a seat whose hand is set reads so, and a seat watching reads the step.
-     * Nourishing asks its seats at once too (R-4.10-H4), so a seat watching it reads the step.
-     */
+    /** R-3.1-H1, R-4.10-H4 Hand choice and nourishing ask every seat at once: no seat is next. */
     const gameSession = getGameSession()
 
     let activeId = $derived(gameSession.gameState.activePlayerIds[0])
@@ -50,7 +46,7 @@
 </div>
 
 <style>
-    /* 44 px to press on a phone, over the strip beneath the 28 px header it is drawn in. */
+    /* 44 px to press on a phone, over the strip beneath the 28 px header. */
     @media (width < 40rem) {
         .undo {
             position: relative;

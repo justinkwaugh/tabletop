@@ -4,11 +4,7 @@
     import { CrownPath } from '$lib/utils/pieceShapes.js'
     import PieceFrame from './PieceFrame.svelte'
 
-    /**
-     * R-5-H1 One disc with two sides. Red side up it is the same crowned seal for everyone, its
-     * holder included, so nothing of its value reaches the markup; a flip shows the bead to all.
-     * A game piece, so never a halo: a cost is not read as a seal, nor a seal as a cost.
-     */
+    /** R-5-H1 Face down it is the same for everyone, holder included: no value in the markup. */
     let {
         faceShown,
         beadValue,

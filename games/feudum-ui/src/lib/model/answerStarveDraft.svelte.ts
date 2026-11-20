@@ -36,7 +36,7 @@ export interface AnswerStarvePanel {
     readonly letGo: { readonly label: string }
 }
 
-/** R-3.14.2 The marker's owner, asked. Nothing here sends: each answer is a press (contract). */
+/** R-3.14.2 Nothing here sends: each answer is a press (contract). */
 export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
     constructor(contextOf: () => TurnContext | undefined) {
         super(AnswerStarveStageOrder, contextOf)
@@ -97,7 +97,6 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
             coverSpends(anyTile, needs)
         )
         const letGo = { label: primaryLabel('Let it go', offer) }
-        // No Defend, no food, or no seal: Royal Immunity is not drawn, and the seat can only let it go.
         if (blocked) {
             return { line, letGo }
         }

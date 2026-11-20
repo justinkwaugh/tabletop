@@ -1,27 +1,17 @@
 import type { Attachment } from 'svelte/attachments'
 import { GuildBox } from '$lib/utils/boardGeometry.js'
 
-/** What stands round the areas' pictures in the bench, in CSS pixels. */
 export interface BenchRoom {
-    /** The bench's height (a phone's sheet: its cap), less its own padding and border. */
     readonly height: number
-    /** The areas' holder's width inside its padding. */
     readonly width: number
     readonly title: number
     readonly footer: number
-    /** The areas' holder's padding, top and bottom together. */
     readonly padding: number
-    /** Between two areas side by side. */
     readonly gap: number
-    /** Each area's height outside its picture: its button row and the gap above it. */
     readonly around: readonly number[]
 }
 
-/**
- * Contract, The bench: the areas stand upright side by side, so each picture's long side is the
- * height left under the title and over the footer, less the tallest button row, or what the
- * holder's width allows each at the guild area's own shape, whichever is less.
- */
+/** Contract, The bench: the areas stand upright side by side. */
 export function fittedAreaLong(room: BenchRoom): number {
     const count = room.around.length
     const tall = room.height - room.title - room.footer - room.padding - Math.max(...room.around)
@@ -29,10 +19,6 @@ export function fittedAreaLong(room: BenchRoom): number {
     return Math.floor(Math.min(tall, (across * GuildBox.width) / GuildBox.height))
 }
 
-/**
- * The long side at which every area of the bench stands whole above its footer, measured from the
- * bench as it stands and again whenever the bench, its title or its footer changes size.
- */
 export class BenchFit {
     long = $state<number | undefined>(undefined)
 
