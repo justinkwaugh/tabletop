@@ -12,6 +12,7 @@
     import type { PanelChoice } from '$lib/model/cardFlows.js'
     import { ownerPaint, type SeatPaint } from '$lib/model/seatPaint.js'
     import { BenchFit } from '$lib/model/benchFit.svelte.js'
+    import { titleRootOf } from '$lib/utils/titleRoot.js'
     import BenchArea from './BenchArea.svelte'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
@@ -69,7 +70,7 @@
             if (fillsIt && sheet) {
                 return
             }
-            const surface = node.ownerDocument
+            const surface = titleRootOf(node)
                 .querySelector('[data-board-surface]')
                 ?.closest('.scaling-surface')
             if (!surface) {
@@ -90,7 +91,7 @@
             const observer = new ResizeObserver(place)
             observer.observe(surface)
             // The board moves, not only resizes, when the action panel above it grows or shrinks.
-            const panel = node.ownerDocument.querySelector('[data-action-panel]')
+            const panel = titleRootOf(node).querySelector('[data-action-panel]')
             if (panel) {
                 observer.observe(panel)
             }

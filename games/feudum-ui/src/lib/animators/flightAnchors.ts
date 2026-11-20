@@ -1,5 +1,6 @@
 import { GuildIds, type GuildId } from '@tabletop/feudum'
 import { visualClientRect } from '@tabletop/frontend-components'
+import { titleRootOf } from '$lib/utils/titleRoot.js'
 import type { GuildsApart } from './boardPlan.js'
 import type { FlightEnd, SeatPart } from './flightPlan.js'
 import {
@@ -103,9 +104,11 @@ function isOnScreen(element: Element): boolean {
     if (element.closest('[inert]')) {
         return true
     }
-    const hit = document.elementFromPoint(centre.x, centre.y)
+    const hit = element.ownerDocument.elementFromPoint(centre.x, centre.y)
     const seat = element.closest('[data-open-seat], [data-seat-panel], [data-seat-chip]') ?? element
-    return !!hit && (seat.contains(hit) || hit.contains(element))
+    // Only the table's own elements count: a hit outside its root is something over it.
+    const root = element.closest('[data-game-ui]')
+    return !!hit && (!root || root.contains(hit)) && (seat.contains(hit) || hit.contains(element))
 }
 
 /**
@@ -118,17 +121,20 @@ export class DomFlightStage implements FlightStage {
 
     constructor(private readonly layer: HTMLElement) {}
 
+    /** Every lookup stays inside the table's own root. */
+    private get table(): ParentNode {
+        return titleRootOf(this.layer)
+    }
+
     readonly scoresFly = () =>
-        this.layer.ownerDocument.querySelector('[data-board-surface] [data-score-ring]') === null
+        this.table.querySelector('[data-board-surface] [data-score-ring]') === null
 
     readonly guildsApart = (): GuildsApart =>
         GuildIds.filter((guild) => this.openArea(guild) !== null)
 
     /** A guild area stood upright in a desk's open side, if its side is open. */
     private openArea(guild: GuildId): Element | null {
-        return this.layer.ownerDocument.querySelector(
-            `[data-open-guild="${guild}"] [data-upright-area]`
-        )
+        return this.table.querySelector(`[data-open-guild="${guild}"] [data-upright-area]`)
     }
 
     locate(end: FlightEnd): StagePlace {
@@ -187,7 +193,7 @@ export class DomFlightStage implements FlightStage {
         if (guild && area) {
             return this.locateInOpenArea(guild, area, end, relative)
         }
-        const surface = this.layer.ownerDocument.querySelector('[data-board-surface]')
+        const surface = this.table.querySelector('[data-board-surface]')
         const piece = end.piece ? surface?.querySelector(`[data-motion="${end.piece}"]`) : undefined
         const rect = surface ? visualClientRect(surface) : undefined
         // The part of the board the surface draws: the whole board, or a desk's crop of it.
@@ -256,7 +262,7 @@ export class DomFlightStage implements FlightStage {
     }
 
     private search(end: Extract<FlightEnd, { kind: 'seat' | 'offer' }>): Element | null {
-        const page = this.layer.ownerDocument
+        const page = this.table
         if (end.kind === 'offer') {
             const cap = page.querySelector(this.exactOf(end))
             if (cap && isOnScreen(cap)) {
