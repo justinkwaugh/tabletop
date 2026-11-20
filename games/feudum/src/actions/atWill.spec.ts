@@ -41,9 +41,9 @@ import {
 import { giveGood, giveSeal, setUp, spaceOfKind, tableImproving } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
-import { reasonPlaceVesselRefused, placeVesselOffers } from './placeVessel.js'
+import { placeVesselOffers } from './placeVessel.js'
 import { reasonDiscardWritRefused } from './discardWrit.js'
-import { reasonSpendRegionTileRefused, spendRegionTileOffers } from './spendRegionTile.js'
+import { spendRegionTileOffers } from './spendRegionTile.js'
 import { keepWritsOffer } from './keepWrits.js'
 import { nourishOffer } from './nourish.js'
 import { cardTurnSeat } from '../model/turns.js'
@@ -133,9 +133,13 @@ describe('R-4.4-H1 the at-will windows', () => {
             expect(table.offered(playerId)).toContain(type)
         } else {
             expect(table.offered(playerId)).not.toContain(type)
-            expect(reasonPlaceVesselRefused(table.hydrated(), playerId, 'ship', 1)).toBe(
-                'You place a vessel only on your own turn.'
-            )
+            expect(
+                table.refusal(playerId, {
+                    type: ActionType.PlaceVessel,
+                    vesselType: 'ship',
+                    pawn: 1
+                })
+            ).toBe('You place a vessel only on your own turn.')
             expect(() => table.send(playerId, { type, vesselType: 'ship', pawn: 1 })).toThrow(
                 'You place a vessel only on your own turn.'
             )
@@ -302,11 +306,16 @@ describe('SpendRegionTile', () => {
         const { table, playerId, tileId } = atTile()
         const other = table.order[1]
         expect(
-            reasonSpendRegionTileRefused(table.hydrated(), other, { tileId, good: 'iron' })
+            table.refusal(other, {
+                type: ActionType.SpendRegionTile,
+                tileId,
+                good: 'iron'
+            })
         ).toBe(NOT_YOUR_TURN)
         const notHeld = RegionIds.flatMap((id) => table.hydrated().regionStacks[id])[0]
         expect(
-            reasonSpendRegionTileRefused(table.hydrated(), playerId, {
+            table.refusal(playerId, {
+                type: ActionType.SpendRegionTile,
                 tileId: notHeld,
                 good: 'iron'
             })
@@ -325,7 +334,11 @@ describe('SpendRegionTile', () => {
             giveGood(state, seat, 'iron', state.supply.haversack.iron)
         })
         expect(
-            reasonSpendRegionTileRefused(table.hydrated(), playerId, { tileId, good: 'iron' })
+            table.refusal(playerId, {
+                type: ActionType.SpendRegionTile,
+                tileId,
+                good: 'iron'
+            })
         ).toBe('The haversack holds no iron.')
         expect(spendRegionTileOffers(table.hydrated(), playerId)[0]?.goods).not.toContain('iron')
     })
@@ -350,7 +363,8 @@ describe('SpendRegionTile', () => {
     it('R-4.10.2 only sulfur goes in the barrel, and only while it has room', () => {
         const { table, playerId, tileId } = atTile()
         expect(
-            reasonSpendRegionTileRefused(table.hydrated(), playerId, {
+            table.refusal(playerId, {
+                type: ActionType.SpendRegionTile,
                 tileId,
                 good: 'iron',
                 sulfurToBarrel: true
@@ -361,7 +375,8 @@ describe('SpendRegionTile', () => {
             state.getPlayerState(seat).barrel = WineBarrelCapacity
         })
         expect(
-            reasonSpendRegionTileRefused(full.table.hydrated(), full.playerId, {
+            full.table.refusal(full.playerId, {
+                type: ActionType.SpendRegionTile,
                 tileId: full.tileId,
                 good: 'sulfur',
                 sulfurToBarrel: true
@@ -583,16 +598,19 @@ describe('PlaceVessel', () => {
             giveVessel(state, playerId, 'ship')
             return MachineState.PlayingCards
         })
-        const state = table.hydrated()
-        expect(reasonPlaceVesselRefused(state, playerId, 'ship', 1)).toBe(
-            'That pawn already stands on a vessel.'
-        )
-        expect(reasonPlaceVesselRefused(state, playerId, 'ship', 3)).toBe(
-            "That pawn isn't on the board."
-        )
-        expect(reasonPlaceVesselRefused(state, playerId, 'flying-machine', 2)).toBe(
-            'You have no flying machine in your supply.'
-        )
+        expect(
+            table.refusal(playerId, { type: ActionType.PlaceVessel, vesselType: 'ship', pawn: 1 })
+        ).toBe('That pawn already stands on a vessel.')
+        expect(
+            table.refusal(playerId, { type: ActionType.PlaceVessel, vesselType: 'ship', pawn: 3 })
+        ).toBe("That pawn isn't on the board.")
+        expect(
+            table.refusal(playerId, {
+                type: ActionType.PlaceVessel,
+                vesselType: 'flying-machine',
+                pawn: 2
+            })
+        ).toBe('You have no flying machine in your supply.')
         expect(() =>
             table.send(playerId, { type: ActionType.PlaceVessel, vesselType: 'ship', pawn: 1 })
         ).toThrow('That pawn already stands on a vessel.')
@@ -601,7 +619,9 @@ describe('PlaceVessel', () => {
     it('R-4.2.2 is refused out of turn', () => {
         const { table, playerId } = atVessel()
         const other = table.order.find((seat) => seat !== playerId) ?? ''
-        expect(reasonPlaceVesselRefused(table.hydrated(), other, 'ship', 1)).toBe(NOT_YOUR_TURN)
+        expect(
+            table.refusal(other, { type: ActionType.PlaceVessel, vesselType: 'ship', pawn: 1 })
+        ).toBe(NOT_YOUR_TURN)
     })
 
     it('R-4.2.2 offers the pawns on no vessel, per vessel held; none with no vessel', () => {

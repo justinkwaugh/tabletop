@@ -37,25 +37,6 @@ export interface SpendRegionTileInput {
     readonly sulfurToBarrel?: true
 }
 
-/** R-4.3.3, R-4.3-H2, R-4.4-H1 In an at-will window, a held tile and a good the haversack holds. */
-export function reasonSpendRegionTileRefused(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    { tileId, good, sulfurToBarrel }: SpendRegionTileInput
-): string | undefined {
-    const closed = reasonNoAtWillWindow(state, playerId)
-    if (closed) {
-        return closed
-    }
-    if (!state.getPlayerState(playerId).regionTiles.includes(tileId)) {
-        return "You don't hold that tile."
-    }
-    if (state.supply.haversack[good] === 0) {
-        return `The haversack holds no ${good}.`
-    }
-    return sulfurToBarrel ? reasonSulfurToBarrelRefused(state, playerId, good) : undefined
-}
-
 /** R-4.3.3 A tile the seat may spend, and what for. */
 export interface SpendRegionTileOffer {
     readonly tileId: TileId
@@ -97,7 +78,7 @@ export class HydratedSpendRegionTile
 
     /** R-4.3.3 The tile leaves the game. Its landscape was public from collection (R-1.4-H2). */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
-        const reason = reasonSpendRegionTileRefused(state, this.playerId, this)
+        const reason = HydratedSpendRegionTile.reasonRefused(state, this.playerId, this)
         if (reason) {
             throw Error(reason)
         }
@@ -105,5 +86,24 @@ export class HydratedSpendRegionTile
         if (this.sulfurToBarrel) {
             putSulfurInBarrel(state, this.playerId)
         }
+    }
+
+    /** R-4.3.3, R-4.3-H2, R-4.4-H1 In an at-will window, a held tile and a good the haversack holds. */
+    private static reasonRefused(
+        state: HydratedFeudumGameState,
+        playerId: string,
+        { tileId, good, sulfurToBarrel }: SpendRegionTileInput
+    ): string | undefined {
+        const closed = reasonNoAtWillWindow(state, playerId)
+        if (closed) {
+            return closed
+        }
+        if (!state.getPlayerState(playerId).regionTiles.includes(tileId)) {
+            return "You don't hold that tile."
+        }
+        if (state.supply.haversack[good] === 0) {
+            return `The haversack holds no ${good}.`
+        }
+        return sulfurToBarrel ? reasonSulfurToBarrelRefused(state, playerId, good) : undefined
     }
 }

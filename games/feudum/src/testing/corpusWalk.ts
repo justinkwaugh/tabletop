@@ -36,51 +36,12 @@ import {
 } from './walk.js'
 import { locationKindOf } from '../model/locationDiscs.js'
 
-/** One card kind in one use, as a line of the sweep names it. */
-export function cardKey(kind: ActionCardKind, mode: string): string {
-    return `${cardOf(kind).id} ${mode}`
-}
-
 /** One way a writ fires, as a line of the sweep names it: a printed alternative by its id. */
 export function writKey(
     writId: WritId,
     { alternative, rewardGuild }: { alternative?: MandateAlternativeId; rewardGuild?: GuildId }
 ): string {
     return alternative ?? `${writId} ${rewardGuild}`
-}
-
-/** What one user Action fired: the cards in `played`, the writs in its Actions. */
-export function firedBy({ processed, after }: WalkStep): string[] {
-    const cards = after.flatMap(({ players }) =>
-        players.flatMap(({ played }) =>
-            played.map(({ kind, use, replayedKind, dejaVu }) =>
-                replayedKind
-                    ? cardKey('repeat', dejaVu ? 'special' : 'regular')
-                    : cardKey(kind, use)
-            )
-        )
-    )
-    const writs = processed.flatMap((action): string[] => {
-        if (isPlayMandate(action)) {
-            return [writKey(action.writId, action)]
-        }
-        if (isCommitAttack(action)) {
-            return action.weapons.map((weapon) => writKey(weapon.writId, weapon))
-        }
-        if (isScoreGame(action)) {
-            return (action.metadata?.sheet ?? []).flatMap(({ charters }) =>
-                charters.filter(({ vp }) => vp > 0).map(({ writId }) => writId)
-            )
-        }
-        if (isAnswerStarve(action) && action.royalImmunity) {
-            return [cardKey('defend', 'special')]
-        }
-        if (isGuildAction(action)) {
-            return [`guild.${action.guildId} ${action.fn}`]
-        }
-        return []
-    })
-    return [...cards, ...writs]
 }
 
 const GoodLists: readonly (readonly Good[])[] = [4, 3, 2, 1].flatMap((length) =>
@@ -92,30 +53,17 @@ const GoodLists: readonly (readonly Good[])[] = [4, 3, 2, 1].flatMap((length) =>
     )
 )
 
-/** The input a guild function might take: the seat's real farms and whatever goods fit. */
-function paramsToTry(
-    state: HydratedFeudumGameState,
-    playerId: string
-): readonly GuildFunctionParams[] {
-    const farms = state
-        .ruledSpaceIds(playerId)
-        .filter((spaceId) => locationKindOf(state.spaces[spaceId].location) === 'farm')
-    return [
-        {},
-        ...farms.flatMap((farmSpaceId) =>
-            [0, 1, 2, 3].map((takeFood) => ({ farmSpaceId, takeFood }))
-        ),
-        ...VesselTypes.map((vesselType) => ({ vesselType })),
-        ...GoodLists.map((goods) => ({ goods: [...goods] }))
-    ]
-}
-
 /**
  * Seats that use what no game of the walk's own seats would: every mandate, every charter, every
  * special, the Guild card. Each ask goes here first and to the walk's own play after, so everything
  * is still chosen from the real offers on the state reached, with nothing edited by hand.
  */
 export class CorpusSeats implements WalkPlan {
+    /** One card kind in one use, as a line of the sweep names it. */
+    static cardKey(kind: ActionCardKind, mode: string): string {
+        return `${cardOf(kind).id} ${mode}`
+    }
+
     /** What has fired, and in which seed's game first. */
     readonly fired = new Map<string, string>()
     seed = ''
@@ -125,7 +73,7 @@ export class CorpusSeats implements WalkPlan {
     }
 
     noted(step: WalkStep): void {
-        for (const key of firedBy(step)) {
+        for (const key of CorpusSeats.firedBy(step)) {
             if (!this.fired.has(key)) {
                 this.fired.set(key, this.seed)
             }
@@ -189,7 +137,9 @@ export class CorpusSeats implements WalkPlan {
         progress: Progress
     ): ActionCardKind[] {
         const wanted = ActionCards.map(({ kind }) => kind).filter(
-            (kind) => this.wants(cardKey(kind, 'regular')) || this.wants(cardKey(kind, 'special'))
+            (kind) =>
+                this.wants(CorpusSeats.cardKey(kind, 'regular')) ||
+                this.wants(CorpusSeats.cardKey(kind, 'special'))
         )
         const rotated = wanted.map(
             (_kind, index) => wanted[(index + walkCount(state)) % wanted.length]
@@ -224,7 +174,9 @@ export class CorpusSeats implements WalkPlan {
         progress: Progress
     ): WalkMove | undefined {
         for (const { kind, mode } of cardPlayOffers(state, playerId).repeats) {
-            if (this.wants(cardKey('repeat', mode === 'repeat' ? 'regular' : 'special'))) {
+            if (
+                this.wants(CorpusSeats.cardKey('repeat', mode === 'repeat' ? 'regular' : 'special'))
+            ) {
                 const move = cardMove(state, playerId, kind, progress)
                 if (move) {
                     return { ...move, asRepeat: mode }
@@ -236,8 +188,8 @@ export class CorpusSeats implements WalkPlan {
 
     /** R-3.16 The first function, by the card or by a Feast, that some input opens. */
     private guildMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
-        const params = paramsToTry(state, playerId)
-        if (this.wants(cardKey('guild', 'special'))) {
+        const params = CorpusSeats.paramsToTry(state, playerId)
+        if (this.wants(CorpusSeats.cardKey('guild', 'special'))) {
             for (const { spaceId, opponentId, guildId, reason } of feastOffers(state, playerId)) {
                 const input = { spaceId, opponentId, guildId }
                 const legal = reason
@@ -266,12 +218,15 @@ export class CorpusSeats implements WalkPlan {
     }
 
     private wantsFunction(guildId: GuildId, fn: GuildFunctionName): boolean {
-        return this.wants(cardKey('guild', 'regular')) || this.wants(`guild.${guildId} ${fn}`)
+        return (
+            this.wants(CorpusSeats.cardKey('guild', 'regular')) ||
+            this.wants(`guild.${guildId} ${fn}`)
+        )
     }
 
     /** R-3.6.2 An Alchemist on the board first, since Distant Kin needs one. */
     private distantKinMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
-        if (!this.wants(cardKey('migrate', 'special'))) {
+        if (!this.wants(CorpusSeats.cardKey('migrate', 'special'))) {
             return undefined
         }
         const { pawnsOff, spaces, distantKinSpaces, wildTileNeeded } = migrateOffers(
@@ -303,7 +258,7 @@ export class CorpusSeats implements WalkPlan {
     }
 
     private godspeedMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
-        if (!this.wants(cardKey('move', 'special'))) {
+        if (!this.wants(CorpusSeats.cardKey('move', 'special'))) {
             return undefined
         }
         for (const { pawn, ways } of moveOffers(state, playerId).godspeed) {
@@ -329,7 +284,7 @@ export class CorpusSeats implements WalkPlan {
     private moneyMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
         const { moneyIsInfluence, short, spaces, markers } = influenceOffers(state, playerId)
         const [spaceId] = moneyIsInfluence
-        return this.wants(cardKey('influence', 'special')) && spaceId
+        return this.wants(CorpusSeats.cardKey('influence', 'special')) && spaceId
             ? {
                   type: ActionType.Influence,
                   playerId,
@@ -394,7 +349,7 @@ export class CorpusSeats implements WalkPlan {
     }
 
     private immunityMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
-        return this.wants(cardKey('defend', 'special')) &&
+        return this.wants(CorpusSeats.cardKey('defend', 'special')) &&
             !reasonAnswerStarveRefused(state, playerId, true)
             ? {
                   type: ActionType.AnswerStarve,
@@ -421,6 +376,58 @@ export class CorpusSeats implements WalkPlan {
                   weapons: [{ writId: weapon.writId, alternative: weapon.alternative }]
               }
             : undefined
+    }
+
+    /** What one user Action fired: the cards in `played`, the writs in its Actions. */
+    private static firedBy({ processed, after }: WalkStep): string[] {
+        const cards = after.flatMap(({ players }) =>
+            players.flatMap(({ played }) =>
+                played.map(({ kind, use, replayedKind, dejaVu }) =>
+                    replayedKind
+                        ? CorpusSeats.cardKey('repeat', dejaVu ? 'special' : 'regular')
+                        : CorpusSeats.cardKey(kind, use)
+                )
+            )
+        )
+        const writs = processed.flatMap((action): string[] => {
+            if (isPlayMandate(action)) {
+                return [writKey(action.writId, action)]
+            }
+            if (isCommitAttack(action)) {
+                return action.weapons.map((weapon) => writKey(weapon.writId, weapon))
+            }
+            if (isScoreGame(action)) {
+                return (action.metadata?.sheet ?? []).flatMap(({ charters }) =>
+                    charters.filter(({ vp }) => vp > 0).map(({ writId }) => writId)
+                )
+            }
+            if (isAnswerStarve(action) && action.royalImmunity) {
+                return [CorpusSeats.cardKey('defend', 'special')]
+            }
+            if (isGuildAction(action)) {
+                return [`guild.${action.guildId} ${action.fn}`]
+            }
+            return []
+        })
+        return [...cards, ...writs]
+    }
+
+    /** The input a guild function might take: the seat's real farms and whatever goods fit. */
+    private static paramsToTry(
+        state: HydratedFeudumGameState,
+        playerId: string
+    ): readonly GuildFunctionParams[] {
+        const farms = state
+            .ruledSpaceIds(playerId)
+            .filter((spaceId) => locationKindOf(state.spaces[spaceId].location) === 'farm')
+        return [
+            {},
+            ...farms.flatMap((farmSpaceId) =>
+                [0, 1, 2, 3].map((takeFood) => ({ farmSpaceId, takeFood }))
+            ),
+            ...VesselTypes.map((vesselType) => ({ vesselType })),
+            ...GoodLists.map((goods) => ({ goods: [...goods] }))
+        ]
     }
 }
 

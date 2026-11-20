@@ -26,7 +26,7 @@ import {
     tableAtStarve,
     type StarveTable
 } from '../testing/starve.js'
-import { answerAttackOffer, reasonAnswerAttackRefused } from './answerAttack.js'
+import { answerAttackOffer } from './answerAttack.js'
 import { answerStarveOffer, reasonAnswerStarveRefused } from './answerStarve.js'
 import {
     reasonReclaimImmunitySealRefused,
@@ -93,11 +93,21 @@ describe('R-3.14.1, R-3.14-H1 AnswerAttack', () => {
     it('R-3.14.1 a flip needs Defend in hand; "no" is always legal (S34)', () => {
         const combat = attacked(WITHOUT_DEFEND)
         const { table, defenderId } = combat
-        expect(reasonAnswerAttackRefused(table.hydrated(), defenderId, true)).toBe(
-            "Defend isn't in your hand."
-        )
+        expect(
+            table.refusal(defenderId, {
+                type: ActionType.AnswerAttack,
+                revealsInfo: true,
+                flipDefend: true
+            })
+        ).toBe("Defend isn't in your hand.")
         expect(() => answer(combat, true)).toThrow("Defend isn't in your hand.")
-        expect(reasonAnswerAttackRefused(table.hydrated(), defenderId, false)).toBeUndefined()
+        expect(
+            table.refusal(defenderId, {
+                type: ActionType.AnswerAttack,
+                revealsInfo: true,
+                flipDefend: false
+            })
+        ).toBeUndefined()
 
         answer(combat, false)
         expect(table.state.machineState).toBe(MachineState.CommittingAttack)
@@ -106,9 +116,13 @@ describe('R-3.14.1, R-3.14-H1 AnswerAttack', () => {
     it('R-3.14-H1 only the seat attacked answers', () => {
         const { table, attackerId, thirdId } = attacked(WITH_DEFEND)
         for (const playerId of [attackerId, thirdId]) {
-            expect(reasonAnswerAttackRefused(table.hydrated(), playerId, false)).toBe(
-                'No attack on you is waiting.'
-            )
+            expect(
+                table.refusal(playerId, {
+                    type: ActionType.AnswerAttack,
+                    revealsInfo: true,
+                    flipDefend: false
+                })
+            ).toBe('No attack on you is waiting.')
         }
     })
 

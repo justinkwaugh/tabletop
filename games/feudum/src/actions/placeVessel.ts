@@ -40,31 +40,6 @@ function pawnOnNoVessel(pawn: PawnState): boolean {
     return pawn.spaceId !== undefined && pawn.vessel === undefined
 }
 
-/** R-4.2.2, R-4.2-H3 On the seat's own turn, a vessel held, under its pawn on no vessel. */
-export function reasonPlaceVesselRefused(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    vesselType: VesselType,
-    pawnNumber: PawnState['n']
-): string | undefined {
-    const closed = reasonNoAtWillWindow(state, playerId)
-    if (closed) {
-        return closed
-    }
-    if (!inOwnTurnWindow(state, playerId)) {
-        return 'You place a vessel only on your own turn.'
-    }
-    const player = state.getPlayerState(playerId)
-    if (player.vessels[vesselType] === 0) {
-        return `You have no ${vesselType.replaceAll('-', ' ')} in your supply.`
-    }
-    const pawn = player.pawns.find(({ n }) => n === pawnNumber)
-    if (pawn?.spaceId === undefined) {
-        return "That pawn isn't on the board."
-    }
-    return pawn.vessel === undefined ? undefined : 'That pawn already stands on a vessel.'
-}
-
 /** R-4.2.2 A vessel the seat holds and the pawns that could take it. */
 export interface PlaceVesselOffer {
     readonly vesselType: VesselType
@@ -106,7 +81,12 @@ export class HydratedPlaceVessel
 
     /** R-4.2.2 Free; the pawn stays where it is, now on the vessel. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
-        const reason = reasonPlaceVesselRefused(state, this.playerId, this.vesselType, this.pawn)
+        const reason = HydratedPlaceVessel.reasonRefused(
+            state,
+            this.playerId,
+            this.vesselType,
+            this.pawn
+        )
         if (reason) {
             throw Error(reason)
         }
@@ -117,5 +97,30 @@ export class HydratedPlaceVessel
         assertExists(spaceId, 'R-4.2.2 The reason has found it on the board')
         placeVesselUnderPawn(player, pawn, this.vesselType)
         this.metadata = { spaceId }
+    }
+
+    /** R-4.2.2, R-4.2-H3 On the seat's own turn, a vessel held, under its pawn on no vessel. */
+    private static reasonRefused(
+        state: HydratedFeudumGameState,
+        playerId: string,
+        vesselType: VesselType,
+        pawnNumber: PawnState['n']
+    ): string | undefined {
+        const closed = reasonNoAtWillWindow(state, playerId)
+        if (closed) {
+            return closed
+        }
+        if (!inOwnTurnWindow(state, playerId)) {
+            return 'You place a vessel only on your own turn.'
+        }
+        const player = state.getPlayerState(playerId)
+        if (player.vessels[vesselType] === 0) {
+            return `You have no ${vesselType.replaceAll('-', ' ')} in your supply.`
+        }
+        const pawn = player.pawns.find(({ n }) => n === pawnNumber)
+        if (pawn?.spaceId === undefined) {
+            return "That pawn isn't on the board."
+        }
+        return pawn.vessel === undefined ? undefined : 'That pawn already stands on a vessel.'
     }
 }

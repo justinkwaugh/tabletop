@@ -71,6 +71,26 @@ export class Table {
         })
     }
 
+    /** Why the Action itself refuses to apply now, if it does, past any check the engine makes first. */
+    refusal(
+        playerId: string,
+        move: Record<string, unknown> & { type: ActionType }
+    ): string | undefined {
+        const action = FeudumRuntime.hydrator.hydrateAction({
+            id: 'check',
+            gameId: this.game.id,
+            source: ActionSource.User,
+            playerId,
+            ...move
+        })
+        try {
+            action.apply(this.hydrated())
+            return undefined
+        } catch (error) {
+            return error instanceof Error ? error.message : String(error)
+        }
+    }
+
     /** What the engine offers this seat now. */
     offered(playerId: string): string[] {
         return engine.getValidActionTypesForPlayer(this.game, this.state, playerId)

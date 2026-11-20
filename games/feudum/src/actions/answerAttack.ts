@@ -38,18 +38,6 @@ export function isAnswerAttack(action?: GameAction): action is AnswerAttack {
     return action?.type === ActionType.AnswerAttack
 }
 
-/** R-3.14.1, R-3.14-H1 */
-export function reasonAnswerAttackRefused(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    flipDefend: boolean
-): string | undefined {
-    if (state.flow.combat?.defenderId !== playerId) {
-        return 'No attack on you is waiting.'
-    }
-    return flipDefend ? reasonNotInHandRefused(state.getPlayerState(playerId), 'defend') : undefined
-}
-
 /** R-3.14.1 What the prompt shows the defender; another seat gets nothing (S33, S34). */
 export interface AnswerAttackOffer {
     readonly holdsDefend: boolean
@@ -109,7 +97,7 @@ export class HydratedAnswerAttack
     }
 
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
-        const refused = reasonAnswerAttackRefused(state, this.playerId, this.flipDefend)
+        const refused = HydratedAnswerAttack.reasonRefused(state, this.playerId, this.flipDefend)
         if (refused) {
             throw Error(refused)
         }
@@ -119,5 +107,19 @@ export class HydratedAnswerAttack
         this.metadata = attackerMayAdd(state, combat.attackerId)
             ? { vp }
             : { vp, combat: resolveCombat(state, 0, 0) }
+    }
+
+    /** R-3.14.1, R-3.14-H1 */
+    private static reasonRefused(
+        state: HydratedFeudumGameState,
+        playerId: string,
+        flipDefend: boolean
+    ): string | undefined {
+        if (state.flow.combat?.defenderId !== playerId) {
+            return 'No attack on you is waiting.'
+        }
+        return flipDefend
+            ? reasonNotInHandRefused(state.getPlayerState(playerId), 'defend')
+            : undefined
     }
 }

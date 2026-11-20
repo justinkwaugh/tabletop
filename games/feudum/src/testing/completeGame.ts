@@ -63,34 +63,6 @@ const CardOfAction: Partial<Readonly<Record<string, ActionCardKind>>> = {
  * and a fifth card, so the scripted games keep a pouch good hidden from every other seat until all
  * have finalised.
  */
-function withPouch(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    move: WalkMove | undefined
-): WalkMove | undefined {
-    const round = state.roundManager.currentRound?.number ?? 1
-    if (move?.type !== ActionType.FinaliseHand || round % 2 !== 0) {
-        return move
-    }
-    const { goods } = state.getPlayerState(playerId)
-    if (goods.sulfur > 0) {
-        return { ...move, pouchGood: 'sulfur' }
-    }
-    const cards = cardKindsOf(move.cards)
-    const fifth = ActionCards.find(({ kind }) => !cards.includes(kind))
-    return goods.saltpeter > 0 && fifth
-        ? { ...move, pouchGood: 'saltpeter', cards: [...cards, fifth.kind] }
-        : move
-}
-
-/** A walk move's cards, read against the printed cards, in the order the move holds them. */
-function cardKindsOf(value: unknown): ActionCardKind[] {
-    const listed: unknown[] = Array.isArray(value) ? value : []
-    return listed.flatMap((card) =>
-        ActionCards.filter(({ kind }) => kind === card).map(({ kind }) => kind)
-    )
-}
-
 /**
  * R-X.2 One seeded seat policy for a whole game: it asks the handler what each seat may send, takes
  * an Action type this game hasn't taken yet where one can be built from the real offers, else what a
@@ -126,7 +98,11 @@ export class CompleteGameSeats implements WalkPlan {
                 return move
             }
         }
-        return withPouch(state, playerId, this.corpus.moveFor(state, playerId, progress))
+        return CompleteGameSeats.withPouch(
+            state,
+            playerId,
+            this.corpus.moveFor(state, playerId, progress)
+        )
     }
 
     noted(step: WalkStep): void {
@@ -192,6 +168,34 @@ export class CompleteGameSeats implements WalkPlan {
                 return undefined
             }
         }
+    }
+
+    private static withPouch(
+        state: HydratedFeudumGameState,
+        playerId: string,
+        move: WalkMove | undefined
+    ): WalkMove | undefined {
+        const round = state.roundManager.currentRound?.number ?? 1
+        if (move?.type !== ActionType.FinaliseHand || round % 2 !== 0) {
+            return move
+        }
+        const { goods } = state.getPlayerState(playerId)
+        if (goods.sulfur > 0) {
+            return { ...move, pouchGood: 'sulfur' }
+        }
+        const cards = CompleteGameSeats.cardKindsOf(move.cards)
+        const fifth = ActionCards.find(({ kind }) => !cards.includes(kind))
+        return goods.saltpeter > 0 && fifth
+            ? { ...move, pouchGood: 'saltpeter', cards: [...cards, fifth.kind] }
+            : move
+    }
+
+    /** A walk move's cards, read against the printed cards, in the order the move holds them. */
+    private static cardKindsOf(value: unknown): ActionCardKind[] {
+        const listed: unknown[] = Array.isArray(value) ? value : []
+        return listed.flatMap((card) =>
+            ActionCards.filter(({ kind }) => kind === card).map(({ kind }) => kind)
+        )
     }
 }
 

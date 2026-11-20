@@ -33,7 +33,7 @@ import {
     tableToReplay,
     WeaponBonuses
 } from '../testing/corpus.js'
-import { cardKey, corpusGames, writKey, type CorpusGame } from '../testing/corpusWalk.js'
+import { CorpusSeats, corpusGames, writKey, type CorpusGame } from '../testing/corpusWalk.js'
 import { rowOf, scoredIn } from '../testing/gameEnd.js'
 import { giveGood, giveSeal, setUp } from '../testing/improving.js'
 import { showOnStacks } from '../testing/roundEnd.js'
@@ -444,31 +444,31 @@ const RealCardPlays = [
         componentId,
         mode,
         rule,
-        key: cardKey(row.kind, row.use)
+        key: CorpusSeats.cardKey(row.kind, row.use)
     })),
     {
         componentId: cardOf('defend').id,
         mode: 'flipped',
         rule: 'R-3.14.1',
-        key: cardKey('defend', 'defend-flip')
+        key: CorpusSeats.cardKey('defend', 'defend-flip')
     },
     {
         componentId: cardOf('defend').id,
         mode: 'special: Royal Immunity',
         rule: 'R-3.14.2',
-        key: cardKey('defend', 'special')
+        key: CorpusSeats.cardKey('defend', 'special')
     },
     {
         componentId: cardOf('repeat').id,
         mode: 'regular: a replay at x2',
         rule: 'R-3.15.1',
-        key: cardKey('repeat', 'regular')
+        key: CorpusSeats.cardKey('repeat', 'regular')
     },
     {
         componentId: cardOf('repeat').id,
         mode: 'special: Déjà Vu',
         rule: 'R-3.15.2',
-        key: cardKey('repeat', 'special')
+        key: CorpusSeats.cardKey('repeat', 'special')
     }
 ]
 
