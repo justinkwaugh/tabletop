@@ -221,6 +221,25 @@ describe('Collectible title generations', () => {
         })
     })
 
+    it('runs the after-load hook once per activation that loaded a title, with it installed', async () => {
+        const f = await fixture()
+        const servedWhenRun: (string | undefined)[] = []
+        const library = new LibraryService(RedisCacheService.prototype, {
+            ...f.options,
+            afterTitleLoads: () => {
+                servedWhenRun.push(version(library, f.titleId))
+            }
+        })
+        await library.getTitlesMap()
+        await f.publish(f.manifest('1.1.0'))
+        await library.refreshAndActivate()
+        const uiOnly = f.manifest('1.1.0')
+        uiOnly.games[0].uiVersion = '1.2.0'
+        await f.publish(uiOnly)
+        await library.refreshAndActivate()
+        expect(servedWhenRun).toEqual(['1.0.0', '1.1.0'])
+    })
+
     it('does not reconstruct unchanged title code for UI-only publications', async () => {
         const f = await fixture()
         const library = new LibraryService(RedisCacheService.prototype, f.options)

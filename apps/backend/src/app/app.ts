@@ -41,7 +41,10 @@ const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 
 const SESSION_KEY = process.env['SESSION_KEY']
 
-export interface AppOptions extends Pick<LibraryServiceOptions, 'whileLoadingTitle'> {
+export interface AppOptions extends Pick<
+    LibraryServiceOptions,
+    'whileLoadingTitle' | 'afterTitleLoads'
+> {
     prefix?: string
 }
 
@@ -126,7 +129,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(AuthorizationPlugin)
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin, { projectId: GCLOUD_PROJECT })
-    await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
+    await fastify.register(ServicesPlugin, {
+        whileLoadingTitle: opts.whileLoadingTitle,
+        afterTitleLoads: opts.afterTitleLoads
+    })
     await fastify.register(RateLimitPlugin, { service, counter: fastify.rateLimitCounter })
     installTitleScope(fastify)
 

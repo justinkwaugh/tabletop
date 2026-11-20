@@ -23,8 +23,7 @@ export function evaluateLogicDefinition(source: string, filename: string): GameD
 }
 
 // Imports an ESM logic bundle. Node never releases an imported module, so a title loaded this way
-// stays resident until the process ends; `tabletop-deploy migrate-logic-artifacts` adds the
-// factory to artifacts published before it existed.
+// stays resident until the process ends.
 export async function importLogicModule(
     filename: string,
     packageId: string

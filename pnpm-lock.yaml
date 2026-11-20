@@ -9,7 +9,7 @@ overrides:
 
 patchedDependencies:
   typebox@1.0.79:
-    hash: db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91
+    hash: 254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97
     path: patches/typebox@1.0.79.patch
 
 importers:
@@ -158,7 +158,7 @@ importers:
         version: 4.3.3
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -269,7 +269,7 @@ importers:
         version: 5.2.0(bare-events@2.9.2)(bare-url@2.5.5)
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript-retry-decorator:
         specifier: 2.6.0
         version: 2.6.0
@@ -339,7 +339,7 @@ importers:
         version: 0.3.28(svelte@5.49.0)
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       wretch:
         specifier: ^2.9.0
         version: 2.11.1
@@ -507,7 +507,7 @@ importers:
         version: 5.49.0
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
 
   config/config-vitest:
     dependencies:
@@ -547,7 +547,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -660,7 +660,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -690,7 +690,7 @@ importers:
         version: link:../../libs/frontend-components
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@sveltejs/kit':
         specifier: ^2.70.3
@@ -776,7 +776,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -886,7 +886,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1002,7 +1002,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1112,7 +1112,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1222,7 +1222,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1335,7 +1335,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1445,7 +1445,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1558,7 +1558,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1671,7 +1671,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1784,7 +1784,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1897,7 +1897,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2007,7 +2007,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2120,7 +2120,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2233,7 +2233,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2343,7 +2343,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2456,7 +2456,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2569,7 +2569,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2682,7 +2682,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2770,7 +2770,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -2877,7 +2877,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -2990,7 +2990,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.53
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3100,7 +3100,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3210,7 +3210,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3326,7 +3326,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3454,7 +3454,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       uuid:
         specifier: ^14.0.3
         version: 14.0.3
@@ -3552,7 +3552,7 @@ importers:
         version: 4.3.3
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3567,7 +3567,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3601,7 +3601,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3799,7 +3799,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -3915,7 +3915,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4025,7 +4025,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4141,7 +4141,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4251,7 +4251,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4364,7 +4364,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4477,7 +4477,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4593,7 +4593,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4706,7 +4706,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4819,7 +4819,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -4935,7 +4935,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5048,7 +5048,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5164,7 +5164,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5274,7 +5274,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5384,7 +5384,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5500,7 +5500,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5610,7 +5610,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5723,7 +5723,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5839,7 +5839,7 @@ importers:
         version: 1.4.0
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5864,7 +5864,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6002,7 +6002,7 @@ importers:
         version: 1.2.15
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -6090,7 +6090,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6206,7 +6206,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6319,7 +6319,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/18xx-autorouter':
         specifier: workspace:*
@@ -6429,7 +6429,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6545,7 +6545,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6658,7 +6658,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6774,7 +6774,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6890,7 +6890,7 @@ importers:
         version: link:../common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -6921,7 +6921,7 @@ importers:
         version: link:../common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -7064,7 +7064,7 @@ importers:
         version: 6.35.0(@react-email/render@2.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       typescript-retry-decorator:
         specifier: 2.6.0
         version: 2.6.0
@@ -7122,7 +7122,7 @@ importers:
         version: 5.1.6
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -7226,7 +7226,7 @@ importers:
         version: 0.3.28(svelte@5.49.0)
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
       wretch:
         specifier: ^2.9.0
         version: 2.11.1
@@ -7379,9 +7379,6 @@ importers:
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../../config/config-games
-      '@tabletop/rolldown-config':
-        specifier: workspace:*
-        version: link:../../config/config-rolldown
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -19705,7 +19702,7 @@ snapshots:
       media-typer: 1.1.1
       mime-types: 3.0.2
 
-  typebox@1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91): {}
+  typebox@1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97): {}
 
   typed-array-buffer@1.0.3:
     dependencies:

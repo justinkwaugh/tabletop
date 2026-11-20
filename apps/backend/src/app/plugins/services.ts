@@ -127,7 +127,7 @@ const BUG_REPORT_DATA_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_DATA_CHANNEL_
 const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 
-type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
+type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle' | 'afterTitleLoads'>
 
 export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => {
     const secretsService = new EnvSecretsService()
@@ -147,7 +147,8 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
         useCache: !EnvService.isLocal(),
-        whileLoadingTitle: options.whileLoadingTitle
+        whileLoadingTitle: options.whileLoadingTitle,
+        afterTitleLoads: options.afterTitleLoads
     })
     await libraryService.getTitlesMap()
     const availableTitles = new TitleLibrary(

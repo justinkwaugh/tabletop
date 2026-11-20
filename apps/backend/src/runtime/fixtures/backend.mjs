@@ -26,6 +26,10 @@ const server = createServer(async (request, response) => {
         while (Date.now() < until);
         await announce('finished')
     }
+    if (url.pathname === '/garbage-collection') {
+        response.end(JSON.stringify({ exposed: typeof globalThis.gc === 'function' }))
+        return
+    }
     if (url.pathname === '/stream') {
         response.writeHead(200, { 'content-type': 'text/event-stream' })
         response.write(`data: ${process.pid}\n\n`)

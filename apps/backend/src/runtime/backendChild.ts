@@ -13,6 +13,7 @@ export class BackendChild {
 
     constructor(entry: URL, startupTimeoutMs: number, env: NodeJS.ProcessEnv = {}) {
         this.child = fork(entry, [], {
+            execArgv: [...process.execArgv, '--expose-gc'],
             stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
             env: { ...process.env, ...env }
         })
