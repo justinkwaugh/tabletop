@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { ActionBox, ActionType, AuctionKind, RailroadId } from '@tabletop/south-african-railroads'
 import { historyEntries } from './history.js'
 
@@ -13,6 +19,19 @@ function action(type: ActionType, fields: Record<string, unknown> = {}): GameAct
         playerId: 'p1',
         type,
         ...fields
+    }
+}
+
+const call: CallGameAction = {
+    id: 'call',
+    gameId: 'g',
+    source: ActionSource.System,
+    type: CALL_GAME_ACTION_TYPE,
+    call: {
+        kind: GameCallKind.Called,
+        initiatorPlayerId: 'p1',
+        approvingPlayerIds: ['p1', 'p2'],
+        decliningPlayerIds: []
     }
 }
 
@@ -49,5 +68,21 @@ describe('history entries', () => {
         expect(entries.map((entry) => entry.kind)).toEqual(['turn', 'dividend', 'turn'])
         expect(entries[0].kind === 'turn' && entries[0].actions).toHaveLength(3)
         expect(entries[2]).toMatchObject({ playerId: 'p2', box: ActionBox.ConstructTrack })
+    })
+
+    it('gives a game called during the opening auctions its own entry', () => {
+        const entries = historyEntries([action(ActionType.PlaceBid, { amount: 3 }), call])
+        expect(entries.map((entry) => entry.kind)).toEqual(['offering', 'call'])
+        expect(entries[0].kind === 'offering' && entries[0].actions).toHaveLength(1)
+        expect(entries[1]).toMatchObject({ key: 'call', action: call })
+    })
+
+    it('keeps a call out of the turn it interrupts', () => {
+        const entries = historyEntries([
+            action(ActionType.ChooseAction, { box: ActionBox.ConstructTrack }),
+            call
+        ])
+        expect(entries.map((entry) => entry.kind)).toEqual(['turn', 'call'])
+        expect(entries[0].kind === 'turn' && entries[0].actions).toHaveLength(1)
     })
 })
