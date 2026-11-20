@@ -28,7 +28,7 @@
         {:else if $myPlayer}
             <span class="font-bold">{$myPlayer.name}</span>&nbsp;- It's your turn
         {:else}
-            Game over
+            End of game
         {/if}
     </div>
 {/if}
