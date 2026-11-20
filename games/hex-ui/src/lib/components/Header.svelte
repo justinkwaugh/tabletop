@@ -1,6 +1,5 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const session = getGameSession()
@@ -26,12 +25,15 @@
                 out:fade={{ duration: 120 }}
                 class="inline-flex gap-x-1"
             >
-                <PlayerName
-                    playerId={currentTurnPlayerId}
-                    capitalization="uppercase"
-                    possessive={true}
-                    additionalClasses="tracking-widest"
-                />
+                {#if currentTurnPlayerId}
+                    <!-- In the side's colour as the board shows it, black and white included. -->
+                    <span
+                        class="hex-side {session.colorOf(
+                            currentTurnPlayerId
+                        )} rounded px-2 font-medium tracking-widest uppercase"
+                        >{session.getPlayerName(currentTurnPlayerId)}'s</span
+                    >
+                {/if}
                 <span>TURN</span>
             </div>
         {:else}

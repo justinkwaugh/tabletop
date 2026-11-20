@@ -101,3 +101,38 @@ test('the board turns upright and back, and labels hide, mid-game', async ({ pag
     }
     expect(await page.locator('svg.hex-board g.stone').count()).toBe(cells)
 })
+
+test('black and white recolours the stones, edges and cards, and names the colours so', async ({
+    page
+}) => {
+    await openScenario(page, 'Middle game')
+    const fills = () =>
+        page.evaluate(() => {
+            const fill = (selector: string) =>
+                getComputedStyle(document.querySelector(selector) as Element).fill
+            return {
+                red: fill('svg.hex-board .fill.red'),
+                blue: fill('svg.hex-board .fill.blue'),
+                band: fill('svg.hex-board .band.red')
+            }
+        })
+    const prompt = page.getByText(/^Fill any empty cell with /)
+    expect(await fills()).toEqual({
+        red: 'rgb(208, 65, 58)',
+        blue: 'rgb(47, 107, 191)',
+        band: 'rgb(208, 65, 58)'
+    })
+    await expect(prompt).toHaveText('Fill any empty cell with red')
+
+    await page.getByRole('button', { name: 'Black and white' }).click()
+    expect(await fills()).toEqual({
+        red: 'rgb(31, 29, 27)',
+        blue: 'rgb(251, 251, 249)',
+        band: 'rgb(31, 29, 27)'
+    })
+    await expect(prompt).toHaveText('Fill any empty cell with black')
+    await expect(page.locator('.tray .caption').first()).toHaveText(/black|white/i)
+
+    await page.getByRole('button', { name: 'Black and white' }).click()
+    await expect(prompt).toHaveText('Fill any empty cell with red')
+})

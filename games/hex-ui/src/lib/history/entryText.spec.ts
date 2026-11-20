@@ -33,4 +33,22 @@ describe('entrySegments', () => {
         const swap: SwapEntry = { ...span, kind: 'swap' }
         expect(read(entrySegments(swap, true))).toBe(' swapped and now plays Red')
     })
+
+    it('calls the sides black and white when the board shows them so', () => {
+        const blackWhite = (color: string) => (color === Color.Red ? 'black' : 'white')
+        const place: PlaceEntry = {
+            ...span,
+            kind: 'place',
+            cell: 'F6',
+            color: Color.Blue,
+            joinsEdges: true
+        }
+        expect(read(entrySegments(place, false, blackWhite))).toBe(
+            ' filled F6 with white, joining both white edges'
+        )
+        const swap: SwapEntry = { ...span, kind: 'swap' }
+        expect(read(entrySegments(swap, false, blackWhite))).toBe(
+            " swapped, taking Black's first stone, and now plays Black"
+        )
+    })
 })

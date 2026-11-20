@@ -5,4 +5,10 @@ export class HexGameColorizer extends DefaultColorizer {
     override allowPreferredPlayerColors(): boolean {
         return false
     }
+
+    // The board's own black and white toggle stands in for the site's colourblind palette, which
+    // would recolour the cards but not the stones.
+    override supportsColorblindPalette(): boolean {
+        return false
+    }
 }

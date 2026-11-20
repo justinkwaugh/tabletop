@@ -17,7 +17,7 @@
     <CalledGameDescription action={entry.action} />
 {:else}<span
         ><span class="font-semibold">{nameOf(entry.playerId)}</span
-        >{#each entrySegments(entry, brief) as segment, index (index)}{#if segment.kind === 'text'}{segment.text}{:else}<span
+        >{#each entrySegments( entry, brief, (color) => session.colorName(color) ) as segment, index (index)}{#if segment.kind === 'text'}{segment.text}{:else}<span
                     class="cell">{segment.cell}</span
                 >{/if}{/each}</span
     >{/if}

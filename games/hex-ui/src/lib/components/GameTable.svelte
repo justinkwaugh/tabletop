@@ -50,7 +50,7 @@
     </div>
 {/snippet}
 
-<div class="hex-table">
+<div class="hex-table" class:bw={gameSession.blackWhite}>
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <!-- Faded controls in a colour that still shows on the panels. -->
@@ -118,6 +118,26 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
+                            <OverlayToggle
+                                label="Black and white"
+                                pressed={gameSession.blackWhite}
+                                onToggle={() => gameSession.toggleBlackWhite()}
+                            >
+                                <!-- A cell half black, half white. -->
+                                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                                    <path
+                                        d="M8 1.6 L13.6 4.8 L13.6 11.2 L8 14.4 L2.4 11.2 L2.4 4.8 Z"
+                                        fill="#fbfbf9"
+                                        stroke="currentColor"
+                                        stroke-width="1.3"
+                                        stroke-linejoin="round"
+                                    ></path>
+                                    <path
+                                        d="M8 1.6 L2.4 4.8 L2.4 11.2 L8 14.4 Z"
+                                        fill="currentColor"
+                                    ></path>
+                                </svg>
+                            </OverlayToggle>
                             <OverlayToggle
                                 label="Upright board"
                                 pressed={gameSession.upright}

@@ -7,7 +7,9 @@
     const session = getGameSession()
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
-    const myColor = $derived(session.myPlayer ? session.colorOf(session.myPlayer.id) : undefined)
+    const myColor = $derived(
+        session.myPlayer ? session.colorName(session.colorOf(session.myPlayer.id)) : undefined
+    )
 </script>
 
 <!-- One row: the last move while you wait, the prompt on your turn. -->

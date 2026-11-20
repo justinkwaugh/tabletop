@@ -1,3 +1,4 @@
+import { Color } from '@tabletop/common'
 import {
     GameSession,
     type PresentedTransition,
@@ -41,6 +42,19 @@ export class HexGameSession extends GameSession<HexGameState, HydratedHexGameSta
     toggleUpright() {
         this.moveInterrupter?.interrupt()
         this.preferences.set({ upright: !this.upright })
+    }
+
+    // Black and white in place of red and blue, for players who tell those apart more easily.
+    blackWhite: boolean = $derived(this.preferences.values.blackWhite)
+
+    toggleBlackWhite() {
+        this.preferences.set({ blackWhite: !this.blackWhite })
+    }
+
+    // What a side's colour is called on screen.
+    colorName(color: StoneColor): string {
+        if (!this.blackWhite) return color
+        return color === Color.Red ? 'black' : 'white'
     }
 
     canPlace = $derived(this.canAct(ActionType.PlaceStone))

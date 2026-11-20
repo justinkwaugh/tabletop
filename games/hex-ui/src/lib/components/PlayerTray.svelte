@@ -24,11 +24,7 @@
 </script>
 
 <div class="tray" class:active={isActive}>
-    <div
-        class="flex items-center gap-2 rounded-t-[10px] px-3 py-1 font-semibold"
-        style:background={session.colors.getPlayerBgColorValue(playerState.playerId)}
-        style:color={session.colors.getPlayerTextColorValue(playerState.playerId)}
-    >
+    <div class="hex-side {color} flex items-center gap-2 rounded-t-[10px] px-3 py-1 font-semibold">
         <span class="truncate text-[17px]">{session.getPlayerName(playerState.playerId)}</span>
         <span class="ms-auto text-[13px] tracking-[0.12em] whitespace-nowrap uppercase">
             {#if isWinner}Winner{:else if isActive}Playing{/if}
@@ -43,6 +39,10 @@
             <g transform={session.upright ? 'rotate(-90)' : ''}>
                 <path d="M2 2 L22 2 L32 18 L12 18 Z" class="ground"></path>
                 {#each Object.values(Edge) as edge (edge)}
+                    {#if EDGES_OF[color].includes(edge)}
+                        <path d={SIDES[edge]} class="side-outline" class:blue={color === Color.Blue}
+                        ></path>
+                    {/if}
                     <path
                         d={SIDES[edge]}
                         class="side"
@@ -52,7 +52,7 @@
                 {/each}
             </g>
         </svg>
-        <span class="caption">{color === Color.Red ? 'Red' : 'Blue'}</span>
+        <span class="caption capitalize">{session.colorName(color)}</span>
     </div>
 </div>
 
@@ -106,6 +106,18 @@
 
     .side.own.blue {
         stroke: var(--hex-blue);
+    }
+
+    /* Under an edge that would vanish against the card, such as white in black and white. */
+    .side-outline {
+        fill: none;
+        stroke: none;
+        stroke-width: 5.4;
+        stroke-linecap: round;
+    }
+
+    .side-outline.blue {
+        stroke: var(--hex-blue-outline);
     }
 
     .caption {

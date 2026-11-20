@@ -133,7 +133,7 @@
             {#if mark}
                 {@const at = layout.center(stone.cell)}
                 <g transform="translate({at.x} {at.y})">
-                    <g {@attach animator.mark(stone.id)} class="mark {mark}">
+                    <g {@attach animator.mark(stone.id)} class="mark {mark} {stone.color}">
                         <path d={LAST_MOVE.path} stroke-width={LAST_MOVE.width}></path>
                     </g>
                 </g>
@@ -237,12 +237,15 @@
         pointer-events: none;
     }
 
-    /* The latest move's hexagon outline is white; the winning chain's marks are two-tone, a dark
-       band under a bright core. */
+    /* The latest move's hexagon outline, in a colour that stands out on its stone. */
     .mark.last {
         fill: none;
-        stroke: #fbfaf6;
+        stroke: var(--hex-last-on-red);
         stroke-linejoin: round;
+    }
+
+    .mark.last.blue {
+        stroke: var(--hex-last-on-blue);
     }
 
     .win-line {
@@ -253,8 +256,15 @@
     }
 
     .win-line .under {
-        stroke-width: 9.5;
-        stroke: #ffffff;
+        stroke-width: var(--hex-win-edge-width);
+    }
+
+    .win-line.blue .under {
+        stroke: var(--hex-win-edge-blue);
+    }
+
+    .win-line.red .under {
+        stroke: var(--hex-win-edge-red);
     }
 
     .win-line .over {
@@ -262,11 +272,11 @@
     }
 
     .win-line.blue .over {
-        stroke: var(--hex-blue-tint);
+        stroke: var(--hex-win-blue);
     }
 
     .win-line.red .over {
-        stroke: var(--hex-red-tint);
+        stroke: var(--hex-win-red);
     }
 
     .target {

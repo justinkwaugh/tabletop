@@ -5,7 +5,9 @@ export const HexPreferences = Type.Object(
     {
         showCoordinates: Type.Boolean(),
         // The board turned a quarter, upright: taller than wide, which suits a phone.
-        upright: Type.Boolean()
+        upright: Type.Boolean(),
+        // Black and white stones and edges in place of red and blue.
+        blackWhite: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -15,7 +17,8 @@ export const HexPreferenceDefinition = {
         schema: HexPreferences,
         defaults: {
             showCoordinates: true,
-            upright: false
+            upright: false,
+            blackWhite: false
         },
         version: 1
     }

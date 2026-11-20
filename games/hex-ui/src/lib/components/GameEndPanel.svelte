@@ -20,7 +20,9 @@
             {winner === session.myPlayer?.id ? 'You win' : `${session.getPlayerName(winner)} wins`}
         </div>
         <div class="text-[15px] text-(--hex-ink-quiet)">
-            A {session.colorOf(winner)} chain joins both {session.colorOf(winner)} edges
+            A {session.colorName(session.colorOf(winner))} chain joins both {session.colorName(
+                session.colorOf(winner)
+            )} edges
         </div>
     {/if}
 </div>

@@ -55,9 +55,21 @@
     /* The two sides, their edges and their cells. */
     --hex-red: #d0413a;
     --hex-blue: #2f6bbf;
-    /* The winning line's pale tints of each colour. */
-    --hex-red-tint: #f4b4ac;
-    --hex-blue-tint: #a8c6f2;
+    /* Text on each side's name band. */
+    --hex-red-ink: #ffffff;
+    --hex-blue-ink: #ffffff;
+    --hex-band-edge: transparent;
+    /* Round an edge that would vanish against a card, on the cards' small boards. */
+    --hex-blue-outline: transparent;
+    /* The winning line: a pale tint of the winner's colour on a wider white edge. */
+    --hex-win-red: #f4b4ac;
+    --hex-win-blue: #a8c6f2;
+    --hex-win-edge-red: #ffffff;
+    --hex-win-edge-blue: #ffffff;
+    --hex-win-edge-width: 9.5;
+    /* The latest move's outline on each colour. */
+    --hex-last-on-red: #fbfaf6;
+    --hex-last-on-blue: #fbfaf6;
     --hex-cell: #fbfaf6;
     /* The dark ground the tiles stand on, showing as grooves between them. */
     --hex-groove: #44403a;
@@ -71,4 +83,36 @@
     --hex-target: #e08a00;
     /* Marks on the cells, drawn over a dark band so they read on both colours. */
     --hex-mark: #5ef0ff;
+}
+
+/* Black and white in place of red and blue (the board's toggle), on wood-coloured cells so white
+   stones stand out from empty ones. The winning line is sky blue, edged in the colour opposite the
+   stones it runs along. */
+.hex-table.bw {
+    --hex-red: #1f1d1b;
+    --hex-blue: #fbfbf9;
+    --hex-red-ink: #fbfbf9;
+    --hex-blue-ink: #1f1d1b;
+    --hex-band-edge: rgb(31 29 27 / 0.35);
+    --hex-blue-outline: #1f1d1b;
+    --hex-cell: #d9b46e;
+    --hex-win-red: #56b4e9;
+    --hex-win-blue: #56b4e9;
+    --hex-win-edge-red: #fbfbf9;
+    --hex-win-edge-blue: #1f1d1b;
+    --hex-win-edge-width: 13.5;
+    --hex-last-on-red: #fbfbf9;
+    --hex-last-on-blue: #1f1d1b;
+}
+
+/* A side's colour behind its player's name, on the cards and in the turn header. */
+.hex-side.red {
+    background: var(--hex-red);
+    color: var(--hex-red-ink);
+}
+
+.hex-side.blue {
+    background: var(--hex-blue);
+    color: var(--hex-blue-ink);
+    box-shadow: inset 0 0 0 1px var(--hex-band-edge);
 }
