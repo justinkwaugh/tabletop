@@ -27,7 +27,10 @@ const covered = [
 describe('the ring print', () => {
     it.each(RingParts)(
         'R-1.3 the $part file holds its drawn rect and lies inside the printed board',
-        ({ draw: [x, y, width, height], file: [fileX, fileY, fileWidth, fileHeight] }) => {
+        ({
+            draw: { x, y, width, height },
+            file: { x: fileX, y: fileY, width: fileWidth, height: fileHeight }
+        }) => {
             expect(fileX >= 0 && fileY >= 0).toBe(true)
             expect(fileX + fileWidth).toBeLessThanOrEqual(RingSource.width)
             expect(fileY + fileHeight).toBeLessThanOrEqual(RingSource.height)
@@ -43,7 +46,7 @@ describe('the ring print', () => {
         for (let row = 0; row < RingSource.height; row++) {
             const drawn = new Uint8Array(RingSource.width)
             for (const {
-                draw: [x, y, width, height]
+                draw: { x, y, width, height }
             } of RingParts) {
                 if (row >= y && row < y + height) {
                     drawn.fill(1, x, x + width)

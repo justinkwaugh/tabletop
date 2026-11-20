@@ -344,7 +344,7 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
         'R-1.1 the ring part $part: its file holds only that part',
         ({ part, file }) => {
             const bytes = readFileSync(new URL(`${ringPartAsset(part)}.webp`, suppliedFolder))
-            expect(webpSize(bytes)).toMatchObject({ width: file[2], height: file[3] })
+            expect(webpSize(bytes)).toMatchObject({ width: file.width, height: file.height })
         }
     )
 })

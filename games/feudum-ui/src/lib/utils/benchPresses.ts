@@ -1,4 +1,4 @@
-import type { BoundingBox } from '@tabletop/common'
+import type { BoundingBox, RectangleDimensions } from '@tabletop/common'
 export interface Span {
     readonly x: number
     readonly width: number
@@ -70,7 +70,7 @@ export function widenedSpans(spans: readonly Span[], whole: number, least: numbe
 /** S68 Each box grows toward `least` across and down, as `widenedSpans` grows a span. */
 export function widenedBoxes(
     boxes: readonly BoundingBox[],
-    whole: { readonly width: number; readonly height: number },
+    whole: RectangleDimensions,
     least: number
 ): BoundingBox[] {
     const across = along(boxes, 'x', 'width', 'y', 'height', whole.width, least)

@@ -22,7 +22,7 @@
 >
     <title>{label}</title>
     {#if parts}
-        {#each parts as { part, url, draw: [x, y, width, height], file } (part)}
+        {#each parts as { part, url, draw: { x, y, width, height }, file } (part)}
             <svg
                 x={left + x * scale}
                 y={top + y * scale}
@@ -31,7 +31,8 @@
                 viewBox="{x} {y} {width} {height}"
                 data-ring-piece={part}
             >
-                <image href={url} x={file[0]} y={file[1]} width={file[2]} height={file[3]}></image>
+                <image href={url} x={file.x} y={file.y} width={file.width} height={file.height}
+                ></image>
             </svg>
         {/each}
     {:else}

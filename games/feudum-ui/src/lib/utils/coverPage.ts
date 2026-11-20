@@ -1,15 +1,10 @@
-import type { BoundingBox } from '@tabletop/common'
+import type { BoundingBox, RectangleDimensions } from '@tabletop/common'
 /** 4:5 at twice the catalog's large card height, for `scripts/make-cover.mjs` to render. */
 export const CoverSize = { width: 544, height: 680 } as const
 
 type Token = (name: string) => string | undefined
 
 const { width: Width, height: Height } = CoverSize
-
-export interface ImageSize {
-    readonly width: number
-    readonly height: number
-}
 
 export interface PrintedTitle {
     readonly left: number
@@ -22,7 +17,7 @@ export const BoxFrontTitle: PrintedTitle = { left: 495 / 2400, right: 1890 / 240
 export const TitleMargin = 16
 
 /** A printed title is never cut: a wide source fills the height only when its title still fits. */
-export function coverPlacement(source: ImageSize, title?: PrintedTitle): BoundingBox {
+export function coverPlacement(source: RectangleDimensions, title?: PrintedTitle): BoundingBox {
     const fullWidth = Width / source.width
     const scale = title
         ? Math.max(
@@ -41,11 +36,11 @@ export function coverPlacement(source: ImageSize, title?: PrintedTitle): Boundin
 }
 
 export type CoverScene =
-    | { href: string; titled: false; size: ImageSize }
-    | { href: string; titled: true; size: ImageSize; title?: PrintedTitle }
+    | { href: string; titled: false; size: RectangleDimensions }
+    | { href: string; titled: true; size: RectangleDimensions; title?: PrintedTitle }
 
 /** Sized here, not by `preserveAspectRatio="slice"`, which browsers draw differently. */
-export function coverFill(source: ImageSize): BoundingBox {
+export function coverFill(source: RectangleDimensions): BoundingBox {
     const scale = Math.max(Width / source.width, Height / source.height)
     const width = source.width * scale
     const height = source.height * scale

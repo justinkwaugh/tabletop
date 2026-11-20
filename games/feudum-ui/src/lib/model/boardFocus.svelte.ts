@@ -1,4 +1,4 @@
-import type { Point, BoundingBox } from '@tabletop/common'
+import type { BoundingBox, Point, RectangleDimensions } from '@tabletop/common'
 import { untrack } from 'svelte'
 import {
     EpicVoyageTrack,
@@ -58,11 +58,6 @@ export function deskScaledHeight(seats: number): number {
     return MapArea.height + standingsStripHeight(seats) + ZoomRowBand
 }
 
-export interface Size {
-    readonly width: number
-    readonly height: number
-}
-
 /** Contract, Desk layout: the side column, where the map's height binds. */
 export interface DeskColumn {
     readonly perRow: 1 | 2
@@ -107,7 +102,7 @@ export function deskRestScaleOf(
 }
 
 /** Contract, Desk layout: only the room decides, never the view, so the layout never flips. */
-export function deskColumnOf(room: Size, seats: number): DeskColumn | undefined {
+export function deskColumnOf(room: RectangleDimensions, seats: number): DeskColumn | undefined {
     const one = columnRailScale(room.height - deskColumnFoot(seats), seats, 1)
     const column: DeskColumn =
         one >= MinColumnRailScale
@@ -119,7 +114,11 @@ export function deskColumnOf(room: Size, seats: number): DeskColumn | undefined 
 }
 
 /** Rounded up, so the room's height, where it binds, stays what binds the wrapper's fit. */
-export function deskColumnViewWidth(room: Size, seats: number, column: DeskColumn): number {
+export function deskColumnViewWidth(
+    room: RectangleDimensions,
+    seats: number,
+    column: DeskColumn
+): number {
     const scale = Math.max(0, deskRestScaleOf(room.width, room.height, seats, column))
     return Math.min(
         room.width,
@@ -127,7 +126,7 @@ export function deskColumnViewWidth(room: Size, seats: number, column: DeskColum
     )
 }
 
-export function deskColumnBox(view: Size, column: DeskColumn): BoundingBox {
+export function deskColumnBox(view: RectangleDimensions, column: DeskColumn): BoundingBox {
     return { x: view.width - column.width, y: 0, width: column.width, height: view.height }
 }
 
@@ -144,7 +143,7 @@ export interface DeskRest extends BoundingBox {
 
 /** The content carries a gutter each side, so the wrapper's own contain fit is the rest. */
 export function deskMapAtRest(
-    view: Size,
+    view: RectangleDimensions,
     seats: number,
     centred: boolean,
     column?: DeskColumn
