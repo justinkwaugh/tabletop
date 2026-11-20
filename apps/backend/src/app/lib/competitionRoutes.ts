@@ -11,7 +11,7 @@ export function competitionRequestValidator(message: string): FastifySchemaCompi
 }
 
 export function prepareCompetitionRoutes(fastify: FastifyInstance, errorName: string) {
-    fastify.addHook('onRequest', fastify.verifyActiveUser)
+    fastify.addHook('onRequest', fastify.auth([fastify.verifyActiveUser]))
     fastify.addHook('onSend', async (_request, reply, payload) => {
         reply.header('Cache-Control', 'no-store')
         return payload

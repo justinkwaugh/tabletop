@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import auth from '@fastify/auth'
 import sensible from '@fastify/sensible'
 import secureSession from '@fastify/secure-session'
 import { randomBytes } from 'node:crypto'
@@ -29,6 +30,7 @@ async function setup(roles: Role[]) {
         externalIds: []
     }
     await server.register(sensible)
+    await server.register(auth)
     await server.register(secureSession, { key: randomBytes(32), cookie: { path: '/' } })
     const { sessionService } = memorySessions()
     server.decorate('sessionService', sessionService)
@@ -206,6 +208,18 @@ describe('tournament administrator authorization', () => {
         expect(response.statusCode).toBe(403)
         expect(change).not.toHaveBeenCalled()
     })
+})
+
+describe('tournament session requirement', () => {
+    it.each(['/tournaments/', '/tournaments/event'])(
+        'answers a visitor without a session as unauthorized: %s',
+        async (url) => {
+            const { server, change } = await setup([Role.User])
+            const response = await server.inject(url)
+            expect(response.statusCode).toBe(401)
+            expect(change).not.toHaveBeenCalled()
+        }
+    )
 })
 
 describe('tournament errors', () => {
