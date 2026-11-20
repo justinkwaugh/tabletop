@@ -10,6 +10,7 @@ import type {
 import type { HydratedYGameState, Stone } from '@tabletop/game-of-y'
 import type { MoveInterrupter, YGameSession } from '$lib/model/session.svelte.js'
 import { boardView } from '$lib/board/geometry.js'
+import { stoneKey, type StoneKey } from '$lib/board/stoneKey.js'
 import { poseOf, setPose } from './svgPose.js'
 import { setStonePose, stonePoseOf } from './stonePose.js'
 
@@ -77,10 +78,10 @@ export class BoardAnimator implements MoveInterrupter {
     // up, so each animated action leaves the board as it ended until that state lands.
     stones: Stone[] = $derived.by(() => this.session.gameState.board.stones)
     // The ring each stone carries, likewise.
-    rings: ReadonlyMap<number, RingKind> = $derived.by(() => this.ringsOf(this.session.gameState))
+    rings: ReadonlyMap<StoneKey, RingKind> = $derived.by(() => this.ringsOf(this.session.gameState))
 
-    private readonly stoneParts = new Map<number, Parts>()
-    private readonly ringNodes = new Map<number, SVGGElement>()
+    private readonly stoneParts = new Map<StoneKey, Parts>()
+    private readonly ringNodes = new Map<StoneKey, SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private readonly tweened = new Set<object>()
     private landMove: (() => void) | undefined
@@ -117,42 +118,42 @@ export class BoardAnimator implements MoveInterrupter {
         return true
     }
 
-    stone(id: number, part: keyof Parts): Attachment<SVGGElement> {
+    stone(key: StoneKey, part: keyof Parts): Attachment<SVGGElement> {
         return (node) => {
-            const own = this.stoneParts.get(id) ?? {}
+            const own = this.stoneParts.get(key) ?? {}
             own[part] = node
-            this.stoneParts.set(id, own)
+            this.stoneParts.set(key, own)
             return () => {
-                const current = this.stoneParts.get(id)
+                const current = this.stoneParts.get(key)
                 if (current?.[part] !== node) return
                 delete current[part]
-                if (Object.keys(current).length === 0) this.stoneParts.delete(id)
+                if (Object.keys(current).length === 0) this.stoneParts.delete(key)
             }
         }
     }
 
     // A stone's ring, scaled about its middle.
-    ring(id: number): Attachment<SVGGElement> {
+    ring(key: StoneKey): Attachment<SVGGElement> {
         return (node) => {
-            this.ringNodes.set(id, node)
+            this.ringNodes.set(key, node)
             return () => {
-                if (this.ringNodes.get(id) === node) this.ringNodes.delete(id)
+                if (this.ringNodes.get(key) === node) this.ringNodes.delete(key)
             }
         }
     }
 
-    private ringsOf(state: HydratedYGameState): Map<number, RingKind> {
+    private ringsOf(state: HydratedYGameState): Map<StoneKey, RingKind> {
         const [winner] = state.winningPlayerIds
         if (state.result !== undefined && winner !== undefined) {
             const chain = new Set(state.board.yChainOf(state.colorOf(winner)) ?? [])
             return new Map(
                 state.board.stones
                     .filter((stone) => chain.has(stone.point))
-                    .map((stone) => [stone.id, 'won'])
+                    .map((stone) => [stoneKey(stone), 'won'])
             )
         }
         const last = state.board.stones.at(-1)
-        return new Map(last ? [[last.id, 'last']] : [])
+        return new Map(last ? [[stoneKey(last), 'last']] : [])
     }
 
     private async onGameStateChange(step: Step) {
@@ -175,10 +176,10 @@ export class BoardAnimator implements MoveInterrupter {
         const shown = this.session.gameState
         const quick = action === undefined
 
-        const before = new Set(from.board.stones.map((stone) => stone.id))
-        const after = new Set(to.board.stones.map((stone) => stone.id))
-        const placed = to.board.stones.filter((stone) => !before.has(stone.id))
-        const lifted = from.board.stones.filter((stone) => !after.has(stone.id))
+        const before = new Set(from.board.stones.map(stoneKey))
+        const after = new Set(to.board.stones.map(stoneKey))
+        const placed = to.board.stones.filter((stone) => !before.has(stoneKey(stone)))
+        const lifted = from.board.stones.filter((stone) => !after.has(stoneKey(stone)))
 
         // Every stone either board holds, so new ones can drop in and old ones lift off, and every
         // ring either shows, so new ones can grow and old ones shrink.
@@ -199,8 +200,8 @@ export class BoardAnimator implements MoveInterrupter {
         const touched: [SVGGElement, SVGGElement][] = []
 
         const { tilt, flat } = boardView(to.board.shape, this.session.flatBoard)
-        for (const stone of placed) this.drop(stone.id, timeline, touched, quick, tilt, flat)
-        for (const stone of lifted) this.liftOff(stone.id, timeline, touched, tilt, flat)
+        for (const stone of placed) this.drop(stone, timeline, touched, quick, tilt, flat)
+        for (const stone of lifted) this.liftOff(stone, timeline, touched, tilt, flat)
         const ringed = this.changeRings(ringsBefore, ringsAfter, placed, lifted, timeline, quick)
 
         const land = () => {
@@ -230,33 +231,33 @@ export class BoardAnimator implements MoveInterrupter {
     // Rings that come grow in as the stone they mark settles; rings that go shrink away, except on
     // a stone lifting off, whose ring fades out early in the lift.
     private changeRings(
-        before: ReadonlyMap<number, RingKind>,
-        after: ReadonlyMap<number, RingKind>,
+        before: ReadonlyMap<StoneKey, RingKind>,
+        after: ReadonlyMap<StoneKey, RingKind>,
         placed: readonly Stone[],
         lifted: readonly Stone[],
         timeline: Timeline,
         quick: boolean
     ): SVGGElement[] {
-        const nodeOf = (id: number) => {
-            const node = this.ringNodes.get(id)
-            if (node === undefined) throw Error(`The ring on stone ${id} is drawn before it moves`)
+        const nodeOf = (key: StoneKey) => {
+            const node = this.ringNodes.get(key)
+            if (node === undefined) throw Error(`The ring on stone ${key} is drawn before it moves`)
             this.tweened.add(poseOf(node))
             return node
         }
-        const leaving = new Set(lifted.map((stone) => stone.id))
-        const going = [...before.keys()].filter((id) => !leaving.has(id) && !after.has(id))
-        const coming = [...after.keys()].filter((id) => before.get(id) !== after.get(id))
+        const leaving = new Set(lifted.map(stoneKey))
+        const going = [...before.keys()].filter((key) => !leaving.has(key) && !after.has(key))
+        const coming = [...after.keys()].filter((key) => before.get(key) !== after.get(key))
         const steps = this.stepsAlong(placed[0]?.point ?? lifted[0]?.point, coming)
         const nodes: SVGGElement[] = []
-        for (const id of leaving) {
-            if (!before.has(id)) continue
-            const node = nodeOf(id)
+        for (const key of leaving) {
+            if (!before.has(key)) continue
+            const node = nodeOf(key)
             nodes.push(node)
             this.tweened.add(node)
             timeline.to(node, { opacity: 0, duration: QUICK / 2, ease: 'power1.out' }, 0)
         }
-        for (const id of going) {
-            const node = nodeOf(id)
+        for (const key of going) {
+            const node = nodeOf(key)
             nodes.push(node)
             timeline.to(
                 poseOf(node),
@@ -266,8 +267,8 @@ export class BoardAnimator implements MoveInterrupter {
         }
         coming
             .toSorted((a, b) => (steps.get(a) ?? 0) - (steps.get(b) ?? 0))
-            .forEach((id, order) => {
-                const node = nodeOf(id)
+            .forEach((key, order) => {
+                const node = nodeOf(key)
                 nodes.push(node)
                 const start = quick ? 0 : RING.start + order * RING.stagger
                 timeline.fromTo(
@@ -287,14 +288,17 @@ export class BoardAnimator implements MoveInterrupter {
 
     // How many steps along the ringed stones each lies from where the move was played, so the
     // winning chain lights up outward along itself.
-    private stepsAlong(origin: string | undefined, ids: readonly number[]): Map<number, number> {
+    private stepsAlong(
+        origin: string | undefined,
+        keys: readonly StoneKey[]
+    ): Map<StoneKey, number> {
         const { grid } = this.session.gameState.board
         const idAt = new Map(
             this.stones
-                .filter((stone) => ids.includes(stone.id))
-                .map((stone) => [stone.point, stone.id])
+                .filter((stone) => keys.includes(stoneKey(stone)))
+                .map((stone) => [stone.point, stoneKey(stone)])
         )
-        const steps = new Map<number, number>()
+        const steps = new Map<StoneKey, number>()
         if (origin === undefined) return steps
         const queue: [string, number][] = [[origin, 0]]
         const seen = new Set([origin])
@@ -312,10 +316,10 @@ export class BoardAnimator implements MoveInterrupter {
         return steps
     }
 
-    private partsOf(id: number, touched: [SVGGElement, SVGGElement][]) {
-        const { body, shadow } = this.stoneParts.get(id) ?? {}
+    private partsOf(stone: Stone, touched: [SVGGElement, SVGGElement][]) {
+        const { body, shadow } = this.stoneParts.get(stoneKey(stone)) ?? {}
         if (body === undefined || shadow === undefined) {
-            throw Error(`Stone ${id} is drawn before it moves`)
+            throw Error(`Stone ${stoneKey(stone)} is drawn before it moves`)
         }
         touched.push([body, shadow])
         this.tweened.add(body).add(stonePoseOf(body)).add(shadow).add(poseOf(shadow))
@@ -323,14 +327,14 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     private drop(
-        id: number,
+        stone: Stone,
         timeline: Timeline,
         touched: [SVGGElement, SVGGElement][],
         quick: boolean,
         tilt: number,
         flat: boolean
     ) {
-        const { body, shadow } = this.partsOf(id, touched)
+        const { body, shadow } = this.partsOf(stone, touched)
         const fall = quick ? QUICK : DROP.fall
         const pose = stonePoseOf(body)
         pose.tilt = tilt
@@ -338,7 +342,7 @@ export class BoardAnimator implements MoveInterrupter {
             ? { scale: FLAT_DROP.scale, y: 0, shadowOff: FLAT_DROP.shadowOff }
             : { scale: DROP.scale, y: DROP.rise, shadowOff: 0 }
         // The golden angle spreads each stone's line round evenly from the last.
-        const axis = (id * 137.508) % 180
+        const axis = (stone.id * 137.508) % 180
         timeline.fromTo(
             body,
             { opacity: 0 },
@@ -375,13 +379,13 @@ export class BoardAnimator implements MoveInterrupter {
     // The drop in reverse: the stone is seen rising off its point before it fades, and its
     // shadow shrinks under it.
     private liftOff(
-        id: number,
+        stone: Stone,
         timeline: Timeline,
         touched: [SVGGElement, SVGGElement][],
         tilt: number,
         flat: boolean
     ) {
-        const { body, shadow } = this.partsOf(id, touched)
+        const { body, shadow } = this.partsOf(stone, touched)
         const pose = stonePoseOf(body)
         pose.tilt = tilt
         const { rise, scale } = flat ? { rise: 0, scale: FLAT_LIFT_OFF.scale } : LIFT_OFF

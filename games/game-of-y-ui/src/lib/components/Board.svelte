@@ -2,12 +2,14 @@
     import type { Stone } from '@tabletop/game-of-y'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boardView, LABEL_SIZE, STONE_RADIUS } from '$lib/board/geometry.js'
-    import { edgeLook, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
+    import { edgeLook, shadowLook, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
+    import { shadowBox } from '$lib/board/boardShadow.js'
     import { LOOK_URLS } from '$lib/board/lookUrls.js'
     import { domeHeight, domeRing } from '$lib/board/stoneShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import { keepStonesDecoded } from '$lib/board/decodedStones.js'
     import { stoneOffsets } from '$lib/board/jitter.js'
+    import { stoneKey } from '$lib/board/stoneKey.js'
 
     const session = getGameSession()
 
@@ -29,7 +31,7 @@
     // Where a stone rests on screen: on its point, or a little off it when stones lie loose.
     function restingAt(stone: Stone) {
         const at = layout.center(stone.point)
-        const offset = offsets.get(stone.id)
+        const offset = offsets.get(stoneKey(stone))
         return offset ? { x: at.x + offset.x, y: at.y + offset.y * layout.tilt } : at
     }
 
@@ -42,6 +44,7 @@
 
     const look = $derived(stoneBox(layout.tilt))
     const wood = $derived(layout.woodBox)
+    const shadow = $derived(shadowBox(layout))
     // Rings painted on the stone's top dome, following its curve: a band 0.15 of the radius wide
     // round a line 0.48 out; the winning chain's cyan band lies on a wider dark one.
     const RING_LINE = STONE_RADIUS * 0.48
@@ -77,7 +80,7 @@
 </script>
 
 {#snippet stoneDrawing(stone: Stone, ghost: boolean)}
-    <g {@attach ghost ? undefined : animator.stone(stone.id, 'shadow')}>
+    <g {@attach ghost ? undefined : animator.stone(stoneKey(stone), 'shadow')}>
         <ellipse
             cx="3"
             cy="3"
@@ -86,7 +89,7 @@
             fill="url(#y-stone-shadow)"
         ></ellipse>
     </g>
-    <g {@attach ghost ? undefined : animator.stone(stone.id, 'body')}>
+    <g {@attach ghost ? undefined : animator.stone(stoneKey(stone), 'body')}>
         <image
             href={LOOK_URLS[stoneLook(stone.color, layout.flat)]}
             x={look.x}
@@ -95,11 +98,11 @@
             height={look.height}
         ></image>
         {#if !ghost}
-            {@const ring = animator.rings.get(stone.id)}
+            {@const ring = animator.rings.get(stoneKey(stone))}
             {#if ring}
                 <!-- Scaled about the ring's middle as it grows in and shrinks away. -->
                 <g transform="translate(0 {RING_MIDDLE})">
-                    <g {@attach animator.ring(stone.id)}>
+                    <g {@attach animator.ring(stoneKey(stone))}>
                         <g transform="translate(0 {-RING_MIDDLE})" class="mark {ring}">
                             {#if ring === 'won'}
                                 <path d={WON_RING.under} class="under"></path>
@@ -147,21 +150,16 @@
         </linearGradient>
     </defs>
 
-    <!-- The board's shadow on the table, in a few soft steps. -->
-    <g class="board-shadow">
-        {#each [10, 6, 3] as reach (reach)}
-            <path
-                d={layout.slab}
-                transform="translate({reach * 0.5} {reach * 0.7})"
-                fill="#3a2410"
-                fill-opacity="0.07"
-                stroke="#3a2410"
-                stroke-opacity="0.07"
-                stroke-width={reach}
-                stroke-linejoin="round"
-            ></path>
-        {/each}
-    </g>
+    <!-- The board's shadow on the table, pre-rendered (board/boardShadow.ts). -->
+    <image
+        href={LOOK_URLS[shadowLook(shape, layout.flat)]}
+        x={shadow.x}
+        y={shadow.y}
+        width={shadow.width}
+        height={shadow.height}
+        preserveAspectRatio="none"
+        class="board-shadow"
+    ></image>
     {#if !layout.flat}
         <image
             href={LOOK_URLS[edgeLook(shape)]}
@@ -200,7 +198,7 @@
         {/each}
     {/if}
 
-    {#each stones as { stone, at } (stone.id)}
+    {#each stones as { stone, at } (stoneKey(stone))}
         <g transform="translate({at.x} {at.y})" class="stone">
             {@render stoneDrawing(stone, false)}
         </g>

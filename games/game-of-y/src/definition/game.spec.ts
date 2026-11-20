@@ -365,6 +365,34 @@ describe('The swap rule', () => {
     })
 })
 
+describe('The game state', () => {
+    it('comes back the same through dehydrating and hydrating again', () => {
+        for (const swapRule of [false, true]) {
+            for (const board of Object.values(BoardShape)) {
+                const game = createGame({ swapRule, board })
+                let state = place(game, start(game), B, 'E5')
+                if (swapRule) state = execute(game, state, swapAction(game, W))
+                const finished = playToEnd(game, state, 3)
+                const stored: YGameState = JSON.parse(JSON.stringify(finished))
+                const hydrated = new HydratedYGameState(stored)
+                const again = new HydratedYGameState(hydrated.dehydrate())
+                expect(again.dehydrate()).toEqual(stored)
+                expect(again.board.yChainOf(again.colorOf(again.winningPlayerIds[0]))).toEqual(
+                    hydrated.board.yChainOf(hydrated.colorOf(hydrated.winningPlayerIds[0]))
+                )
+            }
+        }
+    })
+
+    it('gives each player Black or White, and no other colour', () => {
+        const game = createGame()
+        const state = start(game)
+        expect(YGameStateValidator.Check(state)).toBe(true)
+        const red = { ...state, players: [{ ...state.players[0], color: Color.Red }] }
+        expect(YGameStateValidator.Check(red)).toBe(false)
+    })
+})
+
 describe('Choosing Black', () => {
     const owner = { ownerId: 'u-white', userIds: { [B]: 'u-black', [W]: 'u-white' } }
     const blackOf = (game: YGame, masterSeed?: string) => {

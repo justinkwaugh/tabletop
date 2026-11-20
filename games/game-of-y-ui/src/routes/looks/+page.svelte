@@ -2,7 +2,16 @@
     import { onMount } from 'svelte'
     import { BoardShape } from '@tabletop/game-of-y'
     import { boardView } from '$lib/board/geometry.js'
-    import { edgeLook, STONE_COLORS, stoneBox, stoneLook, woodLook } from '$lib/board/looks.js'
+    import {
+        edgeLook,
+        shadowLook,
+        STONE_COLORS,
+        stoneBox,
+        stoneLook,
+        woodLook
+    } from '$lib/board/looks.js'
+    import { drawShadow, SHADOW_PIXELS, shadowBox } from '$lib/board/boardShadow.js'
+    import type { BoardView } from '$lib/board/geometry.js'
     import { renderStone } from '$lib/board/stoneLight.js'
     import { renderEdge, renderTop } from '$lib/board/woodTexture.js'
     import type { Bitmap } from '$lib/board/light.js'
@@ -21,6 +30,16 @@
         return canvas.toDataURL('image/webp', quality)
     }
 
+    function shadowUrl(view: BoardView): string {
+        const box = shadowBox(view)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.ceil(box.width * SHADOW_PIXELS)
+        canvas.height = Math.ceil(box.height * SHADOW_PIXELS)
+        const context = canvas.getContext('2d')
+        if (context) drawShadow(context, view, box)
+        return canvas.toDataURL('image/webp', 0.86)
+    }
+
     onMount(() => {
         const start = performance.now()
         const drawn: Record<string, string> = {}
@@ -33,6 +52,7 @@
         for (const view of VIEWS) {
             drawn[woodLook(view.shape, view.flat)] = toUrl(renderTop(view.woodBox, view.tilt), 0.86)
             if (!view.flat) drawn[edgeLook(view.shape)] = toUrl(renderEdge(view.edgeBox), 0.86)
+            drawn[shadowLook(view.shape, view.flat)] = shadowUrl(view)
         }
         urls = drawn
         millis = Math.round(performance.now() - start)
@@ -71,7 +91,15 @@
         </section>
         {#each VIEWS as view (`${view.shape}-${view.tilt}`)}
             {@const wood = view.woodBox}
+            {@const shadow = shadowBox(view)}
             <svg viewBox="{wood.x} {wood.y} {wood.width} {wood.height + 40}" width={wood.width}>
+                <image
+                    href={drawn[shadowLook(view.shape, view.flat)]}
+                    x={shadow.x}
+                    y={shadow.y}
+                    width={shadow.width}
+                    height={shadow.height}
+                ></image>
                 {#if !view.flat}
                     <image
                         href={drawn[edgeLook(view.shape)]}

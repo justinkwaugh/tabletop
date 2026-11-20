@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
+    import { devicePixelRatio } from 'svelte/reactivity/window'
     import {
         DefaultTableLayout,
         DefaultTabs,
@@ -19,10 +20,17 @@
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { YGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { zoomLimits } from '$lib/board/zoom.js'
 
     let { gameSession }: { gameSession: GameSession<YGameState, HydratedYGameState> } = $props()
     assert(gameSession instanceof YGameSession, 'The Game of Y needs its own game session')
     setGameSession(gameSession)
+
+    // Zoomed in, the board is drawn whole at its size on screen, so the screen's pixel ratio sets
+    // how far it may go.
+    const zoom = $derived(
+        zoomLimits(gameSession.gameState.board.shape, devicePixelRatio.current ?? 1)
+    )
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -102,8 +110,8 @@
                 <ScalingWrapper
                     justify="center"
                     controls="bottom-left"
-                    maxScale={4}
-                    maxFitScale={2.5}
+                    maxScale={zoom.maxScale}
+                    maxFitScale={zoom.maxFitScale}
                     renderAtViewScale
                     expandable
                 >

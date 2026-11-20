@@ -27,6 +27,8 @@ export class YGameInitializer
         assignment?: StartingPositionAssignment
     ): HydratedYGameState {
         const prng = new Prng(state.prng)
+        // The order drawn here says who plays Black, so no colour is known yet; the turn manager
+        // reads only the player ids, and each player gets a colour from the order below.
         const turnManager = HydratedTurnManager.generate(
             game.players.map((player) => ({ playerId: player.id, color: Color.Black })),
             prng.random,

@@ -56,7 +56,7 @@ export class HydratedYGameState
     colorOf(playerId: string): StoneColor {
         const player = this.players.find((candidate) => candidate.playerId === playerId)
         assertExists(player, `No player ${playerId}`)
-        return player.color === Color.Black ? Color.Black : Color.White
+        return player.color
     }
 
     // The swap is White's answer to Black's first stone, before anything else is played.

@@ -2,7 +2,7 @@ import { Color } from '@tabletop/common'
 import type { BoardShape, StoneColor } from '@tabletop/game-of-y'
 import { riseOf, STONE_RADIUS, STONE_THICKNESS, type Box } from './geometry.js'
 
-// 2.5 times the 2.5 px per unit the board fits at (GameTable's maxFitScale): larger images cost
+// 2.5 times the 2.5 px per unit the board fits at (board/zoom.ts's most for fitting): larger images cost
 // download and decoding for sharpness seen only at full zoom.
 export const LOOK_PIXELS = 2.5 * 2.5
 
@@ -32,4 +32,8 @@ export function woodLook(shape: BoardShape, flat: boolean): string {
 
 export function edgeLook(shape: BoardShape): string {
     return `edge-${shape.toLowerCase()}`
+}
+
+export function shadowLook(shape: BoardShape, flat: boolean): string {
+    return `shadow-${shape.toLowerCase()}${flat ? '-flat' : ''}`
 }

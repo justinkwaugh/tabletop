@@ -2,6 +2,7 @@ import type { Point } from '@tabletop/common'
 import { gridOf, type BoardShape, type Stone } from '@tabletop/game-of-y'
 import { boardView, planOf, STONE_RADIUS, type Label } from './geometry.js'
 import { seededRandom } from './random.js'
+import { stoneKey, type StoneKey } from './stoneKey.js'
 
 // A board's labels as both views and both looks place them, so a stone lies in the same place
 // whichever is shown.
@@ -32,11 +33,11 @@ export function stoneOffsets(
     shape: BoardShape,
     stones: readonly Stone[],
     reach: number
-): Map<number, Point> {
+): Map<StoneKey, Point> {
     const grid = gridOf(shape)
     const plan = (point: string) => planOf(shape, point)
     const labels = labelsByPoint(shape)
-    const offsets = new Map<number, Point>()
+    const offsets = new Map<StoneKey, Point>()
     const byPoint = new Map<string, Point>()
     for (const stone of stones.toSorted((a, b) => a.id - b.id)) {
         const random = seededRandom(stone.id * 7919 + 17)
@@ -63,7 +64,7 @@ export function stoneOffsets(
             if (leaning > spare) scale = Math.min(scale, spare / leaning)
         }
         const offset = { x: wanted.x * scale, y: wanted.y * scale }
-        offsets.set(stone.id, offset)
+        offsets.set(stoneKey(stone), offset)
         byPoint.set(stone.point, offset)
     }
     return offsets

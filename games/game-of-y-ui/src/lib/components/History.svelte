@@ -22,28 +22,39 @@
     }
 </script>
 
+{#snippet line(entry: HistoryEntry)}
+    <span
+        class="mt-[5px] size-[12px] shrink-0 rounded-full shadow-[inset_0_0_0_1px_#5b5446] stone-dot"
+        class:white={entry.kind === 'place' && entry.color === Color.White}
+        class:none={entry.kind === 'call'}
+    ></span>
+    <span class="text-left text-[15px] leading-snug">
+        <HistoryEntryLine {entry} />
+    </span>
+{/snippet}
+
 <div class="history h-full min-h-[300px] w-full overflow-auto rounded-lg p-2">
     {#if session.gameState.result && !session.isViewingHistory}
         <div class="divider">Game over</div>
     {/if}
     {#each entries as entry (entry.id)}
-        <button
-            type="button"
-            class="entry"
-            class:replaying={replaying?.entryId === entry.id}
-            title="Replay on the board"
-            onclick={() => replay(entry)}
-            in:fade={{ duration: 200 }}
-        >
-            <span
-                class="mt-[5px] size-[12px] shrink-0 rounded-full shadow-[inset_0_0_0_1px_#5b5446] stone-dot"
-                class:white={entry.kind === 'place' && entry.color === Color.White}
-                class:none={entry.kind === 'call'}
-            ></span>
-            <span class="text-left text-[15px] leading-snug">
-                <HistoryEntryLine {entry} />
-            </span>
-        </button>
+        <!-- Only a placement shows on the board; a swap or a called game is listed, not replayed. -->
+        {#if entry.kind === 'place'}
+            <button
+                type="button"
+                class="entry replayable"
+                class:replaying={replaying?.entryId === entry.id}
+                title="Replay on the board"
+                onclick={() => replay(entry)}
+                in:fade={{ duration: 200 }}
+            >
+                {@render line(entry)}
+            </button>
+        {:else}
+            <div class="entry" in:fade={{ duration: 200 }}>
+                {@render line(entry)}
+            </div>
+        {/if}
     {:else}
         <div class="p-3 text-center italic text-(--y-ink-quiet)">No moves yet</div>
     {/each}
@@ -80,7 +91,7 @@
         border-radius: 6px;
     }
 
-    .entry:hover {
+    .entry.replayable:hover {
         background: var(--y-panel-hover);
     }
 

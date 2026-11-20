@@ -4,6 +4,7 @@ import { BoardShape, gridOf, type Stone } from '@tabletop/game-of-y'
 import { boardView, planOf, STONE_RADIUS } from './geometry.js'
 import { seededRandom } from './random.js'
 import { stoneOffsets } from './jitter.js'
+import { stoneKey } from './stoneKey.js'
 
 const SHAPES = Object.values(BoardShape)
 
@@ -31,7 +32,7 @@ describe('loose stones', () => {
                 const offsets = stoneOffsets(shape, stones, 12)
                 const at = stones.map((stone) => {
                     const { x, y } = planOf(shape, stone.point)
-                    const offset = offsets.get(stone.id)!
+                    const offset = offsets.get(stoneKey(stone))!
                     return { x: x + offset.x, y: y + offset.y }
                 })
                 for (let a = 0; a < at.length; a++) {
@@ -67,7 +68,7 @@ describe('loose stones', () => {
                 for (const view of [false, true].map((flat) => boardView(shape, flat))) {
                     for (const { point, going, spare } of [...view.labels, ...view.cellLabels]) {
                         const stone = stones.find((each) => each.point === point)!
-                        const { x, y } = offsets.get(stone.id)!
+                        const { x, y } = offsets.get(stoneKey(stone))!
                         expect(x * going.x + y * view.tilt * going.y).toBeLessThanOrEqual(
                             spare + 1e-9
                         )

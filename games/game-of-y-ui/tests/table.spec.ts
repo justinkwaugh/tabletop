@@ -91,3 +91,28 @@ test('the board turns flat or tilted and the stones lie loose, mid-game', async 
     }
     expect(await page.locator('svg.y-board g.stone').count()).toBe(stones)
 })
+
+test('the History panel replays a placement, and lists a swap without offering to replay it', async ({
+    page
+}) => {
+    await openScenario(page, 'Swap or place')
+    await page.getByRole('button', { name: 'Swap', exact: true }).click()
+    await settle(page)
+    // A press made just after the swap can go unheard, so it is made again until it lands.
+    const swapped = await actionCount(page)
+    await expect(async () => {
+        await press(page, 'place on F5')
+        await settle(page)
+        expect(await actionCount(page)).toBe(swapped + 1)
+    }).toPass()
+    await page.getByRole('tab', { name: 'History' }).click()
+    const history = page.locator('.history')
+    const swap = history.getByText(/swapped/)
+    await expect(swap).toBeVisible()
+    await expect(history.getByRole('button').filter({ has: swap })).toHaveCount(0)
+    const placement = history.getByRole('button', { name: / on F5$/ })
+    await expect(placement).toHaveAttribute('title', 'Replay on the board')
+    await placement.click()
+    await expect(placement).toHaveClass(/replaying/)
+    await expect(placement).not.toHaveClass(/replaying/)
+})
