@@ -335,13 +335,23 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return !this.historyLog.replaying && super.shouldAutoStepAction(action, next)
     }
 
-    override beforeNewState() {
+    override beforeNewState(transition: PresentedTransition) {
         this.boardAnimator.settle()
         this.flightAnimator.settle()
         this.pouchAnimator.settle()
-        for (const draft of this.oneStateDrafts) {
-            draft.clear()
+        if (this.endsDrafts(transition)) {
+            for (const draft of this.oneStateDrafts) {
+                draft.clear()
+            }
         }
+    }
+
+    /** Contract, Shared visual state: of the Actions that arrive, only the seat's own end its draft. */
+    private endsDrafts({ kind, actions }: PresentedTransition): boolean {
+        if (kind !== 'other-action' && kind !== 'reconciliation') {
+            return true
+        }
+        return actions.length === 0 || actions.some(({ playerId }) => playerId === this.myPlayerId)
     }
 
     private isOffered(type: ActionType): boolean {

@@ -3,6 +3,7 @@ import { flushSync } from 'svelte'
 import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
+    DiscardAnyTime,
     Goods,
     placeMarker,
     returnGoodToHaversack,
@@ -12,11 +13,13 @@ import {
     type Good,
     type HydratedFeudumGameState,
     type MonsterId,
-    type SpaceId
+    type SpaceId,
+    type WritId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import { abandonVessel, giveVessel, landscapeOn, sellOut, serfOn } from '$lib/testing/moveTable.js'
+import { holdWrit } from '$lib/testing/followUpTable.js'
 import { atPlayingCards, giveTile, ruleTown, type TurnTable } from '$lib/testing/turnTable.js'
 import {
     chipOf,
@@ -1244,6 +1247,44 @@ describe('MoveDraft minimum tests', () => {
             await session.forfeitTurnCard()
             await settled(session)
             expect(session.move.selection).toEqual({})
+        })
+
+        it("policy 33 another seat's off-turn discard, heard or caught up on, leaves the steps standing", async () => {
+            const turn = await table(['move'], (state, { seat, other }) => {
+                ruleTown(state, seat)
+                giveTile(state, seat)
+                stand(state, seat, Inland, Elsewhere)
+                holdWrit(state, other, 'writ.mandate.5')
+                holdWrit(state, other, 'writ.mandate.6')
+            })
+            const { session, seat, other, host: tableHost } = turn
+            session.pressTurnCard('move')
+            flushSync()
+            await press(session, pawnTarget(seat, 1))
+            await press(session, spaceTarget(RoadEnd))
+            expect(stepCount(session)).toBe(1)
+            const discard = (writId: WritId) => ({
+                type: ActionType.DiscardWrit,
+                writId,
+                ...DiscardAnyTime
+            })
+
+            const discards = () =>
+                session.actions.filter(
+                    ({ type, playerId }) => type === ActionType.DiscardWrit && playerId === other
+                ).length
+
+            await tableHost.send(other, discard('writ.mandate.5'))
+            await settled(session)
+            expect(discards()).toBe(1)
+            expect(stepCount(session)).toBe(1)
+
+            tableHost.sendUnheard(other, discard('writ.mandate.6'))
+            await tableHost.reconcile(seat)
+            await settled(session)
+            expect(discards()).toBe(2)
+            expect(stepCount(session)).toBe(1)
+            expect(session.movePanel?.stage).toBeDefined()
         })
 
         it('a lone card comes back with no steps: the draft ends with the state too', async () => {

@@ -579,16 +579,34 @@ describe('the real session: S2 and S3, the starting pawn (R-1.4.9, R-4.5)', () =
 })
 
 describe('R-1.4.8, R-3.1 what a draft keeps across a transition (contract: Shared visual state)', () => {
-    it('the goods draft ends with the displayed state, whatever the kind', async () => {
-        const table = openTable()
-        const session = await table.openSeat(table.setupSeat)
-        session.pressStartingGood('iron')
-        expect(session.startingGoods.goods).toEqual(['iron'])
+    it.each([
+        ['own-action', 'own', false],
+        ['other-action', 'other', true],
+        ['other-action', 'own', false],
+        ['reconciliation', 'other', true],
+        ['reconciliation', 'own', false],
+        ['reconciliation', 'none', false],
+        ['undo', 'none', false],
+        ['history', 'none', false],
+        ['exploration', 'none', false],
+        ['view-switch', 'none', false],
+        ['edit', 'none', false],
+        ['initial', 'none', false]
+    ] as const)(
+        'policy 33 the goods draft on %s bringing %s Actions is kept: %s',
+        async (kind, whose, kept) => {
+            const table = openTable()
+            const session = await table.openSeat(table.setupSeat)
+            session.pressStartingGood('iron')
+            expect(session.startingGoods.goods).toEqual(['iron'])
+            const by = whose === 'own' ? table.setupSeat : 'someone-else'
+            const actions = whose === 'none' ? [] : [{ ...session.actions[0], playerId: by }]
 
-        session.beforeNewState()
+            session.beforeNewState({ kind, actions, intent: 'actions' })
 
-        expect(session.startingGoods.goods).toEqual([])
-    })
+            expect(session.startingGoods.goods).toEqual(kept ? ['iron'] : [])
+        }
+    )
 
     it.each([
         ['other-action', true],
