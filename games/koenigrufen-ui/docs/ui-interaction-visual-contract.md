@@ -109,7 +109,7 @@
     - cards the declarer takes (the chosen half; all six in Sechserdreier) into the declarer's hand;
     - cards for the defenders, when declarer plays alone against three (the other half in Dreier and Farbendreier, and in Rufer when the called King was in the talon; the whole talon in Solodreier and Farbensolo), to the first opponent after the declarer, who gathers them;
     - cards for no team yet to the upper left, where they wait for the hand: Rufer's and Besserrufer's other half face up (the partner is secret), and the face-down talon in Solorufer, Trischaken and the negative games.
-- **Trischaken talon by trick** (game option): the waiting stack in the upper left gives up its top card for each of the first six tricks and is gone after the sixth. The contract's descriptions (bid table, "Contract:" line) say "First 6 tricks each take a talon card, shown" instead of "Last trick takes the talon".
+- **Trischaken talon by trick** (game option): the waiting stack in the upper left gives up its top card for each of the first six tricks and is gone after the sixth. The contract's descriptions (bid table, "Contract:" line) say "First 6 tricks take 1 talon card each, shown" instead of "Last trick takes the talon".
 
 ### Open hands (ouvert)
 

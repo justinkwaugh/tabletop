@@ -109,7 +109,7 @@ describe('bid rows', () => {
     it('gives the Trischaken talon by trick when the game was created so', () => {
         const [row] = bidRows([{ contract: Contract.Trischaken }], { talonByTrick: true })
         expect(row.talon).toBe('1 per trick')
-        expect(row.details).toContain('First 6 tricks each take a talon card, shown.')
+        expect(row.details).toContain('First 6 tricks take 1 talon card each, shown.')
         expect(row.details).not.toContain('Last trick')
     })
 
