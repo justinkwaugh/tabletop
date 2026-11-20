@@ -88,7 +88,6 @@ function rowsLeft(state: HydratedFeudumGameState, rowIds: readonly KnightRowId[]
     return rowIds.map((rowId) => ({ rowId, owner: knightRow(state, rowId).owner }))
 }
 
-/** What the picks reached, for the function's own record. */
 export interface RowsToScrollsMove extends ScrollLines {
     readonly markers: KnightRowLeft[]
 }

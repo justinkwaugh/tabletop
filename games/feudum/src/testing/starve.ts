@@ -26,10 +26,7 @@ export function giveFood(state: HydratedFeudumGameState, playerId: string): void
     state.getPlayerState(playerId).goods.food += takeGoodFromHaversack(state, 'food')
 }
 
-/**
- * R-3.13.2 The seat asked holds Conquer and has a Noble on `Battlefield`, where the next seat
- * (`defenderId`) has a marker in this role: a serf under the actor's rule, or a subject of its own.
- */
+/** R-3.13.2 The seat asked holds Conquer and a Noble on `Battlefield`, where the next seat has this marker. */
 export function tableAtStarve(
     role: ImmunityRole = 'serf',
     ownerHand: ActionCardKind[] = OwnerHand,

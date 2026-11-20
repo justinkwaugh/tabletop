@@ -34,7 +34,6 @@ function everyStateTakingDiscards(
     return taking
 }
 
-// The mapping of machine states to their handlers, used by the game engine
 export const FeudumStateHandlers: Record<MachineState, FeudumStateHandler> =
     everyStateTakingDiscards({
         [MachineState.ChoosingStartingGoods]: new ChoosingStartingGoodsStateHandler(),

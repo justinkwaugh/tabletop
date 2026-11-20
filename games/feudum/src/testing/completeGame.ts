@@ -58,17 +58,8 @@ const CardOfAction: Partial<Readonly<Record<string, ActionCardKind>>> = {
     [ActionType.PlayDefend]: 'defend'
 }
 
-/**
- * R-3.3, R-3.1-H1 On even rounds a seat commits sulfur to the pouch with its hand, else saltpeter
- * and a fifth card, so the scripted games keep a pouch good hidden from every other seat until all
- * have finalised.
- */
-/**
- * R-X.2 One seeded seat policy for a whole game: it asks the handler what each seat may send, takes
- * an Action type this game hasn't taken yet where one can be built from the real offers, else what a
- * corpus seat still wants, else the walk's own play. The handler's list holds no System Action, so
- * nothing here can send one: a run that can't reach the end is a finding about the rules or handlers.
- */
+/** R-3.3, R-3.1-H1 Even rounds commit a pouch good, so the scripted games keep one hidden. */
+/** R-X.2 Seeded seats: an Action type not yet taken, else what a corpus seat wants, else the walk's play. */
 export class CompleteGameSeats implements WalkPlan {
     private readonly corpus = new CorpusSeats()
     private readonly game
@@ -266,10 +257,7 @@ export interface ProjectedReplay {
     readonly differs: readonly string[]
 }
 
-/**
- * R-5.1 Replays a whole game as one perspective's client would: the seat runs its own moves from its
- * own view, deferring to the host on a hidden read, and takes everything else as projected records.
- */
+/** R-5.1 One perspective's replay: its own moves from its own view, the host's after a hidden read. */
 export function replayFromView(
     walk: GameWalk,
     perspective: Visibility.Perspective

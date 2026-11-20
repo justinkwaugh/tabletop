@@ -63,7 +63,7 @@ export const SpaceState = Type.Object({
     landscape: Type.Optional(LandscapeState),
     ruler: Type.Optional(RulerState),
     serf: Type.Optional(SerfState),
-    /** R-4.2.2 Abandoned vessels. */
+    /** R-4.2.2 */
     vessels: VesselCounts
 })
 

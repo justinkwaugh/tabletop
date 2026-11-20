@@ -159,10 +159,7 @@ function takeSealOfValue(state: HydratedFeudumGameState, value: BeadValue): Seal
     return sealId
 }
 
-/**
- * R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals: the
- * chickens' values fill their spaces in order.
- */
+/** R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals. */
 export function setBeads(
     state: HydratedFeudumGameState,
     { rosary, chickens }: { rosary: readonly BeadValue[]; chickens: readonly BeadValue[] }

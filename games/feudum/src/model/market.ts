@@ -177,7 +177,7 @@ function bestLinesCompleted(market: Market, fits: Readonly<GoodCounts>, amount: 
     )
 }
 
-/** R-4.6.3 What each market bin holds. */
+/** R-4.6.3 */
 export function marketHolds(state: HydratedFeudumGameState): GoodCounts {
     const { market } = state.guilds.merchant
     const holds = goodCounts()
@@ -196,7 +196,7 @@ export function takeFromMarket(state: HydratedFeudumGameState, good: Good): Mark
     return space
 }
 
-/** R-4.6.5 What each cart and pile holds. */
+/** R-4.6.5 */
 export function cartsHold(state: HydratedFeudumGameState): GoodCounts {
     const { carts } = state.guilds.alchemist
     const holds = goodCounts()

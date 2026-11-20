@@ -91,7 +91,6 @@ export class Table {
         }
     }
 
-    /** What the engine offers this seat now. */
     offered(playerId: string): string[] {
         return engine.getValidActionTypesForPlayer(this.game, this.state, playerId)
     }
@@ -104,10 +103,7 @@ export class Table {
         return this.hydrated().getPlayerState(playerId)
     }
 
-    /**
-     * Moves the table as an Action's handler would: `edit` returns the state, which is entered, and
-     * any System Action it added then runs.
-     */
+    /** As an Action's handler would: `edit` returns the state to enter, then any System Action runs. */
     moveTo(
         edit: (
             state: HydratedFeudumGameState,
@@ -166,11 +162,7 @@ function legalHand(cards: readonly ActionCardKind[], pouchGood?: PouchGood): Act
     return [...new Set([...cards, ...others])].slice(0, handSizeFor(pouchGood))
 }
 
-/**
- * R-3.1, R-3.2 A table whose seats finalise in turn and whose starting player is asked for a card.
- * A spec can hold just the cards it is about: each seat finalises a legal hand, pouch good included,
- * then holds what `handOf` says, of any size.
- */
+/** R-3.1, R-3.2 A table at the first card: each seat finalises a legal hand around the cards given. */
 export function tableAtPlayingCards(
     handOf: (playerId: string) => { cards: ActionCardKind[]; pouchGood?: PouchGood } = () => ({
         cards: DefaultHand

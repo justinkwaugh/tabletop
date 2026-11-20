@@ -109,7 +109,7 @@ export function locationKindOf(location: LocationState): LocationKind {
     return disc.faces[location.face]
 }
 
-/** R-4.1 What each location the seat rules shows. */
+/** R-4.1 */
 export function ruledLocationKinds(
     state: HydratedFeudumGameState,
     playerId: string

@@ -105,7 +105,7 @@ const KnightTradeDetails = Type.Object({
     price: Type.Integer({ minimum: 0 })
 })
 
-/** R-4.6.4, R-4.6.5 A row a marker left, and whose it is. */
+/** R-4.6.4, R-4.6.5 */
 export type KnightRowLeft = Type.Static<typeof KnightRowLeft>
 export const KnightRowLeft = Type.Object({
     rowId: KnightRowIdSchema,
@@ -168,7 +168,6 @@ const MonkPushDetails = Type.Object({
     chickenSum: Type.Integer({ minimum: 0 })
 })
 
-/** What one guild function did, for the history line. */
 export type GuildFunctionDetails = Type.Static<typeof GuildFunctionDetails>
 export const GuildFunctionDetails = Type.Union([
     FarmerTradeDetails,

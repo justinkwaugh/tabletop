@@ -32,10 +32,7 @@ export interface DawnTable {
     readonly processed: GameAction[]
 }
 
-/**
- * R-4.11.2, R-4.12 A round of one forfeit each that triggers this epoch. `edit` sets the table while
- * the region stacks still hold their early tiles, so it can take a landscape from one.
- */
+/** R-4.11.2, R-4.12 A round that triggers this epoch; `edit` runs while the early tiles are on the stacks. */
 export function playToDawn(
     epoch: Exclude<Epoch, 1>,
     edit: (state: HydratedFeudumGameState, order: readonly string[]) => void = () => undefined,

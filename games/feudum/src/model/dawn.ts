@@ -20,7 +20,7 @@ import {
 } from './stateSchemas.js'
 import { sunray } from './tracks.js'
 
-/** R-4.12 One seat's row of the dawn sheet. */
+/** R-4.12 */
 export type DawnSheetRow = Type.Static<typeof DawnSheetRow>
 export const DawnSheetRow = Type.Object({
     playerId: Type.String(),

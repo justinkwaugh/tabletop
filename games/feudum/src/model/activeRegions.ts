@@ -4,7 +4,7 @@ import { DisloyaltyDawns, MilitaryServiceTrack, type Epoch } from '../data/track
 import type { HydratedFeudumGameState } from './gameState.js'
 import { coveredServiceSpaces } from './tracks.js'
 
-/** R-4.12.1 The vp by number of active regions, 0 to 6. */
+/** R-4.12.1 */
 const ActiveRegionScores: readonly number[] = [0, 1, 3, 5, 7, 9, 11]
 
 /** R-4.1.4, R-4.12.1 Regions where the player rules a location or their serf tends a landscape. */

@@ -4,7 +4,7 @@ import type { ChickenSpaceId, ScrollSpaceId } from '../data/guilds.js'
 import type { SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 
-/** R-3.14.2 The marker a Royal Immunity seal lies under. */
+/** R-3.14.2 */
 export type ImmunityRole = 'subject' | 'serf'
 
 /** R-5-H1 Where a seal lies red side up. The identity is in the vault; public state counts it. */

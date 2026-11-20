@@ -84,7 +84,7 @@ export const PaymentSplit = Type.Object({
     generalSupply: Type.Integer({ minimum: 0 })
 })
 
-/** R-4.6, R-4.7 What every guild function records. */
+/** R-4.6, R-4.7 */
 export type GuildFunctionOutcome = Type.Static<typeof GuildFunctionOutcome>
 export const GuildFunctionOutcome = Type.Object({
     details: GuildFunctionDetails,

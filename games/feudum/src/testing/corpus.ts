@@ -70,7 +70,7 @@ export const AtWill = registered.filter(isTiming('at-will')).flatMap(({ writId, 
     })
 )
 
-/** R-4.4-H1 Every alternative of every weapon. */
+/** R-4.4-H1 */
 export const WeaponBonuses = registered.filter(isTiming('attack')).flatMap(({ writId, bonuses }) =>
     bonuses.map(({ alternative, turnedIn, attack }) => ({
         name: writKey(writId, { alternative }),
@@ -113,7 +113,6 @@ export type CardMove = Record<string, unknown> & { type: ActionType }
 /** One way to use a card on its owner's turn, whichever route brought the card there. */
 export interface CardCase {
     readonly name: string
-    /** The rule the row proves. */
     readonly rule: string
     readonly kind: ActionCardKind
     readonly use: 'regular' | 'special'

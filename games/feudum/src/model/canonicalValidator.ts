@@ -285,7 +285,6 @@ export function conservationBreaks(state: FeudumGameState): ConservationBreak[] 
     ]
 }
 
-/** The runtime's canonical validator: the schema, then every component total. */
 export const FeudumCanonicalStateValidator = {
     Check(state: unknown): state is FeudumGameState {
         return FeudumGameStateValidator.Check(state) && conservationBreaks(state).length === 0

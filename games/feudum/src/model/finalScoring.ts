@@ -9,7 +9,7 @@ import { ComponentCount, VoyageSpaceIdSchema, WritIdSchema } from './stateSchema
 import { voyageSpaceOf } from './tracks.js'
 import { locationKindOf } from './locationDiscs.js'
 
-/** R-6.2 One seat's row of the final sheet. */
+/** R-6.2 */
 export type FinalSheetRow = Type.Static<typeof FinalSheetRow>
 export const FinalSheetRow = Type.Object({
     playerId: Type.String(),

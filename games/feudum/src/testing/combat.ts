@@ -26,10 +26,7 @@ export interface CombatTable {
     readonly thirdId: string
 }
 
-/**
- * R-3.13.1 The seat asked holds Conquer; the next seat is the defender. Every seat's first pawn is
- * a farmer on `Battlefield`, as setup leaves them.
- */
+/** R-3.13.1 The seat asked holds Conquer and the next seat defends; first pawns stand on `Battlefield`. */
 export function tableAtCombat(
     defenderHand: ActionCardKind[] = DefenderHand,
     attackerHand: ActionCardKind[] = AttackerHand

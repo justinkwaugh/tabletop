@@ -102,7 +102,6 @@ export class WritRegistry {
         }
     }
 
-    /** Every registration with its printed text, for the reach sweeps. */
     registrations(): WritRegistration[] {
         return [...this.mandates.values(), ...this.weapons.values(), ...this.charters.values()]
     }

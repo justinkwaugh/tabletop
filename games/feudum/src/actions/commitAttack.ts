@@ -73,7 +73,7 @@ function commitmentPrice({ saltpeter, weapons }: CommitAttackInput): GoodPrice {
     return price
 }
 
-/** R-4.8.2 The weapons' total. */
+/** R-4.8.2 */
 function weaponsAttack(weapons: CommitAttack['weapons']): number {
     return weapons.reduce(
         (sum, { writId, alternative }) =>

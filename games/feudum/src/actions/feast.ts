@@ -44,7 +44,7 @@ export const FeastMetadata = Type.Evaluate(
         Type.Object({
             /** R-3.16.3 The opponent's own function, from their rank. */
             fn: GuildFunctionSchema,
-            /** R-3.16.3, R-3.16-H2 What the feast adds to the function's `points`. */
+            /** R-3.16.3, R-3.16-H2 */
             feastPoints: Type.Integer({ minimum: 0 })
         })
     ])

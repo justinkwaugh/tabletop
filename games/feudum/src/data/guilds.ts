@@ -138,13 +138,13 @@ export const FarmerTradeGoods = 2
 /** R-4.6.4 A Farmer pull's threshold: the chicken beads' sum. */
 export const FarmerPullThreshold = 5
 
-/** R-4.6.5 The goods a Farmer push moves from the barn to the market. */
+/** R-4.6.5 */
 export const FarmerPushGoods = 5
 
-/** R-4.6.3 The most goods a Merchant trade buys. */
+/** R-4.6.3 */
 export const MerchantTradeGoods = 3
 
-/** R-4.6.4 The goods a Merchant pull moves from the barn to the market. */
+/** R-4.6.4 */
 export const MerchantPullGoods = 3
 
 /** R-4.6.5 The goods a Merchant push moves from the market to the carts and piles. */
@@ -156,13 +156,13 @@ export const AlchemistTradePrice = 3
 /** R-4.6.4 The goods an Alchemist pull moves from the market to the carts and piles. */
 export const AlchemistPullGoods = 2
 
-/** R-4.6.5 The most inventions an Alchemist push makes. */
+/** R-4.6.5 */
 export const AlchemistPushInventions = 3
 
 /** R-4.6.3 What taking a Knight row costs, however many markers it holds. */
 export const KnightTradePrice = 3
 
-/** R-4.6.4 The inventions a Knight pull makes. */
+/** R-4.6.4 */
 export const KnightPullInventions = 1
 
 /** R-4.6.5 The most markers a Knight push moves from the rows, each replaced by a seal. */
@@ -175,7 +175,7 @@ export const NobleTradeSeals = 2
 /** R-4.6.4 The markers a Noble pull moves from the rows, each replaced by a seal. */
 export const NoblePullMarkers = 2
 
-/** R-4.6.5 The seals a Noble push flips onto the rosary. */
+/** R-4.6.5 */
 export const NoblePushSeals = 2
 
 /** R-4.6.5 The rosary totals that reach a Noble push's first, second and third level. */
@@ -184,7 +184,7 @@ export const NoblePushTotals = [5, 11, 17] as const
 /** R-4.6.3 What a bead from the rosary costs. */
 export const MonkTradePrice = 3
 
-/** R-4.6.4 The seals a Monk pull flips onto the rosary. */
+/** R-4.6.4 */
 export const MonkPullSeals = 1
 
 /** R-4.6.4 A Monk pull's threshold: the rosary's total. */
@@ -206,7 +206,7 @@ export interface ChickenSpace {
     readonly setupBead: boolean
 }
 
-/** R-1.3 A chicken, known by its space. */
+/** R-1.3 */
 export type ChickenSpaceId = ChickenSpace['id']
 
 /** R-1.3, R-1.4-H3 */

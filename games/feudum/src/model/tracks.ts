@@ -76,7 +76,7 @@ export function sunray(sunrayId: SunrayId): Sunray {
     return ray
 }
 
-/** R-2.1 The printed number of the epoch the marker is on. */
+/** R-2.1 */
 export function epochNumber(state: { readonly epoch: SunrayId }): Epoch {
     return sunray(state.epoch).epoch
 }

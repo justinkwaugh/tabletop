@@ -69,7 +69,6 @@ function hasKeys<K extends string, V>(
     return keys.every((key) => Object.hasOwn(record, key))
 }
 
-/** The value of `recordOf`: one entry per key. */
 export function recordFrom<K extends string, V>(
     keys: readonly K[],
     value: (key: K, index: number) => V

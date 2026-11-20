@@ -5,19 +5,19 @@ import type { HydratedFeudumGameState } from './gameState.js'
 import { chickenBeads } from './guildsState.js'
 import { moveBead } from './seals.js'
 
-/** R-1.1 The value on a seal's bead side. */
+/** R-1.1 */
 export function beadValue(sealId: SealId): BeadValue {
     const seal = Seals.find(({ id }) => id === sealId)
     assertExists(seal, `R-1.1 There is a seal ${sealId}`)
     return seal.beadValue
 }
 
-/** R-4.6.3, R-4.6.4 The sum of the beads on the chickens. */
+/** R-4.6.3, R-4.6.4 */
 export function chickenBeadSum(state: HydratedFeudumGameState): number {
     return chickenBeads(state.guilds.farmer).reduce((sum, bead) => sum + beadValue(bead), 0)
 }
 
-/** R-4.6.5 The sum of the beads on the rosary. */
+/** R-4.6.5 */
 export function rosaryBeadSum(state: HydratedFeudumGameState): number {
     return state.guilds.monk.rosary.reduce((sum, bead) => sum + beadValue(bead), 0)
 }
@@ -73,7 +73,7 @@ export function hiddenBeadDraw(state: HydratedFeudumGameState): HiddenBeadDraw {
     return { high, low, bead: state.getProtectedPrng().random() < 0.5 ? high : low }
 }
 
-/** R-4.6.4, R-4.6.5, R-4.6-H2 What a bead going to a chicken needs. */
+/** R-4.6.4, R-4.6.5, R-4.6-H2 */
 export function reasonBeadToChickenClosed(state: HydratedFeudumGameState): string | undefined {
     if (!hiddenBeadCandidates(state)) {
         return 'The rosary needs at least 2 beads.'

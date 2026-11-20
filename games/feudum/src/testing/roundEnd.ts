@@ -35,7 +35,6 @@ export function playOutCards(table: Table): GameAction[] {
     return processed
 }
 
-/** The types of an Action's cascade, in order. */
 export function typesOf(processed: readonly GameAction[]): string[] {
     return processed.map((action) => action.type)
 }

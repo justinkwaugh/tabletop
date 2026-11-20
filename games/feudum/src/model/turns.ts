@@ -1,13 +1,11 @@
 import { findLast } from '@tabletop/common'
 import type { FeudumGameState } from './gameState.js'
 
-/** Whatever holds the turn manager, and whether a card turn is under way: a state or its data. */
 export interface TurnsHolder {
     readonly flow: { readonly turn?: object }
     readonly turnManager: Pick<FeudumGameState['turnManager'], 'series'>
 }
 
-/** The seat of the turn manager's open turn, if one is open. */
 export function openTurnSeat(state: Pick<TurnsHolder, 'turnManager'>): string | undefined {
     return findLast(state.turnManager.series, (turn) => !turn.end)?.playerId
 }

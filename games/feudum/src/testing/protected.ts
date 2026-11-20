@@ -26,10 +26,7 @@ export function seedOf(n: number): string {
     return n.toString(16).padStart(32, '0')
 }
 
-/**
- * Real games at 2 to 5 players whose seats go after what they haven't fired yet: between them they
- * draw writs by every source, flip and return seals, take tiles, starve, attack and score.
- */
+/** Real games at 2 to 5 seats that between them reach every hidden draw, flip and return. */
 const RealGames = [
     { seed: seedOf(12), numPlayers: 2 },
     { seed: seedOf(8), numPlayers: 3 },
@@ -41,7 +38,6 @@ export function realGames(): GameWalk[] {
     return RealGames.map((game) => corpusGames([game]).walks[0])
 }
 
-/** A walk or a scripted table: anything with a game. */
 type Tabled = Pick<GameWalk, 'game'>
 
 /** R-5.1 The game as starting it left it: what makes the engine guard execution. */
@@ -92,11 +88,7 @@ const HostCascades: readonly string[] = [
     ActionType.ScoreGame
 ]
 
-/**
- * R-5.1 Whether this step's cascade can only be run by the host: it changes the vault, draws from
- * the protected stream, reveals every seat's pouch good and hand size (R-3.1-H1), returns every
- * seat's hand (R-2.2.5) or scores sealed charters (R-6.2).
- */
+/** R-5.1 Whether only the host can run this step's cascade: it reads or changes what is hidden. */
 export function needsHost(step: WalkStep): boolean {
     const before = canonical(step.before)
     const after = canonical(step.after[step.after.length - 1])
@@ -107,10 +99,7 @@ export function needsHost(step: WalkStep): boolean {
     )
 }
 
-/**
- * R-5.1 What a seat's own browser would do with this move, from its own view; undefined if the move
- * read something hidden and so deferred to the host. Any other failure is a failure.
- */
+/** R-5.1 A seat's own move from its own view; undefined when it read something hidden. */
 export function runGuarded(
     walk: Pick<GameWalk, 'game'>,
     step: WalkStep,
@@ -174,19 +163,16 @@ export function concealedSeals(vault: FeudumVault): string[] {
 const SealId = /seal\.\d+/g
 const TileId = /tile\.[a-z]+\.[iv]+/g
 
-/** Every seal a value's text names. */
 export function sealsNamedIn(value: unknown): string[] {
     return JSON.stringify(value).match(SealId) ?? []
 }
 
-/** Every tile position a value's text names. */
 export function tilesNamedIn(value: unknown): string[] {
     return JSON.stringify(value).match(TileId) ?? []
 }
 
 const WritId = /writ\.(?:mandate|charter)\.[a-z0-9-]+/g
 
-/** Every writ a value's text names. */
 export function writsNamedIn(value: unknown): string[] {
     return JSON.stringify(value).match(WritId) ?? []
 }

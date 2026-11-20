@@ -8,7 +8,7 @@ import { nextMilitarySpace, nextVoyageSpace } from './tracks.js'
 import { cardTurnSeat } from './turns.js'
 import { drawWrits } from './writDeck.js'
 
-/** R-4.7, R-4.9.1, R-3.7.5 The follow-ups that offer a disc. */
+/** R-4.7, R-4.9.1, R-3.7.5 */
 export type DiscFollowUp = Extract<FollowUp, { kind: 'reeve' | 'military' | 'voyage' }>
 
 export function isDiscFollowUp(followUp: FollowUp): followUp is DiscFollowUp {

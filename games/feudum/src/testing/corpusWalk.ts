@@ -53,11 +53,7 @@ const GoodLists: readonly (readonly Good[])[] = [4, 3, 2, 1].flatMap((length) =>
     )
 )
 
-/**
- * Seats that use what no game of the walk's own seats would: every mandate, every charter, every
- * special, the Guild card. Each ask goes here first and to the walk's own play after, so everything
- * is still chosen from the real offers on the state reached, with nothing edited by hand.
- */
+/** Seats that ask for what the walk's own seats never use: every writ, every special, the Guild card. */
 export class CorpusSeats implements WalkPlan {
     /** One card kind in one use, as a line of the sweep names it. */
     static cardKey(kind: ActionCardKind, mode: string): string {

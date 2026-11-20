@@ -81,11 +81,7 @@ export const WindowStates: Readonly<Record<WindowName, MachineState>> = {
 
 const Hand: ActionCardKind[] = ['move', 'tax', 'guild']
 
-/**
- * R-4.4-H1 A table in this window, with the seat it asks. `edit` runs first, so the seat holds what
- * a spec gives it when the handler asks. The writ limit's seat is over the limit by the off-deck
- * writs it gets from `fill`, with none of them sealed.
- */
+/** R-4.4-H1 A table in this window, with the seat it asks; `edit` runs before the handler asks. */
 export function tableInWindow(
     name: WindowName,
     edit: (state: HydratedFeudumGameState, playerId: string) => void = () => {}

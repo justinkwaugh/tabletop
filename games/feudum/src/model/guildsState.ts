@@ -99,7 +99,7 @@ export const GuildsState = Type.Object({
     })
 })
 
-/** R-1.3 The beads on the chickens, in space order. */
+/** R-1.3 */
 export function chickenBeads(farmer: GuildsState['farmer']): SealId[] {
     return ChickenSpaces.flatMap(({ id }) => {
         const bead = farmer.chickens[id]

@@ -144,7 +144,6 @@ export function isMove(action?: GameAction): action is Move {
     return action?.type === ActionType.Move
 }
 
-/** The stages of a Move drafted so far. */
 export interface MoveDraft {
     readonly steps: readonly MoveStep[]
     readonly godspeed?: GodspeedStep
@@ -178,7 +177,7 @@ function samePiece(a: PieceRef, b: PieceRef): boolean {
         : b.kind === 'monster' && a.monsterId === b.monsterId
 }
 
-/** R-3.7.3 Godspeed's step as the step it folds as. */
+/** R-3.7.3 */
 function godspeedAsStep(playerId: string, { pawn, ...way }: GodspeedStep): MoveStep {
     return { piece: { kind: 'pawn', playerId, n: pawn }, ...way }
 }

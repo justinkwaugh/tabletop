@@ -66,7 +66,7 @@ function takeFromSupply(
 
 export type LandscapeCollection = Type.Static<typeof LandscapeCollection>
 export const LandscapeCollection = Type.Object({
-    /** R-4.3.4 What the serf kept. */
+    /** R-4.3.4 */
     kept: ComponentCount,
     /** R-4.3.4 What the ruler was paid: 1, or 0 if nothing lay there. */
     paid: ComponentCount,

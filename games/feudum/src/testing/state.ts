@@ -19,7 +19,6 @@ import {
     type HydratedFeudumGameState
 } from '../model/gameState.js'
 
-/** A game to start, for specs. */
 export function testGame(numPlayers = 4, seed = 123): Game {
     const players = Array.from({ length: numPlayers }, (_, index): Player => ({
         id: `p${index + 1}`,

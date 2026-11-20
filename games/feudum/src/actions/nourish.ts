@@ -12,7 +12,7 @@ import { PawnNumberSchema } from '../model/stateSchemas.js'
 import { barrelRoom } from '../model/supply.js'
 import { leaveBoard, PawnLeft, type PawnNumber } from './migrate.js'
 
-/** R-4.10.1 How one seat's pawns were fed. */
+/** R-4.10.1 */
 export type FedPawns = Type.Static<typeof FedPawns>
 export const FedPawns = Type.Object({
     /** R-4.10.1 The pawns the rest of the food fed; the input names the others. */

@@ -31,7 +31,7 @@ export function atWillWindow(
     }
 }
 
-/** R-4.2.2, R-4.2-H3 The windows that fall in the seat's own turn. */
+/** R-4.2.2, R-4.2-H3 */
 export function inOwnTurnWindow(state: HydratedFeudumGameState, playerId: string): boolean {
     const window = atWillWindow(state, playerId)
     return window === 'before-card' || window === 'writ-limit'

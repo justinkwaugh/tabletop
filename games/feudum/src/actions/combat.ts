@@ -30,7 +30,7 @@ const AttackRecord = Type.Object({
     total: ComponentCount
 })
 
-/** R-4.8.2 Each line of the defence. */
+/** R-4.8.2 */
 const DefenceRecord = Type.Object({
     pawns: ComponentCount,
     monsters: ComponentCount,

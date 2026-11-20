@@ -10,7 +10,6 @@ export interface KnightRowEntry {
     readonly row: KnightRow
 }
 
-/** Anything holding the Knight rows, a whole state or the guilds alone. */
 export interface KnightRowsHolder {
     readonly guilds: { readonly knight: Pick<FeudumGameState['guilds']['knight'], 'rows'> }
 }
@@ -36,7 +35,7 @@ export function rowSeat(owner: KnightRowOwner): string | undefined {
     return 'playerId' in owner ? owner.playerId : undefined
 }
 
-/** R-1.4-H1 A seat's own row. */
+/** R-1.4-H1 */
 export function seatKnightRow(
     state: KnightRowsHolder,
     playerId: string

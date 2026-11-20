@@ -47,7 +47,6 @@ const engine = new GameEngine(FeudumRuntime)
 /** What a seat sends: an Action's input, with no id and nothing the engine fills in. */
 export type WalkMove = Record<string, unknown> & { type: ActionType; playerId: string }
 
-/** One user Action and all it set off. */
 export interface WalkStep {
     /** The input alone, as a client sends it. */
     readonly input: WalkMove & { id: string }
@@ -95,10 +94,7 @@ export class Progress {
     }
 }
 
-/**
- * The walk's tie-breaker: the Action count, less the `RevealPouches` each round's selection ends
- * on (R-3.1-H1), so a game walked from a seed keeps the choices its pins were written against.
- */
+/** R-3.1-H1 The Action count less each round's RevealPouches, so a seed keeps the choices its pins name. */
 export function walkCount(state: HydratedFeudumGameState): number {
     const round = state.roundManager.currentRound?.number ?? 0
     const revealed = state.machineState === MachineState.SelectingHands ? round - 1 : round
@@ -329,7 +325,6 @@ export function cardMove(
     }
 }
 
-/** The order a seat wants its cards in. */
 const CardOrder: readonly ActionCardKind[] = [
     'influence',
     'conquer',
@@ -354,7 +349,6 @@ function canEmptyStack(state: HydratedFeudumGameState, playerId: string): boolea
     )
 }
 
-/** The cards in the order the seat wants them now. */
 function cardsInOrder(state: HydratedFeudumGameState, playerId: string): ActionCardKind[] {
     return canEmptyStack(state, playerId) ? ['improve', ...CardOrder] : [...CardOrder]
 }
@@ -581,10 +575,7 @@ export interface WalkPlan {
     noted(step: WalkStep): void
 }
 
-/**
- * Plays a whole game from the seed: user Actions only, each chosen from the real offers on the state
- * reached, so nothing is edited by hand and the input alone replays it.
- */
+/** User Actions only, each from the real offers, so the input alone replays the game. */
 export function walkGame(
     masterSeed: string,
     numPlayers = 3,
@@ -619,10 +610,7 @@ export function walkFrom(game: Game, initial: FeudumProjectedState, plan?: WalkP
     return { game, initial, steps, final: state }
 }
 
-/**
- * The seat the walk answers for: the first asked, but R-4.10-H4 the last of the seats nourishing
- * asks at once, so their answers also come against turn order.
- */
+/** R-4.10-H4 The first seat asked, but the last of those nourishing, who are asked at once. */
 function seatToAnswer(state: FeudumProjectedState): string | undefined {
     const { activePlayerIds } = state
     return state.machineState === MachineState.Nourishing
@@ -630,7 +618,6 @@ function seatToAnswer(state: FeudumProjectedState): string | undefined {
         : activePlayerIds[0]
 }
 
-/** Replays the walk's input on a fresh game from the seed. */
 export function replayWalk(masterSeed: string, walk: GameWalk): GameWalk {
     const initial = engine.startGame(walk.game, { masterSeed }).initialState
     const steps: WalkStep[] = []
@@ -657,7 +644,6 @@ export function withoutRowId(state: FeudumProjectedState): Omit<FeudumProjectedS
     return rules
 }
 
-/** Undoes one processed Action by its recorded patch. */
 export function undoAction(action: GameAction, state: FeudumProjectedState): FeudumProjectedState {
     return engine.undoProcessedAction({ action, state })
 }

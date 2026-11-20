@@ -6,7 +6,7 @@ import type { RegionId } from './regionTiles.js'
 export type MandateId = `writ.mandate.${number}`
 export type MandateAlternativeId = `${MandateId}.alt.${number}`
 
-/** R-4.4.2, R-7 What a mandate gives. */
+/** R-4.4.2, R-7 */
 export type MandateReward =
     | {
           readonly kind: 'attack' | 'shillings' | 'goods' | 'influence' | 'seal' | 'bead'

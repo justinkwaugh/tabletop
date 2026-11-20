@@ -13,7 +13,7 @@ export interface EpicVoyageSpace {
     readonly section: number
     /** R-6.2 The furthest-on disc in the section, and any tied with it, score the higher value. */
     readonly vp: { readonly lower: number; readonly higher: number }
-    /** R-3.7.5 The writ icon. */
+    /** R-3.7.5 */
     readonly writDraw: { readonly draw: number; readonly keep: number } | null
     readonly monastery: boolean
 }

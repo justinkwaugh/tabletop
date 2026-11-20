@@ -251,7 +251,7 @@ export interface HarvestChartRow {
     readonly favors: number
 }
 
-/** R-3.11.2 The chart on the Harvest card. */
+/** R-3.11.2 */
 export const HarvestCardChart: readonly HarvestChartRow[] = [
     { total: 5, partial: 4, favors: 1 },
     { total: 6, partial: 5, favors: 1 },

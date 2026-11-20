@@ -1,6 +1,6 @@
 export type SealId = `seal.${number}`
 
-/** R-1.1 The bead side's value. */
+/** R-1.1 */
 export type BeadValue = 2 | 3 | 4 | 5
 
 export interface SealBeadCount {

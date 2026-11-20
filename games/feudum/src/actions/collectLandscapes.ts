@@ -18,7 +18,7 @@ import { landscapeTender } from '../model/locationControl.js'
 import { LandscapeKindSchema, SpaceIdSchema, SulfurToBarrelCount } from '../model/stateSchemas.js'
 import { barrelRoom, putSulfurInBarrel, reasonSulfurCountToBarrelRefused } from '../model/supply.js'
 
-/** R-4.3.4 One landscape collected. */
+/** R-4.3.4 */
 export type CollectedLandscape = Type.Static<typeof CollectedLandscape>
 export const CollectedLandscape = Type.Object({
     spaceId: SpaceIdSchema,
@@ -119,7 +119,7 @@ export interface CollectLandscapesOffer {
     readonly sulfurToBarrel: number
 }
 
-/** R-4.3.4 Collects one landscape. */
+/** R-4.3.4 */
 function collectOne(state: HydratedFeudumGameState, spaceId: SpaceId): CollectedLandscape {
     const { landscape } = state.spaces[spaceId]
     assertExists(landscape, `R-4.3.4 ${spaceId} has a landscape`)
