@@ -1,5 +1,6 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { EndReason } from '@tabletop/yinsh'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -18,6 +19,7 @@
     }
 
     const reason = $derived.by(() => {
+        if (session.gameCall) return undefined
         const { gameState } = session
         if (gameState.endReason === EndReason.Rows) {
             const rows = gameState.ringsToWin === 1 ? 'a row' : `${gameState.ringsToWin} rows`
@@ -34,12 +36,16 @@
 </script>
 
 <div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--yinsh-ink)">
-    <div class="text-[22px] font-semibold tracking-[0.06em]">
-        {#if isDraw}
-            A draw
-        {:else if winners[0]}
-            {winners[0] === session.myPlayer?.id ? 'You win' : `${nameOf(winners[0])} wins`}
-        {/if}
-    </div>
-    <div class="text-[15px] text-(--yinsh-ink-quiet)">{reason}</div>
+    {#if reason}
+        <div class="text-[22px] font-semibold tracking-[0.06em]">
+            {#if isDraw}
+                A draw
+            {:else if winners[0]}
+                {winners[0] === session.myPlayer?.id ? 'You win' : `${nameOf(winners[0])} wins`}
+            {/if}
+        </div>
+        <div class="text-[15px] text-(--yinsh-ink-quiet)">{reason}</div>
+    {:else}
+        <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
+    {/if}
 </div>

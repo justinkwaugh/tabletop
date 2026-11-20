@@ -1,4 +1,10 @@
-import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    isCallGameAction,
+    type AxialCoordinates,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { isMovePiece, isPlacePiece, PieceKind } from '@tabletop/punct'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
@@ -20,9 +26,23 @@ export type MoveEntry = Span & {
     passedPlayerId?: string
 }
 
-export type HistoryEntry = PlaceEntry | MoveEntry
+export type PlayerEntry = PlaceEntry | MoveEntry
+
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = PlayerEntry | CallEntry
 
 function entryOf(action: GameAction, index: number): HistoryEntry {
+    if (isCallGameAction(action)) {
+        return { kind: 'call', id: action.id, firstIndex: index, lastIndex: index, action }
+    }
     if (isPlacePiece(action)) {
         return {
             id: action.id,
@@ -55,7 +75,7 @@ function entryOf(action: GameAction, index: number): HistoryEntry {
     throw Error(`PÜNCT has no ${action.type} action`)
 }
 
-// One entry for each placement and each move.
+// One entry for each placement, each move and a call.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     return actions.map(entryOf)
 }
