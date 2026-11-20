@@ -1,5 +1,6 @@
 import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
+import { PouchAnimator } from '$lib/animators/pouchAnimator.svelte.js'
 import { HistoryLog } from '$lib/model/historyLog.svelte.js'
 import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
 import { GameStorage, type Color, type GameAction } from '@tabletop/common'
@@ -62,7 +63,7 @@ import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
 import { actionPanelOf, type ActionPanelView } from './actionPanel.js'
 import { dummyPaint, seatPaint, type SeatPaint } from './seatPaint.js'
-import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
+import { seatPanelOf, seatPouchOf, type SeatPanelView } from './seatPanel.js'
 import { gameEndOf, type GameEndSummaryView } from './gameEnd.js'
 import { roundEndOf, type RoundEndView } from './roundEnd.js'
 import { combatTallyOf, orderRowOf, type CombatTallyRow, type OrderRow } from './sharedRows.js'
@@ -200,6 +201,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     readonly boardAnimator = new BoardAnimator()
     readonly flightAnimator = new FlightAnimator()
+    readonly pouchAnimator = new PouchAnimator()
     readonly historyLog = new HistoryLog(this)
 
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
@@ -344,6 +346,14 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             return
         }
         const { from, to, action, animationContext } = change
+        await this.pouchAnimator.onGameStateChange({
+            from,
+            to,
+            action,
+            animationContext,
+            pouchOf: (state, playerId) =>
+                seatPouchOf(state, playerId, this.myPlayerId, this.hand.hand.pouchGood)
+        })
         const flights = from
             ? this.flightAnimator.plan({ from, to, action, viewerId: this.myPlayerId })
             : { flights: [], seconds: 0 }
@@ -366,6 +376,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     override beforeNewState() {
         this.boardAnimator.settle()
         this.flightAnimator.settle()
+        this.pouchAnimator.settle()
         for (const draft of this.oneStateDrafts) {
             draft.clear()
         }
@@ -827,7 +838,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** Contract, Seat panel: every view of a seat reads this one derivation, on the displayed state. */
     seatPanel(playerId: string): SeatPanelView {
-        return seatPanelOf({
+        const view = seatPanelOf({
             state: this.gameState,
             playerId,
             viewerId: this.myPlayerId,
@@ -836,6 +847,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             draftedPouch: this.hand.hand.pouchGood,
             handOnDesk: this.turnPanel !== undefined
         })
+        // R-3.1-H1 A pouch the reveal is turning shows its face before the state does.
+        const revealing = this.pouchAnimator.revealing.get(playerId)
+        return revealing ? { ...view, pouch: revealing } : view
     }
 
     /** A dimmed row has no press: it gives its line and does nothing. */

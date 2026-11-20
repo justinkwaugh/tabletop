@@ -35,6 +35,7 @@
         view.ribbon.leading
     )}"
     {onRibbon}
+    pouchMotion={gameSession.pouchAnimator.pouch(playerId)}
 />
 {#if gameSession.showDebug}
     <div class="text-xs text-feudum-text-muted">id: {playerId}</div>

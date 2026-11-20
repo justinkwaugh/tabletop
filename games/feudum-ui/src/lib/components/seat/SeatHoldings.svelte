@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { prefersReducedMotion } from 'svelte/motion'
-    import { turnOver } from '$lib/animators/turnOver.js'
+    import type { Attachment } from 'svelte/attachments'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import LockMark from '$lib/components/pieces/LockMark.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
@@ -17,13 +16,20 @@
      * barrel, the writs, then tiles, vessels and the pouch good when held. Another seat's writs are
      * a back with the count (R-4.4.4); the owner's are faces, and the deck note is their tooltip.
      * Until every hand is final a seat's pouch is sealed: its own good beside a lock, another's a lock
-     * alone, with no words (R-3.1-H1). At the reveal every pouch turns over at once.
+     * alone, with no words (R-3.1-H1). At the reveal every pouch turns over at once, turned by the
+     * state-change animator through `pouchMotion`.
      */
     let {
         items,
         paint,
-        scale
-    }: { items: readonly SeatHoldingsItem[]; paint: SeatPaint; scale: number } = $props()
+        scale,
+        pouchMotion
+    }: {
+        items: readonly SeatHoldingsItem[]
+        paint: SeatPaint
+        scale: number
+        pouchMotion?: Attachment<HTMLElement>
+    } = $props()
 
     const Piece = 15
     const WritWidth = 12
@@ -197,45 +203,43 @@
             </span>
         {:else}
             {@const pouch = entry.pouch}
-            <!-- R-3.1-H1 At the reveal every pouch turns over at once. -->
-            {#key pouch.status === 'finalised'}
-                <span class="flex" in:turnOver={{ reduced: prefersReducedMotion.current }}>
-                    {#if pouch.status === 'sealed'}
+            <!-- R-3.1-H1 At the reveal the state-change animator turns this over. -->
+            <span class="flex" {@attach pouchMotion}>
+                {#if pouch.status === 'sealed'}
+                    <span
+                        class="sealed flex items-center gap-[0.25em]"
+                        title={pouchWords(entry)}
+                        data-seat-section="pouch"
+                        data-pouch="sealed"
+                    >
+                        <LockMark size={piece * 0.8} label="sealed" />
+                    </span>
+                {:else}
+                    <span
+                        class="flex items-center gap-[0.25em]"
+                        class:spent={pouch.status === 'finalised' && pouch.spent}
+                        title={pouchWords(entry)}
+                        data-seat-section="pouch"
+                        data-pouch={pouch.status}
+                        data-pouch-good={pouch.good}
+                        data-pouch-spent={pouch.status === 'finalised' && pouch.spent
+                            ? ''
+                            : undefined}
+                    >
                         <span
-                            class="sealed flex items-center gap-[0.25em]"
-                            title={pouchWords(entry)}
-                            data-seat-section="pouch"
-                            data-pouch="sealed"
+                            class="flex"
+                            class:drafted={pouch.status === 'drafted' ||
+                                pouch.status === 'committed'}
+                            ><GoodToken good={pouch.good} size={piece} /></span
                         >
-                            <LockMark size={piece * 0.8} label="sealed" />
-                        </span>
-                    {:else}
-                        <span
-                            class="flex items-center gap-[0.25em]"
-                            class:spent={pouch.status === 'finalised' && pouch.spent}
-                            title={pouchWords(entry)}
-                            data-seat-section="pouch"
-                            data-pouch={pouch.status}
-                            data-pouch-good={pouch.good}
-                            data-pouch-spent={pouch.status === 'finalised' && pouch.spent
-                                ? ''
-                                : undefined}
-                        >
-                            <span
-                                class="flex"
-                                class:drafted={pouch.status === 'drafted' ||
-                                    pouch.status === 'committed'}
-                                ><GoodToken good={pouch.good} size={piece} /></span
+                        {#if pouch.status === 'committed'}
+                            <span class="sealed flex items-center"
+                                ><LockMark size={piece * 0.8} label="sealed" /></span
                             >
-                            {#if pouch.status === 'committed'}
-                                <span class="sealed flex items-center"
-                                    ><LockMark size={piece * 0.8} label="sealed" /></span
-                                >
-                            {/if}
-                        </span>
-                    {/if}
-                </span>
-            {/key}
+                        {/if}
+                    </span>
+                {/if}
+            </span>
         {/if}
     {/each}
 </div>

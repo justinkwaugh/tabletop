@@ -130,6 +130,46 @@ scenario(
         await expect(table.page.locator('[data-history-list]')).toContainText(
             'All finalised · pouch goods revealed: Ana sulfur 2 in a row · You, Cleo: none'
         )
+
+        // A step back across the reveal shows the pouch sealed at once, and a step forward shows the
+        // good at once: with no Action to tell, nothing turns, either way. (The desk's history
+        // controls stand beside the seat column.)
+        if (table.phone) return
+        await table.press(table.page.getByRole('tab', { name: 'Players' }))
+        const panel = await table.seatPanel('p1')
+        await expect(panel.locator('[data-pouch="finalised"]')).toHaveCount(1)
+        const turns = async (step: () => Promise<void>) => {
+            await table.page.evaluate(() => {
+                const seen: string[] = []
+                Object.assign(window, { feudumPouchTurns: seen })
+                const until = performance.now() + 900
+                const look = () => {
+                    for (const pouch of document.querySelectorAll('[data-seat-section="pouch"]')) {
+                        const holder = pouch.parentElement
+                        const animations = holder?.getAnimations({ subtree: true }) ?? []
+                        if (animations.length > 0) seen.push('animation')
+                        if (holder instanceof HTMLElement && holder.style.transform) {
+                            seen.push(holder.style.transform)
+                        }
+                    }
+                    if (performance.now() < until) requestAnimationFrame(look)
+                }
+                requestAnimationFrame(look)
+            })
+            await step()
+            await table.page.waitForTimeout(1000)
+            return table.page.evaluate(
+                () => (window as unknown as { feudumPouchTurns: string[] }).feudumPouchTurns
+            )
+        }
+        expect(
+            await turns(() => table.page.getByRole('button', { name: 'step backwards' }).click())
+        ).toEqual([])
+        await expect(panel.locator('[data-pouch-good]')).toHaveCount(0)
+        expect(
+            await turns(() => table.page.getByRole('button', { name: 'go to current' }).click())
+        ).toEqual([])
+        await expect(panel.locator('[data-pouch="finalised"]')).toHaveCount(1)
     }
 )
 

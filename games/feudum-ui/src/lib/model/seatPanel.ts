@@ -287,6 +287,22 @@ function writsOf(
     }
 }
 
+/** R-3.1-H1 A seat's pouch as one viewer's panel shows it; the viewer's own draft shows to it alone. */
+export function seatPouchOf(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    viewerId: string | undefined,
+    draftedPouch?: PouchGood
+): SeatPouch {
+    const isOwner = viewerId === playerId
+    return pouchOf(
+        state,
+        state.getPlayerState(playerId),
+        isOwner ? draftedPouch : undefined,
+        isOwner
+    )
+}
+
 /**
  * Contract, Seat panel: one seat as one viewer sees it, for every view of that seat. Nothing hidden
  * is read unless this viewer may see it, whatever the state happens to hold, so what it returns for
@@ -319,7 +335,7 @@ export function seatPanelOf({
             handFaceShown(viewerId, playerId) ? 'own' : hostView ? 'faces' : 'backs',
             handOnDesk
         ),
-        pouch: pouchOf(state, player, isOwner ? draftedPouch : undefined, isOwner),
+        pouch: seatPouchOf(state, playerId, viewerId, draftedPouch),
         supply: supplyOf(state, player),
         writs: writsOf(state, player, hostView || writFaceShown(viewerId, playerId), isOwner),
         barrel: { sulfur: player.barrel, capacity: WineBarrelCapacity },

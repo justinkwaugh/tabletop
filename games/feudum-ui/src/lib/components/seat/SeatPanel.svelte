@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import { CrownPath, StarPath } from '$lib/utils/pieceShapes.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { scoreWords, type SeatPanelView } from '$lib/model/seatPanel.js'
@@ -18,13 +19,16 @@
         paint,
         reading = false,
         ribbonLabel,
-        onRibbon
+        onRibbon,
+        pouchMotion
     }: {
         view: SeatPanelView
         paint: SeatPaint
         reading?: boolean
         ribbonLabel?: string
         onRibbon?: () => void
+        /** R-3.1-H1 Where the state-change animator turns this seat's pouch at the reveal. */
+        pouchMotion?: Attachment<HTMLElement>
     } = $props()
 
     const ReadingScale = 1.75
@@ -113,7 +117,7 @@
         <div class="body flex flex-col gap-[0.3em]" title={pawnsNoteOf(view)}>
             <SeatCards items={lines.cards} {paint} {scale} />
             <SeatSupply items={lines.supply} {scale} />
-            <SeatHoldings items={lines.holdings} {paint} {scale} />
+            <SeatHoldings items={lines.holdings} {paint} {scale} {pouchMotion} />
         </div>
     </div>
     <svg
