@@ -35,6 +35,10 @@
         font-weight: 600;
         letter-spacing: 0.06em;
         white-space: nowrap;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
         color: var(--hex-ink);
     }
 </style>
