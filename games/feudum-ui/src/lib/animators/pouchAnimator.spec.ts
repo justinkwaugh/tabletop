@@ -62,11 +62,22 @@ async function aroundTheReveal() {
     }
 }
 
+/** GSAP writes a plain object's own property: the tween's target is the pouch, not a proxy. */
 class FakePouch implements PouchElement {
-    readonly style = { transform: '' }
+    rotationY?: number
+    readonly style = {
+        transform: '',
+        removeProperty: (name: string) => {
+            if (name === 'transform') {
+                this.style.transform = ''
+            }
+            this.rotationY = undefined
+            return ''
+        }
+    }
 
     get degrees(): number {
-        return Number(this.style.transform.match(/rotateY\((-?\d+)deg\)/)?.[1] ?? NaN)
+        return this.rotationY ?? NaN
     }
 }
 
@@ -101,20 +112,25 @@ describe('R-3.1-H1 the pouches turn over at the reveal, as a motion of the state
         })
         expect(timeline.duration()).toBeCloseTo(PouchTurnSeconds, 5)
         const turning = pouches.get(order[0])
+        expect(timeline.getChildren().flatMap((tween) => tween.targets())).toEqual([turning])
         expect(turning?.degrees).toBe(90)
         timeline.time(PouchTurnSeconds / 2)
         expect(turning?.degrees).toBeGreaterThan(0)
         expect(turning?.degrees).toBeLessThan(90)
         timeline.progress(1)
         expect(turning?.degrees).toBe(0)
-        expect([order[1], order[2]].map((seat) => pouches.get(seat)?.style.transform)).toEqual([
-            '',
-            ''
+        expect([order[1], order[2]].map((seat) => pouches.get(seat)?.rotationY)).toEqual([
+            undefined,
+            undefined
         ])
 
         animator.settle()
         expect(animator.revealing.size).toBe(0)
-        expect([...pouches.values()].map(({ style }) => style.transform)).toEqual(['', '', ''])
+        expect([...pouches.values()].map(({ rotationY }) => rotationY)).toEqual([
+            undefined,
+            undefined,
+            undefined
+        ])
     })
 
     it('without an Action (a step through history) the face simply shows: nothing turns, nothing is held', async () => {

@@ -8,8 +8,10 @@ import type { SeatPouch } from '$lib/model/seatPanel.js'
 /** R-3.1-H1 How long a pouch takes to turn over at the reveal. */
 export const PouchTurnSeconds = 0.42
 
+const PouchPerspective = 190
+
 export interface PouchElement {
-    readonly style: Pick<CSSStyleDeclaration, 'transform'>
+    readonly style: Pick<CSSStyleDeclaration, 'removeProperty'>
 }
 
 export interface PouchChange {
@@ -63,27 +65,17 @@ export class PouchAnimator {
         const targets = [...revealed.keys()].flatMap((playerId) => [
             ...(this.elements.get(playerId) ?? [])
         ])
-        // Edge on from the first drawn frame, so the face is never seen flat before it turns.
+        if (targets.length === 0) {
+            return
+        }
         for (const element of targets) {
             this.turning.add(element)
-            element.style.transform = this.turned(90)
         }
-        const clock = { t: 0 }
-        animationContext.actionTimeline.to(
-            clock,
-            {
-                t: 1,
-                duration: PouchTurnSeconds,
-                ease: 'power1.out',
-                onUpdate: () => {
-                    if (generation !== this.generation) {
-                        return
-                    }
-                    for (const element of targets) {
-                        element.style.transform = this.turned(Math.round((1 - clock.t) * 90))
-                    }
-                }
-            },
+        // fromTo renders its start at once: edge on from the first drawn frame, never flat first.
+        animationContext.actionTimeline.fromTo(
+            targets,
+            { rotationY: 90, transformPerspective: PouchPerspective },
+            { rotationY: 0, duration: PouchTurnSeconds, ease: 'power1.out' },
             0
         )
     }
@@ -91,15 +83,11 @@ export class PouchAnimator {
     settle() {
         this.generation += 1
         for (const element of this.turning) {
-            element.style.transform = ''
+            element.style.removeProperty('transform')
         }
         this.turning.clear()
         if (this.revealing.size > 0) {
             this.revealing = new Map()
         }
-    }
-
-    private turned(degrees: number): string {
-        return `perspective(12em) rotateY(${degrees}deg)`
     }
 }
