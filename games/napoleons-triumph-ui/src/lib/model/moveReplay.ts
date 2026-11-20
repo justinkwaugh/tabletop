@@ -18,6 +18,7 @@ import {
     isOccupy,
     isLeadDefense,
     isRegroup,
+    isStayInReserve,
     isOnMap,
     samePosition,
     type Commander,
@@ -25,7 +26,8 @@ import {
     type MoveOrder,
     type NapoleonsTriumphProjectedState,
     type Position,
-    type ProjectedUnit
+    type ProjectedUnit,
+    type RoadMarch
 } from '@tabletop/napoleons-triumph'
 import {
     APPROACH_GEOMETRY,
@@ -63,6 +65,7 @@ export interface Standing {
     units: ProjectedUnit[]
     commanders: Commander[]
     attack?: VisibleAttack
+    roadMarch?: RoadMarch
 }
 
 export interface MoveReplay {
@@ -94,7 +97,12 @@ export interface Movement {
 }
 
 export function standingOf(state: Readonly<NapoleonsTriumphProjectedState>): Standing {
-    return { units: state.units, commanders: state.commanders, attack: state.attack }
+    return {
+        units: state.units,
+        commanders: state.commanders,
+        attack: state.attack,
+        roadMarch: state.roadMarch
+    }
 }
 
 export function piecesOf(standing: Standing, units = standing.units): BoardPieces {
@@ -164,7 +172,11 @@ interface Subject {
     unitIds: string[]
 }
 
-function unitsNamedBy(action: GameAction): string[] {
+// Rule 10: cavalry ending its ride in reserve moves nothing and names no unit; it is the riders, shown face-up where they stopped.
+function unitsNamedBy(action: GameAction, before: Standing): string[] {
+    if (isStayInReserve(action)) {
+        return before.roadMarch?.unitIds ?? []
+    }
     if (isDeclareDefense(action) || isCounterAttack(action) || isAdvance(action)) {
         return action.unitIds
     }
@@ -191,6 +203,7 @@ function subjectOf(action: GameAction, before: Standing, after: Standing): Subje
     const lost = before.units.filter((unit) => isOnMap(unit) && !remaining.has(unit.id))
     const setDown = after.units.filter((unit) => isOnMap(unit) && !stood.get(unit.id))
     const attack = belongsToAnAttack(action) ? (after.attack ?? before.attack) : undefined
+    const named = unitsNamedBy(action, before)
     const joined = isAttach(action)
         ? after.commanders.find((commander) => commander.id === action.commanderId)
         : undefined
@@ -202,7 +215,7 @@ function subjectOf(action: GameAction, before: Standing, after: Standing): Subje
             ...movements.flatMap((movement) => movement.unitIds),
             ...lost.map((unit) => unit.id),
             ...setDown.map((unit) => unit.id),
-            ...unitsNamedBy(action)
+            ...named
         ],
         locales: [
             ...movements.flatMap((movement) => [
@@ -216,7 +229,8 @@ function subjectOf(action: GameAction, before: Standing, after: Standing): Subje
                       (approach) => AUSTERLITZ.approach(approach).locale
                   )
                 : []),
-            ...(joined?.position ? [joined.position.locale] : [])
+            ...(joined?.position ? [joined.position.locale] : []),
+            ...(isStayInReserve(action) && action.metadata ? [action.metadata.locale] : [])
         ]
     }
 }

@@ -230,6 +230,54 @@ describe('what the history can replay', () => {
         expect(scene.arrows[0].shaft).toContainEqual(LOCALE_GEOMETRY[entry].anchor)
     })
 
+    it('is cavalry staying in the reserve at the end of its ride, shown face-up where it stopped', () => {
+        const { entry, taken, held, corps } = RIDDEN_IN
+        const recorded = deployed()
+        recorded.act(ActionType.EndTurn, Side.Allied)
+        arrangeBattlefield(recorded.game, [
+            { id: 'A-screen', side: Side.Allied, face: cavalry(1), locale: taken }
+        ])
+        waitOffMap(recorded.game, corps.commanderId, [{ id: 'F-off', face: cavalry(2) }])
+        const { map } = recorded.game.hydrated
+        const mainRoad = map
+            .entries(Side.French)
+            .find((candidate) => candidate.locale === entry && candidate.main)
+        assertExists(mainRoad, 'Expected a main road onto the field')
+        recorded.act(ActionType.ThreatenAttack, Side.French, {
+            approach: map.approachBetween(entry, taken).id
+        })
+        recorded.act(ActionType.Retreat, Side.Allied, {
+            losses: {},
+            destinations: { 'A-screen': 39 },
+            kept: {}
+        })
+        recorded.act(ActionType.Occupy, Side.French, {
+            orders: [{ ...corps, entryId: mainRoad.id, road: [entry] }]
+        })
+        recorded.act(ActionType.Move, Side.French, {
+            order: { ...corps, road: [held], continues: true },
+            to: { locale: held }
+        })
+        const stay = recorded.act(ActionType.StayInReserve, Side.French)
+
+        const replay = recorded.replay(stay)
+        const rider = (standing: typeof replay.before) =>
+            standing.units.find((unit) => unit.id === 'F-off')
+        expect(rider(replay.before)?.shown).toBeUndefined()
+        expect(rider(replay.after)?.shown).toEqual(cavalry(2))
+        const scene = moveReplayScene(replay, NORTH)
+        expect(scene.arrows).toEqual([])
+        expect(
+            scene.sprites.flatMap((sprite) => sprite.group.units.map((unit) => unit.id))
+        ).toContain('F-off')
+        const { focus } = scene
+        const anchor = toView(LOCALE_GEOMETRY[held].anchor, NORTH)
+        expect(anchor.x).toBeGreaterThan(focus.x)
+        expect(anchor.x).toBeLessThan(focus.x + focus.width)
+        expect(anchor.y).toBeGreaterThan(focus.y)
+        expect(anchor.y).toBeLessThan(focus.y + focus.height)
+    })
+
     function standsAgainstAThreat(defenders: string[]) {
         const recorded = deployed()
         recorded.act(ActionType.EndTurn, Side.Allied)
