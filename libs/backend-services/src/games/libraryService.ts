@@ -64,7 +64,7 @@ export type LibraryServiceOptions = {
     prepare?: (generation: TitleGeneration) => Promise<void>
     whileLoadingTitle?: WhileLoadingTitle
     // Runs once an activation that loaded any title has installed its generations.
-    afterTitleLoads?: () => void
+    afterTitleLoads?: () => void | Promise<void>
 }
 
 export class LibraryService {
@@ -77,7 +77,7 @@ export class LibraryService {
     private readonly logicRoot: string
     private readonly prepare?: (generation: TitleGeneration) => Promise<void>
     private readonly whileLoadingTitle: WhileLoadingTitle
-    private readonly afterTitleLoads?: () => void
+    private readonly afterTitleLoads?: () => void | Promise<void>
     private manifestSnapshot?: SiteManifest
     private manifestRefreshQueue: Promise<void> = Promise.resolve()
     private activationQueue: Promise<void> = Promise.resolve()
@@ -278,7 +278,7 @@ export class LibraryService {
         }
         this.generations = next
         this.loadedManifest = manifest
-        if (loaded) this.afterTitleLoads?.()
+        if (loaded) await this.afterTitleLoads?.()
     }
 
     private async loadGeneration(entry: SiteManifestGame): Promise<TitleGeneration> {

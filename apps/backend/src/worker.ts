@@ -62,7 +62,8 @@ try {
     await server.register(rawBody, { global: false, runFirst: true })
     await server.register(app, {
         whileLoadingTitle,
-        afterTitleLoads: () => compactHeap(collectGarbage)
+        // The collection blocks the event loop like a title load, close to a second in production.
+        afterTitleLoads: () => whileLoadingTitle(async () => compactHeap(collectGarbage))
     })
     await server.listen({ port: 0, host: '127.0.0.1' })
     const address = server.server.address()

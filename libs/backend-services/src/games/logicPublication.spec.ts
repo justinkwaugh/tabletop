@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { copyFile, mkdir, readFile, utimes } from 'node:fs/promises'
 import path from 'node:path'
+import { setImmediate } from 'node:timers/promises'
 import { LibraryService } from './libraryService.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { logicPublicationFixture } from './tests/logicPublicationFixture.js'
@@ -221,23 +222,33 @@ describe('Collectible title generations', () => {
         })
     })
 
-    it('runs the after-load hook once per activation that loaded a title, with it installed', async () => {
+    it('finishes the after-load hook, with the titles installed, before an activation that loaded one completes', async () => {
         const f = await fixture()
-        const servedWhenRun: (string | undefined)[] = []
+        const events: string[] = []
         const library = new LibraryService(RedisCacheService.prototype, {
             ...f.options,
-            afterTitleLoads: () => {
-                servedWhenRun.push(version(library, f.titleId))
+            afterTitleLoads: async () => {
+                await setImmediate()
+                events.push(`hook ran serving ${version(library, f.titleId)}`)
             }
         })
         await library.getTitlesMap()
+        events.push('started')
         await f.publish(f.manifest('1.1.0'))
         await library.refreshAndActivate()
+        events.push('activated logic')
         const uiOnly = f.manifest('1.1.0')
         uiOnly.games[0].uiVersion = '1.2.0'
         await f.publish(uiOnly)
         await library.refreshAndActivate()
-        expect(servedWhenRun).toEqual(['1.0.0', '1.1.0'])
+        events.push('activated UI only')
+        expect(events).toEqual([
+            'hook ran serving 1.0.0',
+            'started',
+            'hook ran serving 1.1.0',
+            'activated logic',
+            'activated UI only'
+        ])
     })
 
     it('does not reconstruct unchanged title code for UI-only publications', async () => {

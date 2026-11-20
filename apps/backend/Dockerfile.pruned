@@ -42,4 +42,6 @@ USER nonroot
 
 EXPOSE 8080
 
-CMD [ "--env-file=.env", "dist/main.js" ]
+# Node sizes old space at half the container, which the loaded titles reach long before the
+# 1 GiB services are full; about 270 MiB sits outside it. Resize this with the services' memory.
+CMD [ "--env-file=.env", "--max-old-space-size=640", "dist/main.js" ]
