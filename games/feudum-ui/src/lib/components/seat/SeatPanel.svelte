@@ -167,7 +167,6 @@
         cursor: pointer;
     }
 
-    /* Opacity alone, which the compositor runs without repainting the ribbon each frame. */
     .ribbon.deciding::after {
         content: '';
         position: absolute;
@@ -175,23 +174,6 @@
         border-radius: inherit;
         box-shadow: inset 0 0 0 0.15em var(--feudum-accent);
         pointer-events: none;
-        animation: ribbon-pulse 2.5s infinite;
-    }
-
-    @keyframes ribbon-pulse {
-        0%,
-        100% {
-            opacity: 0;
-        }
-        50% {
-            opacity: 1;
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .ribbon.deciding::after {
-            animation: none;
-        }
     }
 
     .name {

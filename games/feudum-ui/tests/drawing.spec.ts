@@ -278,31 +278,45 @@ test.describe('the dims of a pick, on a phone that draws the whole board', () =>
 })
 
 test.describe('waiting seats', () => {
-    test('a seat waiting on its choice pulses by opacity alone, at a desk', async ({ page }) => {
+    /** The ring on a waiting seat, painted and still: no animation runs on the table at rest. */
+    async function stillRing(page: Page, seat: string) {
+        await expect(page.locator(seat).first()).toBeVisible()
+        const ring = await page
+            .locator(seat)
+            .first()
+            .evaluate((element) => {
+                const after = getComputedStyle(element, '::after')
+                return {
+                    shadow: after.boxShadow,
+                    opacity: after.opacity,
+                    animation: after.animationName
+                }
+            })
+        expect(ring.shadow).toMatch(/inset/)
+        expect(ring.opacity).toBe('1')
+        expect(ring.animation).toBe('none')
+        expect(await animatedProperties(page)).toEqual({})
+    }
+
+    test('docs/phone-rendering.md a seat waiting on its choice shows a static ring, at a desk', async ({
+        page
+    }) => {
         await createGame(page)
         await playToHands(page)
         await settled(page)
-        await expect(page.locator('[data-seat-panel] [data-deciding]').first()).toBeVisible()
-        const animated = await animatedProperties(page)
-        expect(Object.keys(animated)).toContain('ribbon-pulse')
-        for (const properties of Object.values(animated)) {
-            expect(properties.filter((property) => property !== 'opacity')).toEqual([])
-        }
+        await stillRing(page, '[data-seat-panel] [data-deciding]')
     })
 
     test.describe('on a phone', () => {
         test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
 
-        test('a seat waiting on its choice pulses by opacity alone', async ({ page }) => {
+        test('docs/phone-rendering.md a seat waiting on its choice shows a static ring', async ({
+            page
+        }) => {
             await createGame(page)
             await playToHands(page)
             await settled(page)
-            await expect(page.locator('[data-seat-chip][data-deciding]').first()).toBeVisible()
-            const animated = await animatedProperties(page)
-            expect(Object.keys(animated)).toContain('chip-pulse')
-            for (const properties of Object.values(animated)) {
-                expect(properties.filter((property) => property !== 'opacity')).toEqual([])
-            }
+            await stillRing(page, '[data-seat-chip][data-deciding]')
         })
     })
 })

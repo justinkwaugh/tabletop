@@ -267,7 +267,7 @@ describe('Seals and beads (S58, R-5-H1)', () => {
 describe('One derivation of the seat (contract: Seat panel)', () => {
     const SeatA = 'p1'
 
-    it('R-2.2.5, R-5.3 The ribbon: name, score, numeral, the start-player crown, the turn pulse', () => {
+    it('R-2.2.5, R-5.3 The ribbon: name, score, numeral, the start-player crown, the waiting ring', () => {
         const host = new FeudumHost(3)
         host.edit((state) => {
             state.getPlayerState(SeatA).score = 12
