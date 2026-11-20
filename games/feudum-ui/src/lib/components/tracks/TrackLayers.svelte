@@ -30,12 +30,11 @@
     let printed = $derived(assetUrl(MapAsset) !== undefined)
 </script>
 
-<g opacity={dimmedWithRest(chrome)}><EpochSky {state} {printed} /></g>
+<EpochSky {state} {printed} dim={dimmedWithRest(chrome)} />
 <RegionStacks {state} {printed} {chrome} />
 <VoyageService {state} {printed} {paintOf} {chrome} />
-<g opacity={dimmedWithRest(chrome)}>
-    <WineBarrels {state} {printed} {paintOf} />
-    {#if ring}
-        <ScoreRing {state} {paintOf} />
-    {/if}
-</g>
+<!-- Each barrel and disc dims as itself: the ring round the board never fades as one group. -->
+<WineBarrels {state} {printed} {paintOf} dim={dimmedWithRest(chrome)} />
+{#if ring}
+    <ScoreRing {state} {paintOf} dim={dimmedWithRest(chrome)} />
+{/if}

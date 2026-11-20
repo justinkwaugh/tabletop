@@ -28,6 +28,12 @@ export const PlainChrome: BoardChrome = { offer: NoBoardOffer, bright: new Set()
 
 /** How far a dimmed element fades into the ground. */
 const DimOpacity = 0.4
+/**
+ * A veil of the board's own ground at this opacity over a raster draws it exactly as the raster at
+ * `DimOpacity` would look: one plain shape, where an opacity on the raster's group would cost WebKit
+ * a bitmap of the group's whole size.
+ */
+export const VeilOpacity = 1 - DimOpacity
 
 /** The contract's dimming for an element a target names; plain stays as it is. */
 export function dimmed(role: BoardRole): number | undefined {

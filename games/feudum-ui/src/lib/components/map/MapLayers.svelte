@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
-    import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
+    import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import MapChips from './MapChips.svelte'
     import MapContents from './MapContents.svelte'
@@ -24,7 +24,8 @@
     } = $props()
 </script>
 
-<g data-layer="ground" opacity={dimmedWithRest(chrome)}><MapGround /></g>
+<!-- The map's one veil, over its ground and its drawn routes, is the routes' (`MapRoutes`). -->
+<g data-layer="ground"><MapGround /></g>
 <g data-layer="routes"><MapRoutes {chrome} /></g>
 <g data-layer="locations"><MapLocations {state} {paintOf} {chrome} /></g>
 {@render underContents?.()}

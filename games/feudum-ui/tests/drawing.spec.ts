@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createGame, playToCards, playToHands, settled } from './helpers.js'
+import { openFixture } from './scenarioTable.js'
 
 /**
  * How the table draws, by the platform's phone-rendering rules: what WebKit pays for on a phone
@@ -115,6 +116,51 @@ test('opening, switching and closing the guild sides adds and removes no wheel o
     expect(await page.locator('[data-board-surface]').boundingBox()).toEqual(before)
 
     expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
+})
+
+/** Every element of the board drawn at an opacity below 1, with its box in board units. */
+function translucent(page: Page) {
+    return page.locator('[data-board-surface]').evaluate((svg) =>
+        [...svg.querySelectorAll('*')].flatMap((element) => {
+            if (!(element instanceof SVGGraphicsElement)) return []
+            const opacity = Number(getComputedStyle(element).opacity)
+            if (opacity >= 1) return []
+            const { width, height } = element.getBBox()
+            return [{ tag: element.tagName, opacity, width, height }]
+        })
+    )
+}
+
+test.describe('the dims of a pick, on a phone that draws the whole board', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    for (const [fixture, card] of [
+        ['guild-pick', 'Guild'],
+        ['cards-migrate', 'Migrate']
+    ] as const) {
+        test(`${fixture}: what dims is piece-sized, and one veil a raster stands under`, async ({
+            page
+        }) => {
+            test.setTimeout(120_000)
+            await openFixture(page, fixture)
+            await settled(page)
+            await page.locator(`[data-cards="hand"] [data-row^="${card}"] button`).first().click()
+            await settled(page)
+            await expect(
+                page.locator('[data-board-surface] [data-pick-role="lit"]').first()
+            ).toBeAttached()
+            // Phone rendering, effects stay piece-sized: no group the size of the board, the map
+            // or a guild area fades as one; the largest piece is a location disc's frame.
+            const large = (await translucent(page)).filter(
+                ({ width, height }) => width > 160 || height > 160
+            )
+            expect(large).toEqual([])
+            // The map's raster and each dimmed guild area's print stand under a veil, a plain shape.
+            expect(
+                await page.locator('[data-board-surface] [data-dim-veil]').count()
+            ).toBeGreaterThan(0)
+        })
+    }
 })
 
 test.describe('waiting seats', () => {

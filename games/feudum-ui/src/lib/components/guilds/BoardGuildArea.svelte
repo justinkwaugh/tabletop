@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
     import { GuildById, type GuildId, type HydratedFeudumGameState } from '@tabletop/feudum'
+    import DimVeil from '$lib/components/map/DimVeil.svelte'
     import PickChrome from '$lib/components/map/PickChrome.svelte'
     import Enlargeable from '$lib/components/table/Enlargeable.svelte'
     import { PlainChrome, dimmed, isPickable, type BoardChrome } from '$lib/model/boardChrome.js'
@@ -44,9 +45,10 @@
     <rect x={at.x} y={at.y} width={GuildAreaWidth} height={GuildAreaHeight} fill="transparent"
     ></rect>
 </Enlargeable>
-<g opacity={dimmed(roleOf(chrome.offer, target))}>
-    <GuildArea {guild} {state} {paintOf} {colourPaintOf} x={at.x} y={at.y} />
-</g>
+<GuildArea {guild} {state} {paintOf} {colourPaintOf} x={at.x} y={at.y} />
+{#if dimmed(roleOf(chrome.offer, target)) !== undefined}
+    <DimVeil x={at.x} y={at.y} width={GuildAreaWidth} height={GuildAreaHeight} />
+{/if}
 <PickChrome
     {target}
     {chrome}

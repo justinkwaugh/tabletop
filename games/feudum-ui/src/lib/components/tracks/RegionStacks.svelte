@@ -42,12 +42,10 @@
 </script>
 
 {#if !printed}
-    <g
-        data-drawn-chart
-        opacity={dimmedWithRest(chrome)}
-        style:font-family="var(--feudum-font-text)"
-    >
+    <!-- The drawn chart dims shape by shape and row by row, never as one group. -->
+    <g data-drawn-chart style:font-family="var(--feudum-font-text)">
         <rect
+            opacity={dimmedWithRest(chrome)}
             x={TileChart.x}
             y={TileChart.y}
             width={TileChart.width}
@@ -58,6 +56,7 @@
         ></rect>
         {#each ChartColumns as column, index (column)}
             <text
+                opacity={dimmedWithRest(chrome)}
                 x={TileChart.columns[index + 1]}
                 y={TileChart.headerY}
                 text-anchor="middle"
@@ -67,7 +66,7 @@
         {/each}
         {#each RegionTileChart as row (row.id)}
             {@const at = trackPlace(TileChartRows, row.id)}
-            <g data-chart-row={row.tileEpoch}>
+            <g data-chart-row={row.tileEpoch} opacity={dimmedWithRest(chrome)}>
                 <text
                     x={at.x}
                     y={at.y + 4}

@@ -2,7 +2,8 @@
     import { Routes, type RouteMedium } from '@tabletop/feudum'
     import { MapAsset, assetUrl } from '$lib/art/assetMap.js'
     import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
-    import { RoutePaths, routeD, routePointAt } from '$lib/utils/boardGeometry.js'
+    import { MapArea, RoutePaths, routeD, routePointAt } from '$lib/utils/boardGeometry.js'
+    import DimVeil from './DimVeil.svelte'
     import RouteGlyph from './RouteGlyph.svelte'
 
     /**
@@ -36,7 +37,7 @@
     )
 </script>
 
-<g opacity={dimmedWithRest(chrome)}>
+<g>
     {#each drawn as route (route.id)}
         {@const path = RoutePaths.get(route.id)}
         {@const line = Lines[route.medium]}
@@ -55,6 +56,10 @@
         {/if}
     {/each}
 </g>
+{#if dimmedWithRest(chrome) !== undefined}
+    <!-- The ground and the routes dim with the rest under one veil; the Move's trail stays over it. -->
+    <DimVeil x={MapArea.x} y={MapArea.y} width={MapArea.width} height={MapArea.height} />
+{/if}
 {#each trail as { step, path, middle } (step.n)}
     <g data-trail={step.n} opacity={step.godspeed ? 0.6 : undefined}>
         <path

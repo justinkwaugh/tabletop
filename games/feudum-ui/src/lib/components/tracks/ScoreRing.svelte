@@ -20,10 +20,13 @@
      */
     let {
         state,
-        paintOf
+        paintOf,
+        dim
     }: {
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
+        /** Dimmed with the rest of the board: each cell and disc as itself, never the ring as one. */
+        dim?: number
     } = $props()
 
     const labelled = (space: number) => space % ScoreTrack.labelEvery === 0
@@ -49,6 +52,7 @@
             width={width - 2}
             height={height - 2}
             rx="3"
+            opacity={printed ? undefined : dim}
             fill={printed
                 ? 'none'
                 : labelled(space)
@@ -62,6 +66,7 @@
                 y={centre.y + 7}
                 text-anchor="middle"
                 font-size="20"
+                opacity={dim}
                 fill="var(--feudum-parchment)">{space}</text
             >
         {/if}
@@ -71,18 +76,20 @@
 {#each discs as disc (disc.playerId)}
     {@const chip = scoreChipOffset(disc.space)}
     <BoardPiece at={scoreDiscAt(disc.space, disc.index, disc.count)} piece="score:{disc.playerId}">
-        <SeatToken
-            kind="disc"
-            paint={paintOf(disc.playerId)}
-            size={ScoreDiscSize}
-            x={-ScoreDiscSize / 2}
-            y={-ScoreDiscSize / 2}
-            label={labelOf(disc)}
-        />
-        {#if disc.chip}
-            <g data-score-chip={disc.chip}>
-                <CountChip count={disc.chip} x={chip.x} y={chip.y} />
-            </g>
-        {/if}
+        <g opacity={dim}>
+            <SeatToken
+                kind="disc"
+                paint={paintOf(disc.playerId)}
+                size={ScoreDiscSize}
+                x={-ScoreDiscSize / 2}
+                y={-ScoreDiscSize / 2}
+                label={labelOf(disc)}
+            />
+            {#if disc.chip}
+                <g data-score-chip={disc.chip}>
+                    <CountChip count={disc.chip} x={chip.x} y={chip.y} />
+                </g>
+            {/if}
+        </g>
     </BoardPiece>
 {/each}

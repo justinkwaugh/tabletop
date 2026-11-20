@@ -21,18 +21,21 @@
     let {
         state,
         printed,
-        paintOf
+        paintOf,
+        dim
     }: {
         state: HydratedFeudumGameState
         printed: boolean
         paintOf: (playerId: string) => SeatPaint
+        /** Dimmed with the rest of the board: each barrel as itself. */
+        dim?: number
     } = $props()
 </script>
 
 {#each state.players as player (player.playerId)}
     {@const centre = barrelCentre(player.color)}
     {@const paint = paintOf(player.playerId)}
-    <g data-barrel={player.playerId} data-sulfur={player.barrel}>
+    <g data-barrel={player.playerId} data-sulfur={player.barrel} opacity={dim}>
         {#if !printed}
             <svg
                 x={centre.x - BarrelSize / 2}

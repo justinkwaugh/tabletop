@@ -59,54 +59,63 @@
 </script>
 
 {#if !printed}
-    <g
-        data-drawn-tracks
-        opacity={dimmedWithRest(chrome)}
-        style:font-family="var(--feudum-font-text)"
-    >
+    <!-- Each drawn space dims as itself: the tracks round the board never fade as one group. -->
+    <g data-drawn-tracks style:font-family="var(--feudum-font-text)">
         {#each EpicVoyageTrack as space (space.id)}
             {@const at = trackPlace(VoyageSpaces, space.id)}
-            <circle
-                cx={at.x}
-                cy={at.y}
-                r={SpaceRadius}
-                fill="var(--feudum-parchment)"
-                stroke="var(--feudum-map-ink)"
-            ></circle>
-            <text x={at.x} y={at.y + 5} text-anchor="middle" font-size="14" fill="var(--feudum-ink)"
-                >{space.space}</text
-            >
-            {#if space.writDraw}
-                <svg
-                    x={at.x - 8}
-                    y={at.y - SpaceRadius - 18}
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    data-writ-icon={space.space}
+            <g opacity={dimmedWithRest(chrome)}>
+                <circle
+                    cx={at.x}
+                    cy={at.y}
+                    r={SpaceRadius}
+                    fill="var(--feudum-parchment)"
+                    stroke="var(--feudum-map-ink)"
+                ></circle>
+                <text
+                    x={at.x}
+                    y={at.y + 5}
+                    text-anchor="middle"
+                    font-size="14"
+                    fill="var(--feudum-ink)">{space.space}</text
                 >
-                    <path
-                        d={WritPath}
-                        fill="var(--feudum-parchment)"
-                        stroke="var(--feudum-map-ink)"
-                        stroke-width="1.5"
-                    ></path>
-                </svg>
-            {/if}
+                {#if space.writDraw}
+                    <svg
+                        x={at.x - 8}
+                        y={at.y - SpaceRadius - 18}
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        data-writ-icon={space.space}
+                    >
+                        <path
+                            d={WritPath}
+                            fill="var(--feudum-parchment)"
+                            stroke="var(--feudum-map-ink)"
+                            stroke-width="1.5"
+                        ></path>
+                    </svg>
+                {/if}
+            </g>
         {/each}
         {#each MilitaryServiceTrack as space (space.id)}
             {@const at = trackPlace(ServiceSpaces, space.id)}
-            <ellipse
-                cx={at.x}
-                cy={at.y}
-                rx="40"
-                ry="14"
-                fill="var(--feudum-parchment)"
-                stroke="var(--feudum-map-ink)"
-            ></ellipse>
-            <text x={at.x} y={at.y + 5} text-anchor="middle" font-size="14" fill="var(--feudum-ink)"
-                >{space.penalty}</text
-            >
+            <g opacity={dimmedWithRest(chrome)}>
+                <ellipse
+                    cx={at.x}
+                    cy={at.y}
+                    rx="40"
+                    ry="14"
+                    fill="var(--feudum-parchment)"
+                    stroke="var(--feudum-map-ink)"
+                ></ellipse>
+                <text
+                    x={at.x}
+                    y={at.y + 5}
+                    text-anchor="middle"
+                    font-size="14"
+                    fill="var(--feudum-ink)">{space.penalty}</text
+                >
+            </g>
         {/each}
     </g>
 {/if}

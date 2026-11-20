@@ -132,7 +132,12 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         const chrome = chromeWith(new Map([[spaceTarget(A), { role: 'lit' }]]))
         const html = render(MapLayers, { props: { state, paintOf, chrome } }).body
 
-        expect(html).toMatch(/data-layer="ground"[^>]*opacity="0\.4"/)
+        // The map's raster dims under one veil in the routes' layer, under the locations and pieces;
+        // no group the size of the map fades as one (phone rendering).
+        expect(html).not.toMatch(/data-layer="ground"[^>]*opacity=/)
+        const veil = html.indexOf('data-dim-veil')
+        expect(veil).toBeGreaterThan(html.indexOf('data-layer="routes"'))
+        expect(veil).toBeLessThan(html.indexOf('data-layer="locations"'))
         expect(html).toContain(`data-pick="${spaceTarget(A)}"`)
         expect(html).toContain('data-pick-role="lit"')
         expect(html).toContain('data-pick-role="dimmed"')
@@ -164,6 +169,7 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         const html = render(MapLayers, { props: { state, paintOf } }).body
 
         expect(html).not.toContain('opacity="0.4"')
+        expect(html).not.toContain('data-dim-veil')
         expect(html).not.toContain('role="button"')
         expect(html).toContain('data-pick-role="plain"')
     })

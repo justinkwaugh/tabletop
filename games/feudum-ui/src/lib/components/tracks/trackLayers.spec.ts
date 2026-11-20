@@ -133,7 +133,7 @@ describe('the score ring (R-1.2.5, R-6)', () => {
         const html = tracks(await table())
         expect(ScoreDiscSize).toBe(40)
         expect(html).toMatch(
-            /data-world="score:[^"]+"[^>]*>\s*<g[^>]*data-motion[^>]*>\s*(<!--[^>]*-->\s*)*<svg[^>]*width="40"/
+            /data-world="score:[^"]+"[^>]*>\s*<g[^>]*data-motion[^>]*>\s*(<!--[^>]*-->\s*)*(<g[^>]*>\s*)?(<!--[^>]*-->\s*)*<svg[^>]*width="40"/
         )
     })
 
