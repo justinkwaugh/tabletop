@@ -328,7 +328,10 @@ export class EighteenXXSession<
         () => this.myPlayer?.id,
         (action) => this.noticeText(action)
     )
-    readonly trainFunding = new TrainFundingModule(this.moduleSession)
+    readonly trainFunding: TrainFundingModule = new TrainFundingModule(
+        this.moduleSession,
+        () => this.trainBuying.buysOutright
+    )
     readonly decisions = new CompanyDecisionsModule(this.moduleSession)
     readonly privateActions: PrivateActionsModule = new PrivateActionsModule(
         this.moduleSession,

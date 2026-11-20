@@ -86,6 +86,13 @@ export class TrainBuyingModule {
     offers = $derived.by(() => this.model.offers())
     marketOffers = $derived.by(() => this.model.marketOffers())
     exchanges = $derived.by(() => this.model.exchanges())
+    /** Whether the company can buy a train from the bank or market, or trade one in, with its own cash. */
+    buysOutright = $derived.by(
+        () =>
+            this.offers.some((offer) => offer.evaluation.details) ||
+            this.marketOffers.some((offer) => offer.details) ||
+            this.exchanges.length > 0
+    )
     currentDepotOffers = $derived.by(() => {
         const available = this.session.rules.trainRules.availableDefinitions(this.session.state)
         return this.offers.filter(

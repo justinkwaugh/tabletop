@@ -6,8 +6,10 @@ import {
     minimalPlayState,
     minimalStockRules,
     minimalTrainFundingRules,
-    minimalTrainRules
+    minimalTrainRules,
+    minimalTransferRules
 } from '@tabletop/18xx/testing'
+import { TrainBuyingModule, type TrainBuyingSession } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule, type TrainFundingSession } from './trainFundingModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
@@ -28,7 +30,7 @@ function funding(
         trainRules: minimalTrainRules
     }
     const harness = testSession(state, rules, valid, availability)
-    return { ...harness, module: new TrainFundingModule(harness.session) }
+    return { ...harness, module: new TrainFundingModule(harness.session, () => false) }
 }
 
 const VariantDepot = new TrainDepot({
@@ -108,8 +110,9 @@ function trainlessRailway({
             privateIncomePaid: false
         }
     }
-    const rules: TrainFundingSession['rules'] = {
+    const rules: TrainFundingSession['rules'] & TrainBuyingSession['rules'] = {
         stockRules: minimalStockRules,
+        transferRules: minimalTransferRules,
         trainFundingRules: {
             ...minimalTrainFundingRules,
             contributors: () => [president],
@@ -124,7 +127,11 @@ function trainlessRailway({
         }
     }
     const harness = testSession(state, rules, ['FundTrain'])
-    return { ...harness, module: new TrainFundingModule(harness.session) }
+    const buying = new TrainBuyingModule(harness.session, () => [])
+    return {
+        ...harness,
+        module: new TrainFundingModule(harness.session, () => buying.buysOutright)
+    }
 }
 
 describe('TrainFundingModule', () => {

@@ -84,19 +84,10 @@
                 : `${remaining} remaining`}</small
         >
         {#if reason}<small class="reason">{reason}</small>{/if}
-        {#if funding && session.trainFunding.voluntary}
-            {#each session.trainFunding.plan?.contributions ?? [] as help, index (index)}
-                <small class="help">{session.ownerName(help.owner)} adds {money(help.amount)}</small
-                >
-            {/each}
-        {:else if funding && details}
-            {@const plan = session.trainFunding.options.find(
-                (option) =>
-                    option.purchase.trainId === details.trainId &&
-                    option.purchase.definitionId === details.definitionId
-            )?.plan}
+        {#if funding}
+            {@const plan = details && session.trainFunding.planFor(details)}
             {#if plan?.treasuryProceeds}<small class="help"
-                    >Treasury shares raise {money(plan.treasuryProceeds)}</small
+                    >Treasury shares will raise {money(plan.treasuryProceeds)}</small
                 >{/if}
             {#each plan?.contributions ?? [] as help, index (index)}
                 <small class="help">{session.ownerName(help.owner)} adds {money(help.amount)}</small
