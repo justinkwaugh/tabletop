@@ -81,53 +81,6 @@ export interface NourishPanel {
     readonly primary: TurnPrimary
 }
 
-function feedOf({ wineFed, unfed }: Feeding, n: PawnNumber): Feed {
-    if (wineFed.includes(n)) {
-        return 'wine'
-    }
-    return unfed.includes(n) ? 'unfed' : 'food'
-}
-
-function feedingOf(
-    pawns: readonly { readonly n: PawnNumber }[],
-    feedFor: (n: PawnNumber) => Feed
-): Feeding {
-    const numbers = pawns.map(({ n }) => n)
-    return {
-        wineFed: numbers.filter((n) => feedFor(n) === 'wine'),
-        unfed: numbers.filter((n) => feedFor(n) === 'unfed')
-    }
-}
-
-function capacities(offer: NourishOffer): Readonly<Record<Feed, number>> {
-    return {
-        food: offer.food,
-        wine: offer.barrel,
-        unfed: Math.max(0, offer.pawns.length - offer.food - offer.barrel)
-    }
-}
-
-/** R-4.10.1 A full feed sends its last pawn back, so no pawn it could feed goes unfed. */
-export function feedingAfterPress(
-    offer: NourishOffer,
-    feeding: Feeding,
-    n: PawnNumber,
-    feed: Feed
-): Feeding {
-    const from = feedOf(feeding, n)
-    if (from === feed) {
-        return feeding
-    }
-    const occupants = offer.pawns.map((pawn) => pawn.n).filter((m) => feedOf(feeding, m) === feed)
-    const swapped = occupants.length >= capacities(offer)[feed] ? occupants.at(-1) : undefined
-    return feedingOf(offer.pawns, (m) => {
-        if (m === n) {
-            return feed
-        }
-        return m === swapped ? from : feedOf(feeding, m)
-    })
-}
-
 /**
  * R-4.10, R-4.10-H4 Every asked seat decides at once, so the draft outlives another seat's Action;
  * it is read back only under `keyOf`, so a shared screen never shows it to the next seat.
@@ -205,7 +158,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         if (!offer || !feeding) {
             return
         }
-        const after = feedingAfterPress(offer, feeding, n, feed)
+        const after = NourishDraft.feedingAfterPress(offer, feeding, n, feed)
         if (after !== feeding) {
             this.push('feeding', after)
         }
@@ -268,8 +221,8 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         if (!context || !offer || !preview || !feeding) {
             return undefined
         }
-        const room = capacities(offer)
-        const feedOfPawn = (n: PawnNumber) => feedOf(feeding, n)
+        const room = NourishDraft.capacities(offer)
+        const feedOfPawn = (n: PawnNumber) => NourishDraft.feedOf(feeding, n)
         const eating = (feed: Feed) => offer.pawns.filter(({ n }) => feedOfPawn(n) === feed).length
         const hasCover = offer.wildTileNeeded || (this.value('cover') ?? []).length > 0
         const send: NourishSend = {
@@ -328,10 +281,10 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         if (!context || !offer || !feeding) {
             return []
         }
-        const room = capacities(offer)
+        const room = NourishDraft.capacities(offer)
         const feeds = FeedOrder.filter((feed) => room[feed] > 0)
         return offer.pawns.map(({ n }) => {
-            const feed = feedOf(feeding, n)
+            const feed = NourishDraft.feedOf(feeding, n)
             const next = feeds[(feeds.indexOf(feed) + 1) % feeds.length]
             return {
                 target: pawnTarget(context.playerId, n),
@@ -387,5 +340,55 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             label: `1 ${feed}`,
             art: [{ kind: 'good', good: FeedArt[feed], count: 1 }]
         }
+    }
+
+    private static feedOf({ wineFed, unfed }: Feeding, n: PawnNumber): Feed {
+        if (wineFed.includes(n)) {
+            return 'wine'
+        }
+        return unfed.includes(n) ? 'unfed' : 'food'
+    }
+
+    private static feedingOf(
+        pawns: readonly { readonly n: PawnNumber }[],
+        feedFor: (n: PawnNumber) => Feed
+    ): Feeding {
+        const numbers = pawns.map(({ n }) => n)
+        return {
+            wineFed: numbers.filter((n) => feedFor(n) === 'wine'),
+            unfed: numbers.filter((n) => feedFor(n) === 'unfed')
+        }
+    }
+
+    private static capacities(offer: NourishOffer): Readonly<Record<Feed, number>> {
+        return {
+            food: offer.food,
+            wine: offer.barrel,
+            unfed: Math.max(0, offer.pawns.length - offer.food - offer.barrel)
+        }
+    }
+
+    /** R-4.10.1 A full feed sends its last pawn back, so no pawn it could feed goes unfed. */
+    private static feedingAfterPress(
+        offer: NourishOffer,
+        feeding: Feeding,
+        n: PawnNumber,
+        feed: Feed
+    ): Feeding {
+        const from = NourishDraft.feedOf(feeding, n)
+        if (from === feed) {
+            return feeding
+        }
+        const occupants = offer.pawns
+            .map((pawn) => pawn.n)
+            .filter((m) => NourishDraft.feedOf(feeding, m) === feed)
+        const swapped =
+            occupants.length >= NourishDraft.capacities(offer)[feed] ? occupants.at(-1) : undefined
+        return NourishDraft.feedingOf(offer.pawns, (m) => {
+            if (m === n) {
+                return feed
+            }
+            return m === swapped ? from : NourishDraft.feedOf(feeding, m)
+        })
     }
 }

@@ -33,24 +33,6 @@ interface Pose {
 
 const WorldPlacement = /translate\(\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*\)/
 
-function along(path: readonly Point[], t: number): Point {
-    const lengths = [0]
-    for (let index = 1; index < path.length; index += 1) {
-        const [a, b] = [path[index - 1], path[index]]
-        lengths.push(lengths[index - 1] + Math.hypot(b.x - a.x, b.y - a.y))
-    }
-    const total = lengths[lengths.length - 1]
-    const reached = total * t
-    const segment = Math.max(
-        1,
-        lengths.findIndex((length) => length >= reached)
-    )
-    const [a, b] = [path[segment - 1], path[segment]]
-    const span = lengths[segment] - lengths[segment - 1]
-    const part = span > 0 ? (reached - lengths[segment - 1]) / span : 1
-    return { x: a.x + (b.x - a.x) * part, y: a.y + (b.y - a.y) * part }
-}
-
 export interface BoardChangeArgs {
     readonly to: HydratedFeudumGameState
     readonly from?: HydratedFeudumGameState
@@ -252,7 +234,7 @@ export class BoardAnimator {
             return carry && path
                 ? (t) => {
                       if (generation === this.generation) {
-                          carry(along(path, t))
+                          carry(BoardAnimator.along(path, t))
                       }
                   }
                 : undefined
@@ -271,7 +253,7 @@ export class BoardAnimator {
                 return
             }
             if (path) {
-                const point = along(path, t)
+                const point = BoardAnimator.along(path, t)
                 pose.x = point.x - world.x
                 pose.y = point.y - world.y
             }
@@ -354,5 +336,23 @@ export class BoardAnimator {
 
     private rounded(value: number): number {
         return Math.round(value * 100) / 100
+    }
+
+    private static along(path: readonly Point[], t: number): Point {
+        const lengths = [0]
+        for (let index = 1; index < path.length; index += 1) {
+            const [a, b] = [path[index - 1], path[index]]
+            lengths.push(lengths[index - 1] + Math.hypot(b.x - a.x, b.y - a.y))
+        }
+        const total = lengths[lengths.length - 1]
+        const reached = total * t
+        const segment = Math.max(
+            1,
+            lengths.findIndex((length) => length >= reached)
+        )
+        const [a, b] = [path[segment - 1], path[segment]]
+        const span = lengths[segment] - lengths[segment - 1]
+        const part = span > 0 ? (reached - lengths[segment - 1]) / span : 1
+        return { x: a.x + (b.x - a.x) * part, y: a.y + (b.y - a.y) * part }
     }
 }

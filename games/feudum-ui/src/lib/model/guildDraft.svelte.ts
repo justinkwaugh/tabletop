@@ -120,9 +120,6 @@ interface GuildView {
     readonly bench?: BenchOffer
 }
 
-const CostFromPrices = (prices: readonly number[]): ChipNote | undefined =>
-    prices.length > 0 ? { kind: 'cost', label: `from ${Math.min(...prices)}s` } : undefined
-
 /** R-3.16, R-3.16.3, R-4.6 The rule is in the logic package; this holds the presses. */
 export class GuildDraft extends StagedDraft<GuildDraftValues> {
     private readonly seeing: StagedSelectionState<GuildDraftValues> = $derived.by(() =>
@@ -489,12 +486,14 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         source: BenchSource
     ): ChipNote | undefined {
         if (guildId === 'merchant') {
-            return CostFromPrices(
+            return GuildDraft.costFromPrices(
                 merchantTradeOffers(seat.state, seat.playerId).map(({ price }) => price)
             )
         }
         if (guildId === 'alchemist') {
-            return CostFromPrices(alchemistTradeOffers(seat.state).map(({ price }) => price))
+            return GuildDraft.costFromPrices(
+                alchemistTradeOffers(seat.state).map(({ price }) => price)
+            )
         }
         if (guildId === 'noble') {
             return { kind: 'cost', label: `${nobleTradeOffer(seat.state).price}s each` }
@@ -508,5 +507,11 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
 
     private upToVp(bestVp: number): string {
         return `up to ${bestVp} vp`
+    }
+
+    private static costFromPrices(prices: readonly number[]): ChipNote | undefined {
+        return prices.length > 0
+            ? { kind: 'cost', label: `from ${Math.min(...prices)}s` }
+            : undefined
     }
 }
