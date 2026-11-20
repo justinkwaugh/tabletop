@@ -56,8 +56,14 @@ const UnlimitedDepot = new TrainDepot({
 function trainlessRailway({
     depot = VariantDepot,
     availableDefinitions = ['2', '3'],
-    marketTrainIds = []
-}: { depot?: TrainDepot; availableDefinitions?: string[]; marketTrainIds?: string[] } = {}) {
+    marketTrainIds = [],
+    treasury = 0
+}: {
+    depot?: TrainDepot
+    availableDefinitions?: string[]
+    marketTrainIds?: string[]
+    treasury?: number
+} = {}) {
     const inventory = depot.createInventory()
     const president = { kind: 'player' as const, playerId: TestPlayerId }
     const railway = { kind: 'company' as const, companyId: TestCompanyId }
@@ -68,7 +74,11 @@ function trainlessRailway({
         actionCount: 0,
         usedPrivatePowerIds: [],
         companies: [{ id: TestCompanyId, kind: 'major', president }],
-        cash: [...base.cash, { owner: president, amount: 500 }, { owner: railway, amount: 0 }],
+        cash: [
+            ...base.cash,
+            { owner: president, amount: 500 },
+            { owner: railway, amount: treasury }
+        ],
         certificates: [
             {
                 id: `${TestCompanyId}:president`,
@@ -134,6 +144,14 @@ describe('TrainFundingModule', () => {
         expect(applied).toHaveLength(1)
         const [action] = applied
         expect(isFundTrain(action) && action.definitionId).toBe('3')
+    })
+
+    it('stands in for the train list only when funding is the sole way to a train', () => {
+        expect(trainlessRailway().module.fundingOnly).toBe(true)
+        // The treasury buys the 2 outright; only the dearer 3 needs funding (1833NE §6.87).
+        const { module } = trainlessRailway({ treasury: 120 })
+        expect(module.depotPurchases.map((purchase) => purchase.definitionId)).toEqual(['3'])
+        expect(module.fundingOnly).toBe(false)
     })
 
     it('begins funding with one Action, leaving its forced steps to the engine', async () => {
