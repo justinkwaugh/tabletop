@@ -409,6 +409,31 @@ describe("a reserve beside its locale's approaches", () => {
             expect(insidePolygon(block.centre, outline)).toBe(true)
         }
     })
+
+    // From reported games: an impassable border has no bar drawn, and a reserve in a locale with one
+    // left the whole table blank.
+    it('stands in a locale with an impassable border, which has no bar to keep clear of', () => {
+        const game = new TestGame()
+        const bordered = Object.keys(LOCALE_GEOMETRY)
+            .map(Number)
+            .filter((locale) =>
+                game.hydrated.map.approachesOf(locale).some((approach) => approach.impassable)
+            )
+        expect(bordered).toContain(58)
+        for (const locale of bordered) {
+            const placed = new TestGame()
+            placed.deployBoth()
+            arrangeBattlefield(placed, [
+                { id: 'F24', side: Side.French, face: infantry(2), locale }
+            ])
+            for (const view of Object.values(BoardView)) {
+                const blocks = layoutPieces(placed.hydrated, {
+                    rotation: viewRotation(view)
+                }).flatMap((sprite) => sprite.blocks)
+                expect(blocks.map((block) => block.unit.id)).toContain('F24')
+            }
+        }
+    })
 })
 
 // From a reported game: four Allied corps in reserve at locale 63 made every layout of the turned

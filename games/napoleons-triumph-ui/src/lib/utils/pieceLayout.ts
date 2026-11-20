@@ -507,11 +507,11 @@ interface ReserveSpots {
 }
 
 // Deliberate: only a bar lying near level with a reserve's blocks makes it look like a corps
-// fronting that approach; one standing across them never does.
+// fronting that approach; one standing across them never does. An impassable border has no bar drawn.
 const LEVEL_BAR_DEGREES = 20
 
 function levelBarsOf(localeId: number, blockAngle: number): OrientedBox[] {
-    return AUSTERLITZ.approachesOf(localeId).flatMap((approach) => {
+    return AUSTERLITZ.passableApproachesOf(localeId).flatMap((approach) => {
         const turn = Math.abs(APPROACH_GEOMETRY[approach.id].angle - blockAngle) % 180
         return Math.min(turn, 180 - turn) <= LEVEL_BAR_DEGREES
             ? [approachBarBox(approach.id, BAR_HALF_THICKNESS)]
