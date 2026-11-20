@@ -112,7 +112,12 @@ describe('R-3.1-H1 the pouches turn over at the reveal, as a motion of the state
         })
         expect(timeline.duration()).toBeCloseTo(PouchTurnSeconds, 5)
         const turning = pouches.get(order[0])
-        expect(timeline.getChildren().flatMap((tween) => tween.targets())).toEqual([turning])
+        const tweens: readonly { targets(): readonly unknown[] }[] = timeline.getChildren(
+            false,
+            true,
+            false
+        )
+        expect(tweens.flatMap((tween) => tween.targets())).toEqual([turning])
         expect(turning?.degrees).toBe(90)
         timeline.time(PouchTurnSeconds / 2)
         expect(turning?.degrees).toBeGreaterThan(0)

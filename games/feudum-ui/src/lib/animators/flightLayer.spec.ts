@@ -36,7 +36,8 @@ import {
     type FlightEnd,
     type FlightPlan
 } from './flightPlan.js'
-import { planBoardMotion } from './boardPlan.js'
+import { guildPoint, planBoardMotion } from './boardPlan.js'
+import { guildSlot } from '$lib/utils/boardGeometry.js'
 import flightPlanSource from './flightPlan.ts?raw'
 
 /** Contract, Fast fallback: stated here apart from the plan's own constant, which it checks. */
@@ -1331,6 +1332,32 @@ describe('Contract, Replay: a copy an earlier step left resting', () => {
         resting?.fadeTo(0)
         expect(copy.style.opacity).toBe('0')
         expect(animator.carrier('good:s:other')).toBeUndefined()
+    })
+})
+
+describe('Contract, Replay: a copy resting in a guild area', () => {
+    it('R-4.5.3 is carried along a path the board draws in that area’s own frame', async () => {
+        const { animator, stage } = rig()
+        const copies = new Map<string, FakeCopy>()
+        const [journeyman, master] = ['journeyman', 'master'].map((rank) =>
+            guildSlot(`guild.farmer.track.${rank}`)
+        )
+        const rank: FlightEnd = {
+            kind: 'board',
+            point: guildPoint('farmer', journeyman),
+            size: 20,
+            rests: 'rank:guild.farmer.track.journeyman'
+        }
+        await playStep(animator, copies, {
+            ...foodFlight(FoodAtSeat, rank),
+            row: 'markers',
+            face: { kind: 'marker', playerId: 'p1' }
+        })
+        const located = vi.spyOn(stage, 'locate')
+        animator.carrier('rank:guild.farmer.track.journeyman')?.moveTo(master)
+        expect(located).toHaveBeenLastCalledWith(
+            expect.objectContaining({ point: guildPoint('farmer', master) })
+        )
     })
 })
 

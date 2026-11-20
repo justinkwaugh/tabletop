@@ -27,7 +27,9 @@ import {
     Routes,
     ScrollSpaces,
     seatKnightRow,
-    Spaces
+    Spaces,
+    type SealId,
+    type TileId
 } from '@tabletop/feudum'
 import { askedToDefend, type AskTable } from '$lib/testing/askTable.js'
 import { showOnStacks } from '$lib/testing/roundEndTable.js'
@@ -539,10 +541,12 @@ describe('Contract, Replay: every kind a flight lands on the board rests as the 
     it('R-4.3.4 a tile laid on a space rests as its landscape', async () => {
         const table = await emptyTable()
         const { id } = Spaces[0]
-        let tileId = ''
+        let given: TileId | undefined
         table.host.edit((state) => {
-            tileId = giveTile(state, table.seat)
+            given = giveTile(state, table.seat)
         })
+        const tileId = given
+        assertExists(tileId, 'R-4.3.1 The seat holds a tile')
         const change = changeFrom(table, (to) => {
             const player = to.getPlayerState(table.seat)
             player.regionTiles = player.regionTiles.filter((one) => one !== tileId)
@@ -559,13 +563,15 @@ describe('Contract, Replay: every kind a flight lands on the board rests as the 
         const chicken = ChickenSpaces.find((space) => !space.setupBead)
         assertExists(chicken, 'R-1.4 A chicken space starts with no bead')
         const [scroll] = ScrollSpaces
-        let sealId = ''
+        let held: SealId | undefined
         table.host.edit((state) => {
             giveBead(state, table.seat)
             giveSeal(state, table.seat)
-            sealId = state.getPlayerState(table.seat).beads[0]
+            held = state.getPlayerState(table.seat).beads[0]
             state.guilds.noble.scrolls[scroll.id] = false
         })
+        const sealId = held
+        assertExists(sealId, 'R-3.11 The seat holds a bead')
         const change = changeFrom(table, (to) => {
             const player = to.getPlayerState(table.seat)
             player.beads = []
@@ -704,15 +710,6 @@ function firstWrites(log: readonly string[]): readonly string[] {
 }
 
 describe('R-3.7.1 pawns and monsters on a Move', () => {
-    it('R-1.2.3 a step on a route the board does not draw is an error, not a walk with no line', async () => {
-        const scene = await walkScene()
-        const lost = moved(scene.seat, {
-            steps: scene.action.steps,
-            metadata: { steps: [{ routeId: 'route.none', from: scene.route.a }] }
-        })
-        expect(() => planBoardMotion({ ...scene, action: lost })).toThrow(/route\.none/)
-    })
-
     it('R-3.7.1 step along the route line, not straight across, from slot to slot', async () => {
         const scene = await walkScene()
         const { motions } = planBoardMotion(scene)

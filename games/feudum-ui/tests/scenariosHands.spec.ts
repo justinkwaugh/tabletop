@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { ActionType } from '@tabletop/feudum'
-import { scenario } from './scenarioTable.js'
+import { openFixture, scenario, ScenarioTable } from './scenarioTable.js'
 
 /** The contract's hand selection scenarios, on the real table at both widths. */
 
@@ -200,3 +200,122 @@ scenario('S9 R-3.1-H1 Draft survives a reconciliation', 'hands-second-sulfur', a
     await expect(table.count()).toHaveText('0 of 4')
     await expect(table.picked()).toHaveCount(0)
 })
+
+/** The degrees each painted frame turned the seat's pouch by, and its transform once settled. */
+async function pouchTurn(table: ScenarioTable, playerId: string, step: () => Promise<void>) {
+    await table.page.evaluate((id) => {
+        const turns: number[] = []
+        const watched = { turns, running: true }
+        Object.assign(window, { feudumPouchWatch: watched })
+        const look = () => {
+            const pouch = document.querySelector(
+                `[data-seat-panel="${id}"] [data-seat-section="pouch"]`
+            )?.parentElement
+            const turned = pouch?.style.transform.match(/rotateY\((-?[\d.]+)deg\)/)
+            if (turned) {
+                turns.push(Number(turned[1]))
+            }
+            if (watched.running) {
+                requestAnimationFrame(look)
+            }
+        }
+        requestAnimationFrame(look)
+    }, playerId)
+    await step()
+    await table.settled()
+    return table.page.evaluate((id) => {
+        const watched = (
+            window as unknown as { feudumPouchWatch: { turns: number[]; running: boolean } }
+        ).feudumPouchWatch
+        watched.running = false
+        const pouch = document.querySelector(
+            `[data-seat-panel="${id}"] [data-seat-section="pouch"]`
+        )?.parentElement
+        return { turns: watched.turns, left: pouch?.style.transform ?? 'no pouch' }
+    }, playerId)
+}
+
+/** R-3.1-H1 Every hand final but the last seat's, with this seat's pouch shown. */
+async function beforeTheLastFinalise(table: ScenarioTable) {
+    await table.pressCards(...FourCards)
+    await table.press(table.rowStarting('Sulfur'))
+    await table.press(table.primary())
+    await table.another('p2', {
+        type: ActionType.FinaliseHand,
+        revealsInfo: true,
+        cards: AnotherHand
+    })
+    return table.seatPanel('p1')
+}
+
+const lastFinalise = (table: ScenarioTable) =>
+    table.another('p3', { type: ActionType.FinaliseHand, revealsInfo: true, cards: AnotherHand })
+
+/** Edge on at the start, through the turn, flat at the end, and nothing left on the element. */
+function expectTurned({ turns, left }: { turns: number[]; left: string }) {
+    expect(turns.length).toBeGreaterThan(3)
+    expect(turns[0]).toBeGreaterThan(80)
+    expect(turns.some((degrees) => degrees > 5 && degrees < 85)).toBe(true)
+    expect(turns.slice(1).every((degrees, index) => degrees <= turns[index])).toBe(true)
+    expect(Math.min(...turns)).toBeLessThan(5)
+    expect(left).toBe('')
+}
+
+const Seats = {
+    desk: { viewport: { width: 1440, height: 900 } },
+    phone: { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }
+} as const
+
+for (const [width, use] of Object.entries(Seats)) {
+    test.describe(`the pouch turn on a ${width}`, () => {
+        test.use(use)
+        const problems: string[] = []
+        test.beforeEach(({ page }) => {
+            problems.length = 0
+            page.on('pageerror', (error) => problems.push(error.message))
+        })
+        test.afterEach(() => expect(problems).toEqual([]))
+
+        test(`R-3.1-H1 the last finalise turns the pouch over on the seat panel, and History's animated step forward turns it again`, async ({
+            page
+        }) => {
+            await openFixture(page, 'hands-first-sulfur')
+            const table = new ScenarioTable(page, width === 'phone')
+            const panel = await beforeTheLastFinalise(table)
+            await expect(panel.locator('[data-pouch="committed"]')).toHaveCount(1)
+            const live = await pouchTurn(table, 'p1', () => lastFinalise(table))
+            await expect(panel.locator('[data-pouch="finalised"]')).toHaveCount(1)
+            expectTurned(live)
+
+            // A step back across the reveal, then the step forward with its Action, as Shift and the
+            // step forwards button play it: the pouch turns as it did live.
+            const control = (label: string) => page.locator(`button[aria-label="${label}"]`).first()
+            const shown = panel.locator('[data-pouch="finalised"]')
+            for (let steps = 0; steps < 3 && (await shown.count()) > 0; steps += 1) {
+                await control('step backwards').dispatchEvent('click')
+                await table.settled()
+            }
+            await expect(shown).toHaveCount(0)
+            const replayed = await pouchTurn(table, 'p1', async () => {
+                await control('step forwards').dispatchEvent('click', { shiftKey: true })
+            })
+            await expect(panel.locator('[data-pouch="finalised"]')).toHaveCount(1)
+            expectTurned(replayed)
+        })
+
+        test('R-3.1-H1 with reduced motion the pouch shows its good at once: nothing turns', async ({
+            page
+        }) => {
+            await page.emulateMedia({ reducedMotion: 'reduce' })
+            await openFixture(page, 'hands-first-sulfur')
+            const table = new ScenarioTable(page, width === 'phone')
+            const panel = await beforeTheLastFinalise(table)
+            const still = await pouchTurn(table, 'p1', () => lastFinalise(table))
+            await expect(panel.locator('[data-pouch="finalised"]')).toHaveAttribute(
+                'data-pouch-good',
+                'sulfur'
+            )
+            expect(still).toEqual({ turns: [], left: '' })
+        })
+    })
+}

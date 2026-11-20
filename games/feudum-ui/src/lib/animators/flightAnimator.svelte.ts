@@ -8,6 +8,8 @@ import {
     type HideableSource,
     type StagePlace
 } from './flightAnchors.js'
+import { guildPoint } from './boardPlan.js'
+import { guildAreaAt } from '$lib/utils/boardGeometry.js'
 import {
     planDirectFlights,
     planFlights,
@@ -44,7 +46,7 @@ interface CopyPose {
     visible: boolean
 }
 
-/** Contract, Replay: a copy an earlier step left resting, as a later step's board motion moves it. */
+/** Contract, Replay: a copy an earlier step left resting, moved in its piece's own frame. */
 export interface RestingCopy {
     readonly opacity: number
     moveTo(point: Point): void
@@ -119,6 +121,8 @@ export class FlightAnimator {
             return undefined
         }
         const pose = () => this.poses.get(flight.id)
+        const guild = guildAreaAt(end.point)
+        const onBoard = (point: Point) => (guild ? guildPoint(guild, point) : point)
         return {
             get opacity() {
                 return pose()?.opacity ?? 1
@@ -126,7 +130,11 @@ export class FlightAnimator {
             moveTo: (point) => {
                 const resting = pose()
                 if (resting) {
-                    const place = this.place({ kind: 'board', point, size: end.size })
+                    const place = this.place({
+                        kind: 'board',
+                        point: onBoard(point),
+                        size: end.size
+                    })
                     resting.x = place.x
                     resting.y = place.y
                     resting.size = place.size

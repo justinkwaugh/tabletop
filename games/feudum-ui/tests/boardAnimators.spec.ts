@@ -254,6 +254,9 @@ function replayedSteps({ frames, pieces }: WatchedReplay) {
     return { order, seenIn, landing }
 }
 
+/** A frame short of the landing, and a piece's box drawn off its centre: a few pixels at most. */
+const LandingSlack = 6
+
 const firstFrame = (frames: readonly PaintedFrame[], ids: readonly string[]) =>
     frames.findIndex(({ seen }) => seen.some(({ id }) => ids.includes(id)))
 
@@ -278,17 +281,17 @@ for (const side of [undefined, 'west'] as const) {
         // No jump: the last frame painted before the state shows is the flight's last stretch.
         const end = landing(pulled)
         expect(end?.travel).toBeGreaterThan(50)
-        expect(end?.off).toBeLessThan((end?.travel ?? 0) / 4)
+        expect(end?.off).toBeLessThan(LandingSlack)
     })
 }
 
-test('S64 R-3.15, R-4.6.4 a replayed turn lifts the bead its first Action laid on the rosary: on a desk with the East side open, that copy goes as the lift starts, and both lifted beads are drawn', async ({
+test('S64 R-3.15, R-4.6.4 a replayed turn lifts the bead its first Action laid on the rosary: on a desk with the East side open, that copy goes as the lift starts, and the bead put back shows where its copy ends', async ({
     page
 }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await openTable(page, `openBeadRepeatTable('east')`)
     const watched = await page.evaluate(() => window.motionTable.replayTurn())
-    const { order, seenIn } = replayedSteps(watched)
+    const { order, seenIn, landing } = replayedSteps(watched)
     // The flipped seal, then the two beads lifted: the high and the low.
     expect(order).toHaveLength(3)
     const [flipped, ...lifted] = order
@@ -299,4 +302,41 @@ test('S64 R-3.15, R-4.6.4 a replayed turn lifts the bead its first Action laid o
     for (const bead of lifted) {
         expect(seenIn(bead).length).toBeGreaterThan(5)
     }
+    // The rosary stands in the open side, the chicken the drawn bead goes to off it: the bead put
+    // back is drawn where its copy came to rest.
+    const ends = lifted.flatMap((bead) => landing(bead) ?? [])
+    expect(Math.min(...ends.map(({ off }) => off))).toBeLessThan(LandingSlack)
+})
+
+test('S64 R-3.15, R-4.5.3 a replayed turn moves up the rank its first Action brought on: on a desk with the West side open, the resting copy slides with the second Migrate, and the marker shows where it stops', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openTable(page, `openRankRepeatTable('west')`)
+    const watched = await page.evaluate(() => window.motionTable.replayTurn())
+    const { order, seenIn } = replayedSteps(watched)
+    // The first Migrate's marker, the one copy: the second's is the board's slide of that piece.
+    expect(order).toHaveLength(1)
+    const [marker] = order
+    const places = seenIn(marker).map((index) => {
+        const seen = watched.frames[index].seen.find(({ id }) => id === marker)
+        return { x: seen?.x ?? NaN, y: seen?.y ?? NaN }
+    })
+    const still = (index: number) =>
+        [1, 2].every(
+            (ahead) =>
+                Math.hypot(
+                    places[index + ahead].x - places[index].x,
+                    places[index + ahead].y - places[index].y
+                ) < 0.25
+        )
+    const rest = places.findIndex((_, index) => index + 2 < places.length && still(index))
+    expect(rest).toBeGreaterThanOrEqual(0)
+    const landed = places[rest]
+    const last = places.at(-1) ?? landed
+    const slide = Math.hypot(last.x - landed.x, last.y - landed.y)
+    expect(slide).toBeGreaterThan(5)
+    expect(watched.pieces).toHaveLength(1)
+    const [piece] = watched.pieces
+    expect(Math.hypot(piece.x - last.x, piece.y - last.y)).toBeLessThan(LandingSlack)
 })

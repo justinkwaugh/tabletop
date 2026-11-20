@@ -6,6 +6,7 @@ import {
     Goods,
     HydratedFeudumGameState,
     GuildIds,
+    GuildTrackSpaces,
     MachineState,
     Spaces,
     migrateOffers,
@@ -397,7 +398,7 @@ function piecesPainted(prefix: string): PaintedPiece[] {
     }))
 }
 
-function movingPainted(row: 'goods' | 'seals'): PaintedPiece[] {
+function movingPainted(row: 'goods' | 'seals' | 'markers'): PaintedPiece[] {
     const tokens = [...document.querySelectorAll('[data-transient][data-token="good"]')]
         .filter((token) => row === 'goods' && Number(getComputedStyle(token).opacity) > 0)
         .map((token) => ({ id: token.getAttribute('data-transient') ?? '', ...centreOf(token) }))
@@ -410,23 +411,44 @@ function movingPainted(row: 'goods' | 'seals'): PaintedPiece[] {
         )
         .map((copy) => ({
             id: copy.getAttribute('data-flight') ?? '',
-            ...centreOf(copy.querySelector('[data-flight-side]:not([hidden])') ?? copy)
+            ...centreOf(
+                copy.querySelector('[data-flight-side]:not([hidden]) svg') ??
+                    copy.querySelector('[data-flight-side]:not([hidden])') ??
+                    copy
+            )
         }))
     return [...tokens, ...copies]
 }
 
-/** Contract, Replay: the seat's last turn again, through the log, watched frame by frame. */
+/** Where the frame stands now: what it paints moves with it, so places are read from its corner. */
+function frameOrigin(frame: string): Point {
+    const box = document.querySelector(frame)?.getBoundingClientRect()
+    return { x: box?.x ?? 0, y: box?.y ?? 0 }
+}
+
+function fromOrigin(pieces: readonly PaintedPiece[], origin: Point): PaintedPiece[] {
+    return pieces.map((piece) => ({ ...piece, x: piece.x - origin.x, y: piece.y - origin.y }))
+}
+
+/**
+ * Contract, Replay: the seat's last turn again, through the log, watched frame by frame. Places are
+ * read from the corner of `frame`, the board or an open side's area, as the page lays it out then.
+ */
 async function watchTurn(
     session: FeudumGameSession,
-    row: 'goods' | 'seals',
-    pieces: string
+    row: 'goods' | 'seals' | 'markers',
+    pieces: string,
+    frame = '[data-board-surface]'
 ): Promise<WatchedReplay> {
     const frames: PaintedFrame[] = []
     const start = performance.now()
     let running = true
     const sample = () => {
         if (running) {
-            frames.push({ at: performance.now() - start, seen: movingPainted(row) })
+            frames.push({
+                at: performance.now() - start,
+                seen: fromOrigin(movingPainted(row), frameOrigin(frame))
+            })
             requestAnimationFrame(sample)
         }
     }
@@ -436,7 +458,7 @@ async function watchTurn(
     await new Promise(requestAnimationFrame)
     await new Promise(requestAnimationFrame)
     running = false
-    return { frames, pieces: piecesPainted(pieces) }
+    return { frames, pieces: fromOrigin(piecesPainted(pieces), frameOrigin(frame)) }
 }
 
 /** R-4.7 Each push or pull offers the seat a reeve; it keeps its discs. */
@@ -511,7 +533,15 @@ export async function openGuildRepeatTable(side?: GuildSide) {
     const carted = `good:${AlchemistCartSpaces.filter((space) => space.good === good).at(-2)?.id}`
     Object.assign(window, {
         feudumSession: session,
-        motionTable: { replayTurn: () => watchTurn(session, 'goods', carted) }
+        motionTable: {
+            replayTurn: () =>
+                watchTurn(
+                    session,
+                    'goods',
+                    carted,
+                    side ? '[data-open-guild="alchemist"] [data-upright-area]' : undefined
+                )
+        }
     })
 }
 
@@ -574,6 +604,81 @@ export async function openBeadRepeatTable(side?: GuildSide) {
     }
     Object.assign(window, {
         feudumSession: session,
-        motionTable: { replayTurn: () => watchTurn(session, 'seals', 'bead:') }
+        motionTable: {
+            replayTurn: () =>
+                watchTurn(
+                    session,
+                    'seals',
+                    'bead:',
+                    side ? '[data-open-guild="monk"] [data-upright-area]' : undefined
+                )
+        }
     })
+}
+
+/**
+ * R-3.15, R-4.5.3 One turn of two Migrates, the second by Déjà Vu: the first farmer ties the next
+ * seat's master and so brings the seat on as journeyman, the second outranks it and moves the
+ * marker up to master. `replay` shows the turn again.
+ */
+export async function openRankRepeatTable(side?: GuildSide) {
+    const { host, seat, other } = await atPlayingCards(['migrate', 'repeat'], {
+        pouchGood: 'sulfur'
+    })
+    host.edit((state) => {
+        for (const player of state.players) {
+            setPawns(state, player.playerId, [])
+        }
+        setPawns(state, other, ['farmer'])
+        giveGood(state, seat, 'food')
+        giveGood(state, seat, 'food')
+        giveGood(state, seat, 'saltpeter')
+        state.recomputeRanks()
+    })
+    const session = await host.openSeat(seat)
+    await show(session)
+    const migrate = async (repeat: boolean) => {
+        const offers = migrateOffers(new HydratedFeudumGameState(host.state), seat)
+        const [onto] = offers.spaces
+        assertExists(onto, 'R-3.6 A pawn may enter')
+        await host.send(seat, {
+            type: ActionType.Migrate,
+            pawn: offers.pawnsOff[0],
+            onto: { character: 'farmer', spaceId: onto },
+            ...(repeat ? { asRepeat: 'deja-vu' } : { secondCard: true })
+        })
+        await settled(session)
+    }
+    await migrate(false)
+    const first = rankOf(host, seat)
+    await migrate(true)
+    const second = rankOf(host, seat)
+    assertExists(first, 'R-4.5.3 One farmer brings the seat onto the track')
+    assertExists(second, 'R-4.5.3 Two farmers keep it there')
+    if (first === second) {
+        throw new Error(`R-4.5.3 The second farmer moves the marker from ${first}`)
+    }
+    if (side) {
+        session.layers.toggleGuildSide(side)
+        flushSync()
+    }
+    Object.assign(window, {
+        feudumSession: session,
+        motionTable: {
+            replayTurn: () =>
+                watchTurn(
+                    session,
+                    'markers',
+                    `rank:${second}`,
+                    side ? '[data-open-guild="farmer"] [data-upright-area]' : undefined
+                )
+        }
+    })
+}
+
+function rankOf(host: FeudumHost, playerId: string): string | undefined {
+    const { tracks } = new HydratedFeudumGameState(host.state).guilds
+    return GuildTrackSpaces.find(
+        (space) => space.guild === 'farmer' && tracks.farmer[space.rank]?.playerId === playerId
+    )?.id
 }
