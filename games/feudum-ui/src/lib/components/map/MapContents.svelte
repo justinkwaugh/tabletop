@@ -106,10 +106,11 @@
     {@const pilfers = pilfersAt(chrome.offer, id)}
     {@const lit = [spaceTarget(id), feudumTarget(id)]}
     {@const kinds = goodKinds(space.goods)}
-    <g opacity={dimmedUnlessAny(chrome, [...lit, ...pilfers])}>
-        {#if space.landscape}
-            {@const tileId = space.landscape.tileId}
-            <BoardPiece at={geometry.landscape} piece="landscape:{id}">
+    {@const dim = dimmedUnlessAny(chrome, [...lit, ...pilfers])}
+    {#if space.landscape}
+        {@const tileId = space.landscape.tileId}
+        <BoardPiece at={geometry.landscape} piece="landscape:{id}">
+            <g opacity={dim}>
                 <Enlargeable
                     label="landscape tile"
                     off={lit.some((target) => isPickable(roleOf(chrome.offer, target)))}
@@ -136,29 +137,34 @@
                         y={LandscapeSize / 2}
                     />
                 {/if}
-            </BoardPiece>
-        {/if}
-        {#if kinds.length > 0}
-            {@const plate = plateBox(geometry.plate, kinds.length)}
-            <g data-goods-plate={id}>
-                <rect
-                    {...plate}
-                    y={plate.y + 2}
-                    rx="8"
-                    fill="var(--feudum-map-ink)"
-                    fill-opacity="0.55"
-                ></rect>
-                <rect
-                    {...plate}
-                    rx="8"
-                    fill="var(--feudum-parchment)"
-                    stroke="var(--feudum-ink)"
-                    stroke-width="2.5"
-                ></rect>
             </g>
-        {/if}
-        {#each kinds as { good, count }, slot (good)}
-            <BoardPiece at={plateSlot(geometry.plate, slot)} piece="good:{id}:{good}">
+        </BoardPiece>
+    {/if}
+    {#if kinds.length > 0}
+        {@const plate = plateBox(geometry.plate, kinds.length)}
+        {@const shown = dim ?? 1}
+        <g data-goods-plate={id}>
+            <rect
+                {...plate}
+                y={plate.y + 2}
+                rx="8"
+                fill="var(--feudum-map-ink)"
+                fill-opacity={0.55 * shown}
+            ></rect>
+            <rect
+                {...plate}
+                rx="8"
+                fill="var(--feudum-parchment)"
+                fill-opacity={shown}
+                stroke="var(--feudum-ink)"
+                stroke-opacity={shown}
+                stroke-width="2.5"
+            ></rect>
+        </g>
+    {/if}
+    {#each kinds as { good, count }, slot (good)}
+        <BoardPiece at={plateSlot(geometry.plate, slot)} piece="good:{id}:{good}">
+            <g opacity={dim}>
                 <GoodToken
                     {good}
                     size={PlateGood.size}
@@ -187,10 +193,12 @@
                         >
                     </g>
                 {/if}
-            </BoardPiece>
-        {/each}
-        {#each abandonedVessels(space.vessels) as { vessel, count } (vessel)}
-            <BoardPiece at={geometry.vessels[vessel]} piece="vessel:{id}:{vessel}">
+            </g>
+        </BoardPiece>
+    {/each}
+    {#each abandonedVessels(space.vessels) as { vessel, count } (vessel)}
+        <BoardPiece at={geometry.vessels[vessel]} piece="vessel:{id}:{vessel}">
+            <g opacity={dim}>
                 <VesselToken
                     {vessel}
                     size={VesselSize}
@@ -200,9 +208,9 @@
                 {#if count > 1}
                     <CountChip {count} x={VesselSize / 2} y={VesselSize / 3} />
                 {/if}
-            </BoardPiece>
-        {/each}
-    </g>
+            </g>
+        </BoardPiece>
+    {/each}
     {#if space.ruler}
         {@render marker(id, 'ruler', geometry.ruler, space.ruler.playerId, false)}
         {#if space.ruler.subject}

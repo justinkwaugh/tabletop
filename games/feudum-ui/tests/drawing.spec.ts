@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createGame, playToCards, playToHands, settled } from './helpers.js'
+import { ActionType, MachineState } from '@tabletop/feudum'
+import { realGames } from '@tabletop/feudum/testing'
 import { openFixture } from './scenarioTable.js'
 
 /**
@@ -118,7 +120,7 @@ test('opening, switching and closing the guild sides adds and removes no wheel o
     expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
 })
 
-/** Every element of the board drawn at an opacity below 1, with its box in board units. */
+/** Every element of the board drawn at an opacity below 1: its box in board units, and the pieces in it. */
 function translucent(page: Page) {
     return page.locator('[data-board-surface]').evaluate((svg) =>
         [...svg.querySelectorAll('*')].flatMap((element) => {
@@ -126,9 +128,48 @@ function translucent(page: Page) {
             const opacity = Number(getComputedStyle(element).opacity)
             if (opacity >= 1) return []
             const { width, height } = element.getBBox()
-            return [{ tag: element.tagName, opacity, width, height }]
+            const pieces = element.querySelectorAll('[data-world]').length
+            return [{ tag: element.tagName, opacity, width, height, pieces }]
         })
     )
+}
+
+/** The largest single piece the board dims: a location disc's frame, or a region's stack of tiles. */
+const LargestPiece = 100
+
+type Dimmed = Awaited<ReturnType<typeof translucent>>[number]
+
+/** Phone rendering, effects stay piece-sized: each fade holds at most one piece, at a piece's size. */
+function largerThanAPiece(dims: readonly Dimmed[]): Dimmed[] {
+    return dims.filter(
+        ({ width, height, pieces }) => pieces > 1 || width > LargestPiece || height > LargestPiece
+    )
+}
+
+/**
+ * A late position of a five-seat game the logic's scripted seats played: the last time a seat held
+ * its Move card and played it, as the harness opens a scenario file, with every Action before it.
+ */
+function lateFiveSeatMove() {
+    const walk = realGames().find(({ game }) => game.players.length === 5)
+    if (!walk) throw new Error('The logic plays a five-seat game')
+    const index = walk.steps.findLastIndex(
+        ({ input, before }) =>
+            input.type === ActionType.Move &&
+            before.machineState === MachineState.PlayingCards &&
+            before.players.some(
+                ({ playerId, hand }) => playerId === input.playerId && (hand ?? []).includes('move')
+            )
+    )
+    const step = walk.steps[index]
+    return {
+        seat: step.input.playerId,
+        scenario: {
+            game: walk.game,
+            state: step.before,
+            actions: walk.steps.slice(0, index).flatMap(({ processed }) => processed)
+        }
+    }
 }
 
 test.describe('the dims of a pick, on a phone that draws the whole board', () => {
@@ -149,18 +190,37 @@ test.describe('the dims of a pick, on a phone that draws the whole board', () =>
             await expect(
                 page.locator('[data-board-surface] [data-pick-role="lit"]').first()
             ).toBeAttached()
-            // Phone rendering, effects stay piece-sized: no group the size of the board, the map
-            // or a guild area fades as one; the largest piece is a location disc's frame.
-            const large = (await translucent(page)).filter(
-                ({ width, height }) => width > 160 || height > 160
-            )
-            expect(large).toEqual([])
+            expect(largerThanAPiece(await translucent(page))).toEqual([])
             // The map's raster and each dimmed guild area's print stand under a veil, a plain shape.
             expect(
                 await page.locator('[data-board-surface] [data-dim-veil]').count()
             ).toBeGreaterThan(0)
         })
     }
+
+    test('a late five-seat Move: each piece on a space dims as itself', async ({ page }) => {
+        test.setTimeout(180_000)
+        const { scenario } = lateFiveSeatMove()
+        await page.goto('/')
+        await page.waitForLoadState('networkidle')
+        await expect(page.getByRole('button', { name: 'Scenarios' })).toBeVisible()
+        await page.locator('input[aria-label="Scenario file"]').setInputFiles({
+            name: 'late-five-seat-move.json',
+            mimeType: 'application/json',
+            buffer: Buffer.from(JSON.stringify(scenario))
+        })
+        const move = page.locator('[data-cards="hand"] [data-row^="Move"] button').first()
+        await expect(move).toBeVisible({ timeout: 60_000 })
+        await settled(page)
+        await move.click()
+        await settled(page)
+        await expect(
+            page.locator('[data-board-surface] [data-pick-role="lit"]').first()
+        ).toBeAttached()
+        const dims = await translucent(page)
+        expect(dims.filter(({ pieces }) => pieces === 1).length).toBeGreaterThan(20)
+        expect(largerThanAPiece(dims)).toEqual([])
+    })
 })
 
 test.describe('waiting seats', () => {

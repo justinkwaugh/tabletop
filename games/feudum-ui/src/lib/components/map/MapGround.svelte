@@ -134,7 +134,7 @@
             text-anchor="middle"
             font-size="26"
             fill="var(--feudum-map-ink)"
-            opacity="0.7"
+            fill-opacity="0.7"
             style:font-family="var(--feudum-font-title)">{region}</text
         >
     {/each}

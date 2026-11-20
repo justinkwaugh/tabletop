@@ -32,7 +32,7 @@
             <!-- Each ray's line, number and mark dim as themselves, never the ray as one group. -->
             <g>
                 <line
-                    opacity={dim}
+                    stroke-opacity={dim}
                     x1={SunCentre.x}
                     y1={SunCentre.y}
                     x2={SunCentre.x +

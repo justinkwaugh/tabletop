@@ -45,7 +45,8 @@
     <!-- The drawn chart dims shape by shape and row by row, never as one group. -->
     <g data-drawn-chart style:font-family="var(--feudum-font-text)">
         <rect
-            opacity={dimmedWithRest(chrome)}
+            fill-opacity={dimmedWithRest(chrome)}
+            stroke-opacity={dimmedWithRest(chrome)}
             x={TileChart.x}
             y={TileChart.y}
             width={TileChart.width}
