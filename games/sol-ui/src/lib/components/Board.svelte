@@ -103,6 +103,10 @@
     function showGate(key: number) {
         if (gameSession.updatingVisibleState || !gameSession.myPlayer) return true
 
+        if (gameSession.canDeconstruct) {
+            return !gameSession.deconstructableGateKeys.includes(key)
+        }
+
         if (!gameSession.isConverting && !gameSession.isMoving) {
             return true
         }

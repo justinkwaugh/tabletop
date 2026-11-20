@@ -35,7 +35,15 @@
 
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
-        if (!myPlayer || (!myConvert && !myMove)) {
+        if (!myPlayer) {
+            return false
+        }
+
+        if (gameSession.canDeconstruct) {
+            return gameSession.deconstructableGateKeys.includes(key)
+        }
+
+        if (!myConvert && !myMove) {
             return false
         }
 
@@ -55,8 +63,9 @@
             return
         }
 
-        // Do the convert
-        if (myConvert) {
+        if (gameSession.canDeconstruct) {
+            gameSession.deconstructGate(key)
+        } else if (myConvert) {
             gameSession.chosenSource = coords
             gameSession.chosenDestination = neighborCoords
             gameSession.convertGate()
@@ -86,7 +95,7 @@
         class="focusable-control"
         role="button"
         tabindex={interactable ? 0 : -1}
-        aria-disabled={interactable}
+        aria-disabled={!interactable}
         onclick={onClick}
         onkeydown={onKeyDown}
         transform={translateFromCenter(location.x, location.y)}

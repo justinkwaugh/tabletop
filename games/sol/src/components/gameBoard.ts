@@ -482,6 +482,22 @@ export class HydratedSolGameBoard
         this.gates[gateKey] = gate
     }
 
+    public removeGateBetween(
+        coordsA: OffsetCoordinates,
+        coordsB: OffsetCoordinates
+    ): SolarGate | undefined {
+        const gateKey = this.gateKey(coordsA, coordsB)
+        const gate = this.gates[gateKey]
+        if (!gate) {
+            return undefined
+        }
+
+        delete this.gates[gateKey]
+        gate.innerCoords = undefined
+        gate.outerCoords = undefined
+        return gate
+    }
+
     public isNextToGateAt(coords: OffsetCoordinates): boolean {
         if (coords.row === Ring.Outer) {
             return false

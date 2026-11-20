@@ -334,6 +334,16 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         return cellLayout.station?.point
     }
 
+    deconstructableGateKeys = $derived.by(() => {
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId || !this.canDeconstruct) {
+            return []
+        }
+        return Object.entries(this.gameState.board.gates)
+            .filter(([, gate]) => gate.playerId === myPlayerId)
+            .map(([key]) => Number(key))
+    })
+
     validGateDestinations = $derived.by(() => {
         if (!this.myPlayer || this.chosenConvertType !== ConvertType.SolarGate) {
             return []
@@ -1064,6 +1074,16 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     async deconstruct() {
         const action = this.createPlayerAction(Deconstruct, {
             coords: this.chosenSource
+        })
+        await this.doAction(action)
+    }
+
+    async deconstructGate(gateKey: number) {
+        const gate = this.gameState.board.gates[gateKey]
+        assert(gate?.innerCoords && gate.outerCoords, 'No gate to deconstruct')
+        const action = this.createPlayerAction(Deconstruct, {
+            coords: gate.outerCoords,
+            innerCoords: gate.innerCoords
         })
         await this.doAction(action)
     }

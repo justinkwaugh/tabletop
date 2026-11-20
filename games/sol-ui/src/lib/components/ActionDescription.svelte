@@ -230,8 +230,12 @@
 {:else if isChooseActivate(action)}
     chose to activate
 {:else if isDeconstruct(action)}
-    deconstructed {StationNameArticles[action.metadata!.removedStation.type]}
-    {StationNames[action.metadata!.removedStation.type]}
+    {#if action.metadata?.removedStation}
+        deconstructed {StationNameArticles[action.metadata.removedStation.type]}
+        {StationNames[action.metadata.removedStation.type]}
+    {:else}
+        deconstructed a solar gate
+    {/if}
     {#if action.metadata?.oldMovement !== action.metadata?.newMovement}
         <br />
         Movement decreased to {action.metadata?.newMovement}

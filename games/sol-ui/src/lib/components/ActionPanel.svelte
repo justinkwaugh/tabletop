@@ -54,7 +54,7 @@
         }
 
         if (gameSession.canDeconstruct) {
-            result.message = 'CHOOSE A STATION TO DECONSTRUCT'
+            result.message = 'CHOOSE A STATION OR GATE TO DECONSTRUCT'
             return result
         } else if (gameSession.isHatching) {
             if (!gameSession.hatchLocation) {
