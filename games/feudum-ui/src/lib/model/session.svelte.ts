@@ -346,12 +346,23 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** Contract, Shared visual state: of the Actions that arrive, only the seat's own end its draft. */
+    /** Contract, Shared visual state: another seat's Action leaves a draft while its decision stands. */
     private endsDrafts({ kind, actions }: PresentedTransition): boolean {
         if (kind !== 'other-action' && kind !== 'reconciliation') {
             return true
         }
-        return actions.length === 0 || actions.some(({ playerId }) => playerId === this.myPlayerId)
+        const incoming = this.incomingGameState
+        return (
+            !incoming ||
+            actions.length === 0 ||
+            actions.some(({ playerId }) => playerId === this.myPlayerId) ||
+            this.decisionIn(incoming) !== this.decisionIn(this.gameState)
+        )
+    }
+
+    private decisionIn({ machineState, activePlayerIds }: HydratedFeudumGameState): string {
+        const me = this.myPlayerId
+        return `${machineState}:${me !== undefined && activePlayerIds.includes(me)}`
     }
 
     private isOffered(type: ActionType): boolean {
