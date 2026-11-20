@@ -1,4 +1,4 @@
-import { shillings } from '../model/collections.js'
+import { levelsReached, shillings } from '../model/collections.js'
 import {
     NoblePullMarkers,
     NoblePushSeals,
@@ -84,11 +84,6 @@ const NobleTrade: GuildFunctionRow = {
     }
 }
 
-/** R-4.6.5 Each total reached is one level. */
-function pushLevel(total: number): number {
-    return NoblePushTotals.filter((reached) => total >= reached).length
-}
-
 /** R-4.6.1, R-4.6-H5 As many as lie on the scrolls, up to the stated number. */
 function flipsNow(state: HydratedFeudumGameState): number {
     return Math.min(NoblePushSeals, filledScrollSpaces(state).length)
@@ -117,7 +112,7 @@ const NoblePush: GuildFunctionRow = {
         const rosaryTotal = rosaryBeadSum(state)
         return {
             details: { kind: 'noble-push', sealIds, rosaryTotal },
-            completions: pushLevel(rosaryTotal),
+            completions: levelsReached(NoblePushTotals, rosaryTotal),
             revealed: true
         }
     },
@@ -130,7 +125,7 @@ const NoblePush: GuildFunctionRow = {
         }
         const totals = flipTotals(state, flips)
         return {
-            completions: pushLevel(totals.highestTotal),
+            completions: levelsReached(NoblePushTotals, totals.highestTotal),
             revealed: true,
             sealFlip: {
                 ...totals,
@@ -140,7 +135,7 @@ const NoblePush: GuildFunctionRow = {
                     actor,
                     'noble',
                     'push',
-                    pushLevel(totals.lowestTotal)
+                    levelsReached(NoblePushTotals, totals.lowestTotal)
                 )
             }
         }
@@ -148,7 +143,7 @@ const NoblePush: GuildFunctionRow = {
 
     /** R-4.6.5 The unseen seals' highest values are the best it can do. */
     bestCompletions(state) {
-        return pushLevel(flipTotals(state, flipsNow(state)).highestTotal)
+        return levelsReached(NoblePushTotals, flipTotals(state, flipsNow(state)).highestTotal)
     }
 }
 

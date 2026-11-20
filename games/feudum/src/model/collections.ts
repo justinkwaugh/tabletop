@@ -9,6 +9,11 @@ export function sum(values: readonly number[]): number {
     return values.reduce((total, value) => total + value, 0)
 }
 
+/** R-4.6.5 Each total reached is one level. */
+export function levelsReached(totals: readonly number[], total: number): number {
+    return totals.filter((reached) => total >= reached).length
+}
+
 export function shuffled<T>(items: readonly T[], random: RandomFunction): T[] {
     const copy = [...items]
     shuffle(copy, random)

@@ -1,3 +1,4 @@
+import { levelsReached } from '../model/collections.js'
 import {
     MonkCoffer,
     MonkPullSeals,
@@ -136,11 +137,6 @@ const MonkPull: GuildFunctionRow = {
     }
 }
 
-/** R-4.6.5 Each total reached is one level. */
-function pushLevel(total: number): number {
-    return MonkPushTotals.filter((reached) => total >= reached).length
-}
-
 const MonkPush: GuildFunctionRow = {
     reasonClosed: reasonBeadToChickenClosed,
 
@@ -154,7 +150,7 @@ const MonkPush: GuildFunctionRow = {
         monk.coffer = split.stays
         return {
             details: { kind: 'monk-push', high, low, bead, chicken, chickenSum },
-            completions: pushLevel(chickenSum),
+            completions: levelsReached(MonkPushTotals, chickenSum),
             split,
             revealed: true
         }
@@ -168,9 +164,9 @@ const MonkPush: GuildFunctionRow = {
         }
         const { high, low } = candidates
         const sum = chickenBeadSum(state)
-        const ifLow = pushLevel(sum + beadValue(low))
+        const ifLow = levelsReached(MonkPushTotals, sum + beadValue(low))
         return {
-            completions: pushLevel(sum + beadValue(high)),
+            completions: levelsReached(MonkPushTotals, sum + beadValue(high)),
             split: splitPot(
                 new HydratedFeudumGameState(state.dehydrate()),
                 MonkCoffer.id,
@@ -186,7 +182,9 @@ const MonkPush: GuildFunctionRow = {
     /** R-4.6.5 The high bead is the best it can do. */
     bestCompletions(state) {
         const candidates = hiddenBeadCandidates(state)
-        return candidates ? pushLevel(chickenBeadSum(state) + beadValue(candidates.high)) : 0
+        return candidates
+            ? levelsReached(MonkPushTotals, chickenBeadSum(state) + beadValue(candidates.high))
+            : 0
     }
 }
 
