@@ -1,9 +1,10 @@
 import { addAxial, assertExists, type AxialCoordinates, type Point } from '@tabletop/common'
 import { pointName } from '@tabletop/yinsh'
-import { VIEW } from './geometry.js'
+import { VIEW, type BoardView } from './geometry.js'
 
 // BoardSpace style: each column's letter below its bottom point, and each line's number before
-// its first point on the left, where the line of that number starts.
+// its first point on the left, where the line of that number starts. Seen from the far side, each
+// label goes round with its point.
 export type CoordinateLabel = {
     key: string
     text: string
@@ -19,7 +20,10 @@ const BELOW: AxialCoordinates = { q: 0, r: 1 }
 // Numbers stay level along the lines that run down to the right, so a line starts at its left.
 const BEFORE_LINE: AxialCoordinates = { q: -1, r: 0 }
 
-export function boardLabels(positions: readonly AxialCoordinates[]): CoordinateLabel[] {
+export function boardLabels(
+    positions: readonly AxialCoordinates[],
+    view: BoardView = VIEW
+): CoordinateLabel[] {
     const extreme = (
         group: (coords: AxialCoordinates) => number,
         along: (coords: AxialCoordinates) => number,
@@ -46,19 +50,20 @@ export function boardLabels(positions: readonly AxialCoordinates[]): CoordinateL
     )
     return [
         ...columnBottoms.map((coords) =>
-            labelBeside(`column-${coords.q}`, pointName(coords).slice(0, 1), coords, BELOW)
+            labelBeside(view, `column-${coords.q}`, pointName(coords).slice(0, 1), coords, BELOW)
         ),
         ...lineStarts.map((coords) =>
-            labelBeside(`line-${coords.r}`, pointName(coords).slice(1), coords, BEFORE_LINE)
+            labelBeside(view, `line-${coords.r}`, pointName(coords).slice(1), coords, BEFORE_LINE)
         )
     ]
 }
 
 function labelBeside(
+    view: BoardView,
     key: string,
     text: string,
     point: AxialCoordinates,
     direction: AxialCoordinates
 ): CoordinateLabel {
-    return { key, text, at: VIEW.labelBeside(point, addAxial(point, direction)) }
+    return { key, text, at: view.labelBeside(point, addAxial(point, direction)) }
 }

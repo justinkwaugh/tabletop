@@ -111,6 +111,15 @@
                         <div
                             class="pointer-events-auto absolute top-1 right-3 z-10 flex items-center gap-1.5"
                         >
+                            <OverlayToggle
+                                glyph="A1"
+                                label="Coordinates"
+                                hint={gameSession.showCoordinates
+                                    ? 'Hide the coordinates'
+                                    : 'Show the coordinates round the board'}
+                                pressed={gameSession.showCoordinates}
+                                onToggle={() => gameSession.toggleCoordinates()}
+                            />
                             <!-- Half a turn round, so what tall stacks hide comes in front. -->
                             <OverlayToggle
                                 label="Far side"
@@ -133,15 +142,6 @@
                                     <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="line"></path>
                                 </svg>
                             </OverlayToggle>
-                            <OverlayToggle
-                                glyph="A1"
-                                label="Coordinates"
-                                hint={gameSession.showCoordinates
-                                    ? 'Hide the coordinates'
-                                    : 'Show the coordinates round the board'}
-                                pressed={gameSession.showCoordinates}
-                                onToggle={() => gameSession.toggleCoordinates()}
-                            />
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

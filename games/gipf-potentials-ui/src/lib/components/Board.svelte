@@ -16,6 +16,8 @@
     import PieceDefs from './PieceDefs.svelte'
     import StandingStack from './StandingStack.svelte'
     import StagedPiece from './StagedPiece.svelte'
+    import KindBadge from './KindBadge.svelte'
+    import { badgeOf, badgeSpot, type BadgeSpot } from '$lib/board/badge.js'
 
     const session = getGameSession()
 
@@ -80,6 +82,27 @@
         }
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
+
+    // Each badge at the near right of its stack's top, or wherever nearer stacks leave it seen.
+    const badgeSpots = $derived.by(() => {
+        const spots = new Map<number, BadgeSpot>()
+        if (!session.pieceBadges) return spots
+        const stacks = drawOrder.flatMap((drawn) => (drawn.kind === 'stack' ? [drawn.stack] : []))
+        const standing = stacks.map((stack) => {
+            const center = view.center(stack.coords)
+            return { center, top: center.y + view.topFace(stack.discs.length), base: center.y }
+        })
+        stacks.forEach((stack, index) => {
+            if (stack.badge === undefined) return
+            const nearer = standing.slice(index + 1)
+            spots.set(stack.key, badgeSpot(standing[index], nearer, PIECE_RADIUS, view.tilt))
+        })
+        return spots
+    })
+
+    function incomingBadge(discs: readonly BoardDisc[]): string | undefined {
+        return session.pieceBadges ? badgeOf(discs) : undefined
+    }
 
     // Not on the real board: a reminder of TAMSK's extra move.
     const centre = $derived(view.center(CENTRE))
@@ -295,6 +318,7 @@
                 {@const role = stackRole(stack.coords)}
                 {@const faceY = view.topFace(stack.discs.length)}
                 {@const target = includesCoords(session.moveTargets, stack.coords)}
+                {@const spot = badgeSpots.get(stack.key)}
                 <g
                     transform="translate({center.x} {center.y})"
                     class="stack role-{role ?? 'none'}"
@@ -369,6 +393,23 @@
                             {/if}
                         </g>
                     {/if}
+                    <!-- The badge over the marks, moving with the stack's top. -->
+                    {#if stack.badge && spot}
+                        <g {@attach animator.stack(drawn.key, 'badge')}>
+                            <g
+                                id="gp-badge-{stack.key}"
+                                {@attach animator.stack(drawn.key, 'badgeBody')}
+                            >
+                                <KindBadge
+                                    letter={stack.badge}
+                                    {view}
+                                    face={faceY}
+                                    radius={PIECE_RADIUS}
+                                    {spot}
+                                />
+                            </g>
+                        </g>
+                    {/if}
                 </g>
             {:else if drawn.kind === 'entering'}
                 <g transform="translate({center.x} {center.y})" class="entering">
@@ -378,6 +419,7 @@
                             {view}
                             shadow={animator.enteringShadow()}
                             parts={animator.enteringParts}
+                            badge={incomingBadge(drawn.discs)}
                         />
                     </g>
                 </g>
@@ -387,6 +429,7 @@
                         discs={toned(drawn.discs)}
                         {view}
                         drops={drawn.drops}
+                        badge={incomingBadge(drawn.discs)}
                         lifts={() =>
                             session.releasedByPlayer &&
                             animator.entering === undefined &&
@@ -416,6 +459,13 @@
                     transform="translate({center.x} {center.y})"
                     {@attach animator.occluder(stack)}
                 ></use>
+                {#if badgeSpots.has(stack.key)}
+                    <use
+                        href="#gp-badge-{stack.key}"
+                        transform="translate({center.x} {center.y})"
+                        {@attach animator.occluder(stack)}
+                    ></use>
+                {/if}
             {/each}
         {/if}
 

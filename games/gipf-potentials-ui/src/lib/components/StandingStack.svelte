@@ -13,7 +13,8 @@
         bodyId,
         body,
         shadow,
-        parts
+        parts,
+        badge
     }: {
         discs: readonly Disc[]
         view: BoardView
@@ -21,6 +22,7 @@
         body?: Attachment<SVGGElement>
         shadow?: Attachment<SVGGElement>
         parts?: PieceParts
+        badge?: string
     } = $props()
 </script>
 
@@ -35,5 +37,5 @@
     ></ellipse>
 </g>
 <g id={bodyId} {@attach body}>
-    <PieceShape {discs} radius={PIECE_RADIUS} {view} {parts} />
+    <PieceShape {discs} radius={PIECE_RADIUS} {view} {parts} {badge} />
 </g>

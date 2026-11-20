@@ -120,7 +120,6 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
-                            <BoardStyleToggle />
                             <OverlayToggle
                                 label="Height badges"
                                 pressed={gameSession.heightBadges}
@@ -141,6 +140,7 @@
                                     >
                                 </svg>
                             </OverlayToggle>
+                            <BoardStyleToggle />
                             <!-- Tall stacks shrink to the full height unless a player would
                                  rather see them whole and turn the board to see past them. -->
                             <OverlayToggle

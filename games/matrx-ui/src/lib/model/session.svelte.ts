@@ -102,6 +102,15 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.preferences.set({ centreMark: !this.centreMark })
     }
 
+    pieceBadges: boolean = $derived(this.preferences.values.pieceBadges)
+
+    // A move's badges are gathered when it starts, so a badge added mid-move would wait at the old
+    // space; the toggle lands the move first.
+    togglePieceBadges() {
+        this.moveInterrupter?.interrupt()
+        this.preferences.set({ pieceBadges: !this.pieceBadges })
+    }
+
     turned: boolean = $derived(this.preferences.values.turned)
 
     // A move's motion is laid out in the view it started in, so turning the board lands it.

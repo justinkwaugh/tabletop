@@ -1,12 +1,12 @@
 import type { Point } from '@tabletop/common'
 import { TILT } from './pieceGeometry.js'
 
-// A stack's height on a badge on its top piece, TZAAR's size, at the far right of the top by
-// default; on the far left if a nearer stack covers that, and at the far middle, beyond the
-// hole, if it covers both.
+// A stack's height on a badge on its top piece, 9px across on a 390px phone like the GIPF titles'
+// kind badges, at the far right of the top by default; on the far left if a nearer stack covers
+// that, and at the far middle, beyond the hole, if it covers both.
 export type BadgeSpot = 'right' | 'left' | 'middle'
 
-export const BADGE = { radius: 0.27, font: 0.37, across: 0.6, along: 0.42, middle: 0.66 }
+export const BADGE = { radius: 0.315, font: 0.432, across: 0.6, along: 0.42, middle: 0.66 }
 
 // Where a badge sits from the centre of the top face, over the piece's radius.
 export function badgeOffset(spot: BadgeSpot, radius: number): Point {

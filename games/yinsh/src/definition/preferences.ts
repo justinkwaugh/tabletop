@@ -3,7 +3,8 @@ import type { TitlePreferenceDefinition } from '@tabletop/common'
 
 export const YinshPreferences = Type.Object(
     {
-        showCoordinates: Type.Boolean()
+        showCoordinates: Type.Boolean(),
+        turned: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -12,7 +13,8 @@ export const YinshPreferenceDefinition = {
     title: {
         schema: YinshPreferences,
         defaults: {
-            showCoordinates: true
+            showCoordinates: true,
+            turned: false
         },
         version: 1
     }

@@ -5,11 +5,12 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { VIEW, viewOf } from '$lib/board/geometry.js'
-    import { stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { stackDiscs, TILT, topFaceY, type PieceModel } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
+    import { badgeSpot, type BadgeSpot } from '$lib/board/badgeSpot.js'
 
     const session = getGameSession()
 
@@ -40,6 +41,32 @@
             return pa.y - pb.y || pa.x - pb.x
         })
     )
+
+    // A stack's height shows on a badge while badges are on, and always on a stack shrunk past the
+    // full height, whose height cannot be seen.
+    function badgeShown(height: number, model: PieceModel): boolean {
+        return height > 1 && (session.heightBadges || height > model.cap)
+    }
+
+    // Each badge at the far right of its stack's top, or wherever nearer stacks leave it seen.
+    const badgeSpots = $derived.by(() => {
+        const base = stackDiscs(1, radius, layout.model)[0].base
+        const standing = stacks.map((stack) => {
+            const center = layout.center(stack.coords)
+            const model = animator.modelAt(stack.key, layout.model)
+            return {
+                center,
+                top: center.y + topFaceY(stack.pieces.length, radius, model),
+                base: center.y + base
+            }
+        })
+        const spots = new Map<string, BadgeSpot>()
+        stacks.forEach((stack, index) => {
+            if (!badgeShown(stack.pieces.length, animator.modelAt(stack.key, layout.model))) return
+            spots.set(stack.key, badgeSpot(standing[index], standing.slice(index + 1), radius))
+        })
+        return spots
+    })
 
     function stackId(key: string): string {
         return `tzaar-stack-${key}`
@@ -126,6 +153,7 @@
                 prefix="tzaar-board"
                 model={animator.modelAt(stack.key, layout.model)}
                 quarterTurns={layout.quarterTurns}
+                countAt={badgeSpots.get(stack.key)}
             >
                 <!-- A mark recolors a ring on the top piece, under the count, so the count
                      stays whole. The animator fades it with the move. -->
@@ -203,6 +231,9 @@
                             prefix="tzaar-board"
                             model={layout.model}
                             quarterTurns={layout.quarterTurns}
+                            countAt={badgeShown(flier.pieces.length, layout.model)
+                                ? 'right'
+                                : undefined}
                         />
                     </g>
                 </g>

@@ -5,7 +5,8 @@ export const GipfPotentialsPreferences = Type.Object(
     {
         showCoordinates: Type.Boolean(),
         centreMark: Type.Boolean(),
-        turned: Type.Boolean()
+        turned: Type.Boolean(),
+        pieceBadges: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -16,7 +17,8 @@ export const GipfPotentialsPreferenceDefinition = {
         defaults: {
             showCoordinates: true,
             centreMark: false,
-            turned: false
+            turned: false,
+            pieceBadges: false
         },
         version: 1
     }

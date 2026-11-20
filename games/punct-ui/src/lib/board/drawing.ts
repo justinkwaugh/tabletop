@@ -6,10 +6,11 @@ import { outlinePlan, pathOf } from './pieceShape.js'
 // A piece placed or moved hovers this far above where it will rest until it is dropped.
 export const HOVER_HEIGHT = PIECE_THICKNESS * 1.15
 
-// The level badge: as large as fits inside the piece at the near right of its PÜNCT, over the
-// dish's rim. Its text is set ten times larger and scaled down, as small text is snapped to whole
+// The level badge, at the near right of its PÜNCT over the dish's rim: 9px across on a 390px phone,
+// like the badges of the other GIPF-project titles, so on a straight piece it just passes the
+// edge. Its text is set ten times larger and scaled down, as small text is snapped to whole
 // pixels.
-export const BADGE_RADIUS = PIECE_HALF_WIDTH * 0.42
+export const BADGE_RADIUS = PIECE_HALF_WIDTH * 0.494
 const BADGE_OFFSET = { x: PIECE_HALF_WIDTH * 0.5, y: PIECE_HALF_WIDTH * 0.3 }
 export const BADGE_FONT_SIZE = BADGE_RADIUS * 13.7
 export const BADGE_TEXT_SCALE = 0.1

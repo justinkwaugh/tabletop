@@ -54,6 +54,12 @@
         stroke-width: 1.4;
     }
 
+    .glyph :global(.badge-ring) {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+    }
+
     .glyph :global(.turn-arrow) {
         fill: none;
         stroke: currentColor;

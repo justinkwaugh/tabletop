@@ -125,6 +125,27 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}>A1</OverlayToggle
                             >
+                            <OverlayToggle
+                                label="Piece badges"
+                                pressed={gameSession.pieceBadges}
+                                onToggle={() => gameSession.togglePieceBadges()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <circle r="6.5" class="badge-ring"></circle>
+                                    <text
+                                        y="3.6"
+                                        text-anchor="middle"
+                                        font-size="10"
+                                        font-weight="700"
+                                        fill="currentColor">G</text
+                                    >
+                                </svg>
+                            </OverlayToggle>
                             {#if gameSession.kindsInPlay.includes(PieceKind.Tamsk)}
                                 <OverlayToggle
                                     label="E5 mark"

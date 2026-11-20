@@ -101,6 +101,15 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.preferences.set({ turned: !this.turned })
     }
 
+    pieceBadges: boolean = $derived(this.preferences.values.pieceBadges)
+
+    // A move's badges are gathered when it starts, so a badge added mid-move would wait at the old
+    // space; the toggle lands the move first.
+    togglePieceBadges() {
+        this.moveInterrupter?.interrupt()
+        this.preferences.set({ pieceBadges: !this.pieceBadges })
+    }
+
     view: BoardView = $derived(viewOf(this.turned))
     notation: BoardNotation = $derived(boardNotation(ALL_POINTS, this.view))
 

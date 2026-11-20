@@ -56,6 +56,12 @@
         stroke-linejoin: round;
     }
 
+    .glyph :global(.badge-ring) {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+    }
+
     /* On, the lines brighten and a thin ring shows round the button, quieter than a solid fill. */
     .toggle[aria-pressed='true'] {
         color: var(--gipf-ink);

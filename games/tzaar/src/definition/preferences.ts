@@ -6,7 +6,8 @@ export const TzaarPreferences = Type.Object(
         showCoordinates: Type.Boolean(),
         rotatedBoard: Type.Boolean(),
         turned: Type.Boolean(),
-        shrinkStacks: Type.Boolean()
+        shrinkStacks: Type.Boolean(),
+        heightBadges: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -18,7 +19,8 @@ export const TzaarPreferenceDefinition = {
             showCoordinates: true,
             rotatedBoard: false,
             turned: false,
-            shrinkStacks: false
+            shrinkStacks: false,
+            heightBadges: true
         },
         version: 1
     }

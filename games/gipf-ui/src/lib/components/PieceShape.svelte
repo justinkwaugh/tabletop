@@ -1,6 +1,7 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import { Color } from '@tabletop/common'
     import { VIEW } from '$lib/board/geometry.js'
     import { piecesIn } from '@tabletop/gipf'
@@ -9,19 +10,22 @@
     import { liftOffCrease, liftOffDisc, type PieceParts } from '$lib/animators/drop.js'
 
     // GSAP drops a disc's inner node and Svelte lifts its wrapper off, so the two never write the
-    // same transform.
+    // same transform. `onTop` is drawn on the top disc's face, which it moves with; it is given the
+    // face's height above that disc's base.
     let {
         color,
         gipf = false,
         discs,
         radius,
-        parts
+        parts,
+        onTop
     }: {
         color: Color
         gipf?: boolean
         discs?: number
         radius: number
         parts?: PieceParts
+        onTop?: Snippet<[number]>
     } = $props()
 
     const tone = $derived(color === Color.White ? 'light' : 'dark')
@@ -51,6 +55,9 @@
                             ></ellipse>
                         </g>
                     </g>
+                {/if}
+                {#if index === drawing.bases.length - 1}
+                    {@render onTop?.(drawing.crease.y)}
                 {/if}
             </g>
         </g>

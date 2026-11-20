@@ -120,6 +120,60 @@
                             class="pointer-events-auto absolute right-3 bottom-2 z-10 flex items-center gap-1.5"
                         >
                             <OverlayToggle
+                                glyph="A1"
+                                label="Coordinates"
+                                hint={gameSession.showCoordinates
+                                    ? 'Hide the coordinates'
+                                    : 'Show the coordinates round the board'}
+                                pressed={gameSession.showCoordinates}
+                                onToggle={() => gameSession.toggleCoordinates()}
+                            />
+                            <OverlayToggle
+                                label="Height badges"
+                                hint={gameSession.heightBadges
+                                    ? 'Hide the height badges on stacks'
+                                    : "Show each stack's height on a badge"}
+                                pressed={gameSession.heightBadges}
+                                onToggle={() => gameSession.toggleHeightBadges()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <circle r="6.5" class="line"></circle>
+                                    <text
+                                        y="3.6"
+                                        text-anchor="middle"
+                                        font-size="10"
+                                        font-weight="700"
+                                        fill="currentColor">2</text
+                                    >
+                                </svg>
+                            </OverlayToggle>
+                            <!-- Tall stacks shrink to the full height unless a player would
+                                 rather see them whole and turn the board to see past them. -->
+                            <OverlayToggle
+                                label="Stack limit"
+                                hint={gameSession.shrinkStacks
+                                    ? `Show tall stacks whole, instead of shrinking them past ${stackLimit} pieces`
+                                    : `Shrink stacks past ${stackLimit} pieces, to see what is behind them`}
+                                pressed={gameSession.shrinkStacks}
+                                onToggle={() => gameSession.toggleShrinkStacks()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5 5 H 5 M -5 2 H 5 M -5 -1 H 5" class="line"></path>
+                                    <path d="M -6.5 -5 H 6.5" class="line"></path>
+                                    <path d="M -2 -7.5 L 0 -5.5 L 2 -7.5" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
+                            <OverlayToggle
                                 glyph="90°"
                                 label="Rotated board"
                                 hint={gameSession.rotatedBoard
@@ -150,36 +204,6 @@
                                     <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="line"></path>
                                 </svg>
                             </OverlayToggle>
-                            <!-- Tall stacks shrink to the full height unless a player would
-                                 rather see them whole and turn the board to see past them. -->
-                            <OverlayToggle
-                                label="Stack limit"
-                                hint={gameSession.shrinkStacks
-                                    ? `Show tall stacks whole, instead of shrinking them past ${stackLimit} pieces`
-                                    : `Shrink stacks past ${stackLimit} pieces, to see what is behind them`}
-                                pressed={gameSession.shrinkStacks}
-                                onToggle={() => gameSession.toggleShrinkStacks()}
-                            >
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="-8 -8 16 16"
-                                    aria-hidden="true"
-                                >
-                                    <path d="M -5 5 H 5 M -5 2 H 5 M -5 -1 H 5" class="line"></path>
-                                    <path d="M -6.5 -5 H 6.5" class="line"></path>
-                                    <path d="M -2 -7.5 L 0 -5.5 L 2 -7.5" class="line"></path>
-                                </svg>
-                            </OverlayToggle>
-                            <OverlayToggle
-                                glyph="A1"
-                                label="Coordinates"
-                                hint={gameSession.showCoordinates
-                                    ? 'Hide the coordinates'
-                                    : 'Show the coordinates round the board'}
-                                pressed={gameSession.showCoordinates}
-                                onToggle={() => gameSession.toggleCoordinates()}
-                            />
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

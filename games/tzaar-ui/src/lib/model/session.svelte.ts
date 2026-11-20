@@ -104,6 +104,12 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         this.preferences.set({ shrinkStacks: !this.shrinkStacks })
     }
 
+    heightBadges: boolean = $derived(this.preferences.values.heightBadges)
+
+    toggleHeightBadges() {
+        this.preferences.set({ heightBadges: !this.heightBadges })
+    }
+
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
 
     toggleCoordinates() {

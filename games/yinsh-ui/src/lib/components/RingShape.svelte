@@ -10,16 +10,18 @@
 
     // A ring standing on its point. The gradients come from a PieceDefs with the same prefix in
     // the same SVG. `near` draws only the half in front of the hole, over a marker sitting in it.
+    // `turned` shows it from the far side of the table.
     let {
         tone,
         seedKey,
         prefix,
-        near = false
-    }: { tone: Tone; seedKey: string; prefix: string; near?: boolean } = $props()
+        near = false,
+        turned = false
+    }: { tone: Tone; seedKey: string; prefix: string; near?: boolean; turned?: boolean } = $props()
 
     const drawing = ringDrawing(VIEW, RING_OUTER)
     const style = $derived(RING_STYLES[tone])
-    const specks = $derived(ringSpecks(tone, seedOf(seedKey), RING_HOLE))
+    const specks = $derived(ringSpecks(tone, seedOf(seedKey), RING_HOLE, turned))
 </script>
 
 <g clip-path={near ? `url(#${prefix}-near-half)` : undefined}>

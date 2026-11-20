@@ -9,6 +9,7 @@
     import PieceDefs from './PieceDefs.svelte'
     import StandingPiece from './StandingPiece.svelte'
     import StagedPiece from './StagedPiece.svelte'
+    import KindBadge from './KindBadge.svelte'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 
     const session = getGameSession()
@@ -120,6 +121,11 @@
 
     const standingOutline = $derived(stackOutline(view))
 </script>
+
+<!-- A GIPF-piece's G, on the face of its top disc, while badges are on. -->
+{#snippet gipfBadge(face: number)}
+    <KindBadge letter="G" {view} {face} radius={PIECE_RADIUS} />
+{/snippet}
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
 <div class="tap-off" role="presentation" onclick={onBoardClick}>
@@ -281,6 +287,14 @@
                             {/if}
                         </g>
                     {/if}
+                    <!-- The badge over the marks, moving with the piece. -->
+                    {#if piece.gipf && session.pieceBadges}
+                        <g {@attach animator.badge(drawn.key)}>
+                            <g {@attach animator.badgeBody(drawn.key)}>
+                                {@render gipfBadge(faceY)}
+                            </g>
+                        </g>
+                    {/if}
                 </g>
             {:else if drawn.kind === 'entering'}
                 <g transform="translate({center.x} {center.y})" class="entering">
@@ -290,6 +304,7 @@
                             gipf={drawn.gipf}
                             shadow={animator.enteringShadow()}
                             parts={animator.enteringParts}
+                            onTop={drawn.gipf && session.pieceBadges ? gipfBadge : undefined}
                         />
                     </g>
                 </g>
@@ -309,6 +324,7 @@
                         color={colorOf(drawn.playerId)}
                         gipf={drawn.gipf}
                         drops={drawn.drops}
+                        onTop={drawn.gipf && session.pieceBadges ? gipfBadge : undefined}
                         lifts={() =>
                             session.releasedByPlayer &&
                             animator.entering === undefined &&
