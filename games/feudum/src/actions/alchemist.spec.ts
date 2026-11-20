@@ -273,8 +273,8 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
         const [action] = table.send(playerId, { ...Push, params: { inventions: [Krud] } })
         expect(rows(table)).toEqual([6, 6, 3, 1])
         const after = table.hydrated()
-        const supplyOf = ({ row }: KnightRowEntry, state: HydratedFeudumGameState) =>
-            ownerSupply(state, row.owner)
+        const supplyOf = (entry: KnightRowEntry, state: HydratedFeudumGameState) =>
+            ownerSupply(state, entry)
         expect(supplyOf(first, after)).toBe(supplyOf(first, before))
         expect(supplyOf(second, after)).toBe(supplyOf(second, before) - 3)
         expect(supplyOf(third, after)).toBe(supplyOf(third, before) - 1)

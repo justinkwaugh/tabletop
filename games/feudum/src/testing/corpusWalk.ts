@@ -34,6 +34,7 @@ import {
     type WalkPlan,
     type WalkStep
 } from './walk.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 /** One card kind in one use, as a line of the sweep names it. */
 export function cardKey(kind: ActionCardKind, mode: string): string {
@@ -98,7 +99,7 @@ function paramsToTry(
 ): readonly GuildFunctionParams[] {
     const farms = state
         .ruledSpaceIds(playerId)
-        .filter((spaceId) => state.spaces[spaceId].location.kind === 'farm')
+        .filter((spaceId) => locationKindOf(state.spaces[spaceId].location) === 'farm')
     return [
         {},
         ...farms.flatMap((farmSpaceId) =>

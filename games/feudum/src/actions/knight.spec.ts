@@ -183,8 +183,8 @@ describe('GuildAction: R-4.6.5 the Knight push', () => {
         })
         const after = table.hydrated()
         expect(knightRows(after).map(({ row }) => row.markers)).toEqual([1, 1, 2, 2])
-        expect(ownerSupply(after, first.row.owner)).toBe(ownerSupply(before, first.row.owner) + 1)
-        expect(ownerSupply(after, second.row.owner)).toBe(ownerSupply(before, second.row.owner) + 1)
+        expect(ownerSupply(after, first)).toBe(ownerSupply(before, first) + 1)
+        expect(ownerSupply(after, second)).toBe(ownerSupply(before, second) + 1)
         expect(after.guilds.noble.scrolls[R1C2]).toBe(true)
         expect(after.guilds.noble.scrolls[R2C1]).toBe(true)
         expect(after.supply.sealPileCount).toBe(pile - 2)
@@ -387,19 +387,19 @@ describe('GuildAction: R-4.6.5 the Knight push', () => {
             setScrolls(state, [])
             setRowMarkers(state, [2, 2, 2, 2])
         })
-        const dummy = knightRows(table.hydrated()).find(({ row }) => 'dummyColour' in row.owner)
+        const dummy = knightRows(table.hydrated()).find(({ row }) => 'dummy' in row.owner)
         assertExists(dummy, 'R-1.4-H1 Two seats play beside two dummy rows')
-        const { rowId, row } = dummy
-        const general = ownerSupply(table.hydrated(), row.owner)
+        const { rowId } = dummy
+        const general = ownerSupply(table.hydrated(), dummy)
         const seats = { ...table.hydrated().supply.influence }
         const [action] = table.send(playerId, {
             ...Push,
             params: { knightRows: [rowId], scrollSpaces: [R1C1] }
         })
-        expect(ownerSupply(table.hydrated(), row.owner)).toBe(general + 1)
+        expect(ownerSupply(table.hydrated(), dummy)).toBe(general + 1)
         expect(table.hydrated().supply.influence).toEqual(seats)
         expect(action).toMatchObject({
-            metadata: { details: { markers: [{ rowId, owner: row.owner }] } }
+            metadata: { details: { markers: [{ rowId, owner: { dummy: true } }] } }
         })
         expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
     })

@@ -10,13 +10,13 @@ import { FeudumColors } from '../definition/colors.js'
 import { initialState } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { FeudumGameStateValidator } from './gameState.js'
-import { knightRows } from './knightRows.js'
+import { dummyRowColour, knightRows } from './knightRows.js'
 
 const RowMarkers = GuildSetupSpaces.knight.markersPerRow
 
 describe('the general supply keeps each seat by its id', () => {
     it.each([2, 3, 4, 5])(
-        'R-1.4.2 at %i seats the markers are counted per seat; a dummy colour apart',
+        'R-1.4.2 at %i seats the markers are counted per seat; a dummy row apart',
         (numPlayers) => {
             const state = initialState(numPlayers)
             const seats = state.players.map(({ playerId }) => playerId)
@@ -24,12 +24,10 @@ describe('the general supply keeps each seat by its id', () => {
             expect(state.supply.influence).toEqual(
                 Object.fromEntries(seats.map((playerId) => [playerId, left]))
             )
-            const unused = FeudumColors.filter(
-                (colour) => !state.players.some((player) => player.color === colour)
-            ).slice(0, Math.max(4 - numPlayers, 0))
+            const dummyRows = KnightRowIds.slice(numPlayers, Math.max(4, numPlayers))
             expect(state.supply.dummyInfluence).toEqual(
                 Object.fromEntries(
-                    unused.map((colour) => [colour, ComponentTotals.markersPerColour - RowMarkers])
+                    dummyRows.map((rowId) => [rowId, ComponentTotals.markersPerColour - RowMarkers])
                 )
             )
         }
@@ -37,17 +35,14 @@ describe('the general supply keeps each seat by its id', () => {
 })
 
 describe('a Knight row names its owner', () => {
-    it('R-1.4-H1 a seat row by its playerId, a dummy row by its colour, each under a row id', () => {
+    it('R-1.4-H1 a seat row by its playerId, a dummy row by its row id alone', () => {
         const state = initialState(2)
         const rows = knightRows(state)
         expect(rows.map(({ rowId }) => rowId)).toEqual(KnightRowIds.slice(0, 4))
         expect(rows.map(({ row }) => row.owner)).toEqual([
             ...state.players.map(({ playerId }) => ({ playerId })),
-            ...FeudumColors.filter(
-                (colour) => !state.players.some((player) => player.color === colour)
-            )
-                .slice(0, 2)
-                .map((dummyColour) => ({ dummyColour }))
+            { dummy: true },
+            { dummy: true }
         ])
         for (const { row } of rows) {
             expect(Object.keys(row).sort()).toEqual(['markers', 'owner'])
@@ -58,21 +53,27 @@ describe('a Knight row names its owner', () => {
         const state = initialState(2).dehydrate()
         const [{ rowId }] = knightRows(state)
         state.guilds.knight.rows[rowId] = {
-            owner: { playerId: 'p1', dummyColour: FeudumColors[0] } as never,
+            owner: { playerId: 'p1', dummy: true } as never,
             markers: 2
         }
         expect(FeudumGameStateValidator.Check(state)).toBe(false)
     })
 })
 
-describe('the state keeps no copy of what it can derive', () => {
-    it('R-4.1 a location holds its kind and disc, nothing derived from the disc', () => {
-        const state = initialState()
-        for (const space of Object.values(state.spaces)) {
-            expect(Object.keys(space.location).sort()).toEqual(['discId', 'kind'])
-        }
+describe('a dummy row keeps its presentation colour out of the state', () => {
+    it('R-1.4-H1 the unused colours go to the dummy rows in row order', () => {
+        const state = initialState(2)
+        const unused = FeudumColors.filter(
+            (colour) => !state.players.some((player) => player.color === colour)
+        )
+        expect(KnightRowIds.slice(2, 4).map((rowId) => dummyRowColour(state, rowId))).toEqual(
+            unused.slice(0, 2)
+        )
+        expect(() => dummyRowColour(state, KnightRowIds[0])).toThrow()
     })
+})
 
+describe('the state keeps no copy of what it can derive', () => {
     it('R-4.2.4 who controls a monster is on the monster alone', () => {
         expect(Object.keys(initialState().guilds.knight)).toEqual(['rows'])
     })

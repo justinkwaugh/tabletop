@@ -1036,11 +1036,10 @@
     ]
   },
   "feudumRevision": 1,
-  "epoch": 5,
+  "epoch": "track.epoch.v",
   "spaces": {
     "space.sea.1": {
       "location": {
-        "kind": "town",
         "discId": "disc.start.13"
       },
       "goods": {
@@ -1058,7 +1057,6 @@
     },
     "space.sea.2": {
       "location": {
-        "kind": "farm",
         "discId": "disc.start.11"
       },
       "goods": {
@@ -1076,7 +1074,6 @@
     },
     "space.sea.3": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.15"
       },
       "goods": {
@@ -1094,7 +1091,6 @@
     },
     "space.island.1": {
       "location": {
-        "kind": "farm",
         "discId": "disc.start.10"
       },
       "goods": {
@@ -1112,7 +1108,6 @@
     },
     "space.island.2": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.21"
       },
       "goods": {
@@ -1130,7 +1125,6 @@
     },
     "space.island.3": {
       "location": {
-        "kind": "farm",
         "discId": "disc.start.8"
       },
       "goods": {
@@ -1148,7 +1142,6 @@
     },
     "space.island.4": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.20"
       },
       "goods": {
@@ -1166,7 +1159,6 @@
     },
     "space.forest.1": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.22"
       },
       "goods": {
@@ -1184,7 +1176,6 @@
     },
     "space.forest.2": {
       "location": {
-        "kind": "town",
         "discId": "disc.start.3"
       },
       "goods": {
@@ -1202,8 +1193,8 @@
     },
     "space.forest.3": {
       "location": {
-        "kind": "town",
-        "discId": "disc.double.1"
+        "discId": "disc.double.1",
+        "face": "b"
       },
       "goods": {
         "saltpeter": 0,
@@ -1224,7 +1215,6 @@
     },
     "space.desert.1": {
       "location": {
-        "kind": "farm",
         "discId": "disc.start.9"
       },
       "goods": {
@@ -1242,7 +1232,6 @@
     },
     "space.desert.2": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.16"
       },
       "goods": {
@@ -1260,8 +1249,8 @@
     },
     "space.desert.3": {
       "location": {
-        "kind": "town",
-        "discId": "disc.double.2"
+        "discId": "disc.double.2",
+        "face": "b"
       },
       "goods": {
         "saltpeter": 0,
@@ -1289,7 +1278,6 @@
     },
     "space.desert.4": {
       "location": {
-        "kind": "town",
         "discId": "disc.start.4"
       },
       "goods": {
@@ -1311,7 +1299,6 @@
     },
     "space.desert.5": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.17"
       },
       "goods": {
@@ -1329,7 +1316,6 @@
     },
     "space.badlands.1": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.5"
       },
       "goods": {
@@ -1347,7 +1333,6 @@
     },
     "space.badlands.2": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.18"
       },
       "goods": {
@@ -1365,7 +1350,6 @@
     },
     "space.badlands.3": {
       "location": {
-        "kind": "outpost",
         "discId": "disc.start.19"
       },
       "goods": {
@@ -1383,7 +1367,6 @@
     },
     "space.badlands.4": {
       "location": {
-        "kind": "farm",
         "discId": "disc.start.1"
       },
       "goods": {
@@ -1401,7 +1384,6 @@
     },
     "space.badlands.5": {
       "location": {
-        "kind": "farm",
         "discId": "disc.start.7"
       },
       "goods": {
@@ -1419,7 +1401,6 @@
     },
     "space.mountain.1": {
       "location": {
-        "kind": "town",
         "discId": "disc.start.12"
       },
       "goods": {
@@ -1437,7 +1418,6 @@
     },
     "space.mountain.2": {
       "location": {
-        "kind": "town",
         "discId": "disc.start.14"
       },
       "goods": {
@@ -1545,13 +1525,13 @@
         },
         "knight-row-3": {
           "owner": {
-            "dummyColour": "blue"
+            "dummy": true
           },
           "markers": 2
         },
         "knight-row-4": {
           "owner": {
-            "dummyColour": "yellow"
+            "dummy": true
           },
           "markers": 2
         }
@@ -1673,8 +1653,8 @@
     ],
     "sealPileCount": 8,
     "dummyInfluence": {
-      "blue": 18,
-      "yellow": 18
+      "knight-row-3": 18,
+      "knight-row-4": 18
     }
   },
   "writDeck": {

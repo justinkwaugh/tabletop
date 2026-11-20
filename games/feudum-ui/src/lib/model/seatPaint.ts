@@ -1,5 +1,11 @@
 import { Color } from '@tabletop/common'
-import { FeudumColors, knightRows, type KnightRowOwner } from '@tabletop/feudum'
+import {
+    dummyRowColour,
+    FeudumColors,
+    knightRow,
+    knightRows,
+    type KnightRowId
+} from '@tabletop/feudum'
 import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 import type { SeatsAndRows } from './knightLanes.js'
@@ -111,17 +117,21 @@ export function dummyPaint(
     dummy: Color
 ): SeatPaint {
     const seats = state.players.map(({ playerId }) => colors.getPlayerColor(playerId))
-    const dummies = knightRows(state).flatMap(({ row }) =>
-        'dummyColour' in row.owner ? [row.owner.dummyColour] : []
+    const dummies = knightRows(state).flatMap(({ rowId, row }) =>
+        'dummy' in row.owner ? [dummyRowColour(state, rowId)] : []
     )
     return colourPaint(colors, dummyColourShown(seats, dummies, dummy))
 }
 
 /** R-1.4-H1 A Knight row's paint: its seat's, or its dummy colour's as shown. */
 export function ownerPaint(
-    owner: KnightRowOwner,
+    state: SeatsAndRows,
+    rowId: KnightRowId,
     paintOf: (playerId: string) => SeatPaint,
     colourPaintOf: (colour: Color) => SeatPaint
 ): SeatPaint {
-    return 'playerId' in owner ? paintOf(owner.playerId) : colourPaintOf(owner.dummyColour)
+    const { owner } = knightRow(state, rowId)
+    return 'playerId' in owner
+        ? paintOf(owner.playerId)
+        : colourPaintOf(dummyRowColour(state, rowId))
 }

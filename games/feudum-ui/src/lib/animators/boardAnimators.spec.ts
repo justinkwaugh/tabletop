@@ -1,9 +1,11 @@
+import { showLocation } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
 import { ActionSource, type GameAction, type Point } from '@tabletop/common'
 import {
     ActionType,
+    type BeginDawn,
     FarmerBarn,
     Goods,
     GuildTrackSpaces,
@@ -14,16 +16,16 @@ import {
     isRollProgressDie,
     KnightMonsterIcons,
     knightRows,
+    locationKindOf,
     MachineState,
     MarketSpaces,
     MonsterIds,
+    type Move,
     returnGoodToHaversack,
+    type RollProgressDie,
     Routes,
     seatKnightRow,
-    Spaces,
-    type BeginDawn,
-    type Move,
-    type RollProgressDie
+    Spaces
 } from '@tabletop/feudum'
 import { askedToDefend, type AskTable } from '$lib/testing/askTable.js'
 import { showOnStacks } from '$lib/testing/roundEndTable.js'
@@ -55,7 +57,7 @@ import {
     type MotionTarget,
     type PlanRow
 } from './boardPlan.js'
-import { rowLane } from '$lib/model/knightLanes.js'
+import { laneOfRow } from '$lib/model/knightLanes.js'
 
 /** Contract, Fast fallback: stated here apart from the plan's own constant, which it checks. */
 const ContractFastSeconds = 0.2
@@ -272,7 +274,7 @@ async function roundEndScene(arrange?: (state: HydratedFeudumGameState, seat: st
     game.edit((state) => {
         arrange?.(state, seat)
         showOnStacks(state, [2, 2, 2, 2, 1, 1])
-        state.epoch = 1
+        state.epoch = 'track.epoch.i'
     })
     const session = await game.openSeat(seat)
     await settled(session)
@@ -356,8 +358,11 @@ const Scenes: Readonly<Record<PlanRow, () => Promise<Scene>>> = {
         const { id } = Spaces[0]
         return {
             ...changeFrom(table, (to) => {
-                to.spaces[id].location.kind =
-                    to.spaces[id].location.kind === 'farm' ? 'outpost' : 'farm'
+                showLocation(
+                    to,
+                    id,
+                    locationKindOf(to.spaces[id].location) === 'farm' ? 'outpost' : 'farm'
+                )
             }),
             action: anAction(table.seat)
         }
@@ -853,13 +858,13 @@ describe('R-4.1.2 markers inside the board', () => {
         const scene = changeFrom(table, (to) => {
             knightRows(to)[0].row.markers += 2
         })
-        const { row } = knightRows(scene.to)[0]
+        const { rowId, row } = knightRows(scene.to)[0]
         const { motions, tokens } = planBoardMotion({ ...scene, action: anAction(table.seat) })
         expect(tokens.map(({ face }) => face.kind)).toEqual(['marker', 'marker'])
         expect(motions[1].at).toBeGreaterThan(motions[0].at)
         const area = GuildAreas.knight
         const scale = GuildAreaWidth / GuildBox.width
-        const cell = knightCell(rowLane(scene.to, row.owner), row.markers)
+        const cell = knightCell(laneOfRow(scene.to, rowId), row.markers)
         expect(motions[1].path?.at(-1)).toEqual({
             x: area.x + cell.x * scale,
             y: area.y + cell.y * scale

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { initialState } from '../testing/state.js'
 import { combatStrength, saltpeterAllowed, type CombatInput } from './combatStrength.js'
+import { showLocation } from '../testing/improving.js'
 
 const Space: SpaceId = 'space.forest.1'
 
@@ -9,7 +10,7 @@ function battle() {
     const state = initialState()
     const attacker = state.getPlayerState('p1')
     const defender = state.getPlayerState('p2')
-    state.spaces[Space].location.kind = 'outpost'
+    showLocation(state, Space, 'outpost')
     return { state, attacker, defender }
 }
 
@@ -124,7 +125,7 @@ describe('R-4.8.2 combat strength', () => {
     it("a feudum adds +2, its subject +1, and the attacker's serf +1 to the attack", () => {
         const { state, attacker, defender } = battle()
         attacker.pawns[0].spaceId = Space
-        state.spaces[Space].location.kind = 'feudum'
+        showLocation(state, Space, 'feudum')
         state.spaces[Space].ruler = { playerId: 'p2', subject: true }
         state.spaces[Space].serf = { playerId: 'p1' }
 
@@ -140,7 +141,7 @@ describe('R-4.8.2 combat strength', () => {
     it('a feudum without a subject, or a serf of someone else, adds nothing further', () => {
         const { state, attacker } = battle()
         attacker.pawns[0].spaceId = Space
-        state.spaces[Space].location.kind = 'feudum'
+        showLocation(state, Space, 'feudum')
         state.spaces[Space].ruler = { playerId: 'p2', subject: false }
         state.spaces[Space].serf = { playerId: 'p3' }
 
@@ -154,7 +155,7 @@ describe('R-4.8.2 combat strength', () => {
         const { state, attacker, defender } = battle()
         attacker.pawns[0].spaceId = Space
         defender.pawns[0].spaceId = Space
-        state.spaces[Space].location.kind = 'feudum'
+        showLocation(state, Space, 'feudum')
         state.spaces[Space].ruler = { playerId: 'p2', subject: true }
         state.spaces[Space].serf = { playerId: 'p1' }
 

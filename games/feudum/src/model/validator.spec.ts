@@ -1,8 +1,8 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { FeudumRuntime } from '../definition/runtime.js'
 import { ComponentTotals, GoodRows } from '../data/components.js'
-import { LocationDiscs } from '../data/discs.js'
+import { DoubleSidedDiscs, LocationDiscs } from '../data/discs.js'
 import { RegionTiles } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
 import { canonicalState } from '../testing/state.js'
@@ -209,14 +209,13 @@ describe('R-1.1 markers, 20 per colour', () => {
         expectConserved(state)
     })
 
-    it('R-1.4-H1 holds a dummy row to the same total, by colour', () => {
+    it('R-1.4-H1 holds a dummy row to the same total, by row id', () => {
         const state = table(2)
-        const dummy = knightRows(state).find(({ row }) => 'dummyColour' in row.owner)?.row
+        const dummy = knightRows(state).find(({ row }) => 'dummy' in row.owner)
         assertExists(dummy, 'R-1.4-H1 Two seats play beside dummy rows')
-        assert('dummyColour' in dummy.owner, 'R-1.4-H1 A dummy row names its colour')
-        dummy.markers += 1
+        dummy.row.markers += 1
         expectBroken(state, 'markers')
-        state.supply.dummyInfluence[dummy.owner.dummyColour] -= 1
+        state.supply.dummyInfluence[dummy.rowId] -= 1
         expectConserved(state)
     })
 })
@@ -331,9 +330,10 @@ describe('R-1.4.3 discs, 44 in all', () => {
     it('R-3.9.1 keeps the total when a disc swaps with the one on a space', () => {
         const state = table()
         const onSpace = state.spaces['space.sea.1'].location.discId
-        const fromSupply = state.supply.discs[0]
-        state.supply.discs[0] = onSpace
-        state.spaces['space.sea.1'].location.discId = fromSupply
+        const fromSupply = DoubleSidedDiscs.find(({ id }) => state.supply.discs.includes(id))
+        assertExists(fromSupply, 'R-3.9.1 The supply holds a double-sided disc')
+        state.supply.discs = state.supply.discs.map((id) => (id === fromSupply.id ? onSpace : id))
+        state.spaces['space.sea.1'].location = { discId: fromSupply.id, face: 'a' }
         expectConserved(state)
     })
 })

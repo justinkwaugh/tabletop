@@ -10,7 +10,7 @@
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import MonsterToken from '$lib/components/pieces/MonsterToken.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
-    import { knightMarkerPiece, rowLane } from '$lib/model/knightLanes.js'
+    import { knightMarkerPiece, laneOfRow } from '$lib/model/knightLanes.js'
     import { ownerPaint, type SeatPaint } from '$lib/model/seatPaint.js'
     import {
         GuildSizes,
@@ -80,8 +80,8 @@
     {/each}
 {/if}
 {#each knightRows(state) as { rowId, row } (rowId)}
-    {@const paint = ownerPaint(row.owner, paintOf, colourPaintOf)}
-    {@const lane = rowLane(state, row.owner)}
+    {@const paint = ownerPaint(state, rowId, paintOf, colourPaintOf)}
+    {@const lane = laneOfRow(state, rowId)}
     {@const label = knightRowLabel(lane)}
     <g data-knight-row={lane} data-row-id={rowId} data-markers={row.markers}>
         <SeatToken

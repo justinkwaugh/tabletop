@@ -18,6 +18,7 @@ import {
     resolveCombat,
     strengthOf
 } from './combat.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 export type ConquerMetadata = Type.Static<typeof ConquerMetadata>
 export const ConquerMetadata = Type.Object({
@@ -110,7 +111,7 @@ function reasonTargetRefused(
         }
         case 'feudum': {
             const { location, ruler } = state.spaces[spaceId]
-            if (location.kind !== 'feudum') {
+            if (locationKindOf(location) !== 'feudum') {
                 return "That location isn't a feudum: outposts, farms and towns are never targets."
             }
             if (!ruler) {

@@ -1,3 +1,4 @@
+import { showLocation } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -1250,7 +1251,7 @@ describe('Move', () => {
     it('S29, S30 the last step opens the pilfer; "No pilfer" and the primary that names it', async () => {
         const turn = await atCards(['move', 'tax'], (state, { seat }) => {
             stand(state, seat, Inland)
-            state.spaces[RoadEnd].location.kind = 'outpost'
+            showLocation(state, RoadEnd, 'outpost')
             state.supply.haversack.iron -= 1
             state.spaces[RoadEnd].goods.iron += 1
         })
@@ -1805,7 +1806,7 @@ describe("R-X.2 every send that can't be undone names itself: the list, not a sa
             const spaceId = emptySpace(state, 'town')
             placeMarker(state, seat, spaceId)
             giveSeal(state, seat)
-            state.epoch = 3
+            state.epoch = 'track.epoch.iii'
             const home = Object.entries(state.regionStacks).find(([region]) =>
                 spaceId.includes(region.replace('region.', ''))
             )

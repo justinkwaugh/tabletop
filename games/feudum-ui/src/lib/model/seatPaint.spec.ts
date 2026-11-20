@@ -80,8 +80,8 @@ function preferringGreen() {
                 rows: {
                     'knight-row-1': { owner: { playerId: 'viewer' }, markers: 2 },
                     'knight-row-2': { owner: { playerId: 'other' }, markers: 2 },
-                    'knight-row-3': { owner: { dummyColour: Color.Yellow }, markers: 2 },
-                    'knight-row-4': { owner: { dummyColour: Color.Green }, markers: 2 }
+                    'knight-row-3': { owner: { dummy: true }, markers: 2 },
+                    'knight-row-4': { owner: { dummy: true }, markers: 2 }
                 }
             }
         }

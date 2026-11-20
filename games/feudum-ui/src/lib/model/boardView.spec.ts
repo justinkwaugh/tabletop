@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import {
+    dummyRowColour,
     HydratedFeudumGameState,
     knightRows,
     MilitaryServiceTrack,
@@ -105,16 +106,22 @@ describe('influencePools (R-1.4.2, R-1.4-H1)', () => {
                 count: state.supply.influence[playerId]
             })
         }
-        const dummies = knightRows(state).flatMap(({ row }) =>
-            'dummyColour' in row.owner ? [row.owner.dummyColour] : []
+        const dummies = knightRows(state).flatMap(({ rowId, row }) =>
+            'dummy' in row.owner ? [rowId] : []
         )
         expect(dummies.length).toBeGreaterThan(0)
-        for (const colour of dummies) {
-            expect(pools).toContainEqual({ colour, count: state.supply.dummyInfluence[colour] })
+        for (const rowId of dummies) {
+            expect(pools).toContainEqual({
+                colour: dummyRowColour(state, rowId),
+                count: state.supply.dummyInfluence[rowId]
+            })
         }
         expect(pools.map(({ colour }) => colour)).toEqual(
             PrintedColours.filter((colour) =>
-                [...state.players.map(({ color }) => color), ...dummies].includes(colour)
+                [
+                    ...state.players.map(({ color }) => color),
+                    ...dummies.map((rowId) => dummyRowColour(state, rowId))
+                ].includes(colour)
             )
         )
     })

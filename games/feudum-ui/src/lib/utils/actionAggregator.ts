@@ -11,6 +11,7 @@ import {
     isRollProgressDie,
     isStartRound,
     type AdvanceTurn,
+    sunray,
     type Epoch,
     type TriggeredEpoch
 } from '@tabletop/feudum'
@@ -64,7 +65,12 @@ export interface HistoryTable {
 }
 
 /** R-4.11.2 One epoch at a time, so a dawn names the epoch before it. */
-const EpochBefore: Readonly<Record<TriggeredEpoch, Epoch>> = { 2: 1, 3: 2, 4: 3, 5: 4 }
+const EpochBefore: Readonly<Record<TriggeredEpoch, Epoch>> = {
+    'track.epoch.ii': 1,
+    'track.epoch.iii': 2,
+    'track.epoch.iv': 3,
+    'track.epoch.v': 4
+}
 
 const GroupOfType: ReadonlyMap<string, HistoryGroupKind> = new Map([
     [ActionType.ChooseStartingGoods, 'single'],
@@ -249,7 +255,7 @@ export function aggregateHistory(
             continue
         }
         if (isBeginDawn(action) && action.metadata) {
-            const { epoch: dawning } = action.metadata
+            const dawning = sunray(action.metadata.epoch).epoch
             slots.push({ kind: 'epoch', id: `epoch-${dawning}`, epoch: dawning })
         }
 

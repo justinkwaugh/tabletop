@@ -2,6 +2,7 @@
 import { render } from 'svelte/server'
 import { describe, expect, it, vi } from 'vitest'
 import {
+    dummyRowColour,
     Goods,
     HydratedFeudumGameState,
     knightRows,
@@ -141,11 +142,15 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
     it("R-1.4.2 counts influence by seat and dummy colour, a seat's named by seat", async () => {
         const state = await table()
         const html = group(card(state), 'Influence markers')
+        const dummyRows = knightRows(state).flatMap(({ rowId, row }) =>
+            'dummy' in row.owner ? [rowId] : []
+        )
         for (const colour of PrintedColours) {
             const seat = state.players.find((player) => player.color === colour)
+            const dummy = dummyRows.find((rowId) => dummyRowColour(state, rowId) === colour)
             const held = seat
                 ? state.supply.influence[seat.playerId]
-                : state.supply.dummyInfluence[colour]
+                : dummy && state.supply.dummyInfluence[dummy]
             if (held !== undefined) {
                 expect(counted(html, `influence-${colour}`)).toBe(`${held}`)
             } else {
@@ -156,9 +161,9 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
             expect(html).toContain(`seat-${playerId}`)
             expect(html).toContain(`>name-${playerId}<`)
         }
-        const dummy = knightRows(state).find(({ row }) => 'dummyColour' in row.owner)?.row.owner
-        if (dummy && 'dummyColour' in dummy) {
-            expect(html).toContain(`colour-${dummy.dummyColour}`)
+        const dummy = knightRows(state).find(({ row }) => 'dummy' in row.owner)?.rowId
+        if (dummy) {
+            expect(html).toContain(`colour-${dummyRowColour(state, dummy)}`)
         }
     })
 

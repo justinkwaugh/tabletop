@@ -4,6 +4,7 @@ import { LastEpoch } from '../data/tracks.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { epochAt } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
 /** R-6.2 What `ScoreGame` recorded in a cascade. */
@@ -36,7 +37,7 @@ export function scoreFrom(
     const order = [...table.order]
     table.moveTo((state) => {
         edit(state, order)
-        state.epoch = LastEpoch
+        state.epoch = epochAt(LastEpoch)
         return MachineState.EndOfRound
     })
     const processed = table.sendSystem({ type: ActionType.ScoreGame, revealsInfo: true })

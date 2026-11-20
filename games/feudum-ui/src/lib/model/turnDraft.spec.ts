@@ -1,18 +1,19 @@
 import { flushSync } from 'svelte'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
+    type ActionCardKind,
     ActionType,
     exploreOffer,
     HydratedFeudumGameState,
+    locationKindOf,
     MachineState,
     migrateOffers,
     placeMarker,
+    type SpaceId,
     Spaces,
     taxPreview,
-    writDeckCount,
-    type ActionCardKind,
-    type SpaceId,
-    type TileId
+    type TileId,
+    writDeckCount
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
@@ -73,7 +74,8 @@ async function table(
 function reverseHomeStack(state: HydratedFeudumGameState, seat: string): void {
     const town = Spaces.find(
         ({ id }) =>
-            state.spaces[id].ruler?.playerId === seat && state.spaces[id].location.kind === 'town'
+            state.spaces[id].ruler?.playerId === seat &&
+            locationKindOf(state.spaces[id].location) === 'town'
     )
     assertExists(town, 'The seat rules a town')
     state.regionStacks[regionOf(town.id)].reverse()
@@ -707,7 +709,7 @@ describe('R-3.9 Improve', () => {
     it('S16 epoch III, the top tile IV: stacks with an earlier tile light with "no vp"; the tile reveals, so it asks', async () => {
         const turn = await ruling('town', (state, { seat }) => {
             giveSeal(state, seat)
-            state.epoch = 3
+            state.epoch = 'track.epoch.iii'
             reverseHomeStack(state, seat)
         })
         const { session, spaceId } = turn
@@ -734,7 +736,7 @@ describe('R-3.9 Improve', () => {
     it('R-3.9.1 reselecting the space clears the guild it opened', async () => {
         const { session, spaceId } = await ruling('town', (state, { seat }) => {
             giveSeal(state, seat)
-            state.epoch = 3
+            state.epoch = 'track.epoch.iii'
             reverseHomeStack(state, seat)
         })
         pickCard(session, 'improve')

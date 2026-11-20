@@ -4,6 +4,7 @@ import type { LocationKind } from '../data/discs.js'
 import type { Epoch } from '../data/tracks.js'
 import { coverService, initialState } from '../testing/state.js'
 import { activeRegionIds, activeRegionVp, disloyaltyVp } from './activeRegions.js'
+import { showLocation } from '../testing/improving.js'
 
 const OnePerRegion: readonly SpaceId[] = [
     'space.sea.1',
@@ -67,7 +68,7 @@ describe('R-4.9.2 vassals', () => {
         '$kind ruled by $ruler: $vassal',
         ({ kind, ruler, vassal }) => {
             const state = initialState()
-            state.spaces['space.sea.1'].location.kind = kind
+            showLocation(state, 'space.sea.1', kind)
             state.spaces['space.sea.1'].ruler = { playerId: ruler, subject: false }
             expect(state.isVassal('p1')).toBe(vassal)
         }
@@ -75,7 +76,7 @@ describe('R-4.9.2 vassals', () => {
 
     function vassal(covered: number) {
         const state = initialState()
-        state.spaces['space.sea.1'].location.kind = 'feudum'
+        showLocation(state, 'space.sea.1', 'feudum')
         state.spaces['space.sea.1'].ruler = { playerId: 'p1', subject: false }
         coverService(state, 'p1', covered)
         return state

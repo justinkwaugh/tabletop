@@ -1,10 +1,11 @@
 import type { GameAction, Turn } from '@tabletop/common'
 import {
     ActionType,
-    isBeginDawn,
     type BeginDawn,
     type Epoch,
-    type ReplenishMap
+    isBeginDawn,
+    type ReplenishMap,
+    sunray
 } from '@tabletop/feudum'
 import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
 import { spaceLabel } from './cardFlows.js'
@@ -62,7 +63,7 @@ export function roundEndOf(
     }
     return {
         dawn: {
-            epoch: metadata.epoch,
+            epoch: sunray(metadata.epoch).epoch,
             rows: metadata.sheet,
             fills: metadata.fills.map(fillLine)
         }

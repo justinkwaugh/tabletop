@@ -21,6 +21,7 @@ import {
     type CardPlayInput,
     type RepeatMode
 } from './cardPlay.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 /** R-3.11.1 */
 const HarvestBaseGoods = 5
@@ -79,8 +80,8 @@ function goodsOn(state: HydratedFeudumGameState, spaceId: SpaceId): number {
 /** R-3.11.1 5 + 1 per other farm or feudum ruled + each held bead's value, at most 10. */
 export function harvestTotal(state: HydratedFeudumGameState, playerId: string): number {
     const ruled = state.ruledSpaceIds(playerId).map((spaceId) => state.spaces[spaceId].location)
-    const farms = ruled.filter((location) => location.kind === 'farm').length
-    const feudums = ruled.filter((location) => location.kind === 'feudum').length
+    const farms = ruled.filter((location) => locationKindOf(location) === 'farm').length
+    const feudums = ruled.filter((location) => locationKindOf(location) === 'feudum').length
     const { beads } = state.getPlayerState(playerId)
     const beadValues = Seals.filter((seal) => beads.includes(seal.id)).reduce(
         (sum, seal) => sum + seal.beadValue,
@@ -115,7 +116,7 @@ export function reasonHarvestRefused(
         return refused
     }
     const space = state.spaces[input.spaceId]
-    if (space.location.kind !== 'farm') {
+    if (locationKindOf(space.location) !== 'farm') {
         return "That isn't a farm."
     }
     if (space.ruler?.playerId !== playerId) {
@@ -149,7 +150,7 @@ export function harvestOffers(state: HydratedFeudumGameState, playerId: string):
         farms: Spaces.map(({ id }) => id)
             .filter(
                 (spaceId) =>
-                    state.spaces[spaceId].location.kind === 'farm' &&
+                    locationKindOf(state.spaces[spaceId].location) === 'farm' &&
                     state.spaces[spaceId].ruler?.playerId === playerId &&
                     goodsOn(state, spaceId) < HarvestMostGoods
             )

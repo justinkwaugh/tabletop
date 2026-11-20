@@ -160,16 +160,18 @@ export class FeudumGameInitializer
             (colour) => !state.players.some((player) => player.color === colour)
         ).slice(0, Math.max(MinimumKnightRows - state.numPlayers, 0))
 
-        for (const colour of dummyColours) {
-            state.supply.dummyInfluence[colour] = ComponentTotals.markersPerColour
-        }
         const owners: KnightRowOwner[] = [
             ...state.players.map(({ playerId }) => ({ playerId })),
-            ...dummyColours.map((dummyColour) => ({ dummyColour }))
+            ...dummyColours.map(() => ({ dummy: true as const }))
         ]
         owners.forEach((owner, index) => {
-            state.guilds.knight.rows[KnightRowIds[index]] = { owner, markers }
-            changeOwnerSupply(state, owner, -markers)
+            const rowId = KnightRowIds[index]
+            if ('dummy' in owner) {
+                state.supply.dummyInfluence[rowId] = ComponentTotals.markersPerColour
+            }
+            const row = { owner, markers }
+            state.guilds.knight.rows[rowId] = row
+            changeOwnerSupply(state, { rowId, row }, -markers)
         })
     }
 

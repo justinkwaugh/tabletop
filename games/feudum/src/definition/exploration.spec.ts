@@ -15,6 +15,7 @@ import { canonical, realGames, seedOf, started } from '../testing/protected.js'
 import { walkFrom, type GameWalk } from '../testing/walk.js'
 import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
+import { epochNumber } from '../model/tracks.js'
 
 const engine = new GameEngine(FeudumRuntime)
 const history = new ExplorationHistory(engine)
@@ -81,7 +82,7 @@ const Scenes: readonly Scene[] = [
         name: 'a later epoch',
         at: ({ machineState, epoch, players }) =>
             machineState === MachineState.PlayingCards &&
-            epoch >= 3 &&
+            epochNumber({ epoch }) >= 3 &&
             players.some(({ played }) => played.length > 0)
     },
     {

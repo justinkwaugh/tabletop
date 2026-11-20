@@ -1,3 +1,4 @@
+import { showLocation } from '../testing/improving.js'
 import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
@@ -16,7 +17,7 @@ type Kind = 'outpost' | 'farm' | 'town' | 'feudum'
 function rule(state: HydratedFeudumGameState, playerId: string, kinds: readonly Kind[]): void {
     kinds.forEach((kind, index) => {
         const space = state.spaces[SPACES[index]]
-        space.location.kind = kind
+        showLocation(state, SPACES[index], kind)
         space.ruler = { playerId, subject: false }
         state.getPlayerState(playerId).influenceSupply -= 1
     })
@@ -93,7 +94,7 @@ describe('Tax: R-3.12.1', () => {
     it('R-4.1.4 a serf or a subject of a town taxes nothing', () => {
         const { table, playerId } = tableWith([], (state, id) => {
             const space = state.spaces[SPACES[0]]
-            space.location.kind = 'town'
+            showLocation(state, SPACES[0], 'town')
             space.ruler = { playerId: 'p9', subject: false }
             space.serf = { playerId: id }
             state.getPlayerState(id).influenceSupply -= 1

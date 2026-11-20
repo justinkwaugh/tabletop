@@ -1,25 +1,26 @@
 import { assertExists } from '@tabletop/common'
 import {
+    type ActionCardKind,
     ActionCards,
     ActionType,
     cardTurnSeat,
+    type Character,
     collectTopTile,
+    type Good,
     Goods,
     handSizeFor,
+    type HydratedFeudumGameState,
+    type LocationKind,
+    locationKindOf,
     moveConcealedSeal,
     placeMarker,
+    type PouchGood,
     RegionIds,
     replaceLocationDisc,
     returnGoodToHaversack,
+    type SpaceId,
     Spaces,
     takeGoodFromHaversack,
-    type ActionCardKind,
-    type Character,
-    type Good,
-    type HydratedFeudumGameState,
-    type LocationKind,
-    type PouchGood,
-    type SpaceId,
     type TileId
 } from '@tabletop/feudum'
 import { FeudumHost } from './sessionHarness.js'
@@ -151,7 +152,7 @@ export function emptySpaces(state: HydratedFeudumGameState, kind: LocationKind):
     const taken = state.players.flatMap(({ pawns }) => pawns.map(({ spaceId }) => spaceId))
     return Spaces.map(({ id }) => id).filter((id) => {
         const { location, ruler, serf } = state.spaces[id]
-        return location.kind === kind && !ruler && !serf && !taken.includes(id)
+        return locationKindOf(location) === kind && !ruler && !serf && !taken.includes(id)
     })
 }
 

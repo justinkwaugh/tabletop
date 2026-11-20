@@ -44,6 +44,7 @@ import {
     type GuildFunctionRow,
     type TradePreview
 } from './guildFunction.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 export interface FarmerTradeOffer {
     readonly spaceId: SpaceId
@@ -64,7 +65,7 @@ export function farmerTradeOffers(
     return state.ruledSpaceIds(playerId).flatMap((spaceId) => {
         const { location, goods } = state.spaces[spaceId]
         const sent = goodsTotal(goods)
-        return location.kind === 'farm' && sent > 0
+        return locationKindOf(location) === 'farm' && sent > 0
             ? [{ spaceId, sent, rewards: rewardsFor(sent) }]
             : []
     })
@@ -175,7 +176,7 @@ const FarmerTrade: GuildFunctionRow = {
             return 'Pick a farm you rule.'
         }
         const space = state.spaces[farmSpaceId]
-        if (space.location.kind !== 'farm' || space.ruler?.playerId !== playerId) {
+        if (locationKindOf(space.location) !== 'farm' || space.ruler?.playerId !== playerId) {
             return 'You rule no farm there.'
         }
         const sent = goodsTotal(space.goods)

@@ -86,6 +86,7 @@ export * from './model/locationControl.js'
 export {
     discChoices,
     feudumGuildOf,
+    locationKindOf,
     replaceLocationDisc,
     type DiscChoice
 } from './model/locationDiscs.js'

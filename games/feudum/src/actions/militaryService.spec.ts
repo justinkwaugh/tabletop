@@ -4,19 +4,19 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { disloyaltyVp } from '../model/activeRegions.js'
 import { placeMarker } from '../model/locationControl.js'
-import type { TriggeredEpoch } from '../model/flow.js'
 import { queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterCardStep } from '../stateHandlers/cardTurns.js'
 import { playToDawn } from '../testing/dawn.js'
 import { setPawns } from '../testing/guilds.js'
-import { setUp, spaceOfKind } from '../testing/improving.js'
+import { setUp, showLocation, spaceOfKind } from '../testing/improving.js'
 import { answerStarve, giveFood, starve, tableAtStarve } from '../testing/starve.js'
 import { coverService } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { isBeginDawn } from './beginDawn.js'
 import { placeDiscOffer } from './placeDisc.js'
 import { isScoreGame } from './scoreGame.js'
+import type { Epoch } from '../data/tracks.js'
 
 /** The turn player's card has just left a military service offer. */
 function offered(table: Table, covered = 0): string {
@@ -134,7 +134,7 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         const state = table.hydrated()
         const feudum = 'space.desert.3'
         state.spaces[feudum].ruler = { playerId, subject: false }
-        state.spaces[feudum].location.kind = 'feudum'
+        showLocation(state, feudum, 'feudum')
         // Space 1 covered: only space 2 is due by dawn IV, and space 3 not yet.
         expect(disloyaltyVp(state, playerId, 2)).toBe(0)
         expect(disloyaltyVp(state, playerId, 4)).toBe(-4)
@@ -175,7 +175,7 @@ describe('R-4.9.2, R-4.9-H2 disloyalty at a dawn', () => {
         setPawns(state, playerId, [])
         state.recomputeRanks()
         const spaceId = spaceOfKind(state, 'farm')
-        state.spaces[spaceId].location.kind = 'feudum'
+        showLocation(state, spaceId, 'feudum')
         placeMarker(state, playerId, spaceId)
     }
 
@@ -185,7 +185,7 @@ describe('R-4.9.2, R-4.9-H2 disloyalty at a dawn', () => {
         return dawn.metadata.sheet
     }
 
-    const Dawns: { epoch: TriggeredEpoch; covered: number; vp: number }[] = [
+    const Dawns: { epoch: Exclude<Epoch, 1>; covered: number; vp: number }[] = [
         { epoch: 2, covered: 0, vp: -3 },
         { epoch: 2, covered: 1, vp: 0 },
         { epoch: 3, covered: 0, vp: 0 },
@@ -207,7 +207,8 @@ describe('R-4.9.2, R-4.9-H2 disloyalty at a dawn', () => {
 
             const [row] = rowsOf(processed).filter((entry) => entry.playerId === order[0])
             expect(row.disloyaltyVp).toBe(vp)
-            expect(row.total).toBe(row.activeRegions.vp + vp)
+            const rankVp = row.ranks.reduce((sum, rank) => sum + rank.vp, 0)
+            expect(row.total).toBe(rankVp + row.activeRegions.vp + vp)
             const final = processed
                 .find((action) => isScoreGame(action))
                 ?.metadata?.sheet.find((entry) => entry.playerId === order[0])

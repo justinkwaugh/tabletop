@@ -1,31 +1,32 @@
 import { assertExists } from '@tabletop/common'
 import {
+    type ActionCardKind,
     ActionType,
     cardTurnSeat,
-    collectTopTile,
-    HydratedFeudumGameState,
-    keepWritsOffer,
-    knightRows,
-    MachineState,
-    Mandates,
-    nourishOffer,
-    placeMarker,
-    RegionIds,
-    removeTopTile,
-    replaceLocationDisc,
-    Routes,
-    Spaces,
-    stackTop,
-    type ActionCardKind,
     type Character,
+    collectTopTile,
     type Good,
     type GuildFunctionName,
     type GuildFunctionParams,
     type GuildId,
+    HydratedFeudumGameState,
+    keepWritsOffer,
+    knightRows,
     type LocationKind,
+    locationKindOf,
+    MachineState,
+    Mandates,
+    nourishOffer,
+    placeMarker,
     type PouchGood,
     type RegionId,
+    RegionIds,
+    removeTopTile,
+    replaceLocationDisc,
+    Routes,
     type SpaceId,
+    Spaces,
+    stackTop,
     type WritId
 } from '@tabletop/feudum'
 import { fillBarrel, holdFood, holdWrit, threePawns } from './followUpTable.js'
@@ -72,7 +73,8 @@ const FillerHand: readonly ActionCardKind[] = ['tax', 'guild', 'harvest', 'migra
 
 function startingSpaceShowing(host: FeudumHost, kind: LocationKind): SpaceId {
     const space = Spaces.find(
-        ({ id, startingSpace }) => startingSpace && host.state.spaces[id].location.kind === kind
+        ({ id, startingSpace }) =>
+            startingSpace && locationKindOf(host.state.spaces[id].location) === kind
     )
     assertExists(space, `R-1.4 A starting space shows a ${kind}`)
     return space.id
@@ -531,7 +533,7 @@ async function gameEnding(lift: readonly number[]) {
     )
     const [ana, bram] = host.order
     host.edit((state) => {
-        state.epoch = 4
+        state.epoch = 'track.epoch.iv'
         showOnStacks(state, ['V', 4, 4, 4, 4, 4])
         fillBarrel(state, ana, 1)
         fillBarrel(state, bram, 1)
@@ -818,7 +820,7 @@ export const Fixtures = {
             ])
             host.edit((state) => {
                 giveSeal(state, seat)
-                state.epoch = 3
+                state.epoch = 'track.epoch.iii'
                 const town = townRegion(host)
                 const others = RegionIds.filter((region) => region !== town)
                 const threes = others.slice(0, 2)

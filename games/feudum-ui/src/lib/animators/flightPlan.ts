@@ -33,7 +33,7 @@ import {
     type TileId,
     type WritId
 } from '@tabletop/feudum'
-import { knightMarkerPiece, rowLane } from '$lib/model/knightLanes.js'
+import { knightMarkerPiece, laneOfRow } from '$lib/model/knightLanes.js'
 import { writFaceShown } from '$lib/model/perspective.js'
 import {
     GoodSize,
@@ -345,7 +345,7 @@ function markerPlaces(
     }
     const own = seatKnightRow(state, playerId)
     if (own) {
-        const lane = rowLane(state, own.row.owner)
+        const lane = laneOfRow(state, own.rowId)
         for (let column = 1; column <= own.row.markers; column += 1) {
             put({
                 piece: knightMarkerPiece(own.rowId, column),

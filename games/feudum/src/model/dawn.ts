@@ -4,7 +4,7 @@ import { Regions, Spaces, type SpaceId } from '../data/board.js'
 import { GuildIds } from '../data/components.js'
 import { GuildRanks, GuildTrackSpaces } from '../data/guilds.js'
 import { LandscapeDawnVp, RegionIds } from '../data/regionTiles.js'
-import { EpochTrack, type Epoch, type Sunray } from '../data/tracks.js'
+import type { Epoch } from '../data/tracks.js'
 import { activeRegionIds, activeRegionVp, disloyaltyVp } from './activeRegions.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { rankOf } from './guildStatus.js'
@@ -18,6 +18,7 @@ import {
     LandscapeKindSchema,
     SpaceIdSchema
 } from './stateSchemas.js'
+import { sunray } from './tracks.js'
 
 /** R-4.12 One seat's row of the dawn sheet. */
 export type DawnSheetRow = Type.Static<typeof DawnSheetRow>
@@ -59,13 +60,6 @@ export const LandscapeFilled = Type.Object({
 /** R-4.12.4 One good beside its region's space. */
 export type MapGood = Type.Static<typeof MapGood>
 export const MapGood = Type.Object({ spaceId: SpaceIdSchema, good: GoodSchema })
-
-/** R-4.11, R-4.12 What this epoch's sunray prints. */
-export function sunrayOf(epoch: Epoch): Sunray {
-    const ray = EpochTrack.find((row) => row.epoch === epoch)
-    assertExists(ray, `R-4.11 There is a sunray for epoch ${epoch}`)
-    return ray
-}
 
 /** R-4.12.1 */
 function rankRows(state: HydratedFeudumGameState, playerId: string): DawnSheetRow['ranks'] {
@@ -148,7 +142,7 @@ export function serfsWithFilledLandscapes(state: HydratedFeudumGameState): strin
 
 /** R-4.12.4, R-5.2, R-1.1-H1 */
 export function replenishMap(state: HydratedFeudumGameState): MapGood[] {
-    const { mapDirection } = sunrayOf(state.epoch)
+    const { mapDirection } = sunray(state.epoch)
     return Regions.flatMap(({ region, spaces }) => {
         const space = spaces.find(({ letters }) => mapDirection && letters.includes(mapDirection))
         assertExists(space, `R-1.2.1 ${region} has a ${mapDirection} space`)

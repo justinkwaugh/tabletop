@@ -1,20 +1,36 @@
 import * as Type from 'typebox'
-import { LocationKinds } from '../data/discs.js'
+import { DoubleSidedDiscs, FeudumDiscs, StartingDiscs } from '../data/discs.js'
 import {
     ComponentCount,
-    DiscIdSchema,
     GoodCounts,
     SpaceIdSchema,
     TileIdSchema,
     VesselCounts
 } from './stateSchemas.js'
 
-/** R-4.1 A feudum's guild is the disc's own (`feudumGuildOf`). */
+/** R-4.1 The disc, and the face up of a double-sided one; what it shows is `locationKindOf`. */
 export type LocationState = Type.Static<typeof LocationState>
-export const LocationState = Type.Object({
-    kind: Type.Enum(LocationKinds),
-    discId: DiscIdSchema
-})
+export const LocationState = Type.Union([
+    Type.Object(
+        { discId: Type.Enum(StartingDiscs.map((disc) => disc.id)) },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        {
+            discId: Type.Enum(DoubleSidedDiscs.map((disc) => disc.id)),
+            face: Type.Union([Type.Literal('a'), Type.Literal('b')])
+        },
+        { additionalProperties: false }
+    ),
+    /** R-4.8-H2 `asOutpost`: the feudum fell with no outpost disc left, so its own disc stays. */
+    Type.Object(
+        {
+            discId: Type.Enum(FeudumDiscs.map((disc) => disc.id)),
+            asOutpost: Type.Optional(Type.Literal(true))
+        },
+        { additionalProperties: false }
+    )
+])
 
 /** R-4.3.4 One per space, never removed. The tile's landscape is in `tileLandscapes`. */
 export type LandscapeState = Type.Static<typeof LandscapeState>

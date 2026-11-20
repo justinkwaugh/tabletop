@@ -1,10 +1,11 @@
 import type { GameAction } from '@tabletop/common'
 import {
+    type BarrelTieBreak,
     isBeginDawn,
     isScoreGame,
     LastEpoch,
+    sunray,
     voyageSpace,
-    type BarrelTieBreak,
     type VoyageSpaceId,
     type WritId
 } from '@tabletop/feudum'
@@ -68,7 +69,10 @@ export function gameEndOf(actions: readonly GameAction[]): GameEndSummaryView | 
         return undefined
     }
     const dawn = actions.findLast(
-        (action) => isBeginDawn(action) && action.metadata?.epoch === LastEpoch
+        (action) =>
+            isBeginDawn(action) &&
+            action.metadata !== undefined &&
+            sunray(action.metadata.epoch).epoch === LastEpoch
     )
     const sheet = isBeginDawn(dawn) ? (dawn.metadata?.sheet ?? []) : []
     return {

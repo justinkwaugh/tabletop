@@ -6,12 +6,13 @@ import { LastEpoch } from '../data/tracks.js'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { epochNumber } from '../model/tracks.js'
 
 type EndOfRoundAction = HydratedEndRound | HydratedScoreGame
 
 /** R-2.2.5 Step 5 of the round; R-6.1-H2 after the V dawn, final scoring replaces it. */
 export function stateAtRoundEnd(context: MachineContext<HydratedFeudumGameState>): MachineState {
-    context.addSystemAction(context.gameState.epoch === LastEpoch ? ScoreGame : EndRound)
+    context.addSystemAction(epochNumber(context.gameState) === LastEpoch ? ScoreGame : EndRound)
     return MachineState.EndOfRound
 }
 
@@ -24,7 +25,9 @@ export class EndOfRoundStateHandler implements MachineStateHandler<
         action: HydratedAction,
         context: MachineContext<HydratedFeudumGameState>
     ): action is EndOfRoundAction {
-        return context.gameState.epoch === LastEpoch ? isScoreGame(action) : isEndRound(action)
+        return epochNumber(context.gameState) === LastEpoch
+            ? isScoreGame(action)
+            : isEndRound(action)
     }
 
     validActionsForPlayer(

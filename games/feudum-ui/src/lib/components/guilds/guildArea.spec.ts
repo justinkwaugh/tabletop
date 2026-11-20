@@ -6,7 +6,9 @@ import {
     AlchemistCartSpaces,
     beadValue,
     ChickenSpaces,
+    dummyRowColour,
     FarmerBarn,
+    type GuildId,
     GuildIds,
     GuildTrackSpaces,
     HydratedFeudumGameState,
@@ -18,8 +20,7 @@ import {
     rosaryBeadSum,
     ScrollSpaces,
     Seals,
-    seatKnightRow,
-    type GuildId
+    seatKnightRow
 } from '@tabletop/feudum'
 import { guildPanelAsset } from '$lib/art/assetMap.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
@@ -142,11 +143,11 @@ describe('GuildArea draws from state (R-1.3)', () => {
 
     it('R-1.4-H1 paints a dummy row by its colour, and draws only the rows in use', async () => {
         const state = await table(3)
-        const dummy = knightRows(state).find(({ row }) => 'dummyColour' in row.owner)?.row.owner
+        const dummy = knightRows(state).find(({ row }) => 'dummy' in row.owner)?.rowId
         expect(dummy).toBeDefined()
         const html = area('knight', state)
-        if (dummy && 'dummyColour' in dummy) {
-            expect(html).toContain(`colour-${dummy.dummyColour}`)
+        if (dummy) {
+            expect(html).toContain(`colour-${dummyRowColour(state, dummy)}`)
         }
         expect(count(html, 'data-knight-row=')).toBe(knightRows(state).length)
     })

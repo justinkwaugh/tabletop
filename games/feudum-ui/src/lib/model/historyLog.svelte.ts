@@ -1,3 +1,4 @@
+import { epochNumber } from '@tabletop/feudum'
 import {
     aggregateHistory,
     type HistoryEntry,
@@ -21,7 +22,7 @@ export class HistoryLog {
         const { gameState, actions } = this.session
         return aggregateHistory(actions, {
             rounds: gameState.roundManager.series,
-            epoch: gameState.epoch
+            epoch: epochNumber(gameState)
         })
     })
 

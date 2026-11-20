@@ -15,6 +15,7 @@ import {
     type CardPlayInput,
     type RepeatMode
 } from './cardPlay.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 /** R-3.12.1 */
 const TaxBaseShillings = 2
@@ -53,7 +54,9 @@ export function isTax(action?: GameAction): action is Tax {
 }
 
 function ruledKinds(state: HydratedFeudumGameState, playerId: string) {
-    return state.ruledSpaceIds(playerId).map((spaceId) => state.spaces[spaceId].location.kind)
+    return state
+        .ruledSpaceIds(playerId)
+        .map((spaceId) => locationKindOf(state.spaces[spaceId].location))
 }
 
 /** R-3.12.1 2 shillings + 1 per other town or feudum ruled, the taxing town being one town. */

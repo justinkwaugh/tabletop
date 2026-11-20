@@ -1,10 +1,14 @@
 import { assertExists } from '@tabletop/common'
 import {
     EpicVoyageTrack,
+    EpochTrack,
     MilitaryServiceTrack,
     type EpicVoyageSpace,
+    type Epoch,
     type MilitaryServiceSpace,
     type MilitarySpaceId,
+    type Sunray,
+    type SunrayId,
     type VoyageSpaceId
 } from '../data/tracks.js'
 
@@ -63,4 +67,21 @@ export function nextMilitarySpace(
     playerId: string
 ): MilitaryServiceSpace | undefined {
     return MilitaryServiceTrack[coveredServiceSpaces(state, playerId).length]
+}
+
+/** R-4.11 */
+export function sunray(sunrayId: SunrayId): Sunray {
+    const ray = EpochTrack.find(({ id }) => id === sunrayId)
+    assertExists(ray, `No sunray ${sunrayId}`)
+    return ray
+}
+
+/** R-2.1 The printed number of the epoch the marker is on. */
+export function epochNumber(state: { readonly epoch: SunrayId }): Epoch {
+    return sunray(state.epoch).epoch
+}
+
+/** R-4.11.2 Epochs advance one at a time; none follows V. */
+export function nextSunray(sunrayId: SunrayId): Sunray | undefined {
+    return EpochTrack[EpochTrack.indexOf(sunray(sunrayId)) + 1]
 }

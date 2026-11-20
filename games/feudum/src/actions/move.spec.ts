@@ -13,6 +13,7 @@ import { placeMarker } from '../model/locationControl.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { moveAllowance, moveOffers, reasonMoveRefused, type MoveStep } from './move.js'
+import { showLocation } from '../testing/improving.js'
 
 const Start: SpaceId = 'space.desert.3'
 
@@ -709,7 +710,7 @@ describe('Move: pilfer', () => {
 
     it('R-3.7.4 takes a good from the space, naming its source', () => {
         const { table, playerId } = tableWith((state) => {
-            state.spaces[To].location.kind = 'town'
+            showLocation(state, To, 'town')
             goodOnSpace(state, To)
         })
         const { iron } = table.seat(playerId).goods
@@ -725,7 +726,7 @@ describe('Move: pilfer', () => {
 
     it('R-3.7.4 only a piece that moved pilfers', () => {
         const { table, playerId } = tableWith((state, seat) => {
-            state.spaces[Start].location.kind = 'town'
+            showLocation(state, Start, 'town')
             goodOnSpace(state, Start)
             standPawn(state, seat, 2, 'space.forest.2')
         })
@@ -745,7 +746,7 @@ describe('Move: pilfer', () => {
     it('R-3.7.4 a piece out and back pilfers where it began', () => {
         const { table, playerId } = tableWith((state, seat) => {
             standPawn(state, seat, 2, 'space.forest.2')
-            state.spaces[Start].location.kind = 'town'
+            showLocation(state, Start, 'town')
             goodOnSpace(state, Start)
         })
         const { iron } = table.seat(playerId).goods
@@ -759,7 +760,7 @@ describe('Move: pilfer', () => {
     it('R-3.7.4 a monster that moved pilfers; a pawn after Godspeed pilfers where that left it', () => {
         const monster = tableWith((state, seat) => {
             standMonster(state, 'behemoth', seat, Start)
-            state.spaces[To].location.kind = 'town'
+            showLocation(state, To, 'town')
             goodOnSpace(state, To)
         })
         const { iron } = monster.table.seat(monster.playerId).goods
@@ -775,7 +776,7 @@ describe('Move: pilfer', () => {
 
         const { table, playerId } = tableWith((state, seat) => {
             standPawn(state, seat, 1, Start, 'monk')
-            state.spaces[To].location.kind = 'town'
+            showLocation(state, To, 'town')
             goodOnSpace(state, To)
         })
         expect(
@@ -789,7 +790,7 @@ describe('Move: pilfer', () => {
     it('R-3.7.4, R-4.2-H1 a pawn that stepped onto an opposing monster’s space may still pilfer', () => {
         const { table, playerId } = tableWith((state, _seat, opponent) => {
             standMonster(state, 'behemoth', opponent, To)
-            state.spaces[To].location.kind = 'town'
+            showLocation(state, To, 'town')
             goodOnSpace(state, To)
         })
         const { iron } = table.seat(playerId).goods
@@ -802,7 +803,7 @@ describe('Move: pilfer', () => {
 
     it('R-3.7.4 a non-farm location the seat rules is allowed', () => {
         const { table, playerId } = tableWith((state, seat) => {
-            state.spaces[To].location.kind = 'town'
+            showLocation(state, To, 'town')
             placeMarker(state, seat, To)
             goodOnSpace(state, To)
         })
@@ -816,7 +817,7 @@ describe('Move: pilfer', () => {
 
     it('R-3.7.4 takes from a farm the seat doesn’t rule, never one it does', () => {
         const ruled = tableWith((state, seat) => {
-            state.spaces[To].location.kind = 'farm'
+            showLocation(state, To, 'farm')
             placeMarker(state, seat, To)
             goodOnSpace(state, To)
         })
@@ -828,7 +829,7 @@ describe('Move: pilfer', () => {
         ).toBe("You can't pilfer from a farm you rule.")
 
         const { table, playerId } = tableWith((state, _seat, opponent) => {
-            state.spaces[To].location.kind = 'farm'
+            showLocation(state, To, 'farm')
             placeMarker(state, opponent, To)
             goodOnSpace(state, To)
         })
@@ -842,7 +843,7 @@ describe('Move: pilfer', () => {
 
     it('R-3.7.4 the source must be what the space is, and hold what is named', () => {
         const { table, playerId } = tableWith((state) => {
-            state.spaces[To].location.kind = 'town'
+            showLocation(state, To, 'town')
         })
         const pilfer = (from: 'space' | 'farm' | 'landscape', resource: 'iron' | 'shillings') =>
             refused(table, playerId, {
@@ -855,7 +856,7 @@ describe('Move: pilfer', () => {
         expect(pilfer('landscape', 'shillings')).toBe('There is no landscape there.')
 
         const farm = tableWith((state) => {
-            state.spaces[To].location.kind = 'farm'
+            showLocation(state, To, 'farm')
             goodOnSpace(state, To)
         })
         expect(
@@ -883,7 +884,7 @@ describe('Move: pilfer', () => {
 
     it('R-3.7.4 a landscape on a farm the seat rules is still open: only its serf bars it', () => {
         const { table, playerId } = tableWith((state, seat, opponent) => {
-            state.spaces[To].location.kind = 'farm'
+            showLocation(state, To, 'farm')
             landscapeOn(state, To, 'orchard', 1)
             serfOn(state, To, seat, opponent)
         })
@@ -1182,7 +1183,7 @@ describe('Move: offers', () => {
     it('R-3.7.4 offers each resource the moved piece may take, and nothing else', () => {
         const { table, playerId } = tableWith((state, seat) => {
             standPawn(state, seat, 2, 'space.forest.2')
-            state.spaces[Quay].location.kind = 'town'
+            showLocation(state, Quay, 'town')
             goodOnSpace(state, Quay)
             landscapeOn(state, Quay, 'archery-butt', 1)
             goodOnSpace(state, 'space.forest.2')

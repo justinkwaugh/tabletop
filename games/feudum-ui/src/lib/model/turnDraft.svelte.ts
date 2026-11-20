@@ -46,8 +46,6 @@ import { coverNeeds, loneCover } from './tileCover.js'
 
 type TurnStages = StagedSelectionState<TurnDraftValues>
 
-export const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
-
 export interface TurnPrimary {
     readonly label: string
     readonly named?: string

@@ -17,7 +17,7 @@
 
     const RayReach = 150
     const MarkSize = 18
-    let ray = $derived(EpochTrack.find(({ epoch }) => epoch === state.epoch))
+    let ray = $derived(EpochTrack.find(({ id }) => id === state.epoch))
 </script>
 
 {#if !printed}

@@ -79,7 +79,7 @@ export class HydratedRollProgressDie
     /** R-4.11.1, R-6.1-H1 On the protected stream. */
     private static rollFaces(state: HydratedFeudumGameState): RegionId[] {
         const legal = legalStackRegions(state)
-        if (legal.length === 0 || triggeredEpoch(state) === LastEpoch) {
+        if (legal.length === 0 || triggeredEpoch(state)?.epoch === LastEpoch) {
             return []
         }
         const { randInt } = state.getProtectedPrng()
@@ -106,8 +106,8 @@ export class HydratedRollProgressDie
 
     /** R-4.11.2, R-4.11-H1 Only here, and one epoch at a time. The first epoch is never next. */
     private static triggerNextEpoch(state: HydratedFeudumGameState): TriggeredEpoch | undefined {
-        const next = triggeredEpoch(state)
-        const triggered = next === 1 ? undefined : next
+        const next = triggeredEpoch(state)?.id
+        const triggered = next === 'track.epoch.i' ? undefined : next
         state.flow.epochTriggered = triggered
         return triggered
     }

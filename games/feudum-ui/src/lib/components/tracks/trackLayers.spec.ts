@@ -185,7 +185,7 @@ describe('what the print already holds (R-4.3, R-4.10, R-4.11)', () => {
             a.barrel = 2
             state.voyageTrack = { [b.playerId]: 'track.voyage.2' }
             state.militaryService = { [a.playerId]: 'track.military.1' }
-            state.epoch = EpochTrack[2].epoch
+            state.epoch = EpochTrack[2].id
             const html = tracks(state)
             expect(html).toContain(`data-epoch-marker="${EpochTrack[2].ray}"`)
             expect(html).toContain(`data-barrel="${a.playerId}" data-sulfur="2"`)

@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { feudumGuildOf, Spaces, type HydratedFeudumGameState } from '@tabletop/feudum'
+    import {
+        feudumGuildOf,
+        type HydratedFeudumGameState,
+        locationKindOf,
+        Spaces
+    } from '@tabletop/feudum'
     import { MapAsset, assetUrl } from '$lib/art/assetMap.js'
     import LocationDisc from '$lib/components/pieces/LocationDisc.svelte'
     import {
@@ -60,7 +65,7 @@
         {/if}
         <BoardPiece at={geometry.centre} piece="disc:{space.id}">
             <LocationDisc
-                kind={location.kind}
+                kind={locationKindOf(location)}
                 guild={feudumGuildOf(location)}
                 start={space.startingSpace}
                 size={DiscFrame}

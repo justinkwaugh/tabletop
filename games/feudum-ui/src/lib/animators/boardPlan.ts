@@ -1,11 +1,14 @@
 import type { Color, GameAction, Point } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
-    EpochTrack,
+    dummyRowColour,
     FarmerBarn,
     feudumGuildOf,
+    type Good,
     Goods,
+    type GuildId,
     GuildTrackSpaces,
+    type HydratedFeudumGameState,
     isAnswerAttack,
     isBeginDawn,
     isCommitAttack,
@@ -14,19 +17,17 @@ import {
     isRollProgressDie,
     KnightMonsterIcons,
     knightRows,
-    MarketSpaces,
-    RegionTiles,
-    seatKnightRow,
-    Spaces,
-    type Good,
-    type GuildId,
-    type HydratedFeudumGameState,
     type LandscapeKind,
     type LocationKind,
+    locationKindOf,
+    MarketSpaces,
     type Move,
     type PieceRef,
     type RegionId,
+    RegionTiles,
+    seatKnightRow,
     type SpaceId,
+    Spaces,
     type TileEpoch,
     type TileId,
     type VesselType
@@ -40,7 +41,7 @@ import {
     type SeatScore,
     type TrackDisc
 } from '$lib/model/boardView.js'
-import { knightMarkerPiece, rowLane } from '$lib/model/knightLanes.js'
+import { knightMarkerPiece, laneOfRow } from '$lib/model/knightLanes.js'
 import {
     goodKinds,
     goodStacks,
@@ -530,7 +531,7 @@ function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number
     let ends = at
     for (const { rowId, row } of knightRows(to)) {
         const was = from.guilds.knight.rows[rowId]?.markers ?? 0
-        const lane = rowLane(to, row.owner)
+        const lane = laneOfRow(to, rowId)
         const label = guildPoint('knight', knightRowLabel(lane))
         for (let column = was + 1; column <= row.markers; column += 1) {
             const token = plan.token(
@@ -539,7 +540,7 @@ function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number
                     owner:
                         'playerId' in row.owner
                             ? { playerId: row.owner.playerId }
-                            : { colour: row.owner.dummyColour },
+                            : { colour: dummyRowColour(to, rowId) },
                     size: GuildSizes.marker * GuildScale
                 },
                 label
@@ -563,7 +564,7 @@ function markMonsterIcons(plan: PlanBuilder, { from, to }: BoardChange, at: numb
             continue
         }
         const { rowId, row } = own
-        const start = knightCell(rowLane(from, row.owner), row.markers)
+        const start = knightCell(laneOfRow(from, rowId), row.markers)
         ends = plan.move(
             'markers',
             { piece: knightMarkerPiece(rowId, row.markers) },
@@ -637,14 +638,14 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
         const was = from.spaces[id].location
         const now = to.spaces[id].location
         const guild = feudumGuildOf(now)
-        if (was.kind === now.kind && feudumGuildOf(was) === guild) {
+        if (locationKindOf(was) === locationKindOf(now) && feudumGuildOf(was) === guild) {
             continue
         }
         plan.move('discs', { piece: `disc:${id}` }, at, FlipSeconds, { scaleX: 0 })
         const face = plan.token(
             {
                 kind: 'location',
-                location: now.kind,
+                location: locationKindOf(now),
                 ...(guild ? { guild } : {}),
                 start: startingSpace === true
             },
@@ -902,8 +903,7 @@ function slideScores(plan: PlanBuilder, { from, to }: BoardChange, at: number): 
 }
 
 function epochPlace(state: HydratedFeudumGameState): Point | undefined {
-    const ray = EpochTrack.find(({ epoch }) => epoch === state.epoch)
-    return ray ? trackPlace(EpochRays, ray.id) : undefined
+    return trackPlace(EpochRays, state.epoch)
 }
 
 /** R-4.12 The epoch marker goes on to the next ray, and that ray glows. */

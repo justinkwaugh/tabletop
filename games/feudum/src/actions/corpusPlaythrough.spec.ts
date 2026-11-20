@@ -38,7 +38,7 @@ import { rowOf, scoredIn } from '../testing/gameEnd.js'
 import { giveGood, giveSeal, setUp } from '../testing/improving.js'
 import { showOnStacks } from '../testing/roundEnd.js'
 import { giveFood, starve, tableAtStarve } from '../testing/starve.js'
-import { canonicalOf } from '../testing/state.js'
+import { canonicalOf, epochAt } from '../testing/state.js'
 import type { Table } from '../testing/table.js'
 import { answerOf, replayWalk, undoAction, withoutClock, withoutRowId } from '../testing/walk.js'
 import { cardOf, cardPlayOffers } from './cardPlay.js'
@@ -84,7 +84,7 @@ function fires(table: Table, effect: () => void): void {
 function playToTheEnd(table: Table): ScoreGameMetadata {
     table.moveTo((state) => {
         showOnStacks(state, LastRoundTops)
-        state.epoch = LastButOneEpoch
+        state.epoch = epochAt(LastButOneEpoch)
         return state.machineState
     })
     const from = table.processed.length

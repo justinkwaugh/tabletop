@@ -1,3 +1,4 @@
+import { showLocation } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -96,7 +97,7 @@ function standMonster(
 
 /** R-1.4.4 A good from the haversack lies on an outpost. */
 function goodOnOutpost(state: HydratedFeudumGameState, spaceId: SpaceId, good: Good = 'iron') {
-    state.spaces[spaceId].location.kind = 'outpost'
+    showLocation(state, spaceId, 'outpost')
     state.supply.haversack[good] -= 1
     state.spaces[spaceId].goods[good] += 1
 }
@@ -583,7 +584,7 @@ describe('S29 R-3.7.3, R-3.7.4 Godspeed and pilfer', () => {
     it('the whole Move: Stop moving, a Godspeed step, a pilfer, the send, and its Undo', async () => {
         const turn = await table(['move', 'tax'], (state, { seat, other }) => {
             stand(state, seat, [Pilfered, 'monk'], 'space.desert.4', Elsewhere)
-            state.spaces[Ruled].location.kind = 'farm'
+            showLocation(state, Ruled, 'farm')
             placeMarker(state, seat, Ruled)
             state.supply.haversack.iron -= 1
             state.spaces[Ruled].goods.iron += 1

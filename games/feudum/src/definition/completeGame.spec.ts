@@ -30,6 +30,8 @@ import { undoAction, withoutClock, type GameWalk } from '../testing/walk.js'
 import { ActionType } from './actions.js'
 import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
+import type { Epoch } from '../data/tracks.js'
+import { epochAt } from '../testing/state.js'
 
 const engine = new GameEngine(FeudumRuntime)
 
@@ -91,7 +93,7 @@ function reachedVMidRound(walk: GameWalk): boolean {
             .slice(emptiedAt, rollAt)
             .some(({ machineState }) => machineState === MachineState.PlayingCards) &&
         roll?.metadata?.faces.length === 0 &&
-        rest.filter(isBeginDawn)[0]?.metadata?.epoch === 5 &&
+        rest.filter(isBeginDawn)[0]?.metadata?.epoch === epochAt(5) &&
         rest.some(isScoreGame)
     )
 }
@@ -111,9 +113,9 @@ function settled(action: GameAction): GameAction {
 }
 
 const dawnAt =
-    (epoch: number) =>
+    (epoch: Epoch) =>
     (action: GameAction): boolean =>
-        isBeginDawn(action) && action.metadata?.epoch === epoch
+        isBeginDawn(action) && action.metadata?.epoch === epochAt(epoch)
 
 /** What the seeds must reach between them: each is a spec of its own, so a gap fails by name. */
 const Coverage: readonly {
@@ -130,7 +132,7 @@ const Coverage: readonly {
     },
     { name: 'R-4.4.1 a writ draw', reached: (walk) => processedOf(walk).some(isKeepWrits) },
     { name: 'R-3.16.3 a feast', reached: (walk) => processedOf(walk).some(isFeast) },
-    ...[2, 3, 4, 5].map((epoch) => ({
+    ...([2, 3, 4, 5] as const).map((epoch) => ({
         name: `R-4.12 the dawn of epoch ${epoch}`,
         reached: (walk: GameWalk) => processedOf(walk).some(dawnAt(epoch))
     })),
@@ -303,7 +305,12 @@ describe('R-6.1 between them the scripted games reach', () => {
                 const dawns = processedOf(walkOf(seed, numPlayers))
                     .filter(isBeginDawn)
                     .map((action) => action.metadata?.epoch)
-                expect(dawns).toEqual([2, 3, 4, 5])
+                expect(dawns).toEqual([
+                    'track.epoch.ii',
+                    'track.epoch.iii',
+                    'track.epoch.iv',
+                    'track.epoch.v'
+                ])
             }
         }
     )

@@ -10,7 +10,12 @@ import { ActionType } from '../definition/actions.js'
 import { markRevealsInfo } from '../definition/revealing.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
-import { discChoices, replaceLocationDisc, type DiscChoice } from '../model/locationDiscs.js'
+import {
+    type DiscChoice,
+    discChoices,
+    locationKindOf,
+    replaceLocationDisc
+} from '../model/locationDiscs.js'
 import { canCoverWithWildTiles, payGoods } from '../model/payments.js'
 import {
     collectTopTile,
@@ -194,7 +199,7 @@ export function reasonImproveRefused(
     if (space.ruler?.playerId !== playerId) {
         return "You don't rule that location."
     }
-    const step = stepFrom(space.location.kind)
+    const step = stepFrom(locationKindOf(space.location))
     if (!step) {
         return 'A feudum cannot be improved.'
     }
@@ -228,7 +233,7 @@ export interface ImproveOffer {
 /** R-3.9.1 The locations the seat can improve now, and what each would take and bring. */
 export function improveOffers(state: HydratedFeudumGameState, playerId: string): ImproveOffer[] {
     return state.ruledSpaceIds(playerId).flatMap((spaceId): ImproveOffer[] => {
-        const { kind: from } = state.spaces[spaceId].location
+        const from = locationKindOf(state.spaces[spaceId].location)
         const step = stepFrom(from)
         if (!step || !canPay(state, playerId, step.cost)) {
             return []
@@ -267,7 +272,7 @@ export function improveOffers(state: HydratedFeudumGameState, playerId: string):
 /** R-4.3-H3 Improve takes no tile, so the seat spends one at will first. */
 export function improveShortSpaces(state: HydratedFeudumGameState, playerId: string): SpaceId[] {
     return state.ruledSpaceIds(playerId).filter((spaceId) => {
-        const step = stepFrom(state.spaces[spaceId].location.kind)
+        const step = stepFrom(locationKindOf(state.spaces[spaceId].location))
         return (
             step !== undefined &&
             step.cost !== 'seal' &&
@@ -299,7 +304,7 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
             throw Error(reason)
         }
         const { location } = state.spaces[this.spaceId]
-        const from = location.kind
+        const from = locationKindOf(location)
         const step = stepFrom(from)
         assertExists(step, 'R-3.9.1 A feudum cannot be improved')
         playCard(state, this.playerId, 'improve', 'regular', this)

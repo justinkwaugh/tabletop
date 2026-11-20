@@ -27,12 +27,12 @@ type RowsAndSupply = Pick<HydratedFeudumGameState, 'guilds' | 'supply'>
 /** R-4.6.6, R-4.6-H8 One barrel: every row's leading unfilled section, as far as its owner's supply has. */
 function fillLeadingSections(state: RowsAndSupply): RowFill[] {
     return knightRows(state).flatMap(({ rowId, row }) => {
-        const added = Math.min(leadingSectionRoom(row.markers), ownerSupply(state, row.owner))
+        const added = Math.min(leadingSectionRoom(row.markers), ownerSupply(state, { rowId, row }))
         if (added === 0) {
             return []
         }
         row.markers += added
-        changeOwnerSupply(state, row.owner, -added)
+        changeOwnerSupply(state, { rowId, row }, -added)
         return [{ rowId, owner: row.owner, added }]
     })
 }

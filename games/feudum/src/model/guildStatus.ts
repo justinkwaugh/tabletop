@@ -9,7 +9,7 @@ import {
 } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import type { GuildTrack } from './guildsState.js'
-import { feudumGuildOf } from './locationDiscs.js'
+import { feudumGuildOf, locationKindOf } from './locationDiscs.js'
 import { GuildIdSchema } from './stateSchemas.js'
 
 /** R-4.5 What one recompute did to one player in one guild, for an Action's metadata. */
@@ -44,7 +44,7 @@ export function statusStars(
         return 0
     }
     const { relatedLocation } = GuildById[guildId]
-    const related = ruled.filter((location) => location.kind === relatedLocation)
+    const related = ruled.filter((location) => locationKindOf(location) === relatedLocation)
     return primary + related.length * StatusStarValues.relatedLocation
 }
 

@@ -11,6 +11,7 @@ import {
     type TileId
 } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
+import { EpochTrack } from '../data/tracks.js'
 import { RoyalWrits } from '../data/writs.js'
 import type { FeudumGameState } from './gameState.js'
 import type { GuildsState } from './guildsState.js'
@@ -53,7 +54,7 @@ export function placeStartingDiscs(
     return recordFrom(
         Spaces.map((space) => space.id),
         (_, index) => ({
-            location: { kind: discs[index].kind, discId: discs[index].id },
+            location: { discId: discs[index].id },
             goods: goodCounts(),
             vessels: vesselCounts()
         })
@@ -124,7 +125,7 @@ export function boxContents(players: FeudumPlayerState[]): BoxContents {
     }
 
     return {
-        epoch: 1,
+        epoch: EpochTrack[0].id,
         spaces: placeStartingDiscs(),
         monsters: { behemoth: {}, 'sea-serpent': {} },
         guilds: emptyGuilds(),

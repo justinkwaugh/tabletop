@@ -171,7 +171,11 @@ function feudumFalls(
     if (outpost) {
         replaceLocationDisc(state, spaceId, outpost.discId, 'outpost')
     } else {
-        space.location = { kind: 'outpost', discId: location.discId }
+        assert(
+            location.discId.startsWith('disc.feudum.') && !('face' in location),
+            'R-4.8-H2 A feudum stands on its own disc'
+        )
+        space.location = { discId: location.discId, asOutpost: true }
     }
     return {
         kind: 'feudum',

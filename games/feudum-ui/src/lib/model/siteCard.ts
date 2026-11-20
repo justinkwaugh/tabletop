@@ -1,7 +1,8 @@
 import {
-    feudumGuildOf,
     type Character,
+    feudumGuildOf,
     type HydratedFeudumGameState,
+    locationKindOf,
     type MonsterId,
     type SpaceId
 } from '@tabletop/feudum'
@@ -61,7 +62,7 @@ export function siteCardOf(
     nameOf: (playerId: string) => string
 ): SiteCard {
     const space = state.spaces[spaceId]
-    const { kind } = space.location
+    const kind = locationKindOf(space.location)
     const feudumGuild = feudumGuildOf(space.location)
     const place = feudumGuild ? `${feudumGuild} feudum` : kind
     const markers: SiteMarker[] = []

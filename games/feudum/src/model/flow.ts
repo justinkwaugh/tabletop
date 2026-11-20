@@ -57,13 +57,13 @@ export const StarveRole = Type.Union([Type.Literal('subject'), Type.Literal('ser
 export type CombatTarget = Type.Static<typeof CombatTarget>
 export const CombatTarget = Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })])
 
-/** R-4.11.2 The epochs a round can trigger; the game starts in the first. */
+/** R-4.11.2 The sunrays a round can trigger; the game starts on the first. */
 export type TriggeredEpoch = Type.Static<typeof TriggeredEpoch>
 export const TriggeredEpoch = Type.Union([
-    Type.Literal(2),
-    Type.Literal(3),
-    Type.Literal(4),
-    Type.Literal(5)
+    Type.Literal('track.epoch.ii'),
+    Type.Literal('track.epoch.iii'),
+    Type.Literal('track.epoch.iv'),
+    Type.Literal('track.epoch.v')
 ])
 
 export type FlowState = Type.Static<typeof FlowState>

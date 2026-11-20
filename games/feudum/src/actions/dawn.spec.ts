@@ -12,12 +12,11 @@ import {
     type ChickenSpaceId
 } from '../data/guilds.js'
 import { LandscapeFill } from '../data/regionTiles.js'
-import type { MapDirection } from '../data/tracks.js'
+import type { Epoch, MapDirection } from '../data/tracks.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
-import { replenishMap, sunrayOf } from '../model/dawn.js'
-import type { TriggeredEpoch } from '../model/flow.js'
+import { replenishMap } from '../model/dawn.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { goodsTotal } from '../model/market.js'
@@ -42,6 +41,9 @@ import { isBeginDawn } from './beginDawn.js'
 import { isReplenishGuilds } from './replenishGuilds.js'
 import { isReplenishMap } from './replenishMap.js'
 import { knightRows, rowSeat } from '../model/knightRows.js'
+import { epochAt } from '../testing/state.js'
+import { sunray } from '../model/tracks.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 const SetupChicken = chickenWhere(true)
 
@@ -107,14 +109,14 @@ describe('R-4.12 the dawn follows the roll', () => {
 
         expect(processed.find((action) => isBeginDawn(action))).toMatchObject({
             source: ActionSource.System,
-            metadata: { epoch: 2 }
+            metadata: { epoch: epochAt(2) }
         })
-        expect(table.state.epoch).toBe(2)
+        expect(table.state.epoch).toBe(epochAt(2))
         expect(table.state.flow.epochTriggered).toBeUndefined()
         expect(table.hydrated().phaseManager.currentPhase?.name).toBe(PhaseName.Dawn)
     })
 
-    const OnToNextRound: { epoch: TriggeredEpoch; extra: ActionType[] }[] = [
+    const OnToNextRound: { epoch: Exclude<Epoch, 1>; extra: ActionType[] }[] = [
         { epoch: 2, extra: [] },
         { epoch: 3, extra: [ActionType.ReplenishGuilds] },
         { epoch: 4, extra: [] }
@@ -388,7 +390,7 @@ describe('R-4.12.3 the landscapes', () => {
 })
 
 describe('R-4.12.4 the map gains goods', () => {
-    const Directions: { epoch: TriggeredEpoch; direction: MapDirection }[] = [
+    const Directions: { epoch: Exclude<Epoch, 1>; direction: MapDirection }[] = [
         { epoch: 2, direction: 'S' },
         { epoch: 3, direction: 'E' },
         { epoch: 4, direction: 'W' }
@@ -405,7 +407,7 @@ describe('R-4.12.4 the map gains goods', () => {
             })
             const lettered = Regions.map((region) => regionSpace(region, direction))
 
-            expect(sunrayOf(epoch).mapDirection).toBe(direction)
+            expect(sunray(epochAt(epoch)).mapDirection).toBe(direction)
             expect(mapGoodsOf(processed).map((entry) => entry.spaceId)).toEqual(lettered)
             for (const { id } of Spaces) {
                 expect(goodsTotal(table.hydrated().spaces[id].goods)).toBe(
@@ -429,7 +431,7 @@ describe('R-4.12.4 the map gains goods', () => {
 
         const { good } = mapGoodsOf(processed)[0]
         const after = table.hydrated().spaces[spaceId]
-        expect(after.location.kind).toBe('farm')
+        expect(locationKindOf(after.location)).toBe('farm')
         expect(goodsTotal(after.goods)).toBe(held + 1)
         expect(after.goods[good]).toBeGreaterThan(0)
     })
@@ -473,7 +475,7 @@ describe('R-4.12.4 the map gains goods', () => {
 })
 
 describe('R-4.12.5, R-4.12-H2 the guilds refill at III', () => {
-    it.each<{ epoch: TriggeredEpoch }>([{ epoch: 2 }, { epoch: 4 }])(
+    it.each<{ epoch: Exclude<Epoch, 1> }>([{ epoch: 2 }, { epoch: 4 }])(
         'R-4.12.5 at $epoch nothing refills',
         ({ epoch }) => {
             const { table, processed } = playToDawn(epoch, (state) => setBarn(state, {}))
@@ -575,7 +577,7 @@ describe('R-4.12.5, R-4.12-H2 the guilds refill at III', () => {
         const [extra, ...short] = knightRows(table.hydrated())
         expect(extra.row.markers).toBe(markersPerRow + 1)
         expect(short.length).toBeGreaterThan(0)
-        expect(short.some(({ row }) => 'dummyColour' in row.owner)).toBe(true)
+        expect(short.some(({ row }) => 'dummy' in row.owner)).toBe(true)
         for (const { row } of short) {
             expect(row.markers).toBe(markersPerRow)
         }

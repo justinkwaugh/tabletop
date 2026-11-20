@@ -47,6 +47,7 @@ import { reasonSpendRegionTileRefused, spendRegionTileOffers } from './spendRegi
 import { keepWritsOffer } from './keepWrits.js'
 import { nourishOffer } from './nourish.js'
 import { cardTurnSeat } from '../model/turns.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 const Windows: readonly WindowName[] = [
     'before a card',
@@ -392,7 +393,7 @@ describe('R-4.3-H3 a tile spent first covers a payment that takes no tiles', () 
         expect(() => table.send(playerId, improve)).toThrow()
         table.send(playerId, { type: ActionType.SpendRegionTile, tileId, good: 'wood' })
         table.send(playerId, improve)
-        expect(table.hydrated().spaces[spaceId].location.kind).toBe('farm')
+        expect(locationKindOf(table.hydrated().spaces[spaceId].location)).toBe('farm')
     })
 
     it('R-3.9.3 Tend Landscape: a wood from a tile pays for the landscape', () => {

@@ -799,7 +799,7 @@ function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
     }
     const rowPaint = (row: KnightRowId): SeatPaint | undefined => {
         const held = state.guilds.knight.rows[row]
-        return held && ownerPaint(held.owner, session.paintOf, session.colourPaintOf)
+        return held && ownerPaint(state, row, session.paintOf, session.colourPaintOf)
     }
     return [
         {

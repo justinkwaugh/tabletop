@@ -1,12 +1,21 @@
-import { assertExists, type Color, type GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionCards,
+    AlchemistCartSpaces,
     beadValue,
-    ChickenSpaces,
     type ChickenSpaceId,
-    type ImproveMetadata,
-    type SpaceId,
+    ChickenSpaces,
+    type CollectedLandscape,
+    type CombatRecord,
+    type Good,
+    type GoodCounts,
     GuildById,
+    type GuildFunctionDetails,
+    type GuildFunctionOutcome,
+    type GuildFunctionParams,
+    type GuildId,
+    GuildRanks,
+    type ImproveMetadata,
     isAdvanceTurn,
     isAnswerAttack,
     isAnswerStarve,
@@ -43,33 +52,26 @@ import {
     isRollProgressDie,
     isScoreGame,
     isSpendRegionTile,
-    isStarveThePeople,
     isStartRound,
+    isStarveThePeople,
     isTax,
     isTendLandscape,
+    type KnightRowId,
+    type KnightRowLeft,
     LocationDiscs,
     MarketSpaces,
-    printedSpaceNumber,
-    AlchemistCartSpaces,
-    GuildRanks,
-    type CollectedLandscape,
-    type CombatRecord,
-    type Good,
-    type GoodCounts,
-    type GuildFunctionDetails,
-    type GuildFunctionOutcome,
-    type GuildFunctionParams,
-    type GuildId,
-    type KnightRowLeft,
     type Migrate,
     type MilitarySpaceId,
     type Move,
     type MoveStepRecord,
     type PawnLeft,
+    printedSpaceNumber,
     type RankChange,
     type RowFill,
     type SealId,
+    type SpaceId,
     type StarveRecord,
+    sunray,
     type VoyageSpaceId,
     type WildTileSpend,
     type WritId
@@ -83,7 +85,7 @@ import { regionOf, spaceLabel } from './cardFlows.js'
 import { handFaceShown, writFaceShown } from './perspective.js'
 import { PouchTitles } from './pouchWords.js'
 import { fillLine, goodsLine } from './roundEnd.js'
-import { EpochNames, tileName } from './tileName.js'
+import { tileName } from './tileName.js'
 import { writName } from './writLabels.js'
 
 /** Hidden information: a line reads only the Action as this seat received it. */
@@ -93,7 +95,7 @@ export interface ActionLineView {
     readonly hostView?: boolean
     readonly nameOf: (playerId: string) => string
     /** R-1.4-H1 A dummy row's colour as the table shows it. */
-    readonly dummyName?: (colour: Color) => string
+    readonly dummyName?: (rowId: KnightRowId) => string
     readonly seats?: readonly string[]
 }
 
@@ -146,8 +148,8 @@ class Words {
         return playerId === this.view.viewerId ? 'you' : this.view.nameOf(playerId)
     }
 
-    dummy(colour: Color): string {
-        return this.view.dummyName?.(colour) ?? colour
+    dummy(rowId: KnightRowId): string {
+        return this.view.dummyName?.(rowId) ?? rowId
     }
 
     whose(playerId: string): string {
@@ -741,10 +743,10 @@ function countsOf(rows: number, columns: number, count?: 'rows' | 'columns'): st
     return count ? `${both}, counting ${count}` : both
 }
 
-function rowName({ owner }: KnightRowLeft | RowFill, words: Words): string {
+function rowName({ rowId, owner }: KnightRowLeft | RowFill, words: Words): string {
     return 'playerId' in owner
         ? `${words.whose(owner.playerId)} row`
-        : `the ${words.dummy(owner.dummyColour)} row`
+        : `the ${words.dummy(rowId)} row`
 }
 
 /** R-5-H1 A seal is named only when it flips to a bead. */
@@ -1035,7 +1037,7 @@ function dieLine(action: GameAction): string | undefined {
             ? `The progress die rolled ${listed(metadata.faces.map(titled))}`
             : 'The progress die was not rolled',
         metadata.removed ? `${tileName(metadata.removed.tileId)} removed` : undefined,
-        metadata.epochTriggered ? `Epoch ${EpochNames[metadata.epochTriggered]} dawned` : undefined
+        metadata.epochTriggered ? `Epoch ${sunray(metadata.epochTriggered).ray} dawned` : undefined
     )
 }
 
@@ -1054,7 +1056,7 @@ function dawnLine(action: GameAction, words: Words): string | undefined {
         }
     )
     return sentence(
-        `Dawn of epoch ${EpochNames[metadata.epoch]}: ${rows.join('; ')}`,
+        `Dawn of epoch ${sunray(metadata.epoch).ray}: ${rows.join('; ')}`,
         metadata.fills.length > 0 ? listed(metadata.fills.map(fillLine).map(spoken)) : undefined
     )
 }

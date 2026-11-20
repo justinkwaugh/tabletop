@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { WritId } from '../data/writs.js'
 import { MachineState } from '../definition/states.js'
-import { discChoices, feudumGuildOf, replaceLocationDisc } from '../model/locationDiscs.js'
+import {
+    discChoices,
+    feudumGuildOf,
+    locationKindOf,
+    replaceLocationDisc
+} from '../model/locationDiscs.js'
 import { boardableVessels } from '../model/media.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { collectTopTile } from '../model/regionStacks.js'
@@ -485,7 +490,7 @@ describe('R-4.8.3 a win', () => {
         const [action] = commit(combat, { saltpeter: 1 })
 
         const space = table.state.spaces[Battlefield]
-        expect(space.location.kind).toBe('outpost')
+        expect(locationKindOf(space.location)).toBe('outpost')
         expect(feudumGuildOf(space.location)).toBeUndefined()
         expect(table.state.supply.discs).toContain('disc.feudum.knight-1')
         expect(space.ruler).toBeUndefined()
@@ -559,10 +564,11 @@ describe('R-4.8.3 a win', () => {
         const { table } = combat
         const [lowest] = discChoices(table.hydrated(), 'outpost')
         conquerFeudum(combat)
-        expect(table.state.spaces[Battlefield].location).toMatchObject({
-            kind: 'outpost',
-            discId: lowest.discId
+        expect(table.state.spaces[Battlefield].location).toEqual({
+            discId: lowest.discId,
+            face: 'a'
         })
+        expect(locationKindOf(table.state.spaces[Battlefield].location)).toBe('outpost')
     })
 
     it('R-4.8-H2 with no outpost disc in the supply, the feudum’s own disc shows the outpost', () => {
@@ -572,7 +578,7 @@ describe('R-4.8.3 a win', () => {
                 if (
                     choice &&
                     spaceId !== Battlefield &&
-                    state.spaces[spaceId].location.kind !== 'outpost'
+                    locationKindOf(state.spaces[spaceId].location) !== 'outpost'
                 ) {
                     replaceLocationDisc(state, spaceId, choice.discId, 'outpost')
                 }
@@ -583,10 +589,11 @@ describe('R-4.8.3 a win', () => {
 
         const [action] = conquerFeudum(combat)
 
-        expect(table.state.spaces[Battlefield].location).toMatchObject({
-            kind: 'outpost',
-            discId: 'disc.feudum.knight-1'
+        expect(table.state.spaces[Battlefield].location).toEqual({
+            discId: 'disc.feudum.knight-1',
+            asOutpost: true
         })
+        expect(locationKindOf(table.state.spaces[Battlefield].location)).toBe('outpost')
         expect(feudumGuildOf(table.state.spaces[Battlefield].location)).toBeUndefined()
         expect(action).toMatchObject({
             metadata: { conquered: { kind: 'feudum', discId: 'disc.feudum.knight-1' } }

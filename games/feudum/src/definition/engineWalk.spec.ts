@@ -112,7 +112,10 @@ describe('A whole game from the seed, user Actions only', () => {
 
     it('R-4.11.2, R-4.12 dawns II, III and IV, then V, one epoch at a time', () => {
         expect(played.filter(isBeginDawn).map((action) => action.metadata?.epoch)).toEqual([
-            2, 3, 4, 5
+            'track.epoch.ii',
+            'track.epoch.iii',
+            'track.epoch.iv',
+            'track.epoch.v'
         ])
     })
 
@@ -120,7 +123,7 @@ describe('A whole game from the seed, user Actions only', () => {
         const emptiedAt = statesAfter(walk).findIndex(hasEmptyStack)
         const emptying = statesAfter(walk)[emptiedAt]
         expect(emptying.machineState).toBe(MachineState.PlayingCards)
-        expect(emptying.epoch).toBe(4)
+        expect(emptying.epoch).toBe('track.epoch.iv')
 
         const rest = played.slice(emptiedAt + 1)
         const rollAt = rest.findIndex(isRollProgressDie)
@@ -129,7 +132,7 @@ describe('A whole game from the seed, user Actions only', () => {
         const [roll] = rest.filter(isRollProgressDie)
         expect(roll.metadata?.faces).toEqual([])
         expect(roll.revealsInfo).toBeFalsy()
-        expect(rest.slice(rollAt).filter(isBeginDawn)[0].metadata?.epoch).toBe(5)
+        expect(rest.slice(rollAt).filter(isBeginDawn)[0].metadata?.epoch).toBe('track.epoch.v')
         expect(rest.some(isScoreGame)).toBe(true)
         expect(walk.final.machineState).toBe(MachineState.EndOfGame)
     })

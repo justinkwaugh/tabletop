@@ -101,7 +101,7 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
     it('R-1.4-H1 paints a seat and a colour no seat plays from the colourizer alone', async () => {
         const { html, gameState } = await boardOf()
         expect(html).toContain('#102030')
-        const dummy = knightRows(gameState).some(({ row }) => 'dummyColour' in row.owner)
+        const dummy = knightRows(gameState).some(({ row }) => 'dummy' in row.owner)
         expect(html.includes('#405060')).toBe(dummy)
     })
 

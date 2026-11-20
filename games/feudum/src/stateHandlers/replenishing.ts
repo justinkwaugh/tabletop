@@ -7,8 +7,8 @@ import {
 import { isReplenishMap, ReplenishMap, type HydratedReplenishMap } from '../actions/replenishMap.js'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { sunrayOf } from '../model/dawn.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { sunray } from '../model/tracks.js'
 import { stateAtRoundEnd } from './endOfRound.js'
 
 type ReplenishAction = HydratedReplenishMap | HydratedReplenishGuilds
@@ -17,7 +17,7 @@ type ReplenishAction = HydratedReplenishMap | HydratedReplenishGuilds
 export function stateAfterLandscapes(
     context: MachineContext<HydratedFeudumGameState>
 ): MachineState {
-    if (sunrayOf(context.gameState.epoch).mapDirection) {
+    if (sunray(context.gameState.epoch).mapDirection) {
         context.addSystemAction(ReplenishMap)
         return MachineState.Replenishing
     }
@@ -52,7 +52,7 @@ export class ReplenishingStateHandler implements MachineStateHandler<
         action: ReplenishAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        if (isReplenishMap(action) && sunrayOf(context.gameState.epoch).guildRefill) {
+        if (isReplenishMap(action) && sunray(context.gameState.epoch).guildRefill) {
             context.addSystemAction(ReplenishGuilds)
             return MachineState.Replenishing
         }

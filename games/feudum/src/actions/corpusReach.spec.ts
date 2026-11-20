@@ -58,7 +58,7 @@ import {
 import { setJourneyman, setRowMarkers, setScrolls, tableAtGuild } from '../testing/guilds.js'
 import { giveGood, giveSeal, setUp, spaceOfKind } from '../testing/improving.js'
 import { giveFood, starve, tableAtStarve } from '../testing/starve.js'
-import { canonicalOf } from '../testing/state.js'
+import { canonicalOf, epochAt } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { writRegistry } from '../writs/writRegistry.js'
 import { playMandateOffers } from './playMandate.js'
@@ -341,7 +341,7 @@ describe('corpus reach: the charters', () => {
                 table.moveTo((state) => {
                     meetCharter(state, playerId, writId)
                     giveSeal(state, playerId)
-                    state.epoch = LastEpoch
+                    state.epoch = epochAt(LastEpoch)
                     return MachineState.EndOfRound
                 })
                 expect(writRegistry.sealedCharterScores(table.hydrated(), playerId)).toEqual([])

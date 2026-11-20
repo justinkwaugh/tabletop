@@ -6,13 +6,15 @@ import { MachineState } from '../definition/states.js'
 import { playOutCards, showOnStacks, typesOf, type StackShowing } from '../testing/roundEnd.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { legalStackRegions } from './regionStacks.js'
+import { epochAt } from '../testing/state.js'
+import { sunray } from './tracks.js'
 
 /** A round of one forfeit each, in this epoch, with these stack tops. */
 function tableShowing(epoch: Epoch, tops: readonly StackShowing[]) {
     const table = tableAtPlayingCards(() => ({ cards: ['move'] }), 3)
     table.moveTo((state) => {
         showOnStacks(state, tops)
-        state.epoch = epoch
+        state.epoch = epochAt(epoch)
         return MachineState.PlayingCards
     })
     return table
@@ -21,7 +23,8 @@ function tableShowing(epoch: Epoch, tops: readonly StackShowing[]) {
 /** R-4.11.2 What the round's roll triggered. */
 function triggeredBy(table: Table) {
     const roll = playOutCards(table).find((action) => isRollProgressDie(action))
-    return roll?.metadata?.epochTriggered
+    const triggered = roll?.metadata?.epochTriggered
+    return triggered && sunray(triggered).epoch
 }
 
 describe('R-4.11-H1 the next epoch triggers only at this step', () => {
@@ -32,7 +35,7 @@ describe('R-4.11-H1 the next epoch triggers only at this step', () => {
         table.send(first, { type: ActionType.ForfeitCard, kind: 'move' })
 
         expect(table.state.flow.epochTriggered).toBeUndefined()
-        expect(table.state.epoch).toBe(1)
+        expect(table.state.epoch).toBe(epochAt(1))
         expect(legalStackRegions(table.hydrated())).toEqual(['badlands', 'mountain'])
     })
 
@@ -41,9 +44,9 @@ describe('R-4.11-H1 the next epoch triggers only at this step', () => {
 
         const roll = playOutCards(table).find((action) => isRollProgressDie(action))
 
-        expect(roll).toMatchObject({ metadata: { epochTriggered: 2 } })
+        expect(roll).toMatchObject({ metadata: { epochTriggered: epochAt(2) } })
         expect(table.state.flow.epochTriggered).toBeUndefined()
-        expect(table.state.epoch).toBe(2)
+        expect(table.state.epoch).toBe(epochAt(2))
     })
 
     it('R-4.11.2 the check sees the tile the die just removed', () => {
@@ -51,7 +54,7 @@ describe('R-4.11-H1 the next epoch triggers only at this step', () => {
         const roll = playOutCards(table).find((action) => isRollProgressDie(action))
 
         expect(roll).toMatchObject({
-            metadata: { removed: { region: 'desert' }, epochTriggered: 2 }
+            metadata: { removed: { region: 'desert' }, epochTriggered: epochAt(2) }
         })
     })
 

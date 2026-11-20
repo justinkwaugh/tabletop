@@ -14,6 +14,7 @@ import {
     type CardPlayInput,
     type RepeatMode
 } from './cardPlay.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 /** R-3.10.1 */
 const ExploreBaseDraw = 2
@@ -53,7 +54,9 @@ export function isExplore(action?: GameAction): action is Explore {
 }
 
 function ruledKinds(state: HydratedFeudumGameState, playerId: string) {
-    return state.ruledSpaceIds(playerId).map((spaceId) => state.spaces[spaceId].location.kind)
+    return state
+        .ruledSpaceIds(playerId)
+        .map((spaceId) => locationKindOf(state.spaces[spaceId].location))
 }
 
 /** R-3.10.1, R-3.10-H1 2 writs + 1 per outpost or feudum ruled beyond the first outpost. */

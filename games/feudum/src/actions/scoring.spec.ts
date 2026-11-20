@@ -24,7 +24,7 @@ import { placeLandscape, playToDawn } from '../testing/dawn.js'
 import { rowOf, scoredIn, scoreFrom } from '../testing/gameEnd.js'
 import { recordedText, setShillings } from '../testing/guilds.js'
 import { giveSeal, spaceOfKind } from '../testing/improving.js'
-import { canonicalOf } from '../testing/state.js'
+import { canonicalOf, epochAt } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { HydratedScoreGame } from './scoreGame.js'
 
@@ -278,7 +278,7 @@ describe('R-6.2, R-4.4.3 sealed charters', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move'] }), 3)
         table.moveTo((state) => {
             holdSealedCharter(state, table.order[0], Monster)
-            state.epoch = LastEpoch
+            state.epoch = epochAt(LastEpoch)
             return state.machineState
         })
         const state = table.hydrated()

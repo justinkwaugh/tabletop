@@ -45,6 +45,7 @@ import {
     type CardPlayInput,
     type RepeatMode
 } from './cardPlay.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 /** R-3.7.5 The round's second successful move earns the voyage. */
 const SuccessfulMovesForVoyage = 2
@@ -384,7 +385,7 @@ function reasonSourceRefused(
             ? undefined
             : `That landscape holds no ${resource}.`
     }
-    const isFarm = space.location.kind === 'farm'
+    const isFarm = locationKindOf(space.location) === 'farm'
     if (from === 'farm' && !isFarm) {
         return 'There is no farm there.'
     }

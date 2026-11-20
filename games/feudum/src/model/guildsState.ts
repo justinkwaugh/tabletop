@@ -1,4 +1,3 @@
-import { Color } from '@tabletop/common'
 import * as Type from 'typebox'
 import {
     AlchemistCartSpaces,
@@ -34,11 +33,11 @@ export const GuildTrack = Type.Object({
     apprentice: Type.Optional(RankHolder)
 })
 
-/** R-1.4-H1 Whose row it is: a seat's, by its playerId, or a dummy row's, by its colour alone. */
+/** R-1.4-H1 Whose row it is: a seat's, by its playerId, or no seat's; the row's id names a dummy. */
 export type KnightRowOwner = Type.Static<typeof KnightRowOwner>
 export const KnightRowOwner = Type.Union([
     Type.Object({ playerId: Type.String() }, { additionalProperties: false }),
-    Type.Object({ dummyColour: Type.Enum(Color) }, { additionalProperties: false })
+    Type.Object({ dummy: Type.Literal(true) }, { additionalProperties: false })
 ])
 
 /** R-1.3 A Knight row: its owner and how many markers stand in it. */

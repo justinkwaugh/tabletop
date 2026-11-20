@@ -10,7 +10,7 @@ export const SupplyState = Type.Object({
     shillings: ComponentCount,
     /** R-1.4.2 Each seat's influence markers, by playerId. */
     influence: Type.Record(Type.String(), ComponentCount),
-    /** R-1.4.2, R-1.4-H1 The markers of a colour no seat plays, kept for its dummy Knight row. */
+    /** R-1.4.2, R-1.4-H1 Each dummy Knight row's markers, by row id. */
     dummyInfluence: Type.Record(Type.String(), ComponentCount),
     vessels: VesselCounts,
     targets: ComponentCount,

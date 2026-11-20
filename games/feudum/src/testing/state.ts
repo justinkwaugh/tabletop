@@ -1,5 +1,6 @@
 import {
     assert,
+    assertExists,
     GameCategory,
     GameStatus,
     GameStorage,
@@ -9,7 +10,7 @@ import {
     type Player,
     type UninitializedGameState
 } from '@tabletop/common'
-import { MilitaryServiceTrack } from '../data/tracks.js'
+import { EpochTrack, MilitaryServiceTrack, type Epoch, type SunrayId } from '../data/tracks.js'
 import { FeudumGameInitializer } from '../definition/initializer.js'
 import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStartingGoods.js'
 import {
@@ -91,4 +92,11 @@ export function coverService(
 /** A game as initialization leaves it, as complete canonical data. */
 export function canonicalState(numPlayers = 4, seed = 123): FeudumGameState {
     return canonicalOf(initialState(numPlayers, seed))
+}
+
+/** R-2.1 The sunray printed with this epoch's number, for a spec that names the epoch. */
+export function epochAt(epoch: Epoch): SunrayId {
+    const ray = EpochTrack.find((candidate) => candidate.epoch === epoch)
+    assertExists(ray, `No sunray for epoch ${epoch}`)
+    return ray.id
 }

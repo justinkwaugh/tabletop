@@ -24,7 +24,7 @@ import {
     type MonsterId
 } from '../data/components.js'
 import { RegionIds, type LandscapeKind, type RegionId, type TileId } from '../data/regionTiles.js'
-import type { Epoch, MilitarySpaceId, VoyageSpaceId } from '../data/tracks.js'
+import type { MilitarySpaceId, SunrayId, VoyageSpaceId } from '../data/tracks.js'
 import { FlowState } from './flow.js'
 import { recomputeRanks, statusStars, type RankChange } from './guildStatus.js'
 import { GuildsState } from './guildsState.js'
@@ -34,14 +34,15 @@ import { coveredServiceSpaces } from './tracks.js'
 import { FeudumVault } from './vault.js'
 import {
     ComponentCount,
-    EpochSchema,
     LandscapeKindSchema,
     MilitarySpaceIdSchema,
     recordOf,
+    SunrayIdSchema,
     TileIdSchema,
     VoyageSpaceIdSchema,
     WritIdSchema
 } from './stateSchemas.js'
+import { locationKindOf } from './locationDiscs.js'
 
 export const CURRENT_FEUDUM_REVISION = 1
 
@@ -55,7 +56,7 @@ export const FeudumGameState = Type.Object({
     roundManager: RoundManager,
     phaseManager: PhaseManager,
     /** R-2.1, R-4.11 */
-    epoch: EpochSchema,
+    epoch: SunrayIdSchema,
     spaces: recordOf(
         Spaces.map((space) => space.id),
         SpaceState
@@ -106,7 +107,7 @@ export class HydratedFeudumGameState
     declare winningPlayerIds: string[]
     declare roundManager: HydratedRoundManager
     declare phaseManager: HydratedPhaseManager
-    declare epoch: Epoch
+    declare epoch: SunrayId
     declare spaces: Record<SpaceId, SpaceState>
     declare monsters: Record<MonsterId, MonsterState>
     declare guilds: GuildsState
@@ -177,7 +178,7 @@ export class HydratedFeudumGameState
     /** R-4.9.2 Derived: ruling at least one feudum. */
     isVassal(playerId: string): boolean {
         return this.ruledSpaceIds(playerId).some(
-            (spaceId) => this.spaces[spaceId].location.kind === 'feudum'
+            (spaceId) => locationKindOf(this.spaces[spaceId].location) === 'feudum'
         )
     }
 }

@@ -16,6 +16,7 @@ import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { ChooseFavours, chooseFavoursOffer, reasonChooseFavoursRefused } from './chooseFavours.js'
 import { Harvest, harvestOffers, harvestTotal, reasonHarvestRefused } from './harvest.js'
+import { showLocation } from '../testing/improving.js'
 
 const Farm: SpaceId = 'space.forest.1'
 const Second: SpaceId = 'space.forest.3'
@@ -31,7 +32,7 @@ function rule(
     spaceId: SpaceId,
     kind: LocationKind
 ): void {
-    state.spaces[spaceId].location.kind = kind
+    showLocation(state, spaceId, kind)
     placeMarker(state, playerId, spaceId)
 }
 
@@ -205,7 +206,7 @@ describe('Harvest: R-3.11.1', () => {
         )
 
         const unruled = tableHarvesting((edit) => {
-            edit.spaces[Second].location.kind = 'farm'
+            showLocation(edit, Second, 'farm')
         })
         expect(
             reasonHarvestRefused(unruled.table.hydrated(), unruled.playerId, {

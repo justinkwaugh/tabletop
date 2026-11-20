@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { GuildIds, type GuildId } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
-import { makeFeudum } from '../testing/improving.js'
+import { makeFeudum, showLocation } from '../testing/improving.js'
 import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import type { HydratedFeudumGameState } from './gameState.js'
@@ -43,7 +43,7 @@ function rule(
     if (feudumGuild) {
         makeFeudum(state, spaceId, feudumGuild)
     } else {
-        space.location = { ...space.location, kind }
+        showLocation(state, spaceId, kind)
     }
     space.ruler = { playerId, subject: false }
 }

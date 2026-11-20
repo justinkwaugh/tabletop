@@ -16,7 +16,7 @@ import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
 import { setBarrel } from '../testing/charters.js'
 import { rowOf, scoreFrom } from '../testing/gameEnd.js'
-import { canonicalState, initialState } from '../testing/state.js'
+import { canonicalState, epochAt, initialState } from '../testing/state.js'
 import { walkGame } from '../testing/walk.js'
 import { FeudumApiActions } from './apiActions.js'
 import { FeudumColors } from './colors.js'
@@ -28,6 +28,7 @@ import { FeudumProgression } from './progression.js'
 import { FeudumRuntime } from './runtime.js'
 import { FeudumScoring } from './scoring.js'
 import { FeudumStateHandlers } from './stateHandlers.js'
+import { epochNumber } from '../model/tracks.js'
 
 /** A seed whose game ends on a stack emptied mid-round. */
 const WalkSeed = '00000000000000000000000000000012'
@@ -233,7 +234,7 @@ describe('Game Progress', () => {
         tops: readonly StackTopShown[]
     ): FeudumProjectedState {
         const state = initialState()
-        state.epoch = epoch
+        state.epoch = epochAt(epoch)
         for (let round = 0; round < rounds; round += 1) {
             state.roundManager.startRound(round)
         }
@@ -290,7 +291,7 @@ describe('Game Progress', () => {
 
         it('R-6.1 is final exactly once V is met', () => {
             states.forEach((state, index) => {
-                const met = state.epoch === LastEpoch || hasEmptyStack(state)
+                const met = epochNumber(state) === LastEpoch || hasEmptyStack(state)
                 expect(reports[index].final === true).toBe(met)
             })
         })

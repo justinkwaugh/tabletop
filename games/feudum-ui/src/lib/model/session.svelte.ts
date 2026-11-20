@@ -6,36 +6,37 @@ import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
 import { GameStorage, type Color, type GameAction } from '@tabletop/common'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
+    type ActionCardKind,
     ActionCards,
     ActionType,
     AnswerAttack,
     atWillOffers,
+    type Character,
     ChooseFavours,
     ChooseStartingGoods,
     discardWritOffers,
+    dummyRowColour,
+    type FeudumProjectedState,
     FinaliseHand,
+    type Good,
     Goods,
+    type GuildRank,
     handSelectionGroup,
+    type HydratedFeudumGameState,
     MachineState,
     PlaceStartingPawn,
+    type PouchGood,
     previewFinaliseHand,
     reasonPouchRefused,
     reasonStartingGoodRefused,
     reasonStartingGoodsRefused,
     reasonStartingPawnRefused,
     setupSeat,
+    type SpaceId,
     startingGoodOffers,
     StartingGoodsChosen,
     startingPawnOffers,
-    StartingSpaceIds,
-    type ActionCardKind,
-    type Character,
-    type FeudumProjectedState,
-    type Good,
-    type GuildRank,
-    type HydratedFeudumGameState,
-    type PouchGood,
-    type SpaceId
+    StartingSpaceIds
 } from '@tabletop/feudum'
 import { describeAction } from './actionDescription.js'
 import { answerAttackPanelOf, type AnswerAttackPanel } from './answerAttack.js'
@@ -946,7 +947,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             viewerId,
             hostView: this.isViewingHost,
             nameOf: (id) => this.getPlayerName(id),
-            dummyName: (colour) => this.colourPaintOf(colour).owner,
+            dummyName: (rowId) => this.colourPaintOf(dummyRowColour(this.gameState, rowId)).owner,
             seats: this.gameState.players.map(({ playerId }) => playerId)
         })
     }

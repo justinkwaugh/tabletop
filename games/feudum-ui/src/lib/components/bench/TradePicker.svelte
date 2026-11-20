@@ -46,7 +46,7 @@
 
     function rowPaint(row: KnightRowId): SeatPaint | undefined {
         const held = state.guilds.knight.rows[row]
-        return held && ownerPaint(held.owner, paintOf, colourPaintOf)
+        return held && ownerPaint(state, row, paintOf, colourPaintOf)
     }
 </script>
 

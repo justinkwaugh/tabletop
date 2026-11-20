@@ -1,7 +1,9 @@
+import { makeFeudum } from '../testing/improving.js'
 import { Color } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { PhaseName } from '../definition/phases.js'
 import { RegionTiles } from '../data/regionTiles.js'
+import { EpochTrack } from '../data/tracks.js'
 import { canonicalState, initialState } from '../testing/state.js'
 import { FeudumGameStateValidator, HydratedFeudumGameState } from './gameState.js'
 import { FeudumPlayerState, FeudumPlayerStateValidator } from './playerState.js'
@@ -15,13 +17,13 @@ describe('initialization', () => {
         expect(initialState().feudumRevision).toBe(1)
     })
 
-    it('R-2.1 starts at epoch 1 and holds epochs 1 to 5 and no others (R-4.11)', () => {
-        expect(initialState().epoch).toBe(1)
+    it('R-2.1 starts on the first sunray and holds the five sunrays and no others (R-4.11)', () => {
+        expect(initialState().epoch).toBe('track.epoch.i')
         const state = dehydrated()
-        for (const epoch of [1, 2, 3, 4, 5]) {
+        for (const { id: epoch } of EpochTrack) {
             expect(FeudumGameStateValidator.Check({ ...state, epoch })).toBe(true)
         }
-        for (const epoch of [0, 6, 1.5]) {
+        for (const epoch of [1, 'track.epoch.vi', 'I']) {
             expect(FeudumGameStateValidator.Check({ ...state, epoch })).toBe(false)
         }
     })
@@ -131,15 +133,15 @@ describe('player rows', () => {
 })
 
 describe('Knight rows', () => {
-    it('R-1.4-H1 a seat row names its playerId, a dummy row its colour alone, under a row id', () => {
+    it('R-1.4-H1 a seat row names its playerId, a dummy row no seat, under a row id', () => {
         const state = dehydrated()
         state.guilds.knight.rows = {
             'knight-row-1': { owner: { playerId: 'p1' }, markers: 2 },
-            'knight-row-2': { owner: { dummyColour: Color.Purple }, markers: 2 }
+            'knight-row-2': { owner: { dummy: true }, markers: 2 }
         }
         expect(FeudumGameStateValidator.Check(state)).toBe(true)
         state.guilds.knight.rows = {
-            'knight-row-1': { owner: { dummyColour: Color.Red }, markers: 7 }
+            'knight-row-1': { owner: { dummy: true }, markers: 7 }
         }
         expect(FeudumGameStateValidator.Check(state)).toBe(false)
         state.guilds.knight.rows = {
@@ -275,7 +277,7 @@ describe('derived, not stored', () => {
         state.spaces['space.sea.2'].serf = { playerId: 'p1' }
         expect(state.ruledSpaceIds('p1')).toEqual(['space.sea.1'])
         expect(state.isVassal('p1')).toBe(false)
-        state.spaces['space.sea.1'].location = { kind: 'feudum', discId: 'disc.feudum.monk-1' }
+        makeFeudum(state, 'space.sea.1', 'monk')
         expect(state.isVassal('p1')).toBe(true)
     })
 })

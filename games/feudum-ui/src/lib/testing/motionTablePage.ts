@@ -331,7 +331,7 @@ export async function openRoundEndTable() {
     const { host, seat } = await atPlayingCards(['move'], { otherCards: ['move'] })
     host.edit((state) => {
         showOnStacks(state, [2, 2, 2, 2, 1, 1])
-        state.epoch = 1
+        state.epoch = 'track.epoch.i'
     })
     const session = await host.openSeat(seat)
     await show(session)

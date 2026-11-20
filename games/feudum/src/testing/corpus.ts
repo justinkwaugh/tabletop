@@ -29,6 +29,7 @@ import { writKey } from './corpusWalk.js'
 import { canonicalOf } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 import { cardTurnSeat } from '../model/turns.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 /** The components the corpus sweeps go through: the reach sweep's routes and the playthrough's. */
 
@@ -336,7 +337,7 @@ export const CardCases: readonly CardCase[] = [
         },
         fired: (after, before, seat) => {
             const spaceId = spaceOfKind(before, 'outpost')
-            expect(after.spaces[spaceId].location.kind).toBe('farm')
+            expect(locationKindOf(after.spaces[spaceId].location)).toBe('farm')
             expect(after.getPlayerState(seat).goods.wood).toBe(0)
             expect(after.getPlayerState(seat).regionTiles).toHaveLength(1)
         }
@@ -360,7 +361,7 @@ export const CardCases: readonly CardCase[] = [
             expect(after.spaces[spaceId].landscape?.tileId).toBe(
                 before.getPlayerState(seat).regionTiles[0]
             )
-            expect(after.spaces[spaceId].location.kind).toBe('outpost')
+            expect(locationKindOf(after.spaces[spaceId].location)).toBe('outpost')
             expect(after.spaces[spaceId].ruler?.playerId).toBe(rival)
             expect(player.regionTiles).toHaveLength(0)
             expect(player.goods.wood).toBe(0)

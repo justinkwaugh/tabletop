@@ -1,9 +1,9 @@
 <script lang="ts">
+    import { sunray } from '@tabletop/feudum'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { EpochNumerals } from '$lib/model/turnDraft.svelte.js'
 
     const gameSession = getGameSession()
 
@@ -20,7 +20,7 @@
     data-status-strip
 >
     <span class="font-semibold" data-status-epoch
-        >{EpochNumerals[gameSession.gameState.epoch]}·R{round}</span
+        >{sunray(gameSession.gameState.epoch).ray}·R{round}</span
     >
     {#if view}
         {#each view.supply.goods as { good, count } (good)}

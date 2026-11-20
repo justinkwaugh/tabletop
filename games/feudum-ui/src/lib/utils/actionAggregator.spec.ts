@@ -473,7 +473,7 @@ describe('R-4.10, R-4.11, R-4.12 The end of a round', () => {
         const entries = aggregateHistory(
             [
                 act(30, ActionType.RollProgressDie, undefined, Rolled),
-                act(31, ActionType.BeginDawn, undefined, { epoch: 2 }),
+                act(31, ActionType.BeginDawn, undefined, { epoch: 'track.epoch.ii' }),
                 act(32, ActionType.ReplenishMap),
                 act(33, ActionType.ReplenishGuilds),
                 act(34, ActionType.CollectLandscapes, P1),
@@ -508,7 +508,7 @@ describe('R-4.10, R-4.11, R-4.12 The end of a round', () => {
     it('R-6.2 Final scoring is its own entry, after the last round`s', () => {
         const entries = aggregateHistory(
             [
-                act(30, ActionType.BeginDawn, undefined, { epoch: 5 }),
+                act(30, ActionType.BeginDawn, undefined, { epoch: 'track.epoch.v' }),
                 act(31, ActionType.EndRound),
                 act(32, ActionType.ScoreGame)
             ],
@@ -578,10 +578,10 @@ describe('R-2.1, R-2.2 Interstitials', () => {
         const entries = aggregateHistory(
             [
                 act(30, ActionType.Move, P1),
-                act(31, ActionType.BeginDawn, undefined, { epoch: 3 }),
+                act(31, ActionType.BeginDawn, undefined, { epoch: 'track.epoch.iii' }),
                 act(32, ActionType.EndRound),
                 act(33, ActionType.Move, P1),
-                act(34, ActionType.BeginDawn, undefined, { epoch: 4 })
+                act(34, ActionType.BeginDawn, undefined, { epoch: 'track.epoch.iv' })
             ],
             // The state's epoch is the latest; the list opens on the first the Actions show.
             { ...Table, epoch: 4 }
@@ -618,7 +618,7 @@ describe('R-2.2 Jump', () => {
 
     it('R-4.12 A dawn jumps to the round`s end it took, as it ended', () => {
         const dawn = onlyGroup([
-            act(30, ActionType.BeginDawn, undefined, { epoch: 2 }),
+            act(30, ActionType.BeginDawn, undefined, { epoch: 'track.epoch.ii' }),
             act(31, ActionType.ReplenishMap),
             act(32, ActionType.EndRound)
         ])

@@ -24,7 +24,7 @@ import {
 } from '../testing/atWill.js'
 import { holdWrit } from '../testing/combat.js'
 import { setPawns, setSealPile } from '../testing/guilds.js'
-import { giveGood, giveSeal } from '../testing/improving.js'
+import { giveGood, giveSeal, showLocation } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { discardWritOffers, reasonDiscardWritRefused } from './discardWrit.js'
@@ -52,11 +52,11 @@ function afterDraw(
     const playerId = table.asked
     table.moveTo((state) => {
         const player = state.getPlayerState(playerId)
-        state.spaces[OUTPOST].location.kind = 'outpost'
+        showLocation(state, OUTPOST, 'outpost')
         state.spaces[OUTPOST].ruler = { playerId, subject: false }
         player.influenceSupply -= 1
         if (count > 2) {
-            state.spaces[FEUDUM].location.kind = 'feudum'
+            showLocation(state, FEUDUM, 'feudum')
             state.spaces[FEUDUM].ruler = { playerId, subject: false }
             player.influenceSupply -= 1
         }
@@ -221,7 +221,7 @@ describe('KeepWrits', () => {
         const table = tableAtPlayingCards(() => ({ cards: HAND, pouchGood: 'sulfur' }))
         const playerId = table.asked
         table.moveTo((state) => {
-            state.spaces[OUTPOST].location.kind = 'outpost'
+            showLocation(state, OUTPOST, 'outpost')
             state.spaces[OUTPOST].ruler = { playerId, subject: false }
             state.getPlayerState(playerId).influenceSupply -= 1
             state.recomputeRanks()

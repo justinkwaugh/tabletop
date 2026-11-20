@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { MinimumKnightRows } from '../data/guilds.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
-import type { KnightRow } from '../model/guildsState.js'
+import type { KnightRowEntry } from '../model/knightRows.js'
 import { knightRows, rowSeat } from '../model/knightRows.js'
 import { testGame } from '../testing/state.js'
 import { walkGame, withoutRowId, type GameWalk } from '../testing/walk.js'
@@ -41,11 +41,11 @@ function withoutSeating(state: FeudumProjectedState) {
         guilds,
         ...rest
     } = withoutRowId(state)
-    const ownerKey = ({ owner }: KnightRow) =>
-        'playerId' in owner ? owner.playerId : owner.dummyColour
+    const ownerKey = ({ rowId, row: { owner } }: KnightRowEntry) =>
+        'playerId' in owner ? owner.playerId : rowId
     const rows = knightRows({ guilds })
-        .map(({ row }) => row)
         .toSorted((left, right) => ownerKey(left).localeCompare(ownerKey(right)))
+        .map(({ row }) => row)
     return {
         ...rest,
         flow,
@@ -159,7 +159,7 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
             const rows = knightRows(walk.initial).map(({ row }) => row.owner)
             expect(rows).toHaveLength(Math.max(count, MinimumKnightRows))
             expect(rows.slice(0, count).map(rowSeat)).toEqual(order)
-            expect(rows.slice(count).every((owner) => 'dummyColour' in owner)).toBe(true)
+            expect(rows.slice(count).every((owner) => 'dummy' in owner)).toBe(true)
         }
     })
 

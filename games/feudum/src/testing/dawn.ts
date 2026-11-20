@@ -4,18 +4,19 @@ import type { SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
 import { RegionIds, type LandscapeKind, type TileId } from '../data/regionTiles.js'
 import { MachineState } from '../definition/states.js'
-import type { TriggeredEpoch } from '../model/flow.js'
+import type { Epoch } from '../data/tracks.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { fillLandscape } from '../model/landscapes.js'
 import { placeMarker } from '../model/locationControl.js'
 import { collectTopTile, stackTop } from '../model/regionStacks.js'
 import { collectTileOf, spaceOfKind } from './improving.js'
 import { playOutCards, showOnStacks, type StackShowing } from './roundEnd.js'
+import { epochAt } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
 /** R-4.11.2 Tops that trigger this epoch with no legal tile for the die, so no roll disturbs them. */
 const Triggers: Readonly<
-    Record<TriggeredEpoch, { readonly from: 1 | 2 | 3 | 4; readonly tops: readonly StackShowing[] }>
+    Record<Exclude<Epoch, 1>, { readonly from: Epoch; readonly tops: readonly StackShowing[] }>
 > = {
     2: { from: 1, tops: [2, 2, 2, 2, 2, 2] },
     3: { from: 2, tops: [3, 3, 3, 3, 3, 3] },
@@ -36,7 +37,7 @@ export interface DawnTable {
  * the region stacks still hold their early tiles, so it can take a landscape from one.
  */
 export function playToDawn(
-    epoch: TriggeredEpoch,
+    epoch: Exclude<Epoch, 1>,
     edit: (state: HydratedFeudumGameState, order: readonly string[]) => void = () => undefined,
     numPlayers = 3
 ): DawnTable {
@@ -46,7 +47,7 @@ export function playToDawn(
     table.moveTo((state) => {
         edit(state, order)
         showOnStacks(state, tops)
-        state.epoch = from
+        state.epoch = epochAt(from)
         return MachineState.PlayingCards
     })
     const processed = playOutCards(table)

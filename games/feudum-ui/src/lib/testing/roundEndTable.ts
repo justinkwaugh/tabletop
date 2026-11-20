@@ -10,7 +10,8 @@ import {
     stackTop,
     type ActionCardKind,
     type HydratedFeudumGameState,
-    type TriggeredEpoch
+    type Epoch,
+    type SunrayId
 } from '@tabletop/feudum'
 import { assertExists } from '@tabletop/common'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
@@ -29,14 +30,17 @@ export interface RoundEndTable {
 
 type StackShowing = 1 | 2 | 3 | 4 | 5 | 'V'
 
+/** R-4.12 The printed number of an epoch a round can trigger. */
+export type DawnEpoch = Exclude<Epoch, 1>
+
 /** R-4.11.2 Tops that trigger the epoch with no legal tile for the die, so no roll disturbs them. */
 const Triggers: Readonly<
-    Record<TriggeredEpoch, { readonly from: 1 | 2 | 3 | 4; readonly tops: readonly StackShowing[] }>
+    Record<DawnEpoch, { readonly from: SunrayId; readonly tops: readonly StackShowing[] }>
 > = {
-    2: { from: 1, tops: [2, 2, 2, 2, 2, 2] },
-    3: { from: 2, tops: [3, 3, 3, 3, 3, 3] },
-    4: { from: 3, tops: [4, 4, 4, 4, 4, 4] },
-    5: { from: 4, tops: ['V', 4, 4, 4, 4, 4] }
+    2: { from: 'track.epoch.i', tops: [2, 2, 2, 2, 2, 2] },
+    3: { from: 'track.epoch.ii', tops: [3, 3, 3, 3, 3, 3] },
+    4: { from: 'track.epoch.iii', tops: [4, 4, 4, 4, 4, 4] },
+    5: { from: 'track.epoch.iv', tops: ['V', 4, 4, 4, 4, 4] }
 }
 
 /** R-4.3.1 One entry per region; each stack only ever gets shorter. */
@@ -74,7 +78,7 @@ export function tendLandscape(state: HydratedFeudumGameState, ruler: string, ser
  * preselected feeding. `tops` overrides the trigger's stacks.
  */
 export async function playOutRound(
-    epoch: TriggeredEpoch | undefined,
+    epoch: DawnEpoch | undefined,
     arrange?: (state: HydratedFeudumGameState, table: { seat: string; other: string }) => void,
     tops?: readonly StackShowing[],
     beforeForfeits?: (host: FeudumHost, seat: string) => Promise<void>

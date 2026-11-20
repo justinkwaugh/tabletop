@@ -15,7 +15,7 @@ import {
 import { Seals } from '../data/seals.js'
 import { FeudumGameState, FeudumGameStateValidator } from './gameState.js'
 import { chickenBeads, type KnightRowOwner } from './guildsState.js'
-import { knightRows } from './knightRows.js'
+import { knightRow, knightRows } from './knightRows.js'
 
 export type ConservedComponent =
     'goods' | 'shillings' | 'markers' | 'vessels' | 'targets' | 'seals' | 'discs' | 'tiles'
@@ -122,7 +122,7 @@ function markersPlaced(state: FeudumGameState, playerId: string): number {
     ])
 }
 
-/** R-1.1, R-1.4.2 Per seat, and per colour of a dummy row: each owner's markers are all somewhere. */
+/** R-1.1, R-1.4.2 Per seat, and per dummy row: each owner's markers are all somewhere. */
 function markersBreaks(state: FeudumGameState): ConservationBreak[] {
     const rows = knightRows(state)
     const rowMarkers = (owner: (row: KnightRowOwner) => boolean) =>
@@ -130,13 +130,11 @@ function markersBreaks(state: FeudumGameState): ConservationBreak[] {
     const seats = state.players.map(({ playerId }) => playerId)
     const inHand = (playerId: string) =>
         state.players.find((player) => player.playerId === playerId)?.influenceSupply ?? 0
-    const dummies = rows.flatMap(({ row }) =>
-        'dummyColour' in row.owner ? [row.owner.dummyColour] : []
-    )
+    const dummies = rows.flatMap(({ rowId, row }) => ('dummy' in row.owner ? [rowId] : []))
     const strays: [string, number][] = [
         ...Object.entries(state.supply.influence).filter(([key]) => !seats.includes(key)),
         ...Object.entries(state.supply.dummyInfluence).filter(
-            ([key]) => !dummies.some((colour) => colour === key)
+            ([key]) => !dummies.some((rowId) => rowId === key)
         )
     ]
     return [
@@ -153,15 +151,12 @@ function markersBreaks(state: FeudumGameState): ConservationBreak[] {
                 playerId
             )
         ),
-        ...dummies.flatMap((colour) =>
+        ...dummies.flatMap((rowId) =>
             total(
                 'markers',
                 ComponentTotals.markersPerColour,
-                sum([
-                    state.supply.dummyInfluence[colour] ?? 0,
-                    rowMarkers((owner) => 'dummyColour' in owner && owner.dummyColour === colour)
-                ]),
-                colour
+                (state.supply.dummyInfluence[rowId] ?? 0) + knightRow(state, rowId).markers,
+                rowId
             )
         ),
         ...strays.flatMap(([key, count]) => total('markers', 0, count, key))

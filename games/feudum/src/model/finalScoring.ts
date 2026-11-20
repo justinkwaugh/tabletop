@@ -7,6 +7,7 @@ import type { HydratedFeudumGameState } from './gameState.js'
 import { moveConcealedSeal } from './seals.js'
 import { ComponentCount, VoyageSpaceIdSchema, WritIdSchema } from './stateSchemas.js'
 import { voyageSpaceOf } from './tracks.js'
+import { locationKindOf } from './locationDiscs.js'
 
 /** R-6.2 One seat's row of the final sheet. */
 export type FinalSheetRow = Type.Static<typeof FinalSheetRow>
@@ -82,7 +83,7 @@ function largeEmpireRow(
 ): FinalSheetRow['largeEmpire'] {
     const kinds = state
         .ruledSpaceIds(playerId)
-        .map((spaceId) => state.spaces[spaceId].location.kind)
+        .map((spaceId) => locationKindOf(state.spaces[spaceId].location))
     const countOf = (kind: LocationKind) => kinds.filter((held) => held === kind).length
     const feudums = countOf('feudum')
     const sets = largeEmpireSets(kinds)

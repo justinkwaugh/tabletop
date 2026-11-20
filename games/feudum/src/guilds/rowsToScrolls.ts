@@ -141,7 +141,7 @@ export function rowsToScrollsRow(rules: RowsToScrollsRules): GuildFunctionRow {
             for (const rowId of knightRows) {
                 const row = knightRow(state, rowId)
                 row.markers -= 1
-                changeOwnerSupply(state, row.owner, 1)
+                changeOwnerSupply(state, { rowId, row }, 1)
             }
             return outcome({ ...lines, markers }, params)
         },

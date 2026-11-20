@@ -1,5 +1,5 @@
 import { flushSync, mount } from 'svelte'
-import type { ActionCardKind, TriggeredEpoch, WritId } from '@tabletop/feudum'
+import type { ActionCardKind, WritId } from '@tabletop/feudum'
 import GameTable from '$lib/components/GameTable.svelte'
 import { pressCard, primaryNamed } from './actionPanelView.js'
 import { askedToDefend, askedToStarve, type AskTable } from './askTable.js'
@@ -13,7 +13,7 @@ import {
     seatedAtCards,
     threePawns
 } from './followUpTable.js'
-import { playOutRound, tendLandscape } from './roundEndTable.js'
+import { playOutRound, tendLandscape, type DawnEpoch } from './roundEndTable.js'
 import { settled } from './sessionHarness.js'
 import { giveGood, giveSeal, giveTile } from './turnTable.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
@@ -30,7 +30,7 @@ const OverLimit: readonly WritId[] = [
     'writ.mandate.4',
     'writ.mandate.7'
 ]
-const FinalEpoch: TriggeredEpoch = 5
+const FinalEpoch: DawnEpoch = 5
 
 function byRole(table: AskTable, role: AskRole): FeudumGameSession {
     return { attacker: table.session, asked: table.asked, third: table.third }[role]

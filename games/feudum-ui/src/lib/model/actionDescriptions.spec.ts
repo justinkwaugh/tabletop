@@ -629,7 +629,7 @@ const Lines: Readonly<
             metadata: {
                 faces: ['sea', 'forest'],
                 removed: { region: 'forest', tileId: 'tile.forest.ii', landscape: 'orchard' },
-                epochTriggered: 3
+                epochTriggered: 'track.epoch.iii'
             }
         }),
         actor: 'The progress die rolled Sea, Forest · Forest II removed · Epoch III dawned',
@@ -640,7 +640,7 @@ const Lines: Readonly<
             ...System,
             type: ActionType.BeginDawn,
             metadata: {
-                epoch: 3,
+                epoch: 'track.epoch.iii',
                 sheet: [
                     {
                         playerId: 'p1',
@@ -918,7 +918,7 @@ describe("The contract's own wording", () => {
             ...System,
             type: ActionType.BeginDawn,
             metadata: {
-                epoch: 4,
+                epoch: 'track.epoch.iv',
                 sheet: [
                     {
                         playerId: 'p1',
@@ -941,7 +941,7 @@ describe("The contract's own wording", () => {
         const step = sample<RollProgressDie>({
             ...System,
             type: ActionType.RollProgressDie,
-            metadata: { faces: [], epochTriggered: 5 }
+            metadata: { faces: [], epochTriggered: 'track.epoch.v' }
         })
         expect(line(step, 'p2')).toBe('The progress die was not rolled · Epoch V dawned')
     })

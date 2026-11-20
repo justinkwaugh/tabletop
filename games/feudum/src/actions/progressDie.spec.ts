@@ -8,7 +8,7 @@ import { MachineState } from '../definition/states.js'
 import { FeudumGameState, HydratedFeudumGameState } from '../model/gameState.js'
 import { stackTop } from '../model/regionStacks.js'
 import { playOutCards, showOnStacks, typesOf, type StackShowing } from '../testing/roundEnd.js'
-import { canonicalOf, initialState } from '../testing/state.js'
+import { canonicalOf, epochAt, initialState } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { HydratedRollProgressDie, isRollProgressDie } from './rollProgressDie.js'
 
@@ -27,7 +27,7 @@ function rollAction(): HydratedRollProgressDie {
 function stateRolling(epoch: Epoch, tops: readonly StackShowing[], seed: RandomState) {
     const state = initialState()
     showOnStacks(state, tops)
-    state.epoch = epoch
+    state.epoch = epochAt(epoch)
     state.protectedPrng = { ...seed }
     return state
 }
@@ -153,7 +153,7 @@ describe('R-4.11.1, R-6.1-H1 when the die is not rolled', () => {
         expect(action.metadata?.faces).toEqual([])
         expect(action.revealsInfo).toBeFalsy()
         expect(state.protectedPrng).toMatchObject({ invocations: 0 })
-        expect(state.flow.epochTriggered).toBe(5)
+        expect(state.flow.epochTriggered).toBe(epochAt(5))
     })
 
     it('R-6.1-H1 an earlier epoch’s condition does not stop the die', () => {

@@ -11,7 +11,7 @@ import {
     tableImproving,
     type ImprovingTable
 } from '../testing/improving.js'
-import { initialState } from '../testing/state.js'
+import { epochAt, initialState } from '../testing/state.js'
 import { triggeredEpoch } from './epochConditions.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { canCoverWithWildTiles, spendWildTiles } from './payments.js'
@@ -24,13 +24,14 @@ import {
     tileById,
     tileVp
 } from './regionStacks.js'
+import { locationKindOf } from './locationDiscs.js'
 
 type Tops = Partial<Record<RegionId, TileId[]>>
 
 /** Stacks as given; a region not named is empty. */
 function withStacks(epoch: Epoch, tops: Tops) {
     const state = initialState()
-    state.epoch = epoch
+    state.epoch = epochAt(epoch)
     for (const region of RegionIds) {
         state.regionStacks[region] = tops[region] ?? []
     }
@@ -226,7 +227,7 @@ describe('R-4.3.2 the tile Improve takes', () => {
         { epoch: 4, vp: 6 }
     ] as const)('takes a legal top tile of epoch $epoch, for $vp vp as a town', ({ epoch, vp }) => {
         const start = atFarm((state, region) => {
-            state.epoch = epoch
+            state.epoch = epochAt(epoch)
             uncover(state, region, epoch)
         })
         const before = start.table.hydrated()
@@ -285,7 +286,7 @@ describe('R-4.3.2 the tile Improve takes', () => {
 
     it('R-4.3.1 an earlier tile than the epoch is legal and scores by its own numeral', () => {
         const start = atFarm((state) => {
-            state.epoch = 3
+            state.epoch = epochAt(3)
         })
         const [action] = send(start)
         expect(action).toMatchObject({ metadata: { tile: { vp: 3 } } })
@@ -313,12 +314,12 @@ describe('R-4.3.2 the tile Improve takes', () => {
         expect(action).not.toHaveProperty('metadata.tile')
         expect(action).toMatchObject({ metadata: { noTile: 'prohibited' } })
         expect(action.revealsInfo).toBeFalsy()
-        expect(after.spaces[start.spaceId].location.kind).toBe('town')
+        expect(locationKindOf(after.spaces[start.spaceId].location)).toBe('town')
     })
 
     it('R-4.3-H1 S16 a prohibited tile lets the seat choose an earlier stack, for no vp', () => {
         const start = atFarm((state, region) => {
-            state.epoch = 3
+            state.epoch = epochAt(3)
             uncover(state, region, 4)
         })
         const fallbackRegion = RegionIds.find((region) => region !== start.region)
@@ -337,7 +338,7 @@ describe('R-4.3.2 the tile Improve takes', () => {
 
     it('R-4.3-H1 a stack with no earlier tile, or the prohibited stack, is refused', () => {
         const start = atFarm((state, region) => {
-            state.epoch = 3
+            state.epoch = epochAt(3)
             uncover(state, region, 4)
             const other = RegionIds.find((id) => id !== region)
             if (other) {
@@ -355,7 +356,7 @@ describe('R-4.3.2 the tile Improve takes', () => {
 
     it('R-4.3.2 an empty stack is prohibited too', () => {
         const start = atFarm((state, region) => {
-            state.epoch = 2
+            state.epoch = epochAt(2)
             uncover(state, region, 5)
         })
         const fallbackRegion = RegionIds.find((region) => region !== start.region)
@@ -365,7 +366,7 @@ describe('R-4.3.2 the tile Improve takes', () => {
 
     it('R-4.3.2 an empty stack with no earlier tile elsewhere takes nothing, and says the stack is empty', () => {
         const start = atFarm((state, region) => {
-            state.epoch = 2
+            state.epoch = epochAt(2)
             for (const other of RegionIds) {
                 uncover(state, other, other === region ? 5 : 2)
             }
@@ -395,8 +396,8 @@ describe('R-4.3.2 the tile Improve takes', () => {
         const [action] = send(start)
 
         const after = start.table.hydrated()
-        expect(triggeredEpoch(after)).toBe(2)
-        expect(after.epoch).toBe(1)
+        expect(triggeredEpoch(after)?.id).toBe('track.epoch.ii')
+        expect(after.epoch).toBe(epochAt(1))
         expect(start.table.state.machineState).toBe(MachineState.PlayingCards)
         expect(start.table.asked).toBe(start.table.order[1])
         expect(action).not.toHaveProperty('metadata.epoch')
@@ -409,7 +410,7 @@ describe('R-4.3.2 the tile Improve takes', () => {
             vp: 3
         })
         const prohibited = atFarm((state, region) => {
-            state.epoch = 3
+            state.epoch = epochAt(3)
             uncover(state, region, 4)
         })
         const offer = improveOffers(prohibited.table.hydrated(), prohibited.playerId)[0]

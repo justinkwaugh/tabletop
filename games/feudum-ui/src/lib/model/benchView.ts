@@ -28,7 +28,7 @@ import {
     vesselForSaleBox
 } from '$lib/utils/boardGeometry.js'
 import { knightRowPlace, type BenchGhost, type BenchItem, type BenchOffer } from './benchOffer.js'
-import { laneOfRow, rowLane, seatRowId } from './knightLanes.js'
+import { laneOfRow, seatRowId } from './knightLanes.js'
 
 export interface BenchBox extends BoundingBox {
     readonly round?: true
@@ -204,7 +204,7 @@ function markerGhosts(
         item: ghost.item,
         at: ghost.at,
         piece: { kind: 'marker', row },
-        point: knightCell(rowLane(state, held.owner), before + cell + 1)
+        point: knightCell(laneOfRow(state, row), before + cell + 1)
     }))
 }
 

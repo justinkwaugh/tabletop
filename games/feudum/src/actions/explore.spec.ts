@@ -1,3 +1,4 @@
+import { showLocation } from '../testing/improving.js'
 import { Visibility } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
@@ -30,7 +31,7 @@ type Kind = 'outpost' | 'farm' | 'town' | 'feudum'
 function rule(state: HydratedFeudumGameState, playerId: string, kinds: readonly Kind[]): void {
     kinds.forEach((kind, index) => {
         const space = state.spaces[SPACES[index]]
-        space.location.kind = kind
+        showLocation(state, SPACES[index], kind)
         space.ruler = { playerId, subject: false }
         state.getPlayerState(playerId).influenceSupply -= 1
     })
@@ -174,7 +175,7 @@ describe('Explore', () => {
     it('R-3.10.1 a serf or subject counts for nothing: only the ruled space does', () => {
         const { table, playerId } = tableWith(['outpost'], (state, id) => {
             const space = state.spaces[SPACES[1]]
-            space.location.kind = 'outpost'
+            showLocation(state, SPACES[1], 'outpost')
             space.serf = { playerId: id }
         })
         expect(exploreDrawCount(table.hydrated(), playerId)).toBe(2)

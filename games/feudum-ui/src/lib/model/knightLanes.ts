@@ -1,10 +1,10 @@
 import { assertExists, type Color } from '@tabletop/common'
 import {
+    dummyRowColour,
     knightRow,
     seatKnightRow,
     type KnightRowsHolder,
-    type KnightRowId,
-    type KnightRowOwner
+    type KnightRowId
 } from '@tabletop/feudum'
 
 export interface SeatsAndRows {
@@ -13,18 +13,14 @@ export interface SeatsAndRows {
 }
 
 /** R-1.3 Its seat's colour's lane, or its dummy colour's; never whose row it is. */
-export function rowLane(state: Pick<SeatsAndRows, 'players'>, owner: KnightRowOwner): Color {
-    if ('dummyColour' in owner) {
-        return owner.dummyColour
+export function laneOfRow(state: SeatsAndRows, rowId: KnightRowId): Color {
+    const { owner } = knightRow(state, rowId)
+    if (!('playerId' in owner)) {
+        return dummyRowColour(state, rowId)
     }
     const seat = state.players.find(({ playerId }) => playerId === owner.playerId)
     assertExists(seat, `R-1.4-H1 ${owner.playerId} sits at the table`)
     return seat.color
-}
-
-/** R-1.3 The lane of a row in play, by its id. */
-export function laneOfRow(state: SeatsAndRows, rowId: KnightRowId): Color {
-    return rowLane(state, knightRow(state, rowId).owner)
 }
 
 /** R-1.4-H1 The id of a seat's own row. */

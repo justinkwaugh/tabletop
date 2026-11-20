@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { sunray } from '@tabletop/feudum'
     import type { Snippet } from 'svelte'
     import EpochSky from '$lib/components/tracks/EpochSky.svelte'
     import RegionStacks from '$lib/components/tracks/RegionStacks.svelte'
@@ -7,7 +8,6 @@
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import { seatOrder } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { EpochNumerals } from '$lib/model/turnDraft.svelte.js'
     import Scrim from './Scrim.svelte'
 
     /** Contract, Phone layout: the tracks, scattered round the board, redrawn in one column. */
@@ -62,7 +62,7 @@
         data-tracks-sheet
     >
         <p class="pr-14 text-sm font-semibold" data-tracks-epoch>
-            Epoch {EpochNumerals[state.epoch]} · Round {round}
+            Epoch {sunray(state.epoch).ray} · Round {round}
         </p>
         {@render track('Epoch', 'epoch', '760 60 356 146', sky)}
         {@render track('Region tiles and die', 'stacks-west', '930 806 320 94', stacks)}

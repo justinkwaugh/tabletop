@@ -218,7 +218,7 @@ describe('R-2.2 Jump', () => {
         await settled(session)
 
         expect(session.currentAction?.index).toBe(21)
-        expect(session.gameState.epoch).toBe(2)
+        expect(session.gameState.epoch).toBe('track.epoch.ii')
     })
 
     it('The list follows what is shown, and the live table brings it all back', async () => {

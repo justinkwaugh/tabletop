@@ -24,7 +24,7 @@ import {
     PawnOf,
     tableAtCombat
 } from '../testing/combat.js'
-import { giveGood } from '../testing/improving.js'
+import { giveGood, showLocation } from '../testing/improving.js'
 import { typesOf } from '../testing/roundEnd.js'
 import {
     giveCardTurn,
@@ -213,7 +213,7 @@ function holdWrits(table: Table, playerId: string, count = 4) {
 function ruleOutpost(table: Table, playerId: string) {
     table.moveTo((state) => {
         const space = state.spaces['space.forest.1']
-        space.location.kind = 'outpost'
+        showLocation(state, 'space.forest.1', 'outpost')
         space.ruler = { playerId, subject: false }
         state.getPlayerState(playerId).influenceSupply -= 1
         state.recomputeRanks()

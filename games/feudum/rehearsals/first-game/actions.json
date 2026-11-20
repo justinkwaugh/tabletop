@@ -2378,8 +2378,7 @@
         "op": "add",
         "path": "/flow/turn/followUps/0",
         "value": {
-          "kind": "keep-writs",
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU"
+          "kind": "keep-writs"
         }
       },
       {
@@ -3700,8 +3699,7 @@
         "op": "add",
         "path": "/flow/turn/followUps/0",
         "value": {
-          "kind": "military",
-          "playerId": "1xR9m1pAy_W5irFjMM2pw"
+          "kind": "military"
         }
       }
     ]
@@ -3818,7 +3816,6 @@
         "op": "replace",
         "path": "/spaces/space.desert.3/location",
         "value": {
-          "kind": "outpost",
           "discId": "disc.start.6"
         }
       },
@@ -4205,7 +4202,6 @@
         "path": "/flow/turn/followUps/0",
         "value": {
           "kind": "reeve",
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "guildId": "farmer"
         }
       }
@@ -4813,7 +4809,7 @@
         "tileId": "tile.badlands.i",
         "landscape": "archery-butt"
       },
-      "epochTriggered": 2
+      "epochTriggered": "track.epoch.ii"
     },
     "index": 84,
     "undoPatch": [
@@ -4881,7 +4877,7 @@
     "source": "system",
     "createdAt": "2026-11-20T05:14:17.500Z",
     "metadata": {
-      "epoch": 2,
+      "epoch": "track.epoch.ii",
       "sheet": [
         {
           "playerId": "1xR9m1pAy_W5irFjMM2pw",
@@ -4988,12 +4984,12 @@
       {
         "op": "replace",
         "path": "/epoch",
-        "value": 1
+        "value": "track.epoch.i"
       },
       {
         "op": "add",
         "path": "/flow/epochTriggered",
-        "value": 2
+        "value": "track.epoch.ii"
       }
     ]
   },
@@ -5761,8 +5757,8 @@
         "op": "replace",
         "path": "/spaces/space.desert.3/location",
         "value": {
-          "kind": "farm",
-          "discId": "disc.double.1"
+          "discId": "disc.double.1",
+          "face": "a"
         }
       },
       {
@@ -5987,8 +5983,7 @@
         "op": "add",
         "path": "/flow/turn/followUps/0",
         "value": {
-          "kind": "voyage",
-          "playerId": "1xR9m1pAy_W5irFjMM2pw"
+          "kind": "voyage"
         }
       }
     ]
@@ -7373,7 +7368,6 @@
         "path": "/flow/turn/followUps/0",
         "value": {
           "kind": "reeve",
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "guildId": "merchant"
         }
       }
@@ -7808,7 +7802,6 @@
         "op": "replace",
         "path": "/spaces/space.forest.3/location",
         "value": {
-          "kind": "farm",
           "discId": "disc.start.2"
         }
       },
@@ -8309,7 +8302,7 @@
         "tileId": "tile.island.ii",
         "landscape": "archery-butt"
       },
-      "epochTriggered": 3
+      "epochTriggered": "track.epoch.iii"
     },
     "index": 136,
     "undoPatch": [
@@ -8377,7 +8370,7 @@
     "source": "system",
     "createdAt": "2026-11-20T05:14:17.540Z",
     "metadata": {
-      "epoch": 3,
+      "epoch": "track.epoch.iii",
       "sheet": [
         {
           "playerId": "1xR9m1pAy_W5irFjMM2pw",
@@ -8460,12 +8453,12 @@
       {
         "op": "replace",
         "path": "/epoch",
-        "value": 2
+        "value": "track.epoch.ii"
       },
       {
         "op": "add",
         "path": "/flow/epochTriggered",
-        "value": 3
+        "value": "track.epoch.iii"
       }
     ]
   },
@@ -13343,7 +13336,7 @@
         "tileId": "tile.desert.iii",
         "landscape": "silver-mine"
       },
-      "epochTriggered": 4
+      "epochTriggered": "track.epoch.iv"
     },
     "index": 231,
     "undoPatch": [
@@ -13411,7 +13404,7 @@
     "source": "system",
     "createdAt": "2026-11-20T05:14:17.611Z",
     "metadata": {
-      "epoch": 4,
+      "epoch": "track.epoch.iv",
       "sheet": [
         {
           "playerId": "1xR9m1pAy_W5irFjMM2pw",
@@ -13503,7 +13496,7 @@
       {
         "op": "replace",
         "path": "/epoch",
-        "value": 3
+        "value": "track.epoch.iii"
       },
       {
         "op": "replace",
@@ -13519,7 +13512,7 @@
         "op": "replace",
         "path": "/flow",
         "value": {
-          "epochTriggered": 4
+          "epochTriggered": "track.epoch.iv"
         }
       }
     ]
@@ -14782,7 +14775,7 @@
         "tileId": "tile.island.iv",
         "landscape": "sulfur-mine"
       },
-      "epochTriggered": 5
+      "epochTriggered": "track.epoch.v"
     },
     "index": 257,
     "undoPatch": [
@@ -14850,7 +14843,7 @@
     "source": "system",
     "createdAt": "2026-11-20T05:14:17.632Z",
     "metadata": {
-      "epoch": 5,
+      "epoch": "track.epoch.v",
       "sheet": [
         {
           "playerId": "xVxV1Xn5UQq54-oz_yKWU",
@@ -14942,7 +14935,7 @@
       {
         "op": "replace",
         "path": "/epoch",
-        "value": 4
+        "value": "track.epoch.iv"
       },
       {
         "op": "replace",
@@ -14958,7 +14951,7 @@
         "op": "replace",
         "path": "/flow",
         "value": {
-          "epochTriggered": 5
+          "epochTriggered": "track.epoch.v"
         }
       }
     ]

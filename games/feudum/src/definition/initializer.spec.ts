@@ -23,7 +23,8 @@ import { FeudumColors } from './colors.js'
 import { FeudumGameInitializer } from './initializer.js'
 import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
-import { knightRows, rowSeat } from '../model/knightRows.js'
+import { dummyRowColour, knightRows, rowSeat } from '../model/knightRows.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 const engine = new GameEngine(FeudumRuntime)
 const MasterSeed = '0123456789abcdef0123456789abcdef'
@@ -83,8 +84,8 @@ function counted<T extends string | number>(items: readonly T[]): Map<T, number>
 
 function discKinds(state: FeudumGameState, startingSpaces: boolean) {
     return counted(
-        Spaces.filter((space) => space.startingSpace === startingSpaces).map(
-            (space) => state.spaces[space.id].location.kind
+        Spaces.filter((space) => space.startingSpace === startingSpaces).map((space) =>
+            locationKindOf(state.spaces[space.id].location)
         )
     )
 }
@@ -143,11 +144,11 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
                     GuildSetupSpaces.knight.markersPerRow
             )
         }
-        for (const { row } of knightRows({ guilds })) {
-            if (!('dummyColour' in row.owner)) {
+        for (const { rowId, row } of knightRows({ guilds })) {
+            if (!('dummy' in row.owner)) {
                 continue
             }
-            expect(supply.dummyInfluence[row.owner.dummyColour]).toBe(
+            expect(supply.dummyInfluence[rowId]).toBe(
                 ComponentTotals.markersPerColour - GuildSetupSpaces.knight.markersPerRow
             )
         }
@@ -170,7 +171,9 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
         const placed = Spaces.map((space) => state.spaces[space.id].location.discId)
         expect(placed.toSorted()).toEqual(StartingDiscs.map((disc) => disc.id).toSorted())
         for (const space of Spaces) {
-            const { discId, kind } = state.spaces[space.id].location
+            const { location } = state.spaces[space.id]
+            const { discId } = location
+            const kind = locationKindOf(location)
             const disc = StartingDiscs.find((starting) => starting.id === discId)
             expect(disc?.circleMark, space.id).toBe(space.startingSpace)
             expect(disc?.kind, space.id).toBe(kind)
@@ -227,7 +230,8 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
 
     it('R-1.4-H1 seats a Knight row each, and dummy rows in unused colours to exactly 4 below 4', () => {
         const { guilds, players } = start(numPlayers)
-        const rows = knightRows({ guilds }).map(({ row }) => row)
+        const entries = knightRows({ guilds })
+        const rows = entries.map(({ row }) => row)
         expect(rows).toHaveLength(Math.max(numPlayers, MinimumKnightRows))
         for (const row of rows) {
             expect(row.markers).toBe(GuildSetupSpaces.knight.markersPerRow)
@@ -235,8 +239,8 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
         expect(rows.slice(0, numPlayers).map(({ owner }) => rowSeat(owner))).toEqual(
             players.map(({ playerId }) => playerId)
         )
-        const dummies = rows.flatMap(({ owner }) =>
-            'dummyColour' in owner ? [owner.dummyColour] : []
+        const dummies = entries.flatMap(({ rowId, row }) =>
+            'dummy' in row.owner ? [dummyRowColour({ guilds, players }, rowId)] : []
         )
         expect(dummies).toHaveLength(Math.max(MinimumKnightRows - numPlayers, 0))
         expect(new Set(dummies).size).toBe(dummies.length)
@@ -277,7 +281,7 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
 
     it("R-1.4.6 puts one random good beside each region's N space and nowhere else", () => {
         const { spaces, epoch } = start(numPlayers)
-        expect(epoch).toBe(1)
+        expect(epoch).toBe('track.epoch.i')
         for (const space of Spaces) {
             expect(goodsTotal(spaces[space.id].goods), space.id).toBe(
                 space.letters.includes('N') ? 1 : 0

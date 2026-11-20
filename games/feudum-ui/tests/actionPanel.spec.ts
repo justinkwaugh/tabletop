@@ -1,3 +1,4 @@
+import { locationKindOf } from '@tabletop/feudum'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { createGame, playToCards, playToHands, playToPawn, settled, shot } from './helpers.js'
 
@@ -305,13 +306,19 @@ test('S18 R-3.10 a real Explore: its name, the drawn faces, the keep', async ({ 
 
     await row(page, 'Move').locator('button').first().click()
     await settled(page)
-    const outpost = await page.evaluate(() => {
+    const { locations, targets } = await page.evaluate(() => {
         const session = window.feudumSession
-        const outposts = Object.entries(session.gameState.spaces)
-            .filter(([, { location }]) => location.kind === 'outpost')
-            .map(([id]) => `space:${id}`)
-        return [...session.boardOffer.targets.keys()].find((target) => outposts.includes(target))
+        return {
+            locations: Object.entries(session.gameState.spaces).map(
+                ([id, { location }]) => [id, location] as const
+            ),
+            targets: [...session.boardOffer.targets.keys()]
+        }
     })
+    const outposts = locations
+        .filter(([, location]) => locationKindOf(location) === 'outpost')
+        .map(([id]) => `space:${id}`)
+    const outpost = targets.find((target) => outposts.includes(target))
     expect(outpost).toBeDefined()
     await page.locator(`[data-pick="${outpost}"] [role="button"]`).first().click()
     await settled(page)

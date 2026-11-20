@@ -8,6 +8,7 @@ import { RegionIds, type LandscapeKind, type RegionId, type TileId } from '../da
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
+import { discChoices, locationKindOf, replaceLocationDisc } from '../model/locationDiscs.js'
 import { collectTopTile } from '../model/regionStacks.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { tableAtPlayingCards, type Table } from './table.js'
@@ -37,7 +38,7 @@ export function spaceOfKind(
     except: readonly SpaceId[] = []
 ): SpaceId {
     const space = Spaces.find(
-        ({ id }) => state.spaces[id].location.kind === kind && !except.includes(id)
+        ({ id }) => locationKindOf(state.spaces[id].location) === kind && !except.includes(id)
     )
     assertExists(space, `A ${kind} is on the board`)
     return space.id
@@ -97,5 +98,30 @@ export function makeFeudum(state: HydratedFeudumGameState, spaceId: SpaceId, gui
         ...state.supply.discs.filter((id) => id !== discId),
         space.location.discId
     ]
-    space.location = { kind: 'feudum', discId }
+    space.location = { discId }
+}
+
+/** R-3.9.1 The space shows this location: its disc swapped for the first in the supply showing it. */
+export function showLocation(
+    state: HydratedFeudumGameState,
+    spaceId: SpaceId,
+    kind: LocationKind,
+    guild: GuildId = 'farmer'
+): void {
+    if (kind === 'feudum') {
+        makeFeudum(state, spaceId, guild)
+        return
+    }
+    if (locationKindOf(state.spaces[spaceId].location) === kind) {
+        return
+    }
+    const [choice] = discChoices(state, kind)
+    if (choice) {
+        replaceLocationDisc(state, spaceId, choice.discId, kind)
+        return
+    }
+    const other = spaceOfKind(state, kind, [spaceId])
+    const { location } = state.spaces[spaceId]
+    state.spaces[spaceId].location = state.spaces[other].location
+    state.spaces[other].location = location
 }

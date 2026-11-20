@@ -5,7 +5,7 @@ import { ActionType } from '../definition/actions.js'
 import { FeudumApiActions } from '../definition/apiActions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
-import { makeFeudum } from '../testing/improving.js'
+import { makeFeudum, showLocation } from '../testing/improving.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import {
     influenceOffers,
@@ -170,7 +170,7 @@ describe('Influence: R-3.8.1, R-4.1', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['influence', 'tax'] }))
         const [master, journeyman] = table.order
         table.moveTo((state) => {
-            state.spaces[HOME].location.kind = GuildById.farmer.relatedLocation
+            showLocation(state, HOME, GuildById.farmer.relatedLocation)
             return MachineState.PlayingCards
         })
         table.send(master, { type: ActionType.ForfeitCard, kind: 'tax' })

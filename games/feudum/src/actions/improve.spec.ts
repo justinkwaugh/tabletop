@@ -1,22 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import type { GuildId } from '../data/components.js'
-import type { DiscId } from '../data/discs.js'
+import type { DiscId, LocationKind } from '../data/discs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
-import { discChoices, feudumGuildOf } from '../model/locationDiscs.js'
+import {
+    discChoices,
+    feudumGuildOf,
+    locationKindOf,
+    replaceLocationDisc
+} from '../model/locationDiscs.js'
 import { placeMarker } from '../model/locationControl.js'
-import { giveGood, giveSeal, setUp, spaceOfKind, tableImproving } from '../testing/improving.js'
+import {
+    giveGood,
+    giveSeal,
+    setUp,
+    showLocation,
+    spaceOfKind,
+    tableImproving
+} from '../testing/improving.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { giveTile } from '../testing/atWill.js'
 import { improveOffers, improveShortSpaces, isImprove, reasonImproveRefused } from './improve.js'
 
 /** Puts a disc of the supply on another space of this kind, whose own disc returns to the supply. */
-function takeOutOfSupply(state: HydratedFeudumGameState, discId: DiscId, onto: SpaceId): void {
-    const { location } = state.spaces[onto]
-    state.supply.discs = [...state.supply.discs.filter((id) => id !== discId), location.discId]
-    location.discId = discId
+function takeOutOfSupply(
+    state: HydratedFeudumGameState,
+    discId: DiscId,
+    onto: SpaceId,
+    showing: LocationKind = 'feudum'
+): void {
+    replaceLocationDisc(state, onto, discId, showing)
 }
 
 function improve(table: Table, playerId: string, spaceId: SpaceId, more = {}) {
@@ -51,7 +66,8 @@ describe('R-3.9.1 outpost to farm', () => {
 
         const after = table.hydrated()
         const space = after.spaces[spaceId]
-        expect(space.location).toEqual({ kind: 'farm', discId: FarmDisc })
+        expect(space.location).toEqual({ discId: FarmDisc, face: 'a' })
+        expect(locationKindOf(space.location)).toBe('farm')
         expect(space.ruler).toEqual({ playerId, subject: false })
         expect(after.supply.discs).toContain(oldDisc)
         expect(after.supply.discs).not.toContain(FarmDisc)
@@ -103,10 +119,8 @@ describe('R-3.9.1 farm to town', () => {
         const [action] = improve(table, playerId, spaceId, { discId: FarmDisc })
 
         const after = table.hydrated()
-        expect(after.spaces[spaceId].location).toEqual({
-            kind: 'town',
-            discId: FarmDisc
-        })
+        expect(after.spaces[spaceId].location).toEqual({ discId: FarmDisc, face: 'b' })
+        expect(locationKindOf(after.spaces[spaceId].location)).toBe('town')
         expect(Object.values(after.spaces[spaceId].goods).every((count) => count === 0)).toBe(true)
         expect(after.supply.haversack.food).toBe(food)
         expect(after.getPlayerState(playerId).goods.iron).toBe(iron - 1)
@@ -148,10 +162,8 @@ describe('R-3.9.1 town to feudum', () => {
 
         const after = table.hydrated()
         const seat = after.getPlayerState(playerId)
-        expect(after.spaces[spaceId].location).toEqual({
-            kind: 'feudum',
-            discId: 'disc.feudum.noble-1'
-        })
+        expect(after.spaces[spaceId].location).toEqual({ discId: 'disc.feudum.noble-1' })
+        expect(locationKindOf(after.spaces[spaceId].location)).toBe('feudum')
         expect(feudumGuildOf(after.spaces[spaceId].location)).toBe('noble')
         expect(after.spaces[spaceId].goods).toEqual(goods)
         expect(seat.sealCount).toBe(0)
@@ -249,9 +261,10 @@ describe('R-3.9-H1 which disc', () => {
 
         improve(table, playerId, spaceId, { discId: OutpostFarmDisc })
         expect(table.hydrated().spaces[spaceId].location).toEqual({
-            kind: 'farm',
-            discId: OutpostFarmDisc
+            discId: OutpostFarmDisc,
+            face: 'b'
         })
+        expect(locationKindOf(table.hydrated().spaces[spaceId].location)).toBe('farm')
     })
 
     it('with one other face the lowest id is taken, unasked', () => {
@@ -259,7 +272,12 @@ describe('R-3.9-H1 which disc', () => {
         setUp(table, (state) => {
             giveGood(state, playerId, 'wood')
             // A space's outpost returns, which no farm can take.
-            takeOutOfSupply(state, OutpostFarmDisc, spaceOfKind(state, 'outpost', [spaceId]))
+            takeOutOfSupply(
+                state,
+                OutpostFarmDisc,
+                spaceOfKind(state, 'outpost', [spaceId]),
+                'outpost'
+            )
         })
         expect(discChoices(table.hydrated(), 'farm')).toEqual([{ discId: FarmDisc, other: 'town' }])
         expect(() => improve(table, playerId, spaceId, { discId: FarmDisc })).toThrow(
@@ -311,7 +329,7 @@ describe('R-3.9.1 what may be improved', () => {
     it('never a feudum', () => {
         const { table, playerId, spaceId } = tableImproving('town')
         setUp(table, (state) => {
-            state.spaces[spaceId].location.kind = 'feudum'
+            showLocation(state, spaceId, 'feudum')
         })
         expect(reasonImproveRefused(table.hydrated(), playerId, { spaceId })).toBe(
             'A feudum cannot be improved.'
@@ -355,7 +373,7 @@ describe('R-3.15.2 Improve replayed', () => {
         const choice = discChoices(table.hydrated(), 'town')[0]
         improve(table, playerId, second, { discId: choice.discId, asRepeat: 'deja-vu' })
         const seat = table.seat(playerId)
-        expect(table.hydrated().spaces[second].location.kind).toBe('town')
+        expect(locationKindOf(table.hydrated().spaces[second].location)).toBe('town')
         expect(seat.played.at(-1)).toEqual({
             kind: 'repeat',
             use: 'regular',

@@ -1,11 +1,12 @@
 import type { Color } from '@tabletop/common'
 import {
     coveredServiceSpaces,
+    dummyRowColour,
+    type HydratedFeudumGameState,
     knightRows,
+    type RegionId,
     RegionTiles,
     ScoreTrack,
-    type HydratedFeudumGameState,
-    type RegionId,
     type TileEpoch
 } from '@tabletop/feudum'
 import { PrintedColours } from '$lib/utils/boardGeometry.js'
@@ -132,19 +133,19 @@ export interface InfluencePool {
     readonly playerId?: string
 }
 
-/** R-1.4.2, R-1.4-H1 A dummy row's pool goes by its colour, so no colour stands for a seat. */
+/** R-1.4.2, R-1.4-H1 A dummy row's pool shows in its colour, so no colour stands for a seat. */
 export function influencePools(state: HydratedFeudumGameState): InfluencePool[] {
     const pools: (InfluencePool | undefined)[] = [
         ...state.players.map(({ color, playerId }) => {
             const count = state.supply.influence[playerId]
             return count === undefined ? undefined : { colour: color, playerId, count }
         }),
-        ...knightRows(state).map(({ row }) => {
-            if (!('dummyColour' in row.owner)) {
+        ...knightRows(state).map(({ rowId, row }) => {
+            if (!('dummy' in row.owner)) {
                 return undefined
             }
-            const colour = row.owner.dummyColour
-            const count = state.supply.dummyInfluence[colour]
+            const colour = dummyRowColour(state, rowId)
+            const count = state.supply.dummyInfluence[rowId]
             return count === undefined ? undefined : { colour, count }
         })
     ]

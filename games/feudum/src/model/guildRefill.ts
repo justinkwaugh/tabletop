@@ -34,7 +34,7 @@ export const GuildRefill = Type.Object({
     knightRows: Type.Array(
         Type.Object({
             rowId: KnightRowIdSchema,
-            /** R-1.4-H1 A seat's row, or a dummy row known by its colour. */
+            /** R-1.4-H1 A seat's row, or a dummy row. */
             owner: KnightRowOwner,
             added: ComponentCount
         })
@@ -100,12 +100,12 @@ function refillVessels(state: HydratedFeudumGameState): VesselType[] {
 function refillKnightRows(state: HydratedFeudumGameState): GuildRefill['knightRows'] {
     return knightRows(state).flatMap(({ rowId, row }) => {
         const short = GuildSetupSpaces.knight.markersPerRow - row.markers
-        const added = Math.min(Math.max(short, 0), ownerSupply(state, row.owner))
+        const added = Math.min(Math.max(short, 0), ownerSupply(state, { rowId, row }))
         if (added === 0) {
             return []
         }
         row.markers += added
-        changeOwnerSupply(state, row.owner, -added)
+        changeOwnerSupply(state, { rowId, row }, -added)
         return [{ rowId, owner: row.owner, added }]
     })
 }

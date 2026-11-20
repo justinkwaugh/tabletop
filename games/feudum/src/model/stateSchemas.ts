@@ -14,7 +14,7 @@ import { LocationDiscs } from '../data/discs.js'
 import { LandscapeKinds, RegionTiles } from '../data/regionTiles.js'
 import { ChickenSpaces, KnightRowIds, ScrollSpaces } from '../data/guilds.js'
 import { Seals } from '../data/seals.js'
-import { EpicVoyageTrack, MilitaryServiceTrack } from '../data/tracks.js'
+import { EpicVoyageTrack, EpochTrack, MilitaryServiceTrack } from '../data/tracks.js'
 import { Mandates, RoyalWrits } from '../data/writs.js'
 
 /** R-1.1 A number of components: never negative, never a fraction. */
@@ -43,13 +43,7 @@ export const ChickenSpaceIdSchema = Type.Enum(ChickenSpaces.map((space) => space
 export const KnightRowIdSchema = Type.Enum(KnightRowIds)
 
 /** R-2.1, R-4.11 V is never played: it is held only between its trigger and the end. */
-export const EpochSchema = Type.Union([
-    Type.Literal(1),
-    Type.Literal(2),
-    Type.Literal(3),
-    Type.Literal(4),
-    Type.Literal(5)
-])
+export const SunrayIdSchema = Type.Enum(EpochTrack.map((ray) => ray.id))
 
 /** R-1.1 A pawn is (playerId, n). */
 /** R-4.10.2 How many of the sulfur an action brings the seat go in its barrel. */

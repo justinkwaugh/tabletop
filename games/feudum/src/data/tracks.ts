@@ -105,8 +105,11 @@ export type EpochAdvance =
     | { readonly kind: 'stack-tops'; readonly tileEpoch: Epoch; readonly count: number }
     | { readonly kind: 'empty-stacks'; readonly count: number }
 
+export type SunrayId =
+    'track.epoch.i' | 'track.epoch.ii' | 'track.epoch.iii' | 'track.epoch.iv' | 'track.epoch.v'
+
 export interface Sunray {
-    readonly id: string
+    readonly id: SunrayId
     readonly epoch: Epoch
     readonly ray: string
     /** R-4.12.4 Where one random good lands in each region; epoch I's N is setup's (R-1.4.6). */

@@ -147,9 +147,10 @@ export function setVesselsForSale(
 
 /** Each Knight row, in order, holds this many markers, keeping totals. */
 export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly number[]): void {
-    knightRows(state).forEach(({ row }, index) => {
+    knightRows(state).forEach((entry, index) => {
+        const { row } = entry
         const wanted = markers.at(index) ?? 0
-        changeOwnerSupply(state, row.owner, row.markers - wanted)
+        changeOwnerSupply(state, entry, row.markers - wanted)
         row.markers = wanted
     })
 }

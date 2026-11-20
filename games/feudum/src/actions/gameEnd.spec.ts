@@ -13,7 +13,7 @@ import { buildFeudum, holdWrit } from '../testing/combat.js'
 import { placeLandscape, playToDawn } from '../testing/dawn.js'
 import { rowOf, scoredIn } from '../testing/gameEnd.js'
 import { recordedText } from '../testing/guilds.js'
-import { coverService } from '../testing/state.js'
+import { coverService, epochAt } from '../testing/state.js'
 import { playOutCards, showOnStacks, typesOf } from '../testing/roundEnd.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { isBeginDawn } from './beginDawn.js'
@@ -27,7 +27,7 @@ function metOnStacksAtEpochIV() {
     const table = tableAtPlayingCards(() => ({ cards: ['move'] }), 3)
     table.moveTo((state) => {
         showOnStacks(state, ['V', 4, 4, 4, 4, 4])
-        state.epoch = 4
+        state.epoch = epochAt(4)
         return MachineState.PlayingCards
     })
     return table
@@ -46,7 +46,7 @@ describe('R-6.1, R-6.1-H1 once the condition for V is met', () => {
         expect(table.asked).toBe(second)
         expect(table.state.result).toBeUndefined()
         expect(table.state.flow.epochTriggered).toBeUndefined()
-        expect(table.state.epoch).toBe(4)
+        expect(table.state.epoch).toBe(epochAt(4))
     })
 
     it('R-6.1-H1 met before step 3: nourished, no roll, the dawn, then final scoring', () => {
@@ -63,7 +63,7 @@ describe('R-6.1, R-6.1-H1 once the condition for V is met', () => {
         const roll = processed.find((action) => isRollProgressDie(action))
         expect(roll?.metadata?.faces).toEqual([])
         expect(roll?.revealsInfo).toBeFalsy()
-        expect(table.state.epoch).toBe(LastEpoch)
+        expect(table.state.epoch).toBe(epochAt(LastEpoch))
         expect(table.state.machineState).toBe(MachineState.EndOfGame)
     })
 
@@ -91,14 +91,14 @@ describe('R-6.1, R-6.1-H1 once the condition for V is met', () => {
                     removeTopTile(state, region)
                 }
             }
-            state.epoch = 4
+            state.epoch = epochAt(4)
             return MachineState.PlayingCards
         })
 
         const processed = playOutCards(table)
 
         const roll = processed.find((action) => isRollProgressDie(action))
-        expect(roll?.metadata?.epochTriggered).toBe(LastEpoch)
+        expect(roll?.metadata?.epochTriggered).toBe(epochAt(LastEpoch))
         expect(roll?.revealsInfo).toBe(true)
         expect(typesOf(processed).slice(-2)).toEqual([ActionType.BeginDawn, ...TheEnd])
         expect(table.state.machineState).toBe(MachineState.EndOfGame)
@@ -164,7 +164,7 @@ describe('R-6.1, R-4.12 the V dawn', () => {
         const [first] = table.order
         table.moveTo((state) => {
             showOnStacks(state, ['V', 4, 4, 4, 4, 4])
-            state.epoch = 4
+            state.epoch = epochAt(4)
             return MachineState.PlayingCards
         })
 

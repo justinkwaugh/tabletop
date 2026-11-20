@@ -18,6 +18,7 @@ import {
 } from '../model/dawn.js'
 import { TriggeredEpoch } from '../model/flow.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { epochNumber } from '../model/tracks.js'
 
 export type BeginDawnMetadata = Type.Static<typeof BeginDawnMetadata>
 export const BeginDawnMetadata = Type.Object({
@@ -64,7 +65,7 @@ export class HydratedBeginDawn extends HydratableAction<typeof BeginDawn> implem
         state.epoch = epoch
         state.flow.epochTriggered = undefined
 
-        const sheet = scoreDawn(state, epoch)
+        const sheet = scoreDawn(state, epochNumber(state))
         const fills = fillLandscapes(state)
         const pending = serfsWithFilledLandscapes(state)
         state.flow.landscapes = pending.length > 0 ? { pending } : undefined

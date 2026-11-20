@@ -1,5 +1,6 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists, type Color } from '@tabletop/common'
 import { KnightRowIds, type KnightRowId } from '../data/guilds.js'
+import { FeudumColors } from '../definition/colors.js'
 import type { FeudumGameState } from './gameState.js'
 import type { KnightRow, KnightRowOwner } from './guildsState.js'
 
@@ -43,20 +44,36 @@ export function seatKnightRow(
     return knightRows(state).find(({ row }) => rowSeat(row.owner) === playerId)
 }
 
-/** R-1.4.2 How many of the owner's markers the general supply holds. */
-export function ownerSupply(state: SupplyHolder, owner: KnightRowOwner): number {
-    return 'playerId' in owner
-        ? (state.supply.influence[owner.playerId] ?? 0)
-        : (state.supply.dummyInfluence[owner.dummyColour] ?? 0)
+/** R-1.4.2 How many of the row owner's markers the general supply holds. */
+export function ownerSupply(state: SupplyHolder, { rowId, row }: KnightRowEntry): number {
+    return 'playerId' in row.owner
+        ? (state.supply.influence[row.owner.playerId] ?? 0)
+        : (state.supply.dummyInfluence[rowId] ?? 0)
 }
 
-/** R-1.4.2 The owner's markers into (positive) or out of (negative) the general supply. */
+/** R-1.4.2 The row owner's markers into (positive) or out of (negative) the general supply. */
 export function changeOwnerSupply(
     state: SupplyHolder,
-    owner: KnightRowOwner,
+    { rowId, row }: KnightRowEntry,
     change: number
 ): void {
-    const counts = 'playerId' in owner ? state.supply.influence : state.supply.dummyInfluence
-    const key = 'playerId' in owner ? owner.playerId : owner.dummyColour
+    const counts = 'playerId' in row.owner ? state.supply.influence : state.supply.dummyInfluence
+    const key = 'playerId' in row.owner ? row.owner.playerId : rowId
     counts[key] = (counts[key] ?? 0) + change
+}
+
+/** R-1.4-H1 A dummy row's printed colour, for presentation: the unused colours, in order, by row. */
+export function dummyRowColour(
+    state: KnightRowsHolder & { readonly players: readonly { readonly color: Color }[] },
+    rowId: KnightRowId
+): Color {
+    const unused = FeudumColors.filter(
+        (colour) => !state.players.some((player) => player.color === colour)
+    )
+    const dummies = knightRows(state).filter(({ row }) => !rowSeat(row.owner))
+    const index = dummies.findIndex((entry) => entry.rowId === rowId)
+    assert(index >= 0, `R-1.4-H1 Knight row ${rowId} is a dummy row`)
+    const colour = unused.at(index)
+    assertExists(colour, `R-1.4-H1 A colour is unused for Knight row ${rowId}`)
+    return colour
 }

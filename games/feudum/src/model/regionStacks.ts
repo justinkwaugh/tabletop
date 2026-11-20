@@ -9,6 +9,7 @@ import {
 } from '../data/regionTiles.js'
 import { RegionTileChart, type Epoch } from '../data/tracks.js'
 import type { HydratedFeudumGameState } from './gameState.js'
+import { epochNumber } from './tracks.js'
 
 const TilesById: ReadonlyMap<TileId, RegionTile> = new Map(
     RegionTiles.map((tile) => [tile.id, tile])
@@ -35,7 +36,7 @@ export function isTileLegal(epoch: Epoch, tile: RegionTile): boolean {
 export function legalStackRegions(state: HydratedFeudumGameState): RegionId[] {
     return RegionIds.filter((region) => {
         const top = stackTop(state, region)
-        return top !== undefined && isTileLegal(state.epoch, top)
+        return top !== undefined && isTileLegal(epochNumber(state), top)
     })
 }
 
@@ -52,7 +53,9 @@ export function earlierTileCandidates(
 ): StackTile[] {
     return RegionIds.filter((other) => other !== region).flatMap((other) => {
         const top = stackTop(state, other)
-        return top !== undefined && top.epoch < state.epoch ? [{ stack: other, tile: top }] : []
+        return top !== undefined && top.epoch < epochNumber(state)
+            ? [{ stack: other, tile: top }]
+            : []
     })
 }
 
@@ -64,7 +67,7 @@ export type ImprovementTile =
 /** R-4.3.2, R-4.3-H1 What an improvement in this region offers. */
 export function improvementTile(state: HydratedFeudumGameState, region: RegionId): ImprovementTile {
     const top = stackTop(state, region)
-    if (top !== undefined && isTileLegal(state.epoch, top)) {
+    if (top !== undefined && isTileLegal(epochNumber(state), top)) {
         return { kind: 'legal', tile: top }
     }
     return { kind: 'prohibited', candidates: earlierTileCandidates(state, region) }

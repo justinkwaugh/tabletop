@@ -36,8 +36,10 @@ import { MachineState } from '../definition/states.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
 import { nextMarkerRole } from '../model/locationControl.js'
 import type { GoodCounts } from '../model/stateSchemas.js'
+import { epochNumber } from '../model/tracks.js'
 import { testGame } from './state.js'
 import { giveCardTurn } from './table.js'
+import { locationKindOf } from '../model/locationDiscs.js'
 
 const engine = new GameEngine(FeudumRuntime)
 
@@ -115,12 +117,12 @@ function bestImprovement(
     playerId: string
 ): ImproveOffer | undefined {
     const { goods, regionTiles } = state.getPlayerState(playerId)
-    const firstTile = regionTiles.length === 0 && state.epoch < 3
+    const firstTile = regionTiles.length === 0 && epochNumber(state) < 3
     return improveOffers(state, playerId)
         .filter(
             (offer) =>
                 (offer.tile.kind === 'legal' || offer.tile.candidates.length > 0) &&
-                ((state.epoch === LastTileEpoch && stackSize(state, offer.spaceId) === 1) ||
+                ((epochNumber(state) === LastTileEpoch && stackSize(state, offer.spaceId) === 1) ||
                     (offer.cost !== 'seal' && (goods[offer.cost] > 1 || firstTile)))
         )
         .sort((a, b) => stackSize(state, a.spaceId) - stackSize(state, b.spaceId))[0]
@@ -142,8 +144,12 @@ function improveMove(offer: ImproveOffer, playerId: string): WalkMove {
 function spaceWorth(state: HydratedFeudumGameState, playerId: string, spaceId: SpaceId): number {
     const { location } = state.spaces[spaceId]
     const takesMarker = nextMarkerRole(state.spaces[spaceId], playerId) === undefined ? 0 : 3
-    const improvable = location.kind === 'outpost' || location.kind === 'farm' ? 1 : 0
-    return takesMarker + (state.epoch >= 3 ? (5 - stackSize(state, spaceId)) * 2 + improvable : 0)
+    const improvable =
+        locationKindOf(location) === 'outpost' || locationKindOf(location) === 'farm' ? 1 : 0
+    return (
+        takesMarker +
+        (epochNumber(state) >= 3 ? (5 - stackSize(state, spaceId)) * 2 + improvable : 0)
+    )
 }
 
 /** The best way on offer for one piece; ties turn with the action count, so pawns spread out. */
@@ -342,7 +348,7 @@ const CardOrder: readonly ActionCardKind[] = [
 /** R-3.9.1 The seat rules a location whose stack has one tile left: taking it ends the epochs. */
 function canEmptyStack(state: HydratedFeudumGameState, playerId: string): boolean {
     return (
-        state.epoch === LastTileEpoch &&
+        epochNumber(state) === LastTileEpoch &&
         improveOffers(state, playerId).some(
             (offer) => offer.tile.kind === 'legal' && stackSize(state, offer.spaceId) === 1
         )

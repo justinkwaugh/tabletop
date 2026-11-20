@@ -8,7 +8,6 @@ import {
     isRollProgressDie,
     isScoreGame,
     placeMarker,
-    type TriggeredEpoch,
     type WritId
 } from '@tabletop/feudum'
 import { ActionSource, assertExists } from '@tabletop/common'
@@ -28,7 +27,7 @@ import {
     seatedAtCards,
     threePawns
 } from '$lib/testing/followUpTable.js'
-import { playOutRound, tendLandscape } from '$lib/testing/roundEndTable.js'
+import { playOutRound, tendLandscape, type DawnEpoch } from '$lib/testing/roundEndTable.js'
 import { describeAction } from './actionDescription.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
@@ -395,7 +394,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         const { session, sessions, host } = table
         const dawn = host.actions.find((action) => isBeginDawn(action))
         assertExists(dawn, 'The dawn played')
-        expect(isBeginDawn(dawn) && dawn.metadata?.epoch).toBe(2)
+        expect(isBeginDawn(dawn) && dawn.metadata?.epoch).toBe('track.epoch.ii')
         sameForAll(sessions)
         const sheet = dawnOf(session)
         expect(sheet.epoch).toBe(2)
@@ -547,7 +546,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
 })
 
 describe('S56 R-6.2, R-6.3 the game-end summary', () => {
-    const finalEpoch: TriggeredEpoch = 5
+    const finalEpoch: DawnEpoch = 5
 
     it('S56 it replaces the panel for every seat, one column per seat, from ScoreGame', async () => {
         const table = hold(await playOutRound(finalEpoch))
