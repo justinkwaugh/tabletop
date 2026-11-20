@@ -2,9 +2,9 @@ import { Color } from '@tabletop/common'
 import type { BoardShape, StoneColor } from '@tabletop/game-of-y'
 import { riseOf, STONE_RADIUS, STONE_THICKNESS, type Box } from './geometry.js'
 
-// 2.5 times the 2.5 px per unit the board fits at (board/zoom.ts's most for fitting): larger images cost
-// download and decoding for sharpness seen only at full zoom.
-export const LOOK_PIXELS = 2.5 * 2.5
+// Twice the largest size a stone ordinarily rests at, the repository's rule for images: Kadon's
+// board in a 2560x1440 window rests at about 1.7 CSS px per unit. Zoomed in further, stones soften.
+export const LOOK_PIXELS = 3.5
 
 export const STONE_COLORS: readonly StoneColor[] = [Color.Black, Color.White]
 
