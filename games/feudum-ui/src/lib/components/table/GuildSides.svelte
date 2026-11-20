@@ -67,12 +67,23 @@
         untrack(() => layers.followGuildPick(frame?.key, guildSideFollowing(frame)))
     }
 
+    /**
+     * A wheel over an open side never zooms the board beneath. The one listener is the root's own,
+     * there for as long as the buttons are: WebKit restyles the whole page each time a wheel listener
+     * is added or removed, which a listener on the open view would do at every opening.
+     */
+    function keepWheelInView(event: WheelEvent) {
+        if (event.target instanceof Element && event.target.closest('[data-guild-view]')) {
+            event.stopPropagation()
+        }
+    }
+
     function buttonLeft(side: GuildSide): number {
         return side === 'west' ? rest.x - SideGutter : rest.x + rest.width + SideButtonGap
     }
 </script>
 
-<div class="contents" {@attach followThePick}>
+<div class="contents" {@attach followThePick} onwheel={keepWheelInView}>
     {#each Sides as { side, label } (side)}
         <button
             type="button"
@@ -104,7 +115,6 @@
             style:height="{rest.height}px"
             data-guild-view={open}
             onpointerdown={(event) => event.stopPropagation()}
-            onwheel={(event) => event.stopPropagation()}
         >
             <div
                 class="scrim"

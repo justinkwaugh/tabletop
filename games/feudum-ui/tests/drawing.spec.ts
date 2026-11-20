@@ -86,6 +86,37 @@ test('opening and closing the Key and the Supply card adds and removes no wheel 
     expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
 })
 
+test('opening, switching and closing the guild sides adds and removes no wheel or touch listener', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await logListeners(page)
+    await createGame(page)
+    await playToCards(page)
+    await settled(page)
+    await page.evaluate(() => window.feudumListenerLog.splice(0))
+
+    await page.locator('[data-guild-side="west"]').click()
+    await expect(page.locator('[data-guild-view="west"]')).toBeVisible()
+    await page.locator('[data-guild-side="east"]').click()
+    await expect(page.locator('[data-guild-view="east"]')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+
+    // A wheel over an open side still never zooms the board beneath it.
+    await page.locator('[data-guild-side="west"]').click()
+    await expect(page.locator('[data-guild-view="west"]')).toBeVisible()
+    const before = await page.locator('[data-board-surface]').boundingBox()
+    await page
+        .locator('[data-guild-view="west"] [data-guild-scrim]')
+        .hover({ position: { x: 8, y: 8 } })
+    await page.mouse.wheel(0, -400)
+    await page.waitForTimeout(400)
+    expect(await page.locator('[data-board-surface]').boundingBox()).toEqual(before)
+
+    expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
+})
+
 test.describe('waiting seats', () => {
     test('a seat waiting on its choice pulses by opacity alone, at a desk', async ({ page }) => {
         await createGame(page)
