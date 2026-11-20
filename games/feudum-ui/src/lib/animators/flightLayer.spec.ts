@@ -1479,12 +1479,12 @@ describe('no Action, and nothing at all', () => {
             const shown: { readonly at: number; readonly draw: unknown }[] = []
             const before = session.beforeNewState.bind(session)
             let flewAt = 0
-            vi.spyOn(session, 'beforeNewState').mockImplementation(() => {
+            vi.spyOn(session, 'beforeNewState').mockImplementation((transition) => {
                 shown.push({
                     at: performance.now() - flewAt,
                     draw: session.gameState.flow.writDraw
                 })
-                before()
+                before(transition)
             })
             const sent = game.send(seat, { type: ActionType.Explore, revealsInfo: true })
             await flying
@@ -1549,7 +1549,7 @@ describe('no Action, and nothing at all', () => {
         )
         context.actionTimeline.pause().time(0.5)
         expect(stage.hiddenSources).toHaveLength(1)
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'own-action', actions: [], intent: 'actions' })
         expect(settledBoard).toHaveBeenCalledOnce()
         expect(animator.flights).toEqual([])
         expect(stage.hiddenSources).toEqual([])

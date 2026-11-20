@@ -15,7 +15,6 @@ import { seatedAtCards } from './followUpTable.js'
 import { FeudumHost, settled } from './sessionHarness.js'
 import { addPawn, buildFeudum, emptySpace, giveGood, returnGoods } from './turnTable.js'
 
-/** A copy as it was painted, in the page's own pixels. */
 export interface SeenCopy {
     readonly id: string
     readonly row: string
@@ -26,7 +25,6 @@ export interface SeenCopy {
     readonly html: string
 }
 
-/** One painted frame of the layer, and whatever the page had hidden for it. */
 export interface FlightFrame {
     readonly at: number
     readonly copies: readonly SeenCopy[]
@@ -63,7 +61,6 @@ function seenCopies(): SeenCopy[] {
     })
 }
 
-/** What the page hides by hand: a source while its copy flies. */
 function hiddenByHand(): string[] {
     return [...document.querySelectorAll('[style*="visibility: hidden"]')]
         .filter((element) => !element.closest('[data-flight-layer]'))
@@ -112,7 +109,6 @@ function hydrated(session: FeudumGameSession): HydratedFeudumGameState {
     return new HydratedFeudumGameState(structuredClone(session.gameState.dehydrate()))
 }
 
-/** Where the first copy's end should stand, by the board's own coordinates on the screen. */
 function boardEndOnScreen(session: FeudumGameSession): Point | undefined {
     const end = session.flightAnimator.flights[0]?.legs.at(-1)?.to
     const matrix = document.querySelector('[data-board-surface]')?.closest('svg')?.getScreenCTM()
@@ -152,7 +148,6 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
         type: ActionType.ForfeitCard
     }
 
-    /** A change run through the session as an Action's would be, then shown, stopping short of the state. */
     const stage = async (edit: (to: HydratedFeudumGameState) => void, midway?: () => void) => {
         const from = hydrated(session)
         const to = hydrated(session)
@@ -164,7 +159,7 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
         }, midway)
         const last = frameOf(performance.now())
         const boardEnd = boardEndOnScreen(session)
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'own-action', actions: [], intent: 'actions' })
         const hiddenAfter = hiddenByHand()
         flushSync()
         return { frames, last, boardEnd, hiddenAfter, copiesAfter: seenCopies().length }
@@ -204,14 +199,12 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
                 .pawns.find(({ spaceId }) => spaceId === pawnSpace)
             return `pawn:${seat}:${pawn?.n}`
         },
-        /** What the seat's copies must name, or must not. */
         drawnWrits() {
             const { drawn } =
                 new HydratedFeudumGameState(structuredClone(host.state)).flow.writDraw ?? {}
             return (drawn ?? []).flatMap((writId) => [writId, writName(writId)])
         },
         pawnHome: () => stage(pawnHome),
-        /** Full screen opens with the copy in the air. */
         pawnHomeOpeningFullScreen: () =>
             stage(pawnHome, () => {
                 document
@@ -221,7 +214,6 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
                     ?.click()
             }),
         goodLeaves: () => stage(goodLeaves),
-        /** The scene held half way, so it can be photographed. */
         async holdPawnHome() {
             const from = hydrated(session)
             const to = hydrated(session)
@@ -233,7 +225,6 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
             timeline.time(timeline.duration() * 0.6)
             return frameOf(performance.now())
         },
-        /** A draw held half way: faces to the drawer, backs to anyone else. */
         async holdWritDraw() {
             const from = hydrated(session)
             const to = hydrated(session)

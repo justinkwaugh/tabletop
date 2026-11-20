@@ -332,7 +332,13 @@ test.describe('at phone width', () => {
         const goodBox = await boxOf(page, `[data-open-seat="${seat}"] [data-supply-good="food"]`)
         await page.evaluate(() => window.flightTable.holdPawnHome())
         await page.screenshot({ path: test.info().outputPath('phone-sheet-mid-flight.png') })
-        await page.evaluate(() => window.feudumSession.beforeNewState())
+        await page.evaluate(() =>
+            window.feudumSession.beforeNewState({
+                kind: 'own-action',
+                actions: [],
+                intent: 'actions'
+            })
+        )
         const { frames, hiddenAfter } = await page.evaluate(() => window.flightTable.goodLeaves())
         const air = flying(frames)
         expect(air.length).toBeGreaterThan(0)
