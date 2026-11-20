@@ -1,6 +1,6 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import { discsBroughtIn, PieceKind } from '@tabletop/matrx'
-import type { HistoryEntry, Taking } from './historyEntries.js'
+import type { PlayEntry, Taking } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -25,7 +25,7 @@ function moved(kind: PieceKind): string {
 }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
-export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
+export function entrySegments(entry: PlayEntry, brief = false): Segment[] {
     const rows = brief ? briefRows(entry) : fullRows(entry)
     switch (entry.kind) {
         case 'taking':
@@ -63,7 +63,7 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
     }
 }
 
-function fullRows(entry: HistoryEntry): Segment[] {
+function fullRows(entry: PlayEntry): Segment[] {
     return entry.takings.flatMap((taking, index) => [
         text(index === 0 ? (entry.kind === 'taking' ? ' took ' : ', then took ') : ' and '),
         point(taking.from),
@@ -73,7 +73,7 @@ function fullRows(entry: HistoryEntry): Segment[] {
     ])
 }
 
-function briefRows(entry: HistoryEntry): Segment[] {
+function briefRows(entry: PlayEntry): Segment[] {
     const rows = entry.takings.flatMap((taking, index) => [
         text(index === 0 ? '' : ' and '),
         point(taking.from),

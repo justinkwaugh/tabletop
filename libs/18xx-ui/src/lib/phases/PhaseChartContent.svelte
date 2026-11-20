@@ -8,6 +8,7 @@
     import {
         certificateRemaining,
         marketCertificates,
+        phaseName,
         trainRosterRows,
         type PhaseChartData,
         type PhaseChartDepotState
@@ -38,8 +39,10 @@
         bank?: { cash: Cash['amount']; broken: boolean }
     } = $props()
     const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
+    const namePhase = (phaseId: string) => phaseName(chart, phaseId)
     const rosterRows = $derived(trainRosterRows(chart.trains))
     const openMarket = $derived(marketCertificates(depotState))
+    const showsUpgrades = $derived(chart.trains.some((train) => train.upgrades?.length))
 </script>
 
 <div class="phase-chart-content" class:depot={depotOnly} class:on-board={onBoard}>
@@ -49,9 +52,9 @@
                 <table>
                     <thead
                         ><tr
-                            ><th>Phase</th><th>Tiles</th><th>ORs</th><th>Train limit</th><th
-                                >Rusts</th
-                            ><th>Notes</th></tr
+                            ><th>Phase</th><th>Tiles</th>{#if !chart.operatingRoundsHidden}<th
+                                    >ORs</th
+                                >{/if}<th>Train limit</th><th>Rusts</th><th>Notes</th></tr
                         ></thead
                     >
                     <tbody>
@@ -62,7 +65,7 @@
                             >
                                 <th scope="row"
                                     ><TrainBadge
-                                        name={phase.id}
+                                        name={namePhase(phase.id)}
                                         color={phaseColors[phase.id]}
                                     /></th
                                 >
@@ -80,7 +83,9 @@
                                             ></span>{/each}
                                     </span></td
                                 >
-                                <td class="number">{phase.operatingRounds}</td>
+                                {#if !chart.operatingRoundsHidden}<td class="number"
+                                        >{phase.operatingRounds}</td
+                                    >{/if}
                                 <td class="number">{phase.trainLimit}</td>
                                 <td
                                     ><span class="badges">
@@ -94,7 +99,11 @@
                                     </span></td
                                 >
                                 <td class="phase-notes"
-                                    ><PhaseText text={phase.notes ?? ''} {phaseColors} /></td
+                                    ><PhaseText
+                                        text={phase.notes ?? ''}
+                                        {phaseColors}
+                                        phaseName={namePhase}
+                                    /></td
                                 >
                             </tr>
                         {/each}
@@ -105,7 +114,7 @@
         {#if onBoard && currentPhase}<div class="phase-summary">
                 <span class="summary-item"
                     ><span class="summary-label">Phase</span><TrainBadge
-                        name={currentPhase.id}
+                        name={namePhase(currentPhase.id)}
                         color={phaseColors[currentPhase.id]}
                     /></span
                 >
@@ -128,10 +137,12 @@
             <table>
                 <thead
                     ><tr
-                        ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        >{#if openMarket.length}<th class="number">Market</th>{/if}<th
-                            class="number">Rusted by</th
-                        ></tr
+                        ><th>Train</th><th class="money">Price</th>{#if showsUpgrades}<th
+                                class="money"
+                                title="What trading this train in for a newer one costs">Upgrade</th
+                            >{/if}<th class="number">Remaining</th>{#if openMarket.length}<th
+                                class="number">Market</th
+                            >{/if}<th class="number">Rusted by</th></tr
                     ></thead
                 >
                 <tbody>
@@ -170,6 +181,20 @@
                                 ></th
                             >
                             <td class="money">{money(train.price)}</td>
+                            {#if showsUpgrades}<td class="money"
+                                    >{#if train.upgrades?.length}<span class="upgrades"
+                                            >{#each train.upgrades as upgrade (upgrade.definitionId)}<span
+                                                    class="upgrade"
+                                                    aria-label={`To a ${depotState.depot.trainDefinition(upgrade.definitionId).name} for ${money(upgrade.price)}`}
+                                                    ><TrainBadge
+                                                        name={depotState.depot.trainDefinition(
+                                                            upgrade.definitionId
+                                                        ).name}
+                                                        color={trainColors[upgrade.definitionId]}
+                                                    />{money(upgrade.price)}</span
+                                                >{/each}</span
+                                        >{:else}<span class="muted">–</span>{/if}</td
+                                >{/if}
                             {#if remainingRowSpan}
                                 <td
                                     class="number"
@@ -210,10 +235,10 @@
         {#each [...new Set(chart.trains.flatMap( (train) => (train.rustNote ? [train.rustNote] : []) ))] as note (note)}<p
             >
                 <span class="rust-mark">*</span>
-                <PhaseText text={note} {phaseColors} />
+                <PhaseText text={note} {phaseColors} phaseName={namePhase} />
             </p>{/each}
         {#if !depotOnly}{#each chart.notes as note, index (index)}<p>
-                    <PhaseText text={note} {phaseColors} />
+                    <PhaseText text={note} {phaseColors} phaseName={namePhase} />
                 </p>{/each}{/if}
     </div>
 </div>
@@ -324,6 +349,18 @@
     }
     .number .badges {
         justify-content: center;
+    }
+    .upgrades {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+    }
+    .upgrade {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
     }
     .train-mark {
         display: inline-flex;

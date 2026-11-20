@@ -5,6 +5,7 @@
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import RestartTurnConfirm from './RestartTurnConfirm.svelte'
     let {
         session,
         bordered = true,
@@ -69,6 +70,10 @@
             )
     )
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
+    const restart = $derived(session.turnRestart)
+    const restartId = $props.id()
+    let restartButton: HTMLButtonElement | undefined = $state()
+    let restartOpen = $state(false)
     const turnPlayerIds = $derived.by(() => {
         if (!session.isViewingHistory) return gameState.activePlayerIds
         const actorId = session.actions
@@ -140,6 +145,30 @@
                 session.isViewingHistory ||
                 !(session.hasLocalSelection || session.undoableAction)}>Undo</button
         >
+        {#if restart}
+            <button
+                class="restart"
+                bind:this={restartButton}
+                popovertarget={restartId}
+                aria-expanded={restartOpen}
+                aria-controls={restartId}
+                aria-label="Restart turn"
+                title="Restart turn"
+                disabled={session.busy || session.updatingVisibleState}
+                ><svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    ><path d="M4 5v6h6"></path><path d="M4.6 15a8 8 0 1 0 1.9-8.3L4 11"></path></svg
+                ><span class="restart-label">Restart turn</span></button
+            >
+        {/if}
         {#if artworkAvailable}
             <button
                 class="artwork-toggle"
@@ -167,6 +196,15 @@
         {/if}
     </div>
 </header>
+{#if restart}
+    <RestartTurnConfirm
+        {session}
+        {restart}
+        id={restartId}
+        anchor={restartButton}
+        bind:open={restartOpen}
+    />
+{/if}
 
 <style>
     header {
@@ -312,6 +350,23 @@
     button:disabled {
         opacity: 0.3;
         cursor: default;
+    }
+    .restart {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-left: -8px;
+    }
+    .restart[aria-expanded='true'] {
+        background: var(--rail-hover, #ffffff66);
+    }
+    .restart svg {
+        flex-shrink: 0;
+    }
+    @media (width < 40rem) {
+        .restart-label {
+            display: none;
+        }
     }
     .artwork-toggle {
         margin-left: -8px;

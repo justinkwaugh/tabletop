@@ -1,4 +1,5 @@
 import type { MarketZone } from '../session/titlePresentation.js'
+import type { StockMarketSpace } from '@tabletop/18xx'
 
 export const marketColors: Record<string, string> = {
     white: '#fffefa',
@@ -33,5 +34,40 @@ export function marketSpaceColor(color: string, zone?: MarketZone): string {
             return RecessedMarketSpace
         default:
             return marketColors[color] ?? color
+    }
+}
+
+export function marketZoneTitle(zone: MarketZone): string {
+    return `${zone.name}: ${zone.description}`
+}
+
+// A solid fill keeps its colour in dark mode, so its text keeps the light-mode ink.
+export function marketSolidInk(zone: MarketZone | undefined): string | undefined {
+    return zone?.fill?.kind === 'solid' ? (zone.fill.ink ?? 'var(--market-solid-ink)') : undefined
+}
+
+export type MarketValueMark = {
+    /** Custom properties for an element with the `market-zone-tint` class. */
+    style: string
+    title: string
+}
+
+export function marketValueMark(
+    space: Pick<StockMarketSpace, 'color'> | undefined,
+    zones: readonly MarketZone[] | undefined
+): MarketValueMark | undefined {
+    if (!space) return undefined
+    const zone = marketZone(zones, space.color)
+    if (!zone?.marksCompanyValue) return undefined
+    const lightness = marketDarkLightness[space.color]
+    const ink = marketSolidInk(zone)
+    return {
+        style: [
+            `--market-color:${marketSpaceColor(space.color, zone)}`,
+            ...(lightness === undefined ? [] : [`--market-lightness:${lightness}`]),
+            ...(zone.fill ? ['--market-tint:var(--market-color)'] : []),
+            ...(ink ? [`--market-tint-ink:${ink}`] : [])
+        ].join(';'),
+        title: marketZoneTitle(zone)
     }
 }

@@ -1,15 +1,16 @@
 import { assert, assertExists } from '@tabletop/common'
 import type { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
+import type { CityId } from '../data/boardMap.js'
 import {
     adjacentHexIds,
+    BOARD_MAPS,
     cityAt,
+    cityById,
     hexOrder,
     isCityHex,
-    USA_HEXES,
-    usaCity,
-    type CityId
-} from '../data/usaMap.js'
+    isHexId
+} from '../data/boardMaps.js'
 import type { RideTheRailsGameState, Track } from '../model/gameState.js'
 import { journeyHexIds, journeyPayments, paymentTotal, type Link } from './routes.js'
 import { hasTrackIn } from './track.js'
@@ -57,15 +58,17 @@ function either(a: HexSet, b: HexSet): HexSet {
 }
 
 const NEIGHBOURS_IN_HEX_ORDER: ReadonlyMap<HexId, readonly HexId[]> = new Map(
-    USA_HEXES.map((hex) => [
-        hex.id,
-        [...adjacentHexIds(hex.id)].sort((a, b) => hexOrder(a) - hexOrder(b))
-    ])
+    Object.values(BOARD_MAPS)
+        .flatMap((map) => map.hexes)
+        .map((hex) => [
+            hex.id,
+            [...adjacentHexIds(hex.id)].sort((a, b) => hexOrder(a) - hexOrder(b))
+        ])
 )
 
 function neighboursInHexOrder(hexId: HexId): readonly HexId[] {
     const neighbours = NEIGHBOURS_IN_HEX_ORDER.get(hexId)
-    assertExists(neighbours, `Unknown USA hex ${hexId}`)
+    assertExists(neighbours, `Unknown hex ${hexId}`)
     return neighbours
 }
 
@@ -198,7 +201,7 @@ export function nextCities(
     startCityId: CityId,
     links: readonly Link[]
 ): NextCity[] {
-    const startHexId = usaCity(startCityId).hexId
+    const startHexId = cityById(startCityId).hexId
     assert(links.length === 0 || links[0].hexIds[0] === startHexId, 'The route leaves its start')
     const fromHexId = routeEndHexId(startHexId, links)
     const visited = routeHexIds(startHexId, links)
@@ -326,8 +329,9 @@ function* railroadLinksTo(
     }
     // A link passes each of the railroad's non-city hexes at most once.
     const longest =
-        USA_HEXES.filter((hex) => !isCityHex(hex.id) && hasTrackIn(track, hex.id, railroadId))
-            .length + 1
+        Object.keys(track).filter(
+            (hexId) => isHexId(hexId) && !isCityHex(hexId) && hasTrackIn(track, hexId, railroadId)
+        ).length + 1
     const path: HexId[] = [fromHexId]
     const onPath = new Set<HexId>(path)
     const used = either(blocked, onPath)
@@ -545,7 +549,7 @@ export function realise(
     if (railroadIds.length === 0 || !state.passengers.includes(cities[0])) {
         return undefined
     }
-    const cityHexIds = cities.map((cityId) => usaCity(cityId).hexId)
+    const cityHexIds = cities.map((cityId) => cityById(cityId).hexId)
     // R-3.3.3: a city twice, or a link that does not exist even alone, leaves no realisation.
     if (
         new Set(cityHexIds).size !== cityHexIds.length ||
@@ -643,7 +647,7 @@ export function bestJourneys(
 ): BestJourneys {
     const budget = new ExpansionBudget(expansionCap)
     const journeys: RankedJourney[] = []
-    const startHexId = usaCity(startCityId).hexId
+    const startHexId = cityById(startCityId).hexId
     const extend = (links: readonly Link[], visited: ReadonlySet<HexId>) => {
         const outgoing = searchLinksFrom(
             state.track,

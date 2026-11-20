@@ -15,6 +15,7 @@ import {
 import { FloatCompany, isFloatCompany, type HydratedFloatCompany } from '../company/floatCompany.js'
 import { isStartCompany, type HydratedStartCompany } from '../company/startCompany.js'
 import { evaluateCompanyStart } from '../company/companyStart.js'
+import { defaultStartChoices } from '../company/startChoices.js'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import { isBuyShares, type HydratedBuyShares } from './buyShares.js'
@@ -50,12 +51,12 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
                 !state.turnManager.currentTurn() &&
                 !nextCompanyToFloat(state, this.companyRules)
             )
-        if (allPlayersPassed(state)) return false
         if (isFloatCompany(action))
             return (
                 action.source === ActionSource.System &&
                 nextCompanyToFloat(state, this.companyRules)?.companyId === action.companyId
             )
+        if (allPlayersPassed(state)) return false
         if (nextCompanyToFloat(state, this.companyRules)) return false
         if (
             action.source !== ActionSource.User ||
@@ -114,7 +115,13 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
                                                 buyer,
                                                 companyId: company.id,
                                                 marketSpaceId,
-                                                ...(home ? { home } : {})
+                                                ...(home ? { home } : {}),
+                                                ...defaultStartChoices(
+                                                    state,
+                                                    this.companyRules,
+                                                    company.id,
+                                                    marketSpaceId
+                                                )
                                             },
                                             this.rules,
                                             this.companyRules
@@ -152,16 +159,16 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
         return actions
     }
     enter(context: MachineContext<State>): void {
-        if (allPlayersPassed(context.gameState)) {
-            context.addSystemAction(CompleteStockRound, {
+        const details = nextCompanyToFloat(context.gameState, this.companyRules)
+        if (details) {
+            context.addSystemAction(FloatCompany, {
+                companyId: details.companyId,
                 playerId: context.gameState.activePlayerIds[0]
             })
             return
         }
-        const details = nextCompanyToFloat(context.gameState, this.companyRules)
-        if (details)
-            context.addSystemAction(FloatCompany, {
-                companyId: details.companyId,
+        if (allPlayersPassed(context.gameState))
+            context.addSystemAction(CompleteStockRound, {
                 playerId: context.gameState.activePlayerIds[0]
             })
     }

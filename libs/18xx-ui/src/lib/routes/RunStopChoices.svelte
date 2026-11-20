@@ -13,6 +13,12 @@
     Autorun runs a company’s best routes and pays out on each of its turns, building and buying
     nothing.
 </p>
+{#each runs.presided as companyId (companyId)}
+    {@const description = session.presentation.autorunDescription?.(companyId)}
+    {#if description}
+        <p>{session.actionCompanyName(companyId)}: {description}</p>
+    {/if}
+{/each}
 <p>It stops on its own when:</p>
 <dl>
     {#each ignorableRunInstructionStops as stop (stop)}
@@ -31,7 +37,7 @@
     </thead>
     <tbody>
         {#each runs.presided as companyId (companyId)}
-            {@const name = session.companyName(companyId)}
+            {@const name = session.actionCompanyName(companyId)}
             {@const ignored = runs.ignoredStops(companyId)}
             <tr>
                 <th scope="row"
@@ -60,7 +66,7 @@
     </tbody>
 </table>
 <div class="group">Always</div>
-<StopList always={alwaysRunStops} />
+<StopList always={alwaysRunStops.map(session.terms.reword)} />
 
 <style>
     p {

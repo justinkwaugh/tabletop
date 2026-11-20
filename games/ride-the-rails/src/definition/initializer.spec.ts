@@ -1,5 +1,7 @@
 import { PlayerStatus, type Game } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { boardMap } from '../data/boardMaps.js'
+import { MAP_IDS, type MapId } from '../data/maps.js'
 import { USA_CITIES } from '../data/usaMap.js'
 import { CURRENT_RIDE_THE_RAILS_REVISION } from '../model/gameState.js'
 import { engine, fixturePlayerIds, freshState, masterSeed } from '../testing/fixtures.js'
@@ -7,6 +9,15 @@ import { Definition } from './definition.js'
 import { PhaseName } from './phases.js'
 import { RideTheRailsRuntime } from './runtime.js'
 import { MachineState } from './states.js'
+
+// R-1.3.2: the passengers each map takes at setup, one per city but those it leaves empty.
+const SETUP_PASSENGERS: Readonly<Record<MapId, number>> = {
+    'map.usa': 51,
+    'map.au': 52,
+    'map.ca': 52,
+    'map.fr': 52,
+    'map.de': 52
+}
 
 function gameFor(playerCount: number): Game {
     return RideTheRailsRuntime.initializer.initializeGame(
@@ -37,7 +48,7 @@ describe('initialization', () => {
         expect(freshState().rideTheRailsRevision).toBe(CURRENT_RIDE_THE_RAILS_REVISION)
     })
 
-    it('plays the USA map, the only map of this release (R-8)', () => {
+    it('plays the USA map when the game names none, as every game stored before the map option (R-8, R-X.3)', () => {
         expect(freshState().mapId).toBe('map.usa')
     })
 
@@ -76,33 +87,54 @@ describe('initialization', () => {
     })
 })
 
-describe.each([3, 4, 5])('setup for %i players (R-1.2, R-1.3)', (playerCount) => {
-    const state = freshState(playerCount)
-
-    it('seats every player', () => {
-        expect(state.players).toHaveLength(playerCount)
-        expect(state.turnManager.turnOrder).toHaveLength(playerCount)
+describe.each(MAP_IDS)('setup on %s (R-1.3, R-8)', (mapId) => {
+    it('plays the map the game was created on', () => {
+        expect(freshState(3, mapId).mapId).toBe(mapId)
     })
 
-    it('puts 51 passengers on the map (R-1.3)', () => {
-        expect(state.passengers).toHaveLength(51)
+    it('puts one passenger on every city but those the map leaves empty, in id order (R-1.3.2)', () => {
+        const { passengers } = freshState(3, mapId)
+        expect(passengers).toHaveLength(SETUP_PASSENGERS[mapId])
+        expect(passengers).toEqual(boardMap(mapId).setupPassengerCityIds().toSorted())
+        expect(new Set(passengers).size).toBe(passengers.length)
     })
 
-    it('gives every player $0 (R-1.3.6)', () => {
-        expect(state.players.map((player) => player.money)).toEqual(
-            Array.from({ length: playerCount }, () => 0)
-        )
+    it('starts with an empty map and no bonus claimed (R-1.3)', () => {
+        const state = freshState(3, mapId)
+        expect(state.track).toEqual({})
+        expect(state.transcontinental).toBeUndefined()
+        expect(state.connectionClaim).toBeUndefined()
+        expect(state.building).toBeUndefined()
     })
 
-    it('starts in round 1 (R-1.3.8)', () => {
-        expect(state.roundManager.currentRound?.number).toBe(1)
-    })
+    describe.each([3, 4, 5])('for %i players (R-1.2, R-1.3)', (playerCount) => {
+        const state = freshState(playerCount, mapId)
 
-    it('gives the first turn to the last player in turn order, as Take a Share runs in reverse (R-2.2)', () => {
-        const lastPlayerId = state.turnManager.turnOrder.at(-1)
-        expect(state.turnManager.series).toHaveLength(1)
-        expect(state.turnManager.currentTurn()?.playerId).toBe(lastPlayerId)
-        expect(state.activePlayerIds).toEqual([lastPlayerId])
+        it('seats every player', () => {
+            expect(state.players).toHaveLength(playerCount)
+            expect(state.turnManager.turnOrder).toHaveLength(playerCount)
+        })
+
+        it('puts the map’s passengers on it (R-1.3)', () => {
+            expect(state.passengers).toHaveLength(SETUP_PASSENGERS[mapId])
+        })
+
+        it('gives every player $0 (R-1.3.6)', () => {
+            expect(state.players.map((player) => player.money)).toEqual(
+                Array.from({ length: playerCount }, () => 0)
+            )
+        })
+
+        it('starts in round 1 (R-1.3.8)', () => {
+            expect(state.roundManager.currentRound?.number).toBe(1)
+        })
+
+        it('gives the first turn to the last player in turn order, as Take a Share runs in reverse (R-2.2)', () => {
+            const lastPlayerId = state.turnManager.turnOrder.at(-1)
+            expect(state.turnManager.series).toHaveLength(1)
+            expect(state.turnManager.currentTurn()?.playerId).toBe(lastPlayerId)
+            expect(state.activePlayerIds).toEqual([lastPlayerId])
+        })
     })
 })
 

@@ -5,6 +5,7 @@
     import { KIND_NAMES } from '$lib/history/entryText.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
     import PieceIcon from './PieceIcon.svelte'
+    import { holdTallest } from './holdTallest.js'
 
     const session = getGameSession()
 
@@ -26,7 +27,7 @@
 </script>
 
 <!-- One row: the last move while you wait, the prompt on your turn. -->
-<div class="panel">
+<div class="panel" {@attach holdTallest}>
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />

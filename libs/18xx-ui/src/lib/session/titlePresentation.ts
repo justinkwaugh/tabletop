@@ -11,6 +11,7 @@ import type {
 import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
+import type { TableTerms } from '../presentation/tableTerms.js'
 import type {
     CompanyNameVariants,
     CompanyPricePresentation,
@@ -44,6 +45,9 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
     followsStockRound?: boolean
 }
 
+/** A title's own use of a private, offered beside the family's private controls. */
+export type TitlePrivateAction = { label: string; pressed: boolean; press(): void }
+
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = {
     label: string
@@ -63,6 +67,28 @@ export type LoanTerms = {
     fixedTerms?: true
 }
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
+/**
+ * A space of a start choice drawn as the board prints it: an option to pick, or held by a
+ * company; its label is printed in an open space.
+ */
+export type StartChoiceSpace = {
+    label: string
+    description: string
+    optionId?: string
+    companyId?: string
+}
+/**
+ * A rule in force for a while, announced under the phase strip, such as 1880's Communist
+ * Takeover: its banner's label, and the dialog it opens with its rules.
+ */
+export type PhaseNotice = {
+    label: string
+    title: string
+    summary?: string
+    rules: readonly string[]
+}
+/** An image on a company card's token, with words for what it means. */
+export type TokenBadge = { imageUrl: string; description: string }
 /**
  * A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. A
  * `compact` mark is a small symbol: it follows the company's name, or sits under the company's
@@ -110,6 +136,11 @@ export type MarketZone = {
     label?: string
     /** Drawn as one group, a little apart from the spaces on either side of it. */
     setApart?: true
+    /**
+     * Colours the value on a company's card while its price stands in the zone, for zones whose
+     * rules apply to the company there, such as freedom from the certificate limit.
+     */
+    marksCompanyValue?: true
 }
 
 /**
@@ -120,6 +151,20 @@ export type MarketLedge = {
     name: string
     description: string
     edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
+}
+
+/**
+ * A marker of the title's own on the stock market, such as 18RoyalGorge's debt marker, hung as a
+ * tab under its space below the market, clear of the companies' tokens.
+ */
+export type MarketMarker = {
+    id: string
+    spaceId: string
+    /** What the marker is, said when the tab is pointed at. */
+    name: string
+    /** The tab's short word. */
+    label: string
+    color: string
 }
 
 /** What the companies tab shows of companies no one has started. */
@@ -149,6 +194,8 @@ export type CompanyColumn<State extends GameState = EighteenXXState> = {
     text(state: State, companyId: string): string
     /** Marks drawn in place of the text, such as the permits a company holds. */
     marks?(state: State, companyId: string): readonly CompanyMark[]
+    /** Placed before the last run rather than after it, as 1880's permits. */
+    beforeLastRun?: true
 }
 
 /** A step of the operating turn as the step bar shows it, with the states and Actions it covers. */
@@ -173,10 +220,17 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     phaseChartFor?(state: State): PhaseChartData
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>
+    /**
+     * The history marks every phase change in its phase's colour, where phases change within a
+     * colour as events, as 18RoyalGorge's deck cards do.
+     */
+    historyMarksEveryPhase?: true
     marketPoolId: string
     /** The bank's pool of shares not yet sold, where a title has one. */
     ipoPoolId?: string
     exchangePoolId?: string
+    /** The rulebook's words for what the table names, where they are not the family's. */
+    terms?: Partial<TableTerms>
     companyNames: Readonly<Record<string, CompanyNameVariants>>
     companyPricePresentation?: CompanyPricePresentation
     numberedShareNames?: NumberedShareNames
@@ -224,6 +278,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
     gameFacts?(state: State): readonly TitleFact[]
+    /** A rule in force announced under the game information, such as 1880's communism. */
+    phaseNotice?(state: State): PhaseNotice | undefined
     /**
      * Marker art that changes with play, by location id then marker id, over the map view's:
      * such as a marker hidden once its rule lapses, or one a private has marked.
@@ -247,13 +303,50 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    /**
+     * What a company card's privates section lists in place of the privates the company owns,
+     * under its own heading, such as 1880's powers its director's privates give it (§VI); their
+     * income, the director's, is left off.
+     */
+    companyPowers?: {
+        heading: string
+        privateIds(state: State, companyId: string): readonly string[]
+    }
+    /**
+     * Small images on the lower right of a company card's token, such as the flag of a 1880
+     * foreign investor that will join the company (§VII).
+     */
+    companyTokenBadges?(state: State, companyId: string): readonly TokenBadge[]
     /** The tokens on a company's train. A title that draws them gives every train's, so badges line up at the top. */
     trainTokens?(state: State, train: Train): TrainTokens
+    /**
+     * Whether a company's president's mark gives the size of the president's certificate in
+     * shares, as P3, where the president chooses it, as for 1880's majors (§XII).
+     */
+    presidentMarkShowsShares?(state: State, companyId: string): boolean
+    /**
+     * Draws a start choice as a row of spaces, such as 1880's par slots on its operating order
+     * list (§XII), held ones showing their company; undefined draws the choice as buttons.
+     */
+    startChoiceSpaces?(
+        state: State,
+        choiceId: string,
+        marketSpaceId: string
+    ): readonly StartChoiceSpace[] | undefined
+    /** The action panel names companies, privates aside, by their initials, as 1880's JLR. */
+    actionCompanyInitials?: true
+    /** Player cards leave out their privates' value, where privates are worth nothing, as 1880's (§XV). */
+    privatesWithoutValue?: true
+    /**
+     * Whether building shows a projected run for this company, for a title where a company's run
+     * does not follow from its network, as 1828's C&P pays only for a run through its new tile.
+     */
+    projectsRun?(companyId: string): boolean
     /** A word for an open private's state in place of its income, such as Flipped. */
     privateStatus?(state: State, privateCompanyId: string): string | undefined
     /**
-     * What a private company keeps on its own charter for the player who holds it, said under
-     * its name on that player's card, as 1822's tax haven holds shares and money.
+     * What a private company keeps on its own charter, said under its name on the card of the
+     * player or company that holds it, as 1822's tax haven holds shares and money.
      */
     privateHoldings?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
@@ -268,6 +361,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * best routes found.
      */
     manualRoutes?(state: State, companyId: string): boolean
+    /** What Autorun does for a company whose turn is not the family's run and payout. */
+    autorunDescription?(companyId: string): string | undefined
     /**
      * A drawn run must earn as much as the best routes found, where the title lets a director
      * choose among the best runs but not run for less (1822 §5.13.6). With
@@ -278,6 +373,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
     historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions
+    /** Markers of the title's own on the stock market, beside the companies' tokens. */
+    marketMarkers?(state: State): readonly MarketMarker[]
     marketZones?: readonly MarketZone[]
     marketLedge?: MarketLedge
     /** Leaves the zones and ledge out of a legend below the market; each space's tooltip still names its zone. */

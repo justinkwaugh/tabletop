@@ -1,12 +1,12 @@
 <script lang="ts">
+    import { lowerFirst } from '../presentation/words.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const companyId = $derived(session.loans.operatingCompanyId)
     const rules = $derived(session.loans.rules)
     /** A right's name mid-sentence: "ferry marker", but "E token" keeps its letter. */
-    const inSentence = (name: string) =>
-        /^\p{Lu}\s/u.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1)
+    const inSentence = (name: string) => (/^\p{Lu}\s/u.test(name) ? name : lowerFirst(name))
     const terms = $derived(session.presentation.loanTerms)
 </script>
 

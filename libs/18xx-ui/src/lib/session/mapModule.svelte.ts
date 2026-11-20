@@ -1,3 +1,4 @@
+import { tileGroupOf } from '../maps/tileGroups.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     RailwayMapState,
@@ -199,7 +200,11 @@ export class MapModule {
         this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
     )
     displayedTokens = $derived.by(() => {
-        if (this.landedLayStations) return stationMapTokens(this.landedLayStations, this.view())
+        if (this.landedLayStations)
+            return stationMapTokens(
+                { ...this.landedLayStations, companies: this.companies },
+                this.view()
+            )
         return this.stations.preview
             ? stationMapTokens(this.stations.displayState, this.view())
             : this.tokens
@@ -311,10 +316,16 @@ export class MapModule {
     }
     select(selection: MapSelection, allowInspection = true) {
         if (this.track.showChoices) {
-            if (this.track.canBuild && this.track.locationIds.includes(selection.locationId)) {
-                if (this.track.preview?.locationId === selection.locationId)
-                    this.track.rotatePreview()
-                else this.track.selectLocation(selection.locationId)
+            const legal = this.track.locationIds
+            const piece = tileGroupOf(this.view(), selection.locationId) ?? [selection.locationId]
+            const previewed = this.track.preview?.locationId
+            if (this.track.canBuild && previewed && piece.includes(previewed))
+                this.track.rotatePreview()
+            else if (this.track.canBuild) {
+                const target = legal.includes(selection.locationId)
+                    ? selection.locationId
+                    : piece.find((id) => legal.includes(id))
+                if (target) this.track.selectLocation(target)
             }
             return
         }

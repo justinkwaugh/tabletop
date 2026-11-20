@@ -8,6 +8,7 @@ import {
     tabbedTableLayout,
     saveTableWorkspace
 } from './tableWorkspace.js'
+const labels = { marketLabel: 'Market', depotLabel: 'Depot' }
 const tabs = [
     'Game info',
     'Players',
@@ -111,7 +112,7 @@ it('starts a new layout with Board in place of Map when the title has board area
     })
 })
 it('builds the tabbed layout for a title, with Chat and Game info only where they exist', () => {
-    const board = tabbedTableLayout({ board: true, chat: true, gameInformation: true })
+    const board = tabbedTableLayout({ ...labels, board: true, chat: true, gameInformation: true })
     expect(board.tabs.find((tab) => tab.id === 'Map')).toEqual({
         id: 'Map',
         label: 'Board',
@@ -127,9 +128,15 @@ it('builds the tabbed layout for a title, with Chat and Game info only where the
         'Player Aid',
         'Depot',
         'Stats',
+        'Entities',
         'Game info'
     ])
-    const hotseat = tabbedTableLayout({ board: false, chat: false, gameInformation: false })
+    const hotseat = tabbedTableLayout({
+        ...labels,
+        board: false,
+        chat: false,
+        gameInformation: false
+    })
     expect(hotseat.initial).toEqual({
         main: ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles'],
         sidebar: ['Players', 'History']
@@ -138,7 +145,7 @@ it('builds the tabbed layout for a title, with Chat and Game info only where the
     expect(hotseat.tabs.map((tab) => tab.id)).not.toContain('Game info')
 })
 it('opens the tabbed layout on the first tab of its view pane', () => {
-    const layout = tabbedTableLayout({ board: true, chat: true, gameInformation: false })
+    const layout = tabbedTableLayout({ ...labels, board: true, chat: true, gameInformation: false })
     expect(firstTabbedView(null, layout)).toBe('Map')
     expect(
         firstTabbedView(

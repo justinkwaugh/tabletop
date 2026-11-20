@@ -1,5 +1,5 @@
 import { assertExists, type AxialCoordinates } from '@tabletop/common'
-import type { HistoryEntry, Removal } from './historyEntries.js'
+import type { PlayerEntry, Removal } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -11,7 +11,7 @@ const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
 // The brief form keeps the action banner to one line; the history panel uses the full one.
-export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
+export function entrySegments(entry: PlayerEntry, brief = false): Segment[] {
     switch (entry.kind) {
         case 'place':
             return [text(' placed a ring on '), point(entry.coords)]

@@ -9,7 +9,11 @@ export type PrivateState = StockState & OperatingState & { machineState: string 
 export type PrivateExchangeTerms = {
     certificateIds: string[]
     timing: 'own-stock-turn' | 'any-turn'
-    stockAction: 'additional' | 'none'
+    /**
+     * What the exchange is in a stock turn: an action beside the turn's purchase, none at all,
+     * or the turn's purchase itself, as 1828's M&H is a player's whole stock action (§7.1).
+     */
+    stockAction: 'additional' | 'none' | 'purchase'
     ownershipLimit: 'ordinary' | 'exempt'
 }
 export const PrivateEffect = Type.Union([

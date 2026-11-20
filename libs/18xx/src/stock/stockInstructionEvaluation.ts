@@ -15,6 +15,7 @@ import {
 } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import {
+    buyGoalMet,
     withIgnoredStops,
     type StandingStockInstruction,
     type StockInstruction,
@@ -53,12 +54,7 @@ export function evaluateStockInstruction(
     const followUp = instruction.thenPass
         ? withIgnoredStops({ kind: 'pass' }, instruction.ignoredStops ?? [])
         : undefined
-    if (instruction.until.kind === 'floated' && company.floated)
-        return stop({ code: 'goal-met', companyId: company.id }, followUp)
-    if (
-        instruction.until.kind === 'shares' &&
-        sharesOwned(state, company.id, owner) >= instruction.until.count
-    )
+    if (buyGoalMet(state, instruction, playerId))
         return stop({ code: 'goal-met', companyId: company.id }, followUp)
     if (state.stockRound.turn.bought)
         return canPass ? { kind: 'pass' } : stop({ code: 'cannot-finish' })

@@ -48,6 +48,7 @@ export type PendingCompanyFormation = {
     home: StationPosition
 }
 export type CompanyFormation = CompanyFormationChoice & PendingCompanyFormation
+export type CompanyFormationPayment = { privatesValue: number; cash: number }
 
 /**
  * Starting a company by auction during a stock turn: the opener names the company, its home and
@@ -71,6 +72,7 @@ export interface CompanyAuctionRules {
     shareCounts(state: CompanyAuctionState): readonly number[]
     /** The privates a winner may contribute toward a winning bid of this price. */
     contributions(state: CompanyAuctionState, playerId: string, price: number): readonly string[]
+    contributionValue(privateIds: readonly string[]): number
     formationReason(state: CompanyAuctionState, formation: CompanyFormation): string | undefined
     /** Settles the bid and the title's formation terms once the company has its president. */
     form(state: CompanyAuctionState, formation: CompanyFormation): void
@@ -183,6 +185,13 @@ export class CompanyAuctionModel {
     contributions(): readonly string[] {
         const pending = this.pendingFormation()
         return pending ? this.terms.contributions(this.state, pending.playerId, pending.price) : []
+    }
+
+    formationPayment(privateIds: readonly string[]): CompanyFormationPayment {
+        const pending = this.pendingFormation()
+        assertExists(pending, 'A formation follows a won auction')
+        const privatesValue = this.terms.contributionValue(privateIds)
+        return { privatesValue, cash: Math.max(0, pending.price - privatesValue) }
     }
 
     /** The winner's only formation, applied without a decision: one size and nothing to contribute. */

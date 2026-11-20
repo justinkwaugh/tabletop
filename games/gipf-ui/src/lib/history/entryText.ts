@@ -1,5 +1,5 @@
 import type { AxialCoordinates } from '@tabletop/common'
-import type { HistoryEntry, Taking } from './historyEntries.js'
+import type { MoveEntry, Taking } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -7,7 +7,7 @@ export type Segment =
     | { kind: 'point'; coords: AxialCoordinates }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
-export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
+export function entrySegments(entry: MoveEntry, brief = false): Segment[] {
     if (brief) {
         return briefSegments(entry)
     }
@@ -47,7 +47,7 @@ function describe(taking: Taking): string {
     return parts.join(', ')
 }
 
-function briefSegments(entry: HistoryEntry): Segment[] {
+function briefSegments(entry: MoveEntry): Segment[] {
     const text = (value: string): Segment => ({ kind: 'text', text: value })
     const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
     const rows = entry.takings.flatMap((taking, index) => [

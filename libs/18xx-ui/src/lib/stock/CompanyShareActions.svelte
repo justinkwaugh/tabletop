@@ -17,7 +17,7 @@
             readonly isViewingHistory: boolean
             readonly gameState: { players: readonly { playerId: string }[] }
             readonly colors: { getPlayerBgColorValue(playerId: string): string }
-            companyName(companyId: string): string
+            actionCompanyName(companyId: string): string
             getPlayerName(playerId: string): string
         }
         actions: Pick<
@@ -38,7 +38,7 @@
 
 <CompanyActionPanel label="Company share actions" heading="Act for a company">
     {#each actions.companyOptions as { companyId, redemptions, reissue } (companyId)}
-        {@const name = session.companyName(companyId)}
+        {@const name = session.actionCompanyName(companyId)}
         <CompanyActionCard
             {session}
             {companyId}

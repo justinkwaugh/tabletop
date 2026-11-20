@@ -47,6 +47,27 @@ describe('SelectionAuctionModel', () => {
         expect(model.canNominate(TestPlayerId, 'B', 0)).toBe(false)
     })
 
+    it('discounts only the lot up for nomination', () => {
+        const model = auction({ openingBid: (_state, lotId) => (lotId === 'A' ? 20 : 30) })
+        model.auction.discount = 5
+        expect(model.minimumBid('A')).toBe(15)
+        expect(model.minimumBid('B')).toBe(30)
+    })
+
+    it('tells when a remaining lot opens at other than its value', () => {
+        const atValue = (_state: unknown, lotId: string) => (lotId === 'A' ? 20 : 30)
+        expect(auction({ openingBid: atValue }).someLotOpensOffValue).toBe(false)
+        expect(auction().someLotOpensOffValue).toBe(true)
+
+        const discounted = auction({ openingBid: atValue })
+        discounted.auction.discount = 5
+        expect(discounted.someLotOpensOffValue).toBe(true)
+
+        const sold = auction({ openingBid: (_state, lotId) => (lotId === 'A' ? 10 : 30) })
+        sold.auction.remainingLotIds = ['B']
+        expect(sold.someLotOpensOffValue).toBe(false)
+    })
+
     it('forbids passing while nominating when the title requires a nomination', () => {
         const model = auction({ passingWhileNominating: () => false })
         expect(model.canPass(TestPlayerId)).toBe(false)

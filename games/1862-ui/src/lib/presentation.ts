@@ -103,12 +103,14 @@ export const Presentation1862: TitlePresentation<State1862> = {
         {
             color: MarketZoneColors1862.ignoreOneSale,
             name: 'One sale ignored',
-            description: 'The first share a non-director sells does not move the price.'
+            description: 'The first share a non-director sells does not move the price.',
+            marksCompanyValue: true
         },
         {
             color: MarketZoneColors1862.ignoreTwoSales,
             name: 'Two sales ignored',
-            description: 'The first two shares a non-director sells do not move the price.'
+            description: 'The first two shares a non-director sells do not move the price.',
+            marksCompanyValue: true
         },
         {
             color: MarketZoneColors1862.bankruptcy,

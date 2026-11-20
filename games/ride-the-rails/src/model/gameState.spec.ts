@@ -161,7 +161,21 @@ describe('the canonical validator', () => {
         ['a fresh state', () => freshState()],
         ['round 1, Take a Share', () => buildState(ROUND_ONE_TAKING_SHARES)],
         ['mid-building with Yellow started', () => buildState(MID_BUILDING_YELLOW_STARTED)],
-        ['round 6, Ride the Rails', () => buildState(ROUND_SIX_RIDING)]
+        ['round 6, Ride the Rails', () => buildState(ROUND_SIX_RIDING)],
+        [
+            'Australia, mid-building',
+            () =>
+                buildState({
+                    mapId: 'map.au',
+                    phase: PhaseName.Build,
+                    shares: { p1: { 'railroad.orange': 1 } },
+                    track: {
+                        'hex.au.4-14': ['railroad.orange'],
+                        'hex.au.3-13': ['railroad.orange']
+                    },
+                    building: { placed: 1, usedMountain: false, usedLongDistance: true }
+                })
+        ]
     ])('accepts %s', (_name, build) => {
         expect(RideTheRailsGameStateValidator.Check(build().dehydrate())).toBe(true)
     })
@@ -199,7 +213,7 @@ describe('the canonical validator', () => {
         expect(RideTheRailsGameStateValidator.Check(state)).toBe(false)
     })
 
-    it.each(['hex.usa.99-99', 'hex.usa.0-0', 'not-a-hex'])(
+    it.each(['hex.usa.99-99', 'hex.usa.0-0', 'hex.au.0-12', 'hex.mars.1-1', 'not-a-hex'])(
         'rejects track in %s, which is not a hex of the map (R-8.1)',
         (hexId) => {
             const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
@@ -221,6 +235,34 @@ describe('the canonical validator', () => {
                     track: { ...state.track, 'hex.usa.99-99': ['railroad.red'] }
                 })
         ).toThrow()
+    })
+
+    it('rejects track or a passenger of another map (R-8)', () => {
+        const state = buildState({ mapId: 'map.au' }).dehydrate()
+        expect(RideTheRailsGameStateValidator.Check(state)).toBe(true)
+        expect(
+            RideTheRailsGameStateValidator.Check({
+                ...state,
+                track: { 'hex.usa.6-60': ['railroad.red'] }
+            })
+        ).toBe(false)
+        expect(
+            RideTheRailsGameStateValidator.Check({
+                ...state,
+                passengers: [...state.passengers, 'city.usa.chicago']
+            })
+        ).toBe(false)
+    })
+
+    it('refuses a passenger in a city that is not on the map (R-1.3.2, R-8.1)', () => {
+        const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
+        expect(RideTheRailsGameStateValidator.Check(state)).toBe(true)
+        expect(
+            RideTheRailsGameStateValidator.Check({
+                ...state,
+                passengers: [...state.passengers, 'city.usa.atlantis']
+            })
+        ).toBe(false)
     })
 
     it('R-X.3: refuses to hydrate a revision this code does not know', () => {

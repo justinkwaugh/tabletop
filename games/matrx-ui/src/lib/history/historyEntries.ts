@@ -1,4 +1,10 @@
-import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    isCallGameAction,
+    type AxialCoordinates,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import {
     isExtraMove,
     isMovePotential,
@@ -41,7 +47,18 @@ export type SkipEntry = Span & { kind: 'skip'; takings: Taking[] }
 
 export type TakingEntry = Span & { kind: 'taking'; takings: Taking[] }
 
-export type HistoryEntry = PushEntry | MoveEntry | SkipEntry | TakingEntry
+export type PlayEntry = PushEntry | MoveEntry | SkipEntry | TakingEntry
+
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = PlayEntry | CallEntry
 
 function takingOf(action: GameAction): Taking | undefined {
     if (!isRemoveRow(action)) return undefined
@@ -72,7 +89,7 @@ function spanOf(action: GameAction, index: number) {
     return { id: action.id, firstIndex: index, lastIndex: index, playerId: action.playerId }
 }
 
-function moveEntry(action: GameAction, index: number): HistoryEntry | undefined {
+function moveEntry(action: GameAction, index: number): PlayEntry | undefined {
     if (isPushPiece(action) || isExtraMove(action)) {
         assertExists(action.metadata, 'A push records what it moved on')
         return {
@@ -104,10 +121,20 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     return undefined
 }
 
-// A move's own rows join its entry; any other rows get their own.
+// A move's own rows join its entry; any other rows get their own, and a call stands apart.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {
+        if (isCallGameAction(action)) {
+            entries.push({
+                kind: 'call',
+                id: action.id,
+                firstIndex: index,
+                lastIndex: index,
+                action
+            })
+            return
+        }
         const move = moveEntry(action, index)
         if (move) {
             entries.push(move)
@@ -119,6 +146,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
         const last = entries.at(-1)
         if (
             last !== undefined &&
+            last.kind !== 'call' &&
             last.playerId === action.playerId &&
             last.lastIndex === index - 1
         ) {

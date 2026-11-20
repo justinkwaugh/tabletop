@@ -2,12 +2,14 @@ import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import { PlayerNetWorth, playerNetWorth, roundEnd, type RoundEnd } from '../ending/roundEnd.js'
-import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
+import { endlessOperatingSet, nextOperatingCompany, type OperatingState } from './operatingSet.js'
 
 export const OperatingRoundIdentity = Type.Object(
     {
         number: Type.Integer({ minimum: 1 }),
-        roundNumber: Type.Integer({ minimum: 1 })
+        roundNumber: Type.Integer({ minimum: 1 }),
+        /** The round belongs to an endless set, its rounds going by their number alone (1880). */
+        endless: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )
@@ -32,6 +34,7 @@ export function operatingRoundSnapshot(
     return {
         number: set.number,
         roundNumber: set.roundNumber,
+        ...(endlessOperatingSet(set) ? { endless: true as const } : {}),
         complete: !nextOperatingCompany(state),
         playerNetWorth: playerNetWorth(state, rules),
         companyIds: state.companies

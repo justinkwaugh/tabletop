@@ -3,6 +3,7 @@ import { companyShareCount } from '../company/companyCharters.js'
 import { exceedsStockLimits, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import {
+    buyGoalMet,
     withIgnoredStops,
     type IgnorableStockInstructionStop,
     type StandingStockInstruction,
@@ -75,6 +76,12 @@ function familyPositionChange(
     const watches = (stop: IgnorableStockInstructionStop) =>
         !standing.instruction.ignoredStops?.includes(stop)
     if (exceedsStockLimits(state, owner, rules)) return { code: 'limits' }
+    const { instruction } = standing
+    // Buying keeps the target's presidency ahead of a rival buying alongside, until the goal is met.
+    const stillBuyingCompanyId =
+        instruction.kind === 'buy' && !buyGoalMet(state, instruction, standing.playerId)
+            ? instruction.companyId
+            : undefined
     for (const current of stockPositionSnapshot(state, standing.playerId, rules)) {
         const before = standing.snapshot.find((item) => item.companyId === current.companyId)
         if (!before) continue
@@ -102,6 +109,7 @@ function familyPositionChange(
                 (companyShareCount(state, rules.charters, current.companyId) ?? 0)
         if (
             watches('presidency-threatened') &&
+            companyId !== stillBuyingCompanyId &&
             presides &&
             !secure &&
             current.rivalShares > before.rivalShares

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { assert } from '@tabletop/common'
-import { companyCharters, createOrdinaryShareCertificates } from '@tabletop/18xx'
+import {
+    companyCharters,
+    createOrdinaryShareCertificates,
+    recordTurnPurchase
+} from '@tabletop/18xx'
 import {
     TestCompanyId,
     TestPlayerId,
@@ -314,6 +318,10 @@ describe('StockModule', () => {
                     applyAction: async (action) => {
                         applied.push(action)
                         state.stockRound.turn.bought = true
+                        recordTurnPurchase(state, rules.stockRules, {
+                            kind: 'share',
+                            companyId: TestCompanyId
+                        })
                         afterPurchase(state)
                         module.clear()
                     }

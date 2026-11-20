@@ -1,5 +1,12 @@
 <script lang="ts">
-    import { marketDarkLightness, marketSpaceColor, marketZone } from './marketColors.js'
+    import {
+        marketDarkLightness,
+        marketSolidInk,
+        marketSpaceColor,
+        marketZone,
+        marketZoneTitle
+    } from './marketColors.js'
+    import './marketZoneTint.css'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
     import type {
@@ -10,7 +17,8 @@
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
-    import type { MarketLedge, MarketZone } from '../session/titlePresentation.js'
+    import type { MarketLedge, MarketMarker, MarketZone } from '../session/titlePresentation.js'
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import {
         marketTokenLayout,
@@ -21,7 +29,8 @@
         type MarketCellDimensions,
         MarketTokenSize,
         MarketScenePadding,
-        MarketZoneBannerHeight
+        MarketZoneBannerHeight,
+        MarketTabHeight
     } from './marketTokenLayout.js'
 
     let {
@@ -33,6 +42,7 @@
         zones = [],
         ledge,
         cell = DefaultMarketCell,
+        markers = [],
         renderScale = 1
     }: {
         chart: StockMarketChart
@@ -43,9 +53,10 @@
         zones?: readonly MarketZone[]
         ledge?: MarketLedge
         cell?: MarketCellDimensions
+        /** The title's markers, each hung as a tab under its space. */
+        markers?: readonly MarketMarker[]
         renderScale?: number
     } = $props()
-    const SolidFillInk = '#253b35'
     // Below this width a three-digit price at full size reaches the space's right edge.
     const NarrowCellWidth = 34
     const geometry = $derived(marketGeometry(chart, cell, zones))
@@ -93,10 +104,6 @@
                 : []
         })
     )
-    // A solid fill keeps its colour in dark mode, so its text keeps the light-mode ink.
-    function solidInk(zone: MarketZone | undefined): string | undefined {
-        return zone?.fill?.kind === 'solid' ? (zone.fill.ink ?? SolidFillInk) : undefined
-    }
     let tokens = $derived(marketTokenLayout(chart, market, geometry))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
@@ -238,7 +245,7 @@
             style:height={`${MarketZoneBannerHeight * renderScale}px`}
         >
             {#each banners as banner (banner.color)}<div
-                    class="banner"
+                    class="banner market-zone-tint"
                     class:arrow={banner.shape === 'arrow'}
                     style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 1 + span}`}
                     style:--market-color={banner.zoneColor}
@@ -274,13 +281,14 @@
             {@const fillKind = zone?.fill?.kind}
             <div
                 class="space"
+                class:market-zone-tint={tinted || fillKind}
                 class:tinted={tinted && !fillKind}
                 class:solid={fillKind === 'solid'}
                 class:recessed={fillKind === 'recessed'}
                 role="button"
                 tabindex={crowded ? 0 : -1}
                 aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
-                title={zone ? `${zone.name}: ${zone.description}` : undefined}
+                title={zone ? marketZoneTitle(zone) : undefined}
                 data-market-space={space.id}
                 style:grid-column={`${columnTracks[space.column] + 1} / span ${span}`}
                 style:grid-row={space.row + 1}
@@ -288,7 +296,7 @@
                     ? marketSpaceColor(space.color, zone)
                     : undefined}
                 style:--market-lightness={marketDarkLightness[space.color]}
-                style:--price-ink={solidInk(zone)}
+                style:--price-ink={marketSolidInk(zone)}
                 onpointerenter={() => expandStack(space.id)}
                 onfocus={() => expandStack(space.id)}
                 onblur={() => (hoveredSpace = undefined)}
@@ -367,6 +375,26 @@
             </div>
         {/each}
     </div>
+    {#if markers.length}<div
+            class="marker-tabs"
+            style:width={`${geometry.width * renderScale}px`}
+            style:height={`${MarketTabHeight * renderScale}px`}
+        >
+            {#each markers as marker (marker.id)}
+                {@const space = chart.space(marker.spaceId)}
+                <span
+                    class="tab"
+                    role="img"
+                    aria-label={marker.name}
+                    title={marker.name}
+                    data-market-tab={marker.id}
+                    style:left={`${geometry.columnLefts[space.column] * renderScale}px`}
+                    style:width={`${cell.width * renderScale}px`}
+                    style:--tab-color={marker.color}
+                    style:--tab-ink={contrastingTextColor(marker.color)}>{marker.label}</span
+                >
+            {/each}
+        </div>{/if}
 </div>
 
 <style>
@@ -391,11 +419,7 @@
     .banner {
         --zone-ink: light-dark(
             oklch(from var(--market-color) 0.5 calc(c * 1.5) h),
-            color-mix(
-                in oklab,
-                oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
-                var(--rail-surface-raised, #2b3744)
-            )
+            var(--market-tint-dark)
         );
         display: flex;
         align-items: center;
@@ -455,6 +479,24 @@
         display: grid;
         width: max-content;
     }
+    .marker-tabs {
+        position: relative;
+    }
+    .tab {
+        position: absolute;
+        top: calc(-1px * var(--render-scale));
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0 0 calc(4px * var(--render-scale)) calc(4px * var(--render-scale));
+        background: var(--tab-color);
+        color: var(--tab-ink);
+        font-size: calc(9px * var(--render-scale));
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1;
+    }
     /* Explicit, so the scene stays interactive inside a pointer-transparent board panel. */
     .space {
         pointer-events: auto;
@@ -467,15 +509,8 @@
         font-size: calc(12px * var(--render-scale));
     }
     .space.tinted {
-        background: light-dark(
-            var(--market-color),
-            color-mix(
-                in oklab,
-                oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
-                var(--rail-surface-raised, #2b3744)
-            )
-        );
-        --price-ink: light-dark(#253b35, #ebe6dcd9);
+        background: var(--market-tint);
+        --price-ink: var(--market-tint-ink);
     }
     .space.solid,
     .space.recessed {
@@ -533,7 +568,7 @@
         bottom: calc(3px * var(--render-scale));
         display: flex;
         flex-direction: column;
-        color: light-dark(#6f6355, var(--rail-muted, #7f8e9e));
+        color: var(--price-ink);
         font-size: calc(9px * var(--render-scale));
         font-style: italic;
         line-height: 1.1;

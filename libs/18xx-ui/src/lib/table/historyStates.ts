@@ -1,5 +1,11 @@
-import type { EighteenXXState, EndingRules, GameEnding } from '@tabletop/18xx'
+import {
+    endlessOperatingSet,
+    type EighteenXXState,
+    type EndingRules,
+    type GameEnding
+} from '@tabletop/18xx'
 import { assert, RecordedHistory, type GameAction, type RecordedTransition } from '@tabletop/common'
+import { roundPosition } from './roundHeading.js'
 
 function selectHistoryState(
     state: Readonly<EighteenXXState>,
@@ -17,11 +23,8 @@ function selectHistoryState(
     return {
         cash,
         phase: state.phaseId,
-        stock: state.stockRound.number,
+        ...roundPosition(state),
         operating: state.stockRound.completed,
-        setUnderWay: !!state.operatingSet && !state.operatingSet.completed,
-        set: state.operatingSet?.number ?? 1,
-        round: state.operatingSet?.roundNumber ?? 1,
         order: state.operatingSet?.companyOrder ?? [],
         bankBroken: !!state.bank.broken,
         ending: ending ? { lastRound: lastOperatingRound(state, ending) } : undefined,
@@ -38,9 +41,12 @@ function lastOperatingRound(
     ending: GameEnding
 ): string | undefined {
     const set = state.operatingSet
-    return set && !set.completed && set.number === ending.finalOperatingSet
-        ? `${set.number}.${set.roundCount}`
-        : undefined
+    if (!set || set.completed || set.number !== ending.finalOperatingSet) return undefined
+    return endlessOperatingSet(set)
+        ? ending.finalOperatingRound === undefined
+            ? undefined
+            : `${ending.finalOperatingRound}`
+        : `${set.number}.${set.roundCount}`
 }
 export type HistoryStates = ReadonlyMap<
     string,

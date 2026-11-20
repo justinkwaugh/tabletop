@@ -6,7 +6,9 @@ import {
     PhaseName,
     USA_CITIES,
     USA_HEXES,
-    usaCity,
+    boardMap,
+    cityById,
+    type BonusId,
     type CityId,
     type HexId,
     type RailroadId
@@ -14,12 +16,14 @@ import {
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
 import { EMPTY_BOARD_OFFER, type BoardOffer, type OfferedHex } from '$lib/model/boardOffer.js'
-import { BOARD_EXTENTS, FITTED_DESKTOP_SCALE, hexCenter } from './boardGeometry.js'
+import { boardGeometry, hexCenter } from './boardGeometry.js'
 import { trackSlots } from './trackLayout.js'
 import {
     LARGEST_PICK_SCALE,
     buildChoice,
     chipModifiers,
+    fewerPlacements,
+    hexSteps,
     linkChoice,
     litHexLabel,
     litHexViews,
@@ -28,6 +32,9 @@ import {
     placeName,
     scrimPath
 } from './pickMarks.js'
+
+const USA = boardGeometry('map.usa')
+const { extents: BOARD_EXTENTS, fittedDesktopScale: FITTED_DESKTOP_SCALE } = USA
 
 const RED: RailroadId = 'railroad.red'
 const BLUE: RailroadId = 'railroad.blue'
@@ -46,15 +53,25 @@ const PHILADELPHIA: HexId = 'hex.usa.7-57'
 afterEach(() => disposeSessions())
 
 function hexOf(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 function offered(hexId: HexId, extension: RailroadId[], starts: RailroadId[] = []): OfferedHex {
     return {
         hexId,
         placements: [
-            ...extension.map((railroadId) => ({ railroadId, isStart: false, bonuses: [] })),
-            ...starts.map((railroadId) => ({ railroadId, isStart: true, bonuses: [] }))
+            ...extension.map((railroadId) => ({
+                railroadId,
+                isStart: false,
+                bonuses: [],
+                limitChange: 0
+            })),
+            ...starts.map((railroadId) => ({
+                railroadId,
+                isStart: true,
+                bonuses: [],
+                limitChange: 0
+            }))
         ],
         marks: [],
         startOnly: extension.length === 0
@@ -93,6 +110,18 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             )
             expect(placeName(hex.id)).not.toMatch(/row|column|\d/)
         }
+    })
+
+    it('measures a hex’s distance to a city over two cells to its nearer cell (R-8.5)', () => {
+        const germany = boardMap('map.de')
+        const berlin = germany.cities.find((city) => city.name === 'Berlin')
+        assertExists(berlin)
+        // Beside Berlin's second cell only.
+        for (const hexId of ['hex.de.21-17', 'hex.de.21-19', 'hex.de.20-20'] as const) {
+            expect(germany.adjacentHexIds(hexId)).toContain(berlin.hexId)
+            expect(hexSteps(germany, hexId, berlin.hexId), hexId).toBe(1)
+        }
+        expect(hexSteps(germany, 'hex.de.22-20', berlin.hexId)).toBe(2)
     })
 
     it('gives every hex a name no other hex has', () => {
@@ -136,6 +165,31 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             text: '−1',
             spoken: 'lowers the limit by 1'
         })
+    })
+
+    it('draws an expansion city’s bonus as a coin, as Chicago’s, and a connection bonus in gold, named (R-8)', () => {
+        const cityBonuses: readonly BonusId[] = [
+            'bonus.au.perth',
+            'bonus.au.brisbane',
+            'bonus.ca.toronto',
+            'bonus.fr.paris',
+            'bonus.de.berlin'
+        ]
+        for (const bonusId of cityBonuses) {
+            expect(markView({ kind: 'bonus', bonusId, amount: 10 })).toEqual({
+                tone: 'coin',
+                text: '$10',
+                spoken: '$10'
+            })
+        }
+        expect(markView({ kind: 'bonus', bonusId: 'bonus.ca.intercolonial', amount: 8 })).toEqual({
+            tone: 'gold',
+            text: '$8',
+            spoken: '$8 Intercolonial'
+        })
+        expect(
+            markView({ kind: 'bonus', bonusId: 'bonus.de.greater-germany', amount: 12 })
+        ).toEqual({ tone: 'gold', text: '$12', spoken: '$12 Greater Germany' })
     })
 
     it('lights the offer in map order, the Tab order, and rings the picked hex heavier', async () => {
@@ -264,19 +318,19 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
 
 describe('marks are sized for the view (Contract, Render ownership)', () => {
     it('keeps the fitted size when zoomed out, up to twice the board size', () => {
-        expect(pickScale(FITTED_DESKTOP_SCALE)).toBe(1)
-        expect(pickScale(1)).toBe(1)
-        expect(pickScale(FITTED_DESKTOP_SCALE / 2)).toBeCloseTo(2)
-        expect(pickScale(FITTED_DESKTOP_SCALE / 10)).toBe(LARGEST_PICK_SCALE)
+        expect(pickScale(USA, FITTED_DESKTOP_SCALE)).toBe(1)
+        expect(pickScale(USA, 1)).toBe(1)
+        expect(pickScale(USA, FITTED_DESKTOP_SCALE / 2)).toBeCloseTo(2)
+        expect(pickScale(USA, FITTED_DESKTOP_SCALE / 10)).toBe(LARGEST_PICK_SCALE)
     })
 })
 
 describe('the scrim (Contract, Coexistence and precedence)', () => {
     it('covers the land only, never the sea, with a hole per lit hex', () => {
-        const land = scrimPath([])
+        const land = scrimPath(USA, [])
         const { width, height } = BOARD_EXTENTS
         expect(land).not.toContain(`h${width}v${height}`)
-        const path = scrimPath([NEW_YORK, PHILADELPHIA])
+        const path = scrimPath(USA, [NEW_YORK, PHILADELPHIA])
         expect(path.startsWith(land)).toBe(true)
         expect(path.slice(land.length).match(/Z/g)).toHaveLength(2)
     })
@@ -285,18 +339,25 @@ describe('the scrim (Contract, Coexistence and precedence)', () => {
 describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     const fiveDollarCity = USA_CITIES.find((city) => city.bonus === FIVE_DOLLAR_BONUS.id)
     assertExists(fiveDollarCity)
-    const blackStart = { railroadId: BLACK, isStart: true, bonuses: [], supplyLeft: 6 }
+    const blackStart = {
+        railroadId: BLACK,
+        isStart: true,
+        bonuses: [],
+        limitChange: 0,
+        supplyLeft: 6
+    }
     const redPays = {
         railroadId: RED,
         isStart: false,
         bonuses: [{ bonusId: FIVE_DOLLAR_BONUS.id, amount: 5 }],
+        limitChange: 0,
         supplyLeft: 3
     }
 
     it('names the popup by its place, and each button by the whole choice', () => {
         const choice = buildChoice(
             {},
-            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart], lowersLimit: false }
+            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart] }
         )
         expect(choice.title).toBe(`${fiveDollarCity.name}: which railroad?`)
         expect(choice.chips.map((chip) => chip.label)).toEqual([
@@ -308,7 +369,7 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     it('gives a button a bonus pill only when its placement earns one', () => {
         const choice = buildChoice(
             {},
-            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart], lowersLimit: false }
+            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart] }
         )
         expect(choice.chips.map((chip) => chip.pills)).toEqual([
             [{ tone: 'five', text: '+$5' }],
@@ -317,12 +378,12 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     })
 
     it('shows no pill for a start that uses up the $5 (R-4.3.2)', () => {
-        const popup = { hexId: fiveDollarCity.hexId, chips: [blackStart], lowersLimit: false }
+        const popup = { hexId: fiveDollarCity.hexId, chips: [blackStart] }
         expect(chipModifiers({}, popup, blackStart)).toEqual({
             bonuses: [],
             transcontinental: undefined,
             startUsesBonus: 5,
-            mountain: false
+            limitChange: 0
         })
         expect(buildChoice({}, popup).chips[0].pills).toEqual([])
         // Once a railroad stands there the $5 is gone, and the start says nothing of it.
@@ -335,12 +396,12 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
             railroadId: PURPLE,
             isStart: false,
             bonuses: [{ bonusId: 'bonus.usa.transcontinental' as const, amount: 12 }],
+            limitChange: 0,
             supplyLeft: 22
         }
         const popup = {
             hexId: hexOf(DALLAS),
-            chips: [purpleCompletes, { ...blackStart, isStart: false, supplyLeft: 2 }],
-            lowersLimit: false
+            chips: [purpleCompletes, { ...blackStart, isStart: false, supplyLeft: 2 }]
         }
         const choice = buildChoice({}, popup)
         expect(choice.chips[0].label).toBe(
@@ -350,22 +411,60 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
         expect(choice.chips[1].pills).toEqual([])
     })
 
-    it('marks every button when the hex lowers the turn’s limit (R-3.2.4)', () => {
+    it('marks every button whose placement lowers the turn’s limit (R-3.2.4)', () => {
         const mountain = USA_HEXES.find((hex) => hex.terrain === 'mountain')
         assertExists(mountain)
-        const orange = { railroadId: ORANGE, isStart: false, bonuses: [], supplyLeft: 8 }
-        const yellow = { railroadId: YELLOW, isStart: false, bonuses: [], supplyLeft: 17 }
-        const lowers = buildChoice(
-            {},
-            { hexId: mountain.id, chips: [orange, yellow], lowersLimit: true }
-        )
+        const orange = {
+            railroadId: ORANGE,
+            isStart: false,
+            bonuses: [],
+            limitChange: -1,
+            supplyLeft: 8
+        }
+        const yellow = {
+            railroadId: YELLOW,
+            isStart: false,
+            bonuses: [],
+            limitChange: -1,
+            supplyLeft: 17
+        }
+        const lowers = buildChoice({}, { hexId: mountain.id, chips: [orange, yellow] })
         expect(lowers.chips.map((chip) => chip.mountain)).toEqual([true, true])
         expect(lowers.chips.map((chip) => chip.label)).toEqual([
             'Place Orange, 8 left, mountain: one fewer placement this turn',
             'Place Yellow, 17 left, mountain: one fewer placement this turn'
         ])
-        const already = buildChoice({}, { hexId: mountain.id, chips: [orange], lowersLimit: false })
+        const already = buildChoice(
+            {},
+            { hexId: mountain.id, chips: [{ ...orange, limitChange: 0 }] }
+        )
         expect(already.chips[0]).toMatchObject({ mountain: false, label: 'Place Orange, 8 left' })
+    })
+
+    it('says nothing of the limit for a placement that changes it by none, as Orange on a German mountain (R-8.5)', () => {
+        const mountain = boardMap('map.de').hexes.find((hex) => hex.terrain === 'mountain')
+        assertExists(mountain)
+        const orange = {
+            railroadId: ORANGE,
+            isStart: false,
+            bonuses: [],
+            limitChange: 0,
+            supplyLeft: 8
+        }
+        const red = { railroadId: RED, isStart: false, bonuses: [], limitChange: -1, supplyLeft: 9 }
+        const choice = buildChoice({}, { hexId: mountain.id, chips: [orange, red] })
+        expect(choice.chips.map((chip) => chip.mountain)).toEqual([false, true])
+        expect(choice.chips[0]?.label).toBe('Place Orange, 8 left')
+        expect(choice.chips[1]?.label).toBe(
+            'Place Red, 9 left, mountain: one fewer placement this turn'
+        )
+    })
+
+    it('counts the placements a mountain takes from the turn by the map’s cost, and none for no change (R-3.2.4, R-8.2)', () => {
+        expect(fewerPlacements(-1)).toBe('one fewer placement')
+        expect(fewerPlacements(-2)).toBe('two fewer placements')
+        expect(fewerPlacements(0)).toBeUndefined()
+        expect(fewerPlacements(-0)).toBeUndefined()
     })
 
     it("offers each railroad of a journey's link with what the journey would pay the seat", () => {
@@ -385,5 +484,76 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
             [{ tone: 'coin', text: '+$4' }],
             []
         ])
+    })
+})
+
+describe('a long-distance placement ends the turn (R-8.2)', () => {
+    const australia = boardMap('map.au')
+    const longDistanceHexes = australia.hexes.filter((hex) => hex.terrain === 'long-distance')
+    const perth = australia.city('city.au.perth')
+    const brisbane = australia.city('city.au.brisbane')
+    const adelaide = australia.cities.find((city) => city.name === 'Adelaide')
+    assertExists(adelaide)
+
+    it('ends a lit long-distance hex’s, Perth’s and Brisbane’s name with ", ends the turn"', () => {
+        expect(longDistanceHexes).toHaveLength(4)
+        for (const hex of longDistanceHexes) {
+            const name = litHexLabel(offered(hex.id, [ORANGE]))
+            expect(name, hex.id).toBe(`${placeName(hex.id)}: place Orange, ends the turn`)
+        }
+        const perthName = litHexLabel({
+            ...offered(perth.hexId, [ORANGE]),
+            marks: [{ kind: 'bonus', bonusId: 'bonus.au.perth', amount: 50 }]
+        })
+        expect(perthName).toBe('Perth: place Orange, $50, ends the turn')
+        expect(litHexLabel(offered(brisbane.hexId, [PURPLE]))).toBe(
+            'Brisbane: place Purple, ends the turn'
+        )
+        // Any other hex says nothing of the turn, nor does a journey's link into Perth.
+        expect(litHexLabel(offered(adelaide.hexId, [ORANGE]))).toBe('Adelaide: place Orange')
+        expect(
+            litHexLabel(offered(perth.hexId, [ORANGE]), {
+                kind: 'journey-extend',
+                startHexId: adelaide.hexId,
+                choosingHexId: undefined
+            })
+        ).toBe('Perth: link by Orange')
+    })
+
+    it('ends each popup button’s name in a long-distance hex, Perth or Brisbane with ", ends the turn"', () => {
+        const orange = {
+            railroadId: ORANGE,
+            isStart: false,
+            bonuses: [],
+            limitChange: 0,
+            supplyLeft: 8
+        }
+        const yellow = { ...orange, railroadId: YELLOW, supplyLeft: 17 }
+        const [hex] = longDistanceHexes
+        assertExists(hex)
+        expect(
+            buildChoice({}, { hexId: hex.id, chips: [orange, yellow] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Orange, 8 left, ends the turn', 'Place Yellow, 17 left, ends the turn'])
+        const paysPerth = {
+            ...orange,
+            bonuses: [{ bonusId: 'bonus.au.perth' as const, amount: 50 }]
+        }
+        expect(
+            buildChoice({}, { hexId: perth.hexId, chips: [paysPerth] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Orange, 8 left, pays $50, ends the turn'])
+        expect(
+            buildChoice({}, { hexId: brisbane.hexId, chips: [yellow] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Yellow, 17 left, ends the turn'])
+        expect(
+            buildChoice({}, { hexId: adelaide.hexId, chips: [orange] }).chips.map(
+                (chip) => chip.label
+            )
+        ).toEqual(['Place Orange, 8 left'])
     })
 })

@@ -21,7 +21,7 @@
             <button
                 class="company-choice"
                 disabled={!auction.canOpen}
-                aria-label={`Auction ${session.companyName(company.id)}`}
+                aria-label={`Auction ${session.actionCompanyName(company.id)}`}
                 aria-pressed={companyId === company.id}
                 data-auction-company={company.id}
                 onclick={() => auction.toggleCompany(company.id)}
@@ -33,7 +33,7 @@
     {#if companyId && terms}
         <div class="turn">
             <p>
-                <strong>{session.companyName(companyId)}</strong>
+                <strong>{session.actionCompanyName(companyId)}</strong>
                 {#if home}· Home <PlaceLink locationId={home.locationId} />{:else}· Choose a
                     highlighted city on the map for its home{/if}
             </p>

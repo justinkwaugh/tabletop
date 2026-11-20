@@ -1,7 +1,7 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import type { PieceColor } from '@tabletop/lyngk'
 import { piecesForColors } from '$lib/board/pieceStyle.js'
-import type { HistoryEntry, MoveEntry } from './historyEntries.js'
+import type { MoveEntry, PlayerEntry } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -18,7 +18,7 @@ const stack = (colors: PieceColor[]): Segment => ({
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
 // The brief form keeps the action banner to one line; the history panel uses the full one.
-export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
+export function entrySegments(entry: PlayerEntry, brief = false): Segment[] {
     const claim = entry.claimed === undefined ? [] : [text(' claimed '), stack([entry.claimed])]
     if (entry.kind === 'claim') {
         return claim

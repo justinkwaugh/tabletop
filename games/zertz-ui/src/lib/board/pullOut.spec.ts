@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { coordinatesToNumber } from '@tabletop/common'
+import { ZertzSetup } from '@tabletop/zertz'
 import { RING_SPACING, VIEW } from './geometry.js'
 import { pullOuts } from './pullOut.js'
 
@@ -37,6 +38,21 @@ describe('pullOuts', () => {
         )
         expect(pull!.x).toBeCloseTo(0)
         expect(pull!.y).toBeGreaterThan(0)
+    })
+
+    it('slides a ring with two open sides out between them, clear of its neighbours', () => {
+        // C2 with only its upper and lower right sides open, as in the report.
+        const ring = { q: -1, r: 2 }
+        const neighbours = [
+            { q: -1, r: 1 },
+            { q: -2, r: 2 },
+            { q: -2, r: 3 },
+            { q: -1, r: 3 }
+        ]
+        const layout = VIEW.frame(ZertzSetup.Standard).positions
+        const pull = pullOuts(VIEW, [ring], neighbours, layout).get(coordinatesToNumber(ring))
+        expect(pull!.x).toBeGreaterThan(0)
+        expect(pull!.y).toBeCloseTo(0)
     })
 
     it('moves rings removed together as one', () => {

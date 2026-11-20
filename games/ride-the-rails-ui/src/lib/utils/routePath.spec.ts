@@ -8,7 +8,7 @@ import {
     isEastCoastHex,
     isWestCoastCity,
     transcontinentalLine,
-    usaCity,
+    cityById,
     type HexId,
     type RailroadId,
     type Track
@@ -20,8 +20,8 @@ import { trackSlot } from './trackLayout.js'
 const RED: RailroadId = 'railroad.red'
 const PURPLE: RailroadId = 'railroad.purple'
 
-const SEATTLE = usaCity('city.usa.seattle').hexId
-const NEW_YORK = usaCity('city.usa.new-york').hexId
+const SEATTLE = cityById('city.usa.seattle').hexId
+const NEW_YORK = cityById('city.usa.new-york').hexId
 
 // The shortest walk across the map's hexes, by breadth-first search.
 function shortestPath(from: HexId, to: HexId): HexId[] {

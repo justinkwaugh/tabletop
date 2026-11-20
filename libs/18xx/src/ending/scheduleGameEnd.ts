@@ -48,6 +48,7 @@ export class HydratedScheduleGameEnd
             ending?.finalOperatingRounds !== undefined &&
             set &&
             !set.completed &&
+            !set.endless &&
             set.number === ending.finalOperatingSet
         )
             set.roundCount = ending.finalOperatingRounds

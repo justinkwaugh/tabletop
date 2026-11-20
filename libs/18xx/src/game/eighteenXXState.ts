@@ -53,6 +53,7 @@ import { StationStep, validateStationStep } from '../stations/stationPlacement.j
 import { CompanyAuctionFields } from '../stock/companyAuction.js'
 import { StockMarket } from '../stock/stockMarket.js'
 import { StockRound, validateStockRound } from '../stock/stockRound.js'
+import type { StockRoundInterruptionFields } from '../operating/stockRoundInterruption.js'
 import { StockTurnPurchaseFields } from '../stock/turnPurchases.js'
 import { TrainFields, validateTrainPurchaseStep } from '../trains/train.js'
 
@@ -122,7 +123,8 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof AccessRightFields &
     typeof CorporateFinanceFields &
     typeof CashCrisisFields &
-    typeof TurnMarkFields & {
+    typeof TurnMarkFields &
+    typeof StockRoundInterruptionFields & {
         bidBoxes: Type.TOptional<typeof BidBoxes>
         trainlessMajors: Type.TOptional<typeof TrainlessMajors>
         finalPhaseAt: Type.TOptional<typeof FinalPhaseAt>

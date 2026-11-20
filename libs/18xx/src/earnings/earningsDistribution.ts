@@ -42,7 +42,9 @@ export const EarningsDetails = Type.Object(
         /** The part of the revenue decided apart from the rest, and what was chosen for it. */
         separate: Type.Optional(SeparateEarnings),
         /** What the run's revenue gave up before it was distributed, such as 1856's unpaid interest. */
-        deducted: Type.Optional(Type.Integer({ minimum: 1 }))
+        deducted: Type.Optional(Type.Integer({ minimum: 1 })),
+        /** What the company added to the run's revenue before it was distributed. */
+        added: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -56,6 +58,11 @@ export type DistributionSummary = Pick<EarningsDetails, 'choice' | 'revenue' | '
 }
 export interface EarningsRules {
     choices(state: DistributionState, companyId: string): EarningsChoice[]
+    /**
+     * The choice a company takes with no decision from its owner, one of its ``choices``, such
+     * as 1880's foreign investors' withholding (§VII); undefined where its owner decides.
+     */
+    automaticChoice?(state: DistributionState, companyId: string): EarningsChoice | undefined
     shareCount(state: DistributionState, companyId: string): number
     entitlements(state: DistributionState, companyId: string): DividendEntitlement[]
     /** What the company keeps of the revenue; ``separate`` is the part of it decided apart. */
@@ -93,6 +100,11 @@ export interface EarningsRules {
      */
     revenueDeduction?(state: DistributionState, companyId: string): number
     /**
+     * What the company adds to the run's revenue before it is distributed, as 18RoyalGorge's
+     * shipped gold adds $50 (Shipping Gold); none unless given.
+     */
+    revenueAddition?(state: DistributionState, companyId: string): number
+    /**
      * What the company's treasury may add to its revenue to pay it all out, offered as the
      * ``top-up`` choice; undefined or zero offers none (1862 §7.8.6).
      */
@@ -129,10 +141,15 @@ export class EarningsDistribution {
         assert(choices.includes(choice), 'A receiver takes one of its earnings choices')
         return [choice]
     }
-    /** The choice that needs no decision: a receiver's, or withholding nothing. */
+    /** The choice that needs no decision: a receiver's, the title's, or withholding nothing. */
     automaticChoice(companyId: string): EarningsChoice | undefined {
         const choices = this.choices(companyId)
         if (this.receivership && inReceivership(this.state, companyId)) return choices[0]
+        const titleChoice = this.rules.automaticChoice?.(this.state, companyId)
+        if (titleChoice) {
+            assert(choices.includes(titleChoice), 'An automatic choice is one of the choices')
+            return titleChoice
+        }
         return this.state.routeStep?.result?.revenue === 0 &&
             this.state.routeStep.result.routes.length === 0 &&
             choices.includes('withhold')
@@ -181,7 +198,9 @@ export class EarningsDistribution {
             result.revenue,
             this.rules.revenueDeduction?.(this.state, companyId) ?? 0
         )
-        const revenue = result.revenue - deducted + topUp,
+        const added = this.rules.revenueAddition?.(this.state, companyId) ?? 0
+        assert(Number.isSafeInteger(added) && added >= 0, 'A revenue addition is a whole amount')
+        const revenue = result.revenue - deducted + added + topUp,
             retained = this.rules.retainedRevenue(this.state, companyId, choice, revenue, separate)
         const count = this.rules.shareCount(this.state, companyId)
         assert(count > 0 && Number.isInteger(count), 'Dividends require a positive share count')
@@ -234,7 +253,8 @@ export class EarningsDistribution {
                 ...(effect.move ? { marketMove: effect.move } : {}),
                 ...(topUp ? { topUp } : {}),
                 ...(separate ? { separate } : {}),
-                ...(deducted ? { deducted } : {})
+                ...(deducted ? { deducted } : {}),
+                ...(added ? { added } : {})
             }
         }
     }

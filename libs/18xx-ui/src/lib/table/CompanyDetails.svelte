@@ -3,8 +3,9 @@
     import { NationalCompanyKind, privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
-        companySharePrice,
+        companyMarketSpace,
         DefaultCompanyPricePresentation,
+        shownParPrice,
         type CompanyPricePresentation
     } from './companyPresentation.js'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
@@ -42,6 +43,8 @@
     import RemainingStationTokens from './RemainingStationTokens.svelte'
     import { sessionStationTokens } from './stationTokens.js'
     import { shareSourceName } from '../stock/purchaseSources.js'
+    import { marketValueMark } from '../stock/marketColors.js'
+    import '../stock/marketZoneTint.css'
     let {
         session,
         onPreviewMap,
@@ -105,12 +108,18 @@
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
     )
     const numberedShares = $derived(ownership.some((row) => row.certificateNumbers.length))
-    const marketPrice = $derived(
-        companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
+    const marketSpace = $derived(
+        companyMarketSpace(session.stockMarketChart, gameState.stockMarket, company.id)
     )
+    const parPrice = $derived(shownParPrice(pricePresentation, gameState, company))
+    const marketPrice = $derived(marketSpace?.price)
+    const valueMark = $derived(marketValueMark(marketSpace, session.presentation.marketZones))
     const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const marks = $derived(session.presentation.companyMarks?.(gameState, company.id) ?? [])
+    const tokenBadges = $derived(
+        session.presentation.companyTokenBadges?.(gameState, company.id) ?? []
+    )
     const compactMarks = $derived(marks.filter((mark) => mark.compact))
     const rosterMarks = $derived(marks.filter((mark) => !mark.compact))
     const stationCosts = $derived(!session.presentation.hideStationCosts)
@@ -130,12 +139,17 @@
     const investmentCompanies = $derived([
         ...new Set(investments.map((certificate) => certificate.companyId))
     ])
-    const privates = $derived(
-        session.privates.companies.filter((item) => {
+    const companyPowers = $derived(session.presentation.companyPowers)
+    const privates = $derived.by(() => {
+        if (companyPowers) {
+            const ids = companyPowers.privateIds(gameState, company.id)
+            return session.privates.companies.filter((item) => ids.includes(item.id))
+        }
+        return session.privates.companies.filter((item) => {
             const privateCompanyOwner = privateOwner(gameState, item.id)
             return privateCompanyOwner && sameOwner(privateCompanyOwner, owner)
         })
-    )
+    })
     const personalPrivates = $derived(
         session.privates.companies.flatMap((item) => {
             const privateCompanyOwner = privateOwner(gameState, item.id)
@@ -325,9 +339,9 @@
                                     company.id,
                                     entry.poolId
                                 )
-                                    ? 'Holds the president’s certificate'
+                                    ? `Holds the ${session.terms.presidentWord}’s certificate`
                                     : company.president && sameOwner(entry.owner, company.president)
-                                      ? 'President'
+                                      ? session.terms.president
                                       : undefined}
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
@@ -353,6 +367,8 @@
                                                 session
                                             )}
                                             president={!!presidency}
+                                            label={session.presidentMark(company.id)}
+                                            title={session.terms.president}
                                         />{@render multiShareBadge(entry)}</th
                                     >
                                     {#if numberedShares}<td
@@ -378,7 +394,7 @@
             <section aria-label="Company assets">
                 <section aria-label="Private companies and powers">
                     {#if !vertical || privates.length}
-                        <h3>Privates & powers</h3>
+                        <h3>{companyPowers?.heading ?? 'Privates & powers'}</h3>
                         {#each privates as item (item.id)}
                             {@render privateCard(item)}
                         {:else}<p class="empty">None</p>{/each}
@@ -398,9 +414,12 @@
                 </section>
                 {#if investmentCompanies.length}
                     <h3 class="section-heading">Investments</h3>
-                    {#each investmentCompanies as id (id)}<p class="investment">
-                            {session.companyName(id)}<strong
-                                >{sharesOwned(gameState, id, owner)} shares</strong
+                    {#each investmentCompanies as id (id)}
+                        {@const shares = sharesOwned(gameState, id, owner)}
+                        <p class="investment" title={session.companyFullName(id)}>
+                            {session.companyInitials(id)}<strong
+                                >{shares}
+                                {shares === 1 ? 'share' : 'shares'}</strong
                             >
                         </p>{/each}
                 {/if}
@@ -423,7 +442,21 @@
 {/if}
 
 {#snippet token()}
-    <CompanyToken appearance={session.mapView.stations[company.id]} size={vertical ? 32 : 36} />
+    {#if tokenBadges.length}<span class="badged-token"
+            ><CompanyToken
+                appearance={session.mapView.stations[company.id]}
+                size={vertical ? 32 : 36}
+            />{#each tokenBadges as badge, index (badge.description)}<img
+                    class="token-badge"
+                    style:right={`${index * 12 - 4}px`}
+                    src={badge.imageUrl}
+                    alt={badge.description}
+                    title={badge.description}
+                />{/each}</span
+        >{:else}<CompanyToken
+            appearance={session.mapView.stations[company.id]}
+            size={vertical ? 32 : 36}
+        />{/if}
 {/snippet}
 
 {#snippet name()}
@@ -448,8 +481,8 @@
 {#snippet prices()}
     <div class="prices">
         {@render cashValue()}
-        {#if pricePresentation.showPar && company.parPrice !== undefined}<div>
-                <span>Par</span><strong>{company.parPrice}</strong>
+        {#if pricePresentation.showPar && parPrice !== undefined}<div>
+                <span>Par</span><strong>{parPrice}</strong>
             </div>{/if}
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
@@ -482,7 +515,12 @@
 {/snippet}
 
 {#snippet marketValue()}
-    {#if marketPrice !== undefined}<div class="market-value">
+    {#if marketPrice !== undefined}<div
+            class="market-value"
+            class:market-zone-tint={valueMark}
+            style={valueMark?.style}
+            title={valueMark?.title}
+        >
             <span>{pricePresentation.label}</span><strong>{marketPrice}</strong>
         </div>{/if}
 {/snippet}
@@ -519,14 +557,19 @@
                                 ? power.label
                                 : undefined}
                         /></span
-                    >{/each}
+                    >{/each}{#if !item.closed}{@const held = session.presentation.privateHoldings?.(
+                        gameState,
+                        item.id
+                    )}{#if held}<small class="private-holdings">{held}</small>{/if}{/if}
             </div>
             <span
                 >{purchasePrice ??
                     (item.closed
                         ? 'Closed'
-                        : (session.presentation.privateStatus?.(gameState, item.id) ??
-                          `${money(item.revenue)} / OR`))}</span
+                        : companyPowers
+                          ? ''
+                          : (session.presentation.privateStatus?.(gameState, item.id) ??
+                            `${money(item.revenue)} / OR`))}</span
             >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
@@ -538,6 +581,13 @@
     .private-power {
         margin-left: 6px;
         white-space: nowrap;
+    }
+    .private-holdings {
+        display: block;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 14px;
     }
     .company-detail.unavailable {
         background: var(--rail-surface, #f1f1ef);
@@ -582,6 +632,7 @@
         display: contents;
     }
     .trains-under-stations .identity > :global(svg),
+    .trains-under-stations .identity > .badged-token,
     .trains-under-stations .token-column {
         grid-row: 1 / span 3;
     }
@@ -605,6 +656,20 @@
     }
     .identity > :global(svg) {
         flex-shrink: 0;
+    }
+    .badged-token {
+        position: relative;
+        display: inline-flex;
+        flex-shrink: 0;
+    }
+    .badged-token > :global(svg) {
+        display: block;
+    }
+    .token-badge {
+        position: absolute;
+        bottom: -4px;
+        width: 17px;
+        height: 17px;
     }
     .vertical h2 {
         white-space: normal;
@@ -672,6 +737,14 @@
     }
     .financial-summary .prices .market-value {
         background: #1b3d4580;
+    }
+    .financial-summary .prices .market-value.market-zone-tint {
+        background: var(--market-tint);
+        color: var(--market-tint-ink);
+    }
+    .financial-summary .prices .market-value.market-zone-tint span {
+        color: inherit;
+        opacity: 0.75;
     }
     .financial-summary .prices .cash-value {
         background: var(--rail-surface-inset, #1b232d);

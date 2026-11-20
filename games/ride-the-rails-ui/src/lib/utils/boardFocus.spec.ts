@@ -27,16 +27,15 @@ import {
 } from './boardFocus.js'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
 import { TABLE_FIXTURES, tableState } from '$lib/testing/tableFixtures.js'
-import {
-    BOARD_EXTENTS,
-    BOARD_HEIGHT,
-    BOARD_WIDTH,
-    DESKTOP_BOARD_VIEW,
-    HEX_WIDTH,
-    MAP_EXTENTS,
-    hexBox,
-    hexCenter
-} from './boardGeometry.js'
+import { DESKTOP_BOARD_VIEW, HEX_WIDTH, boardGeometry, hexBox, hexCenter } from './boardGeometry.js'
+
+const USA = boardGeometry('map.usa')
+const {
+    extents: BOARD_EXTENTS,
+    height: BOARD_HEIGHT,
+    width: BOARD_WIDTH,
+    mapExtents: MAP_EXTENTS
+} = USA
 
 // A 375 × 812 phone: the game column is 90% of the width less its padding, and the board view is
 // what the header, the action panel and the railroad strip leave.
@@ -61,20 +60,20 @@ function third(index: number) {
 
 describe('the phone board (contract, Phone layout)', () => {
     it('rests a phone view on the middle third rather than the whole map', () => {
-        expect(restsAtCover(PHONE_VIEW)).toBe(true)
-        const request = restingRequest(PHONE_VIEW)
-        expect(request.maxScale).toBeCloseTo(restingScale(PHONE_VIEW))
+        expect(restsAtCover(USA, PHONE_VIEW)).toBe(true)
+        const request = restingRequest(USA, PHONE_VIEW)
+        expect(request.maxScale).toBeCloseTo(restingScale(USA, PHONE_VIEW))
         expect(centreOf(request.rect).x).toBeCloseTo(centreOf(third(1)).x)
         expect(centreOf(request.rect).y).toBeCloseTo(BOARD_HEIGHT / 2)
     })
 
     it('keeps the whole map where a desktop view fits it', () => {
-        expect(restsAtCover(DESKTOP_VIEW)).toBe(false)
+        expect(restsAtCover(USA, DESKTOP_VIEW)).toBe(false)
     })
 
     it('rests a 390 × 844 phone’s 280 × 566 view at 37 px a hex, panning both ways', () => {
         const view = { width: 280, height: 566 }
-        const scale = restingScale(view)
+        const scale = restingScale(USA, view)
         expect(hexWidthOnScreen(scale)).toBeCloseTo(37)
         // Taller than the view as well as wider, so it pans north–south as well as east–west.
         expect(BOARD_HEIGHT * scale).toBeGreaterThan(view.height)
@@ -88,7 +87,7 @@ describe('the phone board (contract, Phone layout)', () => {
 
     it('draws every lit target, the whole hex, at least 37 px wide where a phone rests', () => {
         for (const view of [PHONE_VIEW, SHORT_PHONE_VIEW]) {
-            const request = restingRequest(view)
+            const request = restingRequest(USA, view)
             expect(hexWidthOnScreen(request.maxScale)).toBeGreaterThanOrEqual(MIN_RESTING_HEX_PX)
         }
     })
@@ -99,12 +98,12 @@ describe('the phone board (contract, Phone layout)', () => {
 
     it('fills the view’s height when the middle third rests in a tall view', () => {
         const tall = { width: 375, height: 1400 }
-        expect(middleThirdScale(tall) * BOARD_HEIGHT).toBeGreaterThanOrEqual(tall.height)
+        expect(middleThirdScale(USA, tall) * BOARD_HEIGHT).toBeGreaterThanOrEqual(tall.height)
     })
 
     it('fits a third of the map when it is larger than a resting hex', () => {
         const wide = { width: 1600, height: 1200 }
-        expect(middleThirdScale(wide)).toBeCloseTo(
+        expect(middleThirdScale(USA, wide)).toBeCloseTo(
             Math.min(wide.width / (MAP_EXTENTS.width / 3), wide.height / BOARD_HEIGHT)
         )
     })
@@ -114,7 +113,7 @@ describe('the part of the board a view shows', () => {
     it('reads the view through where the board is drawn', () => {
         const board = { left: -500, top: 100, width: BOARD_WIDTH / 2, height: BOARD_HEIGHT / 2 }
         const view = { left: 10, top: 120, width: 330, height: 500 }
-        expect(shownBoardRect(board, view)).toEqual({
+        expect(shownBoardRect(USA, board, view)).toEqual({
             x: 1020,
             y: 40,
             width: 660,
@@ -148,7 +147,7 @@ function shows(view: Box, hexId: HexId): boolean {
 
 describe('bringing an offer lit out of view into it (contract, Phone layout)', () => {
     // The middle third where a phone rests, at its resting scale.
-    const resting = viewAround(centreOf(third(1)), middleThirdScale(PHONE_VIEW))
+    const resting = viewAround(centreOf(third(1)), middleThirdScale(USA, PHONE_VIEW))
     const eastCoast = USA_CITIES.filter(isEastCoastCity).map((city) => city.hexId)
 
     it('leaves the view alone with nothing lit', () => {
@@ -296,11 +295,15 @@ describe('the building zoom’s fit (contract, Build)', () => {
     const middle = USA_HEXES.map((hex) => hex.id)
         .filter((hexId) => shows(viewAround(centreOf(MAP_EXTENTS), 1), hexId))
         .slice(0, 3)
-    const restingPhone = sizedViewAround(centreOf(third(1)), PHONE_VIEW, restingScale(PHONE_VIEW))
+    const restingPhone = sizedViewAround(
+        centreOf(third(1)),
+        PHONE_VIEW,
+        restingScale(USA, PHONE_VIEW)
+    )
 
     it('rests at the whole map where a view fits it, and on the middle third where it does not', () => {
-        expect(restingScale(DESKTOP_VIEW)).toBeCloseTo(Math.min(1, containScale(DESKTOP_VIEW)))
-        expect(restingScale(PHONE_VIEW)).toBeCloseTo(middleThirdScale(PHONE_VIEW))
+        expect(restingScale(USA, DESKTOP_VIEW)).toBeCloseTo(Math.min(1, containScale(DESKTOP_VIEW)))
+        expect(restingScale(USA, PHONE_VIEW)).toBeCloseTo(middleThirdScale(USA, PHONE_VIEW))
     })
 
     it('fits the lit hexes’ box, a hex width wider on every side', () => {
@@ -310,7 +313,7 @@ describe('the building zoom’s fit (contract, Build)', () => {
         const right = Math.max(...boxes.map((box) => box.x + box.width))
         const top = Math.min(...boxes.map((box) => box.y))
         const bottom = Math.max(...boxes.map((box) => box.y + box.height))
-        const request = buildZoomRequest(middle, DESKTOP_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, middle, DESKTOP_VIEW, BOARD_EXTENTS)
         assertExists(request)
         expect(request.rect.x).toBeCloseTo(left - HEX_WIDTH)
         expect(request.rect.y).toBeCloseTo(top - HEX_WIDTH)
@@ -319,7 +322,7 @@ describe('the building zoom’s fit (contract, Build)', () => {
     })
 
     it('keeps the padded box inside the board at its edge', () => {
-        const request = buildZoomRequest(eastCoast, DESKTOP_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, eastCoast, DESKTOP_VIEW, BOARD_EXTENTS)
         assertExists(request)
         expect(request.rect.x + request.rect.width).toBeLessThanOrEqual(BOARD_WIDTH)
         expect(request.rect.y).toBeGreaterThanOrEqual(0)
@@ -327,12 +330,12 @@ describe('the building zoom’s fit (contract, Build)', () => {
     })
 
     it('fits nothing with nothing lit', () => {
-        expect(buildZoomRequest([], DESKTOP_VIEW, BOARD_EXTENTS)).toBeUndefined()
+        expect(buildZoomRequest(USA, [], DESKTOP_VIEW, BOARD_EXTENTS)).toBeUndefined()
     })
 
     it('draws a single lit hex 64 px wide at most, and never past the board’s largest zoom', () => {
         for (const view of [DESKTOP_VIEW, PHONE_VIEW, SHORT_PHONE_VIEW]) {
-            const request = buildZoomRequest([middle[0]], view, BOARD_EXTENTS)
+            const request = buildZoomRequest(USA, [middle[0]], view, BOARD_EXTENTS)
             assertExists(request)
             const scale = shownScale(request, view)
             expect(hexWidthOnScreen(scale)).toBeCloseTo(BUILD_ZOOM_MAX_HEX_PX)
@@ -341,32 +344,32 @@ describe('the building zoom’s fit (contract, Build)', () => {
     })
 
     it('zooms the East Coast in from the whole map on desktop', () => {
-        const request = buildZoomRequest(eastCoast, DESKTOP_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, eastCoast, DESKTOP_VIEW, BOARD_EXTENTS)
         assertExists(request)
-        expect(shownScale(request, DESKTOP_VIEW)).toBeGreaterThan(restingScale(DESKTOP_VIEW))
+        expect(shownScale(request, DESKTOP_VIEW)).toBeGreaterThan(restingScale(USA, DESKTOP_VIEW))
     })
 
     it('never zooms out below the whole map on desktop, with lit hexes coast to coast', () => {
         const coastToCoast = [westmostHex(), eastmostHex()]
-        const request = buildZoomRequest(coastToCoast, DESKTOP_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, coastToCoast, DESKTOP_VIEW, BOARD_EXTENTS)
         assertExists(request)
-        expect(shownScale(request, DESKTOP_VIEW)).toBeCloseTo(restingScale(DESKTOP_VIEW))
+        expect(shownScale(request, DESKTOP_VIEW)).toBeCloseTo(restingScale(USA, DESKTOP_VIEW))
     })
 
     it('keeps a phone’s resting scale, a hex at least 37 px, with lit hexes coast to coast', () => {
         const coastToCoast = [westmostHex(), eastmostHex()]
-        const request = buildZoomRequest(coastToCoast, PHONE_VIEW, restingPhone)
+        const request = buildZoomRequest(USA, coastToCoast, PHONE_VIEW, restingPhone)
         assertExists(request)
         const scale = shownScale(request, PHONE_VIEW)
-        expect(scale).toBeCloseTo(restingScale(PHONE_VIEW))
+        expect(scale).toBeCloseTo(restingScale(USA, PHONE_VIEW))
         expect(hexWidthOnScreen(scale)).toBeGreaterThanOrEqual(MIN_RESTING_HEX_PX)
     })
 
     it('centres the lit hexes nearest the view’s centre when they do not fit at the resting scale', () => {
-        const floor = restingScale(PHONE_VIEW)
+        const floor = restingScale(USA, PHONE_VIEW)
         const fromEast = sizedViewAround(centreOf(third(2)), PHONE_VIEW, floor)
         const west = westmostHex()
-        const request = buildZoomRequest([west, ...eastCoast], PHONE_VIEW, fromEast)
+        const request = buildZoomRequest(USA, [west, ...eastCoast], PHONE_VIEW, fromEast)
         assertExists(request)
         const target = sizedViewAround(centreOf(request.rect), PHONE_VIEW, floor)
         expect(shows(target, west)).toBe(false)
@@ -374,26 +377,26 @@ describe('the building zoom’s fit (contract, Build)', () => {
     })
 
     it('stays while every lit hex is inside the view, and not once one has left it', () => {
-        const request = buildZoomRequest(middle, DESKTOP_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, middle, DESKTOP_VIEW, BOARD_EXTENTS)
         assertExists(request)
         const shown = sizedViewAround(
             centreOf(request.rect),
             DESKTOP_VIEW,
             shownScale(request, DESKTOP_VIEW)
         )
-        expect(buildZoomKeepsView(middle, DESKTOP_VIEW, shown)).toBe(true)
-        expect(buildZoomKeepsView([...middle, eastCoast[0]], DESKTOP_VIEW, shown)).toBe(false)
+        expect(buildZoomKeepsView(USA, middle, DESKTOP_VIEW, shown)).toBe(true)
+        expect(buildZoomKeepsView(USA, [...middle, eastCoast[0]], DESKTOP_VIEW, shown)).toBe(false)
     })
 
     it('stays on a phone while the lit hexes nearest its centre are in view, when not all can be', () => {
-        const floor = restingScale(PHONE_VIEW)
+        const floor = restingScale(USA, PHONE_VIEW)
         const lit = [westmostHex(), ...eastCoast]
-        const request = buildZoomRequest(lit, PHONE_VIEW, restingPhone)
+        const request = buildZoomRequest(USA, lit, PHONE_VIEW, restingPhone)
         assertExists(request)
         const shown = sizedViewAround(centreOf(request.rect), PHONE_VIEW, floor)
-        expect(buildZoomKeepsView(lit, PHONE_VIEW, shown)).toBe(true)
+        expect(buildZoomKeepsView(USA, lit, PHONE_VIEW, shown)).toBe(true)
         const elsewhere = sizedViewAround(centreOf(third(1)), PHONE_VIEW, floor)
-        expect(buildZoomKeepsView(lit, PHONE_VIEW, elsewhere)).toBe(false)
+        expect(buildZoomKeepsView(USA, lit, PHONE_VIEW, elsewhere)).toBe(false)
     })
 })
 
@@ -414,25 +417,25 @@ describe('the building zoom on a view that rests on the whole map (contract, Bui
     it('stays on the whole map when fitting the lit hexes would barely zoom in', async () => {
         const lit = await purpleArrivesLit()
         expect(lit.length).toBeGreaterThan(0)
-        const request = buildZoomRequest(lit, WIDE_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, lit, WIDE_VIEW, BOARD_EXTENTS)
         assertExists(request)
         expect(request.rect).toEqual(BOARD_EXTENTS)
-        expect(request.maxScale).toBeCloseTo(restingScale(WIDE_VIEW))
-        expect(shownScale(request, WIDE_VIEW)).toBeCloseTo(restingScale(WIDE_VIEW))
+        expect(request.maxScale).toBeCloseTo(restingScale(USA, WIDE_VIEW))
+        expect(shownScale(request, WIDE_VIEW)).toBeCloseTo(restingScale(USA, WIDE_VIEW))
     })
 
     it('keeps the whole map while every lit hex is on it', async () => {
         const lit = await purpleArrivesLit()
-        expect(buildZoomKeepsView(lit, WIDE_VIEW, BOARD_EXTENTS)).toBe(true)
+        expect(buildZoomKeepsView(USA, lit, WIDE_VIEW, BOARD_EXTENTS)).toBe(true)
     })
 
     it('still fits the six East Coast cities, a zoom worth the move', () => {
-        const request = buildZoomRequest(eastCoast, WIDE_VIEW, BOARD_EXTENTS)
+        const request = buildZoomRequest(USA, eastCoast, WIDE_VIEW, BOARD_EXTENTS)
         assertExists(request)
         expect(request.rect).not.toEqual(BOARD_EXTENTS)
         expect(eastCoast.every((hexId) => shows(request.rect, hexId))).toBe(true)
         expect(shownScale(request, WIDE_VIEW)).toBeGreaterThanOrEqual(
-            restingScale(WIDE_VIEW) * MIN_BUILD_ZOOM_GAIN
+            restingScale(USA, WIDE_VIEW) * MIN_BUILD_ZOOM_GAIN
         )
     })
 })

@@ -17,12 +17,21 @@
         limitStopCondition
     } from './stockInstructionText.js'
 
-    let { choice, disabled }: { choice: StopChoice | undefined; disabled: boolean } = $props()
+    let {
+        choice,
+        disabled,
+        reword
+    }: {
+        choice: StopChoice | undefined
+        disabled: boolean
+        /** Puts the title's words into the conditions. */
+        reword: (text: string) => string
+    } = $props()
 
     const switches = $derived(
         ignorableStockInstructionStops.map((stop) => ({
             key: stop,
-            label: ignorableStopCondition[stop],
+            label: reword(ignorableStopCondition[stop]),
             watched: !choice?.ignoredStops.includes(stop),
             toggle: () =>
                 choice?.change(
@@ -47,7 +56,7 @@
     <StopList
         always={[
             limitStopCondition,
-            ...ignorableStockInstructionStops.map((stop) => ignorableStopCondition[stop]),
+            ...ignorableStockInstructionStops.map((stop) => reword(ignorableStopCondition[stop])),
             goalStopCondition
         ]}
     />

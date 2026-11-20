@@ -150,8 +150,8 @@ load. The backend rolls back by Cloud Run revision with `rollback-backend <revis
 ## Pruning old versions
 
 `prune (--game=<id> | --frontend | --all)` deletes artifact versions the manifest no longer
-references, keeping the current selection, the rollback history, and uploads from the last 7
-days. It prints the plan only; deleting needs `--apply`, so show the user the dry run and get
+references, keeping the current selection, the rollback history, and versions replaced in the
+last 7 days. It prints the plan only; deleting needs `--apply`, so show the user the dry run and get
 confirmation first. After pruning, `switch` can no longer select the deleted versions.
 
 Game and frontend deploys prune their own target automatically after success and print

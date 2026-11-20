@@ -5,12 +5,13 @@
     let { bonus }: { bonus: CityBonusMark } = $props()
 
     const pill = $derived(bonusPill(bonus))
-    const { width, height, strokeWidth, fontSize, strike } = BONUS_PILL
+    const { height, strokeWidth, fontSize, strike } = BONUS_PILL
+    const width = $derived(pill.width)
 </script>
 
 <!-- Art plan, Bonus pill (BOARD_LOOK.bonus 'pill'): the amount in serif on a pill, centred on the
-     origin; a used $5 is grey and struck through. -->
-<g aria-hidden="true" data-bonus={pill.used ? 'used' : bonus.kind}>
+     origin, wider for a longer amount; a used $5 is grey and struck through. -->
+<g aria-hidden="true" data-bonus={pill.used ? 'used' : bonus.kind} data-bonus-text={pill.text}>
     <rect
         x={-width / 2}
         y={-height / 2}

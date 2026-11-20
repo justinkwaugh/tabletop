@@ -6,7 +6,7 @@
 
 {#if companyId}
     <header class="nothing-to-build centered-panel">
-        <span>{session.companyName(companyId)} can't lay track or place a station</span>
+        <span>{session.actionCompanyName(companyId)} can't lay track or place a station</span>
         <button
             class="action-button inline-action"
             disabled={!session.operatingMode.canFinish}

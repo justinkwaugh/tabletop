@@ -1,6 +1,6 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isPlaceLocomotive } from '@tabletop/ride-the-rails'
-import { hexCenter } from '$lib/utils/boardGeometry.js'
+import { boardGeometry, hexCenter } from '$lib/utils/boardGeometry.js'
 import { claimedLine, outlineStep } from './flightPlan.js'
 import { transcontinentalPoint } from './flightPlaces.js'
 import { moneyKey, type Flights, type Flyer } from './flights.svelte.js'
@@ -78,7 +78,7 @@ export function transcontinentalAnimator(
                 key: TRANSCONTINENTAL_COIN_KEY,
                 start: coinFrom,
                 rise: { y: coinFrom.y - 24 },
-                marker: transcontinentalPoint(flights.table),
+                marker: transcontinentalPoint(boardGeometry(to.mapId), flights.table),
                 rises: drawn + SETTLE_INTO_LINE
             },
             FLIGHT

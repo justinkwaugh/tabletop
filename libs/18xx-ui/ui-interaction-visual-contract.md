@@ -123,17 +123,30 @@ Changing appearance preserves the current selection. The development host's
 Show sample tile, token & route switch replaces its displayed inventory and overlays; choosing
 a different map replaces the whole scene. Neither operation is a game Action.
 
-A company token on the map fills its city slot's circle.
+A company token on the map fills its city slot's circle. A placed station takes its
+look from the first of these that applies: the map view's `neutralStation` for a
+neutral station, its `closedCompanyStation` for a station of a closed company (1828's
+blocking stations), the shared-station look of the access the station carries, then the
+company's own. A closed company's token anywhere off the map keeps the company's look.
 A reserved city slot without a token shows the reserving company's token in its own
 colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
-own. A marker whose art is a local line shows its label beside two linked circles while
+own. A town or junction whose every track the layout prints as a spike or pier draws no
+marker either, and stays a stop that can be selected; a route started at such a town shows
+its start ring at the stop, the same size however many tracks reach it. A marker whose art is a local line shows its label beside two linked circles while
 the hex has no tile, drawn above track with a halo in the hex's colour. It sits near
 the foot of the hex, or, when its art is `above`, just over the hex's stops: above a
 name curved over a city, below a straight name printed across the top, or above the
 terrain cost of a hex without stops. 1830 marks its private-blocked hexes this way,
 all above; 1889's Takamatsu marker is above.
+
+A map view may nudge a location's name from its usual place at the top of the hex
+(`nameOffsets`), keeping its type; `namePositions` instead sets the baseline outright
+and wins where both are given. `terrainSymbolsBelow` stands a printed hex's terrain
+symbols under the cost where the row is too wide (1828's Newark); once a tile is laid
+the tile's own clear space decides. Hexside borders draw 3 wide, and impassable ones 5,
+unless the view's `borderWidths` says otherwise.
 
 A map view may name each city of a hex (`cityNames`, 1830's OO and New York hexes):
 each name curves over its own city's drawn centre, turned off the hex's other cities
@@ -255,7 +268,10 @@ earlier or later or remove it. Native buttons support pointer, keyboard, and tou
 The shared stock market displays each distinct space and its committed marker
 stack, top to bottom. Its scroll area is keyboard focusable and contained at
 mobile widths. Market order is listed beneath it. Equal prices retain separate
-spaces and stack identities. Previewing a trade does not move markers.
+spaces and stack identities. Previewing a trade does not move markers. A title's
+own market markers (`marketMarkers`, such as 18RoyalGorge's debt marker) hang as
+flat tabs, rounded at the bottom, under their space below the market, clear of the
+companies' stacks; they never enter market order or any rule.
 
 ### Coexistence and precedence
 
@@ -595,6 +611,14 @@ style changes do not commit gameplay or consume staged choices.
 The Station placement example is prepared and uses fixture version 15. Desktop
 controls are provisional; no mobile layout work is part of this slice.
 
+### Title route choices
+
+A title may offer a choice between runs through `titleMapRoutes`. While it returns routes the map
+draws them, each in its colour, and frames them. The title's panel reuses `TrainRunTable`, with
+`colorOffset` matching each table's swatch to its route. 1828's C&P keeps one run per revenue: a
+single run shows its table and **Run train**; several stand side by side, each with
+**Run this route** beneath it.
+
 ### Projected run
 
 While the viewer can lay track or place a station for the operating company, the
@@ -836,7 +860,9 @@ modes.
   panels. Its panel lists each claim as "buy 10% for price and become president", committed at
   once. At most one stock panel is open: choosing Buy, Sell or a title panel closes
   Receivership, and choosing Receivership closes them. The open panel is a local selection that
-  Undo closes, chosen only while it has claims for the acting player.
+  Undo closes, chosen only while it has claims for the acting player. What a player picked
+  inside a title's panel (`TitleStockPanel.selection`) goes when that panel closes, so Undo always
+  acts on what is on screen; choosing the open panel again keeps it.
 
 ### Cash crisis and bankruptcy
 
@@ -1392,6 +1418,10 @@ The table action area keeps construction status, cost and Finish Track, with sel
 
 The map construction header reserves inline space for the pending cost. Choosing, rotating, cancelling, or accepting a tile must not add a cost row or resize the map viewport.
 
+### Tile groups
+
+A title may declare hexes one tile covers together (`MapViewDefinition.tileGroups`, such as 18RoyalGorge's gorge). While track is being laid, every member of a group with a legal hex is legal itself; hovering, selecting or previewing any member highlights the whole group as one outline, drawn along each member's outer sides only, and choosing any member chooses a legal hex of the piece. Elsewhere, such as station placement or inspection, members highlight one by one; a lay's history map outlines the whole group. The picker centres on the group's middle; its arc keeps clear of the whole group, and its cost and accept/cancel controls stand above and below it; clicking any member again rotates the preview as clicking the hex does. A lay whose rules place companion tiles (`TrackRules.companionTiles`) is drawn in the picker as one piece, in one drawing: the hexes' shadows beneath every hex, their shared sides without a seam, every hex at its board position and scale. Its landed preview shows every hex of the piece on the map before acceptance.
+
 ### Selected tile motion
 
 The map picker owns local, cancellable 220ms DOM motion triggered by a tile-choice or cancel gesture, not by committed game actions. On opening, choices fly and scale out from the selected hex into the arc. The selected choice moves to the hex; other choices remain selectable in their original arc positions, leaving a gap for the chosen tile. Selecting a replacement returns the previous choice to the arc. Cancel interrupts the current motion, shrinks all visible tiles into the hex over 160ms, then clears the selection and closes the picker. Clicking away from the initial choices uses the same collapse. Reduced-motion preference skips the flight.
@@ -1488,7 +1518,7 @@ Income calculation receives only visible context actions; it does not read or re
 
 Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. A company in receivership has its badge in the Market cell, and on the Market row of its company card, because the president's certificate lies there; the cell keeps it while the shares are on offer. The card has no other mark of receivership. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
 
-Where a title has an IPO pool, a Par line sits between the owners and the IPO: a row in Player view and a column in Company view, ruled off by the stronger divider on both sides like Value. It shows a company's par, the price of an IPO share, only while that company is started, not closed and has shares in the IPO; other companies show a dash. The line is absent when no company has IPO shares for sale, and for titles whose price presentation hides par. Its blank intersections with owner statistics carry the pool divider once, on the Par line. Par is not a sort header.
+Where a title has an IPO pool, a Par line sits between the owners and the IPO: a row in Player view and a column in Company view, ruled off by the stronger divider on both sides like Value. It shows a company's par, the price of an IPO share, only while that company is started, not closed and has shares in the IPO; other companies show a dash. The line is absent when no company has IPO shares for sale, and for titles whose price presentation hides par. A title may retire a company's par (`parRetired`, an 1828 system's par marker having left the market), and that company then shows none: a dash on this line and no par on its company card. Its blank intersections with owner statistics carry the pool divider once, on the Par line. Par is not a sort header.
 
 Where a title has a reserved exchange pool, Exchange appears immediately before Treasury in either orientation. The owners/pools divider precedes Exchange, and its financial-summary cells are dashes. Counts come from the supplied exchange pool and follow visible state and Undo.
 
@@ -1500,9 +1530,11 @@ During TOP offer bidding the action panel shows the lot/value, current bid if pr
 
 Every minus/amount/plus control (offer, selection, waterfall, company and 1817 acquisition bids) shows the amount as a number field in the title's currency, so a bid can be typed as well as stepped. A typed number becomes the staged amount at once; the field keeps the player's text until they step, bid or pass, and Bid (or Enter in the field) is enabled only while the caller allows the amount and the field reads exactly the amount Bid would send, so a blank field or a value the auction replaces with its minimum cannot bid a hidden amount. The steppers move from the staged amount and stay bounded by the auction model.
 
-During a waterfall opening auction (1830, 1889, 1832) the action panel lists every private in waterfall order: action, private abbreviation or token with name, income, price and bids. Won privates stay in the table, muted and without an action: the price is what the winner paid, with the face value struck through when they paid less, and the Bids column names the winner beside their colour dot. Only the first remaining row offers Buy, which commits through the session in one step at the current price without staging a selection, discarding any staged bid; a discounted price shows the face value struck through. Other remaining rows offer Bid, which stages a manual bid selection at the model's legal minimum. The staged row loses its Bid button and opens as a rounded card: the row, then an inset strip spanning the table with the minus/amount/plus control, Bid, and the player's cash available after reservations and any amount reserved, all centered. There is no Back: choosing Bid on another row replaces the staged lot, Buy and Pass discard it, and Undo clears it before undoing committed actions. Beside the table the turn column shows the same cash figures while no bid is staged, and Pass. Reserved bids appear as player-colour dots with amounts, highest first, with the viewer's own bid emphasised; names are available to assistive technology and on hover. Rows open the standard PrivateCard popover like offer rows, excluding the action button. The Bids column has a fixed width only in wide panels so reservations do not shift the table. Below 720px of panel width the turn column moves beneath the table and its text and Pass center horizontally. At 420px or less the table keeps within the panel: income drops its "/ OR" suffix and a winner shows only as a dot, named on hover and to assistive technology.
+During a waterfall opening auction (1830, 1889, 1832) the action panel lists every private in waterfall order: action, private abbreviation or token with name, income, price and bids. Won privates stay in the table, muted and without an action: the price is what the winner paid, with the face value struck through when they paid less, and the Bids column names the winner beside their colour dot. A row offers Buy when its lot can only be bought (`buyOnlyLotIds`): the first remaining lot, or, where lots of one price form a row (1828), the one lot without a bid in the cheapest row still selling once every other lot of that row has a bid. Buy commits through the session in one step at the current price without staging a selection, discarding any staged bid; a discounted price shows the face value struck through. Other remaining rows offer Bid, which stages a manual bid selection at the model's legal minimum. The staged row loses its Bid button and opens as a rounded card: the row, then an inset strip spanning the table with the minus/amount/plus control, Bid, and the player's cash available after reservations and any amount reserved, all centered. There is no Back: choosing Bid on another row replaces the staged lot, Buy and Pass discard it, and Undo clears it before undoing committed actions. Beside the table the turn column shows the same cash figures while no bid is staged, and Pass. Reserved bids appear as player-colour dots with amounts, highest first, with the viewer's own bid emphasised; names are available to assistive technology and on hover. Rows open the standard PrivateCard popover like offer rows, excluding the action button. The Bids column has a fixed width only in wide panels so reservations do not shift the table. Below 720px of panel width the turn column moves beneath the table and its text and Pass center horizontally. At 420px or less the table keeps within the panel: income drops its "/ OR" suffix and a winner shows only as a dot, named on hover and to assistive technology.
 
 When reserved bids contest a private, the table stays in place without its action column, cash summary or Pass, and the contested row opens as the rounded card. Its strip shows the high bidder and the high bid; the player whose turn it is also gets the minus/amount/plus control, starting at the legal minimum, with Bid and Pass. Bid commits through the session and Pass clears any staged amount before passing. Waiting players and spectators see only the figures. There is no separate bidding card. The prototype waterfall panel remains only in the prototype table.
+
+An auction sold in rows of one printed price (`priceRows`, 1828) groups the same table into one outlined box per price, cheapest first, with space between the boxes, and drops the Price column. The row now selling has a gold outline, with a hint for what its state allows: **Last one without a bid can be bought**, **Can be bought, not bid on**, or **Being auctioned**. Later rows read **Bids only for now**. While a private is being auctioned, its row is the outlined one, whichever row that is, and no other row carries a hint. A title's `privateStatus` replaces a private's income figure, as 1828's C&P prints **$Variable / $15**. A sold row loses its box and shrinks to one muted line of each private's initials, winner dot and price paid. A private with a bid offers **Raise** instead of **Bid**, and **Buy** is filled gold. Cash and Pass stay in view while the list scrolls.
 
 PrivateCard is the shared name/value/income/description presentation for private popovers and the auctioned lot on the action panel's left. Numeric facts are supplied by callers, omitted when inapplicable, and never inferred from descriptions. Popover placement, dismissal and animation remain owned by PrivateDescription.
 
@@ -1840,9 +1872,9 @@ Company auctions (a title's `stockRules.companyAuction`, such as 1817) replace S
 
 Companies whose president chooses their home as they start them (a title's `companyRules.startHomes`, such as 1833NE's Variable Start railroads) add a home stage to Start between the company and its price. Choosing such a company offers its home cities, at every price it may start at, with the same placement mask and focus as a pending home choice; the action panel prompts "Choose a highlighted city on the map for [company]'s home." A click on an offered city, or anywhere on a hex with one offered city, records the home as a manual stage, and the price buttons then appear, each priced with that home; the panel names the home and what it costs the company's treasury. A price click submits StartCompany with the home. Undo unwinds the home, then the company. Choosing the company again clears its home and price. The map offers one set of cities at a time, in this precedence: a pending homeChoice, a company auction's home, a starting company's home, a private's station; `MapModule.offeredCityLocationIds` is that set, which both the click handling and the placement mask read.
 
-While a company auction stands, the stock action panel shows only the auction: the company, its home, opener, high bidder, high bid with its starting price, and the current bidder's limit. The bid amount is derived in the same way and becomes manual when changed; Bid and Pass submit directly. The winner then sees the formation panel: one button per allowed size and one per private that could be contributed toward the price. A size is pre-chosen only when the phase allows exactly one; otherwise none is pressed and Form stays disabled with "Choose a size". The formation is applied without the panel when there is one size and nothing to contribute. Size and contribution choices are manual and unwind before game history.
+While a company auction stands, the stock action panel shows only the auction: the company, its home, opener, high bidder, high bid with its starting price, and the current bidder's limit. The bid amount is derived in the same way and becomes manual when changed; Bid and Pass submit directly. The winner then sees the formation panel: one button per allowed size and one per private that could be contributed toward the price. While privates can be contributed, a line under them shows the winner how the price splits between cash and the privates chosen so far, updating with each choice. A size is pre-chosen only when the phase allows exactly one; otherwise none is pressed and Form stays disabled with "Choose a size", or with the payment problem while the chosen privates cannot pay the price. The formation is applied without the panel when there is one size and nothing to contribute. Size and contribution choices are manual and unwind before game history.
 
-A selection-auction opening shows the remaining lots with value, opening bid and, below each name, the start of its power (the private's card shows it in full). A title that deals its lots into tiers (1817's Volatility pyramid) shows them as a pyramid of discs, first tier on top, each labelled with the lot's initials: the tier that may be nominated from sits on a band with its lots filled, a sold lot takes its buyer's colour, a removed lot is a dashed ring, and a slot emptied before the title kept its lot is an empty dashed ring. Every disc is a button that shows its lot in a detail strip beside the pyramid (below it in a narrow pane): name, value, full power with place links, and where it stands (its row and whether it is open, the buyer and price, or that it was removed). Hovering with a mouse previews a lot in the strip; tapping keeps it there. For a lot that can be sold now (an open lot while nothing is bid on, or the lot being bid on) the strip adds what its sale does: which lots leave the game, from the title's `lotsRemovedBy`, and which row opens or that the auction ends, from the title's tiers (`LotTiers.openTier`); the lots that would leave are striped on the pyramid. Inspecting a lot that cannot be sold keeps the stripes of the staged or auctioned lot, which carries an amber ring. Inspection is view state, not a staged selection, so Undo never pops it. On the nominator's turn, tapping an open lot also stages it; tapping the staged lot brings it back into the strip if another lot is shown, and clears it if it is already shown. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot. Under a pyramid the turn line names the staged lot and the player's cash above an inline bid control. Choosing the staged lot again, or Undo, clears it; there is no Back. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid (under a pyramid, beside the lot's detail strip and a Pyramid button that opens the pyramid in a modal dialog, read-only, closed by its close button, Escape or the backdrop); Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
+A selection-auction opening shows the remaining lots with income when any of the title's lots earns some, value, an opening bid column only while some remaining lot opens at other than its value (1861 and 1867's minimum bids, 1817's seed money, a discount on the next lot after every player passes) and, below each name, the start of its power (the private's card shows it in full). A title that deals its lots into tiers (1817's Volatility pyramid) shows them as a pyramid of discs, first tier on top, each labelled with the lot's initials: the tier that may be nominated from sits on a band with its lots filled, a sold lot takes its buyer's colour, a removed lot is a dashed ring, and a slot emptied before the title kept its lot is an empty dashed ring. Every disc is a button that shows its lot in a detail strip beside the pyramid (below it in a narrow pane): name, value, full power with place links, and where it stands (its row and whether it is open, the buyer and price, or that it was removed). Hovering with a mouse previews a lot in the strip; tapping keeps it there. For a lot that can be sold now (an open lot while nothing is bid on, or the lot being bid on) the strip adds what its sale does: which lots leave the game, from the title's `lotsRemovedBy`, and which row opens or that the auction ends, from the title's tiers (`LotTiers.openTier`); the lots that would leave are striped on the pyramid. Inspecting a lot that cannot be sold keeps the stripes of the staged or auctioned lot, which carries an amber ring. Inspection is view state, not a staged selection, so Undo never pops it. On the nominator's turn, tapping an open lot also stages it; tapping the staged lot brings it back into the strip if another lot is shown, and clears it if it is already shown. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot. Under a pyramid the turn line names the staged lot and the player's cash above an inline bid control. Choosing the staged lot again, or Undo, clears it; there is no Back. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid (under a pyramid, beside the lot's detail strip and a Pyramid button that opens the pyramid in a modal dialog, read-only, closed by its close button, Escape or the backdrop); Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
 
 Station tokens without artwork draw their label in the colour that contrasts with the token's fill, and labels of four or more characters use a smaller size to stay inside the token.
 
@@ -2117,7 +2149,7 @@ History descriptions and company-name lookups use the same visible history conte
 
 ### Read-only position panel
 
-History, spectators, and non-active players see PositionPanel in place of the action snippets and stock menu, except while a private auction (offer, waterfall or selection) is open: live spectators and non-active players then see the same turn heading above the title's action snippet: the auction's lots, prices, bids and bidding card, or the par a won private awaits, with no action column, bid control, Offer, Pass or staged selection. Those controls and selections belong to the player whose turn it is, judged from the valid action types so they do not drop out while an action is submitting; history still shows PositionPanel. OR chevrons remain visible as disabled progress indicators, with private-action buttons omitted. Live spectators and non-active players also keep the stock action strip during a stock round: it lists the title's stock menus (Buy, Sell, Start while unstarted companies remain, and Exchange when a private carries exchange terms) as disabled pills with no selection, no Pass/End turn, and no title-specific extras; history hides the strip. In those live positions the panel opens with a large turn heading naming the player on turn, with that player's color, followed by "'s turn": the player who must set a pending par, otherwise the turn manager's current player. Additional active players from private timing windows are not listed; the heading always identifies the player whose stock or operating turn it is, and is omitted while no turn is open or no player may act, such as in a stalled auction. Status headings omit player names; event details retain actor names where relevant. Historical chevrons identify the selected event’s step; live spectators see the current decision step. The panel presents event-specific information, including purchased train badges, prices, payouts and recorded route revenue, without a generic cash/inventory row. Run tables reuse TrainRunTable, including the income headings, train badges and total; recorded payouts reuse EarningsCard as a noninteractive result with recipients and market movement. Run tables appear for the run event, not subsequent payouts; the round and operating-company labels remain in the shared header. It does not mount action choosers or the automatic route calculator. The one interactive exception is the standing-instruction bar, which live seated players keep beneath the panel during an open stock round (see Standing instructions); history hides it. Track results render the recorded tile and rotation; upgrades show the previous tile → replacement, with “for $N” for a positive cost and no coordinate label. Results reuse GameEnding with the supplied position state. Once the displayed state has a result, every viewer, including hotseat play and an acting admin, sees PositionPanel with no private-auction exception, and no module stays interactive. A called or conceded game shows the shared called-game outcome under a “Game over” eyebrow instead of final wealth, and its history ends with a standalone event row describing the call, credited to no player or company.
+History, spectators, and non-active players see PositionPanel, beneath the title's `offTurnPanel` snippet if it supplies one, in place of the action snippets and stock menu, except while a private auction (offer, waterfall or selection) is open: live spectators and non-active players then see the same turn heading above the title's action snippet: the auction's lots, prices, bids and bidding card, or the par a won private awaits, with no action column, bid control, Offer, Pass or staged selection. Those controls and selections belong to the player whose turn it is, judged from the valid action types so they do not drop out while an action is submitting; history still shows PositionPanel. `offTurnPanel` renders wherever PositionPanel does, in history and after the game too, so the title decides what belongs there: 1828 announces a failed merger in it and opens the M&H exchange for an owner off turn, whose offers are empty unless the player may act. OR chevrons remain visible as disabled progress indicators, with private-action buttons omitted. Live spectators and non-active players also keep the stock action strip during a stock round: it lists the title's stock menus (Buy, Sell, Start while unstarted companies remain, and Exchange when a private carries exchange terms) as disabled pills with no selection, no Pass/End turn, and no title-specific extras; history hides the strip. In those live positions the panel opens with a large turn heading naming the player on turn, with that player's color, followed by "'s turn": the player who must set a pending par, otherwise the turn manager's current player. Additional active players from private timing windows are not listed; the heading always identifies the player whose stock or operating turn it is, and is omitted while no turn is open or no player may act, such as in a stalled auction. Status headings omit player names; event details retain actor names where relevant. Historical chevrons identify the selected event’s step; live spectators see the current decision step. The panel presents event-specific information, including purchased train badges, prices, payouts and recorded route revenue, without a generic cash/inventory row. Run tables reuse TrainRunTable, including the income headings, train badges and total; recorded payouts reuse EarningsCard as a noninteractive result with recipients and market movement. Run tables appear for the run event, not subsequent payouts; the round and operating-company labels remain in the shared header. It does not mount action choosers or the automatic route calculator. The one interactive exception is the standing-instruction bar, which live seated players keep beneath the panel during an open stock round (see Standing instructions); history hides it. Track results render the recorded tile and rotation; upgrades show the previous tile → replacement, with “for $N” for a positive cost and no coordinate label. Results reuse GameEnding with the supplied position state. Once the displayed state has a result, every viewer, including hotseat play and an acting admin, sees PositionPanel with no private-auction exception, and no module stays interactive. A called or conceded game shows the shared called-game outcome under a “Game over” eyebrow instead of final wealth, and its history ends with a standalone event row describing the call, credited to no player or company.
 
 Every game-data lookup in PositionPanel comes from the session's published game state and the actions up to its action count, so the panel follows the animation framework like the rest of the table and updates once state-change animations complete, in live and history positions alike. Title-provided names, train definitions, token appearances and auction rules remain presentation inputs. Auction lot lookup takes that same state explicitly. Returning to an actionable current position restores the normal controls. The mechanism is shared across title-specific auction, stock and operating procedures; state labels belong to the existing finance-example flow, not a universal 18xx turn sequence. No bridge or host API shape changes are introduced.
 
@@ -2242,6 +2274,8 @@ Titles may mark a private through their presentation with a company's token, a s
 Map markers may carry title-supplied art in place of their text label: an image drawn across an unplaced hex (TOP's Vernon River Bridge) or a shared tile symbol drawn at the marker position near the lower edge, with the marker label as its hover title. Images appear only on unplaced hexes in the generic presentation. Symbols follow text-marker visibility: unplaced hexes in the generic presentation and placed tiles in either presentation, except where the placed face already shows that symbol; unplaced hexes on the published board show its printed markers. 1889 draws its four eligible port locations with the same anchor as the port tile rather than the word Port.
 
 Private powers a player who is not active may use appear in a centred strip beneath the stock action strip, labelled with the private, prefixed with the owner's name only when it is not the viewer's own, each with a compact Exchange button carrying the receiving company's token. The same button sits beside the private on its owner's player card whether or not it is their turn; an active player exchanges from the stock menu during a stock round, or from Use privates during an operating turn. A player the game is not waiting on uses the sequenced out-of-turn exchange; an active player uses the ordinary one. In local hotseat the controls act for the owner directly.
+
+A title's own private action (`titlePrivateAction`, 1828's Exchange M&H in an operating round) leads the same strip for a player who is not on turn: one button with the title's label, pressed while what it opens is open, and disabled only while an action is submitting. On the player's turn the strip leaves it out and it stands with Buy privates and Use privates instead.
 
 The same strip offers a player who is not active their off-turn private tile powers during a stock round, labelled with the title's tile prompt (an active player uses the ordinary private power controls instead); choosing one hands placement to the map's private-lay picker, and the strip shows "Choose a location on the map" with Cancel until the lay is committed. The owner's player card has a compact Use button beside that private. A player who may request a Private Power Window sees a "Place before next company" toggle when they cannot use the power right now, or while a request stands so they can cancel it (pressed while it stands); after a drop it shows "Placement request dropped" with the reason, as autobuy shows its stop. Requests and drops are history bookkeeping and never appear as history entries.
 
@@ -2435,6 +2469,17 @@ never in History View, exploration, after the game ends or for spectators. It is
 before the viewer's first turn in the stock round, so it never reaches back into an
 auction or operating round, and it goes away once the viewer acts in the turn. An
 answer the viewer gave off turn, such as a purchase response, does not shorten it.
+A company that floated since then has its own line, its token beside the history
+panel's flotation text with company names in their history abbreviations.
+
+The recap folds out of the way once the viewer chooses an action (`chosenStockAction`:
+an open stock menu or title panel, or a title's decision that takes the panel), leaving
+a "Turn recap" button in the panel's top right corner, which stands there as "Hide"
+while the recap is open. A press overrides the automatic fold for the action then
+chosen, and only for the recap on show: the next turn's opens again. Folding moves the
+recap out of flow, so the panel below takes its place at once, while it shrinks and
+fades toward the corner; opening puts it back in flow and it grows from the corner.
+Both animate only `transform` and `opacity`, and reduced motion skips them.
 
 ### Saved pane arrangements
 
@@ -2903,3 +2948,34 @@ These interactions came with 1822 and are available to any title whose rules sel
   the routes module spec for the standard and for the higher-subsidy excuse.
 - After a lay that leaves a company running one station, the map stays framed on that station.
   Manual.
+
+## Restart turn
+
+### Visual intents
+
+- **Offer:** `Restart turn` sits beside Undo in the turn header, as an icon alone on
+  narrow screens. It appears only when it would undo more than Undo does.
+- **Confirm:** every press opens a panel below the button naming the turn and how many
+  of the player's actions it undoes. Nothing is undone until the panel is confirmed.
+
+### Coexistence and precedence
+
+Undo keeps its own order, manual selection first. Restart turn ignores that order: a
+confirmed restart undoes committed history, and publishing the result clears any
+manual selection. The button is absent in History View, when another player acted in
+the turn, and for an operating turn resumed after an interrupting stock round.
+
+### Shared visual state
+
+The turn comes from Action history and the session's Undo reach, so it follows Undo,
+reload and new Actions. Only the panel's open state is local to the header.
+
+### Render ownership
+
+`TableHeader` owns the button. `RestartTurnConfirm` owns the panel and renders outside
+the header element, so the header's turn-attention colors do not reach it.
+
+### Verification scenarios
+
+`turnRestart.spec.ts` covers operating and stock turns, consecutive companies, a turn
+finished before an automatic company, interrupted turns, and other players' actions.

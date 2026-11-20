@@ -17,8 +17,8 @@
 </script>
 
 <p class="treasury" role="status">
-    {session.companyName(companyId)} has {cashText(money, cash)}{#if borrowable > 0}{' '}and can
-        borrow {money(borrowable)} more{/if}
+    {session.actionCompanyName(companyId)} has {cashText(money, cash)}{#if borrowable > 0}{' '}and
+        can borrow {money(borrowable)} more{/if}
 </p>
 
 <style>

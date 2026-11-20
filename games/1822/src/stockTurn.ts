@@ -1,65 +1,25 @@
 import {
     allPlayersPassed,
     isCompleteStockRound,
-    stepAction,
+    playerLoanActions,
+    repayPlayerLoanStep,
     titleAction,
     type StepAction
 } from '@tabletop/18xx'
-import { ActionSource, assert, type HydratedAction, type MachineContext } from '@tabletop/common'
+import { ActionSource, assert, type MachineContext } from '@tabletop/common'
 import * as Type from 'typebox'
-import { playerLoan1822, repayPlayerLoan1822, repayableLoan1822 } from './loans.js'
+import { PlayerLoanRules1822 } from './loans.js'
 import type { HydratedState1822, StateHandler1822 } from './state.js'
 import { doubleCashPlayerId1822, playerOrderWithDeclaration1822 } from './stock.js'
 
-const RepayPlayerLoanAction = titleAction('RepayPlayerLoan', {
-    amount: Type.Integer({ minimum: 1 }),
-    metadata: Type.Optional(
-        Type.Object(
-            { paid: Type.Integer({ minimum: 1 }), remaining: Type.Integer({ minimum: 0 }) },
-            { additionalProperties: false }
-        )
-    )
-})
-export const RepayPlayerLoan = RepayPlayerLoanAction.schema
-export type RepayPlayerLoan = Type.Static<typeof RepayPlayerLoan>
-export const isRepayPlayerLoan = RepayPlayerLoanAction.is
+export {
+    RepayPlayerLoan,
+    isRepayPlayerLoan,
+    HydratedRepayPlayerLoan,
+    canRepayPlayerLoan as canRepayLoan1822
+} from '@tabletop/18xx'
 
-/** Whether the player on turn has a loan and cash to pay towards it (§4.1.3, §4.2.2). */
-export function canRepayLoan1822(state: HydratedState1822, playerId: string): boolean {
-    return (
-        state.machineState === 'StockRound' &&
-        !state.stockRound.completed &&
-        !allPlayersPassed(state) &&
-        state.activePlayerIds.includes(playerId) &&
-        repayableLoan1822(state, playerId) > 0
-    )
-}
-
-/** In their stock turn a player pays as much of their cash as they choose towards their loan (§4.1.3). */
-export class HydratedRepayPlayerLoan extends RepayPlayerLoanAction.Base {
-    declare playerId: string
-    declare amount: RepayPlayerLoan['amount']
-    declare metadata?: RepayPlayerLoan['metadata']
-    isValid(state: HydratedState1822): boolean {
-        return (
-            this.source === ActionSource.User &&
-            canRepayLoan1822(state, this.playerId) &&
-            this.amount <= repayableLoan1822(state, this.playerId)
-        )
-    }
-    apply(state: HydratedState1822): void {
-        assert(this.isValid(state), 'This much of the loan cannot be repaid')
-        repayPlayerLoan1822(state, this.playerId, this.amount)
-        this.metadata = { paid: this.amount, remaining: playerLoan1822(state, this.playerId) }
-    }
-}
-
-export const RepayPlayerLoanStep: StepAction<HydratedState1822> = stepAction(
-    RepayPlayerLoanAction.type,
-    (action: HydratedAction): action is HydratedRepayPlayerLoan =>
-        action instanceof HydratedRepayPlayerLoan,
-    canRepayLoan1822
-)
+export const RepayPlayerLoanStep: StepAction<HydratedState1822> = repayPlayerLoanStep()
 
 /**
  * The player holding P9 who, the round's bids settled, still has to say whether they declare
@@ -134,6 +94,6 @@ export function declaresCash(handler: StateHandler1822): StateHandler1822 {
 }
 
 export const StockTurnActions = [
-    RepayPlayerLoanAction.define((action) => new HydratedRepayPlayerLoan(action)),
+    ...playerLoanActions(PlayerLoanRules1822),
     DeclareCashAction.define((action) => new HydratedDeclareCash(action))
 ]

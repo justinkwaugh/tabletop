@@ -34,6 +34,15 @@ import { holdSettledCrisis, resumeCashCrisis } from '../funding/cashCrisis.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
 import { PayInterest, interestDueBeforeEarnings } from '../loans/payInterest.js'
+import {
+    InterruptingOperatingTurnHandler,
+    InterruptingOperatingTurnState,
+    ResumesInterruptedTurnHandler,
+    ResumingOperatingTurnHandler,
+    ResumingOperatingTurnState,
+    StockRoundInterruptionHandler,
+    stockRoundInterruptionActions
+} from '../operating/stockRoundInterruption.js'
 import { nextOperatingCompany } from '../operating/operatingSet.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 import { AccessRightsHandler } from '../rights/accessRightsHandler.js'
@@ -127,6 +136,7 @@ function validateStateComposition(
         | 'corporateFinanceRules'
         | 'runInstructions'
         | 'trackRules'
+        | 'stockRoundInterruptions'
     >,
     handlers: Readonly<Record<string, unknown>>
 ): void {
@@ -150,7 +160,8 @@ function validateStateComposition(
         ['locationMarkers', !!options.privatePowerRules.markerTerms],
         ['accessRights', !!options.accessRightRules],
         ['trackConsent', !!options.trackRules.consentPlayerId],
-        ['financeStep', !!options.corporateFinanceRules]
+        ['financeStep', !!options.corporateFinanceRules],
+        ['stockRoundInterruption', !!options.stockRoundInterruptions]
     ]
     for (const [field, supported] of features)
         assert(
@@ -198,7 +209,8 @@ export function createEighteenXXRuntime<
             options.privateRules,
             rules,
             companyRules,
-            options.outOfTurnPrivatePowers === true
+            options.outOfTurnPrivatePowers === true,
+            options.privateExchangeActions
         )
     const allowsCompanyDecisions = (handler: Handler): Handler =>
         new CompanyDecisionsHandler<State>(
@@ -366,9 +378,11 @@ export function createEighteenXXRuntime<
         ...(options.selectionAuctionRules
             ? {
                   SelectionAuction: endsGame(
-                      decides(
-                          'SelectionAuction',
-                          new SelectionAuctionHandler(options.selectionAuctionRules)
+                      awaitsPar(
+                          decides(
+                              'SelectionAuction',
+                              new SelectionAuctionHandler(options.selectionAuctionRules)
+                          )
                       )
                   )
               }
@@ -625,13 +639,58 @@ export function createEighteenXXRuntime<
     // An outgoing president's choice of certificates holds whatever state the change came in.
     const awaitsExchange = (handler: Handler): Handler =>
         rules.presidencyExchange?.choice ? new PresidencyExchangeHandler(handler) : handler
+    const interruptionHandlers: Record<string, Handler> = options.stockRoundInterruptions
+        ? {
+              [InterruptingOperatingTurnState]: new InterruptingOperatingTurnHandler(),
+              // The homes of companies the stock round floated go down, a choice of home held
+              // before play resumes.
+              [ResumingOperatingTurnState]: options.stationRules.homeChoice
+                  ? new HomeStationChoiceHandler(
+                        new ResumingOperatingTurnHandler(options.stationRules),
+                        options.stationRules,
+                        ResumingOperatingTurnState
+                    )
+                  : new ResumingOperatingTurnHandler(options.stationRules)
+          }
+        : {}
+    // A stock round due in an operating turn interrupts it as play returns to the turn.
+    const interrupts = (machineState: string, handler: Handler): Handler =>
+        !options.stockRoundInterruptions
+            ? handler
+            : machineState === 'StockRound'
+              ? new ResumesInterruptedTurnHandler(handler)
+              : new StockRoundInterruptionHandler(handler)
+    const observesActions = (machineState: string, handler: Handler): Handler => {
+        const observer = Object.entries(options.actionObservers ?? {}).find(
+            ([observed]) => observed === machineState
+        )?.[1]
+        if (!observer) return handler
+        return {
+            isValidAction: (action, context) => handler.isValidAction(action, context),
+            validActionsForPlayer: (playerId, context) =>
+                handler.validActionsForPlayer(playerId, context),
+            enter: (context) => handler.enter(context),
+            onAction(action, context) {
+                observer(context.gameState, action)
+                return handler.onAction(action, context)
+            }
+        }
+    }
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
-        Object.entries({ ...familyStateHandlers, ...options.titleStateHandlers }).map(
-            ([machineState, handler]) => [
+        Object.entries({
+            ...familyStateHandlers,
+            ...interruptionHandlers,
+            ...options.titleStateHandlers
+        }).map(([machineState, handler]) => [
+            machineState,
+            observesActions(
                 machineState,
-                awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
-            ]
-        )
+                interrupts(
+                    machineState,
+                    awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
+                )
+            )
+        ])
     )
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
@@ -716,6 +775,9 @@ export function createEighteenXXRuntime<
             receivershipRules
         ),
         ...trainActions(options.trainRules, options.phaseRules, !loanStep),
+        ...(options.stockRoundInterruptions
+            ? stockRoundInterruptionActions(operatingRules, receivershipRules)
+            : []),
         ...bidBoxActions(options.bidBoxRules),
         ...(options.titleActions ?? [])
     ])

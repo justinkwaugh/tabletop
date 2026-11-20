@@ -17,7 +17,8 @@
     })
     const company = $derived(getCompany(session.gameState, pending.companyId))
     const choice = $derived(module.formationChoice)
-    const reason = $derived(choice ? module.formationReason(choice) : 'Choose a size.')
+    const payment = $derived(module.formationPayment)
+    const reason = $derived(module.formationProblem)
     const startPrice = $derived(
         session.stockMarketChart.space(terms.startSpace(session.gameState, pending.price)).price
     )
@@ -28,7 +29,7 @@
         <div class="company">
             <CompanyToken appearance={session.mapView.stations[company.id]} size={48} />
             <div>
-                <strong>{session.companyName(company.id)}</strong>
+                <strong>{session.actionCompanyName(company.id)}</strong>
                 <span
                     >{session.getPlayerName(pending.playerId)} won for {money(pending.price)} · starts
                     at {money(startPrice)}</span
@@ -51,16 +52,20 @@
                         aria-pressed={choice?.privateIds.includes(privateId)}
                         disabled={!module.canForm}
                         onclick={() => module.toggleContribution(privateId)}
-                        >{session.companyName(privateId)}</button
+                        >{session.actionCompanyName(privateId)}</button
                     >
                 {/each}
             </div>
         {/if}
+        {#if payment}<p role="status">
+                Cash <strong>{money(payment.cash)}</strong> · Privates
+                <strong>{money(payment.privatesValue)}</strong>
+            </p>{/if}
         {#if reason}<p role="status">{reason}</p>{/if}
         <button
             class="action-button"
             disabled={!module.canForm || !!reason}
-            onclick={() => module.form()}>Form {session.companyName(company.id)}</button
+            onclick={() => module.form()}>Form {session.actionCompanyName(company.id)}</button
         >
     </div>
 </article>

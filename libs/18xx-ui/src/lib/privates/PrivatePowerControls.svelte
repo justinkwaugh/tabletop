@@ -25,7 +25,11 @@
     )
     const selectedPower = $derived(session.privateActions.trackPowerSelection?.value)
     const prompts = $derived(session.presentation.privateTilePrompts ?? {})
-    const shown = $derived(exchanges.length + trackPowers.length + requestPlayers.length > 0)
+    // On the player's turn the operating steps offer it beside their other private controls.
+    const titleAction = $derived(session.isMyTurn ? undefined : session.titlePrivateAction)
+    const shown = $derived(
+        !!titleAction || exchanges.length + trackPowers.length + requestPlayers.length > 0
+    )
     const dropText: Record<PrivatePowerRequestDropReason, string> = {
         'no-legal-use': 'no legal use remained',
         'private-closed': 'the private closed',
@@ -38,10 +42,20 @@
 
 {#if shown}
     <div class="private-powers" role="group" aria-label="Private powers">
+        {#if titleAction}<span class="power"
+                ><button
+                    class="request"
+                    aria-pressed={titleAction.pressed}
+                    disabled={session.busy}
+                    onclick={() => titleAction.press()}>{titleAction.label}</button
+                ></span
+            >{/if}
         {#each exchanges as option (`${option.playerId}:${option.privateCompanyId}:${option.certificateId}`)}
             <span class="power">
                 <span class="name"
-                    >{owner(option.playerId)}{session.companyName(option.privateCompanyId)}</span
+                    >{owner(option.playerId)}{session.actionCompanyName(
+                        option.privateCompanyId
+                    )}</span
                 >
                 <PrivateExchangeButton {session} {option} />
             </span>
@@ -49,7 +63,9 @@
         {#each trackPowers as power (`${power.playerId}:${power.privateCompanyId}`)}
             <span class="power">
                 <span class="name"
-                    >{owner(power.playerId)}{session.companyName(power.privateCompanyId)}</span
+                    >{owner(power.playerId)}{session.actionCompanyName(
+                        power.privateCompanyId
+                    )}</span
                 >
                 <PrivateTrackPowerButton
                     {session}
@@ -72,7 +88,7 @@
                 <span class="name"
                     >{owner(playerId)}{session.privates
                         .requestablePrivateIds(playerId)
-                        .map((id) => session.companyName(id))
+                        .map((id) => session.actionCompanyName(id))
                         .join(', ')}</span
                 >
                 <button

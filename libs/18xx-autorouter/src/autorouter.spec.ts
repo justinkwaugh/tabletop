@@ -83,6 +83,30 @@ it('separates capacities of a mixed fleet and shares stations without sharing tr
     expect(result.result.routes).toHaveLength(2)
     expect(result.result.routes.find((r) => r.trainId === '1')?.visits).toHaveLength(3)
 })
+it('gives a route two trains of a type earn the same on to the first, though the other is lengthened', () => {
+    for (const lengthened of ['0', '1']) {
+        const { state, rules } = position(
+            [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+            [{ measure: 'cities-and-offboards', maximum: 2 }],
+            {},
+            {
+                extendedDefinition: (_state, _companyId, train, definition) =>
+                    train.id === lengthened
+                        ? { ...definition, distance: { ...definition.distance, maximum: 3 } }
+                        : definition
+            }
+        )
+        state.trainInventory.trains.push({
+            id: '1',
+            definitionId: '0',
+            status: 'owned',
+            owner: { kind: 'company', companyId: 'A' }
+        })
+        const result = router.solve(state, rules, 'A')
+        expect(result.result.revenue).toBe(50)
+        expect(result.result.routes.map((route) => route.trainId)).toEqual(['0'])
+    }
+})
 it('uses staged diesel values, has no stop cap and preserves state across repeated calls', () => {
     const { state, rules } = position(
         [
@@ -235,6 +259,18 @@ it('scores express paying stops with route-wide bonuses', () => {
     expect(result.exhaustive).toBe(true)
     expect(result.result.revenue).toBe(110)
     expect(result.result.routes[0].visits).toHaveLength(3)
+})
+
+it('charges a negative hex bonus, as a ferry fee', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), track('yellow', [[3, 0]]), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }],
+        {},
+        { hexBonus: (_state, locationId) => (locationId === '1' ? -10 : 0) }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.result.revenue).toBe(40)
+    expect(result.result.routes[0].bonuses).toEqual([{ locationId: '1', amount: -10 }])
 })
 
 it.each([false, true])(

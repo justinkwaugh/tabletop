@@ -1,10 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assert } from '@tabletop/common'
+import { CityId } from '../data/boardMap.js'
 import { RailroadId } from '../data/railroads.js'
 import { ActionType } from '../definition/actions.js'
-import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
-import { currentRoundNumber, isLastRound, turnOrderByMoney } from '../rules/endOfRound.js'
+import { inCityIdOrder, type HydratedRideTheRailsGameState } from '../model/gameState.js'
+import {
+    currentRoundNumber,
+    isLastRound,
+    ROUND_END_PASSENGER_CITY,
+    roundEndPassenger,
+    turnOrderByMoney
+} from '../rules/endOfRound.js'
 import { PlayerMoney, moneyOf } from '../rules/scoring.js'
 import { availableRailroads } from '../rules/supply.js'
 
@@ -13,7 +20,9 @@ export const EndRoundMetadata = Type.Object({
     round: Type.Integer({ minimum: 1 }),
     turnOrder: Type.Array(Type.String()),
     money: Type.Array(PlayerMoney),
-    railroadId: Type.Optional(RailroadId)
+    railroadId: Type.Optional(RailroadId),
+    // R-8 (France): the city that took a passenger at the end of the round.
+    passengerPlacedIn: Type.Optional(CityId)
 })
 
 export type EndRound = Type.Static<typeof EndRound>
@@ -41,7 +50,7 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
         super(data, EndRoundValidator)
     }
 
-    // R-2.5
+    // R-2.5; R-8 (France): Paris Travels.
     apply(state: HydratedRideTheRailsGameState, _context?: MachineContext) {
         assert(HydratedEndRound.canEndRound(state), 'Round 6 ends the game instead (R-6.1)')
         const round = currentRoundNumber(state)
@@ -54,11 +63,19 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
         state.roundManager.startRound(state.actionCount + 1)
 
         const railroadId = availableRailroads(state).find((id) => !availableBefore.includes(id))
+        const passengerPlacedIn = roundEndPassenger(
+            ROUND_END_PASSENGER_CITY[state.mapId],
+            state.passengers
+        )
+        if (passengerPlacedIn) {
+            state.passengers = inCityIdOrder([...state.passengers, passengerPlacedIn])
+        }
         this.metadata = {
             round,
             turnOrder,
             money: moneyOf(state, turnOrder),
-            ...(railroadId ? { railroadId } : {})
+            ...(railroadId ? { railroadId } : {}),
+            ...(passengerPlacedIn ? { passengerPlacedIn } : {})
         }
     }
 

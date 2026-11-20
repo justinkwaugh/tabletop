@@ -248,6 +248,7 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
             )
         )
     },
+    contributionValue: privateValue,
     formationReason,
     form
 }

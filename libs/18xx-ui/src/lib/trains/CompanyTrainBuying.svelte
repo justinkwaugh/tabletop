@@ -61,7 +61,7 @@
                 appearance={session.mapView.stations[response.buyer.companyId]}
                 size={24}
             />
-            <strong>{session.companyName(response.buyer.companyId)}</strong>
+            <strong>{session.actionCompanyName(response.buyer.companyId)}</strong>
             <span>offers {money(response.price)} for</span>
             <TrainBadge name={selectedTrain.name} color={trainColors[selectedTrain.id]} />
             <span>from</span>
@@ -120,10 +120,10 @@
     {:else}
         <div class="choices">
             {#each companies as { companyId, trains } (companyId)}
-                <div class="company" role="group" aria-label={session.companyName(companyId)}>
+                <div class="company" role="group" aria-label={session.actionCompanyName(companyId)}>
                     <div class="company-heading">
                         <CompanyToken appearance={session.mapView.stations[companyId]} size={24} />
-                        <strong>{session.companyName(companyId)}</strong>
+                        <strong>{session.actionCompanyName(companyId)}</strong>
                         <span class="treasury">{treasury(companyId)}</span>
                     </div>
                     <div class="company-roster">

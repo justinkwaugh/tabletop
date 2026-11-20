@@ -6,7 +6,6 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import type { BoardView } from '$lib/model/boardView.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BOARD_EXTENTS } from '$lib/utils/boardGeometry.js'
     import {
         BOARD_MAX_FIT_SCALE,
         buildZoomKeepsView,
@@ -30,6 +29,8 @@
     } = $props()
 
     const gameSession = getGameSession()
+    // Displayed Game State: the board the view shows is the shown state's map.
+    const board = $derived(gameSession.boardFrame)
 
     function viewOf(element: HTMLElement): RectangleDimensions {
         return { width: element.clientWidth, height: element.clientHeight }
@@ -38,7 +39,7 @@
     // Contract, Phone layout: the middle third, hexes at least 37 px.
     function showResting(animate: boolean) {
         if (!wrapper) return
-        const request = restingRequest(viewOf(viewport))
+        const request = restingRequest(board, viewOf(viewport))
         wrapper.focusRect(request.rect, { maxScale: request.maxScale, padding: 0, animate })
         boardView.rest()
     }
@@ -50,9 +51,9 @@
     // inside the view's CSS zoom, so it is measured as drawn (`docs/phone-rendering.md`, Measuring
     // under zoom).
     function shownNow(): BoundingBox | undefined {
-        const board = findInTable(tableOf(viewport), '[data-map-board]')
-        if (!board) return undefined
-        return shownBoardRect(visualClientRect(board), viewport.getBoundingClientRect())
+        const drawn = findInTable(tableOf(viewport), '[data-map-board]')
+        if (!drawn) return undefined
+        return shownBoardRect(board, visualClientRect(drawn), viewport.getBoundingClientRect())
     }
 
     // Contract, Phone layout: a new Riding offer whose lit hexes all lie outside a cover-fit view
@@ -61,7 +62,7 @@
     function lookAtOffer() {
         const hexIds = boardView.offer.take()
         const shown = shownNow()
-        if (!wrapper || !hexIds || !shown || !restsAtCover(viewOf(viewport))) return
+        if (!wrapper || !hexIds || !shown || !restsAtCover(board, viewOf(viewport))) return
         const target = litRevealRect(hexIds, shown)
         if (!target) return
         boardView.leaveRest()
@@ -80,9 +81,9 @@
         if (boardView.resting) return showResting
         // A focus rather than a fit, so a resize while it glides (the panel changing as the turn
         // ends) refits the whole map instead of stopping short.
-        if (!restsAtCover(viewOf(viewport)) && shownWrapper.isZoomedOut()) {
+        if (!restsAtCover(board, viewOf(viewport)) && shownWrapper.isZoomedOut()) {
             return (animate) =>
-                shownWrapper.focusRect(BOARD_EXTENTS, {
+                shownWrapper.focusRect(board.extents, {
                     maxScale: BOARD_MAX_FIT_SCALE,
                     padding: 0,
                     animate
@@ -106,8 +107,9 @@
         const view = viewOf(viewport)
         const shown = shownNow()
         if (!shown) return
-        if (move.kind === 'keep-in-view' && buildZoomKeepsView(move.hexIds, view, shown)) return
-        const request = buildZoomRequest(move.hexIds, view, shown)
+        if (move.kind === 'keep-in-view' && buildZoomKeepsView(board, move.hexIds, view, shown))
+            return
+        const request = buildZoomRequest(board, move.hexIds, view, shown)
         if (!request) return
         boardView.leaveRest()
         wrapper.focusRect(request.rect, { maxScale: request.maxScale, padding: 0, animate })
@@ -140,7 +142,7 @@
             if (!wrapper || size.width === 0 || size.height === 0) return
             if (!rested) {
                 rested = true
-                if (restsAtCover(size)) showResting(false)
+                if (restsAtCover(board, size)) showResting(false)
                 lookAtBuild()
                 lookAtOffer()
             } else if (boardView.resting) {

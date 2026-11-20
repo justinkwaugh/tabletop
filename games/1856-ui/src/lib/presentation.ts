@@ -147,13 +147,15 @@ export const Presentation1856: TitlePresentation<State1856> = {
         {
             color: 'yellow',
             name: 'Yellow',
-            description: 'Shares here do not count toward the certificate limit.'
+            description: 'Shares here do not count toward the certificate limit.',
+            marksCompanyValue: true
         },
         {
             color: 'brown',
             name: 'Brown',
             description:
-                'Shares here do not count toward the certificate limit, and a player may hold more than 60%.'
+                'Shares here do not count toward the certificate limit, and a player may hold more than 60%.',
+            marksCompanyValue: true
         },
         {
             color: 'black',

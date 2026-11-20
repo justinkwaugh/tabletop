@@ -20,7 +20,8 @@
         movableAttachments = [],
         onAttach,
         subsidyName = DefaultRunSubsidyName,
-        bonusName
+        bonusName,
+        colorOffset = 0
     }: {
         money: MoneyFormat
         result: OperatingResult
@@ -42,6 +43,8 @@
         subsidyName?: string
         /** Names what earned a route's bonus, so that each train's bonuses are listed under it. */
         bonusName?: (sourceId: string) => string
+        /** Where the routes' colours start, for a table beside another's. */
+        colorOffset?: number
     } = $props()
     const attached = (trainIds: readonly string[] = []) =>
         trainIds.flatMap((id) => attachments.find((train) => train.id === id) ?? [])
@@ -78,7 +81,9 @@
                         ><span class="train">
                             <span
                                 class="route-color"
-                                style:background={route ? routeColor(index) : '#b6afa5'}
+                                style:background={route
+                                    ? routeColor(index + colorOffset)
+                                    : '#b6afa5'}
                             ></span>
                             <TrainBadge
                                 name={trainName(train.definitionId)}

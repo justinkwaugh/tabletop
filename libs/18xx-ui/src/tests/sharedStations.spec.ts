@@ -62,3 +62,41 @@ it('prints a neutral station in the neutral art, whichever company runs from it'
         stationMapTokens({ ...state, neutralStations: [] }, view).map((token) => token.color)
     ).toEqual(['#f38221'])
 })
+
+it('prints a closed company’s station in the closed-company art where the map view has one', () => {
+    const state = {
+        stations: [
+            {
+                id: 'CO:1',
+                companyId: 'CO',
+                status: 'placed' as const,
+                position: { locationId: 'K15', nodeId: 'city', slot: 0 }
+            },
+            {
+                id: 'BO:1',
+                companyId: 'BO',
+                status: 'placed' as const,
+                position: { locationId: 'I19', nodeId: 'city', slot: 0 }
+            }
+        ],
+        stationReservations: [],
+        companies: [
+            { id: 'CO', closed: true },
+            { id: 'BO', closed: false }
+        ]
+    }
+    const stations = {
+        CO: { color: '#b0e0e6', label: 'C&O' },
+        BO: { color: '#4682b4', label: 'B&O' }
+    }
+    const blocking = { color: '#010101', label: 'Blocking' }
+    expect(
+        stationMapTokens(state, { stations, closedCompanyStation: blocking }).map(
+            (token) => token.label
+        )
+    ).toEqual(['Blocking', 'B&O'])
+    expect(stationMapTokens(state, { stations }).map((token) => token.label)).toEqual([
+        'C&O',
+        'B&O'
+    ])
+})

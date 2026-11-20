@@ -5,8 +5,10 @@ import {
     createCityTileFace,
     createOffboardTileFace,
     createStagedTileRevenue,
+    createTownTileFace,
     parseTileDefinition,
     type TileFace,
+    type TilePath,
     type TileRotation
 } from '@tabletop/18xx'
 import { createTileDrawing } from '../lib/tiles/tileDrawing.js'
@@ -81,6 +83,25 @@ describe('tile drawing geometry', () => {
         }).nodes
         expect(dot.townAngle).toBeUndefined()
         expect(dot.dotRadius).toBeGreaterThan(bar.dotRadius)
+    })
+
+    it('leaves out the marker of a town whose every track prints as a spike', () => {
+        const face = createTownTileFace('blue', [[0, 1, 2]], 0)
+        const [firstTrack, ...otherTracks] = face.paths
+        const spiked = (paths: readonly TilePath[]) =>
+            createTileDrawing(face, HexOrientation.Flat, 0, {
+                printedPaths: Object.fromEntries(paths.map((path) => [path.id, 'spike']))
+            }).nodes[0]
+        expect(spiked(otherTracks).unmarked).toBeUndefined()
+        expect(spiked(otherTracks).dotRadius).toBe(9)
+        const arrowsOnly = spiked([firstTrack, ...otherTracks])
+        expect(arrowsOnly.unmarked).toBe(true)
+        expect(arrowsOnly.dotRadius).toBe(6.3)
+    })
+
+    it('keeps the marker of a town without track', () => {
+        const [town] = createTileDrawing(createTownTileFace('white', [[]], 0)).nodes
+        expect(town.unmarked).toBeUndefined()
     })
 
     it('draws a city without station spaces as a dot the size of a station', () => {
@@ -283,12 +304,18 @@ describe('tile viewer filtering', () => {
             '18xx:146',
             '18xx:147',
             '18xx:437',
+            '18xx:887',
+            '18xx:888',
             '18xx:630',
             '18xx:631',
             '18xx:632',
             '18xx:633',
             '18xx:767',
-            '18xx:769'
+            '18xx:769',
+            '18xx:87',
+            '18xx:88',
+            '18xx:204',
+            '18xx:911'
         ])
     })
 })

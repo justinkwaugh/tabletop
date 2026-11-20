@@ -78,22 +78,31 @@ export function tabbedTableLayout(title: {
     board: boolean
     chat: boolean
     gameInformation: boolean
+    /** What the title calls the stock market and the train depot. */
+    marketLabel: string
+    depotLabel: string
 }): TabbedTableLayout {
+    const { marketLabel, depotLabel } = title
     const sidebarTabs = sidebar.filter((id) => id !== 'Chat' || title.chat)
     const optional = [
         'Player Aid',
         'Depot',
         'Stats',
+        'Entities',
         ...(title.gameInformation ? ['Game info'] : [])
     ]
     const tabs: WorkspaceTab[] = [
         { id: 'Map', label: title.board ? 'Board' : 'Map', closable: false },
-        { id: 'Market', label: 'Market', ...(title.board ? { optional: true } : {}) },
+        { id: 'Market', label: marketLabel, ...(title.board ? { optional: true } : {}) },
         { id: 'Spreadsheet', label: 'Spreadsheet', shortLabel: 'Sheet' },
         { id: 'Companies', label: 'Companies' },
         { id: 'Tiles', label: 'Tiles' },
         ...sidebarTabs.map((id) => ({ id, label: id })),
-        ...optional.map((id) => ({ id, label: id, optional: true }))
+        ...optional.map((id) => ({
+            id,
+            label: id === 'Depot' ? depotLabel : id,
+            optional: true
+        }))
     ]
     return {
         tabs,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { USA_CITIES, USA_HEXES, type HexId } from '@tabletop/ride-the-rails'
+import { USA_CITIES, USA_HEXES, boardMap, type HexId } from '@tabletop/ride-the-rails'
 import { appCss, paletteNames } from '$lib/testing/paletteSource.js'
 import { BOARD_LOOK, hexPaint, LOOK_OPTIONS } from './boardLook.js'
 
@@ -98,5 +98,54 @@ describe('hex paint', () => {
         expect(paint('Chicago')).toEqual(patch('var(--rtr-hex-chicago)'))
         expect(paint('Denver')).toEqual(patch('var(--rtr-hex-city)'))
         expect(paint('Omaha')).toEqual(patch('var(--rtr-hex-city)'))
+    })
+
+    it('greys a city printed with Black alone as the USA’s plain city, and lightens the rest (R-8)', () => {
+        const paint = (mapId: 'map.ca' | 'map.fr' | 'map.de', name: string) => {
+            const city = boardMap(mapId).cities.find((candidate) => candidate.name === name)
+            if (!city) throw new Error(`No ${name}`)
+            return hexPaint(city.hexId, 'start-cities')
+        }
+        expect(paint('map.ca', 'Sudbury')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('map.fr', 'Caen')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('map.de', 'Bremen')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('map.fr', 'Lille')).toEqual(patch('var(--rtr-hex-start-city)'))
+        expect(paint('map.ca', 'Montréal')).toEqual(patch('var(--rtr-hex-start-city)'))
+        expect(paint('map.de', 'Berlin')).toEqual(patch('var(--rtr-hex-chicago)'))
+    })
+
+    it('fills the Alps as mountains and a long-distance hex in its ochre, both as patches (R-8.2)', () => {
+        const hexOf = (terrain: string) => {
+            const hex = boardMap('map.au').hexes.find((candidate) => candidate.terrain === terrain)
+            if (!hex) throw new Error(`No ${terrain} hex`)
+            return hex.id
+        }
+        expect(hexPaint(hexOf('alps'))).toEqual(patch('var(--rtr-mountain)'))
+        expect(hexPaint(hexOf('long-distance'))).toEqual(patch('var(--rtr-long-haul)'))
+    })
+
+    it('tints the six Paris entry hexes pale navy on the plains’ grid (R-8.4)', () => {
+        const france = boardMap('map.fr')
+        const entries = france.hexes.filter((hex) =>
+            france.groupsOf(hex.id).includes('paris-entry')
+        )
+        expect(entries).toHaveLength(6)
+        for (const hex of entries) {
+            expect(hexPaint(hex.id)).toEqual({ ...PLAIN, fill: 'var(--rtr-entry)' })
+        }
+    })
+
+    it('greys every city with no limit as Chicago: Toronto, Paris and Berlin (R-8)', () => {
+        for (const [mapId, name] of [
+            ['map.ca', 'Toronto'],
+            ['map.fr', 'Paris'],
+            ['map.de', 'Berlin']
+        ] as const) {
+            const city = boardMap(mapId).cities.find((candidate) => candidate.name === name)
+            if (!city) throw new Error(`No city ${name}`)
+            expect(hexPaint(city.hexId, 'start-cities'), name).toEqual(
+                patch('var(--rtr-hex-chicago)')
+            )
+        }
     })
 })

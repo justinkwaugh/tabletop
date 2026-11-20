@@ -1,7 +1,9 @@
 import {
     assertExists,
+    isCallGameAction,
     sameCoordinates,
     type AxialCoordinates,
+    type CallGameAction,
     type GameAction
 } from '@tabletop/common'
 import {
@@ -39,7 +41,18 @@ export type CaptureEntry = TurnSpan & {
     captured: { color: MarbleColor; seed: number }[]
 }
 
-export type HistoryEntry = PlacementEntry | CaptureEntry
+export type MoveEntry = PlacementEntry | CaptureEntry
+
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = MoveEntry | CallEntry
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
@@ -47,7 +60,16 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     let chain: CaptureEntry | undefined
 
     actions.forEach((action, index) => {
-        if (isPlaceMarble(action)) {
+        if (isCallGameAction(action)) {
+            chain = undefined
+            entries.push({
+                kind: 'call',
+                id: action.id,
+                firstIndex: index,
+                lastIndex: index,
+                action
+            })
+        } else if (isPlaceMarble(action)) {
             chain = undefined
             const seed = placementSeed(action.coords, index)
             const { metadata } = action

@@ -3,7 +3,7 @@ import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     USA_HEXES,
-    usaCity,
+    cityById,
     type EndBuilding,
     type EndGame,
     type EndRound,
@@ -28,8 +28,8 @@ const BASE = { id: 'a1', gameId: 'g1' }
 const USER = { ...BASE, source: ActionSource.User }
 const SYSTEM = { ...BASE, source: ActionSource.System }
 
-const CHICAGO_HEX = usaCity('city.usa.chicago').hexId
-const DENVER_HEX = usaCity('city.usa.denver').hexId
+const CHICAGO_HEX = cityById('city.usa.chicago').hexId
+const DENVER_HEX = cityById('city.usa.denver').hexId
 const MOUNTAIN_HEX = USA_HEXES.find(({ terrain }) => terrain === 'mountain')?.id
 assertExists(MOUNTAIN_HEX, 'The USA map has mountains')
 

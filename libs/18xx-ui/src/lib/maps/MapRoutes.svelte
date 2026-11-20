@@ -29,7 +29,7 @@
             <rect {...scene.bounds} fill="white"></rect>
             {#each scene.locations.filter((entry) => !entry.hidden) as entry (entry.location.id)}
                 <g transform={`translate(${entry.center.x} ${entry.center.y})`} fill="black">
-                    {#each entry.drawing.nodes.filter((node) => node.node.kind !== 'city') as node (node.node.id)}
+                    {#each entry.drawing.nodes.filter((node) => node.node.kind !== 'city' && !node.unmarked) as node (node.node.id)}
                         {#if node.node.kind === 'town' && appearance.townMarker === 'bar' && node.townAngle !== undefined}
                             <rect
                                 x="-9"

@@ -5,6 +5,8 @@ import {
     createPhaseChart,
     currentDepotCertificates,
     marketCertificates,
+    phaseLabel,
+    phaseName,
     trainRosterRows
 } from './phaseChart.js'
 
@@ -230,4 +232,49 @@ it('leaves out a variant’s phases and trains and keeps its permanent trains', 
         ['4', 'D'],
         ['D', undefined]
     ])
+})
+
+it('lists the upgrades a title gives its trains on their roster rows', () => {
+    const chart = createPhaseChart({
+        phases,
+        depot,
+        trainUpgrades: (trainId) => (trainId === '4' ? [{ definitionId: '8', price: 650 }] : [])
+    })
+    expect(chart.trains.map((train) => [train.id, train.upgrades])).toEqual([
+        ['2', []],
+        ['4', [{ definitionId: '8', price: 650 }]],
+        ['8', []],
+        ['D', []]
+    ])
+})
+
+it('keeps faces with different upgrades on their own rows', () => {
+    const [cheaper, dearer] = [
+        rosterTrain('3/5', '4', 160, 'III'),
+        rosterTrain('4', '4', 160, 'III')
+    ]
+    expect(
+        trainRosterRows([{ ...cheaper, upgrades: [{ definitionId: '5', price: 200 }] }, dearer])
+            .length
+    ).toBe(2)
+})
+
+it('names a phase that shares its name by the event that starts it', () => {
+    const chart = {
+        phases: [
+            { id: 'green', name: 'Green', tileColors: [], operatingRounds: 2, trainLimit: 2 },
+            {
+                id: 'treaty',
+                name: 'Green',
+                event: 'Treaty of Boston',
+                tileColors: [],
+                operatingRounds: 2,
+                trainLimit: 2
+            }
+        ]
+    }
+    expect(phaseName(chart, 'treaty')).toBe('Green — Treaty of Boston')
+    expect(phaseLabel(chart, ['treaty'])).toBe('Green phase — Treaty of Boston')
+    expect(phaseLabel(chart, ['green', 'treaty'])).toBe('Green phase — Treaty of Boston')
+    expect(phaseLabel({ phases: [] }, ['3', '4'])).toBe('Phase 3 → 4')
 })

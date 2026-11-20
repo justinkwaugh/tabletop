@@ -1,5 +1,6 @@
 import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
+import { StartChoices, startChoicesReason } from './startChoices.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
@@ -84,7 +85,9 @@ export const ParCompany = Type.Object(
         ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ParCompany'),
         companyId: Type.String(),
-        marketSpaceId: Type.String()
+        marketSpaceId: Type.String(),
+        /** The title's start choices, such as the BCR's 1880 par slot and permits, by choice id. */
+        choices: Type.Optional(StartChoices)
     },
     { additionalProperties: false }
 )
@@ -101,6 +104,7 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
     declare playerId: string
     declare companyId: string
     declare marketSpaceId: string
+    declare choices?: StartChoices
     readonly #rules: CompanyRules
     readonly #market: StockMarketChart
     constructor(data: ParCompany, rules: CompanyRules, market: StockMarketChart) {
@@ -110,7 +114,9 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
     }
     isValid(state: ParState): boolean {
         return (
-            this.source === ActionSource.User && parReason(state, this.#rules, this) === undefined
+            this.source === ActionSource.User &&
+            parReason(state, this.#rules, this) === undefined &&
+            startChoicesReason(state, this.#rules, this.companyId, this) === undefined
         )
     }
     apply(state: HydratedGameState & ParState): void {
@@ -120,6 +126,7 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
             playerId: this.playerId
         })
         delete state.pendingPar
+        if (this.choices) this.#rules.applyStartChoices?.(state, this.companyId, this.choices)
     }
 }
 

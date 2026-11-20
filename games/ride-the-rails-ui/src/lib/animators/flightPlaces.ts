@@ -1,9 +1,10 @@
 import type { Point } from '@tabletop/common'
 import { visualClientRect } from '@tabletop/frontend-components'
 import type { RailroadId } from '@tabletop/ride-the-rails'
-import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardGeometry.js'
+import type { BoardGeometry } from '$lib/utils/boardGeometry.js'
 import { findInTable, viewOf } from '$lib/utils/tableScope.js'
 import {
+    CONNECTION_KEY,
     TRANSCONTINENTAL_KEY,
     moneyKey,
     seatCardKey,
@@ -115,13 +116,13 @@ export function boardBoxOf(board: Element): ScreenBox {
 }
 
 /** The board's frame from its box on screen; none while the board is not drawn. */
-export function frameOf(box: ScreenBox): BoardFrame | undefined {
+export function frameOf(board: BoardGeometry, box: ScreenBox): BoardFrame | undefined {
     if (box.width === 0 || box.height === 0) return undefined
     return {
         left: box.left,
         top: box.top,
-        scaleX: box.width / BOARD_WIDTH,
-        scaleY: box.height / BOARD_HEIGHT
+        scaleX: box.width / board.width,
+        scaleY: box.height / board.height
     }
 }
 
@@ -129,27 +130,35 @@ export function frameOf(box: ScreenBox): BoardFrame | undefined {
  * Where a flight lifts from when nothing on the table shows its railroad's pile (the table is not
  * drawn): the middle of the board's top edge, where the railroad cards stand.
  */
-export const ABOVE_THE_BOARD: Point = { x: BOARD_WIDTH / 2, y: 0 }
+export function aboveTheBoard(board: BoardGeometry): Point {
+    return { x: board.width / 2, y: 0 }
+}
 
 /**
  * Where a seat's flight lands when nothing on the table shows its card or money (the History tab
  * is open or the side panel is folded): the board's edge beside the side panel.
  */
-export const BESIDE_THE_SIDE_PANEL: Point = { x: 0, y: BOARD_HEIGHT / 2 }
+export function besideTheSidePanel(board: BoardGeometry): Point {
+    return { x: 0, y: board.height / 2 }
+}
 
 /**
  * Contract, Animation plan: the board holds only the map, so a flight goes to the element on the
  * table marked with its key (a railroad's pile, a seat's card or money, the Transcontinental chip),
  * in board units; none while the board or the element is not drawn.
  */
-function tablePlace(table: Element | undefined, key: string): Point | undefined {
-    const board = boardIn(table)
-    const frame = board && frameOf(boardBoxOf(board))
+function tablePlace(
+    board: BoardGeometry,
+    table: Element | undefined,
+    key: string
+): Point | undefined {
+    const drawn = boardIn(table)
+    const frame = drawn && frameOf(board, boardBoxOf(drawn))
     if (!table || !frame) return undefined
     const boxes = [...table.querySelectorAll(`[${FLIGHT_TARGET_ATTRIBUTE}="${key}"]`)]
         .map((element) => visualClientRect(element))
         .filter((box) => box.width > 0 && box.height > 0)
-    const landing = landingPoint(boxes, viewOf(board))
+    const landing = landingPoint(boxes, viewOf(drawn))
     return landing ? toBoard(frame, landing) : undefined
 }
 
@@ -157,25 +166,43 @@ function tablePlace(table: Element | undefined, key: string): Point | undefined 
  * Where a railroad's locomotives lift from: its supply pile, on its card, or on a phone the share
  * button's or the build panel's pile.
  */
-export function railroadSourcePoint(table: Element | undefined, railroadId: RailroadId): Point {
-    return tablePlace(table, supplyKey(railroadId)) ?? ABOVE_THE_BOARD
+export function railroadSourcePoint(
+    board: BoardGeometry,
+    table: Element | undefined,
+    railroadId: RailroadId
+): Point {
+    return tablePlace(board, table, supplyKey(railroadId)) ?? aboveTheBoard(board)
 }
 
 /** Where a seat's coins land: its money, on its seat card or in the waiting view. */
-export function seatMoneyPoint(table: Element | undefined, playerId: string): Point {
-    return tablePlace(table, moneyKey(playerId)) ?? BESIDE_THE_SIDE_PANEL
+export function seatMoneyPoint(
+    board: BoardGeometry,
+    table: Element | undefined,
+    playerId: string
+): Point {
+    return tablePlace(board, table, moneyKey(playerId)) ?? besideTheSidePanel(board)
 }
 
 /** Where a seat's new share lands: the slot it fills on the seat card, or the card itself. */
-export function seatCardPoint(table: Element | undefined, playerId: string, slot?: number): Point {
+export function seatCardPoint(
+    board: BoardGeometry,
+    table: Element | undefined,
+    playerId: string,
+    slot?: number
+): Point {
     return (
-        (slot === undefined ? undefined : tablePlace(table, shareSlotKey(playerId, slot))) ??
-        tablePlace(table, seatCardKey(playerId)) ??
-        BESIDE_THE_SIDE_PANEL
+        (slot === undefined ? undefined : tablePlace(board, table, shareSlotKey(playerId, slot))) ??
+        tablePlace(board, table, seatCardKey(playerId)) ??
+        besideTheSidePanel(board)
     )
 }
 
 /** Where the Transcontinental's coin lands: the chip in the turn line. */
-export function transcontinentalPoint(table: Element | undefined): Point {
-    return tablePlace(table, TRANSCONTINENTAL_KEY) ?? ABOVE_THE_BOARD
+export function transcontinentalPoint(board: BoardGeometry, table: Element | undefined): Point {
+    return tablePlace(board, table, TRANSCONTINENTAL_KEY) ?? aboveTheBoard(board)
+}
+
+/** R-8: where a connection bonus's coin lands, its chip in the turn line. */
+export function connectionPoint(board: BoardGeometry, table: Element | undefined): Point {
+    return tablePlace(board, table, CONNECTION_KEY) ?? aboveTheBoard(board)
 }

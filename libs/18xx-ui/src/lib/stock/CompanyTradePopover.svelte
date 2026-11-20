@@ -75,7 +75,7 @@
         return [
             certificate.number === undefined ? '' : `#${certificate.number}`,
             certificate.president || certificate.shares !== 1 ? `${certificate.shares} shares` : '',
-            certificate.president ? 'President' : ''
+            certificate.president ? session.terms.president : ''
         ]
             .filter(Boolean)
             .join(' · ')

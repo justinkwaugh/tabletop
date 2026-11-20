@@ -10,7 +10,7 @@
         recordedResult?: OperatingResult
         session: Pick<
             EighteenXXSessionView,
-            'undo' | 'busy' | 'isViewingHistory' | 'companyName' | 'placeName'
+            'undo' | 'busy' | 'isViewingHistory' | 'actionCompanyName' | 'placeName'
         > & {
             gameState: Pick<EighteenXXSessionView['gameState'], 'routeStep' | 'companies'>
             presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
@@ -50,7 +50,7 @@
     <section aria-label="Train routes" class="routes">
         <header>
             <h3>
-                {session.companyName(step.companyId)} · Routes
+                {session.actionCompanyName(step.companyId)} · Routes
             </h3>
             {#if showUndo}<button
                     onclick={() => session.undo()}

@@ -9,14 +9,14 @@
 </script>
 
 {#if pending}
-    {@const company = session.companyName(pending.companyId)}
+    {@const company = session.actionCompanyName(pending.companyId)}
     {@const outgoing = session.ownerName(pending.previous)}
-    <section aria-label="Presidency exchange">
-        <h3>{company}’s new president</h3>
+    <section aria-label={`${session.terms.presidency} exchange`}>
+        <h3>{company}’s new {session.terms.presidentWord}</h3>
         <p>
-            {session.ownerName(pending.next)} takes {company}’s presidency.
+            {session.ownerName(pending.next)} takes {company}’s {session.terms.presidencyWord}.
             {session.stock.canChoosePresidencyExchange ? 'Choose' : `${outgoing} chooses`} what to take
-            for the president’s certificate.
+            for the {session.terms.presidentWord}’s certificate.
         </p>
         {#if session.stock.canChoosePresidencyExchange}
             <div class="choices" role="group" aria-label="Certificates to take">

@@ -13,6 +13,8 @@ import { AssetTransfer, transferCompanyAssets } from '../company/companyMerger.j
 import { CompanyClosure, closeShareCompany } from '../company/companyClosure.js'
 import { startCompanyAtPar } from '../company/companyStart.js'
 import { ConnectedTrack } from '../construction/connectedTrack.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
+import { RoundEnd, roundEnd } from '../ending/roundEnd.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import {
     finiteCashOwnedBy,
@@ -78,6 +80,8 @@ export interface MergerRoundRules {
     directorShares: number
     certificateLimit(state: State): number
     ownershipLimitPercent(state: State): number
+    /** How players' net worth is valued as the round ends. */
+    valuationRules: ValuationRules
 }
 
 export type MergerRequest = {
@@ -124,7 +128,9 @@ const StartMergerRoundAction = systemAction('StartMergerRound', {
 export const StartMergerRound = StartMergerRoundAction.schema
 export const isStartMergerRound = StartMergerRoundAction.is
 
-const EndMergerRoundAction = systemAction('EndMergerRound', {})
+const EndMergerRoundAction = systemAction('EndMergerRound', {
+    metadata: Type.Optional(Type.Object({ roundEnd: RoundEnd }, { additionalProperties: false }))
+})
 export const EndMergerRound = EndMergerRoundAction.schema
 export const isEndMergerRound = EndMergerRoundAction.is
 
@@ -437,6 +443,7 @@ export class MergerRounds {
 
         class HydratedEndMergerRound extends EndMergerRoundAction.Base {
             declare type: 'EndMergerRound'
+            declare metadata?: Type.Static<typeof EndMergerRound>['metadata']
             apply(state: State): void {
                 const round = rounds.requireRound(state)
                 assert(
@@ -447,6 +454,9 @@ export class MergerRounds {
                 )
                 round.completed = true
                 state.activePlayerIds = []
+                this.metadata = {
+                    roundEnd: roundEnd(state, rounds.rules.valuationRules, 'title')
+                }
             }
         }
 

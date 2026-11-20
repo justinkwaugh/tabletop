@@ -55,7 +55,9 @@ export class WaterfallAuctionModule {
             return entry
         })
     })
-    openLotId = $derived(this.model?.auction.remainingLotIds[0])
+    priceRows = $derived(this.model?.priceRows() ?? [])
+    /** The lots the player on turn could only buy, never bid on. */
+    buyOnlyLotIds = $derived(this.model?.buyOnlyLotIds() ?? [])
     contest = $derived.by(() => {
         const bidding = this.model?.auction.bidding
         if (!bidding) return undefined

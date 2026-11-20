@@ -51,6 +51,10 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /** The label's colour in place of ink, drawn without a halo, as on a dark city it stands on. */
+    labelColor?: string
+    /** A label position by the tile's rotation, for a label that stays put as the tile turns. */
+    labelPositionByRotation?: Partial<Record<TileRotation, Point>>
     /** Where the cost of upgrading the tile is printed, in place of the clearest spot found. */
     upgradeCostPosition?: Point
     /**
@@ -163,6 +167,7 @@ export type TileDrawnToken = {
 export type TileDrawnNode = {
     node: TileNode
     center: Point
+    unmarked?: true
     slots: readonly Point[]
     /** Spaces opened into an upside-down V, whose band leaves its bottom side open. */
     openBand?: true
@@ -205,6 +210,8 @@ export type TileDrawing = {
     crossings: readonly TrackCrossing[]
     nodes: readonly TileDrawnNode[]
     labelPosition: Point
+    /** The label's colour, where its layout gives one. */
+    labelColor?: string
     symbolPosition: Point
     upgradeCostPosition: Point
     printedTokens: readonly TileDrawnToken[]
@@ -473,8 +480,9 @@ export function createTileDrawing(
                 : [center]
         })
     ]
-    if (face.labels.length > 0 && layout.labelPosition) {
-        occupied.push(orientPoint(layout.labelPosition, angle))
+    const labelHint = layout.labelPositionByRotation?.[rotation] ?? layout.labelPosition
+    if (face.labels.length > 0 && labelHint) {
+        occupied.push(orientPoint(labelHint, angle))
     }
     const drawnNodes = face.nodes.map((node): Omit<TileDrawnNode, 'slotRadius'> => {
         const center = centers.get(node.id)
@@ -526,22 +534,32 @@ export function createTileDrawing(
                   )
         if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
-        const tracks = face.paths.filter((path) =>
+        const nodeTracks = face.paths.filter((path) =>
             path.endpoints.some(
                 (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
             )
-        ).length
+        )
+        const tracks = nodeTracks.length
+        const unmarked =
+            (node.kind === 'town' || node.kind === 'junction') &&
+            tracks > 0 &&
+            nodeTracks.every((path) => {
+                const drawn = paths.find((entry) => entry.id === path.id)
+                return !!(drawn?.spike || drawn?.pier)
+            })
         // A town on through track, or ending a single track, is a bar across that track.
         const townAngle =
             !style.townDots &&
+            !unmarked &&
             node.kind === 'town' &&
             (automaticTownPaths.has(node.id) || tracks === 1)
                 ? townMarkerAngle(center, paths)
                 : undefined
-        const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 ? 9 : 6.3
+        const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 && !unmarked ? 9 : 6.3
         return {
             node,
             center,
+            ...(unmarked ? { unmarked: true as const } : {}),
             slots: node.kind === 'city' ? citySlots(node, center) : [],
             ...(node.kind === 'city' && layout.slotSpreads?.[node.id] !== undefined
                 ? { openBand: true as const }
@@ -572,8 +590,8 @@ export function createTileDrawing(
                 drawn.node.kind === 'city' && !drawn.slots.length ? slotRadius : drawn.dotRadius
         }
     })
-    const labelPosition = layout.labelPosition
-        ? orientPoint(layout.labelPosition, angle)
+    const labelPosition = labelHint
+        ? orientPoint(labelHint, angle)
         : labelAnnotationPosition(
               paths,
               occupied,
@@ -606,6 +624,7 @@ export function createTileDrawing(
         crossings: trackCrossings(paths),
         nodes,
         labelPosition,
+        ...(layout.labelColor ? { labelColor: layout.labelColor } : {}),
         symbolPosition,
         upgradeCostPosition,
         inkGround: !!layout.inkGround,

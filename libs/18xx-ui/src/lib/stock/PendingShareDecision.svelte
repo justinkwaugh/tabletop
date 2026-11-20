@@ -12,7 +12,7 @@
             readonly presentation: { money: MoneyFormat }
             readonly busy: boolean
             readonly mapView: { stations: Readonly<Record<string, StationAppearance>> }
-            companyName(companyId: string): string
+            actionCompanyName(companyId: string): string
             getPlayerName(playerId: string): string
         }
         actions: Pick<
@@ -55,7 +55,7 @@
             onDecline={() => actions.declineProtection(prompt.companyId)}
         >
             <CompanyToken appearance={session.mapView.stations[prompt.companyId]} size={24} />
-            <strong>{session.companyName(prompt.companyId)}</strong>
+            <strong>{session.actionCompanyName(prompt.companyId)}</strong>
             <span
                 >{session.getPlayerName(prompt.sellerPlayerId)} sold {prompt.shares}
                 {shares(prompt.shares)} for {money(prompt.proceeds)}. Buy {prompt.shares === 1

@@ -7,7 +7,7 @@
 </script>
 
 {#if pending}
-    {@const name = session.companyName(pending.privateCompanyId)}
+    {@const name = session.actionCompanyName(pending.privateCompanyId)}
     <section aria-label="Private station choice">
         <header>
             {#if positions.length === 1}

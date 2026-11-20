@@ -15,6 +15,7 @@
         phaseColors,
         tileColors,
         tileColorNames,
+        depotName,
         onclose
     }: {
         money: MoneyFormat
@@ -26,6 +27,7 @@
         phaseColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
+        depotName: string
         onclose: () => void
     } = $props()
     let dialog: HTMLDialogElement
@@ -47,10 +49,10 @@
     onclick={closeOutside}
 >
     <header>
-        <h2 id={titleId}>{depotOnly ? 'Train Depot' : 'Phase Chart & Train Roster'}</h2>
+        <h2 id={titleId}>{depotOnly ? `Train ${depotName}` : 'Phase Chart & Train Roster'}</h2>
         <button
             class="close"
-            aria-label={depotOnly ? 'Close depot' : 'Close phase chart'}
+            aria-label={depotOnly ? `Close ${depotName.toLowerCase()}` : 'Close phase chart'}
             onclick={() => dialog.close()}
         >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"

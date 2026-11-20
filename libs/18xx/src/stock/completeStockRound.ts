@@ -96,6 +96,7 @@ export class HydratedCompleteStockRound
         for (const move of marketMoves)
             placeStockMarker(state.stockMarket, move.companyId, move.toMarketSpaceId)
         state.turnManager.turnOrder = [...nextPlayerOrder]
+        this.#rules.afterRound?.(state)
         state.stockRound.completed = true
         delete state.stockRound.instructions
         this.metadata = {

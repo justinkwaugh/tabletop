@@ -20,7 +20,7 @@
     const gameState = $derived(session.gameState)
     const instructions = $derived(session.instructions)
     const names = $derived({
-        companyName: (id: string) => session.companyName(id),
+        companyName: (id: string) => session.actionCompanyName(id),
         poolName: (id: string) => session.poolName(id)
     })
     const disabled = $derived(session.busy || session.isViewingHistory || !instructions.canDeclare)
@@ -149,14 +149,16 @@
             {@const ignored = ignoredStopsText(instructions.mine.instruction.ignoredStops)}
             <span class="summary"
                 >{stockInstructionText(instructions.mine.instruction, names)}{#if ignored}<span
-                        class="ignored">{` · ${ignored}`}</span
+                        class="ignored">{` · ${session.terms.reword(ignored)}`}</span
                     >{/if}</span
             >
             {#if instructions.warning}<span class="warning" role="status"
-                    >Stops next turn: {stopReasonText(
-                        instructions.warning,
-                        names,
-                        session.presentation.instructionStopText
+                    >Stops next turn: {session.terms.reword(
+                        stopReasonText(
+                            instructions.warning,
+                            names,
+                            session.presentation.instructionStopText
+                        )
                     )}</span
                 >{#if warningStop}<button
                         class="link"
@@ -171,14 +173,16 @@
             <span class="tray notice" role="status"
                 ><StopNotice
                     subject={stockInstructionKindLabel(instructions.lastStop.instruction.kind)}
-                    reason={stopReasonText(
-                        instructions.lastStop.stopReason,
-                        names,
-                        session.presentation.instructionStopText
+                    reason={session.terms.reword(
+                        stopReasonText(
+                            instructions.lastStop.stopReason,
+                            names,
+                            session.presentation.instructionStopText
+                        )
                     )}
                     keepGoing={resumableStop
                         ? {
-                              ignoring: ignorableStopNoun[resumableStop],
+                              ignoring: session.terms.reword(ignorableStopNoun[resumableStop]),
                               resume: () => void instructions.keepGoing()
                           }
                         : undefined}
@@ -197,7 +201,7 @@
                     aria-expanded={pickerOpen}
                     aria-controls={pickerId}
                     aria-label={choice
-                        ? `Company: ${session.companyName(choice.company.id)}`
+                        ? `Company: ${session.actionCompanyName(choice.company.id)}`
                         : 'Choose company'}
                     {disabled}
                 >
@@ -228,7 +232,7 @@
                                     appearance={session.mapView.stations[option.company.id]}
                                     size={22}
                                 />
-                                <span>{session.companyName(option.company.id)}</span>
+                                <span>{session.actionCompanyName(option.company.id)}</span>
                             </button>
                         {/each}
                     </div>
@@ -307,7 +311,7 @@
 
 {#snippet help()}
     <HelpPopover label="When a standing instruction stops">
-        <StopConditions choice={stopChoice} {disabled} />
+        <StopConditions choice={stopChoice} {disabled} reword={session.terms.reword} />
     </HelpPopover>
 {/snippet}
 

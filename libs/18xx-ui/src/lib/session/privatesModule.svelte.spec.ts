@@ -160,6 +160,56 @@ describe('PrivatesModule', () => {
         expect(privates({ interactive: false }).module.exchangeOffers).toEqual([])
     })
 
+    describe('with the title’s own exchange actions', () => {
+        function titleExchanges() {
+            const { session, applied } = privates()
+            const bank = { owner: { kind: 'bank' as const }, poolId: 'market' }
+            session.state.certificates.push(
+                {
+                    id: 'P:charter',
+                    companyId: 'P',
+                    kind: 'private',
+                    owner: { kind: 'player', playerId: TestPlayerId }
+                },
+                ...createOrdinaryShareCertificates('R', [bank], bank)
+            )
+            const module = new PrivatesModule({
+                ...session,
+                rules: {
+                    ...session.rules,
+                    privateExchangeActions: [{ type: 'TitleExchange' }],
+                    privateRules: {
+                        ...minimalPrivateRules,
+                        exchangeTerms: () => ({
+                            certificateIds: ['R:share:1'],
+                            timing: 'any-turn',
+                            stockAction: 'none',
+                            ownershipLimit: 'ordinary'
+                        })
+                    }
+                }
+            })
+            return { applied, module }
+        }
+
+        it('leaves the family’s exchange controls empty', () => {
+            const { module } = titleExchanges()
+            expect(module.hasExchanges).toBe(false)
+            expect(module.exchangeOffers).toEqual([])
+            expect(module.allExchangeOptions).toEqual([])
+        })
+
+        it('still sends the exchange the title’s list chose', async () => {
+            const { applied, module } = titleExchanges()
+            await module.submitExchange(request)
+            expect(applied[0]).toMatchObject({
+                type: 'ExchangePrivate',
+                privateCompanyId: 'P',
+                certificateId: 'R:share:1'
+            })
+        })
+    })
+
     it('refuses an exchange that is not on offer and keeps nothing pending', () => {
         const { module } = privates()
         expect(() => module.selectExchange(request)).toThrow('Choose an available private exchange')

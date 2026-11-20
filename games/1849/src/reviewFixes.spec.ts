@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { corporateFinanceChoices, finalWealth, treasuryPoolId } from '@tabletop/18xx'
+import {
+    corporateFinanceChoices,
+    finalWealth,
+    privateStationPositions,
+    treasuryPoolId
+} from '@tabletop/18xx'
 import { Random, botMove } from '../test/bot.js'
 import { kit, type Table } from '../test/kit.js'
+import { CoastalCityLocationIds } from './map.js'
 import { CorporateFinanceRules1849, EndingRules1849, RequiresTrain1849 } from './operating.js'
 import { MarittimaTurnMark, StationRules1849 } from './stations.js'
 import { nextCorporation1849 } from './stock.js'
@@ -114,6 +120,26 @@ describe('the SMS (§7.1)', () => {
         // The mark ends with the turn.
         delete state.turnMarks
         expect(StationRules1849.placementLimit(state, companyId)).toBe(1)
+    })
+
+    it('still offers its own station once its lay has taken the token step', () => {
+        const game = stockRound()
+        const state = game.hydrated
+        const companyId = state.corporationOrder[0]
+        state.operatingSet = {
+            number: 2,
+            roundNumber: 1,
+            roundCount: 1,
+            companyOrder: [companyId],
+            completedCompanyIds: [],
+            privateIncomePaid: true,
+            completed: false
+        }
+        state.turnMarks = [MarittimaTurnMark]
+        const offered = CoastalCityLocationIds.flatMap((locationId) =>
+            privateStationPositions(state, StationRules1849, { companyId, locationId })
+        )
+        expect(offered.length).toBeGreaterThan(0)
     })
 })
 

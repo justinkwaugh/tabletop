@@ -90,12 +90,15 @@
     import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
     import LocationTileChoice from '../maps/LocationTileChoice.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
+    import EntityColumns from './EntityColumns.svelte'
+    import { entityColumns, type EntityHolders } from './entityColumns.js'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
+    import PhaseNotice from '../phases/PhaseNotice.svelte'
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
@@ -117,6 +120,7 @@
     let {
         session,
         additionalStockActions = [],
+        offTurnPanel,
         gameInformation,
         boardInformation,
         auctionLotDescription,
@@ -130,6 +134,8 @@
     }: {
         session: EighteenXXSessionView
         additionalStockActions?: readonly StockMenuOption[]
+        /** The title's own panel for a player acting while the game waits on another. */
+        offTurnPanel?: Snippet
         gameInformation?: Snippet
         boardInformation?: Snippet
         auctionLotDescription?: (id: string) => string
@@ -147,6 +153,7 @@
         boardPanel?: { label: string; content: Snippet<[(locationId: string) => void]> }
     } = $props()
     const money = $derived(session.presentation.money)
+    const terms = $derived(session.terms)
     const {
         marketPoolId,
         ipoPoolId,
@@ -390,6 +397,12 @@
     )
     const mapExtents = $derived(boardMode ? boardExtents : [])
     type BoardFocusTarget = 'Full' | 'Map' | 'Market' | 'Depot'
+    const boardFocusLabels = $derived<Record<BoardFocusTarget, string>>({
+        Full: 'Full',
+        Map: 'Map',
+        Market: 'Market',
+        Depot: terms.depot
+    })
     let boardFocus = $state<{
         target: BoardFocusTarget
         restore: ReturnType<ScalingWrapper['captureView']>
@@ -404,7 +417,13 @@
             return
         }
         boardFocus = { target, restore: boardFocus?.restore ?? wrapper.captureView() }
-        if (area) wrapper.focusRect(viewportRect(boardViewport, area), { animate: true })
+        // Markets print along the board's top, so a centred focus on a short (one-row) market pulls
+        // blank space in above it; every market frames from its top edge instead.
+        if (area)
+            wrapper.focusRect(viewportRect(boardViewport, area), {
+                animate: true,
+                align: target === 'Market' ? 'top' : 'center'
+            })
         else wrapper.fitToContent({ animate: true })
     }
     const boardFocusTarget = $derived(
@@ -428,7 +447,7 @@
         )
             .filter(([target, area]) => target === 'Full' || area)
             .map(([target, area]) => ({
-                label: target,
+                label: boardFocusLabels[target],
                 selected: boardFocusTarget === target,
                 onSelect: () => focusBoard(target, area)
             }))
@@ -487,7 +506,7 @@
               ? offeredCityLocationIds
               : !session.privateActions.trackPowerSelection && session.stations.canPlace
                 ? session.stations.locationIds
-                : session.track.locationIds
+                : session.track.pieceLocationIds
     )
     const highlightedPlacementLocationIds = $derived(
         !locationChoice && session.track.showChoices
@@ -536,28 +555,46 @@
             ? session.routes.solved
             : undefined
     )
-    type RouteFraming = { runningCompanyId: string | undefined; preview: typeof routePreview }
+    type RouteFraming = {
+        runningCompanyId: string | undefined
+        preview: typeof routePreview
+        titleRoutes: readonly MapRoute[]
+    }
     function frameRoutes(_table: HTMLElement, initial: RouteFraming) {
-        let framed: RouteFraming = { runningCompanyId: undefined, preview: undefined }
+        let framed: RouteFraming = {
+            runningCompanyId: undefined,
+            preview: undefined,
+            titleRoutes: []
+        }
         let request = 0
         function frame(next: RouteFraming) {
             const previous = framed
             framed = next
-            if (previous.runningCompanyId && previous.runningCompanyId !== next.runningCompanyId) {
+            if (
+                (previous.runningCompanyId &&
+                    previous.runningCompanyId !== next.runningCompanyId) ||
+                (previous.titleRoutes.length && !next.titleRoutes.length)
+            ) {
                 const restore = restoreRouteView
                 restoreRouteView = undefined
                 if (!session.isViewingHistory) restore?.({ animate: true })
             }
-            if (next.preview === previous.preview) return
+            if (next.preview === previous.preview && next.titleRoutes === previous.titleRoutes)
+                return
             const current = ++request
             const preview = next.preview
-            if (!preview) return
+            const titleRoutes = next.titleRoutes
+            if (!preview && !titleRoutes.length) return
             mapFocus = undefined
             showMap()
             void tick().then(() => {
                 if (current !== request) return
                 restoreRouteView ??= captureMaps()
-                autoFocusLocations(runLocationIds(preview.result.routes))
+                autoFocusLocations(
+                    preview
+                        ? runLocationIds(preview.result.routes)
+                        : routeLocationIds(titleRoutes, session.mapView)
+                )
             })
         }
         frame(initial)
@@ -633,9 +670,11 @@
                 : session.projectedRun.overlays
         settledRoutes = historicalFocus
             ? trainRouteOverlays(historicalFocus.routes)
-            : session.routes.overlays.length
-              ? session.routes.overlays
-              : session.projectedRun.overlays
+            : session.titleMapRoutes.length
+              ? [...session.titleMapRoutes]
+              : session.routes.overlays.length
+                ? session.routes.overlays
+                : session.projectedRun.overlays
         return settledRoutes
     })
     const routeSolver = provideTableRouteSolver(() => createRouteWorker())
@@ -666,7 +705,11 @@
                     legalLocationIds: placementLocationIds,
                     highlightedLocationIds: highlightedPlacementLocationIds
                 }
-            if (routePreview && !session.routes.editor.trainId && mapRoutes.length)
+            if (
+                (session.titleMapRoutes.length ||
+                    (routePreview && !session.routes.editor.trainId)) &&
+                mapRoutes.length
+            )
                 return {
                     legalLocationIds: [],
                     highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
@@ -737,6 +780,7 @@
             includedCompanyIds
         )
     )
+    const entities = $derived(entityColumns(gameState, startedCompanies, portfolioCompanyIds))
     const unstartedPresentation = $derived(session.presentation.unstartedCompanies)
     const companiesToStart = $derived(
         unstartedPresentation
@@ -778,23 +822,28 @@
     const initialView = 'Map'
     let selectedView = $state<string>(initialView)
     const view = $derived(selectedView)
+    // A title's words never change, so the tab layout reads them once.
+    const tabTerms = untrack(() => session.terms)
     const workspaceTabs = views.map((id) => ({
         id,
-        label: id,
+        label: id === 'Market' ? tabTerms.stockMarket : id,
         closable: id !== 'Actions',
         ...(id === 'Spreadsheet' ? { shortLabel: 'Sheet' } : {})
     }))
     const paneTabs = [
         ...workspaceTabs,
-        { id: 'Depot', label: 'Depot', optional: true },
+        { id: 'Depot', label: tabTerms.depot, optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
         { id: 'Stats', label: 'Stats', optional: true },
+        { id: 'Entities', label: 'Entities', optional: true },
         ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
     ]
     const tabbedLayout = untrack(() =>
         tabbedTableLayout({
+            marketLabel: tabTerms.stockMarket,
+            depotLabel: tabTerms.depot,
             board: boardAvailable,
             chat: session.chatAvailable,
             gameInformation: !!gameInformation
@@ -851,8 +900,9 @@
 
 <svelte:window onkeydown={navigateByShortcut} />
 
-{#snippet playerCards()}<PlayersPanel
+{#snippet playerCards(holders?: EntityHolders)}<PlayersPanel
         {session}
+        playerIds={holders?.playerIds}
         {auctionLotDescription}
         {numberedShareNames}
         {numberedShareLocation}
@@ -862,7 +912,7 @@
         onShowCompanyCard={paneLayout.current
             ? undefined
             : (companyId) => (shownCompanyCardId = companyId)}
-        {portfolioCompanyIds}
+        portfolioCompanyIds={holders?.portfolioCompanyIds ?? portfolioCompanyIds}
     />{/snippet}
 
 {#snippet companyCard(
@@ -933,6 +983,7 @@
         highlightedLocationIds={mapMask?.highlightedLocationIds}
         previewLocationId={session.track.displayedPreview?.locationId ??
             session.stations.preview?.position.locationId}
+        tileGroups={session.track.showChoices ? session.mapView.tileGroups : undefined}
         translucentLocationId={consentPreview?.details.locationId}
         appearance={tileAppearance}
         hexDiameter={MapHexDiameter}
@@ -985,6 +1036,7 @@
                     companyName={(companyId) => session.companyName(companyId)}
                     zones={session.presentation.marketZones}
                     ledge={session.presentation.marketLedge}
+                    markers={session.marketMarkers}
                 />
                 {#if session.loans.rateTable}<LoanRateTable view={session.loans.rateTable} />{/if}
                 {#if boardInformation && corner}<div
@@ -999,7 +1051,7 @@
             </div>
         </BoardInset>{/if}
     {#if boardAreas?.depot}<BoardInset
-            label="Train depot"
+            label={`Train ${terms.depot.toLowerCase()}`}
             area={viewportRect(boardViewport, boardAreas.depot)}
         >
             <div class="board-depot">
@@ -1060,7 +1112,7 @@
         <span class="game-information-item">
             <span class="information-label">Phase</span>
             <TrainBadge
-                name={session.gameState.phaseId}
+                name={session.phaseName(session.gameState.phaseId)}
                 color={phaseColors[session.gameState.phaseId]}
             />
         </span>
@@ -1076,7 +1128,7 @@
             >
         </span>
         <span class="game-information-item depot-information">
-            <span class="information-label">Depot</span>
+            <span class="information-label">{terms.depot}</span>
             {#each currentCertificates as certificate (certificate.definitionIds[0])}
                 {@render depotCertificate(certificate)}
             {:else}<span>Empty</span>{/each}
@@ -1110,8 +1162,14 @@
         {/each}
     </button>
 {/snippet}
+{#snippet phaseNotice()}
+    {@const notice = session.presentation.phaseNotice?.(session.gameState)}
+    {#if notice}<PhaseNotice {notice} />{/if}
+{/snippet}
 {#snippet sidebarInformation()}
-    {#if paneLayout.current}{@render gameInformationStrip(paneStripStacking)}{/if}
+    {#if paneLayout.current}{@render gameInformationStrip(
+            paneStripStacking
+        )}{@render phaseNotice()}{/if}
     {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
 {#snippet chatPanel()}
@@ -1132,7 +1190,11 @@
     class="railway-table"
     class:published-artwork={publishedArtwork}
     use:framePlacement={activePlacementFocusKey}
-    use:frameRoutes={{ runningCompanyId, preview: routePreview }}
+    use:frameRoutes={{
+        runningCompanyId,
+        preview: routePreview,
+        titleRoutes: session.titleMapRoutes
+    }}
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
     use:projectRuns={session.projectedRun.request}
@@ -1221,6 +1283,7 @@
                                 </button>
                             </div>
                             {#if orderChipsShown}<CompanyOrder
+                                    stationToken={terms.stationToken}
                                     overview={false}
                                     bind:overflowing={orderOverflowing}
                                     bind:firstVisible={orderFirstVisible}
@@ -1259,6 +1322,7 @@
                     <div class="action-body" class:attention-frame={stackedTurnAttention}>
                         <div class="action-information">
                             {@render gameInformationStrip(actionStripStacking)}
+                            {@render phaseNotice()}
                         </div>
                         <TableNotices notices={session.notices} />
                         <OperatingSteps
@@ -1279,6 +1343,7 @@
                         {/if}
                         <section class="action-panel" aria-label="Current action">
                             {#if readOnlyPosition && !auctionShownToAll}
+                                {@render offTurnPanel?.()}
                                 <PositionPanel
                                     {session}
                                     {trainColors}
@@ -1289,7 +1354,7 @@
                                         {session}
                                         playerIds={[auctionTurnPlayerId]}
                                     />{/if}
-                                {#if turnAttention && session.myPlayer}<TurnRecap
+                                {#if !readOnlyPosition && session.myPlayer}<TurnRecap
                                         {session}
                                         playerId={session.myPlayer.id}
                                         describeAction={historyDescription}
@@ -1336,6 +1401,15 @@
                                     points={session.playerWealthHistory()}
                                     players={wealthPlayers}
                                 />{/if}
+                        </div>
+                    {:else if id === 'Entities'}<div class="workspace-view">
+                            <EntityColumns columns={entities}>
+                                {#snippet holders(column)}{@render playerCards(column)}{/snippet}
+                                {#snippet company(controlled)}{@render companyCard(controlled, {
+                                        layout: 'wide-fill',
+                                        onFocusConnection: focusConnection
+                                    })}{/snippet}
+                            </EntityColumns>
                         </div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">
                             {@render playerCards()}
@@ -1464,6 +1538,7 @@
                                                 session.companyName(companyId)}
                                             zones={session.presentation.marketZones}
                                             ledge={session.presentation.marketLedge}
+                                            markers={session.marketMarkers}
                                         />
                                         {#if session.loans.rateTable}<LoanRateTable
                                                 view={session.loans.rateTable}
@@ -1580,6 +1655,7 @@
         </DefaultTableLayout>
 
         {#if showPhaseChart}<PhaseChart
+                depotName={terms.depot}
                 {money}
                 {depotState}
                 chart={phaseChart}
@@ -1609,6 +1685,7 @@
                 preview={session.historicalMap}
                 revenueStageColors={session.mapView.revenueStageColors}
                 appearance={tileAppearance}
+                tileGroups={session.mapView.tileGroups}
                 onclose={() => session.closeHistoricalMap()}
             />
         {/if}
@@ -1740,8 +1817,19 @@
     .original-actions .action-information .game-information {
         padding-top: 8px;
     }
+    /* In the Actions pane the panel grows with its content and the body scrolls it, under the
+       instruction bar pinned to the pane's foot; stacked on a phone, the panel grows to fit. */
     .actions-area .action-panel {
+        display: flex;
+        flex-direction: column;
         flex: 1 0 auto;
+        overflow: visible;
+    }
+    .actions-area :global(.instruction-slot) {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        background: var(--rail-surface, #faf7f1);
     }
     .widget-empty {
         padding: 16px;
@@ -1905,6 +1993,15 @@
         letter-spacing: 0.07em;
         text-transform: uppercase;
         line-height: 1;
+        /* A faint dotted rule, like the Companies headers' underline, hints the strip opens the phase
+           chart. A border rather than a text underline runs unbroken across Train limit's flex gap. */
+        padding-bottom: 1px;
+        border-bottom: 1px dotted color-mix(in srgb, currentColor 40%, transparent);
+    }
+    @media (hover: hover) {
+        .game-information:hover .information-label {
+            border-bottom-color: currentColor;
+        }
     }
 
     .railway-table {

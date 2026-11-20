@@ -47,6 +47,10 @@
     --rtr-scrim-deep: #2a27228c;
     --rtr-lit-wash: #ffffff73;
     --rtr-sea-edge: #8aa2a9;
+    --rtr-impassable: #eb0000;
+    --rtr-alps-hatch: #7b4a2d99;
+    --rtr-long-haul: #e4cf8e;
+    --rtr-entry: #dce3eb;
     --rtr-coin: #e2b33c;
     --rtr-coin-ink: #2b2205;
     --rtr-five: #357f45;
@@ -188,6 +192,10 @@
     --color-rtr-sea: var(--rtr-sea);
     --color-rtr-sea-line: var(--rtr-sea-line);
     --color-rtr-sea-edge: var(--rtr-sea-edge);
+    --color-rtr-impassable: var(--rtr-impassable);
+    --color-rtr-alps-hatch: var(--rtr-alps-hatch);
+    --color-rtr-long-haul: var(--rtr-long-haul);
+    --color-rtr-entry: var(--rtr-entry);
     --color-rtr-frame: var(--rtr-frame);
     --color-rtr-plain: var(--rtr-plain);
     --color-rtr-hex-edge: var(--rtr-hex-edge);

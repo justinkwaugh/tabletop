@@ -67,7 +67,9 @@ export class FundingTrainHandler<
             case 'contribute':
                 return ['ContributeTrainFunds']
             case 'sell':
-                return ['SellFundingShares']
+                return next.borrowInstead
+                    ? ['SellFundingShares', 'ContributeTrainFunds']
+                    : ['SellFundingShares']
             case 'buy':
                 return ['BuyTrain']
             case 'bankrupt':

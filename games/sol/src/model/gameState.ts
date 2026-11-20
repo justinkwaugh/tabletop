@@ -218,6 +218,13 @@ export class HydratedSolGameState
         return this.getActivationForPlayer(turnPlayerId)
     }
 
+    sundiverBuildMultiplier(playerId: string): number {
+        const isDuplicating =
+            this.activeEffect === EffectType.Duplicate &&
+            this.turnManager.currentTurn()?.playerId === playerId
+        return isDuplicating ? 2 : 1
+    }
+
     addActivation(activation: Activation) {
         if (!this.activations) {
             this.activations = []

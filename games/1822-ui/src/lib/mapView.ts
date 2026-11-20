@@ -440,7 +440,6 @@ export const MapView1822: MapViewDefinition = {
     sharedCityLayouts: Object.fromEntries(
         [LondonLocationId, ...LondonTileIds1822].map((id) => [id, LondonRoundelLayouts])
     ),
-    borderWidths: { impassable: 5 },
     // Rough terrain, hills and mountains (£40, £60 and £80) as one, two and three peaks (§5.8.9).
     terrainIcons: { rough: 'peak', hill: 'mountain', mountain: 'range' },
     terrainCostPrefix: '£',

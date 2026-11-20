@@ -55,7 +55,7 @@
         onDecline={() => session.decisions.respondToTrackConsent(false)}
     >
         <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
-        <strong>{session.companyName(request.companyId)}</strong>
+        <strong>{session.actionCompanyName(request.companyId)}</strong>
         <span
             ><PlaceText
                 text={`requests permission to lay track at ${placeReference(request.locationId)}`}
@@ -163,7 +163,7 @@
                             <header class="private-track-prompt">
                                 <span
                                     >{privateTilePrompts[power.privateCompanyId] ??
-                                        `Place a tile using ${session.companyName(power.privateCompanyId)}`}</span
+                                        `Place a tile using ${session.actionCompanyName(power.privateCompanyId)}`}</span
                                 >
                                 {#if gameState.privateTrackLay && !gameState.privateTrackLay.required}
                                     <span>or</span>
@@ -182,7 +182,7 @@
                             {#each session.privateActions.sharedTrackPowers as power, index (index)}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
-                                    >{session.companyName(power.privateCompanyId)}</button
+                                    >{session.actionCompanyName(power.privateCompanyId)}</button
                                 >
                             {/each}
                             {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}:${power.label}`)}
@@ -207,7 +207,9 @@
                                     option.locationId
                                 )}{option.stopOrdinal
                                     ? `, stop ${option.stopOrdinal.index} of ${option.stopOrdinal.count}`
-                                    : ''} ({session.companyName(option.privateCompanyId)})</button
+                                    : ''} ({session.actionCompanyName(
+                                    option.privateCompanyId
+                                )})</button
                             >
                         {/each}
                     </div>
@@ -218,8 +220,8 @@
                             <button
                                 disabled={!session.decisions.canResolve}
                                 onclick={() => session.decisions.placePrivateToken(option)}
-                                >Place the {session.companyName(option.privateCompanyId)} station for
-                                free</button
+                                >Place the {session.actionCompanyName(option.privateCompanyId)} station
+                                for free</button
                             >
                         {/each}
                     </div>
@@ -230,7 +232,7 @@
                 {#if session.privateActions.selection === 'powers' && session.privates.exchangeOptions.length}
                     <div class="private-track">
                         {#each session.privates.exchangeOptions as option (`${option.playerId}:${option.privateCompanyId}:${option.certificateId}`)}
-                            <span>{session.companyName(option.privateCompanyId)}</span>
+                            <span>{session.actionCompanyName(option.privateCompanyId)}</span>
                             <PrivateExchangeButton {session} {option} />
                         {/each}
                     </div>

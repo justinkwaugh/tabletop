@@ -1,3 +1,25 @@
+<script lang="ts" module>
+    // WebKit restyles the whole page whenever a wheel listener is added or removed, so one
+    // listener, added as the first row mounts and kept, hands each wheel to the mounted row under
+    // it; rows come and go from the set (docs/phone-rendering.md).
+    const wheelRows = new Map<HTMLElement, (event: WheelEvent) => void>()
+    let listening = false
+    function dispatchWheel(event: WheelEvent) {
+        const target = event.target
+        if (!(target instanceof Node)) return
+        for (const [row, onWheel] of wheelRows)
+            if (row.contains(target)) {
+                onWheel(event)
+                return
+            }
+    }
+    function listenForWheels() {
+        if (listening) return
+        listening = true
+        window.addEventListener('wheel', dispatchWheel, { passive: false })
+    }
+</script>
+
 <script lang="ts">
     import type { Snippet } from 'svelte'
     import { chainSidewaysScroll, wheelDeltaUnit } from '@tabletop/frontend-components'
@@ -32,8 +54,9 @@
             event.preventDefault()
             row.scrollLeft += distance
         }
-        row.addEventListener('wheel', onWheel, { passive: false })
-        return () => row.removeEventListener('wheel', onWheel)
+        wheelRows.set(row, onWheel)
+        listenForWheels()
+        return () => wheelRows.delete(row)
     }
 </script>
 

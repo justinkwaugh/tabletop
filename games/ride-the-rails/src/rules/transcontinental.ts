@@ -1,6 +1,7 @@
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, isCityHex, USA_CITIES } from '../data/usaMap.js'
+import { adjacentHexIds, boardMap, isCityHex } from '../data/boardMaps.js'
+import type { MapId } from '../data/maps.js'
 import type { Track } from '../model/gameState.js'
 import { isEastCoastHex } from './placement.js'
 import { isWestCoastCity } from './startRailroad.js'
@@ -59,17 +60,22 @@ function hexIdsOf(end: LineState): HexId[] {
     return hexIds
 }
 
+// R-4.3.3: the Transcontinental is the USA board's bonus.
+const TRANSCONTINENTAL_MAP: MapId = 'map.usa'
+
 function westCoastStates(track: Track): LineState[] {
-    return USA_CITIES.filter(isWestCoastCity).flatMap((city) =>
-        railroadsIn(track, city.hexId).map((railroadId) => ({
-            hexId: city.hexId,
-            railroadId,
-            firstCarrier: undefined,
-            twoCarriers: false,
-            changedRailroadOutsideCity: false,
-            previous: undefined
-        }))
-    )
+    return boardMap(TRANSCONTINENTAL_MAP)
+        .cities.filter(isWestCoastCity)
+        .flatMap((city) =>
+            railroadsIn(track, city.hexId).map((railroadId) => ({
+                hexId: city.hexId,
+                railroadId,
+                firstCarrier: undefined,
+                twoCarriers: false,
+                changedRailroadOutsideCity: false,
+                previous: undefined
+            }))
+        )
 }
 
 function nextStates(track: Track, state: LineState): LineState[] {

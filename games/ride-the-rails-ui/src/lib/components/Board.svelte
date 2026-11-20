@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { usaCity, type HexId } from '@tabletop/ride-the-rails'
+    import { cityById, type HexId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BOARD_HEIGHT, BOARD_WIDTH, FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { BUILD_PICK, litHexViews, type PickContext } from '$lib/utils/pickMarks.js'
     import { EMPTY_STAGED_ROUTE } from '$lib/utils/routePath.js'
@@ -14,7 +13,9 @@
     import FlightLayer from './board/FlightLayer.svelte'
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
+    import ImpassableLayer from './board/ImpassableLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
+    import LinkRingLayer from './board/LinkRingLayer.svelte'
     import PassengerLayer from './board/PassengerLayer.svelte'
     import PickLayer from './board/PickLayer.svelte'
     import PopupAnchor, { CHOICE_ANCHOR_ID, RIDE_ANCHOR_ID } from './board/PopupAnchor.svelte'
@@ -23,9 +24,12 @@
     import StartCueLayer from './board/StartCueLayer.svelte'
     import TrackLayer from './board/TrackLayer.svelte'
 
-    let { viewScale = FITTED_DESKTOP_SCALE }: { viewScale?: number } = $props()
+    let { viewScale }: { viewScale: number } = $props()
 
     const gameSession = getGameSession()
+
+    // Displayed Game State: the board of the map the shown state is played on.
+    const board = $derived(gameSession.boardFrame)
 
     const offer = $derived(gameSession.boardOffer)
     const draft = $derived(gameSession.journeyDraft)
@@ -34,7 +38,7 @@
         draft
             ? {
                   kind: 'journey-extend',
-                  startHexId: usaCity(draft.startCityId).hexId,
+                  startHexId: cityById(draft.startCityId).hexId,
                   choosingHexId: gameSession.journeyPopup?.hexId
               }
             : gameSession.journeyLit.length > 0
@@ -42,6 +46,8 @@
               : BUILD_PICK
     )
     const views = $derived(litHexViews(offer, gameSession.gameState.track, context))
+    // The lit hexes, holes in the pick's scrim; none without a scrim.
+    const scrimHoles: ReadonlySet<HexId> = $derived(new Set(offer.scrim?.holes ?? []))
     // A hex's lone cube stands aside for a ghost cube drawn beside it (locomotivePieces).
     const standAside: ReadonlySet<HexId> = $derived(
         BOARD_LOOK.litRailroads === 'ghost-cube'
@@ -52,7 +58,7 @@
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
     // The city the next link leaves from, so each next city's chevron points the way it goes.
     const journeyFrom: HexId | undefined = $derived(
-        draft ? usaCity(draft.draftLinks.at(-1)?.cityId ?? draft.startCityId).hexId : undefined
+        draft ? cityById(draft.draftLinks.at(-1)?.cityId ?? draft.startCityId).hexId : undefined
     )
 
     // The route's last city, where a Ride button floats once the journey can be made.
@@ -67,24 +73,36 @@
 <!-- Contract, Render ownership: one SVG, back to front. -->
 <svg
     class="block select-none"
-    width={BOARD_WIDTH}
-    height={BOARD_HEIGHT}
-    viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
+    width={board.width}
+    height={board.height}
+    viewBox="0 0 {board.width} {board.height}"
     role="group"
-    aria-label="Map of the USA"
+    aria-label={gameSession.mapLayout.boardLabel}
     data-map-board
 >
     <GroundLayer />
     <LitWashLayer {views} />
     <CapacityMarks />
-    <MapTitle />
+    <MapTitle layout={gameSession.mapLayout} />
+    <LinkRingLayer />
     <CityLayer />
     <StartCueLayer />
     <BonusLayer />
-    <PassengerLayer startCityId={stagedRoute.startCityId} />
     <TrackLayer {standAside} />
     <LineLayer lastJourney={gameSession.lastJourney} />
     <ScrimLayer {offer} />
+    <!-- Over the scrim, so no band, cube or dark hex hides a side, and the line is never dimmed. -->
+    <ImpassableLayer />
+    <!-- Over the cubes and the red lines: a passenger stands above its own cubes and its head
+         reaches the hex above. An unlit city's passenger lays the scrim's fill over itself. -->
+    <PassengerLayer
+        startCityId={stagedRoute.startCityId}
+        {scrimHoles}
+        cities="unlit"
+        shaded={offer.scrim !== undefined}
+    />
+    <!-- A lit city's passenger, whose head stands outside its hex's hole, is never dimmed. -->
+    <PassengerLayer startCityId={stagedRoute.startCityId} {scrimHoles} cities="lit" />
     <!-- Above the scrim: the legend is never dimmed. -->
     <StartLegend mapId={gameSession.gameState.mapId} />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />

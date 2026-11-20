@@ -49,3 +49,5 @@ or `pnpm --filter @tabletop/18xx-playground test` for title integration and brow
 
 The [economic inspection slice](../18xx/finance.md) adds shared financial fields and queries
 and portfolio inspection, with title-owned examples in the standalone app.
+
+The optional [Entities view](entities.md) groups the table's cards by controlling player.

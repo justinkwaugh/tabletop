@@ -13,6 +13,8 @@ export interface StockRoundRules {
     soldOutRises?(state: StockState, companyId: string): number
     /** Down moves at the end of the round for a company's shares in the market pool. */
     poolDrop?(state: StockState, companyId: string): number
+    /** What else happens as the round ends, such as 1880's interest on players' debts (§X). */
+    afterRound?(state: StockState): void
 }
 
 export function playerOrderAfterLastTurn(state: StockState): string[] {

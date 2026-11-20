@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
     hexCapacity,
-    usaCity,
+    cityById,
     USA_CITIES,
     USA_HEXES,
     type CityId,
     type HexId,
     type RailroadId
 } from '@tabletop/ride-the-rails'
-import type { Point } from '@tabletop/common'
-import { hexCenter, hexCorners } from './boardGeometry.js'
+import { HexOrientation, type Point } from '@tabletop/common'
+import { hexCenter, hexOutline, HEX_SIZE } from './boardGeometry.js'
 import { BONUS_PILL, MEEPLE, PASSENGER_SCALE, passengerOffset } from './cityMarks.js'
+import { hexFrame, type TrackSlotOffsets } from './hexFrame.js'
 import { CUBE_CORNER_RATIO, CUBE_EDGE_WIDTH, CUBE_UNIT } from './cubeShape.js'
 import {
     ghostCubes,
@@ -21,10 +22,10 @@ import {
     trackSlots,
     type TrackSlot
 } from './trackLayout.js'
-import { boxesOverlap, centredBox } from '$lib/testing/shapeChecks.js'
+import { boxesOverlap, centredBox, frameHexagon } from '$lib/testing/shapeChecks.js'
 
 function cityHex(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 /** The cube drawn in a slot, a rounded square, as the corners of its box in board units. */
@@ -40,8 +41,10 @@ function cubeCorners(slot: TrackSlot): Point[] {
  * the hex's sides, of its distance outside each (negative inside).
  */
 function reachPastHex(slot: TrackSlot, hexId: HexId): number {
-    const center = hexCenter(hexId)
-    const corners = hexCorners(hexId)
+    return reachPastHexagon(slot, hexCenter(hexId), hexOutline(hexId))
+}
+
+function reachPastHexagon(slot: TrackSlot, center: Point, corners: readonly Point[]): number {
     const radius = slot.width * CUBE_CORNER_RATIO
     const half = slot.width / 2 - radius
     return Math.max(
@@ -123,9 +126,10 @@ describe('track slot shapes', () => {
     })
 
     it('keeps a city’s cubes clear of its bonus pill and its passenger', () => {
+        const pillCenter = hexFrame(HexOrientation.Pointy).bonusPill
         const pill = {
-            x: BONUS_PILL.center.x - BONUS_PILL.width / 2,
-            y: BONUS_PILL.center.y - BONUS_PILL.height / 2,
+            x: pillCenter.x - BONUS_PILL.width / 2,
+            y: pillCenter.y - BONUS_PILL.height / 2,
             width: BONUS_PILL.width,
             height: BONUS_PILL.height
         }
@@ -193,6 +197,47 @@ describe('track slot shapes', () => {
             [19.6, 9.5]
         ])
     })
+})
+
+describe('track slots either way up', () => {
+    function everySlot(slots: TrackSlotOffsets): { layout: string; slot: TrackSlot }[] {
+        return [
+            ...Object.entries(slots.byLayout).flatMap(([layout, list]) =>
+                list.map((slot) => ({ layout, slot }))
+            ),
+            ...Object.entries(slots.lone).flatMap(([layout, slot]) =>
+                slot ? [{ layout, slot }] : []
+            ),
+            ...Object.entries(slots.chicago).flatMap(([held, list]) =>
+                list.map((slot) => ({ layout: `chicago ${held}`, slot }))
+            )
+        ]
+    }
+
+    for (const orientation of [HexOrientation.Pointy, HexOrientation.Flat]) {
+        const frame = hexFrame(orientation)
+        const hexagon = frameHexagon(frame.cornerAngles, HEX_SIZE)
+        const origin = { x: 0, y: 0 }
+
+        it(`keeps every cube inside a ${orientation} hex, Chicago’s front corners all but`, () => {
+            for (const { layout, slot } of everySlot(frame.trackSlots)) {
+                const room = layout.startsWith('chicago') && slot.width < 20 ? 2.1 : 0
+                expect(reachPastHexagon(slot, origin, hexagon), layout).toBeLessThanOrEqual(room)
+            }
+        })
+
+        it(`keeps a ${orientation} city’s cubes clear of its bonus pill`, () => {
+            const pill = {
+                x: frame.bonusPill.x - BONUS_PILL.width / 2,
+                y: frame.bonusPill.y - BONUS_PILL.height / 2,
+                width: BONUS_PILL.width,
+                height: BONUS_PILL.height
+            }
+            for (const { layout, slot } of everySlot(frame.trackSlots)) {
+                expect(boxesOverlap(centredBox(slot), pill), layout).toBe(false)
+            }
+        })
+    }
 })
 
 describe('ghost cubes in a lit hex', () => {

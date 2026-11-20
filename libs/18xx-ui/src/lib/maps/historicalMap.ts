@@ -1,3 +1,4 @@
+import { withTileGroups } from './tileGroups.js'
 import type { MapSession } from '../session/mapModule.svelte.js'
 import {
     RailwayMapState,
@@ -125,6 +126,11 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         const set = snapshot.operatingSet
         const run = isRunTrains(action) ? action : undefined
         const routes = trainRouteOverlays(run ? recordedRunRoutes(run) : [])
+        // A lay outlines every hex its tile covers.
+        const pieceIds =
+            subject.kind === 'track lay'
+                ? withTileGroups(view, subject.locationIds)
+                : subject.locationIds
         const preview: HistoricalMap = {
             actionId: action.id,
             label: `${this.companyName(company.id)}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
@@ -152,8 +158,8 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
             reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,
-            outlinedLocationIds: subject.locationIds,
-            locations: run ? routeLocationIds(routes, view) : [...subject.locationIds]
+            outlinedLocationIds: pieceIds,
+            locations: run ? routeLocationIds(routes, view) : [...pieceIds]
         }
         this.cache.set(action.id, preview)
         if (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value!)

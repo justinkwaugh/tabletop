@@ -1,14 +1,15 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
-import { TRANSCONTINENTAL_BONUS } from '../data/bonuses.js'
 import { HexId } from '../data/hexes.js'
+import { lowersLimit } from '../data/placementLimits.js'
 import { RailroadId } from '../data/railroads.js'
-import { CityId, isUsaHex, usaHex } from '../data/usaMap.js'
+import { CityId } from '../data/boardMap.js'
+import { boardMap, isLongDistance } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
-import { placementBonuses, type BonusPayment } from '../rules/bonuses.js'
-import { isBuildingTurnOf } from '../rules/buildingTurn.js'
+import { claimOf, placementBonuses, type BonusPayment } from '../rules/bonuses.js'
+import { isBuildingTurnOf, recordPlacement } from '../rules/buildingTurn.js'
 import {
     hasLegalPlacement,
     placementTest,
@@ -75,7 +76,7 @@ export class HydratedPlaceLocomotive
         if (!isBuildingTurnOf(state, this.playerId)) {
             return { legal: false, reason: 'not-building-turn' }
         }
-        if (!isUsaHex(this.hexId)) {
+        if (!boardMap(state.mapId).hasHex(this.hexId)) {
             return { legal: false, reason: 'off-map' }
         }
         return placementTest(state, this.playerId, this.railroadId, this.hexId)
@@ -98,7 +99,8 @@ export class HydratedPlaceLocomotive
             state.mapId,
             placement,
             state.track,
-            state.transcontinental
+            state.transcontinental,
+            state.connectionClaim
         )
         state.track[this.hexId] = [...railroadsIn(state.track, this.hexId), this.railroadId]
         this.countPlacement(state)
@@ -107,22 +109,30 @@ export class HydratedPlaceLocomotive
         this.metadata = { isStart: placement.isStart, bonuses }
     }
 
-    // R-3.2.3, R-3.2.4
+    // R-3.2.3, R-3.2.4, R-8
     private countPlacement(state: HydratedRideTheRailsGameState) {
         assertExists(state.building, 'A placement needs a building turn')
-        state.building.placed += 1
-        if (usaHex(this.hexId).terrain === 'mountain') {
-            state.building.usedMountain = true
-        }
+        state.building = recordPlacement(state.building, {
+            chargesMountain: lowersLimit(state.mapId, this.railroadId, this.hexId),
+            longDistance: isLongDistance(this.hexId)
+        })
     }
 
-    // R-3.2.5, R-4.3.3: every bonus to the placing player; the Transcontinental is claimed once.
+    // R-3.2.5, R-4.3.3, R-8: every bonus to the placing player; the Transcontinental and a
+    // connection bonus are claimed once.
     private payBonuses(state: HydratedRideTheRailsGameState, bonuses: readonly BonusPayment[]) {
         const player = state.getPlayerState(this.playerId)
         for (const bonus of bonuses) {
             player.money += bonus.amount
-            if (bonus.bonusId === TRANSCONTINENTAL_BONUS.id) {
-                state.transcontinental = { playerId: this.playerId, amount: bonus.amount }
+            switch (claimOf(state.mapId, bonus)) {
+                case 'transcontinental':
+                    state.transcontinental = { playerId: this.playerId, amount: bonus.amount }
+                    break
+                case 'connection':
+                    state.connectionClaim = { playerId: this.playerId }
+                    break
+                case undefined:
+                    break
             }
         }
     }

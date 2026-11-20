@@ -23,7 +23,7 @@ Top to bottom:
 
 1. **Turn header**: one row.
     - Left end: whose turn it is. `Your turn` for the acting player; otherwise the active player's name in possessive form, `[Player name]'s turn` (`PlayerName` with `possessive`). It reads `History` in History View and `End of game` once the game has a result.
-    - Right end: the single **Undo** button. Its behavior is defined in [user interaction patterns](user-interactions.md#undo).
+    - Right end: the **Undo** button, with **Restart turn** beside it in titles that offer it. Their behavior is defined in [user interaction patterns](user-interactions.md#undo).
 2. **Action area** (see [action area views](#action-area-views)): exactly one of
     - the action panel, holding prompts and controls for the decision the player is making now;
     - the waiting view, for players who are not acting;
@@ -67,7 +67,7 @@ Full screen is a modal dialog, so everything outside the wrapper sits behind it 
 
 ### Focus views
 
-`ScalingWrapper` can zoom to a region: bind the wrapper and call `focusRect(rect, { animate, maxScale, padding })`, and `fitToContent()` to return to the whole board. Offer focus controls sparingly. They earn their place when the map is too big to read at a fitted scale, or when the game has distinct areas players repeatedly inspect. Render the controls in the `overlay` snippet so they stay over the board in full screen too; `games/oath-ui` does this with its focus chooser over named board areas. When controls overlay the board's top edge, set `insetTop` so fitting and focusing keep content clear of them.
+`ScalingWrapper` can zoom to a region: bind the wrapper and call `focusRect(rect, { animate, maxScale, padding, align })`, and `fitToContent()` to return to the whole board. A focused region is centred; `align: 'top'` puts its top edge at the top of the view instead, below `insetTop`, so a short region printed along the board's top, such as a one-row stock market, doesn't open with blank space above it. Offer focus controls sparingly. They earn their place when the map is too big to read at a fitted scale, or when the game has distinct areas players repeatedly inspect. Render the controls in the `overlay` snippet so they stay over the board in full screen too; `games/oath-ui` does this with its focus chooser over named board areas. When controls overlay the board's top edge, set `insetTop` so fitting and focusing keep content clear of them.
 
 ### Reading the scale
 

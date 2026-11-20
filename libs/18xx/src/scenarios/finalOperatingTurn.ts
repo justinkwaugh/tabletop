@@ -9,6 +9,7 @@ export function prepareFinalOperatingTurn(state: HydratedEighteenXXState): void 
         'Final turn example requires a scheduled ending and operator'
     )
     set.number = state.gameEnding.finalOperatingSet
+    assert(set.roundCount !== undefined, 'Final turn example requires a set of rounds')
     set.roundNumber = set.roundCount
     set.completedCompanyIds = set.companyOrder.filter((id) => id !== companyId)
 }

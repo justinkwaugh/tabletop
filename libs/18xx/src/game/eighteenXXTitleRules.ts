@@ -1,3 +1,4 @@
+import type { StepAction } from './stepAction.js'
 import type { TitleNames } from './titleNames.js'
 import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import type { ActionDefinition } from '../actions/actionDefinition.js'
@@ -71,6 +72,13 @@ export interface EighteenXXTitleRules<
         >
     >
     titleStateHandlers?: Readonly<Record<string, EighteenXXStateHandler<State>>>
+    /**
+     * Called with every action processed in a machine state, whichever handler takes it, for a
+     * title that must note what happened, such as a company's first act of its turn.
+     */
+    actionObservers?: Partial<
+        Record<EighteenXXMachineState, (state: State, action: HydratedAction) => void>
+    >
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules<State>
@@ -96,6 +104,11 @@ export interface EighteenXXTitleRules<
     transferRules: TransferRules
     privatePowerRules: PrivatePowerRules
     outOfTurnPrivatePowers?: boolean
+    /**
+     * A title's own ways of exchanging a private, allowed wherever the family's exchange is. The
+     * title then lists every exchange itself, so the family's exchange controls stay away.
+     */
+    privateExchangeActions?: readonly StepAction<State>[]
     trackRules: TrackRules
     /** The family operating steps the title runs, in order; all of them unless given. */
     operatingSteps?: readonly OperatingStepState[]
@@ -120,6 +133,11 @@ export interface EighteenXXTitleRules<
      */
     zeroPriceClosure?: ZeroPriceClosureRules
     runInstructions?: true
+    /**
+     * A stock round may interrupt an operating turn, the turn resuming once it ends, as 1880's
+     * (§XII); the title declares `StockRoundInterruptionMachineStates` and sets the interruption.
+     */
+    stockRoundInterruptions?: true
     /** Whether standing run instructions wait, as during a connection run between turns. */
     runInstructionsHeld?(state: TrainRunningState): boolean
 }

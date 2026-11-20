@@ -15,5 +15,20 @@ export const Shikoku1889Presentation: TitlePresentation = {
     companyNames: Shikoku1889CompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: { MF: 'Place the port tile', ER: 'Place a tile in Ohzu' },
-    privateTokens: { DR: { companyId: 'IR' }, MF: { tileSymbol: 'port' } }
+    privateTokens: { DR: { companyId: 'IR' }, MF: { tileSymbol: 'port' } },
+    marketZones: [
+        { color: 'pink', name: 'Par', description: 'A price a company may start at.' },
+        {
+            color: 'yellow',
+            name: 'Yellow',
+            description: 'Shares here do not count toward the certificate limit.',
+            marksCompanyValue: true
+        },
+        {
+            color: 'orange',
+            name: 'Orange',
+            description: 'As yellow, and a player may hold more than 60%.',
+            marksCompanyValue: true
+        }
+    ]
 }

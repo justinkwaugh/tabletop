@@ -2,11 +2,11 @@ import { assertExists } from '@tabletop/common'
 import {
     BONUSES,
     PLACEMENT_LIMITS,
-    USA_HEXES,
+    boardMap,
     legalPlacements,
     placementBonuses,
     supplyOf,
-    usaHex,
+    lowersLimit,
     type BonusId,
     type BonusPayment,
     type HexId,
@@ -20,6 +20,11 @@ export type OfferedPlacement = {
     railroadId: RailroadId
     isStart: boolean
     bonuses: BonusPayment[]
+    /**
+     * R-3.2.4, R-8: how far this placement lowers the turn's limit: the map's mountain cost for the
+     * turn's first mountain a railroad pays it for, else none (0).
+     */
+    limitChange: number
 }
 
 export type BonusMark = { kind: 'bonus'; bonusId: BonusId; amount: number }
@@ -42,8 +47,6 @@ export type RailroadChip = OfferedPlacement & {
 export type BuildPopup = {
     hexId: HexId
     chips: RailroadChip[]
-    /** R-3.2.4: a placement here lowers the turn's limit. */
-    lowersLimit: boolean
 }
 
 export type BoardOffer = {
@@ -64,7 +67,7 @@ export function placementOffer(
     for (const placement of legalPlacements(state, playerId)) {
         byHex.set(placement.hexId, [...(byHex.get(placement.hexId) ?? []), placement])
     }
-    return USA_HEXES.flatMap((hex): OfferedHex[] => {
+    return boardMap(state.mapId).hexes.flatMap((hex): OfferedHex[] => {
         const legal = byHex.get(hex.id)
         if (!legal) {
             return []
@@ -108,8 +111,7 @@ export function boardOffer(
                   chips: picked.placements.map((placement) => ({
                       ...placement,
                       supplyLeft: supplyOf(state, placement.railroadId)
-                  })),
-                  lowersLimit: picked.marks.some((mark) => mark.kind === 'placement-limit')
+                  }))
               }
             : undefined
     }
@@ -120,8 +122,29 @@ function offeredPlacement(
     state: HydratedRideTheRailsGameState,
     placement: LegalPlacement
 ): OfferedPlacement {
-    const bonuses = placementBonuses(state.mapId, placement, state.track, state.transcontinental)
-    return { railroadId: placement.railroadId, isStart: placement.isStart, bonuses }
+    const bonuses = placementBonuses(
+        state.mapId,
+        placement,
+        state.track,
+        state.transcontinental,
+        state.connectionClaim
+    )
+    return {
+        railroadId: placement.railroadId,
+        isStart: placement.isStart,
+        bonuses,
+        limitChange: limitChange(state, placement)
+    }
+}
+
+// R-3.2.4, R-8: the turn's first mountain placement lowers the limit by the map's cost, unless the
+// railroad is exempt (Orange on Germany); the engine reads the same table.
+function limitChange(state: HydratedRideTheRailsGameState, placement: LegalPlacement): number {
+    assertExists(state.building, 'The placement offer belongs to a building turn')
+    const charged =
+        !state.building.usedMountain &&
+        lowersLimit(state.mapId, placement.railroadId, placement.hexId)
+    return charged ? -PLACEMENT_LIMITS[state.mapId].mountainReduction : 0
 }
 
 function marksOf(
@@ -129,7 +152,7 @@ function marksOf(
     hexId: HexId,
     placements: readonly OfferedPlacement[]
 ): OfferMark[] {
-    const limitMark = placementLimitMark(state, hexId)
+    const limitMark = placementLimitMark(placements)
     return [...bonusMarks(state.mapId, placements), ...(limitMark ? [limitMark] : [])]
 }
 
@@ -145,14 +168,11 @@ function bonusMarks(mapId: MapId, placements: readonly OfferedPlacement[]): Bonu
     )
 }
 
-// R-3.2.4: the first mountain placement of the turn lowers the limit.
+// R-3.2.4, R-8: the hex's mark when some railroad's placement there lowers the limit; none when
+// every placement there leaves it as it is.
 function placementLimitMark(
-    state: HydratedRideTheRailsGameState,
-    hexId: HexId
+    placements: readonly OfferedPlacement[]
 ): PlacementLimitMark | undefined {
-    assertExists(state.building, 'The placement offer belongs to a building turn')
-    if (usaHex(hexId).terrain !== 'mountain' || state.building.usedMountain) {
-        return undefined
-    }
-    return { kind: 'placement-limit', change: -PLACEMENT_LIMITS[state.mapId].mountainReduction }
+    const change = Math.min(0, ...placements.map((placement) => placement.limitChange))
+    return change < 0 ? { kind: 'placement-limit', change } : undefined
 }

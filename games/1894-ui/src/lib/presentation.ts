@@ -84,6 +84,7 @@ export const EighteenNinetyFourPresentation: TitlePresentation = {
             name: 'Gray area',
             description:
                 'Shares do not count toward the certificate limit and may exceed 60%; the president may buy two at a time; a sold-out company rises one more space.',
+            marksCompanyValue: true,
             fill: { kind: 'solid', color: '#b4b8bb' }
         },
         { color: 'red', name: 'End', description: 'A share price reaching ₣450 ends the game.' }

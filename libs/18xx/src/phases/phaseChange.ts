@@ -12,7 +12,7 @@ import {
     type TrainState,
     type TrainPurchaseState
 } from '../trains/train.js'
-import { trainsCountingForLimit, type TrainRules } from '../trains/trainPurchase.js'
+import { trainsOverLimit, type TrainRules } from '../trains/trainPurchase.js'
 import {
     DeparturePayments,
     settleTrainDepartures,
@@ -73,6 +73,11 @@ export interface PhaseRules {
     discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
     discardDestination: TrainDestination
     changes?: PhaseChanges
+    /**
+     * The title's decision the phase change waits on before its discards, as 1880's forced
+     * exchange of the Rocket of China (§VI): the machine state deciding it, while it is pending.
+     */
+    decisionState?(state: PhaseChangeState): string | undefined
 }
 export function marketDiscardOrder(
     market: StockMarketChart,
@@ -159,11 +164,7 @@ export function advancePhase(
     state.phaseEvents.push({ ...change.event })
     change.discardCompanyIds = rules
         .discardOrder(state, change.continuation.companyId)
-        .filter(
-            (companyId) =>
-                trainsCountingForLimit(state, trainRules, companyId).length >
-                trainRules.trainLimit(state, companyId)
-        )
+        .filter((companyId) => trainsOverLimit(state, trainRules, companyId).length > 0)
     return changes === undefined ? { event } : { event, changes }
 }
 export function phaseDecisionPlayers(
@@ -178,10 +179,12 @@ export function phaseDecisionPlayers(
 }
 export function continuePhaseChange(
     state: PhaseChangeState,
-    rules?: Pick<PhaseRules, 'activePlayers'>
+    rules?: Pick<PhaseRules, 'activePlayers' | 'decisionState'>
 ): string {
     const change = state.phaseChange
     assertExists(change, 'Phase change requires a continuation')
+    const decision = rules?.decisionState?.(state)
+    if (decision) return decision
     const companyId = change.discardCompanyIds[0] ?? change.continuation.companyId
     if (companyId) state.activePlayerIds = phaseDecisionPlayers(state, companyId, rules)
     if (change.discardCompanyIds.length) return 'DiscardingTrains'

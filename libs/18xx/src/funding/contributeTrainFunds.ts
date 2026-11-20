@@ -68,21 +68,24 @@ export class HydratedContributeTrainFunds
     isValid(state: FundingState): boolean {
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
         if (!funding.canAct(this.playerId)) return false
+        const next = this.contribution(funding)
+        return !!next && sameOwner(this.owner, next.owner) && this.amount === next.amount
+    }
+    /** The contribution due now, or one the owner may make instead of selling shares. */
+    private contribution(
+        funding: EmergencyTrainFunding
+    ): { owner: Owner; amount: number; borrowed?: number } | undefined {
         const next = funding.next()
-        return (
-            next.kind === 'contribute' &&
-            sameOwner(this.owner, next.owner) &&
-            this.amount === next.amount
-        )
+        if (next.kind === 'contribute') return next
+        if (next.kind === 'sell' && next.borrowInstead)
+            return { owner: next.owner, ...next.borrowInstead }
+        return undefined
     }
     apply(state: HydratedGameState & FundingState): void {
         assert(this.isValid(state), 'Invalid ContributeTrainFunds action')
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
-        const next = funding.next()
-        assert(
-            next.kind === 'contribute' && state.trainFunding,
-            'Funding requires an owner contribution'
-        )
+        const next = this.contribution(funding)
+        assert(next && state.trainFunding, 'Funding requires an owner contribution')
         if (next.borrowed) {
             lendCash(state, next.owner, next.borrowed)
             this.#rules.recordLoan?.(state, next.owner, next.borrowed)

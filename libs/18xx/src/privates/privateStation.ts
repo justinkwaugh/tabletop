@@ -34,6 +34,11 @@ export function privateStationPositions(
     pending: Omit<PrivateStation, 'playerId' | 'privateCompanyId'>
 ): StationPosition[] {
     if (!nextStationId(state, pending.companyId)) return []
+    const placed =
+        state.stationStep?.companyId === pending.companyId
+            ? state.stationStep.placedStationIds.length
+            : 0
+    if (placed > 0 && placed >= rules.placementLimit(state, pending.companyId)) return []
     const placement = new StationPlacement(state, rules)
     return placement.mapState.tile(pending.locationId).face.nodes.flatMap((node) => {
         const slot = placement.openSlots(pending.companyId, pending.locationId, node.id)[0]

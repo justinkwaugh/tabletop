@@ -1,3 +1,4 @@
+import { tableTerms } from '../presentation/tableTerms.js'
 import {
     isBuyShares,
     isIssueTreasuryShares,
@@ -60,6 +61,7 @@ export function shareCard(
         | 'publishedShareImages'
         | 'publishedCardThumbnails'
         | 'publishedShareThumbnails'
+        | 'terms'
     >,
     companyName: (id: string) => string
 ): ShareCard | undefined {
@@ -73,9 +75,10 @@ export function shareCard(
         presentation.publishedCardThumbnails?.[certificate.id] ??
         presentation.publishedShareThumbnails?.[certificate.companyId]?.[kind] ??
         full
+    const { presidentWord } = tableTerms(presentation.terms)
     const name = certificate.number
         ? `${companyName(certificate.companyId)} certificate ${certificate.number}`
-        : `${companyName(certificate.companyId)} ${certificate.president ? "president's certificate" : 'share'}`
+        : `${companyName(certificate.companyId)} ${certificate.president ? `${presidentWord}'s certificate` : 'share'}`
     return {
         id: certificate.id,
         companyId: certificate.companyId,

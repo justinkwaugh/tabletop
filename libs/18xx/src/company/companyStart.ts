@@ -15,6 +15,7 @@ import {
     applyStationPlacement,
     type HomePosition
 } from '../stations/stationPlacement.js'
+import { StartChoices, resizePresidentCertificate, startChoicesReason } from './startChoices.js'
 import {
     SharePurchaseDetails,
     applyShareTransfer,
@@ -35,6 +36,10 @@ export type CompanyStartRequest = {
     home?: HomePosition
     /** Ordinary certificates the president buys with the start, where the title allows (1849 §9.4). */
     additionalCertificateIds?: readonly string[]
+    /** The president's certificate's size in shares, where the title lets the president choose. */
+    presidentShares?: number
+    /** The title's start choices, by choice id. */
+    choices?: StartChoices
 }
 export const CompanyStartDetails = Type.Object(
     {
@@ -46,7 +51,10 @@ export const CompanyStartDetails = Type.Object(
         /** The home is only claimed, on its city or hex, until the company first operates. */
         homeClaim: Type.Optional(Type.Union([Type.Literal('city'), Type.Literal('hex')])),
         /** Ordinary certificates bought with the president's, in the order they were bought. */
-        additionalPurchases: Type.Optional(Type.Array(SharePurchaseDetails))
+        additionalPurchases: Type.Optional(Type.Array(SharePurchaseDetails)),
+        /** Ordinary certificates a larger president's certificate took the place of. */
+        replacedCertificateIds: Type.Optional(Type.Array(Type.String())),
+        choices: Type.Optional(StartChoices)
     },
     { additionalProperties: false }
 )
@@ -77,14 +85,19 @@ export function evaluateCompanyStart(
     if (!certificate) return { reason: 'The president’s certificate is unavailable.' }
     if (state.stockRound.turn.bought)
         return { reason: 'A company cannot be started after this turn’s purchase.' }
-    const terms = rules.startTerms(state, company.id, request.buyer, space.id)
-    if (typeof terms === 'string') return { reason: terms }
     const projected: FormationState = stateWith(state, {
         ...copyFinances(state),
         stockMarket: structuredClone(state.stockMarket)
     })
     const { home, homeClaim, reason } = startHome(state, request, rules)
     if (reason) return { reason }
+    const choiceReason = startChoicesReason(state, rules, company.id, request)
+    if (choiceReason) return { reason: choiceReason }
+    const replacedCertificateIds = request.presidentShares
+        ? resizePresidentCertificate(projected, rules, company.id, request.presidentShares)
+        : []
+    const terms = rules.startTerms(projected, company.id, request.buyer, space.id)
+    if (typeof terms === 'string') return { reason: terms }
     startCompanyAtPar(projected, stockRules.market, company.id, space.id, request.buyer)
     const result = evaluateShareAcquisition(
         projected,
@@ -107,7 +120,9 @@ export function evaluateCompanyStart(
         parPrice: space.price,
         ...(home ? { home } : {}),
         ...(homeClaim ? { homeClaim } : {}),
-        ...(additional.length ? { additionalPurchases: additional } : {})
+        ...(additional.length ? { additionalPurchases: additional } : {}),
+        ...(replacedCertificateIds.length ? { replacedCertificateIds } : {}),
+        ...(request.choices ? { choices: { ...request.choices } } : {})
     }
     if (home && treasuryAfterStart(state, details) < home.cost)
         return { reason: 'The company cannot pay for this home.' }

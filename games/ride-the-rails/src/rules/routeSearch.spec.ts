@@ -2,15 +2,9 @@ import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { doubledToAxial, hexCoordinates, type HexId } from '../data/hexes.js'
 import { LOCOMOTIVES_PER_RAILROAD, RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
-import {
-    adjacentHexIds,
-    hexOrder,
-    USA_CITIES,
-    USA_HEXES,
-    usaCity,
-    usaHex,
-    type CityId
-} from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
+import { adjacentHexIds, cityById, hexById, hexOrder } from '../data/boardMaps.js'
+import { USA_CITIES, USA_HEXES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
@@ -161,8 +155,8 @@ function hasRoom(track: Track, hexId: HexId, railroadId: RailroadId): boolean {
     if (railroads.includes(railroadId)) {
         return true
     }
-    const hex = usaHex(hexId)
-    const capacity = hex.terrain === 'city' ? usaCity(hex.cityId).capacity : 2
+    const hex = hexById(hexId)
+    const capacity = hex.terrain === 'city' ? cityById(hex.cityId).capacity : 2
     return capacity === 'unlimited' || railroads.length < capacity
 }
 
@@ -246,10 +240,14 @@ function isSubsequence(shorter: readonly RankedJourney[], longer: readonly Ranke
 
 function startsWithPassengers(state: HydratedRideTheRailsGameState): CityId[] {
     return state.passengers.filter((cityId) => {
-        const { hexId } = usaCity(cityId)
+        const { hexId } = cityById(cityId)
         return firstLinkFrom(state, hexId, [hexId]) !== undefined
     })
 }
+
+// Every search on the dense board takes about two seconds alone; the whole-game suites running
+// beside it slow it.
+const ALL_ROUTES = { timeout: 30_000 }
 
 describe('every route a search helper returns passes the journey test (R-3.3.2, R-3.3.3, R-X.1)', () => {
     describe.each(FIXTURES)('on %s', (_name, track) => {
@@ -258,14 +256,14 @@ describe('every route a search helper returns passes the journey test (R-3.3.2, 
 
         it('firstLinkFrom: the first link from each passenger city is a one-link journey', () => {
             for (const startCityId of starts) {
-                const { hexId } = usaCity(startCityId)
+                const { hexId } = cityById(startCityId)
                 const found = firstLinkFrom(state, hexId, [hexId])
                 assertExists(found, `No link from ${startCityId}`)
                 expect(journeyRefusal(state, [found])).toBeUndefined()
             }
         })
 
-        it('bestJourneys, realise and nextCities: every route is legal', () => {
+        it('bestJourneys, realise and nextCities: every route is legal', ALL_ROUTES, () => {
             for (const startCityId of starts) {
                 const { journeys } = bestJourneys(state, startCityId, 'p1', 1500)
                 expect(journeys.length).toBeGreaterThan(0)
@@ -302,7 +300,7 @@ describe('every route a search helper returns passes the journey test (R-3.3.2, 
             expect(count).toBe(27)
         }
         const overCapacity = USA_HEXES.filter((hex) => {
-            const capacity = hex.terrain === 'city' ? usaCity(hex.cityId).capacity : 2
+            const capacity = hex.terrain === 'city' ? cityById(hex.cityId).capacity : 2
             return capacity !== 'unlimited' && railroadsIn(DENSE, hex.id).length > capacity
         })
         expect(overCapacity.map((hex) => hex.id)).toEqual([])
@@ -560,19 +558,19 @@ describe('the expansion cap (R-X.1)', () => {
 // Red's whole railroad in one block: Spokane, Seattle and the non-city hexes nearest Spokane. The
 // block holds millions of distinct paths between the two cities.
 function spokaneBlock(): HexId[] {
-    const spokane = usaCity(SPOKANE).hexId
+    const spokane = cityById(SPOKANE).hexId
     const block = USA_HEXES.filter((hex) => hex.terrain !== 'city')
         .map((hex) => hex.id)
         .sort((a, b) => distance(spokane, a) - distance(spokane, b) || hexOrder(a) - hexOrder(b))
         .slice(0, LOCOMOTIVES_PER_RAILROAD - 2)
-    return [spokane, usaCity(SEATTLE).hexId, ...block]
+    return [spokane, cityById(SEATTLE).hexId, ...block]
 }
 
 describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', () => {
     const block = spokaneBlock()
     const track = trackOf([RED, block])
     const state = riding(track)
-    const seattle = usaCity(SEATTLE).hexId
+    const seattle = cityById(SEATTLE).hexId
 
     it('is one railroad of 27 locomotives, Seattle next to the block', () => {
         expect(Object.keys(track)).toHaveLength(LOCOMOTIVES_PER_RAILROAD)
@@ -601,7 +599,7 @@ describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', ()
             'hex.usa.0-6',
             'hex.usa.1-7',
             'hex.usa.2-6',
-            usaCity(PORTLAND).hexId
+            cityById(PORTLAND).hexId
         ]
         const blocked = riding(trackOf([RED, neck], [BLUE, blueLink]))
         expect(realise(blocked, [SEATTLE, PORTLAND], [BLUE])).toEqual([link(BLUE, blueLink)])
@@ -612,7 +610,7 @@ describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', ()
 
 // The 25 non-city hexes nearest a city, a railroad's whole track with that city and one more.
 function blockAround(cityId: CityId): HexId[] {
-    const hexId = usaCity(cityId).hexId
+    const hexId = cityById(cityId).hexId
     return USA_HEXES.filter((hex) => hex.terrain !== 'city')
         .map((hex) => hex.id)
         .sort((a, b) => distance(hexId, a) - distance(hexId, b) || hexOrder(a) - hexOrder(b))
@@ -624,7 +622,7 @@ describe('a route whose first link must leave room for a later one (R-3.3.2, R-3
     // north and west of Kansas City to Oklahoma City, through 7-31, the first hex Red's search
     // takes out of Kansas City; every way Red has through 7-31 meets Blue's only link.
     const BLUE_AROUND: HexId[] = [
-        usaCity(SAINT_LOUIS).hexId,
+        cityById(SAINT_LOUIS).hexId,
         'hex.usa.7-37',
         'hex.usa.6-36',
         'hex.usa.6-34',
@@ -632,11 +630,11 @@ describe('a route whose first link must leave room for a later one (R-3.3.2, R-3
         'hex.usa.7-31',
         'hex.usa.8-30',
         'hex.usa.9-29',
-        usaCity(OKLAHOMA_CITY).hexId
+        cityById(OKLAHOMA_CITY).hexId
     ]
     const state = riding(
         trackOf(
-            [RED, [usaCity(KANSAS_CITY).hexId, usaCity(SAINT_LOUIS).hexId]],
+            [RED, [cityById(KANSAS_CITY).hexId, cityById(SAINT_LOUIS).hexId]],
             [RED, blockAround(KANSAS_CITY)],
             [BLUE, BLUE_AROUND]
         )
@@ -675,16 +673,16 @@ describe('the realise cap (R-X.1)', () => {
     // have, yet whichever Red takes leaves the two Blue links one between them: the search backs
     // up over every way through Red's block until it spends its cap.
     const BLUE_GATES: [RailroadId, readonly HexId[]][] = [
-        [BLUE, [usaCity(SAINT_LOUIS).hexId, 'hex.usa.7-37', 'hex.usa.8-36']],
-        [BLUE, ['hex.usa.7-37', 'hex.usa.6-36', usaCity(DES_MOINES).hexId]],
-        [BLUE, [usaCity(DES_MOINES).hexId, 'hex.usa.5-35', 'hex.usa.6-34', 'hex.usa.7-35']],
+        [BLUE, [cityById(SAINT_LOUIS).hexId, 'hex.usa.7-37', 'hex.usa.8-36']],
+        [BLUE, ['hex.usa.7-37', 'hex.usa.6-36', cityById(DES_MOINES).hexId]],
+        [BLUE, [cityById(DES_MOINES).hexId, 'hex.usa.5-35', 'hex.usa.6-34', 'hex.usa.7-35']],
         [BLUE, ['hex.usa.7-35', 'hex.usa.8-36', 'hex.usa.9-37', 'hex.usa.10-36']],
         [BLUE, ['hex.usa.7-37', 'hex.usa.7-39', 'hex.usa.8-40', 'hex.usa.9-41', 'hex.usa.10-40']],
-        [BLUE, ['hex.usa.10-40', 'hex.usa.11-39', usaCity(LITTLE_ROCK).hexId]],
-        [BLUE, ['hex.usa.10-36', usaCity(LITTLE_ROCK).hexId]]
+        [BLUE, ['hex.usa.10-40', 'hex.usa.11-39', cityById(LITTLE_ROCK).hexId]],
+        [BLUE, ['hex.usa.10-36', cityById(LITTLE_ROCK).hexId]]
     ]
     const track = trackOf(
-        [RED, [usaCity(KANSAS_CITY).hexId, usaCity(SAINT_LOUIS).hexId]],
+        [RED, [cityById(KANSAS_CITY).hexId, cityById(SAINT_LOUIS).hexId]],
         [RED, blockAround(KANSAS_CITY)],
         ...BLUE_GATES
     )
@@ -708,14 +706,14 @@ describe('the realise cap (R-X.1)', () => {
 describe('bestJourneys on track that leads to no other city (R-3.3.1, R-X.1)', () => {
     // Red: Spokane and the block around it, no second city. Blue: one link to Seattle.
     const SPOKANE_TO_SEATTLE: HexId[] = [
-        usaCity(SPOKANE).hexId,
+        cityById(SPOKANE).hexId,
         'hex.usa.0-8',
         'hex.usa.0-6',
-        usaCity(SEATTLE).hexId
+        cityById(SEATTLE).hexId
     ]
     const state = riding(
         trackOf(
-            [RED, [usaCity(SPOKANE).hexId, ...blockAround(SPOKANE)]],
+            [RED, [cityById(SPOKANE).hexId, ...blockAround(SPOKANE)]],
             [BLUE, SPOKANE_TO_SEATTLE]
         )
     )

@@ -40,6 +40,11 @@ export async function openScenario(page: Page, name: string) {
         await page.getByRole('button', { name, exact: true }).click({ timeout: 2_000 })
     }).toPass()
     await expect(page.getByRole('navigation')).toContainText(name)
+    // The harness's navigation bar is a little wider than a phone, so the phone's page can scroll,
+    // and reaching a scenario low in the menu scrolls it. Scrolled, Playwright checks what a tap
+    // will hit at a point off by that scroll, finds the board over the zoom control, and scrolls
+    // the table sideways to retry. Bring the page back to its top.
+    await page.getByRole('navigation').scrollIntoViewIfNeeded()
     await expect.poll(() => page.evaluate(() => window.rtrSession !== undefined)).toBe(true)
     // The emulated phone still clicks with a mouse, which would rest over whatever the menu
     // covered (a railroad entry hovers its spotlight); park it in the corner.
@@ -50,8 +55,9 @@ export async function openScenario(page: Page, name: string) {
     await settled(page)
 }
 
+/** The board, on whichever map the table plays: "Map of the USA", "Map of Canada" and so on. */
 export function board(page: Page): Locator {
-    return page.getByRole('group', { name: 'Map of the USA' })
+    return page.getByRole('group', { name: /^Map of / })
 }
 
 /** The lit hexes, by their accessible names. */

@@ -1,7 +1,6 @@
 import { assert, assertExists } from '@tabletop/common'
 import {
     RouteNetwork,
-    cityIsBlocked,
     usesStationAt,
     routePathResources,
     stopValue,
@@ -157,12 +156,14 @@ export class EncodedRoutes {
             assert(node.kind !== 'junction', 'A route stop is a revenue center')
             return node
         })
+        const evaluation = new RouteEvaluation(state, rules)
         const fleet: readonly EncodedTrain[] =
             budget.fleet ??
-            new RouteEvaluation(state, rules).runnableTrains(companyId).map((train) => ({
-                train,
-                definition: rules.depot.trainDefinition(train.definitionId)
-            }))
+            evaluation.runnableTrains(companyId).map((train) => {
+                const running = evaluation.runningDefinition(companyId, train)
+                assertExists(running.definition, running.reason ?? 'A runnable train runs')
+                return { train, definition: running.definition }
+            })
         for (const { train, attachmentIds } of fleet)
             if (attachmentIds?.length) this.attachmentIds.set(train.id, attachmentIds)
         // Where each train stops; a train that passes stops is routed in a search of its own, as
@@ -192,9 +193,7 @@ export class EncodedRoutes {
                 town: node.kind === 'town',
                 hex: this.hexOf(center.locationId),
                 token: usesStationAt(state, companyId, center.locationId, center.nodeId),
-                blocked:
-                    node.kind === 'offboard' ||
-                    cityIsBlocked(state, companyId, center.locationId, node),
+                blocked: evaluation.passageBlocked(companyId, center, node),
                 endpoint:
                     (rules.fleet?.routeShape?.endKinds.includes(node.kind) ?? true) &&
                     (stopsAt[0]?.[index] ?? true),
@@ -354,7 +353,9 @@ export class EncodedRoutes {
             resource_count: resources.size,
             junction_count: junctions.size,
             group_count: groupIds.size,
-            hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
+            hex_bonuses: locations.map(
+                (location) => rules.hexBonus?.(state, location.id, companyId) ?? 0
+            ),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
             minimum_cities_and_towns: rules.minimumCitiesAndTowns ?? 0,
             budget_ms: budget.timeLimitMs,

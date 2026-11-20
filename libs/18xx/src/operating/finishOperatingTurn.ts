@@ -1,5 +1,6 @@
 import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
+import { TrainExport } from './exportTrains.js'
 import { actionMayOperate, inReceivership } from '../finance/receivership.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
@@ -56,6 +57,7 @@ export function finishOperatingTurnReason(
         state.trainPurchaseStep?.companyId !== companyId
     )
         return 'This company is not finishing its operating turn.'
+    if (rules.declineResumes?.(state, companyId)) return undefined
     if (
         !ownsRequiredTrain(state, rules, companyId) &&
         rules.requiresTrain(state, companyId) &&
@@ -69,7 +71,16 @@ export const FinishOperatingTurn = Type.Object(
         ...EighteenXXOperatingAction.properties,
         type: Type.Literal('FinishOperatingTurn'),
         companyId: Type.String(),
-        metadata: Type.Optional(OperatingRoundSnapshot)
+        metadata: Type.Optional(
+            Type.Object(
+                {
+                    ...OperatingRoundSnapshot.properties,
+                    /** The trains that left the game as the company finished without buying. */
+                    declinedTrains: Type.Optional(TrainExport)
+                },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -86,7 +97,7 @@ export class HydratedFinishOperatingTurn
     implements FinishOperatingTurn
 {
     declare type: 'FinishOperatingTurn'
-    declare metadata?: OperatingRoundSnapshot
+    declare metadata?: FinishOperatingTurn['metadata']
     declare companyId: string
     declare playerId?: string
     readonly #rules: TrainRules
@@ -104,8 +115,15 @@ export class HydratedFinishOperatingTurn
         )
         const reason = finishOperatingTurnReason(state, this.#rules, this.companyId)
         assert(!reason, reason ?? 'Cannot finish operating turn')
+        const resumes = this.#rules.declineResumes?.(state, this.companyId) ?? false
+        const declined = this.#rules.declineTrains?.(state, this.companyId)
+        const record = declined ? { declinedTrains: declined } : {}
+        if (resumes) {
+            this.metadata = { ...operatingRoundSnapshot(state, this.#valuationRules), ...record }
+            return
+        }
         endOperatingTurn(state, this.companyId)
-        this.metadata = operatingRoundSnapshot(state, this.#valuationRules)
+        this.metadata = { ...operatingRoundSnapshot(state, this.#valuationRules), ...record }
         delete state.trainPurchaseStep
     }
 }
@@ -125,6 +143,10 @@ export function endOperatingTurn(
 ): void {
     assertExists(state.operatingSet, 'A turn belongs to an operating set')
     state.operatingSet.completedCompanyIds.push(companyId)
+    leaveOperatingTurn(state)
+}
+/** Ends the turn under way without completing its company, which operates later in the round. */
+export function leaveOperatingTurn(state: HydratedGameState & OperatingTurnState): void {
     state.turnManager.endTurn(state.actionCount)
     delete state.trackStep
     delete state.stationStep

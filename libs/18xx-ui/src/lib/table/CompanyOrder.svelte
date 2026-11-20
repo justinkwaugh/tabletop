@@ -23,6 +23,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import CompanyOrderOverview from './CompanyOrderOverview.svelte'
     let {
+        stationToken,
         money,
         showDetails,
         companies,
@@ -42,6 +43,7 @@
         firstVisible = $bindable(-1),
         lastVisible = $bindable(-1)
     }: {
+        stationToken: string
         money: MoneyFormat
         showDetails: boolean
         companies: readonly Company[]
@@ -176,7 +178,7 @@
                 data-company-id={company.id}
                 class:completed
                 aria-current={currentCompanyId === company.id ? 'step' : undefined}
-                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => (train.obsolete ? `${train.name} obsolete` : train.name)).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
+                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => (train.obsolete ? `${train.name} obsolete` : train.name)).join(', ') || 'none'}, ${remainingTokens.length} ${stationToken}s remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
                 title={companyName(company.id)}
             >
                 <button
@@ -204,7 +206,7 @@
                                 <span
                                     class="tokens"
                                     class:empty-tokens={remainingTokens.length === 0}
-                                    title={`${remainingTokens.length} station tokens remaining`}
+                                    title={`${remainingTokens.length} ${stationToken}s remaining`}
                                 >
                                     <span>{remainingTokens.length}</span>
                                     <CompanyToken {appearance} size={14} />

@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
-    TestCompanyId,
-    TestTrackHomeLocationId,
     minimalPlayState,
     minimalRouteRules,
     minimalStationRules,
     minimalTrackMap,
     minimalTrackRules,
-    straightOnlyTrackTileSet
+    straightOnlyTrackTileSet,
+    TestCompanyId,
+    TestPlayerId,
+    TestTrackHomeLocationId
 } from '@tabletop/18xx/testing'
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
 import { MapModule, type HomeOffer } from './mapModule.svelte.js'
@@ -195,7 +196,11 @@ describe('MapModule', () => {
         const state = {
             ...base,
             machineState: 'OperatingSet',
-            companies: base.companies.map((company) => ({ ...company, floated: true })),
+            companies: base.companies.map((company) => ({
+                ...company,
+                floated: true,
+                president: { kind: 'player' as const, playerId: TestPlayerId }
+            })),
             tileInventory: tileSet.createInventory(),
             usedPrivatePowerIds: [],
             operatingSet: {

@@ -57,6 +57,22 @@ test('keeps the current version, the rollback history, and recent uploads', () =
     assert.equal(plan.versions.find((version) => version.version === '1.0.0').bytes, 200)
 })
 
+test('the grace period runs from the upload that replaced a version', () => {
+    const [, ui] = pruneTargets(manifest, ['sample-game'])
+    const objects = [
+        ...versionObjects(ui.prefix, '1.0.0', '2026-08-01T00:00:00Z'),
+        ...versionObjects(ui.prefix, '1.1.0', '2026-08-02T00:00:00Z'),
+        ...versionObjects(ui.prefix, '1.2.0', '2026-10-05T00:00:00Z'),
+        ...versionObjects(ui.prefix, '1.4.0', '2026-10-06T00:00:00Z')
+    ]
+    assert.deepEqual(keepByVersion(planTarget(ui, objects, now, 7)), {
+        '1.0.0': 'delete',
+        '1.1.0': 'recent',
+        '1.2.0': 'history',
+        '1.4.0': 'current'
+    })
+})
+
 test('a zero-day grace keeps only what the manifest references', () => {
     const [logic] = pruneTargets(manifest, ['sample-game'])
     const objects = ['0.9.0', '1.0.0', '1.1.0'].flatMap((version) =>

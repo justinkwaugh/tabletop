@@ -1,4 +1,5 @@
 <script lang="ts">
+    import StartChoice from '../stock/StartChoice.svelte'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import { marketSpaceColor, marketZone } from '../stock/marketColors.js'
@@ -87,7 +88,9 @@
             </p>
         {/if}
         {#if menu === 'buy' && session.stock.furtherPurchaseCompanyId}<p class="notice">
-                You may buy another {session.companyName(session.stock.furtherPurchaseCompanyId)}
+                You may buy another {session.actionCompanyName(
+                    session.stock.furtherPurchaseCompanyId
+                )}
                 share this turn.
             </p>{/if}
         {#if menu}
@@ -161,7 +164,10 @@
                                   ]
                                 : []}
                         <div class="share-offer">
-                            <div class="share-pill" aria-label={session.companyName(company.id)}>
+                            <div
+                                class="share-pill"
+                                aria-label={session.actionCompanyName(company.id)}
+                            >
                                 <div class="share-identity">
                                     <CompanyToken
                                         appearance={session.mapView.stations[company.id]}
@@ -190,7 +196,7 @@
                                         <button
                                             class="share-source"
                                             {disabled}
-                                            aria-label={`Buy ${session.companyName(company.id)} from ${source} for ${money(choice.details.price)}`}
+                                            aria-label={`Buy ${session.actionCompanyName(company.id)} from ${source} for ${money(choice.details.price)}`}
                                             data-purchase-certificate={choice.certificate.id}
                                             onclick={() =>
                                                 void session.stock.buyAndReopenMenu(choice.request)}
@@ -203,7 +209,7 @@
                                                 {#if choice.certificate.president || choice.certificate.shares !== 1}<small
                                                         >{choice.certificate.shares} shares{choice
                                                             .certificate.president
-                                                            ? ' · President'
+                                                            ? ` · ${session.terms.president}`
                                                             : ''}</small
                                                     >{/if}
                                             </span>
@@ -231,7 +237,7 @@
                                 <button
                                     class="company-choice start-company-choice"
                                     {disabled}
-                                    aria-label={`Start ${session.companyName(choice.request.companyId)}`}
+                                    aria-label={`Start ${session.actionCompanyName(choice.request.companyId)}`}
                                     aria-pressed={session.stock.selectedStartCompany?.companyId ===
                                         choice.request.companyId}
                                     data-start-company={choice.request.companyId}
@@ -243,7 +249,7 @@
                         </div>
                         {#if session.stock.selectedStartCompany && session.stock.awaitingStartHome}
                             <p class="start-home">
-                                Choose a highlighted city on the map for {session.companyName(
+                                Choose a highlighted city on the map for {session.actionCompanyName(
                                     session.stock.selectedStartCompany.companyId
                                 )}’s home.
                             </p>
@@ -284,6 +290,27 @@
                                     {/each}
                                 </div>
                             {/if}
+                            {#if session.stock.presidentShareSizes.length}
+                                <div
+                                    class="choices start-size-choices"
+                                    role="group"
+                                    aria-label={session.terms.presidentCertificate}
+                                >
+                                    {#each session.stock.presidentShareSizes as size (size.shares)}
+                                        <button
+                                            class="start-size"
+                                            {disabled}
+                                            aria-pressed={session.stock.selectedPresidentShares ===
+                                                size.shares}
+                                            data-president-shares={size.shares}
+                                            onclick={() =>
+                                                session.stock.chooseStartPresidentShares(
+                                                    size.shares
+                                                )}>{size.percent}%</button
+                                        >
+                                    {/each}
+                                </div>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
@@ -300,10 +327,14 @@
                                             {disabled}
                                             style:background={marketSpaceColor(space.color, zone)}
                                             data-start-price={price.result.details.parPrice}
-                                            onclick={() => {
-                                                session.stock.selectStartPrice(price.marketSpaceId)
-                                                void session.stock.confirmStart()
-                                            }}
+                                            aria-pressed={session.stock.startOptionChoices.length
+                                                ? session.stock.start.value('marketSpaceId') ===
+                                                  price.marketSpaceId
+                                                : undefined}
+                                            onclick={() =>
+                                                void session.stock.chooseStartPrice(
+                                                    price.marketSpaceId
+                                                )}
                                         >
                                             <span class="par-value"
                                                 >{price.result.details.parPrice}</span
@@ -325,6 +356,29 @@
                                     {/if}
                                 {/each}
                             </div>
+                            {#if session.stock.startOptionChoices.length}
+                                {#each session.stock.startOptionChoices as choice (choice.id)}
+                                    {@const spaceId = session.stock.start.value('marketSpaceId')}
+                                    <StartChoice
+                                        {choice}
+                                        spaces={spaceId
+                                            ? session.presentation.startChoiceSpaces?.(
+                                                  session.gameState,
+                                                  choice.id,
+                                                  spaceId
+                                              )
+                                            : undefined}
+                                        stations={session.mapView.stations}
+                                        selected={session.stock.selectedStartOptions[choice.id]}
+                                        {disabled}
+                                        onChoose={(optionId) =>
+                                            void session.stock.chooseStartOption(
+                                                choice.id,
+                                                optionId
+                                            )}
+                                    />
+                                {/each}
+                            {/if}
                         {/if}
                     </div>
                 {:else if menu === 'auction'}
@@ -342,7 +396,7 @@
                                 <button
                                     class="share-identity sale-company"
                                     {disabled}
-                                    aria-label={`Sell ${session.companyName(company.id)}`}
+                                    aria-label={`Sell ${session.actionCompanyName(company.id)}`}
                                     aria-pressed={session.stock.selectedSaleCompany === company.id}
                                     data-sale-company={company.id}
                                     onclick={() => {
@@ -423,12 +477,12 @@
                         {@const company = session.privates.exchangeCompany(offer.certificateId)}
                         <button
                             class="exchange-choice"
-                            aria-label={`Exchange ${session.companyName(offer.privateCompanyId)} for ${session.companyName(company.id)}`}
+                            aria-label={`Exchange ${session.actionCompanyName(offer.privateCompanyId)} for ${session.actionCompanyName(company.id)}`}
                             {disabled}
                             onclick={() => void session.privates.exchange(offer)}
                         >
                             <span class="exchange-private"
-                                >{session.companyName(offer.privateCompanyId)}</span
+                                >{session.actionCompanyName(offer.privateCompanyId)}</span
                             >
                             <span class="exchange-arrow" aria-hidden="true">→</span>
                             <span class="exchange-company">
@@ -453,7 +507,7 @@
                 <tbody>
                     {#each session.stock.turnSales as sale (sale.companyId)}
                         <tr data-sold-company={sale.companyId}>
-                            <th scope="row" aria-label={session.companyName(sale.companyId)}>
+                            <th scope="row" aria-label={session.actionCompanyName(sale.companyId)}>
                                 <CompanyToken
                                     appearance={session.mapView.stations[sale.companyId]}
                                     size={26}
@@ -771,6 +825,17 @@
     }
     button.par-choice:hover:not(:disabled) {
         filter: brightness(0.95);
+    }
+    /* A price held while the title's choices are made: ringed, the others faded. */
+    button.par-choice[aria-pressed='true'] {
+        box-shadow: 0 0 0 2px var(--rail-focus, #8c7050);
+    }
+    .par-choices:has([aria-pressed='true']) button.par-choice[aria-pressed='false'] {
+        opacity: 0.4;
+    }
+    .par-choices:has([aria-pressed='true'])
+        button.par-choice[aria-pressed='false']:hover:not(:disabled) {
+        opacity: 0.8;
     }
     .par-value {
         font-size: 24px;

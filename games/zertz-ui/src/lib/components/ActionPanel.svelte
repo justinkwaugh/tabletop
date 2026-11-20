@@ -4,6 +4,7 @@
     import { historyEntries } from '$lib/history/historyEntries.js'
     import PoolStrip from './PoolStrip.svelte'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import { holdTallest } from './holdTallest.js'
 
     const session = getGameSession()
 
@@ -28,7 +29,10 @@
     })
 </script>
 
-<div class="flex flex-col items-center gap-1 px-3 py-1 text-center text-(--zertz-ink)">
+<div
+    class="flex flex-col items-center gap-1 px-3 py-1 text-center text-(--zertz-ink)"
+    {@attach holdTallest}
+>
     <div class="message">
         {#if session.isViewingHistory || !prompt}
             {#if lastEntry}

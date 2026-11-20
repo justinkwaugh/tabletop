@@ -17,10 +17,10 @@
     "DeclinePrivateStation": "d1bb5d55e3839aa09af7a3304b877f21840205dbdbd525b77e5a685537168a1b",
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
+    "DistributeEarnings": "0c47ff62c92db9e8ad5ab11c840d99493acc2c2e9124f0cfad972847fd2e940a",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
-    "ExchangePrivate": "a2f10d6984e1e0360b86f977ddc78c38e820d30cc75fdcaed5adeec196fd22ef",
-    "FinishOperatingTurn": "5a35934087f165b9b2aff49a45a78fc5ce5f3c1b84ff5950cd154349e99ce749",
+    "ExchangePrivate": "a4b5a2cf280a4172bdeb3881fa449898b22cd9159c4420ba42ef036a99aa8fc8",
+    "FinishOperatingTurn": "8b877c97f7e7d336e3fe5d99af046a16cf84183008ccd527f7c9807d620645c3",
     "FinishStations": "5e5293d6e1888ee220cd52cceaf9eec41f2dd5fe0873329e252668f03ff0c9fd",
     "FinishStockTurn": "53a06c7d65e723d95555124849208f43baf1ad4e46d4b2dfe0996950080e7d1a",
     "FinishTrack": "1a6e9a2521c6c145584a778d9cceb6e8d4fa8ddf810c4aad80322f2fb0f90373",
@@ -29,10 +29,10 @@
     "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
     "GoBankrupt": "420eae55898342d6eeb7320e5e768a7717524b670e2cd77846c82ec9280f00f7",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
-    "LayPrivateTile": "8fe6bfc7d8f5d5c8f4055e418bc59b2b8680d23734b546f9622c80a1085daed5",
-    "LayTile": "a97510122093676f6fe04f834f75a3735a949727476971890c48b3149e2f25a1",
+    "LayPrivateTile": "060f5917fe0ebfa44a80c7f1e1c080f8c5cbc58ad3d1e22599953f4a44f7eba1",
+    "LayTile": "b76723a83d8af6883f22e941ee88e5e67e6888a6a021e38571fddccb71bd5165",
     "OfferPurchase": "ada2ef3b1e215a94eee8ce5de40283d1dbe277e72a95c29469b2a1a8c19d6fd3",
-    "ParCompany": "beb6040b6fdb6f9050a2dd185f8e981a5f00f2577dc3d65a58e7fc354001e690",
+    "ParCompany": "b824785f275fc6282d36c7fcc92a747d81e10600f75bab252d8f0ce08a2a56ee",
     "PassAuction": "c7cb2411d885af5399264c923cf2621915712cccacfaaaf19697dc5d0990fc56",
     "PayInterest": "493372ba38d1b2c10de8101921afb85273188cd25e2c5d9e2063bd77f095e345",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
@@ -45,10 +45,10 @@
     "ReserveBid": "06260fa2484e9ffb2bb5880cb8d5dc8978ee8fc00cfa25aec4cf79fb84b63b57",
     "ResolveAuction": "2c4630c0ec9edb2e14a6c59a95b8d31a875b29cbd631b50c73310ef22eb068f8",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
-    "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
-    "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
+    "RespondToTrackConsent": "3980a4800eb1a7a88fb178937724a4bd6867edd019fd01233bde54eb9df414a1",
+    "RunTrains": "db62940db3573a3bfe182ac544b2c981be007a84d4ec1b84cd7a6373ad197884",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
-    "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
+    "ScheduleGameEnd": "2f3dadebf2c64a055cd16d371337d9dfb90afc5f2c41f5aad20c5346275c9b8c",
     "SellFundingShares": "33e82acef995c8c92add06b895003343abd3acb8ff5b2aaf596f477cc83037ce",
     "SellShares": "51101d7f2d888cfcc203ef9a6461a77138f1a34c550f4ee658ac5a8dfb40db52",
     "SellSharesToPay": "54ef90c905f39c15a3fcf330856e6481a71432c75218c5b727f6ca6bd7d4eaf8",
@@ -56,9 +56,9 @@
     "SetRunInstructionStops": "5b3208940e191c8df4445273e0026429e3d4a503cb7bb5d6734d3535f096d72d",
     "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
     "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
-    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
-    "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
-    "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
+    "StartCompany": "de0af40e1a40c7f14acbd6f488355bd438b6ccc9c6db786e3779197e95394e09",
+    "StartOperatingRound": "17640c1551852b6887c632497a3de19d8dfbd054a621263450947c404f977788",
+    "StartOperatingSet": "628261b49bf546939213b809e27fca112cf2095fc7215680de3ed68a882d97c3",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopRunInstruction": "7dcf5bbf14792352693bd5f3a98620696252e9bd57da315c4dea3595e33f4fd2",
@@ -639,6 +639,10 @@
       "earningsDistribution": {
         "additionalProperties": false,
         "properties": {
+          "added": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "bankAdjustment": {
             "type": "integer"
           },
@@ -1418,6 +1422,9 @@
       "gameEnding": {
         "additionalProperties": false,
         "properties": {
+          "finalCompanyId": {
+            "type": "string"
+          },
           "finalOperatingRound": {
             "minimum": 1,
             "type": "integer"
@@ -1830,6 +1837,10 @@
             "type": "array",
             "uniqueItems": true
           },
+          "endless": {
+            "const": true,
+            "type": "boolean"
+          },
           "exportedRound": {
             "minimum": 1,
             "type": "integer"
@@ -1840,6 +1851,10 @@
           },
           "privateIncomePaid": {
             "type": "boolean"
+          },
+          "resumptions": {
+            "minimum": 1,
+            "type": "integer"
           },
           "roundCount": {
             "minimum": 1,
@@ -1856,7 +1871,6 @@
           "completedCompanyIds",
           "number",
           "privateIncomePaid",
-          "roundCount",
           "roundNumber"
         ],
         "type": "object"
@@ -2598,6 +2612,10 @@
           "result": {
             "additionalProperties": false,
             "properties": {
+              "bonus": {
+                "minimum": 1,
+                "type": "integer"
+              },
               "companyId": {
                 "minLength": 1,
                 "type": "string"
@@ -2624,7 +2642,6 @@
                         "additionalProperties": false,
                         "properties": {
                           "amount": {
-                            "minimum": 1,
                             "type": "integer"
                           },
                           "arrowIds": {

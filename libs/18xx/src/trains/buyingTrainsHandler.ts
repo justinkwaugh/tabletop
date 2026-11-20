@@ -93,7 +93,8 @@ export class OrdinaryBuyingTrainsHandler<S extends State = State> implements Mac
         action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFinishTrains,
         context: MachineContext<S>
     ): string {
-        return this.isFinish(action)
+        // Declining the trains on sale can remove them, starting a phase (1880 §X).
+        return this.isFinish(action) && !context.gameState.phaseChange
             ? this.nextState
             : context.gameState.phaseChange
               ? 'AdvancingPhase'

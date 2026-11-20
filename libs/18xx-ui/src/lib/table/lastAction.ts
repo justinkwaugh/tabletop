@@ -7,6 +7,7 @@ import {
     isDistributeEarnings,
     isFinishOperatingTurn,
     isFinishStockTurn,
+    isFloatCompany,
     isIssueTreasuryShares,
     isLayTile,
     isOfferPurchase,
@@ -20,6 +21,7 @@ import {
     isStartOperatingTurn,
     isStartStockRound,
     type DistributeEarnings,
+    type FloatCompany,
     type Owner
 } from '@tabletop/18xx'
 import type { MoneyFormat } from '../presentation/money.js'
@@ -55,6 +57,7 @@ export function lastNotableStep(
 export type TurnRecapLine =
     | { kind: 'passes'; id: string; playerIds: string[] }
     | { kind: 'decision'; action: GameAction & { playerId: string } }
+    | { kind: 'float'; action: FloatCompany }
 
 function isStockPass(action: GameAction): boolean {
     return isFinishStockTurn(action) && action.metadata?.passed === true
@@ -85,6 +88,10 @@ export function turnRecap(
     if (actedThisTurn) return []
     const lines: TurnRecapLine[] = []
     for (const action of actions.slice(previousTurnEnd + 1)) {
+        if (isFloatCompany(action)) {
+            lines.push({ kind: 'float', action })
+            continue
+        }
         if (!isPlayerDecision(action) || action.playerId === playerId || routine(action)) continue
         const previous = lines.at(-1)
         if (!isStockPass(action)) lines.push({ kind: 'decision', action })
