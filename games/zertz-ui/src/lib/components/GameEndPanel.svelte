@@ -46,55 +46,41 @@
 </div>
 
 <style>
-    /* Inside the action panel, at its height: one row, or on phones the reason on a smaller second
-       line, trimmed rather than wrapped further. */
+    /* Within the height the action panel holds: the winner over the reason, the reason trimmed
+       rather than wrapped. */
     .ending {
         display: flex;
-        align-items: baseline;
-        justify-content: center;
-        gap: 0.5em;
+        flex-direction: column;
+        align-items: center;
         min-width: 0;
         max-width: 100%;
+        line-height: 1.1;
     }
 
     .winner {
-        flex-shrink: 0;
+        font-size: 18px;
         font-weight: 600;
+        letter-spacing: 0.06em;
         white-space: nowrap;
     }
 
     .reason {
-        min-width: 0;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-size: 13px;
         color: var(--zertz-ink-quiet);
-    }
-
-    .reason::before {
-        content: '· ';
-    }
-
-    @media (max-width: 639px) {
-        .ending {
-            flex-direction: column;
-            align-items: center;
-            gap: 0;
-            line-height: 1.2;
-        }
-
-        .reason {
-            max-width: 100%;
-            font-size: 13px;
-        }
-
-        .reason::before {
-            content: none;
-        }
     }
 
     .reason :global(svg) {
         display: inline-block;
         vertical-align: -2px;
+    }
+
+    @media (max-width: 639px) {
+        .reason {
+            font-size: 13px;
+        }
     }
 </style>
