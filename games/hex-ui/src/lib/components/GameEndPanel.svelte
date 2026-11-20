@@ -12,14 +12,29 @@
     })
 </script>
 
-<div
-    class="flex min-h-[50px] flex-col items-center justify-center px-3 py-1 text-center text-(--hex-ink)"
->
+<div class="ending">
     {#if session.gameCall}
         <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
     {:else}
-        <div class="text-[22px] font-semibold tracking-[0.06em]">
+        <span class="winner">
             {winner === session.myPlayer?.id ? 'You win' : `${session.getPlayerName(winner)} wins`}
-        </div>
+        </span>
     {/if}
 </div>
+
+<style>
+    .ending {
+        display: flex;
+        justify-content: center;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .winner {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        color: var(--hex-ink);
+    }
+</style>
