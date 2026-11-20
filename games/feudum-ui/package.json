@@ -37,6 +37,7 @@
         "svelte": "^5.0.0"
     },
     "dependencies": {
+        "@floating-ui/dom": "^1.7.4",
         "@tabletop/common": "workspace:*",
         "@tabletop/feudum": "workspace:*",
         "@tabletop/frontend-components": "workspace:*"

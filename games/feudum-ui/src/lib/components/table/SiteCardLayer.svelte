@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { flip, shift } from '@floating-ui/dom'
     import type { SpaceId } from '@tabletop/feudum'
     import { Floater } from '@tabletop/frontend-components'
     import { siteCardOf } from '$lib/model/siteCard.js'
@@ -22,6 +23,9 @@
         'aria-label': card.title,
         style: 'margin:0;border:0;padding:0;overflow:visible'
     })
+
+    /** No hide(): toggling the popup hidden as the phone frames the board loops its ResizeObserver. */
+    const StayInView = [flip({ altBoundary: true }), shift({ altBoundary: true })]
 </script>
 
 {#key spaceId}
@@ -30,6 +34,7 @@
         placement={phone.phone ? 'top' : 'right-start'}
         strategy="fixed"
         trigger="manual"
+        middlewares={StayInView}
         {...popoverAttributes}
     >
         <SiteCard {card} paintOf={gameSession.paintOf} {onClose} />

@@ -63,7 +63,8 @@
             const surface = titleRootOf(node)
                 .querySelector('[data-board-surface]')
                 ?.closest('.scaling-surface')
-            if (!surface) {
+            const viewport = surface?.firstElementChild
+            if (!surface || !viewport) {
                 return
             }
             const place = () => {
@@ -84,7 +85,8 @@
                 cancelAnimationFrame(frame)
                 frame = requestAnimationFrame(place)
             })
-            observer.observe(surface)
+            // The wrapper's viewport: its full-screen toolbar resizes .scaling-surface in the same delivery.
+            observer.observe(viewport)
             // The board moves, not only resizes, when the action panel above it grows or shrinks.
             const panel = titleRootOf(node).querySelector('[data-action-panel]')
             if (panel) {

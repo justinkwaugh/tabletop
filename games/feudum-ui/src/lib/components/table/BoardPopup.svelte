@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { flip, shift } from '@floating-ui/dom'
     import { Floater } from '@tabletop/frontend-components'
     import type { FlowPopup } from '$lib/model/cardFlows.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
@@ -31,6 +32,9 @@
         style: 'margin:0;border:0;padding:0;overflow:visible',
         'data-board-popup': popup.anchor
     })
+
+    /** No hide(): toggling the popup hidden as the phone frames the board loops its ResizeObserver. */
+    const StayInView = [flip({ altBoundary: true }), shift({ altBoundary: true })]
 </script>
 
 {#key popup.anchor}
@@ -39,6 +43,7 @@
         placement={phone.phone ? 'top' : 'right-start'}
         strategy="fixed"
         trigger="manual"
+        middlewares={StayInView}
         {...popoverAttributes}
     >
         <div
