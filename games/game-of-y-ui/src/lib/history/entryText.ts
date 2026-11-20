@@ -17,12 +17,9 @@ export function entrySegments(entry: PlaceEntry | SwapEntry, brief = false): Seg
                     : [])
             ]
         case 'swap':
+            // Worded to read with a name or with "You": "swapped to Black", never "plays".
             return [
-                text(
-                    brief
-                        ? ' swapped and now plays Black'
-                        : " swapped, taking Black's first stone, and now plays Black"
-                )
+                text(brief ? ' swapped to Black' : " swapped to Black, taking Black's first stone")
             ]
     }
 }

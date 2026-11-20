@@ -31,6 +31,6 @@ describe('entrySegments', () => {
 
     it('tells a swap', () => {
         const swap: SwapEntry = { ...span, kind: 'swap' }
-        expect(read(entrySegments(swap, true))).toBe(' swapped and now plays Black')
+        expect(read(entrySegments(swap, true))).toBe(' swapped to Black')
     })
 })
