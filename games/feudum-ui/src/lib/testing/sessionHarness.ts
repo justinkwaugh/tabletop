@@ -229,12 +229,15 @@ export class FeudumHost {
 
     /**
      * One screen playing every seat, as the site plays a hotseat game: it holds the complete state and
-     * sends each Action itself. The developer harness's own seat switching is not in play.
+     * sends each Action itself. `developerHarness` opens it as the developer harness does, which plays
+     * the same hotseat game.
      */
-    async openHotseat(): Promise<FeudumGameSession> {
+    async openHotseat({ developerHarness = false } = {}): Promise<FeudumGameSession> {
         this.closeSeat(HotseatScreen)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
-        Object.defineProperty(appContext.gameService, 'developerHarness', { value: false })
+        Object.defineProperty(appContext.gameService, 'developerHarness', {
+            value: developerHarness
+        })
         // The browser's own store: a spec has none, so the screen's save is kept here.
         appContext.gameService.saveGameLocally = async (saved) => {
             this.savedLocally = saved

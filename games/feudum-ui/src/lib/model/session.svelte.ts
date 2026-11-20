@@ -938,13 +938,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /**
      * R-4.4-H5 A hotseat plays every seat on one screen, which shows the seat the state asks; the
-     * others holding a writ discard from here. The developer harness switches seats itself.
+     * others holding a writ discard from here.
      */
     private offTurnDiscardContext: OffTurnDiscardContext | undefined = $derived.by(() => {
         if (
             !this.game.hotseat ||
             this.game.storage !== GameStorage.Local ||
-            this.isDeveloperHarness ||
             this.isViewingHistory
         ) {
             return undefined

@@ -446,6 +446,27 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
         expect(cardTurnSeat(screen.gameState)).toBe(table.seat)
         expect(rowLabels(screen.actionPanel, 'off-turn-writs')).toEqual([])
     })
+
+    it('R-4.4-H5 the developer harness plays the same hotseat: the other seat\'s chip and its "Discard"', async () => {
+        const table = await seatedAtCards(['tax', 'move', 'guild'], (state, { other }) => {
+            holdWrit(state, other, Mandate5)
+        })
+        host = table.host
+        const screen = await table.host.openHotseat({ developerHarness: true })
+        expect(screen.isDeveloperHarness).toBe(true)
+        expect(rowLabels(screen.actionPanel, 'off-turn-writs')).toEqual([
+            `${screen.getPlayerName(table.other)}'s writs`
+        ])
+        await rowNamed(screen.actionPanel, /'s writs$/).press()
+        flushSync()
+        const [offers] = blocksOf(screen.actionPanel, 'writ-offers')
+        await offers?.offers[0].rows[0].press()
+        await settled(screen)
+        expect(screen.actions.findLast(({ source }) => source === ActionSource.User)).toMatchObject(
+            { type: ActionType.DiscardWrit, playerId: table.other, writId: Mandate5 }
+        )
+        expect(screen.gameState.getPlayerState(table.other).writs).toEqual([])
+    })
 })
 
 describe('R-4.3.3 SpendRegionTile', () => {
