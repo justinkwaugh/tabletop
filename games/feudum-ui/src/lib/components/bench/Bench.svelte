@@ -88,7 +88,12 @@
                     node.style.height = `${height}px`
                 }
             }
-            const observer = new ResizeObserver(place)
+            // The next frame: placing inside the observer's own delivery resizes what BenchFit watches.
+            let frame = 0
+            const observer = new ResizeObserver(() => {
+                cancelAnimationFrame(frame)
+                frame = requestAnimationFrame(place)
+            })
             observer.observe(surface)
             // The board moves, not only resizes, when the action panel above it grows or shrinks.
             const panel = titleRootOf(node).querySelector('[data-action-panel]')
@@ -99,6 +104,7 @@
             window.addEventListener('scroll', place, true)
             place()
             return () => {
+                cancelAnimationFrame(frame)
                 observer.disconnect()
                 window.removeEventListener('resize', place)
                 window.removeEventListener('scroll', place, true)

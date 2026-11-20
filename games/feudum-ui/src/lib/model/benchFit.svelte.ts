@@ -74,11 +74,19 @@ export class BenchFit {
                 this.long = long
             }
         }
-        const observer = new ResizeObserver(measure)
+        // The next frame: a new long side resizes the bench this observer watches.
+        let frame = 0
+        const observer = new ResizeObserver(() => {
+            cancelAnimationFrame(frame)
+            frame = requestAnimationFrame(measure)
+        })
         for (const watched of [node, title, footer]) {
             observer.observe(watched)
         }
         measure()
-        return () => observer.disconnect()
+        return () => {
+            cancelAnimationFrame(frame)
+            observer.disconnect()
+        }
     }
 }

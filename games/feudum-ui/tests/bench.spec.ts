@@ -7,6 +7,12 @@ import { settled, shot } from './helpers.js'
  * press, and leave the board's own guild areas unreachable.
  */
 
+declare global {
+    interface Window {
+        feudumErrorEvents?: string[]
+    }
+}
+
 const problems = new WeakMap<Page, string[]>()
 
 test.beforeEach(({ page }) => {
@@ -772,6 +778,31 @@ test('R-4.6 a push lists its staged moves in the tray, with no press of their ow
     )
     // The two sulfur still land; the iron's ghost is gone.
     await expect(bench(page).locator('[data-bench-area="alchemist"] [data-ghost]')).toHaveCount(2)
+})
+
+test.describe('the bench at a desk', () => {
+    test.use({ viewport: { width: 1440, height: 900 } })
+
+    test('R-4.6 the bench lays itself out a frame after a resize, so no observer loop error reaches the page', async ({
+        page
+    }) => {
+        await page.addInitScript(() => {
+            const seen: string[] = []
+            window.feudumErrorEvents = seen
+            window.addEventListener('error', (event) => seen.push(event.message))
+        })
+        const errorEvents = () => page.evaluate(() => [...(window.feudumErrorEvents ?? [])])
+        await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
+        await pressAll(page, 'good:sulfur', 'good:sulfur', 'good:iron')
+        await undo(page).click()
+        await settled(page)
+        for (const width of [1380, 1440, 1320, 1440]) {
+            await page.setViewportSize({ width, height: 900 })
+            await settled(page)
+        }
+        await expect(bench(page)).toBeVisible()
+        expect(await errorEvents()).toEqual([])
+    })
 })
 
 test.describe('the staged moves on a phone', () => {
