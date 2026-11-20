@@ -48,7 +48,7 @@
             colour,
             count,
             paint: playerId ? paintOf(playerId) : colourPaintOf(colour),
-            name: playerId ? nameOf(playerId) : colour
+            name: playerId ? nameOf(playerId) : colourPaintOf(colour).owner
         }))
     )
 </script>

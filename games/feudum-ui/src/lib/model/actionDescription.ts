@@ -1,4 +1,4 @@
-import { assertExists, type GameAction } from '@tabletop/common'
+import { assertExists, type Color, type GameAction } from '@tabletop/common'
 import {
     ActionCards,
     beadValue,
@@ -87,6 +87,8 @@ export interface ActionLineView {
     /** S57 Host View is its own explicit look at the faces. */
     readonly hostView?: boolean
     readonly nameOf: (playerId: string) => string
+    /** R-1.4-H1 A dummy row's colour as the table shows it; its own colour when absent. */
+    readonly dummyName?: (colour: Color) => string
     /** The game's seats, for a line that names those it says nothing of (the reveal's "none"). */
     readonly seats?: readonly string[]
 }
@@ -142,6 +144,11 @@ class Words {
     /** A seat as an object: "asked you", "asked Ana". */
     whom(playerId: string): string {
         return playerId === this.view.viewerId ? 'you' : this.view.nameOf(playerId)
+    }
+
+    /** R-1.4-H1 A dummy row by the colour it is shown in: "the green row". */
+    dummy(colour: Color): string {
+        return this.view.dummyName?.(colour) ?? colour
     }
 
     /** "your knight", "Ben's knight". */
@@ -742,7 +749,7 @@ function countsOf(rows: number, columns: number, count?: 'rows' | 'columns'): st
 function rowName({ owner }: KnightRowLeft | RowFill, words: Words): string {
     return 'playerId' in owner
         ? `${words.whose(owner.playerId)} row`
-        : `the ${owner.dummyColour} row`
+        : `the ${words.dummy(owner.dummyColour)} row`
 }
 
 /** R-4.6 What a function moved, and where; R-5-H1 a seal is named only when it flips to a bead. */

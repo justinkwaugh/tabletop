@@ -1,7 +1,7 @@
 import { flushSync } from 'svelte'
-import { assertExists, Color } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
-import { ActionType, MachineState, StartingSpaceIds, type Good } from '@tabletop/feudum'
+import { ActionType, knightRows, MachineState, StartingSpaceIds, type Good } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
@@ -625,6 +625,12 @@ describe('the real session: seat paint (S71, R-1.4-H1)', () => {
 
         expect(paintOf(seat)).toEqual(seatPaint(session.colors, seat, session.getPlayerName(seat)))
         expect(paintOf(seat).owner).toBe(`${session.getPlayerName(seat)}'s`)
-        expect(colourPaintOf(Color.Red)).toEqual(colourPaint(session.colors, Color.Red))
+        const dummy = knightRows(session.gameState).flatMap(({ row }) =>
+            'dummyColour' in row.owner ? [row.owner.dummyColour] : []
+        )[0]
+        assertExists(dummy, 'R-1.4-H1 Three seats play beside a dummy row')
+        expect(colourPaintOf(dummy)).toEqual(colourPaint(session.colors, dummy))
+        const seatFills = session.gameState.players.map(({ playerId }) => paintOf(playerId).fill)
+        expect(seatFills).not.toContain(colourPaintOf(dummy).fill)
     })
 })

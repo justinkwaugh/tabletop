@@ -61,7 +61,7 @@ import type { TurnContext } from './cardModes.js'
 import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
 import { actionPanelOf, type ActionPanelView } from './actionPanel.js'
-import { colourPaint, seatPaint, type SeatPaint } from './seatPaint.js'
+import { dummyPaint, seatPaint, type SeatPaint } from './seatPaint.js'
 import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
 import { gameEndOf, type GameEndSummaryView } from './gameEnd.js'
 import { roundEndOf, type RoundEndView } from './roundEnd.js'
@@ -191,8 +191,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     /** S71 A seat's paint from the colourizer, named by its seat in every piece's accessible name. */
     readonly paintOf = (playerId: string): SeatPaint =>
         seatPaint(this.colors, playerId, this.getPlayerName(playerId))
-    /** R-1.4-H1 A colour no seat plays, from the same colourizer. */
-    readonly colourPaintOf = (colour: Color): SeatPaint => colourPaint(this.colors, colour)
+    /**
+     * R-1.4-H1 A dummy row's colour, and its supply pool's: shown in a colour no seat is displayed in,
+     * from the same colourizer, so a preferred colour never makes a seat look like a dummy row.
+     */
+    readonly colourPaintOf = (colour: Color): SeatPaint =>
+        dummyPaint(this.colors, this.gameState, colour)
 
     readonly boardAnimator = new BoardAnimator()
     readonly flightAnimator = new FlightAnimator()
@@ -999,6 +1003,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             viewerId,
             hostView: this.isViewingHost,
             nameOf: (id) => this.getPlayerName(id),
+            dummyName: (colour) => this.colourPaintOf(colour).owner,
             seats: this.gameState.players.map(({ playerId }) => playerId)
         })
     }

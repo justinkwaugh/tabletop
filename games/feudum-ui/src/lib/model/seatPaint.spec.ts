@@ -4,7 +4,7 @@ import { ColorblindColorizer } from '@tabletop/frontend-components'
 import { describe, expect, it } from 'vitest'
 import { PrintedColours } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
-import { colourPaint, seatPaint } from './seatPaint.js'
+import { colourPaint, dummyColourShown, dummyPaint, seatPaint } from './seatPaint.js'
 
 /** A session's colours with one seat in `colour`, shown through `colorizer`. */
 function sessionColours(colour: Color, colorizer = new FeudumGameColorizer()) {
@@ -62,5 +62,63 @@ describe('a seat paint and the printed colours', () => {
     it('colours that cannot say the seat’s colour give a drawn paint', () => {
         const colours = { getPlayerUiColor: () => new FeudumGameColorizer().getUiColor(Color.Red) }
         expect(seatPaint(colours, 'seat', 'Ana').printed).toBeUndefined()
+    })
+})
+
+/** Two seats in Red and Blue, beside two dummy rows; the viewer at the Red seat prefers Green. */
+function preferringGreen() {
+    const colorizer = new FeudumGameColorizer()
+    const seats = { viewer: Color.Red, other: Color.Blue }
+    const shown: Record<string, Color> = { viewer: Color.Green, other: Color.Blue }
+    const state = {
+        players: [
+            { playerId: 'viewer', color: seats.viewer },
+            { playerId: 'other', color: seats.other }
+        ],
+        guilds: {
+            knight: {
+                rows: {
+                    'knight-row-1': { owner: { playerId: 'viewer' }, markers: 2 },
+                    'knight-row-2': { owner: { playerId: 'other' }, markers: 2 },
+                    'knight-row-3': { owner: { dummyColour: Color.Yellow }, markers: 2 },
+                    'knight-row-4': { owner: { dummyColour: Color.Green }, markers: 2 }
+                }
+            }
+        }
+    } as unknown as Parameters<typeof dummyPaint>[1]
+    const colours = {
+        getPlayerColor: (playerId?: string) => shown[playerId ?? ''] ?? Color.Gray,
+        getUiColor: (color: Color) => colorizer.getUiColor(color)
+    }
+    return { state, colours, colorizer }
+}
+
+describe('R-1.4-H1 a dummy row never wears a seat’s displayed colour', () => {
+    it('2 seats Red and Blue, the viewer prefers Green: the green dummy row takes a free colour', () => {
+        const { state, colours, colorizer } = preferringGreen()
+        const seatFills = ['viewer', 'other'].map((id) =>
+            colorizer.getUiColor(colours.getPlayerColor(id))
+        )
+        const green = dummyPaint(colours, state, Color.Green)
+        const yellow = dummyPaint(colours, state, Color.Yellow)
+        expect(seatFills).not.toContain(green.fill)
+        expect(seatFills).not.toContain(yellow.fill)
+        expect(green.fill).not.toBe(yellow.fill)
+        expect(yellow.owner).toBe('yellow')
+        expect(green.owner).toBe('red')
+    })
+
+    it('with no preferred colour every dummy row keeps its own', () => {
+        expect(
+            dummyColourShown([Color.Red, Color.Blue], [Color.Yellow, Color.Green], Color.Green)
+        ).toBe(Color.Green)
+    })
+
+    it('two dummy rows pushed off their colours take different free ones', () => {
+        const seats = [Color.Yellow, Color.Green]
+        const dummies = [Color.Yellow, Color.Green]
+        const shown = dummies.map((dummy) => dummyColourShown(seats, dummies, dummy))
+        expect(new Set(shown).size).toBe(2)
+        expect(shown.some((colour) => seats.includes(colour))).toBe(false)
     })
 })

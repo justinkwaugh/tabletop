@@ -1,7 +1,8 @@
 import { Color } from '@tabletop/common'
-import type { KnightRowOwner } from '@tabletop/feudum'
+import { FeudumColors, knightRows, type KnightRowOwner } from '@tabletop/feudum'
 import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
+import type { SeatsAndRows } from './knightLanes.js'
 
 /** A seat's paint for its pieces. Colours come only from the session's colourizer (S71). */
 export interface SeatPaint {
@@ -90,6 +91,45 @@ export function colourPaint(
     colour: Color
 ): SeatPaint {
     return paintOfFill(colors.getUiColor(colour), colour, colour)
+}
+
+/**
+ * R-1.4-H1, Player relationships: the colour a dummy row and its supply pool are shown in. Its own
+ * while no seat is displayed in it; else the first of the game's colours that no seat is displayed
+ * in and no other dummy row keeps. A preferred colour can take a dummy row's colour, never its look.
+ */
+export function dummyColourShown(
+    seatColours: readonly Color[],
+    dummyColours: readonly Color[],
+    dummy: Color
+): Color {
+    const taken = new Set<Color>(seatColours)
+    const kept = dummyColours.filter((colour) => !taken.has(colour))
+    if (kept.includes(dummy)) {
+        return dummy
+    }
+    const spare = FeudumColors.filter((colour) => !taken.has(colour) && !kept.includes(colour))
+    const moved = dummyColours.filter((colour) => taken.has(colour))
+    return spare.at(moved.indexOf(dummy)) ?? dummy
+}
+
+/** The session's colours, as a dummy row's paint reads them. */
+export interface DummyPaintColours {
+    getPlayerColor(playerId?: string): Color
+    getUiColor(color: Color): string
+}
+
+/** R-1.4-H1 A dummy row's paint, in a colour no seat is displayed in, and named by that colour. */
+export function dummyPaint(
+    colors: DummyPaintColours,
+    state: SeatsAndRows,
+    dummy: Color
+): SeatPaint {
+    const seats = state.players.map(({ playerId }) => colors.getPlayerColor(playerId))
+    const dummies = knightRows(state).flatMap(({ row }) =>
+        'dummyColour' in row.owner ? [row.owner.dummyColour] : []
+    )
+    return colourPaint(colors, dummyColourShown(seats, dummies, dummy))
 }
 
 /** R-1.4-H1 A Knight row's paint: its seat's, or its dummy colour's as shown. */
