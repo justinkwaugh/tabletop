@@ -238,14 +238,16 @@
                         "q": -2,
                         "r": 3
                     },
-                    "marble": "grey"
+                    "marble": "grey",
+                    "marbleSeed": 19.5
                 },
                 {
                     "coords": {
                         "q": -3,
                         "r": 3
                     },
-                    "marble": "white"
+                    "marble": "white",
+                    "marbleSeed": 20.5
                 },
                 {
                     "coords": {

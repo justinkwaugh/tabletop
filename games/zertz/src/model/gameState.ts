@@ -15,7 +15,7 @@ import { Compile } from 'typebox/compile'
 import { ZertzPlayerState, HydratedZertzPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { SETUP_RULES, ZertzSetup } from '../definition/config.js'
-import { HydratedZertzBoard, ZertzBoard, type Jump, type Ring } from './board.js'
+import { HydratedZertzBoard, placementSeed, ZertzBoard, type Jump, type Ring } from './board.js'
 import { MARBLE_COLORS, MarbleColor, MarbleCounts, hasAnyMarble } from './marbles.js'
 
 export enum EndReason {
@@ -137,7 +137,8 @@ export class HydratedZertzGameState
         coords: AxialCoordinates
     ): { source: MarbleSource; claimed: Ring[] } {
         const source = this.takeMarble(playerId, color)
-        this.board.placeMarble(coords, color)
+        // A move is recorded once it has been applied, so it takes the number the state is on.
+        this.board.placeMarble(coords, color, placementSeed(coords, this.actionCount))
         const claimed = this.claimFullGroups(playerId)
         this.concludeMove(playerId)
         return { source, claimed }

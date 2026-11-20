@@ -162,3 +162,107 @@ test('inside an exploration, Go to beginning then Go to end, and ending it at it
     await act(page, () => window.zertzSession.history.goToBeginning())
     await expectSpecksKept(page, () => void window.zertzSession.explorations.endExploring())
 })
+
+// A marble beside one already placed, with a ring beyond either of them vacant, so the next player
+// must jump; the ring removed is clear of the four.
+async function forceCapture(page: Page) {
+    await act(page, async () => {
+        const s = window.zertzSession
+        const vacant = (q: number, r: number) =>
+            s.gameState.board.isVacant({ q, r }) && s.gameState.board.hasRing({ q, r })
+        const steps = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+            [1, -1],
+            [-1, 1]
+        ]
+        const marbles = s.gameState.board.rings.filter((ring) => ring.marble !== undefined)
+        let line: { q: number; r: number }[] | undefined
+        for (const { coords } of marbles) {
+            for (const [dq, dr] of steps) {
+                const next = { q: coords.q + dq, r: coords.r + dr }
+                const beyond = { q: coords.q + 2 * dq, r: coords.r + 2 * dr }
+                if (vacant(next.q, next.r) && vacant(beyond.q, beyond.r)) {
+                    line = [coords, next, beyond, { q: coords.q - dq, r: coords.r - dr }]
+                }
+            }
+        }
+        if (line === undefined) throw Error('No marble has two vacant rings in a line beside it')
+        s.chooseColor(s.placeableColors[0])
+        await s.chooseRing(line[1])
+        const clear = s.removableRings.find((ring) =>
+            line.every((coords) => coords.q !== ring.q || coords.r !== ring.r)
+        )
+        if (clear !== undefined) await s.chooseRing(clear)
+    })
+}
+
+test('a jumping marble and the marble it captures keep their specks until they leave', async ({
+    page
+}) => {
+    await fourPlaced(page)
+    await forceCapture(page)
+    await page.evaluate(() => {
+        const s = window.zertzSession
+        s.chooseJumper(s.jumpers[0])
+    })
+    const before = await page.evaluate(() => window.specks())
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
+    await page.clock.runFor(20)
+    await page.evaluate(() => {
+        const s = window.zertzSession
+        void s.chooseRing(s.landingRings[0])
+    })
+    for (let i = 0; i <= 12; i++) {
+        const frame = await page.evaluate(() => window.specks())
+        for (const [ring, specks] of Object.entries(frame)) {
+            if (before[ring] === undefined) continue
+            expect(specks, `${ring} at ${i * 20} ms`).toBe(before[ring])
+        }
+        await page.clock.runFor(20)
+    }
+    await page.clock.resume()
+    await settle(page)
+})
+
+test('a placed marble keeps its specks from staged through its ring removal', async ({ page }) => {
+    await fourPlaced(page)
+    await page.evaluate(async () => {
+        const s = window.zertzSession
+        s.chooseColor(s.placeableColors[s.placeableColors.length - 1])
+        const marbles = s.gameState.board.rings.filter((ring) => ring.marble !== undefined)
+        const apart = (a: { q: number; r: number }, b: { q: number; r: number }) =>
+            Math.max(Math.abs(a.q - b.q), Math.abs(a.r - b.r), Math.abs(a.q + a.r - b.q - b.r)) > 2
+        const target =
+            s.placementRings.find((coords) =>
+                marbles.every((ring) => apart(ring.coords, coords))
+            ) ?? s.placementRings[0]
+        await s.chooseRing(target)
+    })
+    await settle(page)
+    await page.waitForTimeout(800)
+    const before = await page.evaluate(() => window.specks())
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
+    await page.clock.runFor(20)
+    await page.evaluate(() => {
+        const s = window.zertzSession
+        void s.chooseRing(s.removableRings[0])
+    })
+    for (let i = 0; i <= 40; i++) {
+        const frame = await page.evaluate(() => window.specks())
+        for (const [ring, specks] of Object.entries(frame)) {
+            if (before[ring] === undefined) continue
+            expect(specks, `${ring} at ${i * 20} ms`).toBe(before[ring])
+        }
+        await page.clock.runFor(20)
+    }
+    await page.clock.resume()
+    await settle(page)
+    const landed = await page.evaluate(() => window.specks())
+    for (const [ring, specks] of Object.entries(landed)) {
+        if (before[ring] === undefined) continue
+        expect(specks, `${ring} once landed`).toBe(before[ring])
+    }
+})

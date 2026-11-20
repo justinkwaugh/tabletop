@@ -8,9 +8,7 @@ import { MarbleColor } from './marbles.js'
 function boardOf(coords: AxialCoordinates[], marbles: [AxialCoordinates, MarbleColor][] = []) {
     const rings: Ring[] = coords.map((ring) => ({ coords: ring }))
     const board = new HydratedZertzBoard({ rings })
-    for (const [at, color] of marbles) {
-        board.placeMarble(at, color)
-    }
+    marbles.forEach(([at, color], index) => board.placeMarble(at, color, 100 + index))
     return board
 }
 
@@ -94,9 +92,38 @@ describe('jumps', () => {
             { from: { q: 0, r: 0 }, over: { q: 1, r: 0 }, to: { q: 2, r: 0 } }
         ])
         const result = board.jump(board.allJumps()[0])
-        expect(result).toEqual({ jumper: MarbleColor.White, captured: MarbleColor.Black })
-        expect(board.ringAt({ q: 2, r: 0 })?.marble).toBe(MarbleColor.White)
+        expect(result).toEqual({
+            jumper: MarbleColor.White,
+            captured: MarbleColor.Black,
+            jumperSeed: 100,
+            capturedSeed: 101
+        })
+        expect(board.ringAt({ q: 2, r: 0 })).toEqual({
+            coords: { q: 2, r: 0 },
+            marble: MarbleColor.White,
+            marbleSeed: 100
+        })
+        expect(board.ringAt({ q: 0, r: 0 })).toEqual({ coords: { q: 0, r: 0 } })
+        expect(board.ringAt({ q: 1, r: 0 })).toEqual({ coords: { q: 1, r: 0 } })
         expect(board.vacantRings()).toHaveLength(2)
+    })
+
+    it('moves a marble placed before seeds were kept without one', () => {
+        const board = new HydratedZertzBoard({
+            rings: [
+                { coords: { q: 0, r: 0 }, marble: MarbleColor.White },
+                { coords: { q: 1, r: 0 }, marble: MarbleColor.Black },
+                { coords: { q: 2, r: 0 } }
+            ]
+        })
+        expect(board.jump(board.allJumps()[0])).toEqual({
+            jumper: MarbleColor.White,
+            captured: MarbleColor.Black
+        })
+        expect(board.ringAt({ q: 2, r: 0 })).toEqual({
+            coords: { q: 2, r: 0 },
+            marble: MarbleColor.White
+        })
     })
 
     it('cannot jump into an occupied ring or off the board', () => {

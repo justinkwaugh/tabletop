@@ -94,7 +94,8 @@
                         "q": 0,
                         "r": 0
                     },
-                    "marble": "white"
+                    "marble": "white",
+                    "marbleSeed": 0
                 },
                 {
                     "coords": {
@@ -107,7 +108,8 @@
                         "q": 1,
                         "r": 0
                     },
-                    "marble": "black"
+                    "marble": "black",
+                    "marbleSeed": 3
                 },
                 {
                     "coords": {

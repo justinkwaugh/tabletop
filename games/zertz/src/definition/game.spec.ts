@@ -18,8 +18,8 @@ import {
 } from '../model/gameState.js'
 import { MarbleColor, noMarbles, type MarbleCounts } from '../model/marbles.js'
 import { isPlaceMarble, type PlaceMarble } from '../actions/placeMarble.js'
-import type { Capture } from '../actions/capture.js'
-import type { Ring } from '../model/board.js'
+import { isCapture, type Capture } from '../actions/capture.js'
+import { placementSeed, type Ring } from '../model/board.js'
 import {
     actionBase,
     createGame,
@@ -299,6 +299,39 @@ describe('captures', () => {
     })
 })
 
+describe('marble seeds', () => {
+    it('gives a placed marble the seed of its ring and action number', () => {
+        const game = createGame()
+        const before = withPosition(start(game), line(5))
+        const after = place(game, before, 'p0', MarbleColor.Grey, { q: 1, r: 0 }, { q: 4, r: 0 })
+        expect(after.board.rings.find((ring) => ring.coords.q === 1)?.marbleSeed).toBe(
+            placementSeed({ q: 1, r: 0 }, before.actionCount)
+        )
+    })
+
+    it('records the seeds of the jumper and the marble it captures', () => {
+        const game = createGame()
+        let state = withPosition(start(game), line(6))
+        state = place(game, state, 'p0', MarbleColor.White, { q: 0, r: 0 }, { q: 5, r: 0 })
+        const jumperSeed = placementSeed({ q: 0, r: 0 }, state.actionCount - 1)
+        state = place(game, state, 'p1', MarbleColor.Black, { q: 1, r: 0 }, { q: 4, r: 0 })
+        const capturedSeed = placementSeed({ q: 1, r: 0 }, state.actionCount - 1)
+        const action: Capture = {
+            ...actionBase(game, 'p0'),
+            type: ActionType.Capture,
+            from: { q: 0, r: 0 },
+            to: { q: 2, r: 0 }
+        }
+        const { processedActions, updatedState } = run(game, state, action)
+        const [processed] = processedActions
+        assert(isCapture(processed))
+        expect(processed.metadata).toMatchObject({ jumperSeed, capturedSeed })
+        expect(updatedState.board.rings.find((ring) => ring.coords.q === 2)?.marbleSeed).toBe(
+            jumperSeed
+        )
+    })
+})
+
 describe('isolated groups', () => {
     it('claims a group cut off by a ring removal', () => {
         const game = createGame()
@@ -321,7 +354,13 @@ describe('isolated groups', () => {
         const action = placing(game, 'p0', MarbleColor.Black, { q: 0, r: 2 }, { q: 3, r: 0 })
         expect(placeMetadata(game, before, action)).toEqual({
             source: MarbleSource.Pool,
-            claimedOnPlacing: [{ coords: { q: 0, r: 2 }, marble: MarbleColor.Black }],
+            claimedOnPlacing: [
+                {
+                    coords: { q: 0, r: 2 },
+                    marble: MarbleColor.Black,
+                    marbleSeed: placementSeed({ q: 0, r: 2 }, before.actionCount)
+                }
+            ],
             claimedOnRemoving: []
         })
         const state = execute(game, before, action)

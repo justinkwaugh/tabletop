@@ -15,8 +15,16 @@ import { MarbleColor } from './marbles.js'
 export type Ring = Type.Static<typeof Ring>
 export const Ring = Type.Object({
     coords: AxialCoordinates,
-    marble: Type.Optional(Type.Enum(MarbleColor))
+    marble: Type.Optional(Type.Enum(MarbleColor)),
+    // What the marble's specks are drawn from; it goes wherever the marble goes. None on a marble
+    // placed before the state kept it.
+    marbleSeed: Type.Optional(Type.Number())
 })
+
+// Seeded by ring and action number, so two marbles placed on one ring at different times differ.
+export function placementSeed(coords: AxialCoordinates, actionIndex: number): number {
+    return coordinatesToNumber(coords) + 7919 * (actionIndex + 1)
+}
 
 export type Jump = {
     from: AxialCoordinates
@@ -27,6 +35,8 @@ export type Jump = {
 export type JumpResult = {
     jumper: MarbleColor
     captured: MarbleColor
+    jumperSeed?: number
+    capturedSeed?: number
 }
 
 export type ZertzBoard = Type.Static<typeof ZertzBoard>
@@ -102,12 +112,13 @@ export class HydratedZertzBoard extends Hydratable<typeof ZertzBoard> implements
         return this.rings.some((ring) => this.jumpsFrom(ring.coords).length > 0)
     }
 
-    placeMarble(coords: AxialCoordinates, color: MarbleColor) {
+    placeMarble(coords: AxialCoordinates, color: MarbleColor, seed: number) {
         const ring = this.ringAt(coords)
         if (ring === undefined || ring.marble !== undefined) {
             throw Error(`Cannot place a marble at ${coords.q},${coords.r}`)
         }
         ring.marble = color
+        ring.marbleSeed = seed
     }
 
     removeRing(coords: AxialCoordinates) {
@@ -130,10 +141,18 @@ export class HydratedZertzBoard extends Hydratable<typeof ZertzBoard> implements
         ) {
             throw Error('Invalid jump')
         }
-        const result = { jumper: from.marble, captured: over.marble }
+        const result: JumpResult = {
+            jumper: from.marble,
+            captured: over.marble,
+            ...(from.marbleSeed === undefined ? {} : { jumperSeed: from.marbleSeed }),
+            ...(over.marbleSeed === undefined ? {} : { capturedSeed: over.marbleSeed })
+        }
         to.marble = from.marble
-        delete from.marble
-        delete over.marble
+        if (from.marbleSeed !== undefined) to.marbleSeed = from.marbleSeed
+        for (const left of [from, over]) {
+            delete left.marble
+            delete left.marbleSeed
+        }
         return result
     }
 
