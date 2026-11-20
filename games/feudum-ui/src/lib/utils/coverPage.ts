@@ -21,10 +21,7 @@ export const BoxFrontTitle: PrintedTitle = { left: 495 / 2400, right: 1890 / 240
 
 export const TitleMargin = 16
 
-/**
- * A printed title is never cut: without its place the image takes the full width; with it, a wide
- * source fills the height when the title then fits between the margins.
- */
+/** A printed title is never cut: a wide source fills the height only when its title still fits. */
 export function coverPlacement(source: ImageSize, title?: PrintedTitle): BoundingBox {
     const fullWidth = Width / source.width
     const scale = title

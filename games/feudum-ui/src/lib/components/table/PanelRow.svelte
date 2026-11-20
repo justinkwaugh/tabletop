@@ -15,10 +15,7 @@
     import type { PanelChoice } from '$lib/model/cardFlows.js'
     import { crossesEdge } from '$lib/utils/pointerEdge.js'
 
-    /**
-     * Contract, Hover: a touch screen, having no hover, gets a "Show on board" preview path.
-     * R-3.4 A special's printed cost follows its name. R-3.2 Forfeit is quiet, last in its tray.
-     */
+    /** Contract, Hover: a touch screen, having no hover, gets a "Show on board" preview path. */
     let {
         choice,
         onPress,

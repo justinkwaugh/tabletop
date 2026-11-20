@@ -7,10 +7,7 @@
     import RowChoice from '$lib/components/panel/RowChoice.svelte'
     import PanelRow from './PanelRow.svelte'
 
-    /**
-     * Contract, Popups: a manual popover, since a press outside it closes nothing.
-     * R-3.9-H1 Discs stand side by side, each drawn with its back.
-     */
+    /** Contract, Popups: a manual popover, since a press outside it closes nothing. */
     let { popup }: { popup: FlowPopup } = $props()
 
     const gameSession = getGameSession()

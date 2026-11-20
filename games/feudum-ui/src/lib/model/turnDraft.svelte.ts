@@ -113,8 +113,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             stored,
             TurnStageOrder,
             'card',
-            // R-4.4-H1 A staged card hides the at-will row: it stays a press while the row can act,
-            // and R-4.4-H5 a held writ can always be discarded there.
+            // R-4.4-H1, R-4.4-H5 A lone card stays a press while at-will or a discard can act.
             atWillOffers(state, playerId).length > 0 ||
                 discardWritOffers(state, playerId).length > 0
                 ? []

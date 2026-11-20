@@ -81,10 +81,7 @@ export interface NourishPanel {
     readonly primary: TurnPrimary
 }
 
-/**
- * R-4.10, R-4.10-H4 Every asked seat decides at once, so the draft outlives another seat's Action;
- * it is read back only under `keyOf`, so a shared screen never shows it to the next seat.
- */
+/** R-4.10-H4 Seats decide at once; read back only under `keyOf`, never by the next seat. */
 export class NourishDraft extends DeciderDraft<NourishValues> {
     private key: string | undefined = $state.raw()
 

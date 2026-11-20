@@ -856,8 +856,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         : []
     const [send] = sends(primary, () => session.sendTurnCard())
     const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
-    // Contract, The trade picker: a control row heads the tray, the picker under it.
-    // R-3.3, R-3.15 The second card and a replay are declared before a Buy that sends.
+    // Contract, The trade picker; R-3.3, R-3.15 the second card and a replay precede a Buy.
     const tray: ActionBlock[] = picker
         ? [
               ...rows('replays', asTurnRows(turn.replays)),

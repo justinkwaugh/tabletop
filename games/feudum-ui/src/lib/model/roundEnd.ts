@@ -49,10 +49,7 @@ function sinceLastDecision(
     return actions.slice(last + 1)
 }
 
-/**
- * R-4.12 Read from the Actions, not `flow`: a host's batch publishes only its last state, so no
- * state shows the dawn.
- */
+/** R-4.12 From the Actions, not `flow`: a host's batch publishes only its last state. */
 export function roundEndOf(
     actions: readonly GameAction[],
     turns: readonly Turn[]

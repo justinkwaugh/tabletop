@@ -18,10 +18,7 @@ type MissingStages = Exclude<keyof StartingPawnValues, (typeof StartingPawnStage
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
 
-/**
- * R-1.4.9 (contract: Setup; S2) Stages hold presses in either order: the shared helpers clear
- * every later stage, and a space pressed first must survive the character press.
- */
+/** R-1.4.9 (contract: Setup) A space pressed first survives the character press. */
 export class StartingPawnDraft extends StagedDraft<StartingPawnValues> {
     constructor() {
         super(StartingPawnStageOrder)

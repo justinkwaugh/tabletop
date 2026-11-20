@@ -696,10 +696,7 @@ function shownWrits(action?: GameAction): { playerId: string; writId: WritId }[]
 
 const WritBack: FlightFace = { kind: 'writ', faceShown: false }
 
-/**
- * R-4.4.1, R-4.4-H2, R-4.4-H3 Public counts alone decide what flies, the same at every seat; a
- * drawn writ's face shows only to its drawer. R-4.4-H6 A charter sealed at game end flies nothing.
- */
+/** R-4.4.1, R-4.4-H2, R-4.4-H3, R-4.4-H6 Public counts alone decide what flies. */
 function flyWrits(plan: FlightBuilder, change: FlightChange, at: number): number {
     const { from, to, action, viewerId } = change
     let launch = at

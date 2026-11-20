@@ -1,11 +1,4 @@
 // Writes the catalog image: `node scripts/make-cover.mjs (--titled | --art <image>) [--out <file>]`.
-// The page and its title band come from `src/lib/utils/coverPage.ts`, colours from app.css and the
-// title from the table's own font. With `--art`, the image stands behind the title band; with
-// `--titled` as well, the image prints its own title and is the whole cover, placed by the page's
-// crop rule (`coverPlacement`), around the box front's printed title when the image is the box
-// front. `--titled` alone takes the box front from `src/lib/art/cover-source/`, or the rulebook's
-// cover while no box front is there. The cover goes to the supplied art folder; nothing is drawn
-// in place of an image.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { parseArgs } from 'node:util'

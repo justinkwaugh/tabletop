@@ -26,10 +26,7 @@
     import GuildIcon from './GuildIcon.svelte'
     import ShillingToken from './ShillingToken.svelte'
 
-    /**
-     * R-3.1 A back draws from the seat alone, so nothing of the card reaches the markup.
-     * R-3.5 One component by width; S71 seat colours come from the session.
-     */
+    /** R-3.1 A back draws from the seat alone, so nothing of the card reaches the markup. */
     let {
         faceShown,
         kind,

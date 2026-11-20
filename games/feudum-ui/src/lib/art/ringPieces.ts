@@ -1,7 +1,4 @@
-/**
- * `file` is `draw` plus a margin, so a scaled draw's edge reads the same pixels the whole board
- * did; drawn rects overlap their neighbours a few px, so no seam shows.
- */
+/** `file` is `draw` plus a margin and drawn rects overlap a few px, so no seam shows. */
 export const RingSource = { width: 3750, height: 1430 } as const
 
 type Rect = readonly [x: number, y: number, width: number, height: number]

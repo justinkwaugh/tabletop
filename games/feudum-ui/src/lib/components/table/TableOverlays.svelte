@@ -29,10 +29,7 @@
 
     const { paintOf } = gameSession
 
-    /**
-     * A phone's `innerWidth` is its layout viewport, which narrows with no resize event, so a fixed
-     * strip is measured, and only while enlarged, or the browser reports a resize-observer loop.
-     */
+    /** `innerWidth` narrows with no event; measured only while enlarged, else an observer loop. */
     const screen = new MeasuredWidth()
     let across = $derived((screen.width ?? EnlargedWidth + PhoneMargin) - PhoneMargin)
     let enlargedWidth = $derived(

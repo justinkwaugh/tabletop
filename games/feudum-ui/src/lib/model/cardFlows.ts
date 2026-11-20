@@ -303,8 +303,7 @@ function migrateFlow(flow: FlowInput): FlowView {
     const offers = migrateOffers(state, playerId)
     const pawn = read('pawn')
     const spaceId = read('space')
-    // R-1.1 Pawns in supply are alike, so a space press takes the first.
-    // R-3.6.2 A starting space open only by Distant Kin declares it.
+    // R-1.1 Pawns in supply are alike; R-3.6.2 a space open only by Distant Kin declares it.
     const [entering] = offers.pawnsOff
     const picks: FlowPick[] = [
         ...offers.spaces.map((id) => ({

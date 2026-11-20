@@ -3,10 +3,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { DropPath, GuildIconPaths, PawnCube } from '$lib/utils/pieceShapes.js'
 
-    /**
-     * R-4.5.1 A pawn takes its seat's colour (S71). R-4.8.2 A drunk pawn tilts and carries a drop.
-     * R-3.6 One in supply has no character. Its shadow is a shape, so a phone renders it.
-     */
+    /** R-4.5.1, R-4.8.2, R-3.6 Its shadow is a shape, not a filter, so a phone renders it. */
     let {
         paint,
         character,

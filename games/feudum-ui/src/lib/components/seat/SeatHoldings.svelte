@@ -11,10 +11,7 @@
     import type { SeatHoldingsItem } from '$lib/model/seatLines.js'
     import { writName } from '$lib/model/writLabels.js'
 
-    /**
-     * R-4.4.4 Another seat's writs are a back with the count.
-     * R-3.1-H1 A pouch stays sealed until every hand is final.
-     */
+    /** R-4.4.4 Another seat's writs are a back and a count; R-3.1-H1 a pouch stays sealed. */
     let {
         items,
         paint,

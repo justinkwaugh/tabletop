@@ -156,10 +156,7 @@ function formed({ kind, actions, firstIndex, lastIndex }: Forming): HistoryGroup
     }
 }
 
-/**
- * R-2.2, R-5-H1 (contract: Game log and history) From the Actions as the seat received them and
- * the public series: never a patch, never a hidden field.
- */
+/** R-2.2, R-5-H1 (contract: Game log and history) Never a patch, never a hidden field. */
 export function aggregateHistory(
     actions: readonly GameAction[],
     { rounds, epoch }: HistoryTable

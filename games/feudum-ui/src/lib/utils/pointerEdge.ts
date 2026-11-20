@@ -1,7 +1,4 @@
-/**
- * As `pointerenter`/`pointerleave` would: those don't bubble, so Svelte adds a listener per element,
- * while `pointerover`/`pointerout` bubble to its one root listener.
- */
+/** As `pointerenter`/`pointerleave`, which don't bubble, so Svelte adds a listener per element. */
 export function crossesEdge({ currentTarget, relatedTarget }: PointerEvent): boolean {
     return !(
         currentTarget instanceof Node &&

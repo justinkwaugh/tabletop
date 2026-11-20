@@ -11,10 +11,7 @@
     import { takesTradePicker } from '$lib/model/tradePicker.js'
     import { BoardHeight, BoardWidth, MapArea } from '$lib/utils/boardGeometry.js'
 
-    /**
-     * Contract, Guild standings: `rails` is the strip on a desk, a guild column's edge on a phone.
-     * Contract, Desk layout: a desk draws only the map, with no score ring.
-     */
+    /** Contract, Guild standings; Desk layout: a desk draws only the map, with no score ring. */
     let { rails, desk = false }: { rails?: 'strip' | 'west' | 'east'; desk?: boolean } = $props()
 
     let drawn = $derived(desk ? MapArea : { x: 0, y: 0, width: BoardWidth, height: BoardHeight })
