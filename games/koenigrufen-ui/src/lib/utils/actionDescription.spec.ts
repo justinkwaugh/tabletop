@@ -1,4 +1,4 @@
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, CALL_GAME_ACTION_TYPE, GameCallKind } from '@tabletop/common'
 import { ActionType, Bonus, Contract, FourthKing, Side, Suit } from '@tabletop/koenigrufen'
 import { describe, expect, it } from 'vitest'
 import { describeAction, describeStep } from './actionDescription.js'
@@ -149,6 +149,35 @@ describe('the history step description', () => {
         expect(describeStep(actions, names, StandardStyle)).toEqual([
             'P2 named Rufer',
             'The talon was turned up: 1 2 3 | 4 5 6'
+        ])
+    })
+
+    it('describes a called game as its own step', () => {
+        const call = {
+            ...system,
+            type: CALL_GAME_ACTION_TYPE,
+            call: {
+                kind: GameCallKind.Called,
+                initiatorPlayerId: 'p1',
+                declaredWinnerId: 'p2',
+                approvingPlayerIds: ['p1', 'p2', 'p3'],
+                decliningPlayerIds: []
+            }
+        }
+        const actions = [{ ...base, type: ActionType.Pass }, call]
+        expect(describeStep(actions, names, StandardStyle)).toEqual([
+            'The game was called; P2 wins'
+        ])
+    })
+
+    it('describes a stalled ending', () => {
+        const stalled = {
+            ...system,
+            type: CALL_GAME_ACTION_TYPE,
+            call: { kind: GameCallKind.Stalled }
+        }
+        expect(describeStep([stalled], names, StandardStyle)).toEqual([
+            'The game ended with no move in 30 days'
         ])
     })
 

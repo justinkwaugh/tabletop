@@ -1,4 +1,9 @@
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    gameCallDescription,
+    isCallGameAction,
+    isCascadedSystemAction,
+    type GameAction
+} from '@tabletop/common'
 import {
     Contracts,
     FourthKing,
@@ -123,13 +128,16 @@ export function describeAction(
             return action.metadata
                 ? `${describeHandResult(action.metadata, names)} (${describeScoreChanges(action.metadata, names)})`
                 : undefined
+        case isCallGameAction(action):
+            return gameCallDescription(action.call, names.name)
         default:
             return undefined
     }
 }
 
 // The History Step that led to these actions' end: the latest User Action and the System Actions it
-// set off, each described in order. Before any User Action, the System Actions that set up the game.
+// set off, or a called game's ending, each described in order. Before any User Action, the System
+// Actions that set up the game.
 export function describeStep(
     actions: readonly GameAction[],
     names: Names,
@@ -137,7 +145,7 @@ export function describeStep(
 ): string[] {
     const start = Math.max(
         0,
-        actions.findLastIndex((action) => action.source === ActionSource.User)
+        actions.findLastIndex((action) => !isCascadedSystemAction(action))
     )
     return actions.slice(start).flatMap((action) => {
         const description = describeAction(action, names, style)
