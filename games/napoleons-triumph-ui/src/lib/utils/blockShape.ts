@@ -1,6 +1,6 @@
 import type { Point } from '@tabletop/common'
 import { BLOCK_SYMBOL_WIDTH, faceWidth } from './faceLayout.js'
-import { cornersOf } from './orientedBox.js'
+import { cornersOf, nearBox } from './orientedBox.js'
 
 export const BLOCK_LENGTH = 104
 export const BLOCK_THICKNESS = 20
@@ -63,16 +63,16 @@ export function coveredBy(
     blocks: readonly BlockFootprint[],
     margin = 0
 ): (point: Point) => boolean {
-    const halfLength = BLOCK_LENGTH / 2 + margin
-    const halfThickness = BLOCK_THICKNESS / 2 + margin
-    const lying = blocks.map((block) => ({ centre: block.centre, ...axesOf(block) }))
-    return (point) =>
-        lying.some(({ centre, along, across }) => {
-            const x = point.x - centre.x
-            const y = point.y - centre.y
-            return (
-                Math.abs(x * along.x + y * along.y) <= halfLength &&
-                Math.abs(x * across.x + y * across.y) <= halfThickness
-            )
-        })
+    const near = blocks.map((block) =>
+        nearBox(
+            {
+                centre: block.centre,
+                along: axesOf(block).along,
+                halfLength: BLOCK_LENGTH / 2,
+                halfWidth: BLOCK_THICKNESS / 2
+            },
+            margin
+        )
+    )
+    return (point) => near.some((onBlock) => onBlock(point))
 }

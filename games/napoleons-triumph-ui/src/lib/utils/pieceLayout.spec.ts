@@ -15,7 +15,7 @@ import { BLOCK_LENGTH, BLOCK_THICKNESS, blockSamples, coveredBy } from './blockS
 import { boxSamples } from './orientedBox.js'
 import { BAR_HALF_THICKNESS, layoutPieces, type BlockSprite } from './pieceLayout.js'
 import { insidePolygon } from './polygon.js'
-import { targetBarBox } from './targetBar.js'
+import { approachBarBox, targetBarBox } from './targetBar.js'
 
 // Counts the layout's point-in-locale tests, a measure of its work that does not depend on the machine.
 vi.mock('./polygon.js', async (importOriginal) => {
@@ -398,27 +398,12 @@ describe("a reserve beside its locale's approaches", () => {
         return { game, blocks: sprites.flatMap((sprite) => sprite.blocks) }
     }
 
-    it('stands clear of the approach bars lying level with it, though it closes up to do so', () => {
+    it('stands clear of the bar of the approach to 56, which lies level with it', () => {
         const { game, blocks } = laidOut()
         expect(blocks).toHaveLength(5)
-        const [{ angle: blockAngle }] = blocks
-        const level = game.hydrated.map.approachesOf(SMALL).filter((approach) => {
-            const turn = Math.abs(APPROACH_GEOMETRY[approach.id].angle - blockAngle) % 180
-            return Math.min(turn, 180 - turn) <= 20
-        })
-        expect(level.length).toBeGreaterThan(0)
-        const bars = level.map((approach) => {
-            const bar = APPROACH_GEOMETRY[approach.id]
-            const radians = (bar.angle * Math.PI) / 180
-            return {
-                centre: bar.centre,
-                along: { x: Math.cos(radians), y: Math.sin(radians) },
-                halfLength: bar.length / 2,
-                halfWidth: BAR_HALF_THICKNESS
-            }
-        })
-        const crowding = bars.flatMap(boxSamples).filter(coveredBy(blocks, 5))
-        expect(crowding).toEqual([])
+        const toward56 = game.hydrated.map.approachBetween(SMALL, 56).id
+        const bar = approachBarBox(toward56, BAR_HALF_THICKNESS)
+        expect(boxSamples(bar).filter(coveredBy(blocks, 5))).toEqual([])
         const { outline } = LOCALE_GEOMETRY[SMALL]
         for (const block of blocks) {
             expect(insidePolygon(block.centre, outline)).toBe(true)

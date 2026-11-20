@@ -48,7 +48,6 @@ export function boxSamples(box: OrientedBox): Point[] {
     )
 }
 
-/** Whether a point lies on the box or within the margin around it. */
 export function nearBox(box: OrientedBox, margin: number): (point: Point) => boolean {
     return (point) => {
         const x = point.x - box.centre.x

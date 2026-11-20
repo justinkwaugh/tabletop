@@ -25,7 +25,7 @@ import {
 import { screenAxes, uprightAngle } from './boardView.js'
 import { nearBox, type OrientedBox } from './orientedBox.js'
 import { insidePolygon } from './polygon.js'
-import { TARGET_BAR_DEPTH, targetBarBox } from './targetBar.js'
+import { TARGET_BAR_DEPTH, approachBarBox, targetBarBox } from './targetBar.js'
 import { inReadingOrder } from './unitTypeOrder.js'
 import { byCommander } from './groupOrder.js'
 
@@ -52,8 +52,9 @@ const RESERVE_CLEARANCE = FILE_GROUP_GAP
 // level across the screen the reserve is not read as a corps blocking that approach.
 const RESERVE_BAR_CLEARANCE = RESERVE_CLEARANCE
 const OVERLAP_COST = 12
-// Deliberate: lying over a piece, or an offered target bar a player taps, is worse than crowding an approach bar.
-const BAR_CROWDING_COST = 6
+// Deliberate: a reserve gets off a level approach bar only by moving where it lies over no piece, no
+// offered target bar a player taps, and no edge of its locale it did not cross before.
+const BAR_CROWDING_COST = 1
 const STRAY_COST = 3
 const DRIFT_COST = 0.02
 
@@ -433,6 +434,12 @@ function isBelow(place: Point, locale: LocaleGeometry, down: Point): boolean {
     return (place.x - locale.anchor.x) * down.x + (place.y - locale.anchor.y) * down.y > 0
 }
 
+/** The board angle, in degrees, of the screen's left-to-right direction in the view turned by rotation. */
+function screenRightAngle(rotation: number): number {
+    const { right } = screenAxes(rotation)
+    return (Math.atan2(right.y, right.x) * 180) / Math.PI
+}
+
 function arrangeReserve(
     groups: PlacedGroup[],
     options: LayoutOptions,
@@ -441,7 +448,7 @@ function arrangeReserve(
 ): PlacedBlocks[] {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const { right, down } = screenAxes(options.rotation)
-    const angle = uprightAngle((Math.atan2(right.y, right.x) * 180) / Math.PI, options.rotation)
+    const angle = uprightAngle(screenRightAngle(options.rotation), options.rotation)
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
     const room = Math.max(BLOCK_THICKNESS * 2, locale.clearance * 2.2 * squeeze)
     const rows = Math.ceil(groups.length / columns)
@@ -495,30 +502,20 @@ interface CandidateSpot extends ReserveSpot {
 interface ReserveSpots {
     stay: CandidateSpot
     stayIsClear: boolean
-    at: (shift: Point) => CandidateSpot
+    spotAt: (shift: Point) => CandidateSpot
     all: () => CandidateSpot[]
-}
-
-function approachBar(approachId: number): OrientedBox {
-    const bar = APPROACH_GEOMETRY[approachId]
-    const radians = (bar.angle * Math.PI) / 180
-    return {
-        centre: bar.centre,
-        along: { x: Math.cos(radians), y: Math.sin(radians) },
-        halfLength: bar.length / 2,
-        halfWidth: BAR_HALF_THICKNESS
-    }
 }
 
 // Deliberate: only a bar lying near level with a reserve's blocks makes it look like a corps
 // fronting that approach; one standing across them never does.
 const LEVEL_BAR_DEGREES = 20
 
-// The approach bars of a locale lying near level with its reserve blocks, which stand at blockAngle.
 function levelBarsOf(localeId: number, blockAngle: number): OrientedBox[] {
     return AUSTERLITZ.approachesOf(localeId).flatMap((approach) => {
         const turn = Math.abs(APPROACH_GEOMETRY[approach.id].angle - blockAngle) % 180
-        return Math.min(turn, 180 - turn) <= LEVEL_BAR_DEGREES ? [approachBar(approach.id)] : []
+        return Math.min(turn, 180 - turn) <= LEVEL_BAR_DEGREES
+            ? [approachBarBox(approach.id, BAR_HALF_THICKNESS)]
+            : []
     })
 }
 
@@ -536,7 +533,6 @@ function crowdsABar(spot: ReserveSpot, bars: readonly OrientedBox[]): boolean {
     )
 }
 
-// Costed against the approach bars given as well as the pieces placed.
 function spotsFor(
     reserve: PlacedBlocks[],
     locale: LocaleGeometry,
@@ -575,9 +571,9 @@ function spotsFor(
                 let cost = drift
                 for (const sample of samples) {
                     const point = moved(sample, shift)
-                    const onAPiece = onPiece(point)
-                    covered += onAPiece ? 1 : 0
-                    crowding += !onAPiece && onBar(point) ? 1 : 0
+                    const covering = onPiece(point)
+                    covered += covering ? 1 : 0
+                    crowding += !covering && onBar(point) ? 1 : 0
                     stray += insidePolygon(point, locale.outline) ? 0 : 1
                     cost =
                         covered * OVERLAP_COST +
@@ -601,7 +597,7 @@ function spotsFor(
     return {
         stay,
         stayIsClear: samples.every((sample) => !onPiece(sample) && !onBar(sample)),
-        at: spotAt,
+        spotAt,
         all
     }
 }
@@ -622,7 +618,7 @@ function shiftsInside(locale: LocaleGeometry): Point[] {
 
 // Deliberate: spots are costed nearest first, so a cheap one is found early and most others are
 // given up after a few samples. A tie goes to the spot listed first, as costing every spot in
-// turn would choose. A spot already chosen, if given, is listed before them all.
+// turn would choose. A spot already chosen wins ties against them all, so it is kept unless another is cheaper.
 function cheapestSpot(spots: readonly CandidateSpot[], chosen?: CandidateSpot): CandidateSpot {
     const nearestFirst = spots
         .map((spot, listed) => ({ spot, listed }))
@@ -671,24 +667,27 @@ function settleReserve(
 ): ReserveSpot {
     const localeId = groups[0].position.locale
     const locale = LOCALE_GEOMETRY[localeId]
-    const spotsIn = (columns: number, squeeze = 1, bars: readonly OrientedBox[] = []) =>
-        spotsFor(arrangeReserve(groups, options, columns, squeeze), locale, placed, bars)
+    const spotsIn = (columns: number) =>
+        spotsFor(arrangeReserve(groups, options, columns), locale, placed)
     const [fittedColumns, ...widerColumns] = columnsToTry(groups.length, locale)
     const fitted = spotsIn(fittedColumns)
     const clearest = fitted.stayIsClear ? fitted.stay : cheapestSpot(fitted.all())
     if (clearest.strandedBlocks === 0) {
-        const { right } = screenAxes(options.rotation)
-        const bars = levelBarsOf(localeId, (Math.atan2(right.y, right.x) * 180) / Math.PI)
+        const bars = levelBarsOf(localeId, screenRightAngle(options.rotation))
         if (!crowdsABar(clearest, bars)) {
             return clearest
         }
-        const open = spotsIn(fittedColumns, 1, bars)
-        const closer = spotsIn(fittedColumns, BAR_SQUEEZE, bars)
-        const inside = [...open.all(), ...closer.all()].filter((spot) => spot.strandedBlocks === 0)
-        return cheapestSpot(inside, open.at(clearest.shift))
+        const besideBars = (squeeze: number) =>
+            spotsFor(arrangeReserve(groups, options, fittedColumns, squeeze), locale, placed, bars)
+        const asLaidOut = besideBars(1)
+        const closedUp = besideBars(BAR_SQUEEZE)
+        const inside = [...asLaidOut.all(), ...closedUp.all()].filter(
+            (spot) => spot.strandedBlocks === 0
+        )
+        return cheapestSpot(inside, asLaidOut.spotAt(clearest.shift))
     }
     return cheapestKeepingInside(
-        [fitted, ...widerColumns.map((columns) => spotsIn(columns))].flatMap((spots) => spots.all())
+        [fitted, ...widerColumns.map(spotsIn)].flatMap((spots) => spots.all())
     )
 }
 
