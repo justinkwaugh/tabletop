@@ -42,8 +42,9 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
         return this.hostGameContext
     }
 
+    // A game whose players all see the same State has no Host View, so the request changes nothing.
     get inspectionRequested(): boolean {
-        return this.privilegedInspectionEnabled
+        return this.privilegedInspectionEnabled && this.usesProjectedHostedRepresentation()
     }
 
     get isViewingAsActingPlayer(): boolean {
@@ -263,7 +264,7 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
             return
         }
 
-        if (this.privilegedInspectionEnabled) {
+        if (this.inspectionRequested) {
             if (this.hostGameContext === undefined) {
                 await this.setPrivilegedEnabled(true)
             } else {

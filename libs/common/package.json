@@ -15,6 +15,10 @@
             "types": "./src/game/visibility/tests/privateHandGame.ts",
             "import": "./esm/game/visibility/tests/privateHandGame.js"
         },
+        "./test-fixtures/note-game": {
+            "types": "./src/game/engine/tests/noteGame.ts",
+            "import": "./esm/game/engine/tests/noteGame.js"
+        },
         "./node/collectible-factory": {
             "types": "./src/node/collectibleFactory.ts",
             "import": "./esm/node/collectibleFactory.js"

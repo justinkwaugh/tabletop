@@ -1163,6 +1163,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 return
             }
 
+            if (this.rewritesHostedHistory(relevantContext, action)) {
+                await this.applyHistoryRewrite(action, relevantContext)
+                return
+            }
+
             // Optimistically apply the action locally (this will assign indices to the actions and store them)
             let actionResults: GameActionResults<T>
             try {
@@ -1279,6 +1284,42 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             `Processed action not found for ${action.id}`
         )
         await this.representations.reload()
+    }
+
+    // The host replaces a declaration that later Actions followed by replaying those Actions,
+    // whose System Actions it regenerates, before appending the replacement (ADR 0008). A
+    // client cannot predict that rewrite, so it takes the host's history instead. Replacing the
+    // last Action rewrites nothing and stays optimistic.
+    private rewritesHostedHistory(context: GameContext<T, U>, action: GameAction): boolean {
+        const replaced = action.supersedesActionId
+        return (
+            replaced !== undefined &&
+            !this.executesLocally(context) &&
+            (this.usesHostExecution(context) || context.game.storage === GameStorage.Remote) &&
+            context.actions.at(-1)?.id !== replaced
+        )
+    }
+
+    private async applyHistoryRewrite(action: GameAction, context: GameContext<T, U>) {
+        const isRepresentationCurrent = this.representations.captureValidity()
+        action.index = context.state.actionCount
+
+        if (this.debug) {
+            console.log(`Sending ${action.type} ${action.id} to server: `, action)
+        }
+
+        const response = await this.api.applyAction(context.game, action)
+        assertExists(
+            response.actions.find((processedAction) => processedAction.id === action.id),
+            `Processed action not found for ${action.id}`
+        )
+        if (!isRepresentationCurrent()) {
+            await this.representations.reload()
+            return
+        }
+        // The host's game is newer than its broadcasts of the rewrite, which then add nothing.
+        context.updateGame(response.game)
+        await this.checkSync()
     }
 
     private async applyServerAuthoritativeAction(
