@@ -3,6 +3,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Spaces, type SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import { StarveRole } from '../model/flow.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { chickenBeads } from '../model/guildsState.js'
@@ -165,7 +166,7 @@ export class HydratedStarveThePeople
         if (starveAsks(state, this.targetPlayerId)) {
             state.flow.starve = target
             // R-X.2 The prompt asks a hidden hand, whatever the answer.
-            this.revealsInfo = true
+            markRevealsInfo(this, true)
             this.metadata = { asked: true }
             return
         }

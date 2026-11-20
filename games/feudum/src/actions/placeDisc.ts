@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { assert, GameAction, HydratableAction, MachineContext, Visibility } from '@tabletop/common'
 import type { GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import {
     currentFollowUp,
     drawWritsToKeep,
@@ -223,7 +224,7 @@ export class HydratedPlaceDisc extends HydratableAction<typeof PlaceDisc> implem
         if (!writDraw) {
             return { space: row.space, drawnCount }
         }
-        this.revealsInfo = true
+        markRevealsInfo(this, true)
         return { space: row.space, drawnCount, drawnWritIds: [...requireDrawnWrits(writDraw)] }
     }
 }

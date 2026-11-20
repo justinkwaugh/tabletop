@@ -7,6 +7,7 @@ import type { DiscId, LocationKind } from '../data/discs.js'
 import { GuildById } from '../data/guilds.js'
 import { RegionIds, type RegionId, type TileId } from '../data/regionTiles.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
 import { discChoices, replaceLocationDisc, type DiscChoice } from '../model/locationDiscs.js'
@@ -353,7 +354,7 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
         const region = regionOf(this.spaceId)
         const shown = improvementTile(state, region)
         if (shown.kind === 'legal') {
-            this.revealsInfo = true
+            markRevealsInfo(this, true)
             const { tile, landscape } = collectTopTile(state, this.playerId, region)
             const vp = tileVp(tile, to)
             state.getPlayerState(this.playerId).score += vp
@@ -363,7 +364,7 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
         if (!fallback) {
             return undefined
         }
-        this.revealsInfo = true
+        markRevealsInfo(this, true)
         const { tile, landscape } = collectTopTile(state, this.playerId, fallback.stack)
         return { tileId: tile.id, landscape, vp: 0 }
     }

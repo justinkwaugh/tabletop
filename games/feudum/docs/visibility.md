@@ -53,7 +53,7 @@ Haversack draws, the progress die and its rerolls, the hidden-bead draw, spills 
 
 ## Undo barriers
 
-R-X.2 stops Undo at an action that revealed information. An Action sets `revealsInfo` from what it resolved. Input can't clear a barrier; a seat sending `true` on its own Action only stops its own Undo.
+R-X.2 stops Undo at an action that revealed information. An Action sets `revealsInfo` from what it resolved, through `markRevealsInfo`, which holds it to the declared list of Actions that can reveal (`RevealingActionTypes`); an Action whose schema fixes `revealsInfo` to true is on that list too. The table's "can't be undone" wording is checked against the same list. Input can't clear a barrier; a seat sending `true` on its own Action only stops its own Undo.
 
 Always a barrier: `FinaliseHand` (a finalised hand), `RevealPouches` (every pouch good and hand size), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), the System Actions `ReplenishMap` and `ReplenishGuilds` (haversack draws, and at the third dawn bead flips), and `ScoreGame` (every sealed charter).
 
@@ -98,7 +98,7 @@ No migrations: the Logic and UI Artifacts publish together, and a stored Game ke
 - Nourishing asking from public counts alone, a charter's holder as a mandate's: `handlers.spec.ts`.
 - Haversack counts public and conserved, draws from the protected stream: `supply.spec.ts`.
 - Guarded execution deferring every vault read and protected draw to the host, and a projection offering the same actions as canonical state for its own player: `protectedPlay.spec.ts`.
-- `revealsInfo` set exactly on the barriers listed above, and Undo refused across them: each action's own spec, and `protectedPlay.spec.ts` over whole protected games.
+- `revealsInfo` set exactly on the barriers listed above, and Undo refused across them: each action's own spec, and `protectedPlay.spec.ts` over whole protected games; every Action that can set it declared in `RevealingActionTypes`: `revealing.spec.ts`.
 - Exploration from each player's and a spectator's projection at states of scripted complete games (hand selection, a pending writ draw, an attack awaiting defence, a later epoch, final scoring): every writ and seal dealt once, the explorer's knowledge kept, the result complete with no master seed, the same branch from sources differing only in hidden values, and the branch playing on to the end; from canonical state, each hidden list reshuffled with every known slot kept: `exploration.spec.ts`.
 - The table's writ reference, each writ once and the same markup for the seat holding a charter and knowing writs under the deck, for another seat, and after a mandate goes under; the Supply card's deck its count alone: the writ reference and Supply card specs and the browser scenarios S50 and S78 in the UI package.
 - Each log line read from the Action as a seat received it, with the actor's own line naming what others' lines don't, from real projections: the action descriptions spec in the UI package.

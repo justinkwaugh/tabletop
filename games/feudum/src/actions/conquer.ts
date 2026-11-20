@@ -4,6 +4,7 @@ import { Compile } from 'typebox/compile'
 import { Spaces, type SpaceId } from '../data/board.js'
 import { MonsterIds } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import { CombatTarget } from '../model/flow.js'
 import type { CombatStrength } from '../model/combatStrength.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -239,7 +240,7 @@ export class HydratedConquer extends HydratableAction<typeof Conquer> implements
         const asked = defenderAsked(state, defenderId)
         if (asked) {
             // R-X.2 The prompt asks a hidden hand, whatever the answer.
-            this.revealsInfo = true
+            markRevealsInfo(this, true)
         }
         const combat =
             asked || attackerMayAdd(state, this.playerId) ? undefined : resolveCombat(state, 0, 0)

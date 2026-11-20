@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import type { WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import type { WritDrawSource } from '../model/flow.js'
 import { drawWritsToKeep, finishFollowUp, requireDrawnWrits } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -250,7 +251,7 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
         )
         const { writDraw } = state.flow
         assertExists(writDraw, 'R-3.10-H3 The reason has found a writ to draw')
-        this.revealsInfo = true
+        markRevealsInfo(this, true)
         return {
             drawnCount,
             keepNext: writDraw.keep,

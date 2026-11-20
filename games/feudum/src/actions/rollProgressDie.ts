@@ -4,6 +4,7 @@ import { ActionSource, GameAction, HydratableAction, MachineContext } from '@tab
 import { RegionIds, type RegionId } from '../data/regionTiles.js'
 import { LastEpoch } from '../data/tracks.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import { beginPhase, PhaseName } from '../definition/phases.js'
 import { triggeredEpoch } from '../model/epochConditions.js'
 import { TriggeredEpoch } from '../model/flow.js'
@@ -107,7 +108,7 @@ export class HydratedRollProgressDie
         const faces = rollFaces(state)
         const removed = removeRolledTile(state, faces.at(-1))
         if (removed) {
-            this.revealsInfo = true
+            markRevealsInfo(this, true)
         }
         const epochTriggered = triggerNextEpoch(state)
         this.metadata = {

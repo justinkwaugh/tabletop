@@ -4,6 +4,7 @@ import { assertExists, GameAction, HydratableAction, MachineContext } from '@tab
 import { VesselTypes, type Good, type GuildId, type VesselType } from '../data/components.js'
 import { MandateStatusStars, type MandateReward, type WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import { reasonNoAtWillWindow, atWillWindow } from '../model/atWill.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange, statusStars } from '../model/guildStatus.js'
@@ -309,7 +310,7 @@ export class HydratedPlayMandate
                 for (const good of goods) {
                     player.goods[good] += 1
                 }
-                this.revealsInfo = goods.length > 0
+                markRevealsInfo(this, goods.length > 0)
                 return { kind: 'goods', goods }
             }
             case 'vessel':
@@ -333,7 +334,7 @@ export class HydratedPlayMandate
                 const sealIds = Array.from({ length: amount }, () =>
                     flipSeal(state, { kind: 'pile' }, { kind: 'player', playerId })
                 )
-                this.revealsInfo = sealIds.length > 0
+                markRevealsInfo(this, sealIds.length > 0)
                 return { kind: 'bead', sealIds }
             }
             case 'attack':

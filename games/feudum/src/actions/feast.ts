@@ -5,6 +5,7 @@ import { Spaces, type SpaceId } from '../data/board.js'
 import { GuildById } from '../data/guilds.js'
 import type { GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import {
     GuildFunctionOutcome,
     GuildFunctionParams,
@@ -309,7 +310,7 @@ export class HydratedFeast extends HydratableAction<typeof Feast> implements Fea
         player.score += feastPoints()
         this.metadata = { ...outcome, fn, feastPoints: feastPoints() }
         if (revealsInfo) {
-            this.revealsInfo = true
+            markRevealsInfo(this, true)
         }
     }
 }

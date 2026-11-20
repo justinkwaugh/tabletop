@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { GuildIds, type GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
+import { markRevealsInfo } from '../definition/revealing.js'
 import {
     GuildFunctionNames,
     GuildFunctionOutcome,
@@ -163,7 +164,7 @@ export class HydratedGuildAction
         )
         this.metadata = outcome
         if (revealsInfo) {
-            this.revealsInfo = true
+            markRevealsInfo(this, true)
         }
     }
 }

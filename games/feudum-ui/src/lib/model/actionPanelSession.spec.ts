@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -11,6 +9,7 @@ import {
     MachineState,
     placeMarker,
     playMandateOffers,
+    RevealingActionTypes,
     StartingSpaceIds,
     writDeckCount,
     type ActionCardKind,
@@ -1301,7 +1300,7 @@ describe('Move', () => {
 
 /** A row of the list: how a seat comes to the press, and which label it reads there. */
 interface Reveal {
-    /** The logic's file that sets `revealsInfo`, named for the scan beside this spec. */
+    /** The Action's own file in the logic, which names the row. */
     readonly file: string
     readonly variant: string
     readonly type: ActionType
@@ -1783,25 +1782,19 @@ async function defended() {
     return { table, defender }
 }
 
-/** The Action files whose `revealsInfo` no seat's press sets: the machine plays them. */
-const SystemRevealers = [
-    'replenishGuilds',
-    'replenishMap',
-    'revealPouches',
-    'rollProgressDie',
-    'scoreGame'
+/** The revealing Actions no seat's press sends: the machine plays them. */
+const SystemRevealers: readonly ActionType[] = [
+    ActionType.ReplenishGuilds,
+    ActionType.ReplenishMap,
+    ActionType.RevealPouches,
+    ActionType.RollProgressDie,
+    ActionType.ScoreGame
 ]
 
 describe("R-X.2 every send that can't be undone names itself: the list, not a sample", () => {
-    it('the list holds every Action in the logic that can set revealsInfo', () => {
-        const actions = join(process.cwd(), '../feudum/src/actions')
-        const revealers = readdirSync(actions)
-            .filter((name) => name.endsWith('.ts') && !name.endsWith('.spec.ts'))
-            .filter((name) => /revealsInfo\s*(:|=)/.test(readFileSync(join(actions, name), 'utf8')))
-            .map((name) => name.replace(/\.ts$/, ''))
-            .sort()
-        const listed = [...new Set(Reveals.map(({ file }) => file)), ...SystemRevealers].sort()
-        expect(revealers).toEqual(listed)
+    it('the list holds every Action the logic declares can set revealsInfo', () => {
+        const listed = [...new Set(Reveals.map(({ type }) => type)), ...SystemRevealers].sort()
+        expect([...RevealingActionTypes].sort()).toEqual(listed)
     })
 
     it.each(Reveals.map((row) => [row.file, row.variant, row] as const))(
