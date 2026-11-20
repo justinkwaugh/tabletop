@@ -272,6 +272,7 @@
                             coverBelowScale={CoverBelowScale}
                             insetTop={phone.phone ? ChooserInset : 0}
                             expandable
+                            renderAtViewScale
                             onManualViewChange={() => focus.handMoved()}
                         >
                             <div

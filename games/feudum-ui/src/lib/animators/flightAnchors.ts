@@ -1,4 +1,5 @@
 import { GuildIds, type GuildId } from '@tabletop/feudum'
+import { visualClientRect } from '@tabletop/frontend-components'
 import type { GuildsApart } from './boardPlan.js'
 import type { FlightEnd, SeatPart } from './flightPlan.js'
 import {
@@ -84,7 +85,7 @@ function holds(rect: DOMRect, { x, y }: Point): boolean {
  * modal over the sidebar rules it out.
  */
 function isOnScreen(element: Element): boolean {
-    const rect = element.getBoundingClientRect()
+    const rect = visualClientRect(element)
     if (rect.width === 0 && rect.height === 0) {
         return false
     }
@@ -95,7 +96,7 @@ function isOnScreen(element: Element): boolean {
             return false
         }
         const clips = [overflowX, overflowY].some((one) => one !== 'visible')
-        if (clips && !holds(up.getBoundingClientRect(), centre)) {
+        if (clips && !holds(visualClientRect(up), centre)) {
             return false
         }
     }
@@ -153,7 +154,7 @@ export class DomFlightStage implements FlightStage {
                         size: StandInSize
                     }
                 }
-                const rect = element.getBoundingClientRect()
+                const rect = visualClientRect(element)
                 const exact = isDrawable(element) && element.matches(this.exactOf(end))
                 return {
                     ...relative(centreOf(rect)),
@@ -188,14 +189,14 @@ export class DomFlightStage implements FlightStage {
         }
         const surface = this.layer.ownerDocument.querySelector('[data-board-surface]')
         const piece = end.piece ? surface?.querySelector(`[data-motion="${end.piece}"]`) : undefined
-        const rect = surface?.getBoundingClientRect()
+        const rect = surface ? visualClientRect(surface) : undefined
         // The part of the board the surface draws: the whole board, or a desk's crop of it.
         const drawn =
             surface instanceof SVGSVGElement && surface.viewBox.baseVal.width > 0
                 ? surface.viewBox.baseVal
                 : { x: 0, y: 0, width: BoardWidth }
         const scale = rect ? rect.width / drawn.width : 1
-        const pieceRect = piece?.getBoundingClientRect()
+        const pieceRect = piece ? visualClientRect(piece) : undefined
         const seen = pieceRect && pieceRect.width + pieceRect.height > 0 ? pieceRect : undefined
         const onScreen = seen
             ? centreOf(seen)
@@ -206,7 +207,7 @@ export class DomFlightStage implements FlightStage {
                 }
               : end.point
         const view = surface?.closest('dialog:modal') ?? surface?.closest('[data-board-view]')
-        const framed = view?.getBoundingClientRect()
+        const framed = view ? visualClientRect(view) : undefined
         // A framed board can put an end out of the view: the copy leaves or enters at the view's edge.
         const kept = framed
             ? {
@@ -231,9 +232,9 @@ export class DomFlightStage implements FlightStage {
         end: Extract<FlightEnd, { kind: 'board' }>,
         relative: (point: Point) => Point
     ): StagePlace {
-        const box = area.getBoundingClientRect()
+        const box = visualClientRect(area)
         const piece = end.piece ? area.querySelector(`[data-motion="${end.piece}"]`) : null
-        const pieceRect = piece?.getBoundingClientRect()
+        const pieceRect = piece ? visualClientRect(piece) : undefined
         const seen = pieceRect && pieceRect.width + pieceRect.height > 0 ? pieceRect : undefined
         const onScreen = seen ? centreOf(seen) : uprightPoint(guild, end.point, box)
         return {

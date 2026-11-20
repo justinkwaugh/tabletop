@@ -59,7 +59,7 @@
             <div
                 class="drawing"
                 style="width:{StandingsStrip.drawing
-                    .width}px;height:{drawingHeight}px;transform:scale({StripRailScale})"
+                    .width}px;height:{drawingHeight}px;transform:scale(calc({StripRailScale} * var(--render-zoom, 1)))"
             >
                 <GuildRail {row} {paintOf} spelled />
             </div>
@@ -78,7 +78,9 @@
         flex: none;
     }
 
+    /* As the phone's rails: the zoom off, the scale by transform (`GuildRails`). */
     .drawing {
+        zoom: var(--render-unzoom, 1);
         transform-origin: 0 0;
     }
 </style>

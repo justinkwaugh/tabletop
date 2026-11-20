@@ -52,6 +52,17 @@ async function createGame(page: Page) {
     await settled(page)
 }
 
+/** The CSS zoom a node is drawn under: the product of its ancestors' zooms, its own too if `self`. */
+function zoomOf(node: Locator, self = false): Promise<number> {
+    return node.evaluate((element, self) => {
+        let zoom = 1
+        for (let at = self ? element : element.parentElement; at; at = at.parentElement) {
+            zoom *= Number.parseFloat(getComputedStyle(at).zoom) || 1
+        }
+        return zoom
+    }, self)
+}
+
 const panel = (page: Page) => page.locator('[data-action-panel]')
 const cap = (page: Page) => page.locator('[data-action-cap]')
 const stack = (page: Page) => page.locator('.game-stack')
@@ -937,6 +948,28 @@ test.describe('held upright', () => {
 
 test.describe('a 390 px phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('phone rendering: the board is drawn at the scale it shows, and the rails’ text is not zoomed', async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToCards(page)
+        await settled(page)
+        // Once the view settles the board is laid out again at its view scale (CSS zoom).
+        await expect.poll(() => zoomOf(surface(page)), { timeout: 5_000 }).toBeLessThan(0.5)
+        const zoom = await zoomOf(surface(page))
+        const shown = (await surface(page).boundingBox())?.width ?? 0
+        expect(zoom).toBeCloseTo(shown / BoardWidth, 2)
+
+        // HTML laid out under that zoom would move and hit Safari's text floor: the rails take it off.
+        await chip(page, 'west').click()
+        await settled(page)
+        const drawings = page.locator('[data-guild-rails] [data-guild-rail] > div')
+        await expect(drawings).toHaveCount(3)
+        for (const drawing of await drawings.all()) {
+            expect(await zoomOf(drawing, true)).toBeCloseTo(1, 5)
+        }
+    })
 
     test('S74 R-4.6.2 the trade picker’s sheet fits, its choices in view with no scroll', async ({
         page
