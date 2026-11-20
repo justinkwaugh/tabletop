@@ -13,7 +13,7 @@ import { BoardView, toView, viewRotation } from './boardView.js'
 import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { BLOCK_LENGTH, BLOCK_THICKNESS, blockSamples, coveredBy } from './blockShape.js'
 import { boxSamples } from './orientedBox.js'
-import { layoutPieces, type BlockSprite } from './pieceLayout.js'
+import { BAR_HALF_THICKNESS, layoutPieces, type BlockSprite } from './pieceLayout.js'
 import { insidePolygon } from './polygon.js'
 import { targetBarBox } from './targetBar.js'
 
@@ -369,6 +369,60 @@ describe('a reserve of several groups in a locale long across the screen', () =>
         expect(Math.abs(across('langeron') - across('liechtenstein'))).toBeGreaterThanOrEqual(
             BLOCK_LENGTH
         )
+    })
+})
+
+// From a reported game: Bessières' corps and a detached cavalry block in reserve at locale 43 stood one
+// above the other, the corps against the bar of the approach to 56, and was read as blocking it.
+describe("a reserve beside its locale's approaches", () => {
+    const SMALL = 43
+
+    function laidOut() {
+        const game = new TestGame()
+        game.deployBoth()
+        const french = (id: string, face: Face, commanderId?: string) => ({
+            id,
+            side: Side.French,
+            face,
+            locale: SMALL,
+            commanderId
+        })
+        arrangeBattlefield(game, [
+            french('F24', infantry(2), 'bessieres'),
+            french('F25', infantry(3), 'bessieres'),
+            french('F35', infantry(2), 'bessieres'),
+            french('F36', infantry(3), 'bessieres'),
+            french('F18', cavalry(2))
+        ])
+        const sprites = layoutPieces(game.hydrated, { rotation: viewRotation(BoardView.French) })
+        return { game, blocks: sprites.flatMap((sprite) => sprite.blocks) }
+    }
+
+    it('stands clear of the approach bars lying level with it, though it closes up to do so', () => {
+        const { game, blocks } = laidOut()
+        expect(blocks).toHaveLength(5)
+        const [{ angle: blockAngle }] = blocks
+        const level = game.hydrated.map.approachesOf(SMALL).filter((approach) => {
+            const turn = Math.abs(APPROACH_GEOMETRY[approach.id].angle - blockAngle) % 180
+            return Math.min(turn, 180 - turn) <= 20
+        })
+        expect(level.length).toBeGreaterThan(0)
+        const bars = level.map((approach) => {
+            const bar = APPROACH_GEOMETRY[approach.id]
+            const radians = (bar.angle * Math.PI) / 180
+            return {
+                centre: bar.centre,
+                along: { x: Math.cos(radians), y: Math.sin(radians) },
+                halfLength: bar.length / 2,
+                halfWidth: BAR_HALF_THICKNESS
+            }
+        })
+        const crowding = bars.flatMap(boxSamples).filter(coveredBy(blocks, 5))
+        expect(crowding).toEqual([])
+        const { outline } = LOCALE_GEOMETRY[SMALL]
+        for (const block of blocks) {
+            expect(insidePolygon(block.centre, outline)).toBe(true)
+        }
     })
 })
 
