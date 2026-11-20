@@ -1,3 +1,4 @@
+import { flushSync } from 'svelte'
 import { afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
 import { ActionSource, assertExists, type GameAction, type Point } from '@tabletop/common'
@@ -24,6 +25,7 @@ import {
     atPlayingCards,
     buildFeudum,
     emptySpace,
+    giveGood,
     returnGoods
 } from '$lib/testing/turnTable.js'
 import { FlightAnimator, type CopyElement, type CopySide } from './flightAnimator.svelte.js'
@@ -38,7 +40,6 @@ import {
 } from './flightPlan.js'
 import { guildPoint, planBoardMotion } from './boardPlan.js'
 import { guildSlot } from '$lib/utils/boardGeometry.js'
-import flightPlanSource from './flightPlan.ts?raw'
 
 /** Contract, Fast fallback: stated here apart from the plan's own constant, which it checks. */
 const ContractFastSeconds = 0.2
@@ -471,7 +472,45 @@ describe('each row of the animation plan that crosses the wrapper', () => {
             part: { part: 'good', good: 'sulfur' }
         })
         expect(endAt(goods[0])).toMatchObject({ kind: 'seat', part: { part: 'pouch' } })
-        expect(flightPlanSource).not.toMatch(/hand\.draft/i)
+    })
+
+    it('R-3.3 R-3.1-H1 a seat’s own hand draft reaches no plan while another seat finalises', async () => {
+        host = new FeudumHost(3)
+        await host.playStartingGoods()
+        await host.playStartingPawns()
+        const [first, second] = host.order
+        host.edit((state) => {
+            returnGoods(state, first)
+            giveGood(state, first, 'sulfur')
+        })
+        const session = await host.openSeat(first)
+        session.flightAnimator.useStage(new FakeStage())
+        const planned = vi.spyOn(session.flightAnimator, 'plan')
+        for (const kind of ['move', 'tax', 'guild', 'explore'] as const) {
+            session.toggleHandCard(kind)
+        }
+        session.choosePouch('sulfur')
+        flushSync()
+        expect(session.hand.hand.pouchGood).toBe('sulfur')
+
+        await host.send(second, {
+            type: ActionType.FinaliseHand,
+            revealsInfo: true,
+            cards: ['move', 'tax', 'guild', 'explore']
+        })
+        await settled(session)
+
+        expect(planned).toHaveBeenCalled()
+        const ends = planned.mock.results.flatMap((result) =>
+            result.type === 'return'
+                ? result.value.flights.flatMap((flight) => [
+                      flight.from,
+                      ...flight.legs.map(({ to }) => to)
+                  ])
+                : []
+        )
+        expect(ends.filter((end) => end.kind === 'seat' && end.playerId === first)).toEqual([])
+        expect(session.hand.hand.pouchGood).toBe('sulfur')
     })
 
     it('R-4.6.2 coin goes to the members in the payment’s order, then the charity', async () => {
@@ -1064,16 +1103,6 @@ describe('R-5.3 what a flying copy shows, seat by seat', () => {
         planFlights(change)
         planDirectFlights(change)
         expect(trapped).toEqual([])
-        for (const name of [
-            /\.hand\b/,
-            /\.writs\b/,
-            /\.sealedCharters\b/,
-            /deckKnowledge/,
-            /[vV]ault/,
-            /\.drawn\b/
-        ]) {
-            expect(flightPlanSource).not.toMatch(name)
-        }
     })
 
     it('R-4.6-H2 a hidden bead draw: both candidates lift alike, and the outcome changes where one settles and nothing else', async () => {

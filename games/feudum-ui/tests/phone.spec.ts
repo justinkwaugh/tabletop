@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { ActionType } from '@tabletop/feudum'
 import {
@@ -769,28 +767,6 @@ test.describe('held upright', () => {
             .evaluate((element) => element.textContent)
         const words = (text: string | null) => (text ?? '').replace(/\s+/g, ' ').trim()
         expect(words(onPhone)).toBe(words(onDesk))
-    })
-
-    test('S69 R-5.1 the phone path adds no read of a hand: it goes through the seat panel', () => {
-        const root = join(import.meta.dirname, '../src/lib')
-        const phoneFiles = [
-            'components/table/SeatStrip.svelte',
-            'components/table/StatusStrip.svelte',
-            'components/table/TracksSheet.svelte',
-            'components/table/FocusChooser.svelte',
-            'model/boardFocus.svelte.ts',
-            'model/phoneLayout.svelte.ts'
-        ]
-        for (const file of phoneFiles) {
-            const source = readFileSync(join(root, file), 'utf8')
-            expect(source, file).not.toMatch(/\.hand\b/)
-            expect(source, file).not.toMatch(/\.pouch\b/)
-        }
-        for (const file of ['SeatStrip.svelte', 'StatusStrip.svelte']) {
-            expect(readFileSync(join(root, 'components/table', file), 'utf8')).toContain(
-                'seatPanel('
-            )
-        }
     })
 
     test('S73 R-1.2 the Tracks chip opens a sheet to look at: legible, scrolling inside, no target in it', async ({

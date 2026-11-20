@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
     ActionSource,
     assertExists,
@@ -36,7 +36,6 @@ import {
     type HistoryGroupKind,
     type HistoryTable
 } from './actionAggregator.js'
-import source from './actionAggregator.ts?raw'
 
 const [P1, P2, P3] = ['p1', 'p2', 'p3']
 type GameWalk = ReturnType<typeof realGames>[number]
@@ -766,10 +765,37 @@ describe('R-5-H1 Pure: only what the seat received', () => {
         expect(turn?.actions[0]).toBe(actions[5])
     })
 
-    it('Nothing it could read says more than the Actions: the module names no patch and no state', () => {
-        expect(source).not.toMatch(
-            /undoPatch|forwardPatch|gameState|session|Date\.now|Math\.random|nanoid|crypto/
-        )
+    it('Nothing it could read says more than the Actions: no patch, no clock and no chance is read', () => {
+        const read: string[] = []
+        const patched = actions.map((action) => {
+            const copy = { ...action }
+            for (const name of ['undoPatch', 'forwardPatch']) {
+                Object.defineProperty(copy, name, {
+                    enumerable: true,
+                    get() {
+                        read.push(name)
+                        return []
+                    }
+                })
+            }
+            return copy
+        })
+        const asked = [
+            vi.spyOn(Date, 'now'),
+            vi.spyOn(Math, 'random'),
+            vi.spyOn(crypto, 'randomUUID'),
+            vi.spyOn(crypto, 'getRandomValues')
+        ]
+
+        const entries = aggregateHistory(patched, table)
+        const called = asked
+            .filter((spy) => spy.mock.calls.length > 0)
+            .map((spy) => spy.getMockName())
+        asked.forEach((spy) => spy.mockRestore())
+
+        expect(read).toEqual([])
+        expect(called).toEqual([])
+        expect(spans(entries)).toEqual(spans(aggregateHistory(actions, table)))
     })
 
     it('Nothing it adds is taken from an Action but its index, player and type', () => {

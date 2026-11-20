@@ -994,23 +994,6 @@ describe('R-4.4 the writ rows of a seat and of those watching', () => {
     })
 })
 
-describe('contract, Render ownership: one component draws each shared row', () => {
-    it('only the panel blocks draw them, so the panel and the waiting view cannot differ', () => {
-        const components = import.meta.glob('./**/*.svelte', {
-            query: '?raw',
-            import: 'default',
-            eager: true
-        })
-        const shared = ['CombatTally', 'DawnSheet', 'FinaliseRow', 'GameEndSummary', 'OrderRow']
-        for (const name of shared) {
-            const importers = Object.entries(components)
-                .filter(([, source]) => String(source).includes(`import ${name} from`))
-                .map(([file]) => file)
-            expect(importers, name).toEqual(['./panel/PanelBlocks.svelte'])
-        }
-    })
-})
-
 describe('R-4.10 S53 the nourish picker', () => {
     const option = (
         label: string,

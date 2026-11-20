@@ -1,47 +1,30 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { FeudumInfo } from '@tabletop/feudum'
 
-const Sources = import.meta.glob<string>('/src/lib/**/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true
-})
+const Modules = Object.keys(import.meta.glob('/src/lib/**/*.{ts,svelte}'))
 
 const Entry = '/src/lib/definitions/definition.ts'
+const Cover = '/src/lib/art/cover.ts'
+const Runtime = '/src/lib/definitions/runtime.ts'
 
-/**
- * A module's static value imports, a bare `import '...'` included; `import type` and dynamic
- * `import()` load nothing up front.
- */
-function valueImports(source: string): string[] {
-    return [...source.matchAll(/^import\s+(?:(?!type\s)([\s\S]*?)\s+from\s+)?'([^']+)'/gm)].map(
-        ([, names, from]) => (names ? `${names.replace(/\s+/g, ' ').trim()} from ${from}` : from)
-    )
-}
-
-/** The module a specifier names in this package, by its glob key. */
-function resolve(importer: string, specifier: string): string {
-    const path = specifier.startsWith('$lib/')
-        ? `/src/lib/${specifier.slice('$lib/'.length)}`
-        : new URL(specifier, `file://${importer}`).pathname
-    return path.replace(/\.js$/, '.ts')
-}
-
-/** Every import the module reaches statically, followed through this package's own modules. */
-function staticGraph(entry: string): { modules: string[]; external: string[] } {
-    const modules: string[] = []
-    const external: string[] = []
-    const queue = [entry]
-    while (queue.length > 0) {
-        const module = queue.shift()!
-        if (modules.includes(module)) continue
-        modules.push(module)
-        for (const line of valueImports(Sources[module])) {
-            const local = resolve(module, line.replace(/^.* from /, ''))
-            if (local in Sources) queue.push(local)
-            else external.push(line)
-        }
+function trapTheRest(): string[] {
+    const loaded: string[] = []
+    vi.resetModules()
+    for (const path of Modules.filter((path) => path !== Entry && path !== Cover)) {
+        vi.doMock(path, () => {
+            loaded.push(path)
+            throw new Error(`${path} is loaded`)
+        })
     }
-    return { modules, external }
+    vi.doMock('@tabletop/feudum', async () => ({
+        FeudumInfo: (await vi.importActual<typeof import('@tabletop/feudum')>('@tabletop/feudum'))
+            .FeudumInfo
+    }))
+    vi.doMock('@tabletop/frontend-components', () => {
+        loaded.push('@tabletop/frontend-components')
+        throw new Error('@tabletop/frontend-components is loaded')
+    })
+    return loaded
 }
 
 /**
@@ -49,14 +32,25 @@ function staticGraph(entry: string): { modules: string[]; external: string[] } {
  * entry holds the title's info and its cover only, and the game comes through `runtime()`.
  */
 describe('the UI entry', () => {
-    it('finds its module', () => {
-        expect(Sources[Entry]).toContain('UiDefinition')
+    it('finds the package modules it sets traps on', () => {
+        expect(Modules).toEqual(expect.arrayContaining([Entry, Cover, Runtime]))
     })
 
-    it('reaches only the title info and the cover', () => {
-        expect(staticGraph(Entry)).toEqual({
-            modules: [Entry, '/src/lib/art/cover.ts'],
-            external: ['{ FeudumInfo } from @tabletop/feudum']
-        })
+    it('loads with every other module a trap, holding the title info and the cover', async () => {
+        const loaded = trapTheRest()
+        const { UiDefinition } = await import('./definition.js')
+
+        expect(loaded).toEqual([])
+        expect(UiDefinition.info).toMatchObject(FeudumInfo)
+        expect(typeof UiDefinition.info.thumbnailUrl).toBe('string')
+    })
+
+    it('reaches the game only through runtime()', async () => {
+        const loaded = trapTheRest()
+        const { UiDefinition } = await import('./definition.js')
+        expect(loaded).toEqual([])
+
+        await expect(UiDefinition.runtime()).rejects.toThrow()
+        expect(loaded).toContain(Runtime)
     })
 })

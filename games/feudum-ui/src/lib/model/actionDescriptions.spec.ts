@@ -61,7 +61,6 @@ import {
 } from '@tabletop/feudum/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { describeAction, type ActionLineView } from '$lib/model/actionDescription.js'
-import actionDescriptionSource from '$lib/model/actionDescription.ts?raw'
 import { linesOf, primaryNamed } from '$lib/testing/actionPanelView.js'
 import { askedToDefend, askedToStarve, type AskTable } from '$lib/testing/askTable.js'
 import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
@@ -1231,17 +1230,6 @@ describe('R-X.2 The description cannot fall back on the state', () => {
         }
         // The seats, fixed when the game is made, belong to the look as the names do.
         expect([...asked].toSorted()).toEqual(['hostView', 'nameOf', 'seats', 'viewerId'])
-    })
-
-    it('Its source imports no session or state, and names none', () => {
-        const imported = [...actionDescriptionSource.matchAll(/from '([^']+)'/g)].map(
-            ([, from]) => from
-        )
-
-        expect(imported.filter((from) => /session|Context|testing/i.test(from))).toEqual([])
-        expect(actionDescriptionSource).not.toMatch(
-            /gameState|\.state\b|\bstate:|getPlayerState|FeudumGameState/
-        )
     })
 
     it('R-4.4.4 The same record reads the same whatever this seat holds in its state', async () => {

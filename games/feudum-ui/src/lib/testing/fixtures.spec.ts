@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
 import {
     conservationBreaks,
     FeudumCanonicalStateValidator,
@@ -60,17 +58,24 @@ describe('the fixture loader', () => {
         )
     })
 
-    it('no route and no production file imports the testing folder', () => {
-        const root = join(import.meta.dirname, '../..')
-        const reachers = readdirSync(root, { recursive: true, encoding: 'utf8' })
-            .filter((file) => /\.(ts|svelte|js)$/.test(file))
-            .filter((file) => !/\.spec\.ts$/.test(file) && !file.startsWith(join('lib', 'testing')))
-            .filter((file) =>
-                /from '[^']*testing\/|import\('[^']*testing\//.test(
-                    readFileSync(join(root, file), 'utf8')
-                )
-            )
-            .map((file) => relative(root, join(root, file)))
-        expect(reachers).toEqual([])
-    })
+    it('no route and no production module loads the testing folder', async () => {
+        const testing = Object.keys(import.meta.glob('/src/lib/testing/**/*.{ts,svelte}'))
+        expect(testing).toContain('/src/lib/testing/fixtures.ts')
+        const loaded: string[] = []
+        vi.resetModules()
+        for (const path of testing) {
+            vi.doMock(path, () => {
+                loaded.push(path)
+                throw new Error(`${path} is loaded`)
+            })
+        }
+        try {
+            const { UiDefinition } = await import('$lib/definitions/definition.js')
+            await UiDefinition.runtime()
+            await import('../../routes/+page.svelte')
+        } finally {
+            testing.forEach((path) => vi.doUnmock(path))
+        }
+        expect(loaded).toEqual([])
+    }, 60_000)
 })

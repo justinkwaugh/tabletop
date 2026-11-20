@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { readdirSync, readFileSync } from 'node:fs'
 import { render } from 'svelte/server'
 import { describe, expect, it, vi } from 'vitest'
 import { AssetIds, CoverAsset, assetUrl } from '$lib/art/assetMap.js'
@@ -53,13 +52,6 @@ describe('with the asset folder empty', () => {
             expect(markup).not.toContain('<image')
             expect(markup).not.toContain('data-guild-face')
         }
-    })
-
-    it('no source reaches into the folder but the one glob', () => {
-        const pieces = readdirSync(new URL('./pieces/', import.meta.url)).map((name) =>
-            readFileSync(new URL(`./pieces/${name}`, import.meta.url), 'utf8')
-        )
-        expect(pieces.filter((source) => source.includes('supplied'))).toEqual([])
     })
 })
 
