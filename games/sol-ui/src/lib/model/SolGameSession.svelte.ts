@@ -51,7 +51,9 @@ import {
     Fuel,
     Metamorphosize,
     Chain,
-    Deconstruct
+    Deconstruct,
+    gateKey,
+    HydratedDeconstruct
 } from '@tabletop/sol'
 import {
     assert,
@@ -339,9 +341,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         if (!myPlayerId || !this.canDeconstruct) {
             return []
         }
-        return Object.entries(this.gameState.board.gates)
-            .filter(([, gate]) => gate.playerId === myPlayerId)
-            .map(([key]) => Number(key))
+        return HydratedDeconstruct.deconstructableGates(this.gameState, myPlayerId).map((gate) =>
+            gateKey(gate.innerCoords, gate.outerCoords)
+        )
     })
 
     validGateDestinations = $derived.by(() => {

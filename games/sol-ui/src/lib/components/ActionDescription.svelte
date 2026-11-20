@@ -233,7 +233,7 @@
     {#if action.metadata?.removedStation}
         deconstructed {StationNameArticles[action.metadata.removedStation.type]}
         {StationNames[action.metadata.removedStation.type]}
-    {:else}
+    {:else if action.metadata?.removedGate}
         deconstructed a solar gate
     {/if}
     {#if action.metadata?.oldMovement !== action.metadata?.newMovement}
