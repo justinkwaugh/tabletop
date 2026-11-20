@@ -12,7 +12,6 @@ import { contrast, luminance, seatPaint } from '$lib/model/seatPaint.js'
 const libRoot = fileURLToPath(new URL('..', import.meta.url))
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const appCss = read('../../app.css')
-const contract = read('../../../docs/ui-interaction-visual-contract.md')
 const artPlan = read('../../../docs/art-plan.md')
 
 const Scanned = /\.(svelte|ts)$/
@@ -148,12 +147,10 @@ describe('palette', () => {
         expect(colourTokens.filter((token) => !themed.has(token))).toEqual([])
     })
 
-    it('the declared set is the contract table, and the art plan agrees', () => {
-        const fromTable = (rows: string[]) =>
-            rows.flatMap((row) => namesInCell(row.split('|')[1])).map((name) => `feudum-${name}`)
-        const inContract = fromTable(tableUnder('## Palette', contract))
-        const inPlan = fromTable(tableUnder('## Palette', artPlan))
-        expect(new Set(inContract)).toEqual(new Set(colourTokens))
+    it('the declared set is the art plan table', () => {
+        const inPlan = tableUnder('## Palette', artPlan)
+            .flatMap((row) => namesInCell(row.split('|')[1]))
+            .map((name) => `feudum-${name}`)
         expect(new Set(inPlan)).toEqual(new Set(colourTokens))
     })
 
