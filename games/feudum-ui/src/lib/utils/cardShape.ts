@@ -19,31 +19,14 @@ export const PrintedCardPlace = {
     scale: PrintScale
 } as const
 
-/**
- * The foot's line naming the card in the print's other languages, measured on the print, in its
- * pixels: each card's line across, padded, from its top to the print's foot, less a notch where the
- * frame's jewel dips into it. Its frame is one flat colour in each printed colour.
- */
-export const PrintedNameLine = {
-    top: 915,
-    jewel: { from: 278, to: 310, foot: 918.5 },
-    across: {
-        conquer: { from: 148, to: 428 },
-        defend: { from: 116, to: 449 },
-        explore: { from: 141, to: 408 },
-        guild: { from: 206, to: 387 },
-        harvest: { from: 213, to: 405 },
-        improve: { from: 183, to: 425 },
-        influence: { from: 183, to: 429 },
-        migrate: { from: 161, to: 385 },
-        move: { from: 148, to: 447 },
-        repeat: { from: 97, to: 400 },
-        tax: { from: 182, to: 369 }
-    } satisfies Record<ActionCardKind, { from: number; to: number }>
-} as const
+/** The print's corner, where it is cut round. */
+export const PrintedCardCorner = 24
 
-/** The printed frame's colour round the name line, measured on the print (the palette's `print-frame`). */
-export const PrintedFrameFoot: Record<PrintedColour, string> = {
+/**
+ * The band round a printed card and its foot, one flat colour in each printed colour, measured on
+ * the print (the palette's `print-frame`).
+ */
+export const PrintBand: Record<PrintedColour, string> = {
     [Color.Red]: 'var(--feudum-print-frame-red)',
     [Color.Blue]: 'var(--feudum-print-frame-blue)',
     [Color.Green]: 'var(--feudum-print-frame-green)',
@@ -51,11 +34,72 @@ export const PrintedFrameFoot: Record<PrintedColour, string> = {
     [Color.Yellow]: 'var(--feudum-print-frame-yellow)'
 }
 
-/** The name line's cover as an SVG path in the print's pixels, the jewel's notch left open. */
-export function printedNameLinePath(kind: ActionCardKind): string {
-    const { top, jewel, across } = PrintedNameLine
-    const { from, to } = across[kind]
-    return `M${from} ${top}H${jewel.from}V${jewel.foot}H${jewel.to}V${top}H${to}V${PrintedCard.height}H${from}Z`
+/**
+ * The printed frame inside the band, in the print's pixels, measured on it: a gold bar between two
+ * dark lines, `bar` wide, its outer edge here; the foot is the band under it. A quarter rosette
+ * fills each inner corner.
+ */
+export const PrintFrame = { x: 6, y: 2, width: 566, height: 909, bar: 15, round: 9, rosette: 30 }
+
+/** The frame's bars as one rect each stroke is centred on, `inset` in from its outer edge. */
+export function printFrameRect(inset: number) {
+    const { x, y, width, height } = PrintFrame
+    return { x: x + inset, y: y + inset, width: width - 2 * inset, height: height - 2 * inset }
+}
+
+/** The art shows between the side bars, from the frame's top to its foot: it carries both. */
+export const PrintArtWindow = {
+    x: PrintFrame.x + PrintFrame.bar,
+    y: PrintFrame.y,
+    width: PrintFrame.width - 2 * PrintFrame.bar,
+    height: PrintFrame.height
+}
+
+/**
+ * Where each kind's art file (`card.action.<kind>`, 618 x 1000) stands in its print: at 0.9 of its
+ * size, its top left at these pixels. Found by matching each file to the printed card of its kind;
+ * each file is cut a little differently, so each has its own place.
+ */
+export const PrintedArtScale = 0.9
+export const PrintedArtAt: Record<ActionCardKind, { readonly x: number; readonly y: number }> = {
+    conquer: { x: 14, y: 4 },
+    defend: { x: 13, y: -3 },
+    explore: { x: 1, y: 4 },
+    guild: { x: 3, y: 3 },
+    harvest: { x: 5, y: 5 },
+    improve: { x: 7, y: 5 },
+    influence: { x: 12, y: 4 },
+    migrate: { x: 12, y: -3 },
+    move: { x: 0, y: 4 },
+    repeat: { x: 10, y: 4 },
+    tax: { x: 8, y: 4 }
+}
+export const PrintedArtFile = { width: 618, height: 1000 } as const
+
+/**
+ * The four inner corners' rosettes: a quarter disc, then three rings (dark, gold, dark), each an arc
+ * from one bar to the other.
+ */
+export function printRosettes(): { disc: string; rings: [string, string, string] }[] {
+    const { x, y, width, height, bar, rosette } = PrintFrame
+    const left = x + bar
+    const right = x + width - bar
+    const top = y + bar
+    const foot = y + height - bar
+    const corners = [
+        [left, top, 1, 1],
+        [right, top, -1, 1],
+        [left, foot, 1, -1],
+        [right, foot, -1, -1]
+    ] as const
+    return corners.map(([cx, cy, sx, sy]) => {
+        const arc = (r: number) =>
+            `M${cx + sx * r} ${cy}A${r} ${r} 0 0 ${sx * sy > 0 ? 1 : 0} ${cx} ${cy + sy * r}`
+        return {
+            disc: `${arc(rosette)}L${cx} ${cy}Z`,
+            rings: [arc(rosette - 3), arc(rosette - 8), arc(rosette - 13)]
+        }
+    })
 }
 
 export type FaceTier = 'compact' | 'standard' | 'full'

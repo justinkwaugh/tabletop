@@ -46,9 +46,6 @@ export const PrintedColours = [
     Color.Purple
 ] as const
 export type PrintedColour = (typeof PrintedColours)[number]
-/** A whole printed action card, frame and border in its seat colour. */
-export const printedCardAsset = (kind: ActionCardKind, colour: PrintedColour) =>
-    `card.action.${kind}.${colour}` as const
 /** A whole printed card back in its seat colour. */
 export const cardBackAsset = (colour: PrintedColour) => `card.back.${colour}` as const
 /**
@@ -86,9 +83,9 @@ export const ringPartAsset = (part: RingPart) => `board.ring.${part}` as const
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
  * `<id>.webp` or `<id>.png`. With no file a component draws its own plain labelled fallback, so
- * the tree builds and plays with none. A card or piece that takes a seat colour has an id for each
- * printed colour, shown only while the seat's displayed colour is that printed colour's own
- * (`SeatPaint`).
+ * the tree builds and plays with none. A card back or piece that takes a seat colour has an id for
+ * each printed colour, shown only while the seat's displayed colour is that printed colour's own
+ * (`SeatPaint`); an action card's face is its kind's art with the print drawn round it in code.
  */
 export const AssetIds = [
     CoverAsset,
@@ -107,9 +104,6 @@ export const AssetIds = [
     ...TileEpochs.map(tileFrontAsset),
     ...LandscapeKinds.map(tileBackAsset),
     ...ActionCardKinds.map(cardAsset),
-    ...ActionCardKinds.flatMap((kind) =>
-        PrintedColours.map((colour) => printedCardAsset(kind, colour))
-    ),
     ...PrintedColours.map(cardBackAsset),
     ...SeatPieceKinds.flatMap((kind) =>
         PrintedColours.map((colour) => seatPieceAsset(kind, colour))

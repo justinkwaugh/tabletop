@@ -1,14 +1,22 @@
 <script lang="ts">
     import { ActionCards, type ActionCardKind } from '@tabletop/feudum'
-    import { assetUrl, cardAsset, cardBackAsset, printedCardAsset } from '$lib/art/assetMap.js'
+    import { assetUrl, cardAsset, cardBackAsset } from '$lib/art/assetMap.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
         CardArt,
         CardBox,
         faceTier,
+        PrintArtWindow,
+        PrintBand,
+        PrintedArtAt,
+        PrintedArtFile,
+        PrintedArtScale,
+        PrintedCard,
+        PrintedCardCorner,
         PrintedCardPlace,
-        PrintedFrameFoot,
-        printedNameLinePath,
+        PrintFrame,
+        printFrameRect,
+        printRosettes,
         shortName,
         wrapLines
     } from '$lib/utils/cardShape.js'
@@ -20,9 +28,10 @@
 
     /**
      * R-3.1 An action card. The perspective rule sets `faceShown`; a back draws from the seat alone,
-     * so nothing of the card reaches the markup. While the seat shows a printed colour (`paint.printed`)
-     * and the folder holds it, the card is the whole printed card in that colour, front or back.
-     * Otherwise the back and the band round the art take the seat colour from the session (S71).
+     * so nothing of the card reaches the markup. While the seat shows a printed colour (`paint.printed`),
+     * a face is drawn as the print in that colour round the kind's art file, and a back is the printed
+     * back in that colour, each when the folder holds its file. Otherwise the back and the band round
+     * the art take the seat colour from the session (S71).
      * R-3.5 One component by width.
      */
     let {
@@ -51,19 +60,25 @@
         card ? `${paint.owner} ${card.printedName} card` : `${paint.owner} card back`
     )
     let url = $derived(card ? assetUrl(cardAsset(card.kind)) : undefined)
-    let printedUrl = $derived.by(() => {
-        const printed = paint.printed
-        if (!printed) {
-            return undefined
-        }
-        return assetUrl(card ? printedCardAsset(card.kind, printed) : cardBackAsset(printed))
-    })
+    let printedBackUrl = $derived(
+        !card && paint.printed ? assetUrl(cardBackAsset(paint.printed)) : undefined
+    )
     /**
-     * The print is cut at its line, the card art's proportion, so it stands whole and centred in the
-     * card with a strip either side. Over a face, the foot's name line in the print's other languages
-     * is painted out in the frame's own colour, so the print names the card once, in its title; the
+     * A face in a printed colour: the print's band and foot in that colour, its frame, and the kind's
+     * art where the print holds it, all in the print's pixels and centred in the card at the print's
+     * proportion. The foot names nothing, so the card is named once, in the art's title; the
      * accessible name and tooltip carry it at every size.
      */
+    let printedFace = $derived(
+        card && paint.printed && url
+            ? { band: PrintBand[paint.printed], at: PrintedArtAt[card.kind], url }
+            : undefined
+    )
+    const uid = $props.id()
+    const artClip = `${uid}-art`
+    const bars = printFrameRect(PrintFrame.bar / 2)
+    const lightBar = printFrameRect(PrintFrame.bar / 2 - 1)
+    const rosettes = printRosettes()
     const Body = { x: CardArt.x + 10, right: CardArt.x + CardArt.width - 10 }
     let actionRows = $derived(card ? wrapLines(card.regularAction, 26) : [])
     let effectRows = $derived(card ? wrapLines(card.special.effect, 28) : [])
@@ -73,24 +88,70 @@
 
 <svg {x} {y} {width} {height} {viewBox} role="img" aria-label={label}>
     <title>{label}</title>
-    {#if printedUrl}
+    {#if printedBackUrl}
         <image
-            href={printedUrl}
+            href={printedBackUrl}
             x="0"
             y="0"
             width={CardBox.width}
             height={CardBox.height}
             preserveAspectRatio="xMidYMid meet"
         ></image>
-        {#if card && paint.printed}
-            <g transform="translate({PrintedCardPlace.x} 0) scale({PrintedCardPlace.scale})">
-                <path
-                    d={printedNameLinePath(card.kind)}
-                    fill={PrintedFrameFoot[paint.printed]}
-                    data-name-line
-                ></path>
+    {:else if printedFace}
+        <g transform="translate({PrintedCardPlace.x} 0) scale({PrintedCardPlace.scale})" data-print>
+            <clipPath id={artClip}>
+                <rect
+                    x={PrintArtWindow.x}
+                    y={PrintArtWindow.y}
+                    width={PrintArtWindow.width}
+                    height={PrintArtWindow.height}
+                ></rect>
+            </clipPath>
+            <rect
+                width={PrintedCard.width}
+                height={PrintedCard.height}
+                rx={PrintedCardCorner}
+                fill={printedFace.band}
+                data-print-band
+            ></rect>
+            <g fill="none" data-print-frame>
+                <rect
+                    {...bars}
+                    rx={PrintFrame.round}
+                    stroke="var(--feudum-print-line)"
+                    stroke-width={PrintFrame.bar}
+                ></rect>
+                <rect
+                    {...bars}
+                    rx={PrintFrame.round}
+                    stroke="var(--feudum-print-gold)"
+                    stroke-width={PrintFrame.bar - 6}
+                ></rect>
+                <rect
+                    {...lightBar}
+                    rx={PrintFrame.round}
+                    stroke="var(--feudum-print-gold-light)"
+                    stroke-width="2.5"
+                ></rect>
             </g>
-        {/if}
+            <image
+                href={printedFace.url}
+                x={printedFace.at.x}
+                y={printedFace.at.y}
+                width={PrintedArtFile.width * PrintedArtScale}
+                height={PrintedArtFile.height * PrintedArtScale}
+                clip-path="url(#{artClip})"
+            ></image>
+            {#each rosettes as { disc, rings }, index (index)}
+                <path d={disc} fill="var(--feudum-print-corner)"></path>
+                <path d={rings[0]} fill="none" stroke="var(--feudum-print-line)" stroke-width="3"
+                ></path>
+                <path d={rings[1]} fill="none" stroke="var(--feudum-print-gold)" stroke-width="5"
+                ></path>
+                <path d={rings[2]} fill="none" stroke="var(--feudum-print-line)" stroke-width="3"
+                ></path>
+            {/each}
+        </g>
     {:else}
         <rect
             x="1"

@@ -31,7 +31,6 @@ import {
     guildPanelAsset,
     locationAsset,
     monsterAsset,
-    printedCardAsset,
     seatPieceAsset,
     shillingAsset,
     strayFiles,
@@ -121,15 +120,6 @@ const shownBy = new Map<string, () => string>([
                 props: { faceShown: true, kind, paint, number: 1, width: 200 }
             }).body
     ]),
-    ...ActionCardKinds.flatMap((kind) =>
-        PrintedColours.map((printed): [string, () => string] => [
-            printedCardAsset(kind, printed),
-            () =>
-                render(ActionCardFace, {
-                    props: { faceShown: true, kind, paint: { ...paint, printed }, width: 200 }
-                }).body
-        ])
-    ),
     ...PrintedColours.map((printed): [string, () => string] => [
         cardBackAsset(printed),
         () =>
@@ -309,14 +299,11 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
 
     /**
      * The publisher's files carry the print's bleed and its cut line: a dashed rectangle on each
-     * printed card and back, a die ring round the archery target. Each is cut just inside its line,
-     * every printed card to one size, the proportion of the card art.
+     * printed card back, a die ring round the archery target. Each is cut just inside its line,
+     * every printed back to one size, the proportion of the card art.
      */
     type Cut = [id: string, width: number, height: number]
     const cutInsideTheLine: readonly Cut[] = [
-        ...ActionCardKinds.flatMap((kind) =>
-            PrintedColours.map((colour): Cut => [printedCardAsset(kind, colour), 580, 938])
-        ),
         ...PrintedColours.map((colour): Cut => [cardBackAsset(colour), 580, 938]),
         [TargetAsset, 64, 64]
     ]

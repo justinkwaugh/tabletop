@@ -73,7 +73,7 @@ function printed(): boolean {
     return existsSync(new URL('../src/lib/art/supplied/board.guild.merchant.webp', import.meta.url))
 }
 
-test('R-3.1 each printed card fills its face, and at standard size carries no name plate over its print', async ({
+test('R-3.1 each printed card fills its face, its art inside the drawn print, and at standard size carries no name plate over it', async ({
     page
 }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
@@ -82,17 +82,25 @@ test('R-3.1 each printed card fills its face, and at standard size carries no na
     await settled(page)
     const rows = page.locator('[data-action-panel] [data-cards] [data-row]')
     await expect(rows).toHaveCount(11)
-    const prints = rows.locator('svg[role="img"] > image[href*="card.action."]')
+    const prints = rows.locator('svg[role="img"] > g[data-print]')
     test.skip(
-        (await prints.count()) === 0 ||
-            !(await prints.first().getAttribute('href'))?.match(/card\.action\.\w+\.\w+\./),
-        'no printed cards in the folder, or a seat colour the print lacks'
+        (await prints.count()) === 0,
+        'no card art in the folder, or a seat colour the print lacks'
     )
     for (let index = 0; index < 11; index++) {
         const row = rows.nth(index)
         const face = row.locator('svg[role="img"]').first()
-        expectSameBox(await boxOf(face.locator('> image')), await boxOf(face))
-        expect((await boxOf(face)).width, `card ${index + 1}`).toBeGreaterThanOrEqual(60)
+        const faceBox = await boxOf(face)
+        // The print's proportion, as tall as the face and centred across it.
+        const band = await boxOf(face.locator('[data-print-band]'))
+        expect(Math.abs(band.height - faceBox.height)).toBeLessThanOrEqual(1)
+        expect(Math.abs(band.width - (faceBox.height * 580) / 938)).toBeLessThanOrEqual(1)
+        expect(Math.abs(centre(band).x - centre(faceBox).x)).toBeLessThanOrEqual(1)
+        // The art stands inside the band, never past it.
+        const art = await boxOf(face.locator('g[data-print] > image'))
+        expect(art.x).toBeGreaterThanOrEqual(band.x - 1)
+        expect(art.x + art.width).toBeLessThanOrEqual(band.x + band.width + 1)
+        expect(faceBox.width, `card ${index + 1}`).toBeGreaterThanOrEqual(60)
         await expect(face.locator('> rect'), `card ${index + 1}`).toHaveCount(0)
         const name = (await row.getAttribute('data-row')) ?? ''
         await expect(face).toHaveAccessibleName(new RegExp(`'s ${name.split(':')[0]} card$`))

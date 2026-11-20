@@ -7,7 +7,6 @@ import {
     SeatPieceKinds,
     cardAsset,
     cardBackAsset,
-    printedCardAsset,
     seatPieceAsset,
     type SeatPieceKind
 } from '$lib/art/assetMap.js'
@@ -219,11 +218,70 @@ describe('printed action cards (R-3.1)', () => {
         folder.files = everyAssetSupplied()
     })
 
-    it.each(ActionCardKinds)('%s in a printed colour is the whole printed card', (kind) => {
-        const face = cardAt({ kind })
-        expect(face).toContain(`href="/art/${printedCardAsset(kind, Color.Red)}.webp"`)
-        expect(face).not.toContain(`href="/art/${cardAsset(kind)}.webp"`)
-        expect(face).toMatch(/aria-label="Ana's [^"]+ card"/)
+    /** The print's band and foot, measured on it: one flat colour a printed colour (`print-frame`). */
+    const Band = {
+        [Color.Red]: 'var(--feudum-print-frame-red)',
+        [Color.Blue]: 'var(--feudum-print-frame-blue)',
+        [Color.Green]: 'var(--feudum-print-frame-green)',
+        [Color.Purple]: 'var(--feudum-print-frame-purple)',
+        [Color.Yellow]: 'var(--feudum-print-frame-yellow)'
+    } as const
+
+    /**
+     * Where each kind's art file stands in its print (580 x 938 px), found by matching the art to the
+     * printed card of that kind: 0.9 of the file's size, its top left at these pixels.
+     */
+    const ArtAt: Record<(typeof ActionCardKinds)[number], readonly [number, number]> = {
+        conquer: [14, 4],
+        defend: [13, -3],
+        explore: [1, 4],
+        guild: [3, 3],
+        harvest: [5, 5],
+        improve: [7, 5],
+        influence: [12, 4],
+        migrate: [12, -3],
+        move: [0, 4],
+        repeat: [10, 4],
+        tax: [8, 4]
+    }
+
+    const attr = (tag: string, name: string) => tag.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1]
+
+    it.each(ActionCardKinds)(
+        'R-3.1 %s in a printed colour is its art in the drawn print: band and foot in the colour, the frame, the art where the print holds it',
+        (kind) => {
+            for (const [colour, fill] of Object.entries(Band)) {
+                const face = cardAt({ kind, paint: { ...paint, printed: colour } })
+                expect(face).toContain(`href="/art/${cardAsset(kind)}.webp"`)
+                expect(face).not.toMatch(/card\.action\.\w+\.(red|blue|yellow|green|purple)/)
+                const band = face.match(/<rect[^>]*data-print-band[^>]*>/)?.[0] ?? ''
+                expect(attr(band, 'fill'), `${kind} ${colour}`).toBe(fill)
+                expect([attr(band, 'width'), attr(band, 'height')]).toEqual(['580', '938'])
+                expect(face).toContain('data-print-frame')
+                const art = face.match(/<image[^>]*>/)?.[0] ?? ''
+                expect([attr(art, 'x'), attr(art, 'y')].map(Number)).toEqual([...ArtAt[kind]])
+                expect([attr(art, 'width'), attr(art, 'height')].map(Number)).toEqual([556.2, 900])
+                expect(art).toMatch(/clip-path="url\(#[^)]+\)"/)
+                expect(face).toMatch(/aria-label="Ana's [^"]+ card"/)
+            }
+        }
+    )
+
+    it('R-3.1 the drawn print stands centred in the card at the print’s proportion; its art clip is the face’s own', () => {
+        const face = cardAt({})
+        expect(face).toMatch(
+            /<g transform="translate\(7\.51\d* 0\) scale\(0\.405\d*\)"[^>]*data-print/
+        )
+        const clipId = face.match(/<clipPath id="([^"]+)"/)?.[1]
+        // An id from the component's own instance ($props.id), so two faces on a page never share it.
+        expect(clipId).toMatch(/^s\d+-art$/)
+        expect(face).toContain(`clip-path="url(#${clipId})"`)
+    })
+
+    it('R-3.1 the drawn foot names nothing: no line in the print’s other languages, so nothing to paint out', () => {
+        for (const width of [50, 120, 240]) {
+            expect(cardAt({ width })).not.toContain('<text')
+        }
     })
 
     it('R-3.1 a printed back is the same for all eleven kinds, names none, and is its colour’s', () => {
@@ -238,74 +296,10 @@ describe('printed action cards (R-3.1)', () => {
         expect(blue).toContain(`href="/art/${cardBackAsset(Color.Blue)}.webp"`)
     })
 
-    it('a printed card or back keeps the proportion it is cut to: centred in the card, never stretched', () => {
-        for (const props of [{}, { faceShown: false }]) {
-            expect(cardAt(props)).toMatch(/<image[^>]*preserveAspectRatio="xMidYMid meet"/)
-        }
-    })
-
-    /**
-     * Measured on the print (580 x 938 px): the foot's name line in the print's other languages, per
-     * card, across and from its top to the print's foot, and the frame's colour round it in each
-     * printed colour (the palette's `print-frame`, whose values the art plan holds). The frame's
-     * jewel dips into the line's top between 278 and 310, to 918.
-     */
-    const NameLine: Record<(typeof ActionCardKinds)[number], readonly [number, number]> = {
-        conquer: [152, 424],
-        defend: [120, 445],
-        explore: [145, 404],
-        guild: [210, 383],
-        harvest: [217, 401],
-        improve: [187, 421],
-        influence: [187, 425],
-        migrate: [165, 381],
-        move: [152, 443],
-        repeat: [101, 396],
-        tax: [186, 365]
-    }
-    const FrameFoot = {
-        [Color.Red]: 'var(--feudum-print-frame-red)',
-        [Color.Blue]: 'var(--feudum-print-frame-blue)',
-        [Color.Green]: 'var(--feudum-print-frame-green)',
-        [Color.Purple]: 'var(--feudum-print-frame-purple)',
-        [Color.Yellow]: 'var(--feudum-print-frame-yellow)'
-    } as const
-
-    function nameLineOf(face: string) {
-        const patch = face.match(/<path[^>]*data-name-line[^>]*>/)?.[0] ?? ''
-        const d = patch.match(/\bd="([^"]*)"/)?.[1] ?? ''
-        const numbers = [...d.matchAll(/-?[\d.]+/g)].map(([n]) => Number(n))
-        return { fill: patch.match(/\bfill="([^"]*)"/)?.[1], numbers }
-    }
-
-    it.each(ActionCardKinds)(
-        'R-3.1 the %s print’s other-language name line is painted over in the frame’s own colour, at every size and in every printed colour, the jewel left whole',
-        (kind) => {
-            const [from, to] = NameLine[kind]
-            for (const [colour, fill] of Object.entries(FrameFoot)) {
-                for (const width of [50, 120, 240]) {
-                    const face = cardAt({ kind, width, paint: { ...paint, printed: colour } })
-                    const line = nameLineOf(face)
-                    expect(line.fill, `${kind} ${colour} ${width}`).toBe(fill)
-                    const [left, top, notchLeft, notchFoot, notchRight, , right, foot] =
-                        line.numbers
-                    expect(left).toBeLessThan(from)
-                    expect(right).toBeGreaterThan(to)
-                    expect(top).toBeLessThanOrEqual(915)
-                    expect(foot).toBeGreaterThanOrEqual(938)
-                    expect(notchLeft).toBeLessThanOrEqual(278)
-                    expect(notchRight).toBeGreaterThanOrEqual(310)
-                    expect(notchFoot).toBeGreaterThanOrEqual(918)
-                    expect(face).toMatch(
-                        /<g transform="translate\(7\.51\d* 0\) scale\(0\.405\d*\)"[^>]*>\s*<path[^>]*data-name-line/
-                    )
-                }
-            }
-        }
-    )
-
-    it('R-3.1 a printed back has no name line to paint over', () => {
-        expect(cardAt({ faceShown: false })).not.toContain('data-name-line')
+    it('a printed back keeps the proportion it is cut to: centred in the card, never stretched', () => {
+        expect(cardAt({ faceShown: false })).toMatch(
+            /<image[^>]*preserveAspectRatio="xMidYMid meet"/
+        )
     })
 
     it('R-3.1 a printed face carries no round number badge and no short-name plate, at any size; its name stays in its accessible name and tooltip', () => {
@@ -323,17 +317,19 @@ describe('printed action cards (R-3.1)', () => {
     it('a paint in no printed colour keeps the band round the art window, and the drawn back', () => {
         const face = cardAt({ paint })
         expect(face).toContain(`href="/art/${cardAsset('influence')}.webp"`)
-        expect(face).not.toMatch(/card\.action\.influence\.(red|blue|yellow|green|purple)/)
+        expect(face).not.toContain('data-print')
         expect(face).toContain(`fill="${paint.fill}"`)
         expect(cardAt({ faceShown: false, paint })).not.toContain('<image')
     })
 
-    it('a printed colour whose cards are not in the folder keeps the band and the drawn back', () => {
+    it('a printed colour with no art in the folder keeps the band round the drawn window; with no back, the drawn back', () => {
         folder.files = Object.fromEntries(
-            Object.entries(everyAssetSupplied()).filter(([path]) => !path.includes('.red.'))
+            Object.entries(everyAssetSupplied()).filter(
+                ([path]) => !path.includes('card.action.influence') && !path.includes('.red.')
+            )
         )
         const face = cardAt({})
-        expect(face).toContain(`href="/art/${cardAsset('influence')}.webp"`)
+        expect(face).not.toContain('data-print')
         expect(face).toContain(`fill="${paint.fill}"`)
         expect(cardAt({ faceShown: false })).not.toContain('<image')
     })

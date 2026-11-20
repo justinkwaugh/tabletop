@@ -89,6 +89,10 @@
     --feudum-print-frame-green: #5c6139;
     --feudum-print-frame-purple: #9f548d;
     --feudum-print-frame-yellow: #c7b041;
+    --feudum-print-line: #2a1a08;
+    --feudum-print-gold: #b08d2c;
+    --feudum-print-gold-light: #d6b84c;
+    --feudum-print-corner: #6b4c22;
     --feudum-disc-outpost: #8e8096;
     --feudum-disc-farm: #8c9a3a;
     --feudum-disc-town: #c9ae2e;
@@ -161,6 +165,10 @@
     --color-feudum-print-frame-green: var(--feudum-print-frame-green);
     --color-feudum-print-frame-purple: var(--feudum-print-frame-purple);
     --color-feudum-print-frame-yellow: var(--feudum-print-frame-yellow);
+    --color-feudum-print-line: var(--feudum-print-line);
+    --color-feudum-print-gold: var(--feudum-print-gold);
+    --color-feudum-print-gold-light: var(--feudum-print-gold-light);
+    --color-feudum-print-corner: var(--feudum-print-corner);
     --color-feudum-disc-outpost: var(--feudum-disc-outpost);
     --color-feudum-disc-farm: var(--feudum-disc-farm);
     --color-feudum-disc-town: var(--feudum-disc-town);
