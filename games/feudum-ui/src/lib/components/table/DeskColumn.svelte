@@ -14,7 +14,8 @@
      * Contract, Desk layout: the side column, right of the East button where the map's height binds.
      * Top to bottom it holds the guild standings and the score line; the zoom row (Key, Supply and the
      * zoom buttons) stands under them, along the column's foot (`BoardCorner`). For looking only, as
-     * the strip is: a press, a drag or a wheel here never pans or zooms the map.
+     * the strip is: a press, a drag or a wheel here never pans or zooms the map (the wheel is kept by
+     * the table's overlay).
      */
     let { box, column }: { box: BoardRect; column: DeskColumn } = $props()
 
@@ -44,7 +45,6 @@
     onpointerdown={keep}
     onmousedown={keep}
     ontouchstart={keep}
-    onwheel={keep}
 >
     <GuildColumn view={standings} {paintOf} {seats} perRow={column.perRow} />
     <ScoreLine stacked />

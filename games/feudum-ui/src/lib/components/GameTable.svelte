@@ -171,6 +171,16 @@
         return () => observer.disconnect()
     }
 
+    /**
+     * A wheel over the desk column never zooms the board. The overlay's root holds the one listener
+     * for as long as the table stands: WebKit restyles the page whenever a wheel listener comes or goes.
+     */
+    function keepWheelInColumn(event: WheelEvent) {
+        if (event.target instanceof Element && event.target.closest('[data-desk-column]')) {
+            event.stopPropagation()
+        }
+    }
+
     /** Full screen is the wrapper's dialog becoming modal. */
     const watchExpansion: Attachment<HTMLElement> = (node) => {
         const dialog = node.closest('dialog')
@@ -304,7 +314,11 @@
                                 {/if}
                             </div>
                             {#snippet overlay(viewport)}
-                                <div class="contents" {@attach measureView(viewport)}>
+                                <div
+                                    class="contents"
+                                    {@attach measureView(viewport)}
+                                    onwheel={keepWheelInColumn}
+                                >
                                     {#if phone.phone}
                                         <FocusChooser
                                             {focus}

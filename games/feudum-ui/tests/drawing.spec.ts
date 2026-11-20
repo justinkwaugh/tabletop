@@ -120,6 +120,34 @@ test('opening, switching and closing the guild sides adds and removes no wheel o
     expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
 })
 
+test('the desk side column coming and going with the room adds and removes no wheel listener', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1850, height: 880 })
+    await logListeners(page)
+    await createGame(page)
+    await playToCards(page)
+    await settled(page)
+    await expect(page.locator('[data-desk-column]')).toBeVisible()
+    await page.evaluate(() => window.feudumListenerLog.splice(0))
+
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await settled(page)
+    await expect(page.locator('[data-desk-column]')).toHaveCount(0)
+    await page.setViewportSize({ width: 1850, height: 880 })
+    await settled(page)
+    await expect(page.locator('[data-desk-column]')).toBeVisible()
+
+    // A wheel over the column still never zooms the board beside it.
+    const before = await page.locator('[data-board-surface]').boundingBox()
+    await page.locator('[data-desk-column]').hover()
+    await page.mouse.wheel(0, -400)
+    await page.waitForTimeout(400)
+    expect(await page.locator('[data-board-surface]').boundingBox()).toEqual(before)
+
+    expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
+})
+
 /** Every element of the board drawn at an opacity below 1: its box in board units, and the pieces in it. */
 function translucent(page: Page) {
     return page.locator('[data-board-surface]').evaluate((svg) =>
