@@ -226,6 +226,17 @@ function webpSize(file: Buffer): { width: number; height: number; format: string
     }
 }
 
+/** The four-letter names of a WebP's RIFF chunks, in order. */
+function webpChunks(file: Buffer): string[] {
+    const chunks: string[] = []
+    for (let at = 12; at + 8 <= file.length;) {
+        const size = file.readUInt32LE(at + 4)
+        chunks.push(file.toString('latin1', at, at + 4))
+        at += 8 + size + (size % 2)
+    }
+    return chunks
+}
+
 const suppliedCover = new URL('../art/supplied/cover.webp', import.meta.url)
 
 /** The catalog's one cover is the publisher's, checked where the folder holds it; none is drawn. */
@@ -295,6 +306,16 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
         expect(largest, `${id} has a largest render`).toBeDefined()
         const { width, height } = webpSize(readFileSync(new URL(file, suppliedFolder)))
         expect(Math.max(width, height)).toBeLessThanOrEqual(2.5 * (largest ?? 0))
+    })
+
+    // An sRGB profile tells the browser only what it assumes already: each file ships without one.
+    it.each(files)('%s carries no colour profile', (file) => {
+        const bytes = readFileSync(new URL(file, suppliedFolder))
+        expect(webpChunks(bytes)).not.toContain('ICCP')
+        // Nor does an extended header say it has one.
+        if (webpChunks(bytes)[0] === 'VP8X') {
+            expect(bytes[20] & 0x20).toBe(0)
+        }
     })
 
     /**

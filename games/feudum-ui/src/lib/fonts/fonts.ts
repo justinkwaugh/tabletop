@@ -1,11 +1,11 @@
 /** A font file beside this module, by path. Each ships with its OFL text beside it. */
-const files: Record<string, string> = import.meta.glob<string>(['./*.woff2', './*.ttf'], {
+const files: Record<string, string> = import.meta.glob<string>('./*.woff2', {
     eager: true,
     import: 'default'
 })
 
 const Fonts: Record<string, { family: string; format: string }> = {
-    './MedievalSharp.ttf': { family: 'MedievalSharp', format: 'truetype' },
+    './MedievalSharp.woff2': { family: 'MedievalSharp', format: 'woff2' },
     './IMFellEnglish-Latin.woff2': { family: 'IM Fell English', format: 'woff2' }
 }
 

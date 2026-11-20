@@ -90,13 +90,13 @@ Not tokens. Every seat-coloured element (pawn cube, influence marker, player dis
 
 ## Fonts
 
-| Family                                                             | Use                                                                                                                                                     | Licence file                          |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| MedievalSharp, Regular 400, whole and unchanged, ttf (SIL OFL 1.1) | Titles and names: the cover title, card and writ names, the focus chooser's labels, ribbon names on the seat panel, region and guild names at map scale | `src/lib/fonts/MedievalSharp-OFL.txt` |
-| IM Fell English, Regular 400, Latin subset, woff2 (SIL OFL 1.1)    | Text on parchment: the regular action and special ability lines on a card, writ rows, the charter roll's captions                                       | `src/lib/fonts/IMFellEnglish-OFL.txt` |
-| The site's own text font, not shipped by the title                 | Everything else: panels, chips, buttons, the log. Counts, prices and values use its tabular numerals so a number reads at the smallest scale            | none (the site's)                     |
+| Family                                                               | Use                                                                                                                                                     | Licence file                          |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| MedievalSharp, Regular 400, whole and unchanged, WOFF2 (SIL OFL 1.1) | Titles and names: the cover title, card and writ names, the focus chooser's labels, ribbon names on the seat panel, region and guild names at map scale | `src/lib/fonts/MedievalSharp-OFL.txt` |
+| IM Fell English, Regular 400, Latin subset, woff2 (SIL OFL 1.1)      | Text on parchment: the regular action and special ability lines on a card, writ rows, the charter roll's captions                                       | `src/lib/fonts/IMFellEnglish-OFL.txt` |
+| The site's own text font, not shipped by the title                   | Everything else: panels, chips, buttons, the log. Counts, prices and values use its tabular numerals so a number reads at the smallest scale            | none (the site's)                     |
 
-The files are `src/lib/fonts/MedievalSharp.ttf` and `src/lib/fonts/IMFellEnglish-Latin.woff2`, each with its OFL text beside it, loaded through `CustomFont`. MedievalSharp's licence reserves its name, and a subset counts as a modified version, so it ships whole; the IM Fell subset keeps Latin-1. Both set "Déjà Vu" correctly. Neither family has a bold or italic that ships; the plan never asks for synthesised weights. The star, the multiplication sign and the arrows are drawn as symbols, not typed from a font, so no glyph is missing. No other font is added.
+The files are `src/lib/fonts/MedievalSharp.woff2` and `src/lib/fonts/IMFellEnglish-Latin.woff2`, each with its OFL text beside it, loaded through `CustomFont`. MedievalSharp's licence reserves its name, and a subset counts as a modified version, so it ships whole: the WOFF2 is the original font re-encoded, every table and all 404 glyphs' outlines unchanged; the IM Fell subset keeps Latin-1. Both set "Déjà Vu" correctly. Neither family has a bold or italic that ships; the plan never asks for synthesised weights. The star, the multiplication sign and the arrows are drawn as symbols, not typed from a font, so no glyph is missing. No other font is added.
 
 ## Board
 
@@ -216,10 +216,10 @@ The catalog title image is the supplied cover, `src/lib/art/supplied/cover.webp`
 
 | File                                      | Source  | Permission             | Rendered size | Natural size |
 | ----------------------------------------- | ------- | ---------------------- | ------------- | ------------ |
-| `src/lib/fonts/MedievalSharp.ttf`         | OFL 1.1 | licence text beside it | n/a           | n/a          |
+| `src/lib/fonts/MedievalSharp.woff2`       | OFL 1.1 | licence text beside it | n/a           | n/a          |
 | `src/lib/fonts/IMFellEnglish-Latin.woff2` | OFL 1.1 | licence text beside it | n/a           | n/a          |
 
-**Supplied once the title's permission entry lands**, each as `src/lib/art/supplied/<id>.webp` (or `.png` only where it needs transparency that lossy WebP can't keep), at about twice its largest render, which the table gives: an enlarged card, writ, tile or bead at 420 px wide, an enlarged guild area upright at 640 px tall, the board at its scale cap of 1, a seat panel at its reading scale. Where the print is smaller than that (a bead or a tile enlarged), the file is the print's own size. `assetMap.ts` is the list; `imageCoverage.spec.ts` holds every id to a component, a fallback and a file slot, whether or not the file is present, and holds each file the folder has to 2.5 times its largest render.
+**Supplied once the title's permission entry lands**, each as `src/lib/art/supplied/<id>.webp` (or `.png` only where it needs transparency that lossy WebP can't keep), at about twice its largest render, which the table gives: an enlarged card, writ, tile or bead at 420 px wide, an enlarged guild area upright at 640 px tall, the board at its scale cap of 1, a seat panel at its reading scale. Where the print is smaller than that (a bead or a tile enlarged), the file is the print's own size. `assetMap.ts` is the list; `imageCoverage.spec.ts` holds every id to a component, a fallback and a file slot, whether or not the file is present, and holds each file the folder has to 2.5 times its largest render. Each file is sRGB and ships without a colour profile, since a browser assumes sRGB; the spec holds that too.
 
 | Ids                                                    | Count | Component                   | Rendered size       | Natural size          |
 | ------------------------------------------------------ | ----- | --------------------------- | ------------------- | --------------------- |

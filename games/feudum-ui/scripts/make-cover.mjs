@@ -100,7 +100,7 @@ const scene = values.titled
 console.log(`from ${art}`)
 
 const page = `<!doctype html><html><head><style>
-    ${fontFace('MedievalSharp', 'MedievalSharp.ttf')}
+    ${fontFace('MedievalSharp', 'MedievalSharp.woff2')}
     ${fontFace('IM Fell English', 'IMFellEnglish-Latin.woff2')}
     html, body { margin: 0; }
 </style></head><body>
