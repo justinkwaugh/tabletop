@@ -1,19 +1,15 @@
 <script lang="ts">
     import BenchGhostPiece from '$lib/components/bench/BenchGhostPiece.svelte'
-    import type { RowPointer } from '$lib/components/table/PanelRow.svelte'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
-    import RowChoice from './RowChoice.svelte'
 
     /**
      * R-4.6 What a push or a pull has staged: a line for each thing moved, its piece and count and
-     * where it goes, said in words to a screen reader, with the press that takes it back; then the
-     * count against the step's limit. In the tray on a desk, above the send in the bench's sheet on a
+     * where it goes, said in words to a screen reader; then the count against the step's limit. A
+     * line has no press of its own: a staged row comes off by pressing it again on the bench, and Undo
+     * takes back the latest press. In the tray on a desk, above the send in the bench's sheet on a
      * phone.
      */
-    let {
-        block,
-        pointer
-    }: { block: Extract<ActionBlock, { kind: 'staged' }>; pointer: RowPointer } = $props()
+    let { block }: { block: Extract<ActionBlock, { kind: 'staged' }> } = $props()
 
     const PieceSize = 20
 </script>
@@ -33,7 +29,6 @@
                 {/if}
                 <span class="text-sm text-feudum-text" aria-hidden="true">{line.text}</span>
                 <span class="sr-only">{line.words}</span>
-                <RowChoice row={line.takeBack} {pointer} />
             </li>
         {/each}
     </ul>

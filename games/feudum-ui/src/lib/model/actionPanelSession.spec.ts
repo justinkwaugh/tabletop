@@ -997,38 +997,33 @@ describe('R-4.6 the staged moves of a guild function, in the tray', () => {
                 piece: { kind: 'good', good: 'iron' }
             }
         ])
-        expect(block.lines.map(({ takeBack }) => takeBack.choice.label)).toEqual([
-            'Take back 2 sulfur from the Merchant to the Alchemist',
-            'Take back 1 iron from the Merchant to the Alchemist'
-        ])
+        // Docs user-interactions, Undo: a line has no step-cancel press of its own.
+        expect(block.lines.every((line) => !('takeBack' in line))).toBe(true)
         // R-X.2 Short of the push's count, the send is not drawn; the draft still names it.
         expect(primaryLabels(session.actionPanel)).toEqual([])
         expect(session.guildPanel?.primary).toEqual({ label: 'Move 3 goods', enabled: false })
     })
 
-    it('a line’s take-back removes only that move; Undo takes the take-back back', async () => {
+    it('Undo takes back the latest staged move, one press at a time', async () => {
         const session = await pushing()
         await pressBench(session, 'good:sulfur')
         await pressBench(session, 'good:iron')
         await pressBench(session, 'good:sulfur')
 
-        const sulfur = staged(session)?.lines[0]
-        assertExists(sulfur, 'The sulfur line')
-        await pressRow(sulfur.takeBack)
-
+        await session.undo()
+        flushSync()
         const block = staged(session)
         expect(block?.lines.map(({ words }) => words)).toEqual([
+            '1 sulfur from the Merchant to the Alchemist',
             '1 iron from the Merchant to the Alchemist'
         ])
-        expect(block?.tally).toBe('1 of 4 moved')
-        expect(primaryLabels(session.actionPanel)).toEqual([])
-        expect(session.guildPanel?.primary?.label).toBe('Move 1 good')
+        expect(block?.tally).toBe('2 of 4 moved')
+        expect(session.guildPanel?.primary?.label).toBe('Move 2 goods')
 
         await session.undo()
         flushSync()
         expect(staged(session)?.lines.map(({ words }) => words)).toEqual([
-            '2 sulfur from the Merchant to the Alchemist',
-            '1 iron from the Merchant to the Alchemist'
+            '1 sulfur from the Merchant to the Alchemist'
         ])
     })
 })

@@ -215,7 +215,7 @@
                 </span>
             {/if}
             {#if staged}
-                <StagedMoves block={staged} {pointer} />
+                <StagedMoves block={staged} />
             {/if}
             {#if primary}
                 <span class="min-w-0 grow" data-bench-send>

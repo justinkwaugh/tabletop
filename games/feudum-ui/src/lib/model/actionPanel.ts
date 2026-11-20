@@ -64,7 +64,7 @@ export interface NourishPickerPawn {
     readonly options: readonly NourishOptionRow[]
 }
 
-/** R-4.6 One staged move in the tray: its piece, its words, and the press that takes it back. */
+/** R-4.6 One staged move in the tray: its piece and its words. Undo takes a press back. */
 export interface StagedLine {
     readonly item: string
     readonly piece?: GhostPiece
@@ -72,7 +72,6 @@ export interface StagedLine {
     readonly paint?: SeatPaint
     readonly text: string
     readonly words: string
-    readonly takeBack: ActionRow
 }
 
 export interface CardRow {
@@ -847,18 +846,14 @@ function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
         {
             kind: 'staged',
             ...(moves.tally ? { tally: moves.tally } : {}),
-            lines: moves.lines.map(({ item, piece, text, words, takeBack }) => {
+            lines: moves.lines.map(({ item, piece, text, words }) => {
                 const paint = piece?.kind === 'marker' ? rowPaint(piece.row) : undefined
                 return {
                     item,
                     ...(piece ? { piece } : {}),
                     ...(paint ? { paint } : {}),
                     text,
-                    words,
-                    takeBack: {
-                        choice: { label: `Take back ${words}`, shown: 'Take back', picked: false },
-                        press: takeBack
-                    }
+                    words
                 }
             })
         }

@@ -130,14 +130,13 @@ export interface BenchGhost {
 }
 
 /**
- * R-4.6 One kind of thing the seat has staged to move, in the order first pressed: its item, how
- * many, and the press that takes them all back (one staged press, so Undo restores them).
+ * R-4.6 One kind of thing the seat has staged to move, in the order first pressed: its item and how
+ * many. A staged scroll comes off by pressing it again on the bench; Undo takes back the latest press.
  */
 export interface BenchStagedPick {
     readonly item: string
     readonly label: string
     readonly count: number
-    readonly takeBack: () => void
 }
 
 export interface BenchResult {
@@ -1018,15 +1017,10 @@ function isTradeOf(source: BenchSource, guildId: GuildId): boolean {
     return source.guildId === guildId && source.fn === 'trade'
 }
 
-/**
- * R-4.6 A push's or a pull's picks from its first area, grouped by item in the order first pressed.
- * Taking one back drops all its picks, and a row's scroll with it, since a row and its scroll pair
- * by their order.
- */
+/** R-4.6 A push's or a pull's picks from its first area, grouped by item in the order first pressed. */
 function stagedPicks(
     candidates: readonly Candidate[],
-    stages: BenchStages,
-    presser: BenchPresser
+    stages: BenchStages
 ): readonly BenchStagedPick[] {
     const moving = new Map(
         candidates
@@ -1037,21 +1031,7 @@ function stagedPicks(
     return order.map((item) => ({
         item,
         label: moving.get(item)?.label ?? item,
-        count: stages.picks.filter((pick) => candidateId(pick) === item).length,
-        takeBack: () => {
-            const rows = picksOf(stages, 'row').map(candidateId)
-            const dropped = new Set(rows.flatMap((row, index) => (row === item ? [index] : [])))
-            let scroll = -1
-            presser.picks(
-                stages.picks.filter((pick) => {
-                    if (pick.kind === 'scroll') {
-                        scroll += 1
-                        return !dropped.has(scroll)
-                    }
-                    return candidateId(pick) !== item
-                })
-            )
-        }
+        count: stages.picks.filter((pick) => candidateId(pick) === item).length
     }))
 }
 
@@ -1085,8 +1065,7 @@ export function benchOffer(
                   const item = benchItem(row, source, stages, candidate, presser)
                   return item ? [item] : []
               })
-    const staged =
-        source.fn === 'trade' || row.pickOne ? [] : stagedPicks(candidates, stages, presser)
+    const staged = source.fn === 'trade' || row.pickOne ? [] : stagedPicks(candidates, stages)
     const line = row.line?.(seat)
     const result = resultOf(seat, source, row, stages, preview)
     const count = countChoices(row, stages, preview, presser)

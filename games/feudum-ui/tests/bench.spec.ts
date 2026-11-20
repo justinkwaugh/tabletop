@@ -748,7 +748,7 @@ test.describe('on a phone', () => {
     })
 })
 
-test('R-4.6 a push lists its staged moves in the tray, each with its take-back', async ({
+test('R-4.6 a push lists its staged moves in the tray, with no press of their own; Undo takes back the latest', async ({
     page
 }) => {
     await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
@@ -762,12 +762,16 @@ test('R-4.6 a push lists its staged moves in the tray, each with its take-back',
     // R-X.2 Short of the push's count, no send is drawn.
     await expect(primary(page)).toHaveCount(0)
     await shot(page, 'push-staged')
-    await staged
-        .getByRole('button', { name: 'Take back 2 sulfur from the Merchant to the Alchemist' })
-        .click()
+    // Docs user-interactions, Undo: no step-cancel button on a line.
+    await expect(staged.getByRole('button')).toHaveCount(0)
+    await undo(page).click()
     await settled(page)
     await expect(staged.locator('[data-staged-line]')).toHaveCount(1)
-    await expect(bench(page).locator('[data-bench-area="alchemist"] [data-ghost]')).toHaveCount(1)
+    await expect(staged.locator('[data-staged-line]').first()).toContainText(
+        '2 · Merchant → Alchemist'
+    )
+    // The two sulfur still land; the iron's ghost is gone.
+    await expect(bench(page).locator('[data-bench-area="alchemist"] [data-ghost]')).toHaveCount(2)
 })
 
 test.describe('the staged moves on a phone', () => {

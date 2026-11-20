@@ -233,7 +233,7 @@
     {:else if block.kind === 'staged'}
         <!-- R-4.6 A phone's stands in the bench's sheet, above the send. -->
         {#if !layout.phone}
-            <StagedMoves {block} {pointer} />
+            <StagedMoves {block} />
         {/if}
     {:else if block.kind === 'nourish-picker'}
         <NourishPicker {block} {pointer} />

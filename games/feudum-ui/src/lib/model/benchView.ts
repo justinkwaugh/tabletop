@@ -303,7 +303,6 @@ export interface StagedMove {
     readonly text: string
     /** Its accessible name: "2 sulfur from the Merchant to the Alchemist". */
     readonly words: string
-    readonly takeBack: () => void
 }
 
 export interface StagedMoves {
@@ -331,7 +330,7 @@ export function stagedMoves(view: BenchView, bench: BenchOffer): StagedMoves | u
     }
     const moved = bench.staged.reduce((sum, { count }) => sum + count, 0)
     return {
-        lines: bench.staged.map(({ item, label, count, takeBack }) => {
+        lines: bench.staged.map(({ item, label, count }) => {
             const { to, piece } = landing(item)
             const what = piece?.kind === 'good' ? `${count} ${piece.good}` : `${count} ${label}`
             // A good or a row's marker is drawn beside it, so the line counts it and says where it goes.
@@ -344,8 +343,7 @@ export function stagedMoves(view: BenchView, bench: BenchOffer): StagedMoves | u
                 words:
                     to && to !== from
                         ? `${what} from the ${from} to the ${to}`
-                        : `${what} on the ${from}`,
-                takeBack
+                        : `${what} on the ${from}`
             }
         }),
         ...(bench.most === undefined ? {} : { tally: `${moved} of ${bench.most} moved` })
