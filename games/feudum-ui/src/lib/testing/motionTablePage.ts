@@ -1,5 +1,5 @@
 import { flushSync, mount } from 'svelte'
-import { assertExists } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import {
     ActionType,
     Goods,
@@ -36,7 +36,7 @@ export interface MotionFrame {
     readonly lit: number
 }
 
-function boardPointOf(element: Element | null): { x: number; y: number } | undefined {
+function boardPointOf(element: Element | null): Point | undefined {
     const svg = element?.closest('svg')
     const matrix = svg?.getScreenCTM()?.inverse()
     if (!element || !svg || !matrix) {

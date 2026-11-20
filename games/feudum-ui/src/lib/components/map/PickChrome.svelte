@@ -1,7 +1,7 @@
 <script lang="ts">
+    import type { Point } from '@tabletop/common'
     import { isBright, isPickable, type BoardChrome } from '$lib/model/boardChrome.js'
     import { chipOf, roleOf, type BoardTarget } from '$lib/model/boardOffer.js'
-    import type { Point } from '$lib/utils/boardGeometry.js'
     import PickChip from './PickChip.svelte'
 
     /**

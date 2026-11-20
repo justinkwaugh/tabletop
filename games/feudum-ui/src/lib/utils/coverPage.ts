@@ -1,3 +1,4 @@
+import type { BoundingBox } from '@tabletop/common'
 /**
  * The catalog cover's page, composed for `scripts/make-cover.mjs` to render: 4:5 at twice the large
  * card's height, with the title band the script draws over a scene that has no title of its own. It
@@ -11,14 +12,6 @@ const { width: Width, height: Height } = CoverSize
 
 /** An image's size, in its own pixels. */
 export interface ImageSize {
-    readonly width: number
-    readonly height: number
-}
-
-/** Where an image stands on the cover, in the cover's units; parts outside it are cropped. */
-export interface CoverPlacement {
-    readonly x: number
-    readonly y: number
     readonly width: number
     readonly height: number
 }
@@ -49,7 +42,7 @@ export const TitleMargin = 16
  * otherwise the title and its margins fill the width, with bands of ground above and below. The
  * title is centred across the cover unless that would show past the image's edge.
  */
-export function coverPlacement(source: ImageSize, title?: PrintedTitle): CoverPlacement {
+export function coverPlacement(source: ImageSize, title?: PrintedTitle): BoundingBox {
     const fullWidth = Width / source.width
     const scale = title
         ? Math.max(
@@ -81,7 +74,7 @@ export type CoverScene =
  * edge crops what lies past it. Sized here rather than by `preserveAspectRatio="slice"`, which
  * browsers draw differently.
  */
-export function coverFill(source: ImageSize): CoverPlacement {
+export function coverFill(source: ImageSize): BoundingBox {
     const scale = Math.max(Width / source.width, Height / source.height)
     const width = source.width * scale
     const height = source.height * scale

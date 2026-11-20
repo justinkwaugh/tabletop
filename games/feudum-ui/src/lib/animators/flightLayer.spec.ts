@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
-import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction, type Point } from '@tabletop/common'
 import {
     ActionType,
     Goods,
@@ -37,7 +37,6 @@ import {
     type FlightPlan
 } from './flightPlan.js'
 import { planBoardMotion } from './boardPlan.js'
-import type { Point } from '$lib/utils/boardGeometry.js'
 import flightPlanSource from './flightPlan.ts?raw'
 
 /** Contract, Fast fallback: stated here apart from the plan's own constant, which it checks. */

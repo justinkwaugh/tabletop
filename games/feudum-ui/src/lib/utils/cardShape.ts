@@ -1,4 +1,4 @@
-import { Color } from '@tabletop/common'
+import { Color, type Point } from '@tabletop/common'
 import type { ActionCardKind } from '@tabletop/feudum'
 import type { PrintedColour } from '$lib/art/assetMap.js'
 
@@ -61,7 +61,7 @@ export const PrintArtWindow = {
  * each file is cut a little differently, so each has its own place.
  */
 export const PrintedArtScale = 0.9
-export const PrintedArtAt: Record<ActionCardKind, { readonly x: number; readonly y: number }> = {
+export const PrintedArtAt: Record<ActionCardKind, Point> = {
     conquer: { x: 14, y: 4 },
     defend: { x: 13, y: -3 },
     explore: { x: 1, y: 4 },

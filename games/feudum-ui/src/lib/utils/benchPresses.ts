@@ -1,3 +1,4 @@
+import type { BoundingBox } from '@tabletop/common'
 /** A press's extent across a guild area, in the area's own units. */
 export interface Span {
     readonly x: number
@@ -75,24 +76,16 @@ export function widenedSpans(spans: readonly Span[], whole: number, least: numbe
     return widened
 }
 
-/** A press's place on a guild area, in the area's own units. */
-export interface Box {
-    readonly x: number
-    readonly y: number
-    readonly width: number
-    readonly height: number
-}
-
 /**
  * S68 Each box grows toward `least` across and down, as `widenedSpans` grows a span. Along each
  * axis its neighbours are the boxes that share some of its extent on the other axis: the printed
  * Knight rows, side by side, are neighbours across; the drawn ones, stacked, are neighbours down.
  */
 export function widenedBoxes(
-    boxes: readonly Box[],
+    boxes: readonly BoundingBox[],
     whole: { readonly width: number; readonly height: number },
     least: number
-): Box[] {
+): BoundingBox[] {
     const across = along(boxes, 'x', 'width', 'y', 'height', whole.width, least)
     const down = along(boxes, 'y', 'height', 'x', 'width', whole.height, least)
     return boxes.map((_, at) => ({
@@ -104,7 +97,7 @@ export function widenedBoxes(
 }
 
 function along(
-    boxes: readonly Box[],
+    boxes: readonly BoundingBox[],
     start: 'x' | 'y',
     size: 'width' | 'height',
     otherStart: 'x' | 'y',

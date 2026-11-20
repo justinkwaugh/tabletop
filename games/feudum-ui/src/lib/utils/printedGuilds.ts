@@ -1,4 +1,4 @@
-import type { Color } from '@tabletop/common'
+import type { BoundingBox, Color, Point } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
     AlchemistVesselSpace,
@@ -27,18 +27,6 @@ import {
  * three reading from the board's west edge and the east three from its east edge, so a column of the
  * print is a row of the game. The pieces stand upright over it.
  */
-
-interface Point {
-    readonly x: number
-    readonly y: number
-}
-
-interface Box {
-    readonly x: number
-    readonly y: number
-    readonly width: number
-    readonly height: number
-}
 
 const West: readonly GuildId[] = ['alchemist', 'merchant', 'farmer']
 
@@ -231,7 +219,7 @@ export function printedKnightRowLabel(colour: Color): Point {
 }
 
 /** A Knight row's whole column, label to last space. */
-export function printedKnightRowBox(colour: Color): Box {
+export function printedKnightRowBox(colour: Color): BoundingBox {
     const { x } = printedKnightCell(colour, 1)
     const top = KnightColumnY[0] - PrintedKnightCell / 2
     return {
@@ -247,7 +235,7 @@ export function printedMonsterIconMarker(slot: Point): Point {
     return { x: slot.x + 39, y: slot.y }
 }
 
-export function printedMarketBinBox(good: Good): Box {
+export function printedMarketBinBox(good: Good): BoundingBox {
     const x = MarketColumnX[good]
     return { x: x - 22, y: MarketBinTop, width: 44, height: MarketBinBottom - MarketBinTop }
 }
@@ -260,7 +248,7 @@ export function printedBarnColumn(good: Good): Point {
     return { x: BarnColumnX(Goods.indexOf(good)), y: BarnTop }
 }
 
-export function printedBarnColumnBox(good: Good): Box {
+export function printedBarnColumnBox(good: Good): BoundingBox {
     const { x } = printedBarnColumn(good)
     const top = BarnTop - 21
     return {

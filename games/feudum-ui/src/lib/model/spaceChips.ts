@@ -1,5 +1,6 @@
+import type { Point } from '@tabletop/common'
 import type { HydratedFeudumGameState, SpaceId } from '@tabletop/feudum'
-import { PawnSize, SpaceRingFrame, spaceGeometry, type Point } from '$lib/utils/boardGeometry.js'
+import { PawnSize, SpaceRingFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
 import { isPickable } from './boardChrome.js'
 import {
     chipOf,

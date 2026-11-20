@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import type { GameAction, Point } from '@tabletop/common'
 import {
     beadValue,
     ChickenSpaces,
@@ -49,8 +49,7 @@ import {
     guildSlot,
     knightCell,
     rosaryBead,
-    spaceGeometry,
-    type Point
+    spaceGeometry
 } from '$lib/utils/boardGeometry.js'
 import {
     FastSeconds,

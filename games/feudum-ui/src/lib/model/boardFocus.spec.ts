@@ -1,3 +1,4 @@
+import type { BoundingBox } from '@tabletop/common'
 import { GuildIds, HydratedFeudumGameState } from '@tabletop/feudum'
 import { flushSync } from 'svelte'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -41,12 +42,11 @@ import {
     guildSideFollowing,
     ZoomRowBand,
     type BoardFocusSetting,
-    type BoardRect,
     type BoardView,
     type PickFrame
 } from './boardFocus.svelte.js'
 
-type Calls = { focused: { rect: BoardRect; maxScale: number }[]; fits: number }
+type Calls = { focused: { rect: BoundingBox; maxScale: number }[]; fits: number }
 
 function fakeView(): { view: BoardView; calls: Calls } {
     const calls: Calls = { focused: [], fits: 0 }
@@ -120,7 +120,7 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     })
 
     it('each column holds its three guilds, the West its own and the East its own', () => {
-        const inside = (rect: BoardRect, guild: (typeof GuildIds)[number]) =>
+        const inside = (rect: BoundingBox, guild: (typeof GuildIds)[number]) =>
             GuildAreas[guild].x >= rect.x && GuildAreas[guild].x < rect.x + rect.width
         for (const guild of ['alchemist', 'merchant', 'farmer'] as const) {
             expect(inside(rectOfArea('west'), guild)).toBe(true)
@@ -133,7 +133,7 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     })
 
     it("each column's view holds its guilds' standing rails at the map's inner edge", () => {
-        const holds = (rect: BoardRect, inner: BoardRect) =>
+        const holds = (rect: BoundingBox, inner: BoundingBox) =>
             inner.x >= rect.x &&
             inner.y >= rect.y &&
             inner.x + inner.width <= rect.x + rect.width &&

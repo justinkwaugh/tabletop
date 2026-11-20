@@ -1,6 +1,6 @@
 import { flushSync, mount } from 'svelte'
 import { AnimationContext } from '@tabletop/frontend-components'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, type GameAction, type Point } from '@tabletop/common'
 import {
     ActionType,
     HydratedFeudumGameState,
@@ -11,7 +11,6 @@ import {
 import GameTable from '$lib/components/GameTable.svelte'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { writName } from '$lib/model/writLabels.js'
-import type { Point } from '$lib/utils/boardGeometry.js'
 import { seatedAtCards } from './followUpTable.js'
 import { FeudumHost, settled } from './sessionHarness.js'
 import { addPawn, buildFeudum, emptySpace, giveGood, returnGoods } from './turnTable.js'

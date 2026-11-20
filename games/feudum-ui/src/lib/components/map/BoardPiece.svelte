@@ -1,7 +1,7 @@
 <script lang="ts">
+    import type { Point } from '@tabletop/common'
     import type { Snippet } from 'svelte'
     import { pieceTurn } from '$lib/components/guilds/pieceTurn.js'
-    import type { Point } from '$lib/utils/boardGeometry.js'
 
     /**
      * A piece on the board: world placement on the outer node, and an inner node at the piece's

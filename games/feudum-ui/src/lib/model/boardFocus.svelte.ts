@@ -1,3 +1,4 @@
+import type { Point, BoundingBox } from '@tabletop/common'
 import { untrack } from 'svelte'
 import {
     EpicVoyageTrack,
@@ -22,8 +23,7 @@ import {
     StandingsStrip,
     standingsStripHeight,
     stripRailDrawingHeight,
-    westGuild,
-    type Point
+    westGuild
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 import { ChipHeight, chipLayout, spaceChips } from './spaceChips.js'
@@ -39,17 +39,10 @@ export type PlacedArea = FocusArea
 /** A desk's guild side, behind its button. */
 export type GuildSide = 'west' | 'east'
 
-export interface BoardRect {
-    readonly x: number
-    readonly y: number
-    readonly width: number
-    readonly height: number
-}
-
 /** What a pick asks the board to frame. The key is the lit set, so one pick frames once. */
 export interface PickFrame {
     readonly key: string
-    readonly rect: BoardRect
+    readonly rect: BoundingBox
     /** A guild pick's column names its chip; the map's and a track's name none. */
     readonly area?: FramedArea
     /** Every area its targets stand in, so a desk knows whether one guild side holds them all. */
@@ -190,7 +183,7 @@ export function deskColumnViewWidth(room: Size, seats: number, column: DeskColum
 }
 
 /** The column's box in the view: at its right edge, the view's full height. */
-export function deskColumnBox(view: Size, column: DeskColumn): BoardRect {
+export function deskColumnBox(view: Size, column: DeskColumn): BoundingBox {
     return { x: view.width - column.width, y: 0, width: column.width, height: view.height }
 }
 
@@ -200,7 +193,7 @@ export function deskViewHeight(viewWidth: number, seats: number): number {
 }
 
 /** Where a desk's map rests in its view, in screen pixels, and the gutters that hold it there. */
-export interface DeskRest extends BoardRect {
+export interface DeskRest extends BoundingBox {
     readonly scale: number
     /** Board units of empty content left of the map: a gutter at the rest's scale. */
     readonly gutter: number
@@ -296,7 +289,7 @@ function chipCorners(state: HydratedFeudumGameState, offer: BoardOffer): Point[]
 }
 
 /** The smallest box holding both, where the second holds anything. */
-function enclosing(first: BoardRect, second: BoardRect): BoardRect {
+function enclosing(first: BoundingBox, second: BoundingBox): BoundingBox {
     if (!(second.width > 0)) {
         return first
     }
@@ -307,7 +300,7 @@ function enclosing(first: BoardRect, second: BoardRect): BoardRect {
     return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
-function unionOf(points: readonly Point[], room: number): BoardRect {
+function unionOf(points: readonly Point[], room: number): BoundingBox {
     const left = Math.min(...points.map(({ x }) => x)) - room
     const top = Math.min(...points.map(({ y }) => y)) - room
     const right = Math.max(...points.map(({ x }) => x)) + room
@@ -316,7 +309,7 @@ function unionOf(points: readonly Point[], room: number): BoardRect {
 }
 
 /** A guild column with its standing rails at the map's inner edge (contract: Guild standings). */
-function columnOf(area: 'west' | 'east'): BoardRect {
+function columnOf(area: 'west' | 'east'): BoundingBox {
     const guilds = GuildIds.filter((guild) => westGuild(guild) === (area === 'west'))
     const corners = guilds.flatMap((guild) => {
         const { x, y } = GuildAreas[guild]
@@ -332,7 +325,7 @@ function columnOf(area: 'west' | 'east'): BoardRect {
 }
 
 /** What a chip frames: the map's area and each guild column. */
-export function rectOfArea(area: FramedArea): BoardRect {
+export function rectOfArea(area: FramedArea): BoundingBox {
     return area === 'map' ? MapArea : columnOf(area)
 }
 
@@ -453,8 +446,8 @@ export function pickFrameOf(
 /** The scaling wrapper's views, as this needs them. */
 export interface BoardView {
     focusRect(
-        rect: BoardRect,
-        options: { maxScale: number; padding: { x: number; y: number }; animate: boolean }
+        rect: BoundingBox,
+        options: { maxScale: number; padding: Point; animate: boolean }
     ): void
     fitToContent(options: { animate: boolean }): void
 }
@@ -509,7 +502,7 @@ export class BoardFocus {
     }
 
     /** Frames a rect in board units. */
-    private frame(rect: BoardRect) {
+    private frame(rect: BoundingBox) {
         this.setting.view()?.focusRect(rect, this.options())
     }
 

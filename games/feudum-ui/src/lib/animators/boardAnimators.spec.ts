@@ -1,7 +1,7 @@
 import { flushSync } from 'svelte'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, type GameAction, type Point } from '@tabletop/common'
 import {
     ActionType,
     FarmerBarn,
@@ -42,8 +42,7 @@ import {
     monsterIconMarker,
     routePointAt,
     scoreDiscAt,
-    spaceGeometry,
-    type Point
+    spaceGeometry
 } from '$lib/utils/boardGeometry.js'
 import { BoardAnimator, type MotionElement, type MotionSurface } from './boardAnimator.svelte.js'
 import { planFlights } from './flightPlan.js'

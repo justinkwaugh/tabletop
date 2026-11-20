@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Point } from '@tabletop/common'
     import {
         RegionTiles,
         Spaces,
@@ -33,8 +34,7 @@
         VesselSize,
         plateBox,
         plateSlot,
-        spaceGeometry,
-        type Point
+        spaceGeometry
     } from '$lib/utils/boardGeometry.js'
     import BoardPiece from './BoardPiece.svelte'
     import CountChip from './CountChip.svelte'

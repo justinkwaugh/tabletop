@@ -1,9 +1,8 @@
 import { tick } from 'svelte'
 import { prefersReducedMotion } from 'svelte/motion'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import type { GameAction } from '@tabletop/common'
+import type { GameAction, Point } from '@tabletop/common'
 import type { GuildId, HydratedFeudumGameState } from '@tabletop/feudum'
-import type { Point } from '$lib/utils/boardGeometry.js'
 import {
     planBoardMotion,
     planDirect,

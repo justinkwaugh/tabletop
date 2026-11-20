@@ -1,5 +1,5 @@
+import type { Point } from '@tabletop/common'
 import { tick } from 'svelte'
-import type { Point } from '$lib/utils/boardGeometry.js'
 import { prefersReducedMotion } from 'svelte/motion'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import {

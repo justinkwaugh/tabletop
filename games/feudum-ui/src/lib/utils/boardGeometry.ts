@@ -1,4 +1,4 @@
-import { Color } from '@tabletop/common'
+import { Color, type BoundingBox, type Point } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
     AlchemistVesselSpace,
@@ -54,11 +54,6 @@ import {
  * proportions, so a position here lands on the printed space when the map's art is shown, and on the
  * drawn terrain when it isn't. Authored once by hand; nothing is measured from a picture at run time.
  */
-export interface Point {
-    readonly x: number
-    readonly y: number
-}
-
 export const BoardWidth = 2500
 export const BoardHeight = 953
 
@@ -185,7 +180,7 @@ export function plateSlot({ at, toward }: GoodsPlate, index: number): Point {
 }
 
 /** The plate holding `kinds` good kinds. */
-export function plateBox({ at, toward }: GoodsPlate, kinds: number): GuildBoxRect {
+export function plateBox({ at, toward }: GoodsPlate, kinds: number): BoundingBox {
     const width = kinds * PlateGood.step + 2 * PlateGood.pad
     return { x: toward > 0 ? at.x : at.x - width, y: at.y, width, height: PlateGood.height }
 }
@@ -674,11 +669,7 @@ export function guildAreaAt({ x, y }: Point): GuildId | undefined {
  * box on the page, short side across): turned about the area's centre as the area is, and scaled to
  * the box.
  */
-export function uprightPoint(
-    guild: GuildId,
-    point: Point,
-    box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
-): Point {
+export function uprightPoint(guild: GuildId, point: Point, box: BoundingBox): Point {
     const area = GuildAreas[guild]
     const scale = box.height / GuildAreaWidth
     const across = (point.x - area.x - GuildAreaWidth / 2) * scale
@@ -723,7 +714,7 @@ export function standingsStripHeight(seats: number): number {
 export const RailOver = { width: 168, gap: 8, inset: 6, scale: 168 / 96 } as const
 
 /** Where a guild's rail stands over the map on a phone, level with its area. */
-export function railOverRect(guild: GuildId): GuildBoxRect {
+export function railOverRect(guild: GuildId): BoundingBox {
     const x = westGuild(guild)
         ? MapArea.x + RailOver.gap
         : MapArea.x + MapArea.width - RailOver.gap - RailOver.width
@@ -742,14 +733,6 @@ export function railOverRect(guild: GuildId): GuildBoxRect {
  */
 export function guildPrinted(guild: GuildId): boolean {
     return assetUrl(guildPanelAsset(guild)) !== undefined
-}
-
-/** A place on a guild area, in its local units. */
-export interface GuildBoxRect {
-    readonly x: number
-    readonly y: number
-    readonly width: number
-    readonly height: number
 }
 
 /** Sizes in a guild area's local units. */
@@ -811,7 +794,7 @@ export function marketBinRow(good: Good): Point {
 }
 
 /** A market bin's whole row, from its swatch to its last space; on the print, its column. */
-export function marketBinBox(good: Good): GuildBoxRect {
+export function marketBinBox(good: Good): BoundingBox {
     if (guildPrinted('merchant')) {
         return printedMarketBinBox(good)
     }
@@ -848,7 +831,7 @@ const KnightRowHeight = 46
 const KnightRowEndGap = 4
 
 /** A Knight row's whole lane, from its disc to its last cell. */
-export function knightRowBox(colour: Color): GuildBoxRect {
+export function knightRowBox(colour: Color): BoundingBox {
     if (guildPrinted('knight')) {
         return printedKnightRowBox(colour)
     }
@@ -960,7 +943,7 @@ export function guildSlot(id: string): Point {
 const DrawnScrollBox = { width: ScrollCell.width + 6, height: ScrollCell.height + 6 } as const
 
 /** A scroll space's whole roll. */
-export function scrollBox(id: string): GuildBoxRect {
+export function scrollBox(id: string): BoundingBox {
     const { width, height } = guildPrinted('noble') ? PrintedScrollBox : DrawnScrollBox
     const { x, y } = guildSlot(id)
     return { x: x - width / 2, y: y - height / 2, width, height }
@@ -991,7 +974,7 @@ export function vesselForSale(vessel: VesselType): Point {
 const DrawnVesselBox = 72
 
 /** The press around a vessel for sale. */
-export function vesselForSaleBox(vessel: VesselType): GuildBoxRect {
+export function vesselForSaleBox(vessel: VesselType): BoundingBox {
     const size = guildPrinted('alchemist') ? PrintedVesselSize : DrawnVesselBox
     const { x, y } = vesselForSale(vessel)
     return { x: x - size / 2, y: y - size / 2, width: size, height: size }
@@ -1008,7 +991,7 @@ const BarnBottomGap = 6
 const BarnColumnPress = 48
 
 /** R-4.6.1 A kind of good's whole column in the barn. */
-export function barnColumnBox(good: Good): GuildBoxRect {
+export function barnColumnBox(good: Good): BoundingBox {
     if (guildPrinted('farmer')) {
         return printedBarnColumnBox(good)
     }

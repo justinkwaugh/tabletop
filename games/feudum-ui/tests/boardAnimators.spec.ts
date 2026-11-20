@@ -1,3 +1,4 @@
+import type { Point } from '@tabletop/common'
 import { expect, test, type Page } from '@playwright/test'
 import type { MotionFrame, PawnFrame } from '../src/lib/testing/motionTablePage.js'
 import { settled } from './helpers.js'
@@ -54,7 +55,7 @@ async function openTable(page: Page, call: string) {
     await page.evaluate(() => document.fonts.ready)
 }
 
-type Placed = MotionFrame & { readonly x: number; readonly y: number }
+type Placed = MotionFrame & Point
 
 const placed = (frames: readonly MotionFrame[]): Placed[] =>
     frames.filter((frame): frame is Placed => frame.x !== undefined && frame.y !== undefined)

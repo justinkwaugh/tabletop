@@ -1,15 +1,10 @@
+import type { Point } from '@tabletop/common'
 import { GuildIds, type GuildId } from '@tabletop/feudum'
 import { visualClientRect } from '@tabletop/frontend-components'
 import { titleRootOf } from '$lib/utils/titleRoot.js'
 import type { GuildsApart } from './boardPlan.js'
 import type { FlightEnd, SeatPart } from './flightPlan.js'
-import {
-    BoardWidth,
-    GuildAreaWidth,
-    guildAreaAt,
-    uprightPoint,
-    type Point
-} from '$lib/utils/boardGeometry.js'
+import { BoardWidth, GuildAreaWidth, guildAreaAt, uprightPoint } from '$lib/utils/boardGeometry.js'
 
 /** All a flight does to the piece it copies: hide it, and show it again. */
 export interface HideableSource {

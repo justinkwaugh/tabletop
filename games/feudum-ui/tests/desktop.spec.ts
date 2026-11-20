@@ -1,3 +1,4 @@
+import type { Point } from '@tabletop/common'
 import { existsSync } from 'node:fs'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { ActionType } from '@tabletop/feudum'
@@ -94,8 +95,6 @@ async function rect(target: Locator) {
     }
     return box
 }
-
-type Point = { x: number; y: number }
 
 function holds(box: { x: number; y: number; width: number; height: number }, { x, y }: Point) {
     return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height
@@ -738,7 +737,7 @@ test.describe('a 1440 px desk', () => {
         await panel(page).locator('[data-cards] [data-row="Defend"] button').first().click()
         const score = page.locator(`[data-seat-panel="${seat}"] [data-seat-score]`)
         await page.evaluate(() => {
-            const seen: { x: number; y: number }[] = []
+            const seen: Point[] = []
             Object.assign(window, { scoreFlight: seen })
             const sample = () => {
                 const copy = document.querySelector('[data-flight-row="score"] [data-flight-side]')
@@ -753,9 +752,7 @@ test.describe('a 1440 px desk', () => {
         await panel(page).locator('[data-primary]').click()
         await settled(page)
         await expect(score).toHaveAttribute('data-seat-score', '1')
-        const path = await page.evaluate(
-            () => Reflect.get(window, 'scoreFlight') as { x: number; y: number }[]
-        )
+        const path = await page.evaluate(() => Reflect.get(window, 'scoreFlight') as Point[])
         expect(path.length).toBeGreaterThan(2)
         const landing = path[path.length - 1]
         const target = await rect(score)

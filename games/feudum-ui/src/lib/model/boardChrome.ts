@@ -1,5 +1,5 @@
+import type { Point } from '@tabletop/common'
 import type { SpaceId } from '@tabletop/feudum'
-import type { Point } from '$lib/utils/boardGeometry.js'
 import {
     NoBoardOffer,
     roleOf,

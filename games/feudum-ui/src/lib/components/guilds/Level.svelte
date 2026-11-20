@@ -1,6 +1,6 @@
 <script lang="ts">
+    import type { Point } from '@tabletop/common'
     import type { Snippet } from 'svelte'
-    import type { Point } from '$lib/utils/boardGeometry.js'
     import { pieceTurn } from './pieceTurn.js'
 
     /** A word or count of ours on a guild area, turned about `at` to read upright wherever the area stands. */

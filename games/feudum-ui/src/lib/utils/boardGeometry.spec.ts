@@ -1,3 +1,4 @@
+import type { BoundingBox, Point } from '@tabletop/common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { guildPanelAsset } from '$lib/art/assetMap.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
@@ -100,7 +101,6 @@ import {
     isInside,
     routePointAt,
     spaceGeometry,
-    type Point,
     barnColumnBox,
     barnTokenAt,
     guildPrinted,
@@ -113,8 +113,7 @@ import {
     vesselForSaleBox,
     vesselForSaleSize,
     guildAreaAt,
-    uprightPoint,
-    type GuildBoxRect
+    uprightPoint
 } from './boardGeometry.js'
 import {
     PrintedBarnStackStep,
@@ -679,13 +678,13 @@ describe('The tracks and margin: every space has a place (S72)', () => {
     })
 })
 
-function overlaps(a: GuildBoxRect, b: GuildBoxRect) {
+function overlaps(a: BoundingBox, b: BoundingBox) {
     return (
         a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
     )
 }
 
-function apart(boxes: readonly GuildBoxRect[]) {
+function apart(boxes: readonly BoundingBox[]) {
     boxes.forEach((box, index) => {
         for (const other of boxes.slice(index + 1)) {
             expect(overlaps(box, other), JSON.stringify([box, other])).toBe(false)
@@ -693,7 +692,7 @@ function apart(boxes: readonly GuildBoxRect[]) {
     })
 }
 
-function insideBox(box: GuildBoxRect) {
+function insideBox(box: BoundingBox) {
     return (
         box.x >= 0 &&
         box.y >= 0 &&

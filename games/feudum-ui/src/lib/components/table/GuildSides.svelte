@@ -1,10 +1,10 @@
 <script lang="ts">
+    import type { BoundingBox } from '@tabletop/common'
     import OpenGuild from '$lib/components/guilds/OpenGuild.svelte'
     import {
         SideButtonGap,
         SideButtonWidth,
         SideGutter,
-        type BoardRect,
         type FocusArea,
         type GuildSide
     } from '$lib/model/boardFocus.svelte.js'
@@ -25,7 +25,7 @@
         lit
     }: {
         /** The map's box at its rest, in the view's pixels. */
-        rest: BoardRect
+        rest: BoundingBox
         lit: ReadonlySet<FocusArea>
     } = $props()
 

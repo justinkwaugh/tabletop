@@ -1,3 +1,4 @@
+import type { Point } from '@tabletop/common'
 import { expect, test, type Page } from '@playwright/test'
 import type { MotionFrame } from '../src/lib/testing/motionTablePage.js'
 import { createGame, playToCards, settled, shot } from './helpers.js'
@@ -160,7 +161,7 @@ async function openTable(page: Page, call: string) {
     await page.evaluate(() => document.fonts.ready)
 }
 
-type Placed = MotionFrame & { readonly x: number; readonly y: number }
+type Placed = MotionFrame & Point
 
 /** The distinct places a piece stood, in board units, in the order it stood there. */
 function standings(frames: readonly MotionFrame[]): Placed[] {

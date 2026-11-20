@@ -1,4 +1,4 @@
-import type { Color, GameAction } from '@tabletop/common'
+import type { Color, GameAction, Point } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
     EpochTrack,
@@ -76,8 +76,7 @@ import {
     routePointAt,
     scoreDiscAt,
     spaceGeometry,
-    trackPlace,
-    type Point
+    trackPlace
 } from '$lib/utils/boardGeometry.js'
 
 /**

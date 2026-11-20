@@ -1,3 +1,4 @@
+import type { BoundingBox, Point } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
     GuildById,
@@ -24,18 +25,13 @@ import {
     rosaryBead,
     scrollBox,
     vesselForSale,
-    vesselForSaleBox,
-    type Point
+    vesselForSaleBox
 } from '$lib/utils/boardGeometry.js'
 import { knightRowPlace, type BenchGhost, type BenchItem, type BenchOffer } from './benchOffer.js'
 import { laneOfRow, rowLane, seatRowId } from './knightLanes.js'
 
 /** A place on a guild area, in its local units. */
-export interface BenchBox {
-    readonly x: number
-    readonly y: number
-    readonly width: number
-    readonly height: number
+export interface BenchBox extends BoundingBox {
     readonly round?: true
 }
 

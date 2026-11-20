@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Color } from '@tabletop/common'
+    import type { Color, BoundingBox } from '@tabletop/common'
     import type { HydratedFeudumGameState, KnightRowId } from '@tabletop/feudum'
     import GuildArea from '$lib/components/guilds/GuildArea.svelte'
     import UprightArea from '$lib/components/guilds/UprightArea.svelte'
@@ -11,7 +11,7 @@
     import type { PanelChoice } from '$lib/model/cardFlows.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { BenchAreaWidth, GuildBox, GuildSizes, uprightTurn } from '$lib/utils/boardGeometry.js'
-    import { widenedBoxes, type Box } from '$lib/utils/benchPresses.js'
+    import { widenedBoxes } from '$lib/utils/benchPresses.js'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
     /**
@@ -60,7 +60,7 @@
             ({ item, presses }) => presses && item.id.startsWith('row:')
         )
         if (rows.length === 0) {
-            return new Map<string, Box>()
+            return new Map<string, BoundingBox>()
         }
         const spans = widenedBoxes(
             rows.map(({ box }) => box),

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { BoundingBox } from '@tabletop/common'
     import type { Snippet } from 'svelte'
 
     /**
@@ -25,7 +26,7 @@
         viewBox: string
         x?: number
         y?: number
-        artBox?: { x: number; y: number; width: number; height: number }
+        artBox?: BoundingBox
         opacity?: number
         children: Snippet
         over?: Snippet

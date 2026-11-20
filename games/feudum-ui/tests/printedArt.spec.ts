@@ -1,3 +1,4 @@
+import type { BoundingBox, Point } from '@tabletop/common'
 import { existsSync } from 'node:fs'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { GuildById, GuildIds, MarketSpaces } from '@tabletop/feudum'
@@ -10,31 +11,29 @@ import { createGame, playToHands, pressGuildArea, settled } from './helpers.js'
  * these skip.
  */
 
-type Box = { x: number; y: number; width: number; height: number }
-
 const panelImage = (scope: Locator, guild: string) =>
     scope.locator(
         `svg[aria-label="${GuildById[guild as keyof typeof GuildById].name} guild panel"]`
     )
 
-async function boxOf(locator: Locator): Promise<Box> {
+async function boxOf(locator: Locator): Promise<BoundingBox> {
     const box = await locator.boundingBox()
     expect(box).not.toBeNull()
-    return box as Box
+    return box as BoundingBox
 }
 
-function expectSameBox(a: Box, b: Box, slack = 1) {
+function expectSameBox(a: BoundingBox, b: BoundingBox, slack = 1) {
     expect(Math.abs(a.x - b.x)).toBeLessThanOrEqual(slack)
     expect(Math.abs(a.y - b.y)).toBeLessThanOrEqual(slack)
     expect(Math.abs(a.width - b.width)).toBeLessThanOrEqual(slack)
     expect(Math.abs(a.height - b.height)).toBeLessThanOrEqual(slack)
 }
 
-function centre({ x, y, width, height }: Box) {
+function centre({ x, y, width, height }: BoundingBox) {
     return { x: x + width / 2, y: y + height / 2 }
 }
 
-function inside(point: { x: number; y: number }, { x, y, width, height }: Box) {
+function inside(point: Point, { x, y, width, height }: BoundingBox) {
     return point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height
 }
 
@@ -222,7 +221,7 @@ test('R-4.6.3 on the printed Knight panel, each row’s markers stand in its pre
     const area = page.locator('[data-bench-area="knight"]')
     const panel = await boxOf(panelImage(area, 'knight').locator('> image'))
     const rows = area.locator('[data-bench-place^="row:"]')
-    const presses: Box[] = []
+    const presses: BoundingBox[] = []
     for (let index = 0; index < (await rows.count()); index++) {
         const press = await boxOf(rows.nth(index))
         expect(inside(centre(press), panel)).toBe(true)

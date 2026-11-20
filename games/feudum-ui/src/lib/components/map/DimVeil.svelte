@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { BoundingBox } from '@tabletop/common'
     import { VeilOpacity } from '$lib/model/boardChrome.js'
 
     /**
@@ -6,7 +7,7 @@
      * guild area's print) dims under this, one plain shape in the board's ground colour, drawn over
      * it and under whatever stays lit. It takes no presses.
      */
-    let { x, y, width, height }: { x: number; y: number; width: number; height: number } = $props()
+    let { x, y, width, height }: BoundingBox = $props()
 </script>
 
 <rect

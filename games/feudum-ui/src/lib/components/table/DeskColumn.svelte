@@ -1,9 +1,9 @@
 <script lang="ts">
+    import type { BoundingBox } from '@tabletop/common'
     import GuildColumn from '$lib/components/standings/GuildColumn.svelte'
     import {
         DeskColumnSpacing,
         DeskZoomRow,
-        type BoardRect,
         type DeskColumn
     } from '$lib/model/boardFocus.svelte.js'
     import { guildStandingsOf } from '$lib/model/guildStandings.js'
@@ -17,7 +17,7 @@
      * the strip is: a press, a drag or a wheel here never pans or zooms the map (the wheel is kept by
      * the table's overlay).
      */
-    let { box, column }: { box: BoardRect; column: DeskColumn } = $props()
+    let { box, column }: { box: BoundingBox; column: DeskColumn } = $props()
 
     const gameSession = getGameSession()
     const { paintOf } = gameSession
