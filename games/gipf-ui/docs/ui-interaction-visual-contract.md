@@ -21,6 +21,7 @@
 - **Board theme** (`app.css`; grid lines from `board/boardLines.ts`): one light board: pale blue play area bounded by the outermost grid lines, muted blue table, black lines and dots. No intersection marks.
 - **Coordinate labels** (`Board.svelte`, `.coordinate-label`, from `board/coordinates.ts`): each column's bottom and top point (A1…A5 to I1…I5), beyond the column's ends. They can be hidden (see Board toggles).
 - **Board toggles** (`OverlayToggle.svelte`, in `GameTable.svelte`'s overlay): a row of round chips at the board's bottom right, as in GIPF with Potentials: A1 for the coordinate labels, then two turning arrows for the far side, the board seen half a turn round (`viewOf(true)`), so pieces hidden behind others come in front; labels stay beyond their columns' ends. Each is the player's own title preference (`showCoordinates`, `turned`); coordinates on by default, the far side off. A chip that is on shows its glyph in full ink with a thin cyan ring (`--gipf-toggle-on`) round it, as in LYNGK.
+- **Action panel height** (`ActionPanel.svelte`, `components/holdTallest.ts`): the panel keeps the tallest height it has reached at its current width, so a line that wraps for a long name does not move the board when it shrinks back. A new width starts over; a remount (the end panel, a new game) starts over too.
 
 ## 3. Layer Responsibilities
 

@@ -17,6 +17,7 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
+    import PoolCount from '$lib/components/PoolCount.svelte'
     import { YinshGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -48,6 +49,10 @@
         {:else}
             <ActionPanel />
         {/if}
+    </div>
+    <!-- Rule H3: the game also ends when the pool runs out, so its count stays in view, in its own row so a long name never covers it. -->
+    <div class="pointer-events-auto flex justify-center pt-1.5">
+        <PoolCount />
     </div>
 {/snippet}
 

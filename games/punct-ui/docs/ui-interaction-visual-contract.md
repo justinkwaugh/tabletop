@@ -53,6 +53,7 @@ History View, replay and silent restoration: History View shows no choices and n
 - **Tap off**: a `role="presentation"` wrapper round the board lets go on a click that reaches no choosable button.
 - **Text**: coordinate labels and level badges sit on the alphabetic baseline lowered by 0.35 of the font size in user units, letter-spacing in px.
 - **Looks** (`scripts/render-looks.mjs` from the `/looks` route): piece bodies, dishes and holes at 4 px per board unit; icons at 1.25 px per unit, 2.5 times their largest size on screen. Specks are drawn live over them, seeded by the piece's id.
+- **Action panel height** (`ActionPanel.svelte`, `components/holdTallest.ts`): the panel keeps the tallest height it has reached at its current width, so a line that wraps for a long name does not move the board when it shrinks back. A new width starts over; a remount (the end panel, a new game) starts over too.
 
 ## Verification scenarios
 

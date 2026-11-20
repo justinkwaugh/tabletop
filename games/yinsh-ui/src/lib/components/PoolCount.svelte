@@ -9,6 +9,10 @@
 
     const count = $derived(session.gameState.markersInPool())
 
+    // Gradient ids are per instance: full screen draws the turn controls a second time.
+    const uid = $props.id()
+    const prefix = `pool-${uid}`
+
     // Two markers from the pool, a white one lying across a black one below and to its left.
     const OFFSET = MARKER_RADIUS * 0.45
     const reach = MARKER_RADIUS + OFFSET + 1
@@ -22,16 +26,15 @@
         viewBox="{-reach} {-reach - lift} {reach * 2} {reach * 2 + lift}"
         aria-hidden="true"
     >
-        <defs><PieceDefs prefix="pool" /></defs>
+        <defs><PieceDefs {prefix} /></defs>
         <g transform="translate({-OFFSET} {OFFSET})">
-            <MarkerShape tone="black" seedKey="pool-under" prefix="pool" />
+            <MarkerShape tone="black" seedKey="pool-under" {prefix} />
         </g>
         <g transform="translate({OFFSET} {-OFFSET})">
-            <MarkerShape tone="white" seedKey="pool-top" prefix="pool" />
+            <MarkerShape tone="white" seedKey="pool-top" {prefix} />
         </g>
     </svg>
     <strong>{count}</strong>
-    <span class="max-sm:hidden">{count === 1 ? 'marker' : 'markers'} left</span>
 </div>
 
 <style>
