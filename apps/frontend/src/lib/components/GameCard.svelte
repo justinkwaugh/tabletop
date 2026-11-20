@@ -3,6 +3,7 @@
     import {
         Game,
         GameStatus,
+        GameStorage,
         PlayerStatus,
         GameResult,
         GameCallKind,
@@ -129,6 +130,8 @@
         !game.tournament &&
             (authorizationService.isAdmin || (isOwnedByMe && ownerMayDeleteGame(game)))
     )
+
+    let canModerate = $derived(authorizationService.isAdmin && game.storage !== GameStorage.Local)
 
     let confirmDelete = $state(false)
 
@@ -651,7 +654,7 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete || bgStatsUrl}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete || canModerate || bgStatsUrl}
                         <Hr class="mt-1 mb-1" />
                         <div
                             class="pt-4 pb-0 flex flex-row flex-wrap gap-y-2 justify-center items-middle text-white"
@@ -712,6 +715,15 @@
                                     href={bgStatsUrl}
                                     onclick={(event) => event.stopPropagation()}
                                     >Log to BG Stats</Button
+                                >
+                            {/if}
+                            {#if canModerate}
+                                <Button
+                                    size="xs"
+                                    color="light"
+                                    class="mx-2"
+                                    href={`/admin/moderate/${game.id}`}
+                                    onclick={(event) => event.stopPropagation()}>Moderate</Button
                                 >
                             {/if}
                             {#if canDelete}

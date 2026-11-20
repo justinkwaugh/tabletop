@@ -499,6 +499,14 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('renameGameAsAdministrator')
     }
 
+    async handOverSeatAsAdministrator(
+        _gameId: string,
+        _playerId: string,
+        _username: string
+    ): Promise<Game> {
+        return this.fail('handOverSeatAsAdministrator')
+    }
+
     async unbanUser(_userId: string): Promise<User> {
         return this.fail('unbanUser')
     }

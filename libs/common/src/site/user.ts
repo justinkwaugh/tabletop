@@ -180,6 +180,10 @@ export function nextSessionGeneration(user: Pick<User, 'sessionGeneration'>): nu
     return sessionGenerationOf(user) + 1
 }
 
+export function isActiveNamedAccount(user: User | undefined): user is User & { username: string } {
+    return user?.status === UserStatus.Active && !!user.username
+}
+
 export function canHoldAuthenticatedSession(user: Pick<User, 'status'>): boolean {
     return user.status === UserStatus.Active || user.status === UserStatus.Incomplete
 }

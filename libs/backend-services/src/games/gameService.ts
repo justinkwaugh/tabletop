@@ -34,6 +34,9 @@ import {
     PlayerVoteOutcome,
     playerVoteOutcome,
     PlayerVoteRequestedNotification,
+    TookOverSeatNotification,
+    LostSeatNotification,
+    isActiveNamedAccount,
     UndoVote,
     UndoVotePreview,
     playerVoteIneligibility,
@@ -108,6 +111,7 @@ import {
 import {
     DisallowedActionError,
     RacedActionError,
+    SeatHolderUnavailableError,
     DisallowedUndoError,
     DisallowedPlayerVoteError,
     DuplicatePlayerError,
@@ -135,6 +139,7 @@ import {
 
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
+import { seatHandover, type SeatHolder } from './seatHandover.js'
 import { GameStore, type GameData, type UndoActionWindow } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
@@ -490,11 +495,61 @@ export class GameService {
             toUserId: substitute.id,
             toName: substitute.username
         })
-        await this.cacheService.delete(this.makeTurnNotificationCacheKey(seated, gameId))
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updated })
         const seat = updated.players.find((player) => player.userId === substitute.id)
-        if (seat && updated.activePlayerIds?.includes(seat.id))
-            await this.scheduleTurnNotifications(updated, [seat.id], FIRST_TURN_REMINDER_INDEX)
+        assertExists(seat, 'The Substitute holds a seat')
+        await this.settleSeatHandover(updated, seat.id, seated)
+    }
+
+    async handOverSeatAsAdministrator({
+        gameId,
+        playerId,
+        username,
+        administrator
+    }: {
+        gameId: string
+        playerId: string
+        username: string
+        administrator: User
+    }): Promise<{ game: Game; formerHolder: SeatHolder; newHolder: SeatHolder }> {
+        const account = await this.userService.getUserByUsername(username.trim())
+        if (!isActiveNamedAccount(account)) throw new SeatHolderUnavailableError({ username })
+        const newHolder = { userId: account.id, name: account.username }
+        let formerHolder: SeatHolder | undefined
+        const [game] = await this.gameStore.updateGame({
+            game: await this.requireGame(gameId),
+            fields: {},
+            validator: (existingGame, fieldsToUpdate) => {
+                const handover = seatHandover(existingGame, playerId, newHolder)
+                Object.assign(fieldsToUpdate, handover.changes)
+                formerHolder = handover.formerHolder
+                return UpdateValidationResult.Proceed
+            }
+        })
+        assertExists(formerHolder, 'The seat was handed over')
+        console.log(
+            JSON.stringify({
+                event: 'game_seat_handed_over_by_administrator',
+                gameId,
+                playerId,
+                administratorId: administrator.id,
+                formerUserId: formerHolder.userId,
+                newUserId: newHolder.userId
+            })
+        )
+        await this.settleSeatHandover(game, playerId, formerHolder.userId)
+        await this.notifySeatHolders(game, formerHolder, newHolder)
+        return { game, formerHolder, newHolder }
+    }
+
+    private async settleSeatHandover(
+        game: Game,
+        playerId: string,
+        formerUserId: string
+    ): Promise<void> {
+        await this.cacheService.delete(this.makeTurnNotificationCacheKey(formerUserId, game.id))
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game }, [formerUserId])
+        if (game.activePlayerIds?.includes(playerId))
+            await this.scheduleTurnNotifications(game, [playerId], FIRST_TURN_REMINDER_INDEX)
     }
 
     async renamePlayerInGames(user: User): Promise<void> {
@@ -2869,12 +2924,13 @@ export class GameService {
     @Timed('game.notifyGamePlayers')
     private async notifyGamePlayers(
         action: GameNotificationAction,
-        data: GameNotificationData
+        data: GameNotificationData,
+        formerUserIds: string[] = []
     ): Promise<void> {
         const notification = createGameNotification(action, data)
         await this.notificationService.sendNotification({
             notification,
-            topics: gameUserIds(data.game).map(userTopic),
+            topics: [...gameUserIds(data.game), ...formerUserIds].map(userTopic),
             channels: [NotificationDistributionMethod.Topical]
         })
     }
@@ -3067,6 +3123,36 @@ export class GameService {
             }
             await this.notifyUser(notification)
         }
+    }
+
+    private async notifySeatHolders(
+        game: Game,
+        formerHolder: SeatHolder,
+        newHolder: SeatHolder
+    ): Promise<void> {
+        const gameSummary = { id: game.id, typeId: game.typeId, name: game.name }
+        const tookOver: TookOverSeatNotification = {
+            id: nanoid(),
+            type: NotificationCategory.User,
+            action: UserNotificationAction.TookOverSeat,
+            data: {
+                user: { id: newHolder.userId },
+                game: gameSummary,
+                formerHolder: { name: formerHolder.name }
+            }
+        }
+        const lost: LostSeatNotification = {
+            id: nanoid(),
+            type: NotificationCategory.User,
+            action: UserNotificationAction.LostSeat,
+            data: {
+                user: { id: formerHolder.userId },
+                game: gameSummary,
+                newHolder: { name: newHolder.name }
+            }
+        }
+        await this.notifyUser(tookOver)
+        await this.notifyUser(lost)
     }
 
     private async notifyGameStarted(game: Game): Promise<void> {

@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
+import { seatHandoverAnnouncement } from '@tabletop/backend-services'
 
 type GameParams = Static<typeof GameParams>
 const GameParams = Type.Object({ gameId: Type.String() }, { additionalProperties: false })
@@ -7,6 +8,18 @@ const GameParams = Type.Object({ gameId: Type.String() }, { additionalProperties
 type MessageParams = Static<typeof MessageParams>
 const MessageParams = Type.Object(
     { gameId: Type.String(), messageId: Type.String() },
+    { additionalProperties: false }
+)
+
+type PlayerParams = Static<typeof PlayerParams>
+const PlayerParams = Type.Object(
+    { gameId: Type.String(), playerId: Type.String() },
+    { additionalProperties: false }
+)
+
+type SeatHandoverRequest = Static<typeof SeatHandoverRequest>
+const SeatHandoverRequest = Type.Object(
+    { username: Type.String({ minLength: 1, maxLength: 64 }) },
     { additionalProperties: false }
 )
 
@@ -46,6 +59,28 @@ export default async function (fastify: FastifyInstance) {
                 name: request.body.name,
                 administrator: request.user
             })
+            return { status: 'ok', payload: { game } }
+        }
+    )
+
+    fastify.post<{ Params: PlayerParams; Body: SeatHandoverRequest }>(
+        '/:gameId/players/:playerId/handover',
+        { schema: { params: PlayerParams, body: SeatHandoverRequest }, onRequest },
+        async function (request) {
+            if (!request.user) throw Error('Handing over a seat requires an administrator')
+            const { gameId, playerId } = request.params
+            const { game, formerHolder, newHolder } =
+                await fastify.gameService.handOverSeatAsAdministrator({
+                    gameId,
+                    playerId,
+                    username: request.body.username,
+                    administrator: request.user
+                })
+            await fastify.chatService.announceAsAdministrator(
+                request.user,
+                gameId,
+                seatHandoverAnnouncement(formerHolder, newHolder)
+            )
             return { status: 'ok', payload: { game } }
         }
     )

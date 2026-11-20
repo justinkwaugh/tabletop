@@ -2,9 +2,11 @@ import { error, isHttpError } from '@sveltejs/kit'
 import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
 import { BridgedContext } from '@tabletop/frontend-components'
+import { gamePageDependency } from '$lib/utils/gamePage.js'
 import type { PageLoad } from './$types.js'
 
-export const load: PageLoad = async ({ params, url }) => {
+export const load: PageLoad = async ({ params, url, depends }) => {
+    depends(gamePageDependency(params.id))
     const appContext = getAppContext()
     await appContext.authorizationService.authorizeRoute({
         category: AuthorizationCategory.ActiveUser,
