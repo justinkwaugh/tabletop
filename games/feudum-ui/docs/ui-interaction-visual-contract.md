@@ -418,7 +418,7 @@ The game-session state-change animators and the shared `AnimationContext` own al
 - Interaction is gated while `updatingVisibleState` is true.
 - Replay plays the entry's whole span, contiguous System Actions included.
 - **Fast fallback.** Without an action every context-owned path is bounded at or below 200 ms: pieces and tokens interpolate straight to their new places, flips and fades are cut to that bound.
-- **Reduced motion.** With reduced motion every animator follows each step with no tween; the order of the steps and their history lines are unchanged.
+- **Reduced motion.** With reduced motion every animator follows each step with no tween and no wait: each piece is simply where the step leaves it, at once, in the order the tweens would land them, so the table is never held for the cinematic length; the history list's entries appear without their fade. The order of the steps and their history lines are unchanged.
 - **Local motion only:** hover feedback, the turn pulse, a ring's appearance, the Move trail and ghosts (drafts, not committed state). The seat panels keep a fixed turn order and do not reorder, so no `animate:flip` is used.
 
 ## Desk layout

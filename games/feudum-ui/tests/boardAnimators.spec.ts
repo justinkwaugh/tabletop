@@ -180,10 +180,13 @@ test('S65 R-3.7.1 reduced motion: the Move lands with no tween, and what the tab
     const still = await walk('reduce')
 
     expect(standings(moving.frames).length).toBeGreaterThan(5)
-    // Where it stood and where it stands: nothing between.
+    // Where it stood and where it stands, with nothing between and no wait: at most the first
+    // frame still shows it where it stood before it is simply where the Move ends.
     const stood = standings(still.frames)
-    expect(stood.length).toBe(2)
-    expect(Math.hypot(stood[1].x - stood[0].x, stood[1].y - stood[0].y)).toBeGreaterThan(5)
+    expect(stood.length).toBeLessThanOrEqual(2)
+    const from = standings(moving.frames)[0]
+    const to = stood.at(-1)
+    expect(Math.hypot((to?.x ?? 0) - from.x, (to?.y ?? 0) - from.y)).toBeGreaterThan(5)
     expect(placed(still.frames).at(-1)).toMatchObject({
         x: placed(moving.frames).at(-1)?.x,
         y: placed(moving.frames).at(-1)?.y

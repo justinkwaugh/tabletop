@@ -2,6 +2,7 @@
     import { tick } from 'svelte'
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { fade } from 'svelte/transition'
+    import { prefersReducedMotion } from 'svelte/motion'
     import { quartIn } from 'svelte/easing'
     import { createTimeAgo } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
@@ -101,7 +102,12 @@
             {/if}
             {#each entries as entry (entry.id)}
                 {#if isHistoryGroup(entry)}
-                    <div in:fade={{ duration: 200, easing: quartIn }}>
+                    <div
+                        in:fade={{
+                            duration: prefersReducedMotion.current ? 0 : 200,
+                            easing: quartIn
+                        }}
+                    >
                         <div
                             class="absolute w-3 h-3 bg-feudum-frame rounded-full mt-1.5 -start-1.5 border dark:border-feudum-frame dark:bg-feudum-frame"
                         ></div>
@@ -161,7 +167,10 @@
                     </div>
                 {:else}
                     <div
-                        in:fade={{ duration: 200, easing: quartIn }}
+                        in:fade={{
+                            duration: prefersReducedMotion.current ? 0 : 200,
+                            easing: quartIn
+                        }}
                         data-history-divider={entry.kind}
                         class="relative left-[calc(-0.5rem-1px)] mb-4 flex w-[calc(100%+0.5rem+1px)] items-center gap-2 border-y border-feudum-frame bg-feudum-surface px-2 py-1 text-xs font-medium uppercase tracking-wider text-feudum-text-muted"
                     >

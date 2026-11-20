@@ -544,6 +544,8 @@ describe('each row of the animation plan inside the board', () => {
                     .every((one: { duration(): number }) => one.duration() === 0)
             ).toBe(true)
             expect(timeline.getChildren(false, true, true)).toHaveLength(shown.length)
+            // Reduced motion holds the table for no time.
+            expect(timeline.duration()).toBe(0)
             play(context)
             const landing = [...shown].sort((a, b) => a.at + a.duration - (b.at + b.duration))
             expect(firstWrites(surface.log)).toEqual(

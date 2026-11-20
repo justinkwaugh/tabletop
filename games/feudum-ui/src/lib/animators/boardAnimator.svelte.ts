@@ -175,12 +175,19 @@ export class BoardAnimator {
             return flightsAt
         }
         const timeline = animationContext.actionTimeline
-        for (const motion of plan.motions) {
-            if (reduced) {
+        if (reduced) {
+            // Reduced motion holds the table for no time: every piece simply lands, in the order the
+            // tweens would land it, and the flight layer's copies follow at once.
+            const landing = [...plan.motions].sort(
+                (a, b) => a.at + a.duration - (b.at + b.duration)
+            )
+            for (const motion of landing) {
                 this.followWithoutTween(timeline, motion, generation)
-            } else {
-                this.schedule(timeline, motion, generation)
             }
+            return 0
+        }
+        for (const motion of plan.motions) {
+            this.schedule(timeline, motion, generation)
         }
         return flightsAt
     }
@@ -241,7 +248,7 @@ export class BoardAnimator {
         )
     }
 
-    /** No tween: at each motion's end the piece is simply there, in the order the tweens would land. */
+    /** No tween and no wait: the piece is simply there, called in the order the tweens would land. */
     private followWithoutTween(
         timeline: AnimationContext['actionTimeline'],
         motion: BoardMotion,
@@ -253,11 +260,7 @@ export class BoardAnimator {
             motion.opacity !== undefined ||
             motion.scaleX !== undefined
         if (shows) {
-            timeline.call(
-                () => this.land(motion, generation),
-                undefined,
-                motion.at + motion.duration
-            )
+            timeline.call(() => this.land(motion, generation), undefined, 0)
         }
     }
 

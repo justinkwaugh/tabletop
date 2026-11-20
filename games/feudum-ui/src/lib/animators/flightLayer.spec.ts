@@ -1213,7 +1213,7 @@ describe('a copy on the layer', () => {
         }
     })
 
-    it('S65 reduced motion: no tween, the copy simply lands, in the same order and on the same lines', async () => {
+    it('S65 reduced motion: no tween and no wait, the copy simply lands, on the same lines', async () => {
         const plan = await sceneWithSource()
         const { animator, stage } = rig(true)
         const { copies, timeline, duration } = await played(animator, plan)
@@ -1223,8 +1223,9 @@ describe('a copy on the layer', () => {
         expect(moving).toEqual([])
         const [flight] = animator.flights
         const copy = copyOf(copies, flight.id)
-        expect(duration).toBeCloseTo(plan.seconds)
-        timeline.time(duration / 2)
+        // The table is held for no time: the cinematic length is not waited out.
+        expect(plan.seconds).toBeGreaterThan(0)
+        expect(duration).toBe(0)
         expect(copy.style.transform).toBe('')
         timeline.progress(1)
         const end = stage.locate(endAt(flight))

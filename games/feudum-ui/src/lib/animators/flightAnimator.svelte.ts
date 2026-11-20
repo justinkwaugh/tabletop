@@ -65,6 +65,12 @@ function drawCopy(element: CopyElement, pose: CopyPose, flash: FlashElement | un
     }
 }
 
+/** When a flight's copy would reach its end, tweened. */
+function landsAt(flight: Flight): number {
+    const last = flight.legs[flight.legs.length - 1]
+    return last.at + last.duration
+}
+
 /** The board piece a flight's copy stands for once it lands, if it lands as one. */
 function restsAs(flight: Flight): string | undefined {
     const end = flight.legs.at(-1)?.to
@@ -187,12 +193,15 @@ export class FlightAnimator {
             return
         }
         const timeline = animationContext.actionTimeline
-        for (const flight of flights) {
-            if (this.reduced()) {
-                this.followWithoutTween(timeline, flight, startsAt, generation)
-            } else {
-                this.schedule(timeline, flight, startsAt, generation)
+        if (this.reduced()) {
+            const landing = [...flights].sort((a, b) => landsAt(a) - landsAt(b))
+            for (const flight of landing) {
+                this.followWithoutTween(timeline, flight, generation)
             }
+            return
+        }
+        for (const flight of flights) {
+            this.schedule(timeline, flight, startsAt, generation)
         }
     }
 
@@ -316,11 +325,13 @@ export class FlightAnimator {
         this.redraw(flight, pose)
     }
 
-    /** No tween: at each copy's end it is simply there, in the order and on the lines the tweens would land. */
+    /**
+     * No tween and no wait: each copy is simply at its end, in the order the tweens would land them,
+     * so reduced motion never holds the table for the cinematic length.
+     */
     private followWithoutTween(
         timeline: AnimationContext['actionTimeline'],
         flight: Flight,
-        startsAt: number,
         generation: number
     ) {
         const last = flight.legs[flight.legs.length - 1]
@@ -339,7 +350,7 @@ export class FlightAnimator {
                 this.redraw(flight, pose)
             },
             undefined,
-            startsAt + last.at + last.duration
+            0
         )
     }
 }
