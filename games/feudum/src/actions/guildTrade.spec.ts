@@ -40,6 +40,7 @@ import { nobleTradeOffer } from '../guilds/noble.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
 import { ferriesOpen, monsterReaches } from '../model/media.js'
 import { guildActionOffers, guildActionPreview } from './guildAction.js'
+import { knightRows, rowSeat, seatKnightRow } from '../model/knightRows.js'
 
 const KnightTrade = { type: ActionType.GuildAction, guildId: 'knight', fn: 'trade' } as const
 const NobleTrade = { type: ActionType.GuildAction, guildId: 'noble', fn: 'trade' } as const
@@ -579,7 +580,7 @@ describe('GuildAction: R-4.6.3 the Alchemist trade', () => {
 function setSeatRow(state: HydratedFeudumGameState, seat: string, markers: number): void {
     setRowMarkers(
         state,
-        state.guilds.knight.rows.map((row) => (row.playerId === seat ? markers : row.markers))
+        knightRows(state).map(({ row }) => (rowSeat(row.owner) === seat ? markers : row.markers))
     )
 }
 
@@ -609,11 +610,11 @@ function spaceReachedOnlyBy(monster: MonsterId): SpaceId {
 }
 
 function rowOf(state: HydratedFeudumGameState, playerId: string) {
-    const row = state.guilds.knight.rows.find((other) => other.playerId === playerId)
+    const row = seatKnightRow(state, playerId)
     if (!row) {
         throw new Error(`${playerId} has no row`)
     }
-    return row
+    return row.row
 }
 
 describe('GuildAction: R-4.6.3 the Knight trade', () => {
@@ -647,8 +648,7 @@ describe('GuildAction: R-4.6.3 the Knight trade', () => {
     it('R-4.6.3, R-4.2.4 S44 with 4 markers, tames at once: 2 to the supply, 1 on its icon', () => {
         const { table, playerId } = knightTrading(4)
         const before = table.hydrated()
-        const colour = rowOf(before, playerId).colour
-        const general = before.supply.influence[colour]
+        const general = before.supply.influence[playerId]
         const supply = before.getPlayerState(playerId).influenceSupply
         const [action] = table.send(playerId, {
             ...KnightTrade,
@@ -657,8 +657,7 @@ describe('GuildAction: R-4.6.3 the Knight trade', () => {
         const after = table.hydrated()
         expect(rowOf(after, playerId).markers).toBe(0)
         expect(table.seat(playerId).influenceSupply).toBe(supply + 1)
-        expect(after.supply.influence[colour]).toBe(general + 2)
-        expect(after.guilds.knight.monsterIcons.behemoth).toBe(playerId)
+        expect(after.supply.influence[playerId]).toBe(general + 2)
         expect(after.monsters.behemoth).toEqual({ playerId, spaceId: 'space.desert.3' })
         expect(after.monsters['sea-serpent']).toEqual({})
         expect(action).toMatchObject({
@@ -706,7 +705,6 @@ describe('GuildAction: R-4.6.3 the Knight trade', () => {
         const spaceId = spaceReachedOnlyBy('sea-serpent')
         const { table, playerId } = knightTrading(3, spaceId, (state, _seat, others) => {
             state.getPlayerState(others[0]).influenceSupply -= 1
-            state.guilds.knight.monsterIcons.behemoth = others[0]
             state.monsters.behemoth = { playerId: others[0], spaceId: 'space.desert.2' }
         })
         expect(() =>
@@ -813,7 +811,7 @@ describe('GuildAction: R-4.6.3 the Knight trade', () => {
             setPawns(state, seat, [])
             state.recomputeRanks(seat)
             const player = state.getPlayerState(seat)
-            state.supply.influence[player.color] += player.influenceSupply
+            state.supply.influence[player.playerId] += player.influenceSupply
             player.influenceSupply = 0
             setPawns(state, seat, ['knight', 'knight', 'knight'])
             state.recomputeRanks(seat)

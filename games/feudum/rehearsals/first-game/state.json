@@ -625,6 +625,12 @@
       },
       {
         "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 233,
+        "end": 234
+      },
+      {
+        "type": "turn",
         "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 240,
         "end": 242
@@ -670,6 +676,12 @@
         "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 253,
         "end": 256
+      },
+      {
+        "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 259,
+        "end": 260
       }
     ],
     "turnOrder": [
@@ -678,7 +690,7 @@
     ],
     "turnCounts": {
       "xVxV1Xn5UQq54-oz_yKWU": 42,
-      "1xR9m1pAy_W5irFjMM2pw": 42
+      "1xR9m1pAy_W5irFjMM2pw": 44
     }
   },
   "roundManager": {
@@ -1029,8 +1041,7 @@
     "space.sea.1": {
       "location": {
         "kind": "town",
-        "discId": "disc.start.13",
-        "face": "a"
+        "discId": "disc.start.13"
       },
       "goods": {
         "saltpeter": 0,
@@ -1048,8 +1059,7 @@
     "space.sea.2": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.11",
-        "face": "a"
+        "discId": "disc.start.11"
       },
       "goods": {
         "saltpeter": 0,
@@ -1067,8 +1077,7 @@
     "space.sea.3": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.15",
-        "face": "a"
+        "discId": "disc.start.15"
       },
       "goods": {
         "saltpeter": 0,
@@ -1086,8 +1095,7 @@
     "space.island.1": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.10",
-        "face": "a"
+        "discId": "disc.start.10"
       },
       "goods": {
         "saltpeter": 0,
@@ -1105,8 +1113,7 @@
     "space.island.2": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.21",
-        "face": "a"
+        "discId": "disc.start.21"
       },
       "goods": {
         "saltpeter": 0,
@@ -1124,8 +1131,7 @@
     "space.island.3": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.8",
-        "face": "a"
+        "discId": "disc.start.8"
       },
       "goods": {
         "saltpeter": 1,
@@ -1143,8 +1149,7 @@
     "space.island.4": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.20",
-        "face": "a"
+        "discId": "disc.start.20"
       },
       "goods": {
         "saltpeter": 1,
@@ -1162,8 +1167,7 @@
     "space.forest.1": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.22",
-        "face": "a"
+        "discId": "disc.start.22"
       },
       "goods": {
         "saltpeter": 0,
@@ -1181,8 +1185,7 @@
     "space.forest.2": {
       "location": {
         "kind": "town",
-        "discId": "disc.start.3",
-        "face": "a"
+        "discId": "disc.start.3"
       },
       "goods": {
         "saltpeter": 0,
@@ -1200,8 +1203,7 @@
     "space.forest.3": {
       "location": {
         "kind": "town",
-        "discId": "disc.double.1",
-        "face": "b"
+        "discId": "disc.double.1"
       },
       "goods": {
         "saltpeter": 0,
@@ -1223,8 +1225,7 @@
     "space.desert.1": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.9",
-        "face": "a"
+        "discId": "disc.start.9"
       },
       "goods": {
         "saltpeter": 0,
@@ -1242,8 +1243,7 @@
     "space.desert.2": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.16",
-        "face": "a"
+        "discId": "disc.start.16"
       },
       "goods": {
         "saltpeter": 0,
@@ -1261,8 +1261,7 @@
     "space.desert.3": {
       "location": {
         "kind": "town",
-        "discId": "disc.double.2",
-        "face": "b"
+        "discId": "disc.double.2"
       },
       "goods": {
         "saltpeter": 0,
@@ -1291,8 +1290,7 @@
     "space.desert.4": {
       "location": {
         "kind": "town",
-        "discId": "disc.start.4",
-        "face": "a"
+        "discId": "disc.start.4"
       },
       "goods": {
         "saltpeter": 0,
@@ -1314,8 +1312,7 @@
     "space.desert.5": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.17",
-        "face": "a"
+        "discId": "disc.start.17"
       },
       "goods": {
         "saltpeter": 0,
@@ -1333,8 +1330,7 @@
     "space.badlands.1": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.5",
-        "face": "a"
+        "discId": "disc.start.5"
       },
       "goods": {
         "saltpeter": 0,
@@ -1352,8 +1348,7 @@
     "space.badlands.2": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.18",
-        "face": "a"
+        "discId": "disc.start.18"
       },
       "goods": {
         "saltpeter": 0,
@@ -1371,8 +1366,7 @@
     "space.badlands.3": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.19",
-        "face": "a"
+        "discId": "disc.start.19"
       },
       "goods": {
         "saltpeter": 0,
@@ -1390,8 +1384,7 @@
     "space.badlands.4": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.1",
-        "face": "a"
+        "discId": "disc.start.1"
       },
       "goods": {
         "saltpeter": 0,
@@ -1409,8 +1402,7 @@
     "space.badlands.5": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.7",
-        "face": "a"
+        "discId": "disc.start.7"
       },
       "goods": {
         "saltpeter": 0,
@@ -1428,8 +1420,7 @@
     "space.mountain.1": {
       "location": {
         "kind": "town",
-        "discId": "disc.start.12",
-        "face": "a"
+        "discId": "disc.start.12"
       },
       "goods": {
         "saltpeter": 1,
@@ -1447,8 +1438,7 @@
     "space.mountain.2": {
       "location": {
         "kind": "town",
-        "discId": "disc.start.14",
-        "face": "a"
+        "discId": "disc.start.14"
       },
       "goods": {
         "saltpeter": 0,
@@ -1540,29 +1530,31 @@
       ]
     },
     "knight": {
-      "rows": [
-        {
-          "colour": "purple",
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
+      "rows": {
+        "knight-row-1": {
+          "owner": {
+            "playerId": "1xR9m1pAy_W5irFjMM2pw"
+          },
           "markers": 2
         },
-        {
-          "colour": "red",
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "knight-row-2": {
+          "owner": {
+            "playerId": "xVxV1Xn5UQq54-oz_yKWU"
+          },
           "markers": 0
         },
-        {
-          "colour": "blue",
+        "knight-row-3": {
+          "owner": {
+            "dummyColour": "blue"
+          },
           "markers": 2
         },
-        {
-          "colour": "yellow",
+        "knight-row-4": {
+          "owner": {
+            "dummyColour": "yellow"
+          },
           "markers": 2
         }
-      ],
-      "monsterIcons": {
-        "behemoth": null,
-        "sea-serpent": null
       }
     },
     "noble": {
@@ -1646,10 +1638,8 @@
     },
     "shillings": 41,
     "influence": {
-      "purple": 11,
-      "red": 11,
-      "blue": 18,
-      "yellow": 18
+      "1xR9m1pAy_W5irFjMM2pw": 11,
+      "xVxV1Xn5UQq54-oz_yKWU": 11
     },
     "vessels": {
       "ship": 3,
@@ -1681,7 +1671,11 @@
       "disc.start.6",
       "disc.start.2"
     ],
-    "sealPileCount": 8
+    "sealPileCount": 8,
+    "dummyInfluence": {
+      "blue": 18,
+      "yellow": 18
+    }
   },
   "writDeck": {
     "top": 4,

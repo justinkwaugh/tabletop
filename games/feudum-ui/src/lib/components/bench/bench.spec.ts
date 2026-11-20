@@ -2,7 +2,13 @@
 import { assertExists } from '@tabletop/common'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
-import { Seals, type GuildFunctionName, type GuildId } from '@tabletop/feudum'
+import {
+    KnightRowIds,
+    knightRows,
+    Seals,
+    type GuildFunctionName,
+    type GuildId
+} from '@tabletop/feudum'
 import {
     benchOffer,
     feastBenchSource,
@@ -167,12 +173,12 @@ describe('the bench draws its offer (contract: the bench)', () => {
         const html = markup(turn, bench)
         expect(count(html, 'data-bench-button="invention:')).toBe(4)
         expect(html).toContain('data-ghost-at="vessel-space"')
-        const rows = turn.session.gameState.guilds.knight.rows
+        const rows = knightRows(turn.session.gameState)
         const placed = benchViewOf(bench, turn.session.gameState, turn.seat).areas.flatMap(
             ({ ghosts }) => ghosts
         )
-        for (const { colour } of rows) {
-            const place = knightRowPlace(colour)
+        for (const { rowId } of rows) {
+            const place = knightRowPlace(rowId)
             expect(placed.some(({ at, point }) => at === place && point !== undefined)).toBe(true)
         }
     })
@@ -187,7 +193,7 @@ describe('the bench draws its offer (contract: the bench)', () => {
     it('S45 R-4.6.5, R-5-H1 a picked row’s seal lands on its scroll unseen; no seal is named', async () => {
         const stages = {
             picks: [
-                { kind: 'row', row: 0 },
+                { kind: 'row', row: KnightRowIds[0] },
                 { kind: 'scroll', spaceId: R1C1 }
             ]
         } satisfies BenchStages

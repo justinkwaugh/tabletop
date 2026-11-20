@@ -1,5 +1,6 @@
-import type { ScrollSpaceId } from '../data/guilds.js'
+import type { KnightRowId, ScrollSpaceId } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { changeOwnerSupply, knightRow, knightRows } from '../model/knightRows.js'
 import {
     bestScrollCompletions,
     emptyScrollSpaces,
@@ -10,9 +11,9 @@ import { moveConcealedSeal } from '../model/seals.js'
 import type { GuildFunctionParams, GuildFunctionRow } from './guildFunction.js'
 import type { GuildFunctionDetails, KnightRowLeft } from './guildFunctionDetails.js'
 
-/** R-4.6.4, R-4.6.5 Each Knight row holding a marker, by its place among the rows. */
-function rowsWithMarkers(state: HydratedFeudumGameState): number[] {
-    return state.guilds.knight.rows.flatMap(({ markers }, index) => (markers > 0 ? [index] : []))
+/** R-4.6.4, R-4.6.5 Each Knight row holding a marker, by its id. */
+function rowsWithMarkers(state: HydratedFeudumGameState): KnightRowId[] {
+    return knightRows(state).flatMap(({ rowId, row }) => (row.markers > 0 ? [rowId] : []))
 }
 
 /**
@@ -31,8 +32,8 @@ function movableToScrolls(state: HydratedFeudumGameState, cap: number): number {
 export interface RowsToScrollsOffer {
     /** R-4.6.1 The most markers that can move now. */
     readonly movable: number
-    /** Each row holding a marker, by its place among the rows. */
-    readonly knightRows: readonly number[]
+    /** Each row holding a marker, by its id. */
+    readonly knightRows: readonly KnightRowId[]
     readonly scrollSpaces: readonly ScrollSpaceId[]
 }
 
@@ -73,7 +74,7 @@ function reasonPicksCannotHappen(
     if (new Set(knightRows).size < knightRows.length) {
         return 'Pick rows of different colours.'
     }
-    if (knightRows.some((index) => (rows.at(index)?.markers ?? 0) === 0)) {
+    if (knightRows.some((rowId) => (rows[rowId]?.markers ?? 0) === 0)) {
         return 'That Knight row holds no marker.'
     }
     if (scrollSpaces.length > knightRows.length) {
@@ -86,14 +87,8 @@ function reasonPicksCannotHappen(
     return taken ? 'That scroll space is not empty.' : undefined
 }
 
-function rowsLeft(state: HydratedFeudumGameState, knightRows: readonly number[]): KnightRowLeft[] {
-    const { rows } = state.guilds.knight
-    return knightRows.flatMap((index) => {
-        const row = rows.at(index)
-        return row
-            ? [{ colour: row.colour, ...(row.playerId ? { playerId: row.playerId } : {}) }]
-            : []
-    })
+function rowsLeft(state: HydratedFeudumGameState, rowIds: readonly KnightRowId[]): KnightRowLeft[] {
+    return rowIds.map((rowId) => ({ rowId, owner: knightRow(state, rowId).owner }))
 }
 
 /** What the picks reached, for the function's own record. */
@@ -150,10 +145,10 @@ export function rowsToScrollsRow(rules: RowsToScrollsRules): GuildFunctionRow {
             for (const spaceId of scrollSpaces) {
                 moveConcealedSeal(state, { kind: 'pile' }, { kind: 'scroll', spaceId })
             }
-            for (const index of knightRows) {
-                const row = state.guilds.knight.rows[index]
+            for (const rowId of knightRows) {
+                const row = knightRow(state, rowId)
                 row.markers -= 1
-                state.supply.influence[row.colour] += 1
+                changeOwnerSupply(state, row.owner, 1)
             }
             return outcome({ ...lines, markers }, params)
         },

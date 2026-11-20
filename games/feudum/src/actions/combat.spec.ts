@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { WritId } from '../data/writs.js'
 import { MachineState } from '../definition/states.js'
-import { discChoices, replaceLocationDisc } from '../model/locationDiscs.js'
+import { discChoices, feudumGuildOf, replaceLocationDisc } from '../model/locationDiscs.js'
 import { boardableVessels } from '../model/media.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { collectTopTile } from '../model/regionStacks.js'
@@ -27,6 +27,7 @@ import {
     reasonCommitAttackRefused
 } from './commitAttack.js'
 import { ActionType } from '../definition/actions.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const Bow: WritId = 'writ.mandate.1'
 const Sword: WritId = 'writ.mandate.3'
@@ -404,7 +405,7 @@ describe('R-4.8.3 a win', () => {
         answer(combat)
         commit(combat)
         const after = table.hydrated()
-        expect(after.flow.turn?.playerId).toBe(attackerId)
+        expect(cardTurnSeat(after)).toBe(attackerId)
         expect(after.spaces[Battlefield].vessels.ship).toBe(boardable + 1)
         expect(boardableVessels(after, Battlefield, 'ship')).toBe(boardable)
     })
@@ -425,7 +426,6 @@ describe('R-4.8.3 a win', () => {
         const [action] = commit(combat)
 
         expect(table.state.monsters.behemoth).toEqual({})
-        expect(table.state.guilds.knight.monsterIcons.behemoth).toBeNull()
         expect(table.seat(defenderId).influenceSupply).toBe(markers + 1)
         expect(table.seat(attackerId).defeatedMonster).toBe(true)
         expect(table.seat(attackerId).score).toBe(2)
@@ -477,7 +477,7 @@ describe('R-4.8.3 a win', () => {
 
         const space = table.state.spaces[Battlefield]
         expect(space.location.kind).toBe('outpost')
-        expect(space.location.feudumGuild).toBeUndefined()
+        expect(feudumGuildOf(space.location)).toBeUndefined()
         expect(table.state.supply.discs).toContain('disc.feudum.knight-1')
         expect(space.ruler).toBeUndefined()
         expect(space.serf).toBeUndefined()
@@ -578,7 +578,7 @@ describe('R-4.8.3 a win', () => {
             kind: 'outpost',
             discId: 'disc.feudum.knight-1'
         })
-        expect(table.state.spaces[Battlefield].location.feudumGuild).toBeUndefined()
+        expect(feudumGuildOf(table.state.spaces[Battlefield].location)).toBeUndefined()
         expect(action).toMatchObject({
             metadata: { conquered: { kind: 'feudum', discId: 'disc.feudum.knight-1' } }
         })

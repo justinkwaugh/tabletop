@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
+import { seatKnightRow } from '../model/knightRows.js'
 import { payShillingsFromSupply } from '../model/supply.js'
 import {
     CardPlayFields,
@@ -71,12 +72,11 @@ function reinforcementSource(
     state: HydratedFeudumGameState,
     playerId: string
 ): TaxMetadata['reinforcements'] {
-    const player = state.getPlayerState(playerId)
-    if ((state.supply.influence[player.color] ?? 0) > 0) {
+    if ((state.supply.influence[playerId] ?? 0) > 0) {
         return 'general-supply'
     }
-    const row = state.guilds.knight.rows.find((candidate) => candidate.playerId === playerId)
-    return row && row.markers > 0 ? 'knight-row' : undefined
+    const own = seatKnightRow(state, playerId)
+    return own && own.row.markers > 0 ? 'knight-row' : undefined
 }
 
 /**
@@ -127,11 +127,11 @@ function takeReinforcement(
     const player = state.getPlayerState(playerId)
     const source = reinforcementSource(state, playerId)
     if (source === 'general-supply') {
-        state.supply.influence[player.color] -= 1
+        state.supply.influence[playerId] -= 1
     }
-    const row = state.guilds.knight.rows.find((candidate) => candidate.playerId === playerId)
-    if (source === 'knight-row' && row) {
-        row.markers -= 1
+    const own = seatKnightRow(state, playerId)
+    if (source === 'knight-row' && own) {
+        own.row.markers -= 1
     }
     if (source) {
         player.influenceSupply += 1

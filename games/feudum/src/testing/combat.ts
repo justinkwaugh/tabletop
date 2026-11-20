@@ -70,7 +70,6 @@ export function giveMonster(
     spaceId: SpaceId = Battlefield
 ): void {
     state.monsters[monster] = { playerId, spaceId }
-    state.guilds.knight.monsterIcons[monster] = playerId
     state.getPlayerState(playerId).influenceSupply -= 1
 }
 

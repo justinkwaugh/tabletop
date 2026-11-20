@@ -1,16 +1,13 @@
 import { flushSync } from 'svelte'
-import {
-    ActionSource,
-    assertExists,
-    Color,
-    type GameAction,
-    type Visibility
-} from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction, type Visibility } from '@tabletop/common'
 import {
     ActionType,
+    cardTurnSeat,
+    type RowFill,
     DiscardAnyTime,
     MachineState,
     RoyalWrits,
+    type ActionCardKind,
     type AdvanceTurn,
     type AnswerAttack,
     type AnswerStarve,
@@ -40,7 +37,6 @@ import {
     type PlaceVessel,
     type PlayDefend,
     type PlayMandate,
-    type ActionCardKind,
     type RankChange,
     type ReclaimImmunitySeal,
     type ReplenishGuilds,
@@ -49,8 +45,8 @@ import {
     type RollProgressDie,
     type ScoreGame,
     type SpendRegionTile,
-    type StarveThePeople,
     type StartRound,
+    type StarveThePeople,
     type Tax,
     type TendLandscape,
     type WritId
@@ -787,7 +783,7 @@ describe('R-X.1 Every action type has its line (contract: Game log and history)'
 
 describe("The contract's own wording", () => {
     it('R-4.6.6, R-4.6-H8 a krud barrel that adds no marker leaves no empty "barrels:" clause', () => {
-        const invent = (barrels: { colour: Color; playerId?: string; added: number }[][]) =>
+        const invent = (barrels: RowFill[][]) =>
             sample<GuildAction>({
                 ...Base,
                 type: ActionType.GuildAction,
@@ -808,9 +804,9 @@ describe("The contract's own wording", () => {
         const empty = line(invent([[]]), 'p2')
         expect(empty).toContain('invented krud barrel')
         expect(empty).not.toContain('barrels:')
-        expect(line(invent([[{ colour: Color.Red, playerId: 'p2', added: 1 }]]), 'p2')).toContain(
-            'invented krud barrel · barrels: your row +1'
-        )
+        expect(
+            line(invent([[{ rowId: 'knight-row-1', owner: { playerId: 'p2' }, added: 1 }]]), 'p2')
+        ).toContain('invented krud barrel · barrels: your row +1')
     })
 
     it('R-3.1-H1 Ana finalised, her pouch good untold until every hand is final', () => {
@@ -1176,7 +1172,7 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
                 ...Outcome,
                 details: {
                     kind: 'knight-push',
-                    markers: [{ colour: Color.Red, playerId: 'p2' }],
+                    markers: [{ rowId: 'knight-row-1', owner: { playerId: 'p2' } }],
                     rows: 1,
                     columns: 0,
                     count: 'rows'
@@ -1721,7 +1717,7 @@ describe('R-X.1 The waiting view ends with what the previous seat just did', () 
         await settled(watcher)
         flushSync()
 
-        expect(watcher.gameState.flow.turn?.playerId).not.toBe(seat)
+        expect(cardTurnSeat(watcher.gameState)).not.toBe(seat)
         expect(linesOf(watcher.actionPanel, 'previous')).toEqual([
             `${watcher.getPlayerName(seat)} discarded a writ under the deck`
         ])

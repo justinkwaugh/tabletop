@@ -5,6 +5,7 @@ import {
     type ActionCardKind,
     type Character,
     type Good,
+    type KnightRowId,
     type PawnNumber,
     type PouchGood,
     type WritId
@@ -18,7 +19,7 @@ import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
 import { rankedDie, type DieArt } from './guildDie.js'
 import type { Feed, NourishSend } from './nourishDraft.svelte.js'
-import type { SeatPaint } from './seatPaint.js'
+import { ownerPaint, type SeatPaint } from './seatPaint.js'
 import { takesTradePicker } from './tradePicker.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import type { SulfurDestination } from './startingGoodsDraft.svelte.js'
@@ -838,12 +839,9 @@ function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
     if (!moves) {
         return []
     }
-    const rowPaint = (row: number): SeatPaint | undefined => {
-        const held = state.guilds.knight.rows.at(row)
-        return (
-            held &&
-            (held.playerId ? session.paintOf(held.playerId) : session.colourPaintOf(held.colour))
-        )
+    const rowPaint = (row: KnightRowId): SeatPaint | undefined => {
+        const held = state.guilds.knight.rows[row]
+        return held && ownerPaint(held.owner, session.paintOf, session.colourPaintOf)
     }
     return [
         {

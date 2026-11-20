@@ -10,7 +10,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { collectTopTile } from '../model/regionStacks.js'
 import { holdWrit } from './combat.js'
-import { tableAtHandSelection, tableAtPlayingCards, type Table } from './table.js'
+import { endCardTurn, type Table, tableAtHandSelection, tableAtPlayingCards } from './table.js'
 
 /** R-4.4-H5 The fields every `DiscardWrit` carries. */
 export const AnyTime = DiscardAnyTime
@@ -91,7 +91,7 @@ export function tableInWindow(
     table.moveTo((state) => {
         edit(state, playerId)
         if (name === 'nourishing') {
-            state.flow.turn = undefined
+            endCardTurn(state)
             state.flow.nourish = { pending: [...state.turnManager.turnOrder] }
         }
         return WindowStates[name]

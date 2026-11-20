@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
     EpicVoyageTrack,
     HydratedFeudumGameState,
+    knightRows,
     MilitaryServiceTrack,
     RegionIds,
     RegionTiles,
@@ -99,16 +100,20 @@ describe('influencePools (R-1.4.2, R-1.4-H1)', () => {
             expect(pools).toContainEqual({
                 colour: color,
                 playerId,
-                count: state.supply.influence[color]
+                count: state.supply.influence[playerId]
             })
         }
-        const dummies = state.guilds.knight.rows.filter((row) => row.playerId === undefined)
+        const dummies = knightRows(state).flatMap(({ row }) =>
+            'dummyColour' in row.owner ? [row.owner.dummyColour] : []
+        )
         expect(dummies.length).toBeGreaterThan(0)
-        for (const { colour } of dummies) {
-            expect(pools).toContainEqual({ colour, count: state.supply.influence[colour] })
+        for (const colour of dummies) {
+            expect(pools).toContainEqual({ colour, count: state.supply.dummyInfluence[colour] })
         }
         expect(pools.map(({ colour }) => colour)).toEqual(
-            PrintedColours.filter((colour) => state.supply.influence[colour] !== undefined)
+            PrintedColours.filter((colour) =>
+                [...state.players.map(({ color }) => color), ...dummies].includes(colour)
+            )
         )
     })
 })

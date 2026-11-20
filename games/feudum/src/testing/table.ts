@@ -178,3 +178,26 @@ export function tableAtPlayingCards(
     })
     return table
 }
+
+/** R-3.2 The card turn passes to this seat, as the turn manager passes it, with nothing left over. */
+export function giveCardTurn(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    turn: Partial<NonNullable<HydratedFeudumGameState['flow']['turn']>> = {}
+): void {
+    endOpenTurn(state)
+    state.turnManager.startTurn(playerId, state.actionCount)
+    state.flow.turn = { secondCard: false, followUps: [], ...turn }
+}
+
+/** R-3.2 No card turn: the cards are done, and the turn manager's open turn with them. */
+export function endCardTurn(state: HydratedFeudumGameState): void {
+    endOpenTurn(state)
+    state.flow.turn = undefined
+}
+
+function endOpenTurn(state: HydratedFeudumGameState): void {
+    if (state.turnManager.currentTurn()) {
+        state.turnManager.endTurn(state.actionCount)
+    }
+}

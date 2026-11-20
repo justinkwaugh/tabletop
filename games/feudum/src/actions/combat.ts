@@ -132,7 +132,6 @@ function monsterFalls(
     assertExists(playerId, 'R-3.13.1 A targeted monster is held by a player')
     state.getPlayerState(playerId).influenceSupply += 1
     state.monsters[monsterId] = {}
-    state.guilds.knight.monsterIcons[monsterId] = null
     state.getPlayerState(attackerId).defeatedMonster = true
 }
 
@@ -179,7 +178,7 @@ function feudumFalls(
     if (outpost) {
         replaceLocationDisc(state, spaceId, outpost.discId, 'outpost')
     } else {
-        space.location = { kind: 'outpost', discId: location.discId, face: location.face }
+        space.location = { kind: 'outpost', discId: location.discId }
     }
     return {
         kind: 'feudum',

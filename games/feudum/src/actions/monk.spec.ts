@@ -17,6 +17,7 @@ import {
 } from '../testing/guilds.js'
 import { canonicalOf } from '../testing/state.js'
 import { guildActionOffers, guildActionPreview } from './guildAction.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const Trade = { type: ActionType.GuildAction, guildId: 'monk', fn: 'trade' } as const
 const Pull = { type: ActionType.GuildAction, guildId: 'monk', fn: 'pull' } as const
@@ -72,7 +73,7 @@ describe('GuildAction: R-4.6.3 the Monk trade', () => {
             }
         })
         expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
-        expect(after.flow.turn?.playerId).not.toBe(playerId)
+        expect(cardTurnSeat(after)).not.toBe(playerId)
     })
 
     it('R-4.6-H2 the candidates are the highest and the lowest, one of them drawn', () => {

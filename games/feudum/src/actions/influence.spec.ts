@@ -5,6 +5,7 @@ import { ActionType } from '../definition/actions.js'
 import { FeudumApiActions } from '../definition/apiActions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { makeFeudum } from '../testing/improving.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import {
     influenceOffers,
@@ -12,6 +13,7 @@ import {
     influenceSpaceIds,
     reasonInfluenceRefused
 } from './influence.js'
+import { giveMonster } from '../testing/combat.js'
 
 /** Every seat's first pawn is a farmer on HOME from setup. */
 const HOME: SpaceId = 'space.desert.3'
@@ -64,7 +66,7 @@ function serfOf(state: HydratedFeudumGameState, playerId: string, spaceId: Space
 /** Leaves the seat `count` markers, the rest back to the general supply. */
 function markersLeft(state: HydratedFeudumGameState, playerId: string, count: number): void {
     const player = state.getPlayerState(playerId)
-    state.supply.influence[player.color] += player.influenceSupply - count
+    state.supply.influence[player.playerId] += player.influenceSupply - count
     player.influenceSupply = count
 }
 
@@ -106,7 +108,7 @@ describe('Influence: R-3.8.1, R-4.1', () => {
 
     it('R-3.8.1 a monster influences nothing', () => {
         const { table, playerId } = tableWith((state, id) => {
-            state.monsters.behemoth = { playerId: id, spaceId: SECOND }
+            giveMonster(state, id, 'behemoth', SECOND)
         })
         table.send(playerId, { type: ActionType.Influence })
         expect(table.state.spaces[SECOND].ruler).toBeUndefined()
@@ -267,9 +269,7 @@ describe('Markers run short: R-1.1, R-3.8-H1', () => {
 
     it('R-3.8-H1 every marker goes down before status: a new rank then waits for a marker', () => {
         const { table, playerId } = tableWith((state, id) => {
-            const { location } = state.spaces[HOME]
-            location.kind = 'feudum'
-            location.feudumGuild = 'noble'
+            makeFeudum(state, HOME, 'noble')
             state.recomputeRanks()
             markersLeft(state, id, 1)
         })
@@ -351,9 +351,7 @@ describe('Money is Influence: R-3.8.3 (S10)', () => {
         const [rival, seatId] = table.order
         table.moveTo((state) => {
             merchant(state, seatId)
-            const { location } = state.spaces[HOME]
-            location.kind = 'feudum'
-            location.feudumGuild = 'noble'
+            makeFeudum(state, HOME, 'noble')
             rulerOf(state, rival, HOME)
             state.recomputeRanks()
             return MachineState.PlayingCards

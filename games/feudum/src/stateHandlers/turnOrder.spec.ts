@@ -25,8 +25,14 @@ import {
 } from '../testing/combat.js'
 import { giveGood } from '../testing/improving.js'
 import { typesOf } from '../testing/roundEnd.js'
-import { tableAtHandSelection, tableAtPlayingCards, type Table } from '../testing/table.js'
+import {
+    giveCardTurn,
+    type Table,
+    tableAtHandSelection,
+    tableAtPlayingCards
+} from '../testing/table.js'
 import { stateAfterCardStep } from './cardTurns.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const Hand = ['move', 'tax', 'guild', 'explore']
 const AtWillTypes: string[] = [
@@ -130,11 +136,8 @@ describe('SelectingHands', () => {
         const [starting] = table.order
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.state.flow.selection).toBeUndefined()
-        expect(table.state.flow.turn).toEqual({
-            playerId: starting,
-            secondCard: false,
-            followUps: []
-        })
+        expect(cardTurnSeat(table.hydrated())).toBe(starting)
+        expect(table.state.flow.turn).toEqual({ secondCard: false, followUps: [] })
         expect(table.asked).toBe(starting)
         expect(table.hydrated().phaseManager.currentPhase?.name).toBe(PhaseName.Cards)
         expect(table.offered(starting)).toEqual(
@@ -147,17 +150,14 @@ describe('SelectingHands', () => {
         const [first, second] = table.order
         finalise(table, first)
         table.moveTo((state) => {
-            state.flow.turn = { playerId: second, secondCard: true, followUps: [] }
+            giveCardTurn(state, second, { secondCard: true })
             return MachineState.SelectingHands
         })
 
         finalise(table, second)
 
-        expect(table.state.flow.turn).toEqual({
-            playerId: first,
-            secondCard: false,
-            followUps: []
-        })
+        expect(cardTurnSeat(table.hydrated())).toBe(first)
+        expect(table.state.flow.turn).toEqual({ secondCard: false, followUps: [] })
     })
 
     it('R-3.1, R-3.2 the real flow keeps the hands finalised', () => {
@@ -238,11 +238,8 @@ describe('R-3.2-H2 AdvanceTurn', () => {
             metadata: { outcome: 'next-seat', turnPlayerId: second }
         })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
-        expect(table.state.flow.turn).toEqual({
-            playerId: second,
-            secondCard: false,
-            followUps: []
-        })
+        expect(cardTurnSeat(table.hydrated())).toBe(second)
+        expect(table.state.flow.turn).toEqual({ secondCard: false, followUps: [] })
         expect(table.asked).toBe(second)
     })
 
@@ -362,7 +359,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         expect(typesOf(processed)).not.toContain(ActionType.AdvanceTurn)
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(playerId)
-        expect(table.state.flow.turn?.playerId).toBe(playerId)
+        expect(cardTurnSeat(table.hydrated())).toBe(playerId)
         expect(table.offered(playerId)).toContain(ActionType.DiscardWrit)
         expect(table.offered(next)).toEqual([])
     })
@@ -433,7 +430,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         expect(typesOf(processed)).not.toContain(ActionType.AdvanceTurn)
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(second)
-        expect(table.state.flow.turn?.playerId).toBe(first)
+        expect(cardTurnSeat(table.hydrated())).toBe(first)
         expect(table.offered(second)).toEqual([ActionType.DiscardWrit])
         expect(table.offered(first)).toEqual([])
 

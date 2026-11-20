@@ -1,6 +1,6 @@
 import { Visibility } from '@tabletop/common'
 import * as Type from 'typebox'
-import { GuildById, PullReward, PushVp } from '../data/guilds.js'
+import { GuildById, KnightRowIds, PullReward, PushVp } from '../data/guilds.js'
 import type { GuildId } from '../data/components.js'
 import type { SealId } from '../data/seals.js'
 import type { WritId } from '../data/writs.js'
@@ -15,6 +15,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf, RankChange } from '../model/guildStatus.js'
 import {
     GoodSchema,
+    KnightRowIdSchema,
     MonsterIdSchema,
     ScrollSpaceIdSchema,
     SpaceIdSchema,
@@ -54,8 +55,8 @@ export const GuildFunctionParams = Type.Object({
     /** R-4.6.3 Knight trade: the monster tamed, if any, and the space it deploys to. */
     monster: Type.Optional(MonsterIdSchema),
     deploySpaceId: Type.Optional(SpaceIdSchema),
-    /** R-4.6.4, R-4.6.5 Knight push, Noble pull: each marker's row, by its place among the rows. */
-    knightRows: Type.Optional(Type.Array(Type.Integer({ minimum: 0 }))),
+    /** R-4.6.4, R-4.6.5 Knight push, Noble pull: each marker's row, by its row id. */
+    knightRows: Type.Optional(Type.Array(KnightRowIdSchema, { maxItems: KnightRowIds.length })),
     /** R-4.6-H1, R-4.6.4, R-4.6.5 The scroll spaces filled or emptied, in order. */
     scrollSpaces: Type.Optional(Type.Array(ScrollSpaceIdSchema))
 })

@@ -6,7 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { FeudumApiActions } from '../definition/apiActions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { giveCardTurn, type Table, tableAtPlayingCards } from '../testing/table.js'
 import { migrateOffers, migrateSpaceIds, reasonMigrateRefused } from './migrate.js'
 import { StartingSpaceIds } from './placeStartingPawn.js'
 
@@ -404,7 +404,7 @@ describe('R-3.2 the card', () => {
         )
         const handless = onTurn === 'p1' ? onTurn : 'p1'
         table.moveTo((state) => {
-            state.flow.turn = { playerId: handless, secondCard: false, followUps: [] }
+            giveCardTurn(state, handless)
             return MachineState.PlayingCards
         })
         expect(reasonMigrateRefused(table.hydrated(), handless, { pawn: 1, onto: 'off' })).toBe(

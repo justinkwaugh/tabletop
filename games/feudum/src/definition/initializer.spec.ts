@@ -23,6 +23,7 @@ import { FeudumColors } from './colors.js'
 import { FeudumGameInitializer } from './initializer.js'
 import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
+import { knightRows, rowSeat } from '../model/knightRows.js'
 
 const engine = new GameEngine(FeudumRuntime)
 const MasterSeed = '0123456789abcdef0123456789abcdef'
@@ -135,15 +136,18 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
             ComponentTotals.vessels - GuildSetupSpaces.alchemist.vessels
         )
         expect(monsters).toEqual({ behemoth: {}, 'sea-serpent': {} })
-        for (const { color } of players) {
-            expect(supply.influence[color]).toBe(
+        for (const { playerId } of players) {
+            expect(supply.influence[playerId]).toBe(
                 ComponentTotals.markersPerColour -
                     StartingSupply.markers -
                     GuildSetupSpaces.knight.markersPerRow
             )
         }
-        for (const { colour } of guilds.knight.rows.filter((row) => !row.playerId)) {
-            expect(supply.influence[colour]).toBe(
+        for (const { row } of knightRows({ guilds })) {
+            if (!('dummyColour' in row.owner)) {
+                continue
+            }
+            expect(supply.dummyInfluence[row.owner.dummyColour]).toBe(
                 ComponentTotals.markersPerColour - GuildSetupSpaces.knight.markersPerRow
             )
         }
@@ -166,11 +170,10 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
         const placed = Spaces.map((space) => state.spaces[space.id].location.discId)
         expect(placed.toSorted()).toEqual(StartingDiscs.map((disc) => disc.id).toSorted())
         for (const space of Spaces) {
-            const { discId, kind, face } = state.spaces[space.id].location
+            const { discId, kind } = state.spaces[space.id].location
             const disc = StartingDiscs.find((starting) => starting.id === discId)
             expect(disc?.circleMark, space.id).toBe(space.startingSpace)
             expect(disc?.kind, space.id).toBe(kind)
-            expect(face).toBe('a')
         }
     })
 
@@ -224,20 +227,22 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
 
     it('R-1.4-H1 seats a Knight row each, and dummy rows in unused colours to exactly 4 below 4', () => {
         const { guilds, players } = start(numPlayers)
-        const { rows } = guilds.knight
+        const rows = knightRows({ guilds }).map(({ row }) => row)
         expect(rows).toHaveLength(Math.max(numPlayers, MinimumKnightRows))
-        expect(new Set(rows.map((row) => row.colour)).size).toBe(rows.length)
         for (const row of rows) {
             expect(row.markers).toBe(GuildSetupSpaces.knight.markersPerRow)
         }
-        for (const player of players) {
-            expect(rows.find((row) => row.playerId === player.playerId)?.colour).toBe(player.color)
-        }
-        const dummies = rows.filter((row) => row.playerId === undefined)
+        expect(rows.slice(0, numPlayers).map(({ owner }) => rowSeat(owner))).toEqual(
+            players.map(({ playerId }) => playerId)
+        )
+        const dummies = rows.flatMap(({ owner }) =>
+            'dummyColour' in owner ? [owner.dummyColour] : []
+        )
         expect(dummies).toHaveLength(Math.max(MinimumKnightRows - numPlayers, 0))
+        expect(new Set(dummies).size).toBe(dummies.length)
         for (const dummy of dummies) {
-            expect(FeudumColors).toContain(dummy.colour)
-            expect(players.map((player) => player.color)).not.toContain(dummy.colour)
+            expect(FeudumColors).toContain(dummy)
+            expect(players.map((player) => player.color)).not.toContain(dummy)
         }
     })
 
@@ -299,7 +304,9 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
         const [startingPlayer] = state.turnManager.turnOrder
         expect(state.machineState).toBe(MachineState.ChoosingStartingGoods)
         expect(state.activePlayerIds).toEqual([startingPlayer])
-        expect(state.flow.setupOrder).toEqual({ playerId: startingPlayer })
+        expect(state.flow).toEqual({})
+        expect(state.turnManager.series.at(-1)).toMatchObject({ playerId: startingPlayer })
+        expect(state.turnManager.series.at(-1)?.end).toBeUndefined()
         expect(state.players.map((player) => player.playerId)).toEqual(state.turnManager.turnOrder)
     })
 

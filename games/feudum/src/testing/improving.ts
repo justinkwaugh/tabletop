@@ -2,6 +2,7 @@ import { assertExists } from '@tabletop/common'
 import { Spaces, type SpaceId } from '../data/board.js'
 import type { ActionCardKind } from '../data/cards.js'
 import type { Good } from '../data/components.js'
+import type { GuildId } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
 import { RegionIds, type LandscapeKind, type RegionId, type TileId } from '../data/regionTiles.js'
 import { MachineState } from '../definition/states.js'
@@ -86,4 +87,15 @@ export function collectTileOf(
         throw new Error(`No stack shows ${landscape}`)
     }
     return collectTopTile(state, playerId, stack).tile.id
+}
+
+/** R-1.2.4 The space shows a feudum of this guild: its first disc, swapped from the general supply. */
+export function makeFeudum(state: HydratedFeudumGameState, spaceId: SpaceId, guild: GuildId): void {
+    const discId = `disc.feudum.${guild}-1` as const
+    const space = state.spaces[spaceId]
+    state.supply.discs = [
+        ...state.supply.discs.filter((id) => id !== discId),
+        space.location.discId
+    ]
+    space.location = { kind: 'feudum', discId }
 }

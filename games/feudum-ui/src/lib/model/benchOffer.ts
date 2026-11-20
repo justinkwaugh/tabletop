@@ -13,6 +13,7 @@ import {
     inventionOffers,
     knightTradeOffer,
     KnightPushMarkers,
+    KnightRowIds,
     marketHolds,
     merchantTradeOffers,
     MerchantPullGoods,
@@ -34,6 +35,7 @@ import {
     type GuildId,
     type HydratedFeudumGameState,
     type InventionChoice,
+    type KnightRowId,
     type MonsterId,
     type PaymentSplit,
     type PotSplit,
@@ -52,7 +54,7 @@ export type BenchPick =
     | { readonly kind: 'good'; readonly good: Good }
     | { readonly kind: 'invention'; readonly invention: InventionChoice }
     | { readonly kind: 'vessel'; readonly vessel: VesselType }
-    | { readonly kind: 'row'; readonly row: number }
+    | { readonly kind: 'row'; readonly row: KnightRowId }
     | { readonly kind: 'scroll'; readonly spaceId: ScrollSpaceId }
 
 /** What the seat has staged on the bench; the draft holds these. */
@@ -181,8 +183,8 @@ const VesselSpace = 'vessel-space'
 const SeatPlace = 'seat'
 const RosaryPlace = 'rosary'
 
-export function knightRowPlace(colour: string): string {
-    return `knight-row:${colour}`
+export function knightRowPlace(rowId: KnightRowId): string {
+    return `knight-row:${rowId}`
 }
 
 function words(id: string): string {
@@ -422,17 +424,19 @@ function inventionGhosts(stages: BenchStages, { details }: BenchPreview): readon
         }
         const fills = barrels.at(barrel) ?? []
         barrel += 1
-        return fills.map(({ colour, added }) => ({
+        return fills.map(({ rowId, added }) => ({
             item: 'invention:krud-barrel',
-            at: knightRowPlace(colour),
+            at: knightRowPlace(rowId),
             count: added
         }))
     })
 }
 
-function rowLabel(seat: BenchSeat, row: number): string {
-    const owner = seat.state.guilds.knight.rows.at(row)?.playerId
-    return owner ? `${seat.nameOf(owner)}'s row` : `Row ${row + 1}`
+function rowLabel(seat: BenchSeat, row: KnightRowId): string {
+    const owner = seat.state.guilds.knight.rows[row]?.owner
+    return owner && 'playerId' in owner
+        ? `${seat.nameOf(owner.playerId)}'s row`
+        : `Row ${KnightRowIds.indexOf(row) + 1}`
 }
 
 /** R-4.6.4, R-4.6.5 Rows on one side, empty scrolls on the other: Knight push, Noble pull. */

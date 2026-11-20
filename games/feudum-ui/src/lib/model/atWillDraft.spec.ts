@@ -2,6 +2,7 @@ import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    cardTurnSeat,
     MachineState,
     placeMarker,
     playMandateOffers,
@@ -363,7 +364,7 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
             sequenced: true
         })
         expect(other.gameState.getPlayerState(table.other).writs).toEqual([])
-        expect(other.gameState.flow.turn?.playerId).toBe(table.seat)
+        expect(cardTurnSeat(other.gameState)).toBe(table.seat)
     })
 
     it('R-3.1, R-4.4-H5 a seat that has finalised its hand keeps the row under the waiting line', async () => {
@@ -442,7 +443,7 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
             }
         )
         expect(screen.gameState.getPlayerState(table.other).writs).toEqual([])
-        expect(screen.gameState.flow.turn?.playerId).toBe(table.seat)
+        expect(cardTurnSeat(screen.gameState)).toBe(table.seat)
         expect(rowLabels(screen.actionPanel, 'off-turn-writs')).toEqual([])
     })
 })

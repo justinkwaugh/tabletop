@@ -8,6 +8,7 @@ import {
     type SpecialNeed
 } from '../data/cards.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { cardTurnSeat } from '../model/turns.js'
 import type { HydratedFeudumPlayerState, PlayedCard } from '../model/playerState.js'
 import { canCoverWithWildTiles } from '../model/payments.js'
 import { reasonSulfurToBarrelRefused, returnGoodToHaversack } from '../model/supply.js'
@@ -38,7 +39,7 @@ export function reasonTurnRefused(
     state: HydratedFeudumGameState,
     playerId: string
 ): string | undefined {
-    return state.flow.turn?.playerId === playerId ? undefined : "It isn't your turn."
+    return cardTurnSeat(state) === playerId ? undefined : "It isn't your turn."
 }
 
 /** R-3.2 */

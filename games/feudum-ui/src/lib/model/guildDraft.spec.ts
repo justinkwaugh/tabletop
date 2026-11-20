@@ -2,6 +2,8 @@ import { flushSync } from 'svelte'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    KnightRowIds,
+    knightRows,
     Seals,
     type GuildFunctionName,
     type GuildFunctionParams,
@@ -162,7 +164,7 @@ interface Family {
 
 const good = (kind: string): BenchPress => ({ item: `good:${kind}` })
 const scroll = (spaceId: string): BenchPress => ({ item: `scroll:${spaceId}` })
-const row = (index: number): BenchPress => ({ item: `row:${index}` })
+const row = (index: number): BenchPress => ({ item: `row:${KnightRowIds[index]}` })
 
 /** R-4.6, each function of each guild: its arrangement, its presses and what they send. */
 const Families: readonly Family[] = [
@@ -289,7 +291,7 @@ const Families: readonly Family[] = [
             setRowMarkers(state, [1, 1, 1])
         },
         presses: [row(0), scroll(R1C1)],
-        params: { knightRows: [0], scrollSpaces: [R1C1] }
+        params: { knightRows: ['knight-row-1'], scrollSpaces: [R1C1] }
     },
     {
         guildId: 'noble',
@@ -309,7 +311,7 @@ const Families: readonly Family[] = [
             setRowMarkers(state, [1, 1])
         },
         presses: [row(0), row(1), scroll(R1C1), scroll(R1C2)],
-        params: { knightRows: [0, 1], scrollSpaces: [R1C1, R1C2] },
+        params: { knightRows: ['knight-row-1', 'knight-row-2'], scrollSpaces: [R1C1, R1C2] },
         sends: true
     },
     {
@@ -747,10 +749,10 @@ describe('S43 R-4.6.5, R-4.6.6 an Alchemist push', () => {
         expect(itemOf(session, 'invention:krud-barrel').note?.label).toBe(alone)
         await pressItem(session, 'invention:krud-barrel')
         const { ghosts, primary } = benchOf(session)
-        const rows = session.gameState.guilds.knight.rows
+        const rows = knightRows(session.gameState)
         expect(
             ghosts.filter(({ item }) => item === 'invention:krud-barrel').map(({ at }) => at)
-        ).toEqual(rows.map(({ colour }) => `knight-row:${colour}`))
+        ).toEqual(rows.map(({ rowId }) => `knight-row:${rowId}`))
         expect(ghosts.filter(({ item }) => item === 'invention:ship')).toHaveLength(1)
         expect(primary.label).toMatch(/^Invent 2/)
         expect(itemOf(session, 'invention:krud-barrel').note?.label).not.toBe(alone)
@@ -862,14 +864,14 @@ describe('S45 R-4.6.5 a Knight push', () => {
     it('R-4.6.5 a used row stays picked, with no line, and its press does nothing; a scroll waits for a row', async () => {
         const { session } = await pushed()
         expect(benchOf(session).items.some(({ id }) => id === `scroll:${R1C1}`)).toBe(false)
-        await pressItem(session, 'row:0')
+        await pressItem(session, 'row:knight-row-1')
         expect(itemOf(session, `scroll:${R1C1}`).role).toBe('lit')
-        const used = itemOf(session, 'row:0')
+        const used = itemOf(session, 'row:knight-row-1')
         expect(used.role).toBe('picked')
         expect(used.refusal).toBeUndefined()
         expect(used.press).toBeUndefined()
         await pressChoice(session, used)
-        expect(session.guild.value('picks')).toEqual([{ kind: 'row', row: 0 }])
+        expect(session.guild.value('picks')).toEqual([{ kind: 'row', row: 'knight-row-1' }])
     })
 
     it('R-5-H1 a scroll with a seal on it isn’t offered; the panel names no seal', async () => {
@@ -882,7 +884,7 @@ describe('S45 R-4.6.5 a Knight push', () => {
 
     it('R-4.6.5 fewer than stated: the primary enabled from a whole pair, named for the count', async () => {
         const { session } = await pushed()
-        await pressItem(session, 'row:0')
+        await pressItem(session, 'row:knight-row-1')
         expect(benchOf(session).primary.enabled).toBe(false)
         await pressItem(session, `scroll:${R1C1}`)
         expect(benchOf(session).line).toBe('Move up to 3')

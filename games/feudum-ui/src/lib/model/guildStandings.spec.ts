@@ -108,7 +108,7 @@ describe('Guild standings (R-4.5, R-4.7)', () => {
         const { view } = standingsOn(3, (edited) => {
             setPawns(edited, 'p2', ['knight', 'knight'])
             const player = edited.getPlayerState('p2')
-            edited.supply.influence[player.color] += player.influenceSupply
+            edited.supply.influence[player.playerId] += player.influenceSupply
             player.influenceSupply = 0
         })
 

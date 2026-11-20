@@ -7,18 +7,20 @@ import {
     FarmerBarn,
     Goods,
     GuildTrackSpaces,
-    KnightMonsterIcons,
     HydratedFeudumGameState,
-    MarketSpaces,
-    MachineState,
-    MonsterIds,
-    Routes,
-    Spaces,
     isAnswerAttack,
     isBeginDawn,
     isCommitAttack,
     isRollProgressDie,
+    KnightMonsterIcons,
+    knightRows,
+    MachineState,
+    MarketSpaces,
+    MonsterIds,
     returnGoodToHaversack,
+    Routes,
+    seatKnightRow,
+    Spaces,
     type BeginDawn,
     type Move,
     type RollProgressDie
@@ -54,6 +56,7 @@ import {
     type MotionTarget,
     type PlanRow
 } from './boardPlan.js'
+import { rowLane } from '$lib/model/knightLanes.js'
 
 /** Contract, Fast fallback: stated here apart from the plan's own constant, which it checks. */
 const ContractFastSeconds = 0.2
@@ -807,15 +810,15 @@ describe('R-4.1.2 markers inside the board', () => {
     it('R-1.3 a Knight row fills one a beat after another; R-4.2.4 the top marker goes on to the icon', async () => {
         const table = await emptyTable()
         const scene = changeFrom(table, (to) => {
-            to.guilds.knight.rows[0].markers += 2
+            knightRows(to)[0].row.markers += 2
         })
-        const row = scene.to.guilds.knight.rows[0]
+        const { row } = knightRows(scene.to)[0]
         const { motions, tokens } = planBoardMotion({ ...scene, action: anAction(table.seat) })
         expect(tokens.map(({ face }) => face.kind)).toEqual(['marker', 'marker'])
         expect(motions[1].at).toBeGreaterThan(motions[0].at)
         const area = GuildAreas.knight
         const scale = GuildAreaWidth / GuildBox.width
-        const cell = knightCell(row.colour, row.markers)
+        const cell = knightCell(rowLane(scene.to, row.owner), row.markers)
         expect(motions[1].path?.at(-1)).toEqual({
             x: area.x + cell.x * scale,
             y: area.y + cell.y * scale
@@ -826,18 +829,16 @@ describe('R-4.1.2 markers inside the board', () => {
         const table = await emptyTable()
         const [icon] = KnightMonsterIcons
         table.host.edit((state) => {
-            const row = state.guilds.knight.rows.find(({ playerId }) => playerId === table.seat)
+            const row = seatKnightRow(state, table.seat)?.row
             if (row) {
                 row.markers = 3
             }
         })
-        const row = hydrated(table.host.state).guilds.knight.rows.find(
-            ({ playerId }) => playerId === table.seat
-        )
+        const rowId = seatKnightRow(hydrated(table.host.state), table.seat)?.rowId
         const { motions } = planBoardMotion({
             ...changeFrom(table, (to) => {
-                to.guilds.knight.monsterIcons[icon.monster] = table.seat
-                const own = to.guilds.knight.rows.find(({ playerId }) => playerId === table.seat)
+                to.monsters[icon.monster] = { playerId: table.seat }
+                const own = seatKnightRow(to, table.seat)?.row
                 if (own) {
                     own.markers -= 1
                 }
@@ -845,7 +846,7 @@ describe('R-4.1.2 markers inside the board', () => {
             action: anAction(table.seat)
         })
         expect(motions.map(({ target, path }) => [target, path?.at(-1)])).toEqual([
-            [{ piece: `knight:${row?.colour}:3` }, monsterIconMarker(icon.id)]
+            [{ piece: `knight:${rowId}:3` }, monsterIconMarker(icon.id)]
         ])
     })
 
@@ -853,25 +854,23 @@ describe('R-4.1.2 markers inside the board', () => {
         const table = await emptyTable()
         const [icon] = KnightMonsterIcons
         table.host.edit((state) => {
-            const row = state.guilds.knight.rows.find(({ playerId }) => playerId === table.seat)
+            const row = seatKnightRow(state, table.seat)?.row
             if (row) {
                 row.markers = 3
             }
         })
-        const colour = hydrated(table.host.state).guilds.knight.rows.find(
-            ({ playerId }) => playerId === table.seat
-        )?.colour
+        const rowId = seatKnightRow(hydrated(table.host.state), table.seat)?.rowId
         const scene = {
             ...changeFrom(table, (to) => {
-                to.guilds.knight.monsterIcons[icon.monster] = table.seat
-                const own = to.guilds.knight.rows.find(({ playerId }) => playerId === table.seat)
+                to.monsters[icon.monster] = { playerId: table.seat }
+                const own = seatKnightRow(to, table.seat)?.row
                 if (own) {
                     own.markers -= 1
                 }
             }),
             action: anAction(table.seat)
         }
-        const marker = `[data-motion="knight:${colour}:3"]`
+        const marker = `[data-motion="knight:${rowId}:3"]`
         const board = new FakeSurface()
         const area = new KnownSurface([marker])
         const animator = new BoardAnimator(() => false)

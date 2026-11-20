@@ -1,9 +1,11 @@
 import { assertExists } from '@tabletop/common'
 import {
     ActionType,
+    cardTurnSeat,
     collectTopTile,
     HydratedFeudumGameState,
     keepWritsOffer,
+    knightRows,
     MachineState,
     Mandates,
     nourishOffer,
@@ -119,7 +121,7 @@ async function finalise(host: FeudumHost, plans: readonly SeatPlan[]) {
 }
 
 function askedSeat(host: FeudumHost): string {
-    const playerId = host.state.flow.turn?.playerId
+    const playerId = cardTurnSeat(host.state)
     assertExists(playerId, 'R-3.2 A seat is asked for a card')
     return playerId
 }
@@ -591,7 +593,7 @@ async function knightTradeTable() {
     const { host, seat } = await atGuild(seats(guildSeat('farmer'), plain, plain))
     host.edit((state) => {
         threePawns(state, seat)
-        const markers = state.guilds.knight.rows.map((row) => row.markers)
+        const markers = knightRows(state).map(({ row }) => row.markers)
         markers[seatRowIndex(state, seat)] = 4
         setRowMarkers(state, markers)
     })

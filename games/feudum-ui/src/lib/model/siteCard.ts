@@ -1,4 +1,10 @@
-import type { Character, HydratedFeudumGameState, MonsterId, SpaceId } from '@tabletop/feudum'
+import {
+    feudumGuildOf,
+    type Character,
+    type HydratedFeudumGameState,
+    type MonsterId,
+    type SpaceId
+} from '@tabletop/feudum'
 import { spaceLabel } from './cardFlows.js'
 import {
     abandonedVessels,
@@ -61,7 +67,8 @@ export function siteCardOf(
     nameOf: (playerId: string) => string
 ): SiteCard {
     const space = state.spaces[spaceId]
-    const { kind, feudumGuild } = space.location
+    const { kind } = space.location
+    const feudumGuild = feudumGuildOf(space.location)
     const place = feudumGuild ? `${feudumGuild} feudum` : kind
     const markers: SiteMarker[] = []
     if (space.ruler) {

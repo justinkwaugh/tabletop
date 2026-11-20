@@ -19,6 +19,8 @@ import {
 } from '../testing/guilds.js'
 import { canonicalOf } from '../testing/state.js'
 import { guildActionOffers, guildActionPreview } from './guildAction.js'
+import { knightRows, ownerSupply } from '../model/knightRows.js'
+import { KnightRowIds } from '../data/guilds.js'
 
 const Pull = { type: ActionType.GuildAction, guildId: 'noble', fn: 'pull' } as const
 const Push = { type: ActionType.GuildAction, guildId: 'noble', fn: 'push' } as const
@@ -64,18 +66,17 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
     it('R-4.6.4, R-X.2 S45 no line completed: 2 markers out, 2 seals in unseen, no barrier', () => {
         const { table, playerId } = journeymanTable([])
         const before = table.hydrated()
-        const [first, second] = before.guilds.knight.rows
-        const general = { ...before.supply.influence }
+        const [first, second] = knightRows(before)
         const pile = before.supply.sealPileCount
         const score = table.seat(playerId).score
         const [action] = table.send(playerId, {
             ...Pull,
-            params: { knightRows: [0, 1], scrollSpaces: [R1C1, R1C2] }
+            params: { knightRows: [KnightRowIds[0], KnightRowIds[1]], scrollSpaces: [R1C1, R1C2] }
         })
         const after = table.hydrated()
-        expect(after.guilds.knight.rows.map((row) => row.markers)).toEqual([1, 1, 2, 2])
-        expect(after.supply.influence[first.colour]).toBe(general[first.colour] + 1)
-        expect(after.supply.influence[second.colour]).toBe(general[second.colour] + 1)
+        expect(knightRows(after).map(({ row }) => row.markers)).toEqual([1, 1, 2, 2])
+        expect(ownerSupply(after, first.row.owner)).toBe(ownerSupply(before, first.row.owner) + 1)
+        expect(ownerSupply(after, second.row.owner)).toBe(ownerSupply(before, second.row.owner) + 1)
         expect(after.guilds.noble.scrolls[R1C1]).toBe(true)
         expect(after.guilds.noble.scrolls[R1C2]).toBe(true)
         expect(after.supply.sealPileCount).toBe(pile - 2)
@@ -89,8 +90,8 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
                 details: {
                     kind: 'noble-pull',
                     markers: [
-                        { colour: first.colour, playerId: first.playerId },
-                        { colour: second.colour, playerId: second.playerId }
+                        { rowId: first.rowId, owner: first.row.owner },
+                        { rowId: second.rowId, owner: second.row.owner }
                     ],
                     rows: 0,
                     columns: 0
@@ -108,7 +109,7 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         const score = table.seat(playerId).score
         const [action] = table.send(playerId, {
             ...Pull,
-            params: { knightRows: [0, 1], scrollSpaces: [R1C2, R2C1] }
+            params: { knightRows: [KnightRowIds[0], KnightRowIds[1]], scrollSpaces: [R1C2, R2C1] }
         })
         expect(table.seat(playerId).score).toBe(score + 3)
         expect(action).toMatchObject({
@@ -128,15 +129,18 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         const { table, playerId } = journeymanTable([R1C1, R2C2])
         const [action] = table.send(playerId, {
             ...Pull,
-            params: { knightRows: [0, 1], scrollSpaces: [R1C2, R1C3] }
+            params: { knightRows: [KnightRowIds[0], KnightRowIds[1]], scrollSpaces: [R1C2, R1C3] }
         })
         expect(action).toMatchObject({ metadata: { completions: 1, points: 3 } })
     })
 
     it('R-4.6.4 S45 refuses a used colour, an empty row, a third marker, and a filled space', () => {
         const { table, playerId } = journeymanTable([R1C1], [2, 0, 2, 2])
-        const send = (knightRows: number[], scrollSpaces: ScrollSpaceId[]) => () =>
-            table.send(playerId, { ...Pull, params: { knightRows, scrollSpaces } })
+        const send = (rows: number[], scrollSpaces: ScrollSpaceId[]) => () =>
+            table.send(playerId, {
+                ...Pull,
+                params: { knightRows: rows.map((row) => KnightRowIds[row]), scrollSpaces }
+            })
         expect(send([0, 0], [R1C2, R1C3])).toThrow('Pick rows of different colours.')
         expect(send([0, 1], [R1C2, R1C3])).toThrow('That Knight row holds no marker.')
         expect(send([0, 2, 3], [R1C2, R1C3, R2C1])).toThrow('Move at most 2 markers.')
@@ -146,13 +150,16 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
     it('R-4.6.1, R-4.6-H5 2 must move if they can, fewer if impossible', () => {
         const { table, playerId } = journeymanTable([])
         expect(() =>
-            table.send(playerId, { ...Pull, params: { knightRows: [0], scrollSpaces: [R1C1] } })
+            table.send(playerId, {
+                ...Pull,
+                params: { knightRows: [KnightRowIds[0]], scrollSpaces: [R1C1] }
+            })
         ).toThrow('2 markers can move: move them all.')
 
         const oneRow = journeymanTable([R1C1, R1C2], [2, 0, 0, 0])
         const [action] = oneRow.table.send(oneRow.playerId, {
             ...Pull,
-            params: { knightRows: [0], scrollSpaces: [R1C3] }
+            params: { knightRows: [KnightRowIds[0]], scrollSpaces: [R1C3] }
         })
         expect(action).toMatchObject({ metadata: { completions: 1, points: 3 } })
 
@@ -162,7 +169,7 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         expect(() =>
             oneSeal.table.send(oneSeal.playerId, {
                 ...Pull,
-                params: { knightRows: [0], scrollSpaces: [R1C1] }
+                params: { knightRows: [KnightRowIds[0]], scrollSpaces: [R1C1] }
             })
         ).not.toThrow()
     })
@@ -172,7 +179,7 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         expect(() =>
             noMarkers.table.send(noMarkers.playerId, {
                 ...Pull,
-                params: { knightRows: [0], scrollSpaces: [R1C1] }
+                params: { knightRows: [KnightRowIds[0]], scrollSpaces: [R1C1] }
             })
         ).toThrow('No Knight row holds a marker.')
 
@@ -180,7 +187,7 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         expect(() =>
             noRank.table.send(noRank.playerId, {
                 ...Pull,
-                params: { knightRows: [0], scrollSpaces: [R1C1] }
+                params: { knightRows: [KnightRowIds[0]], scrollSpaces: [R1C1] }
             })
         ).toThrow('Only the Noble journeyman pulls.')
     })
@@ -193,13 +200,16 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         expect(
             guildActionPreview(state, playerId, {
                 ...input,
-                params: { knightRows: [0, 1], scrollSpaces: [R1C2, R2C1] }
+                params: {
+                    knightRows: [KnightRowIds[0], KnightRowIds[1]],
+                    scrollSpaces: [R1C2, R2C1]
+                }
             })
         ).toMatchObject({ completions: 1, rows: 2, columns: 2, points: 3, revealsInfo: true })
         expect(
             guildActionPreview(state, playerId, {
                 ...input,
-                params: { knightRows: [0], scrollSpaces: [] }
+                params: { knightRows: [KnightRowIds[0]], scrollSpaces: [] }
             })
         ).toMatchObject({
             completions: 0,

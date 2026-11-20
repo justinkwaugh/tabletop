@@ -56,6 +56,8 @@ function standMonster(
     spaceId: SpaceId
 ) {
     state.monsters[monster] = { playerId, spaceId }
+    // R-4.2.4 Its controller's marker lies on its icon.
+    state.getPlayerState(playerId).influenceSupply -= 1
 }
 
 /** R-1.1 A vessel from the general supply into the seat's supply. */
@@ -944,16 +946,16 @@ describe('Move: pilfer', () => {
             landscapeOn(state, To, 'archery-butt', 2)
         })
         const state = table.hydrated()
-        const { influenceSupply, color } = state.getPlayerState(playerId)
+        const { influenceSupply } = state.getPlayerState(playerId)
         const { targets } = state.supply
-        const inSupply = state.supply.influence[color]
+        const inSupply = state.supply.influence[playerId]
         const action = sent(table, playerId, {
             steps: step(playerId),
             pilfer: { piece: pawn1(playerId), from: 'landscape', resource: 'targets' }
         })
         const after = table.hydrated()
         expect(after.getPlayerState(playerId).influenceSupply).toBe(influenceSupply + 1)
-        expect(after.supply.influence[color]).toBe(inSupply - 1)
+        expect(after.supply.influence[playerId]).toBe(inSupply - 1)
         expect(after.supply.targets).toBe(targets + 1)
         expect(action).toMatchObject({ metadata: { pilfer: { spaceId: To, marker: true } } })
     })
@@ -962,8 +964,8 @@ describe('Move: pilfer', () => {
         const { table, playerId } = tableWith((state, seat) => {
             landscapeOn(state, To, 'archery-butt', 2)
             const player = state.getPlayerState(seat)
-            player.influenceSupply += state.supply.influence[player.color]
-            state.supply.influence[player.color] = 0
+            player.influenceSupply += state.supply.influence[player.playerId]
+            state.supply.influence[player.playerId] = 0
         })
         const { influenceSupply } = table.seat(playerId)
         const { targets } = table.hydrated().supply
@@ -981,7 +983,7 @@ describe('Move: pilfer', () => {
             landscapeOn(state, To, 'archery-butt', 2)
             const player = state.getPlayerState(seat)
             // Every marker placed, then a monk migrated in: 1 Monk star and no marker to show it.
-            state.supply.influence[player.color] += player.influenceSupply
+            state.supply.influence[player.playerId] += player.influenceSupply
             player.influenceSupply = 0
             standPawn(state, seat, 2, Start, 'monk')
             state.recomputeRanks(seat)

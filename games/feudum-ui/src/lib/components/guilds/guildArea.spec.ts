@@ -4,6 +4,7 @@ import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     AlchemistCartSpaces,
+    beadValue,
     ChickenSpaces,
     FarmerBarn,
     GuildIds,
@@ -11,12 +12,13 @@ import {
     HydratedFeudumGameState,
     Inventions,
     KnightMonsterIcons,
+    knightRows,
     MarketSpaces,
-    ScrollSpaces,
-    Seals,
-    beadValue,
     recordFrom,
     rosaryBeadSum,
+    ScrollSpaces,
+    Seals,
+    seatKnightRow,
     type GuildId
 } from '@tabletop/feudum'
 import { guildPanelAsset } from '$lib/art/assetMap.js'
@@ -119,38 +121,42 @@ describe('GuildArea draws from state (R-1.3)', () => {
 
     it("R-1.3 fills a Knight row from its first space, in the seat's paint", async () => {
         const state = await table()
-        const row = state.guilds.knight.rows.find(({ playerId }) => playerId)
-        expect(row).toBeDefined()
-        if (!row?.playerId) {
+        const seat = state.players[0]
+        const own = seatKnightRow(state, seat.playerId)
+        expect(own).toBeDefined()
+        if (!own) {
             return
         }
+        const { rowId, row } = own
         row.markers = 2
         const html = area('knight', state)
-        expect(html).toContain(`data-knight-row="${row.colour}" data-markers="2"`)
-        expect(html).toContain(`data-world="knight:${row.colour}:1"`)
-        expect(html).toContain(`data-world="knight:${row.colour}:2"`)
-        expect(html).not.toContain(`data-world="knight:${row.colour}:3"`)
-        const section = html.slice(html.indexOf(`data-knight-row="${row.colour}"`))
-        expect(section).toContain(`seat-${row.playerId}`)
+        expect(html).toContain(
+            `data-knight-row="${seat.color}" data-row-id="${rowId}" data-markers="2"`
+        )
+        expect(html).toContain(`data-world="knight:${rowId}:1"`)
+        expect(html).toContain(`data-world="knight:${rowId}:2"`)
+        expect(html).not.toContain(`data-world="knight:${rowId}:3"`)
+        const section = html.slice(html.indexOf(`data-knight-row="${seat.color}"`))
+        expect(section).toContain(`seat-${seat.playerId}`)
     })
 
     it('R-1.4-H1 paints a dummy row by its colour, and draws only the rows in use', async () => {
         const state = await table(3)
-        const dummy = state.guilds.knight.rows.find(({ playerId }) => !playerId)
+        const dummy = knightRows(state).find(({ row }) => 'dummyColour' in row.owner)?.row.owner
         expect(dummy).toBeDefined()
         const html = area('knight', state)
-        if (dummy) {
-            expect(html).toContain(`colour-${dummy.colour}`)
+        if (dummy && 'dummyColour' in dummy) {
+            expect(html).toContain(`colour-${dummy.dummyColour}`)
         }
-        expect(count(html, 'data-knight-row=')).toBe(state.guilds.knight.rows.length)
+        expect(count(html, 'data-knight-row=')).toBe(knightRows(state).length)
     })
 
     it("R-4.2.4 sets the controller's marker on a monster icon", async () => {
         const state = await table()
         const [{ monster }, other] = KnightMonsterIcons
         const { playerId } = state.players[1]
-        state.guilds.knight.monsterIcons[monster] = playerId
-        state.guilds.knight.monsterIcons[other.monster] = null
+        state.monsters[monster] = { playerId }
+        state.monsters[other.monster] = {}
         const html = area('knight', state)
         expect(html).toContain(`data-world="monster-icon:${monster}"`)
         expect(html).not.toContain(`data-world="monster-icon:${other.monster}"`)
@@ -312,7 +318,7 @@ describe('GuildArea on the printed panel (R-1.3)', () => {
         const [filled] = MarketSpaces
         state.guilds.merchant.market[filled.id] = true
         const [{ monster }] = KnightMonsterIcons
-        state.guilds.knight.monsterIcons[monster] = state.players[1].playerId
+        state.monsters[monster] = { playerId: state.players[1].playerId }
         state.guilds.farmer.chickens = recordFrom(
             ChickenSpaces.map(({ id }) => id),
             () => null

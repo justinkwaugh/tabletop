@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
-    import type { HydratedFeudumGameState } from '@tabletop/feudum'
+    import type { HydratedFeudumGameState, KnightRowId } from '@tabletop/feudum'
     import PrimaryButton from '$lib/components/panel/PrimaryButton.svelte'
     import GuildDie from '$lib/components/pieces/GuildDie.svelte'
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
@@ -9,7 +9,7 @@
     import type { BenchOffer } from '$lib/model/benchOffer.js'
     import { benchViewOf, type GhostPiece } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
-    import type { SeatPaint } from '$lib/model/seatPaint.js'
+    import { ownerPaint, type SeatPaint } from '$lib/model/seatPaint.js'
     import { tradePickerOf, type TradeCard } from '$lib/model/tradePicker.js'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
     import UprightGuild from './UprightGuild.svelte'
@@ -52,9 +52,9 @@
     let picker = $derived(tradePickerOf(bench, state, playerId))
     let area = $derived(benchViewOf(bench, state, playerId).areas[0])
 
-    function rowPaint(row: number): SeatPaint | undefined {
-        const held = state.guilds.knight.rows.at(row)
-        return held && (held.playerId ? paintOf(held.playerId) : colourPaintOf(held.colour))
+    function rowPaint(row: KnightRowId): SeatPaint | undefined {
+        const held = state.guilds.knight.rows[row]
+        return held && ownerPaint(held.owner, paintOf, colourPaintOf)
     }
 </script>
 

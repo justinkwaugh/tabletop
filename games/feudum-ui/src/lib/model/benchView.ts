@@ -2,12 +2,15 @@ import {
     AlchemistCartSpaces,
     GuildById,
     Goods,
+    KnightRowIds,
+    knightRows,
     MarketSpaces,
     ScrollSpaces,
     VesselTypes,
     type Good,
     type GuildId,
     type HydratedFeudumGameState,
+    type KnightRowId,
     type MonsterId,
     type VesselType
 } from '@tabletop/feudum'
@@ -25,6 +28,7 @@ import {
     type Point
 } from '$lib/utils/boardGeometry.js'
 import { knightRowPlace, type BenchGhost, type BenchItem, type BenchOffer } from './benchOffer.js'
+import { laneOfRow, rowLane, seatRowId } from './knightLanes.js'
 
 /** A place on a guild area, in its local units. */
 export interface BenchBox {
@@ -41,7 +45,7 @@ export type GhostPiece =
     | { readonly kind: 'seal' }
     | { readonly kind: 'monster'; readonly monster: MonsterId }
     /** R-4.6.3, R-4.6.6 A Knight row's marker: the seat's own paint, or its colour's. */
-    | { readonly kind: 'marker'; readonly row: number }
+    | { readonly kind: 'marker'; readonly row: KnightRowId }
 
 export interface PlacedGhost {
     readonly key: string
@@ -94,13 +98,15 @@ function goodBox(guild: GuildId, good: Good): BenchBox | undefined {
     return undefined
 }
 
-function rowBox(state: HydratedFeudumGameState, row: number): BenchBox | undefined {
-    const colour = state.guilds.knight.rows.at(row)?.colour
-    return colour ? knightRowBox(colour) : undefined
+function rowBox(
+    state: HydratedFeudumGameState,
+    row: KnightRowId | undefined
+): BenchBox | undefined {
+    return row && state.guilds.knight.rows[row] ? knightRowBox(laneOfRow(state, row)) : undefined
 }
 
-function seatRow(state: HydratedFeudumGameState, playerId: string): number {
-    return state.guilds.knight.rows.findIndex((row) => row.playerId === playerId)
+function rowIdOf(key: string): KnightRowId | undefined {
+    return KnightRowIds.find((rowId) => rowId === key)
 }
 
 function itemBox(
@@ -121,7 +127,7 @@ function itemBox(
             return vessel && vesselForSaleBox(vessel)
         }
         case 'row':
-            return rowBox(state, key === 'seat' ? seatRow(state, playerId) : Number(key))
+            return rowBox(state, key === 'seat' ? seatRowId(state, playerId) : rowIdOf(key))
         case 'scroll':
             return scrollBox(key)
         case 'bead': {
@@ -163,13 +169,12 @@ function pieceOf(
         if (vessel) {
             return { kind: 'vessel', vessel }
         }
-        const row = state.guilds.knight.rows.findIndex(
-            ({ colour }) => knightRowPlace(colour) === at
-        )
-        return row < 0 ? undefined : { kind: 'marker', row }
+        const row = knightRows(state).find(({ rowId }) => knightRowPlace(rowId) === at)
+        return row && { kind: 'marker', row: row.rowId }
     }
     if (kind === 'row' && key === 'seat') {
-        return { kind: 'marker', row: seatRow(state, playerId) }
+        const row = seatRowId(state, playerId)
+        return row && { kind: 'marker', row }
     }
     if (kind === 'row' || kind === 'scroll') {
         // R-5-H1 A seal lands unseen.
@@ -194,12 +199,12 @@ function guildOfSpace(at: string): GuildId | undefined {
 /** One ghost's markers fill a row's next cells, after any barrel staged ahead of it. */
 function markerGhosts(
     ghost: BenchGhost,
-    row: number,
+    row: KnightRowId,
     state: HydratedFeudumGameState,
-    filled: Map<number, number>,
+    filled: Map<KnightRowId, number>,
     index: number
 ): readonly PlacedGhost[] {
-    const held = state.guilds.knight.rows.at(row)
+    const held = state.guilds.knight.rows[row]
     if (!held) {
         return []
     }
@@ -211,7 +216,7 @@ function markerGhosts(
         item: ghost.item,
         at: ghost.at,
         piece: { kind: 'marker', row },
-        point: knightCell(held.colour, before + cell + 1)
+        point: knightCell(rowLane(state, held.owner), before + cell + 1)
     }))
 }
 
@@ -227,7 +232,7 @@ function placeGhost(
     state: HydratedFeudumGameState,
     playerId: string,
     onRosary: { count: number },
-    filled: Map<number, number>,
+    filled: Map<KnightRowId, number>,
     vessels: Map<VesselType, number>
 ): GhostPlacing {
     const { item, at } = ghost
@@ -263,7 +268,7 @@ export function benchViewOf(
     playerId: string
 ): BenchView {
     const onRosary = { count: 0 }
-    const filled = new Map<number, number>()
+    const filled = new Map<KnightRowId, number>()
     const vessels = new Map<VesselType, number>()
     const placings = bench.ghosts.map((ghost, index) =>
         placeGhost(ghost, index, state, playerId, onRosary, filled, vessels)

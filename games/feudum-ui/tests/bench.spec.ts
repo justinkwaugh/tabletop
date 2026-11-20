@@ -388,10 +388,10 @@ test('S45 R-4.6.5, R-5-H1 a used colour’s row stays picked, with no press and 
     page
 }) => {
     await openFunction(page, 'knightPush', 'knight', /^\s*Push/)
-    await pressAll(page, 'row:0', 'scroll:guild.noble.scroll.r1c1')
+    await pressAll(page, 'row:knight-row-1', 'scroll:guild.noble.scroll.r1c1')
     await expect(page.locator('[data-bench-area="noble"] [data-ghost]')).toHaveCount(1)
-    await expect(place(page, 'row:0')).toHaveAttribute('data-bench-role', 'picked')
-    await expect(place(page, 'row:0').locator('button')).toHaveCount(0)
+    await expect(place(page, 'row:knight-row-1')).toHaveAttribute('data-bench-role', 'picked')
+    await expect(place(page, 'row:knight-row-1').locator('button')).toHaveCount(0)
     await expect(bench(page).locator('[data-refusal]')).toHaveCount(0)
     await shot(page, 'knight-push')
 })

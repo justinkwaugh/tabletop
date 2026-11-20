@@ -20,6 +20,7 @@ import type { ActionCardKind } from '../data/cards.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { cardTurnSeat } from '../model/turns.js'
 import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 import { askCardTurn, stateAfterAdvance, stateAfterCardStep } from './cardTurns.js'
 
@@ -96,7 +97,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
     ): ActionType[] {
         const state = context.gameState
         const { hand } = state.getPlayerState(playerId)
-        if (state.flow.turn?.playerId !== playerId || !hand) {
+        if (cardTurnSeat(state) !== playerId || !hand) {
             return []
         }
         const kinds = new Set([

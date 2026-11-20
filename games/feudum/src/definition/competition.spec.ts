@@ -9,6 +9,8 @@ import { describe, expect, it } from 'vitest'
 import { MinimumKnightRows } from '../data/guilds.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
+import type { KnightRow } from '../model/guildsState.js'
+import { knightRows, rowSeat } from '../model/knightRows.js'
 import { testGame } from '../testing/state.js'
 import { walkGame, withoutRowId, type GameWalk } from '../testing/walk.js'
 import { FeudumRuntime } from './runtime.js'
@@ -39,13 +41,14 @@ function withoutSeating(state: FeudumProjectedState) {
         guilds,
         ...rest
     } = withoutRowId(state)
-    const { setupOrder: _setupOrder, ...restOfFlow } = flow
-    const rows = guilds.knight.rows.toSorted((left, right) =>
-        left.colour.localeCompare(right.colour)
-    )
+    const ownerKey = ({ owner }: KnightRow) =>
+        'playerId' in owner ? owner.playerId : owner.dummyColour
+    const rows = knightRows({ guilds })
+        .map(({ row }) => row)
+        .toSorted((left, right) => ownerKey(left).localeCompare(ownerKey(right)))
     return {
         ...rest,
-        flow: restOfFlow,
+        flow,
         guilds: { ...guilds, knight: { ...guilds.knight, rows } },
         players: byPlayerId(players)
     }
@@ -153,10 +156,10 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
 
     it('R-1.4-H1 dummy Knight rows fill the table up to four, whoever starts', () => {
         for (const { order, walk } of walks) {
-            const { rows } = walk.initial.guilds.knight
+            const rows = knightRows(walk.initial).map(({ row }) => row.owner)
             expect(rows).toHaveLength(Math.max(count, MinimumKnightRows))
-            expect(rows.slice(0, count).map((row) => row.playerId)).toEqual(order)
-            expect(rows.slice(count).every((row) => row.playerId === undefined)).toBe(true)
+            expect(rows.slice(0, count).map(rowSeat)).toEqual(order)
+            expect(rows.slice(count).every((owner) => 'dummyColour' in owner)).toBe(true)
         }
     })
 

@@ -123,7 +123,7 @@ describe('ChooseStartingGoods', () => {
 
         table.order.forEach((playerId, index) => {
             expect(table.asked).toBe(playerId)
-            expect(table.state.flow.setupOrder?.playerId).toBe(playerId)
+            expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(playerId)
             expect(table.state.machineState).toBe(MachineState.ChoosingStartingGoods)
             expect(table.offered(playerId)).toEqual([ActionType.ChooseStartingGoods])
             expect(table.offered(table.order[index + 1] ?? table.order[0])).toEqual([])
@@ -133,7 +133,7 @@ describe('ChooseStartingGoods', () => {
 
         expect(table.state.machineState).toBe(MachineState.PlacingStartingPawn)
         expect(table.asked).toBe(table.order[0])
-        expect(table.state.flow.setupOrder?.playerId).toBe(table.order[0])
+        expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(table.order[0])
     })
 })
 
@@ -251,7 +251,7 @@ describe('PlaceStartingPawn', () => {
         })
 
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
-        expect(table.state.flow.setupOrder).toBeUndefined()
+        expect(table.hydrated().turnManager.currentTurn()?.playerId).toBeUndefined()
         expect(table.state.flow.selection).toEqual({ finalised: [] })
         expect(table.asked).toBe(table.order[0])
     })

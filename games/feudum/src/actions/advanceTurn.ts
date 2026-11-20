@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 export type AdvanceTurnMetadata = Type.Static<typeof AdvanceTurnMetadata>
 export const AdvanceTurnMetadata = Type.Object({
@@ -56,7 +57,7 @@ function passTurn(state: HydratedFeudumGameState): string | undefined {
         return undefined
     }
     const playerId = turnManager.startNextTurn(actionCount, (seat) => holdsCards(state, seat))
-    state.flow.turn = { playerId, secondCard: false, followUps: [] }
+    state.flow.turn = { secondCard: false, followUps: [] }
     return playerId
 }
 
@@ -79,9 +80,11 @@ export class HydratedAdvanceTurn
      */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const { turn } = state.flow
+        const turnPlayerId = cardTurnSeat(state)
         assertExists(turn, 'R-3.2 A turn is ending')
+        assertExists(turnPlayerId, 'R-3.2 A turn is open')
         if (turn.secondCard) {
-            this.metadata = { outcome: 'second-card', turnPlayerId: turn.playerId }
+            this.metadata = { outcome: 'second-card', turnPlayerId }
             return
         }
         const next = passTurn(state)

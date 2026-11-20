@@ -1,3 +1,4 @@
+import { assert } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { Goods, type Good, type VesselType } from '../data/components.js'
 import { AlchemistCartSpaces } from '../data/guilds.js'
@@ -20,6 +21,7 @@ import {
 import { tableAtPlayingCards } from '../testing/table.js'
 import { setUp } from '../testing/improving.js'
 import { guildActionOffers, guildActionPreview } from './guildAction.js'
+import { knightRows, ownerSupply, type KnightRowEntry } from '../model/knightRows.js'
 
 const Pull = { type: ActionType.GuildAction, guildId: 'alchemist', fn: 'pull' } as const
 const Push = { type: ActionType.GuildAction, guildId: 'alchemist', fn: 'push' } as const
@@ -259,7 +261,7 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
     const FirstBarrel: GoodAmounts = { saltpeter: 2, sulfur: 1 }
 
     function rows(table: { hydrated(): HydratedFeudumGameState }) {
-        return table.hydrated().guilds.knight.rows.map((row) => row.markers)
+        return knightRows(table.hydrated()).map(({ row }) => row.markers)
     }
 
     it('R-4.6.6 fills the leading unfilled section of every row: full 0, 3 of 6 adds 3, 2 adds 1, empty 1', () => {
@@ -267,14 +269,16 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
             setRowMarkers(state, [6, 3, 2, 0])
         )
         const before = table.hydrated()
-        const [first, second, third, fourth] = before.guilds.knight.rows
+        const [first, second, third, fourth] = knightRows(before)
         const [action] = table.send(playerId, { ...Push, params: { inventions: [Krud] } })
         expect(rows(table)).toEqual([6, 6, 3, 1])
-        const { influence } = table.hydrated().supply
-        expect(influence[first.colour]).toBe(before.supply.influence[first.colour])
-        expect(influence[second.colour]).toBe(before.supply.influence[second.colour] - 3)
-        expect(influence[third.colour]).toBe(before.supply.influence[third.colour] - 1)
-        expect(influence[fourth.colour]).toBe(before.supply.influence[fourth.colour] - 1)
+        const after = table.hydrated()
+        const supplyOf = ({ row }: KnightRowEntry, state: HydratedFeudumGameState) =>
+            ownerSupply(state, row.owner)
+        expect(supplyOf(first, after)).toBe(supplyOf(first, before))
+        expect(supplyOf(second, after)).toBe(supplyOf(second, before) - 3)
+        expect(supplyOf(third, after)).toBe(supplyOf(third, before) - 1)
+        expect(supplyOf(fourth, after)).toBe(supplyOf(fourth, before) - 1)
         expect(action).toMatchObject({
             metadata: {
                 completions: 1,
@@ -284,9 +288,9 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
                     goodsUsed: FirstBarrel,
                     barrels: [
                         [
-                            { colour: second.colour, playerId: second.playerId, added: 3 },
-                            { colour: third.colour, playerId: third.playerId, added: 1 },
-                            { colour: fourth.colour, playerId: fourth.playerId, added: 1 }
+                            { rowId: second.rowId, owner: second.row.owner, added: 3 },
+                            { rowId: third.rowId, owner: third.row.owner, added: 1 },
+                            { rowId: fourth.rowId, owner: fourth.row.owner, added: 1 }
                         ]
                     ]
                 }
@@ -311,12 +315,12 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
             setCarts(state, FirstBarrel)
             setRowMarkers(state, [6, 6, 0, 2])
         })
-        const dummy = table.hydrated().guilds.knight.rows[2]
-        expect(dummy.playerId).toBeUndefined()
+        const dummy = knightRows(table.hydrated())[2]
+        expect(dummy.row.owner).not.toHaveProperty('playerId')
         const [action] = table.send(playerId, { ...Push, params: { inventions: [Krud] } })
-        expect(table.hydrated().guilds.knight.rows.map((row) => row.markers)).toEqual([6, 6, 1, 3])
+        expect(knightRows(table.hydrated()).map(({ row }) => row.markers)).toEqual([6, 6, 1, 3])
         expect(action).toMatchObject({
-            metadata: { details: { barrels: [[{ colour: dummy.colour, added: 1 }, {}]] } }
+            metadata: { details: { barrels: [[{ rowId: dummy.rowId, added: 1 }, {}]] } }
         })
     })
 
@@ -376,12 +380,12 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
     it('R-4.6-H8 a row takes what the general supply has, and the barrel still scores', () => {
         const { table, playerId } = masterTable(FirstBarrel, (state) => {
             setRowMarkers(state, [3, 6, 6, 6])
-            const [{ colour, playerId: seat }] = state.guilds.knight.rows
-            const left = state.supply.influence[colour]
-            state.supply.influence[colour] = 1
-            if (seat) {
-                state.getPlayerState(seat).influenceSupply += left - 1
-            }
+            const [{ row }] = knightRows(state)
+            assert('playerId' in row.owner, 'R-1.4-H1 The first row is a seat row')
+            const seat = row.owner.playerId
+            const left = state.supply.influence[seat]
+            state.supply.influence[seat] = 1
+            state.getPlayerState(seat).influenceSupply += left - 1
         })
         const [action] = table.send(playerId, { ...Push, params: { inventions: [Krud] } })
         expect(rows(table)).toEqual([4, 6, 6, 6])
@@ -414,7 +418,7 @@ describe('GuildAction: R-4.6.6 krud barrels', () => {
             }
         })
         expect(preview?.refused).toBeUndefined()
-        expect(state.guilds.knight.rows[0].markers).toBe(0)
+        expect(knightRows(state)[0].row.markers).toBe(0)
         expect(state.guilds.alchemist.vesselsForSale).toEqual([])
         expect(
             guildActionPreview(state, playerId, {

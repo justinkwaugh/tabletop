@@ -1,6 +1,7 @@
 import type { Color } from '@tabletop/common'
 import {
     EpicVoyageTrack,
+    knightRows,
     MilitaryServiceTrack,
     RegionTiles,
     ScoreTrack,
@@ -142,20 +143,25 @@ export interface InfluencePool {
 }
 
 /**
- * R-1.4.2, R-1.4-H1 The general supply's influence by colour in use, in print order: each seat's
- * pool comes from the seat, and a dummy row's from its row, so no colour stands for a seat.
+ * R-1.4.2, R-1.4-H1 The general supply's influence, in print order: each seat's pool by its
+ * playerId, and each dummy row's by its colour, so no colour stands for a seat.
  */
 export function influencePools(state: HydratedFeudumGameState): InfluencePool[] {
-    const owners: { colour: Color; playerId?: string }[] = [
-        ...state.players.map(({ color, playerId }) => ({ colour: color, playerId })),
-        ...state.guilds.knight.rows
-            .filter((row) => row.playerId === undefined)
-            .map(({ colour }) => ({ colour }))
-    ]
-    return owners
-        .flatMap((owner) => {
-            const count = state.supply.influence[owner.colour]
-            return count === undefined ? [] : [{ ...owner, count }]
+    const pools: (InfluencePool | undefined)[] = [
+        ...state.players.map(({ color, playerId }) => {
+            const count = state.supply.influence[playerId]
+            return count === undefined ? undefined : { colour: color, playerId, count }
+        }),
+        ...knightRows(state).map(({ row }) => {
+            if (!('dummyColour' in row.owner)) {
+                return undefined
+            }
+            const colour = row.owner.dummyColour
+            const count = state.supply.dummyInfluence[colour]
+            return count === undefined ? undefined : { colour, count }
         })
+    ]
+    return pools
+        .filter((pool): pool is InfluencePool => pool !== undefined)
         .sort((a, b) => PrintedColours.indexOf(a.colour) - PrintedColours.indexOf(b.colour))
 }

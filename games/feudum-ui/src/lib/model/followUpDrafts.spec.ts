@@ -839,7 +839,10 @@ describe('R-3.14.1 AnswerAttack', () => {
         onTurn.machineState = MachineState.PlayingCards
         onTurn.activePlayerIds = [other]
         assertExists(onTurn.flow.turn, 'The turn is still under way')
-        onTurn.flow.turn.playerId = other
+        const open = onTurn.turnManager.series.findLast((turn) => !turn.end)
+        assertExists(open, 'The turn is still under way')
+        open.end = onTurn.actionCount
+        onTurn.turnManager.series.push({ type: 'turn', playerId: other, start: onTurn.actionCount })
         defender.gameState = new HydratedFeudumGameState(onTurn)
         flushSync()
         expect(defender.turnPanel).toBeDefined()

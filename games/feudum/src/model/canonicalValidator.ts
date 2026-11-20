@@ -1,5 +1,5 @@
 import { Spaces } from '../data/board.js'
-import { ComponentTotals, GoodRows, VesselRows } from '../data/components.js'
+import { ComponentTotals, GoodRows, MonsterIds, VesselRows } from '../data/components.js'
 import type { Good, VesselType } from '../data/components.js'
 import { LocationDiscs } from '../data/discs.js'
 import { AlchemistCartSpaces, MarketSpaces, ScrollSpaces } from '../data/guilds.js'
@@ -14,7 +14,8 @@ import {
 } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
 import { FeudumGameState, FeudumGameStateValidator } from './gameState.js'
-import { chickenBeads } from './guildsState.js'
+import { chickenBeads, type KnightRowOwner } from './guildsState.js'
+import { knightRows } from './knightRows.js'
 
 export type ConservedComponent =
     'goods' | 'shillings' | 'markers' | 'vessels' | 'targets' | 'seals' | 'discs' | 'tiles'
@@ -106,7 +107,7 @@ function shillingsFound(state: FeudumGameState): number {
 
 /** The markers a seat has out of its supply, apart from those in a Knight row. */
 function markersPlaced(state: FeudumGameState, playerId: string): number {
-    const { tracks, knight } = state.guilds
+    const { tracks } = state.guilds
     return sum([
         ...spaceStates(state).map(({ ruler, serf }) => {
             const asRuler = ruler?.playerId === playerId ? (ruler.subject ? 2 : 1) : 0
@@ -117,32 +118,54 @@ function markersPlaced(state: FeudumGameState, playerId: string): number {
                 holder?.playerId === playerId ? 1 : 0
             )
         ),
-        Object.values(knight.monsterIcons).filter((holder) => holder === playerId).length
+        MonsterIds.filter((monster) => state.monsters[monster].playerId === playerId).length
     ])
 }
 
-/** R-1.1, R-1.4.2 Per colour in use: dummy rows have a colour and no seat. */
+/** R-1.1, R-1.4.2 Per seat, and per colour of a dummy row: each owner's markers are all somewhere. */
 function markersBreaks(state: FeudumGameState): ConservationBreak[] {
-    const { rows } = state.guilds.knight
-    const colours = new Set<string>([
-        ...state.players.map((player) => player.color),
-        ...rows.map((row) => row.colour),
-        ...Object.keys(state.supply.influence)
-    ])
-    return [...colours].flatMap((colour) =>
-        total(
-            'markers',
-            ComponentTotals.markersPerColour,
-            sum([
-                state.supply.influence[colour] ?? 0,
-                ...state.players
-                    .filter((player) => player.color === colour)
-                    .map((seat) => seat.influenceSupply + markersPlaced(state, seat.playerId)),
-                ...rows.filter((row) => row.colour === colour).map((row) => row.markers)
-            ]),
-            colour
-        )
+    const rows = knightRows(state)
+    const rowMarkers = (owner: (row: KnightRowOwner) => boolean) =>
+        sum(rows.filter(({ row }) => owner(row.owner)).map(({ row }) => row.markers))
+    const seats = state.players.map(({ playerId }) => playerId)
+    const inHand = (playerId: string) =>
+        state.players.find((player) => player.playerId === playerId)?.influenceSupply ?? 0
+    const dummies = rows.flatMap(({ row }) =>
+        'dummyColour' in row.owner ? [row.owner.dummyColour] : []
     )
+    const strays: [string, number][] = [
+        ...Object.entries(state.supply.influence).filter(([key]) => !seats.includes(key)),
+        ...Object.entries(state.supply.dummyInfluence).filter(
+            ([key]) => !dummies.some((colour) => colour === key)
+        )
+    ]
+    return [
+        ...seats.flatMap((playerId) =>
+            total(
+                'markers',
+                ComponentTotals.markersPerColour,
+                sum([
+                    state.supply.influence[playerId] ?? 0,
+                    inHand(playerId),
+                    markersPlaced(state, playerId),
+                    rowMarkers((owner) => 'playerId' in owner && owner.playerId === playerId)
+                ]),
+                playerId
+            )
+        ),
+        ...dummies.flatMap((colour) =>
+            total(
+                'markers',
+                ComponentTotals.markersPerColour,
+                sum([
+                    state.supply.dummyInfluence[colour] ?? 0,
+                    rowMarkers((owner) => 'dummyColour' in owner && owner.dummyColour === colour)
+                ]),
+                colour
+            )
+        ),
+        ...strays.flatMap(([key, count]) => total('markers', 0, count, key))
+    ]
 }
 
 function vesselsFound(state: FeudumGameState, vessel: VesselType): number {

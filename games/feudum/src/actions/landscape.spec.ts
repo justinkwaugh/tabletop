@@ -6,7 +6,7 @@ import { MachineState } from '../definition/states.js'
 import { fillLandscape } from '../model/landscapes.js'
 import { landscapeTender, placeMarker } from '../model/locationControl.js'
 import { collectTileOf, giveGood, setUp, spaceOfKind } from '../testing/improving.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { endCardTurn, type Table, tableAtPlayingCards } from '../testing/table.js'
 import { collectLandscapesOffer, collectLandscapesPreview } from './collectLandscapes.js'
 import { tendLandscapeOffers, tendLandscapePreview } from './tendLandscape.js'
 
@@ -215,8 +215,8 @@ describe('R-4.3.4 filled and collected at once', () => {
         const ruler = before.getPlayerState(rulerId)
         const seatMarkers = seat.influenceSupply
         const rulerMarkers = ruler.influenceSupply
-        const seatGeneral = before.supply.influence[seat.color]
-        const rulerGeneral = before.supply.influence[ruler.color]
+        const seatGeneral = before.supply.influence[seat.playerId]
+        const rulerGeneral = before.supply.influence[ruler.playerId]
         const { targets } = before.supply
 
         const [action] = tend(start, true)
@@ -224,8 +224,8 @@ describe('R-4.3.4 filled and collected at once', () => {
         const after = table.hydrated()
         expect(after.getPlayerState(playerId).influenceSupply).toBe(seatMarkers + 2)
         expect(after.getPlayerState(rulerId).influenceSupply).toBe(rulerMarkers + 1)
-        expect(after.supply.influence[seat.color]).toBe(seatGeneral - 2)
-        expect(after.supply.influence[ruler.color]).toBe(rulerGeneral - 1)
+        expect(after.supply.influence[seat.playerId]).toBe(seatGeneral - 2)
+        expect(after.supply.influence[ruler.playerId]).toBe(rulerGeneral - 1)
         expect(after.supply.targets).toBe(targets)
         expect(action).toMatchObject({
             metadata: { collected: { kept: 2, paid: 1, seatMarkers: 2, rulerMarkers: 1 } }
@@ -247,8 +247,8 @@ describe('R-4.3.4 filled and collected at once', () => {
         let held = 0
         setUp(table, (state) => {
             const seat = state.getPlayerState(playerId)
-            seat.influenceSupply += state.supply.influence[seat.color] - 1
-            state.supply.influence[seat.color] = 1
+            seat.influenceSupply += state.supply.influence[seat.playerId] - 1
+            state.supply.influence[seat.playerId] = 1
             held = seat.influenceSupply
         })
         const knights = JSON.stringify(table.hydrated().guilds.knight)
@@ -259,7 +259,7 @@ describe('R-4.3.4 filled and collected at once', () => {
         const after = table.hydrated()
         const seat = after.getPlayerState(playerId)
         expect(seat.influenceSupply).toBe(held + 1)
-        expect(after.supply.influence[seat.color]).toBe(0)
+        expect(after.supply.influence[seat.playerId]).toBe(0)
         expect(after.supply.targets).toBe(targets)
         expect(JSON.stringify(after.guilds.knight)).toBe(knights)
         expect(action).toMatchObject({ metadata: { collected: { kept: 2, seatMarkers: 1 } } })
@@ -270,7 +270,7 @@ describe('R-4.3.4 filled and collected at once', () => {
         const { table, playerId } = start
         setUp(table, (state) => {
             const seat = state.getPlayerState(playerId)
-            state.supply.influence[seat.color] += seat.influenceSupply
+            state.supply.influence[seat.playerId] += seat.influenceSupply
             seat.influenceSupply = 0
             seat.pawns[1].character = 'monk'
             seat.pawns[1].spaceId = 'space.desert.3'
@@ -369,7 +369,7 @@ describe('R-4.3.4, R-4.12.3 CollectLandscapes', () => {
                 fillLandscape(state, spaceId)
             }
             state.recomputeRanks()
-            state.flow.turn = undefined
+            endCardTurn(state)
             state.flow.landscapes = { pending: [playerId, rulerId] }
             return MachineState.CollectingLandscapes
         })
@@ -428,8 +428,8 @@ describe('R-4.3.4, R-4.12.3 CollectLandscapes', () => {
         const { table, playerId, rulerId, spaceIds } = asked(['archery-butt'])
         table.moveTo((state) => {
             const seat = state.getPlayerState(playerId)
-            seat.influenceSupply += state.supply.influence[seat.color] - 1
-            state.supply.influence[seat.color] = 1
+            seat.influenceSupply += state.supply.influence[seat.playerId] - 1
+            state.supply.influence[seat.playerId] = 1
             return MachineState.CollectingLandscapes
         })
         const held = table.seat(playerId).influenceSupply

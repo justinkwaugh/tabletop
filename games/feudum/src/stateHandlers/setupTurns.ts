@@ -3,7 +3,6 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 /** R-1.4.8, R-1.4.9 Asks the next seat in turn order; after the last seat, the first again. */
 export function askNextSetupSeat(state: HydratedFeudumGameState): void {
     const playerId = state.turnManager.startNextTurn(state.actionCount)
-    state.flow.setupOrder = { playerId }
     state.activePlayerIds = [playerId]
 }
 

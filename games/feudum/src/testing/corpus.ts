@@ -27,6 +27,7 @@ import { ruleFarm, setBarn, setCarts, setMarket, setMaster, setPawns } from './g
 import { giveGood, setUp, spaceOfKind } from './improving.js'
 import { canonicalOf } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 /** The components the corpus sweeps go through: the reach sweep's routes and the playthrough's. */
 
@@ -647,9 +648,9 @@ export function roundTo(table: Table, seat: string): void {
 }
 
 export function expectTurnPassed(table: Table, seat: string): void {
-    const { turn } = table.hydrated().flow
-    expect(turn?.playerId).not.toBe(seat)
-    expect(turn?.playerId).toBeDefined()
+    const turnSeat = cardTurnSeat(table.hydrated())
+    expect(turnSeat).not.toBe(seat)
+    expect(turnSeat).toBeDefined()
 }
 
 /** R-3.2 Plays the card, answers what it asks, keeps no disc; the effect and the totals hold. */

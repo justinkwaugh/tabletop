@@ -18,6 +18,7 @@ import {
 } from './cardPlay.js'
 import { ForfeitCard, HydratedForfeitCard, reasonForfeitRefused } from './forfeitCard.js'
 import { HydratedPlayDefend, PlayDefend, reasonPlayDefendRefused } from './playDefend.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const HAND: ActionCardKind[] = ['move', 'tax', 'defend', 'conquer']
 const HAND_ORDER: ActionCardKind[] = ['move', 'tax', 'defend']
@@ -58,11 +59,8 @@ describe('ForfeitCard', () => {
         // R-3.2 One card at a time, clockwise.
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(second)
-        expect(table.state.flow.turn).toEqual({
-            playerId: second,
-            secondCard: false,
-            followUps: []
-        })
+        expect(cardTurnSeat(table.hydrated())).toBe(second)
+        expect(table.state.flow.turn).toEqual({ secondCard: false, followUps: [] })
     })
 
     it('R-3.2 plays any card in the hand, and refuses one that is not, with the reason', () => {
@@ -181,11 +179,8 @@ describe('R-3.3, R-3.3-H1 the sequential turn', () => {
         const [action] = forfeit(table, 'p1', 'move', true)
         expect(action.revealsInfo).toBeFalsy()
         expect(table.asked).toBe('p1')
-        expect(table.state.flow.turn).toEqual({
-            playerId: 'p1',
-            secondCard: true,
-            followUps: []
-        })
+        expect(cardTurnSeat(table.hydrated())).toBe('p1')
+        expect(table.state.flow.turn).toEqual({ secondCard: true, followUps: [] })
         expect(table.seat('p1').sequentialUsed).toBe(true)
 
         table.send('p1', { type: ActionType.PlayDefend })
@@ -261,7 +256,7 @@ describe('R-3.2-H1 a seat with no cards is skipped', () => {
             }
         }
         expect(table.asked).toBe('p2')
-        expect(table.state.flow.turn?.playerId).toBe('p2')
+        expect(cardTurnSeat(table.hydrated())).toBe('p2')
     })
 
     it('once every card is played the turn closes and the round moves on', () => {

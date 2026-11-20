@@ -65,14 +65,14 @@ export const TriggeredEpoch = Type.Union([
 
 export type FlowState = Type.Static<typeof FlowState>
 export const FlowState = Type.Object({
-    /** R-1.4.8, R-1.4.9 The seat choosing. */
-    setupOrder: Type.Optional(Type.Object({ playerId: Type.String() })),
     /** R-3.1-H1 The seats already final, in the order they finalised; the rest may finalise now. */
     selection: Type.Optional(Type.Object({ finalised: Type.Array(Type.String()) })),
-    /** R-3.2, R-3.3 The turn player, and what the current card still leaves in order. */
+    /**
+     * R-3.2, R-3.3 While cards are played: what the current card still leaves, in order. Whose turn
+     * it is lies in the turn manager (`cardTurnSeat`).
+     */
     turn: Type.Optional(
         Type.Object({
-            playerId: Type.String(),
             secondCard: Type.Boolean(),
             followUps: Type.Array(FollowUp),
             /** R-4.2.2, R-4.2-H2 Each vessel left on a space this turn, boarded only on a later turn. */
@@ -124,7 +124,10 @@ export const FlowState = Type.Object({
     ),
     /** R-4.10, R-4.10-H4 The seats still deciding, in turn order; each leaves as it feeds. */
     nourish: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
-    /** R-4.3.4, R-4.12.3 In turn order. */
+    /**
+     * R-4.3.4, R-4.12.3 The serfs still to be asked, in no order: the turn manager asks them one at
+     * a time, in turn order.
+     */
     landscapes: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
     /** R-4.11-H1 Set at step 4 of the round. */
     epochTriggered: Type.Optional(TriggeredEpoch)

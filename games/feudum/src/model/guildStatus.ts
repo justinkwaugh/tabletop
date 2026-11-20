@@ -9,6 +9,7 @@ import {
 } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import type { GuildTrack } from './guildsState.js'
+import { feudumGuildOf } from './locationDiscs.js'
 import { GuildIdSchema } from './stateSchemas.js'
 
 /** R-4.5 What one recompute did to one player in one guild, for an Action's metadata. */
@@ -37,9 +38,7 @@ export function statusStars(
         .getPlayerState(playerId)
         .pawns.filter((pawn) => pawn.spaceId !== undefined && pawn.character === guildId)
     const ruled = state.ruledSpaceIds(playerId).map((spaceId) => state.spaces[spaceId].location)
-    const feudums = ruled.filter(
-        (location) => location.kind === 'feudum' && location.feudumGuild === guildId
-    )
+    const feudums = ruled.filter((location) => feudumGuildOf(location) === guildId)
     const primary = pawns.length * StatusStarValues.pawn + feudums.length * StatusStarValues.feudum
     if (primary === 0) {
         return 0

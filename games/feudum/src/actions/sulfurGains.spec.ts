@@ -10,7 +10,7 @@ import { FarmerMandate, giveTile, tableInWindow } from '../testing/atWill.js'
 import { holdWrit } from '../testing/combat.js'
 import { setMarket, setMaster, setPawns, setShillings, tableAtGuild } from '../testing/guilds.js'
 import { collectTileOf, giveGood, setUp, spaceOfKind } from '../testing/improving.js'
-import { tableAtPlayingCards } from '../testing/table.js'
+import { endCardTurn, giveCardTurn, tableAtPlayingCards } from '../testing/table.js'
 import { merchantTradeOffers } from '../guilds/merchant.js'
 import { chooseFavoursOffer, reasonChooseFavoursRefused } from './chooseFavours.js'
 import { tendLandscapePreview } from './tendLandscape.js'
@@ -146,7 +146,7 @@ describe('R-4.10.2 a sulfur mine collected at a dawn', () => {
             seat.regionTiles = seat.regionTiles.filter((id) => id !== start.tileId)
             state.spaces[start.spaceId].landscape = { tileId: start.tileId, amount: 0 }
             fillLandscape(state, start.spaceId)
-            state.flow.turn = undefined
+            endCardTurn(state)
             state.flow.landscapes = { pending: [start.playerId] }
             return MachineState.CollectingLandscapes
         })
@@ -196,8 +196,7 @@ describe('R-4.10.2 favours chosen from a harvest', () => {
                 drawn,
                 favours: 2
             }
-            state.flow.turn = { playerId, secondCard: false, followUps: [] }
-            state.flow.turn.followUps.push({ kind: 'inspect-harvest', playerId })
+            giveCardTurn(state, playerId, { followUps: [{ kind: 'inspect-harvest', playerId }] })
             return MachineState.InspectingHarvest
         })
         return { table, playerId }

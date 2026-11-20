@@ -53,7 +53,7 @@ export function placeStartingDiscs(
     return recordFrom(
         Spaces.map((space) => space.id),
         (_, index) => ({
-            location: { kind: discs[index].kind, discId: discs[index].id, face: 'a' },
+            location: { kind: discs[index].kind, discId: discs[index].id },
             goods: goodCounts(),
             vessels: vesselCounts()
         })
@@ -101,7 +101,7 @@ function emptyGuilds(): GuildsState {
             ),
             vesselsForSale: []
         },
-        knight: { rows: [], monsterIcons: { behemoth: null, 'sea-serpent': null } },
+        knight: { rows: {} },
         noble: {
             scrolls: recordFrom(
                 ScrollSpaces.map((space) => space.id),
@@ -140,8 +140,9 @@ export function boxContents(players: FeudumPlayerState[]): BoxContents {
             haversack,
             shillings: ComponentTotals.shillings,
             influence: Object.fromEntries(
-                players.map((player) => [player.color, ComponentTotals.markersPerColour])
+                players.map((player) => [player.playerId, ComponentTotals.markersPerColour])
             ),
+            dummyInfluence: {},
             vessels,
             targets: ComponentTotals.targets,
             discs: [...DoubleSidedDiscs, ...FeudumDiscs].map((disc) => disc.id),

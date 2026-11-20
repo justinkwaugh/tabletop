@@ -61,13 +61,30 @@ export interface CollectLandscapesInput {
     readonly sulfurToBarrel?: number
 }
 
+/** R-4.12.3 The serf asked to collect now: the turn manager's current turn, while serfs are asked. */
+export function serfAsked(state: HydratedFeudumGameState): string | undefined {
+    const seat = state.turnManager.currentTurn()?.playerId
+    return seat && state.flow.landscapes?.pending.includes(seat) ? seat : undefined
+}
+
+/** R-4.12.3 Asks the next serf still to answer, in turn order, with a turn of its own. */
+export function askNextSerf(state: HydratedFeudumGameState): string | undefined {
+    const { landscapes } = state.flow
+    if (landscapes && !state.turnManager.currentTurn()) {
+        const next = state.turnManager.turnOrder.find((seat) => landscapes.pending.includes(seat))
+        assertExists(next, 'R-4.12.3 A serf is still to be asked')
+        state.turnManager.startTurn(next, state.actionCount)
+    }
+    return serfAsked(state)
+}
+
 /** R-4.3.4, R-4.12.3, R-4.10.2 The asked serf's own tended landscapes, each with resources. */
 export function reasonCollectLandscapesRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     { spaceIds, sulfurToBarrel }: CollectLandscapesInput
 ): string | undefined {
-    if (state.flow.landscapes?.pending[0] !== playerId) {
+    if (serfAsked(state) !== playerId) {
         return "It isn't your turn to collect."
     }
     if (new Set(spaceIds).size !== spaceIds.length) {
@@ -118,7 +135,7 @@ export function collectLandscapesOffer(
     state: HydratedFeudumGameState,
     playerId: string
 ): CollectLandscapesOffer | undefined {
-    if (state.flow.landscapes?.pending[0] !== playerId) {
+    if (serfAsked(state) !== playerId) {
         return undefined
     }
     const spaceIds = tendedLandscapes(state, playerId)
@@ -170,7 +187,7 @@ export class HydratedCollectLandscapes
         super(data, CollectLandscapesValidator)
     }
 
-    /** R-4.3.4, R-4.12.3 Public resources: never a barrier. Then the next serf is asked. */
+    /** R-4.3.4, R-4.12.3 Public resources: never a barrier. The serf's turn ends; the next is asked. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonCollectLandscapesRefused(state, this.playerId, this)
         if (reason) {
@@ -184,7 +201,8 @@ export class HydratedCollectLandscapes
 
         const { landscapes } = state.flow
         assertExists(landscapes, 'R-4.12.3 The serfs are being asked')
-        landscapes.pending.shift()
+        state.turnManager.endTurn(state.actionCount)
+        landscapes.pending = landscapes.pending.filter((seat) => seat !== this.playerId)
         if (landscapes.pending.length === 0) {
             state.flow.landscapes = undefined
         }

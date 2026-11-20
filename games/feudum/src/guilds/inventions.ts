@@ -2,7 +2,7 @@ import { assertExists } from '@tabletop/common'
 import { Goods, VesselTypes } from '../data/components.js'
 import { KnightSections, KrudBarrels, VesselInventions } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
-import type { KnightRow } from '../model/guildsState.js'
+import { changeOwnerSupply, knightRows, ownerSupply } from '../model/knightRows.js'
 import { cartsHold, takeFromCart } from '../model/market.js'
 import { goodCounts, type GoodCounts } from '../model/stateSchemas.js'
 import { returnGoodToHaversack } from '../model/supply.js'
@@ -22,29 +22,30 @@ function leadingSectionRoom(markers: number): number {
     return 0
 }
 
-/** R-4.6.6, R-4.6-H8 One barrel: every row's leading unfilled section, as far as the supply has. */
-function fillLeadingSections(rows: KnightRow[], influence: Record<string, number>): RowFill[] {
-    return rows.flatMap(({ colour, playerId, markers }, index) => {
-        const added = Math.min(leadingSectionRoom(markers), influence[colour] ?? 0)
+type RowsAndSupply = Pick<HydratedFeudumGameState, 'guilds' | 'supply'>
+
+/** R-4.6.6, R-4.6-H8 One barrel: every row's leading unfilled section, as far as its owner's supply has. */
+function fillLeadingSections(state: RowsAndSupply): RowFill[] {
+    return knightRows(state).flatMap(({ rowId, row }) => {
+        const added = Math.min(leadingSectionRoom(row.markers), ownerSupply(state, row.owner))
         if (added === 0) {
             return []
         }
-        rows[index].markers += added
-        influence[colour] -= added
-        return [{ colour, ...(playerId ? { playerId } : {}), added }]
+        row.markers += added
+        changeOwnerSupply(state, row.owner, -added)
+        return [{ rowId, owner: row.owner, added }]
     })
 }
 
 /** R-4.6.6, R-4.6-H8 How many barrels can be invented: each needs a row with an unfilled section. */
 function barrelsLeft(state: HydratedFeudumGameState): number {
-    const rows = state.guilds.knight.rows.map((row) => ({ ...row }))
-    const influence = { ...state.supply.influence }
+    const trial = structuredClone({ guilds: state.guilds, supply: state.supply })
     let barrels = 0
     while (
         barrels < KrudBarrels.length &&
-        rows.some(({ markers }) => leadingSectionRoom(markers) > 0)
+        knightRows(trial).some(({ row }) => leadingSectionRoom(row.markers) > 0)
     ) {
-        fillLeadingSections(rows, influence)
+        fillLeadingSections(trial)
         barrels += 1
     }
     return barrels
@@ -117,7 +118,7 @@ export function makeInventions(
     const barrels: RowFill[][] = []
     for (const invention of inventions) {
         if (invention === 'krud-barrel') {
-            barrels.push(fillLeadingSections(state.guilds.knight.rows, state.supply.influence))
+            barrels.push(fillLeadingSections(state))
         } else {
             state.supply.vessels[invention] -= 1
             state.guilds.alchemist.vesselsForSale.push(invention)

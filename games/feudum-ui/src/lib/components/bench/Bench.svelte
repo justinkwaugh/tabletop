@@ -2,7 +2,7 @@
     import type { Snippet } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
     import type { Color } from '@tabletop/common'
-    import type { HydratedFeudumGameState } from '@tabletop/feudum'
+    import type { HydratedFeudumGameState, KnightRowId } from '@tabletop/feudum'
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
     import PrimaryButton from '$lib/components/panel/PrimaryButton.svelte'
     import StagedMoves from '$lib/components/panel/StagedMoves.svelte'
@@ -10,7 +10,7 @@
     import type { BenchChoice, BenchOffer } from '$lib/model/benchOffer.js'
     import { benchViewOf } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
-    import type { SeatPaint } from '$lib/model/seatPaint.js'
+    import { ownerPaint, type SeatPaint } from '$lib/model/seatPaint.js'
     import { BenchFit } from '$lib/model/benchFit.svelte.js'
     import BenchArea from './BenchArea.svelte'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
@@ -55,9 +55,9 @@
 
     let view = $derived(benchViewOf(bench, state, playerId))
 
-    function rowPaint(row: number): SeatPaint | undefined {
-        const held = state.guilds.knight.rows.at(row)
-        return held && (held.playerId ? paintOf(held.playerId) : colourPaintOf(held.colour))
+    function rowPaint(row: KnightRowId): SeatPaint | undefined {
+        const held = state.guilds.knight.rows[row]
+        return held && ownerPaint(held.owner, paintOf, colourPaintOf)
     }
 
     /** The long side at which every area stands whole above the footer, side by side. */

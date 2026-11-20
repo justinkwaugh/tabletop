@@ -10,7 +10,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { isPinned } from '../model/media.js'
 import { writDeckCount } from '../model/writDeck.js'
 import { giveTile } from '../testing/atWill.js'
-import { buildFeudum } from '../testing/combat.js'
+import { buildFeudum, giveMonster } from '../testing/combat.js'
 import {
     setBeads,
     setCarts,
@@ -27,6 +27,7 @@ import { setUp } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
 import { specialShortOfGood } from './cardPlay.js'
 import { Feast, feastOffers, feastPreview, reasonFeastRefused, type FeastInput } from './feast.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const actionProjector = Visibility.createActionProjector(FeudumApiActions)
 const R1C1 = 'guild.noble.scroll.r1c1'
@@ -88,7 +89,7 @@ describe('Feast: R-3.16.3 an opponent’s own function, for barrel sulfur', () =
         expect(seat.played).toEqual([{ kind: 'guild', use: 'special' }])
         expect(seat.requireHand()).not.toContain('guild')
         expect(state.guilds.alchemist.carts['guild.alchemist.cart.iron-3']).toBe(true)
-        expect(state.flow.turn?.playerId).not.toBe(playerId)
+        expect(cardTurnSeat(state)).not.toBe(playerId)
         expect(action).toMatchObject({
             metadata: {
                 fn: 'push',
@@ -282,7 +283,7 @@ describe('Feast: R-3.16-H1, R-3.16-H2 what a threshold changes', () => {
         table.send(playerId, { type: ActionType.KeepWrits, keep: [drawn[0]] })
         const state = table.hydrated()
         expect(state.machineState).toBe(MachineState.PlayingCards)
-        expect(state.flow.turn?.playerId).not.toBe(playerId)
+        expect(cardTurnSeat(state)).not.toBe(playerId)
     })
 
     it('R-3.16-H2 a pull below its threshold scores the 3 alone, with no writ', () => {
@@ -351,7 +352,7 @@ describe('Feast: R-3.16.3 what it refuses', () => {
         const { table, playerId, others } = feastTable((state, seat, rest) => {
             merchantMaster(state, seat, rest)
             state.getPlayerState(seat).pawns[0].spaceId = Elsewhere
-            state.monsters.behemoth = { playerId: seat, spaceId: StandingSpace }
+            giveMonster(state, seat, 'behemoth', StandingSpace)
         })
         expect(() => table.send(playerId, feastOn(others[0]))).toThrow('You have no pawn there.')
     })
@@ -359,7 +360,7 @@ describe('Feast: R-3.16.3 what it refuses', () => {
     it('R-4.2-H1 a pawn pinned by a monster may still feast, and is offered it', () => {
         const { table, playerId, others } = feastTable((state, seat, rest) => {
             merchantMaster(state, seat, rest)
-            state.monsters.behemoth = { playerId: rest[1], spaceId: StandingSpace }
+            giveMonster(state, rest[1], 'behemoth', StandingSpace)
         })
         const before = table.hydrated()
         const knight = before.getPlayerState(playerId).pawns[0]

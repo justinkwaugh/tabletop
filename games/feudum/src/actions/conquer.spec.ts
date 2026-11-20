@@ -16,6 +16,7 @@ import {
 } from '../testing/combat.js'
 import { setUp, spaceOfKind } from '../testing/improving.js'
 import { conquerOffers, reasonConquerRefused } from './conquer.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 describe('R-3.13.1 what Conquer may target', () => {
     it('R-3.13.1 records the character a pawn target shows, for the sentence', () => {
@@ -201,7 +202,7 @@ describe('R-3.13.1 what Conquer may target', () => {
 
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(attackerId)
-        expect(table.state.flow.turn?.playerId).toBe(attackerId)
+        expect(cardTurnSeat(table.hydrated())).toBe(attackerId)
     })
 })
 
@@ -217,7 +218,7 @@ describe('R-3.14-H1, R-X.2 whom Conquer asks', () => {
         expect(table.offered(defenderId)).toEqual([ActionType.AnswerAttack])
         expect(table.offered(attackerId)).toEqual([])
         expect(table.offered(thirdId)).toEqual([])
-        expect(table.state.flow.turn?.playerId).toBe(attackerId)
+        expect(cardTurnSeat(table.hydrated())).toBe(attackerId)
         expect(action.revealsInfo).toBe(true)
     })
 

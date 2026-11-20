@@ -1,4 +1,5 @@
 import { Color } from '@tabletop/common'
+import type { KnightRowOwner } from '@tabletop/feudum'
 import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 
@@ -89,4 +90,13 @@ export function colourPaint(
     colour: Color
 ): SeatPaint {
     return paintOfFill(colors.getUiColor(colour), colour, colour)
+}
+
+/** R-1.4-H1 A Knight row's paint: its seat's, or its dummy colour's as shown. */
+export function ownerPaint(
+    owner: KnightRowOwner,
+    paintOf: (playerId: string) => SeatPaint,
+    colourPaintOf: (colour: Color) => SeatPaint
+): SeatPaint {
+    return 'playerId' in owner ? paintOf(owner.playerId) : colourPaintOf(owner.dummyColour)
 }

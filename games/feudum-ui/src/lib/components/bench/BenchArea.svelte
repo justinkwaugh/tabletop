@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
-    import type { HydratedFeudumGameState } from '@tabletop/feudum'
+    import type { HydratedFeudumGameState, KnightRowId } from '@tabletop/feudum'
     import GuildArea from '$lib/components/guilds/GuildArea.svelte'
     import UprightArea from '$lib/components/guilds/UprightArea.svelte'
     import RoseChip from '$lib/components/pieces/RoseChip.svelte'
@@ -36,7 +36,7 @@
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
         colourPaintOf: (colour: Color) => SeatPaint
-        rowPaint: (row: number) => SeatPaint | undefined
+        rowPaint: (row: KnightRowId) => SeatPaint | undefined
         pointer: RowPointer
         onPress: (choice: PanelChoice) => void
     } = $props()

@@ -3,6 +3,7 @@ import { flushSync } from 'svelte'
 import { assertExists } from '@tabletop/common'
 import {
     ActionType,
+    cardTurnSeat,
     DiscardAnyTime,
     HydratedFeudumGameState,
     MachineState,
@@ -203,7 +204,7 @@ describe('R-2.2 Jump', () => {
         await settled(session)
 
         expect(session.currentAction?.index).toBe(13)
-        expect(session.gameState.flow.turn?.playerId).toBe(seat)
+        expect(cardTurnSeat(session.gameState)).toBe(seat)
     })
 
     it('R-4.12 A dawn shows the table as it ended: its round`s end, not the next round', async () => {

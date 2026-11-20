@@ -1,9 +1,10 @@
-import { Color } from '@tabletop/common'
 import * as Type from 'typebox'
+import { KnightRowOwner } from '../model/guildsState.js'
 import {
     ChickenSpaceIdSchema,
     GoodCounts,
     GoodSchema,
+    KnightRowIdSchema,
     SealIdSchema,
     VesselTypeSchema
 } from '../model/stateSchemas.js'
@@ -81,11 +82,11 @@ const AlchemistTradeDetails = Type.Object({
 export type InventionChoice = Type.Static<typeof InventionChoice>
 export const InventionChoice = Type.Union([VesselTypeSchema, Type.Literal('krud-barrel')])
 
-/** R-4.6.6 What one krud barrel added to one Knight row. A dummy row has no `playerId`. */
+/** R-4.6.6 What one krud barrel added to one Knight row, and whose row it is. */
 export type RowFill = Type.Static<typeof RowFill>
 export const RowFill = Type.Object({
-    colour: Type.Enum(Color),
-    playerId: Type.Optional(Type.String()),
+    rowId: KnightRowIdSchema,
+    owner: KnightRowOwner,
     added: Type.Integer({ minimum: 1 })
 })
 
@@ -104,11 +105,11 @@ const KnightTradeDetails = Type.Object({
     price: Type.Integer({ minimum: 0 })
 })
 
-/** R-4.6.4, R-4.6.5 A row a marker left. A dummy row has no `playerId`. */
+/** R-4.6.4, R-4.6.5 A row a marker left, and whose it is. */
 export type KnightRowLeft = Type.Static<typeof KnightRowLeft>
 export const KnightRowLeft = Type.Object({
-    colour: Type.Enum(Color),
-    playerId: Type.Optional(Type.String())
+    rowId: KnightRowIdSchema,
+    owner: KnightRowOwner
 })
 
 /** R-4.6.5 The rows the markers left and both counts. The seals are named in no record (R-X.2). */

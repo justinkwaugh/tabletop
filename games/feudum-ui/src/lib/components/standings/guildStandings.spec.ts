@@ -29,7 +29,7 @@ function markupOn(numPlayers: number): string {
         if (numPlayers > 3) {
             setPawns(state, 'p4', ['monk'])
             const player = state.getPlayerState('p4')
-            state.supply.influence[player.color] += player.influenceSupply
+            state.supply.influence[player.playerId] += player.influenceSupply
             player.influenceSupply = 0
         }
     })

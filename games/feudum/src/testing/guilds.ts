@@ -11,6 +11,7 @@ import {
 } from '../data/guilds.js'
 import { Seals, type BeadValue, type SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { changeOwnerSupply, knightRows } from '../model/knightRows.js'
 import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { chickenBeads } from '../model/guildsState.js'
@@ -127,9 +128,9 @@ export function setVesselsForSale(
 
 /** Each Knight row, in order, holds this many markers, keeping totals. */
 export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly number[]): void {
-    state.guilds.knight.rows.forEach((row, index) => {
+    knightRows(state).forEach(({ row }, index) => {
         const wanted = markers.at(index) ?? row.markers
-        state.supply.influence[row.colour] -= wanted - row.markers
+        changeOwnerSupply(state, row.owner, row.markers - wanted)
         row.markers = wanted
     })
 }

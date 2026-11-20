@@ -1,4 +1,4 @@
-import { strengthOf, type HydratedFeudumGameState } from '@tabletop/feudum'
+import { serfAsked, strengthOf, type HydratedFeudumGameState } from '@tabletop/feudum'
 import { tallyLines, type TallyLine } from './cardFlows.js'
 
 /**
@@ -30,12 +30,13 @@ function entriesOf(
     pending: readonly string[],
     asked: 'together' | 'in-turn'
 ): readonly OrderRowEntry[] {
+    const next = serfAsked(state)
     return state.turnManager.turnOrder.map((playerId) => {
         const done = !pending.includes(playerId)
         return {
             playerId,
             done,
-            ...(asked === 'together' ? { deciding: !done } : { next: pending[0] === playerId })
+            ...(asked === 'together' ? { deciding: !done } : { next: next === playerId })
         }
     })
 }

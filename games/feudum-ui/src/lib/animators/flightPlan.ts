@@ -1,15 +1,10 @@
 import type { GameAction } from '@tabletop/common'
 import {
+    beadValue,
     ChickenSpaces,
-    type ChickenSpaceId,
     FarmerPurse,
     Goods,
     GuildTrackSpaces,
-    KnightMonsterIcons,
-    MonkCoffer,
-    ScrollSpaces,
-    Spaces,
-    beadValue,
     hiddenBeadCandidates,
     isCommitAttack,
     isExplore,
@@ -20,9 +15,15 @@ import {
     isMove,
     isPlaceDisc,
     isPlayMandate,
+    KnightMonsterIcons,
+    MonkCoffer,
+    ScrollSpaces,
+    seatKnightRow,
+    Spaces,
     tileById,
     type BeadValue,
     type Character,
+    type ChickenSpaceId,
     type Good,
     type HydratedFeudumGameState,
     type LandscapeKind,
@@ -32,6 +33,7 @@ import {
     type TileId,
     type WritId
 } from '@tabletop/feudum'
+import { knightMarkerPiece, rowLane } from '$lib/model/knightLanes.js'
 import { writFaceShown } from '$lib/model/perspective.js'
 import {
     GoodSize,
@@ -351,15 +353,15 @@ function markerPlaces(
             })
         }
     }
-    for (const row of state.guilds.knight.rows) {
-        if (row.playerId === playerId) {
-            for (let column = 1; column <= row.markers; column += 1) {
-                put({
-                    piece: `knight:${row.colour}:${column}`,
-                    point: guildPoint('knight', knightCell(row.colour, column)),
-                    size: scaled
-                })
-            }
+    const own = seatKnightRow(state, playerId)
+    if (own) {
+        const lane = rowLane(state, own.row.owner)
+        for (let column = 1; column <= own.row.markers; column += 1) {
+            put({
+                piece: knightMarkerPiece(own.rowId, column),
+                point: guildPoint('knight', knightCell(lane, column)),
+                size: scaled
+            })
         }
     }
     return places
@@ -387,15 +389,14 @@ function flyMarkers(plan: FlightBuilder, { from, to }: FlightChange, at: number)
         const slidFrom = new Set(gained.map(({ slide }) => slide).filter(Boolean))
         const iconed = KnightMonsterIcons.filter(
             ({ monster }) =>
-                to.guilds.knight.monsterIcons[monster] === playerId &&
-                from.guilds.knight.monsterIcons[monster] !== playerId
+                to.monsters[monster].playerId === playerId &&
+                from.monsters[monster].playerId !== playerId
         ).length
-        const row = from.guilds.knight.rows.find((one) => one.playerId === playerId)
+        const own = seatKnightRow(from, playerId)
         const onIcon = new Set(
-            row
-                ? Array.from(
-                      { length: iconed },
-                      (_, index) => `knight:${row.colour}:${row.markers - index}`
+            own
+                ? Array.from({ length: iconed }, (_, index) =>
+                      knightMarkerPiece(own.rowId, own.row.markers - index)
                   )
                 : []
         )

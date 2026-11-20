@@ -6,6 +6,7 @@
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
     import type { GhostPiece } from '$lib/model/benchView.js'
     import { sealFaceShown } from '$lib/model/perspective.js'
+    import type { KnightRowId } from '@tabletop/feudum'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
     /** A piece as it would land. R-5-H1 A seal is the same crowned disc to all. */
@@ -20,7 +21,7 @@
         size: number
         x?: number
         y?: number
-        rowPaint: (row: number) => SeatPaint | undefined
+        rowPaint: (row: KnightRowId) => SeatPaint | undefined
     } = $props()
 
     let paint = $derived(piece.kind === 'marker' ? rowPaint(piece.row) : undefined)

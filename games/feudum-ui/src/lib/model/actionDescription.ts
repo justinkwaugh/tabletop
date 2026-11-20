@@ -739,8 +739,10 @@ function countsOf(rows: number, columns: number, count?: 'rows' | 'columns'): st
     return count ? `${both}, counting ${count}` : both
 }
 
-function rowName({ colour, playerId }: KnightRowLeft | RowFill, words: Words): string {
-    return playerId ? `${words.whose(playerId)} row` : `the ${colour} row`
+function rowName({ owner }: KnightRowLeft | RowFill, words: Words): string {
+    return 'playerId' in owner
+        ? `${words.whose(owner.playerId)} row`
+        : `the ${owner.dummyColour} row`
 }
 
 /** R-4.6 What a function moved, and where; R-5-H1 a seal is named only when it flips to a bead. */

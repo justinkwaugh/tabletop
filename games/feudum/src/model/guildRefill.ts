@@ -1,4 +1,4 @@
-import { Color, shuffle } from '@tabletop/common'
+import { shuffle } from '@tabletop/common'
 import * as Type from 'typebox'
 import { VesselTypes, type VesselType } from '../data/components.js'
 import {
@@ -10,12 +10,15 @@ import {
 } from '../data/guilds.js'
 import { drawGoods } from './haversack.js'
 import type { HydratedFeudumGameState } from './gameState.js'
+import { KnightRowOwner } from './guildsState.js'
+import { changeOwnerSupply, knightRows, ownerSupply } from './knightRows.js'
 import { goodsTotal } from './market.js'
 import { flipSeal, moveConcealedSeal } from './seals.js'
 import {
     ChickenSpaceIdSchema,
     ComponentCount,
     GoodSchema,
+    KnightRowIdSchema,
     ScrollSpaceIdSchema,
     SealIdSchema,
     VesselTypeSchema
@@ -30,9 +33,9 @@ export const GuildRefill = Type.Object({
     vessels: Type.Array(VesselTypeSchema),
     knightRows: Type.Array(
         Type.Object({
-            /** R-1.4-H1 A dummy row has no seat, and is known by its colour. */
-            colour: Type.Enum(Color),
-            playerId: Type.Optional(Type.String()),
+            rowId: KnightRowIdSchema,
+            /** R-1.4-H1 A seat's row, or a dummy row known by its colour. */
+            owner: KnightRowOwner,
             added: ComponentCount
         })
     ),
@@ -93,19 +96,17 @@ function refillVessels(state: HydratedFeudumGameState): VesselType[] {
     return drawVesselsForSale(state, Math.max(short, 0))
 }
 
-/** R-4.12.5, R-1.1-H1 Every row, dummy rows too, from the general supply of its colour. */
+/** R-4.12.5, R-1.1-H1 Every row, dummy rows too, from its owner's markers in the general supply. */
 function refillKnightRows(state: HydratedFeudumGameState): GuildRefill['knightRows'] {
-    const { influence } = state.supply
-    return state.guilds.knight.rows.flatMap((row) => {
+    return knightRows(state).flatMap(({ rowId, row }) => {
         const short = GuildSetupSpaces.knight.markersPerRow - row.markers
-        const added = Math.min(Math.max(short, 0), influence[row.colour] ?? 0)
+        const added = Math.min(Math.max(short, 0), ownerSupply(state, row.owner))
         if (added === 0) {
             return []
         }
         row.markers += added
-        influence[row.colour] -= added
-        const { colour, playerId } = row
-        return [{ colour, ...(playerId ? { playerId } : {}), added }]
+        changeOwnerSupply(state, row.owner, -added)
+        return [{ rowId, owner: row.owner, added }]
     })
 }
 

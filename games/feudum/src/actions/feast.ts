@@ -23,6 +23,7 @@ import {
 } from '../guilds/registry.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf } from '../model/guildStatus.js'
+import { feudumGuildOf } from '../model/locationDiscs.js'
 import { GuildIdSchema, SpaceIdSchema } from '../model/stateSchemas.js'
 import { returnGoodToHaversack } from '../model/supply.js'
 import {
@@ -111,7 +112,7 @@ function guildsOfPieces(
 ): GuildId[] {
     const pawns = state.players.find((player) => player.playerId === playerId)?.pawns ?? []
     const { location, ruler } = state.spaces[spaceId]
-    const feudum = ruler?.playerId === playerId ? location.feudumGuild : undefined
+    const feudum = ruler?.playerId === playerId ? feudumGuildOf(location) : undefined
     return [
         ...new Set([
             ...pawns.flatMap((pawn) =>

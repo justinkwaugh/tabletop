@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
     Goods,
     HydratedFeudumGameState,
+    knightRows,
     RoyalWrits,
     VesselTypes,
     writDeckCount
@@ -137,11 +138,14 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
         }
     })
 
-    it("R-1.4.2 counts influence by colour, a seat's from the colourizer and named by seat", async () => {
+    it("R-1.4.2 counts influence by seat and dummy colour, a seat's named by seat", async () => {
         const state = await table()
         const html = group(card(state), 'Influence markers')
         for (const colour of PrintedColours) {
-            const held = state.supply.influence[colour]
+            const seat = state.players.find((player) => player.color === colour)
+            const held = seat
+                ? state.supply.influence[seat.playerId]
+                : state.supply.dummyInfluence[colour]
             if (held !== undefined) {
                 expect(counted(html, `influence-${colour}`)).toBe(`${held}`)
             } else {
@@ -152,9 +156,9 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
             expect(html).toContain(`seat-${playerId}`)
             expect(html).toContain(`>name-${playerId}<`)
         }
-        const dummy = state.guilds.knight.rows.find(({ playerId }) => !playerId)
-        if (dummy) {
-            expect(html).toContain(`colour-${dummy.colour}`)
+        const dummy = knightRows(state).find(({ row }) => 'dummyColour' in row.owner)?.row.owner
+        if (dummy && 'dummyColour' in dummy) {
+            expect(html).toContain(`colour-${dummy.dummyColour}`)
         }
     })
 

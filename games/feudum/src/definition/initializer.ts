@@ -26,6 +26,7 @@ import {
     AlchemistCartSpaces,
     ChickenSpaces,
     GuildSetupSpaces,
+    KnightRowIds,
     MarketSpaces,
     MinimumKnightRows
 } from '../data/guilds.js'
@@ -36,6 +37,8 @@ import { drawVesselsForSale } from '../model/guildRefill.js'
 import { flipSeal, moveConcealedSeal } from '../model/seals.js'
 import { payShillingsFromSupply, takeGoodFromHaversack } from '../model/supply.js'
 import { emptyPlayerRow, type FeudumPlayerState } from '../model/playerState.js'
+import type { KnightRowOwner } from '../model/guildsState.js'
+import { changeOwnerSupply } from '../model/knightRows.js'
 import { FeudumColors } from './colors.js'
 import { PhaseName } from './phases.js'
 import { MachineState } from './states.js'
@@ -50,7 +53,7 @@ function shuffled<T>(items: readonly T[], random: RandomFunction): T[] {
 function dealPersonalSupplies(state: HydratedFeudumGameState) {
     for (const player of state.players) {
         player.influenceSupply = StartingSupply.markers
-        state.supply.influence[player.color] -= StartingSupply.markers
+        state.supply.influence[player.playerId] -= StartingSupply.markers
         player.goods.food = takeGoodFromHaversack(state, 'food', StartingSupply.food)
         payShillingsFromSupply(state, player.playerId, StartingSupply.shillings)
     }
@@ -94,24 +97,27 @@ function fillGuildGoods(state: HydratedFeudumGameState) {
     }
 }
 
-/** R-1.3, R-1.4-H1 A row per seat, then dummy rows in unused colours; both from the general supply. */
+/**
+ * R-1.3, R-1.4-H1 A row per seat, then dummy rows in unused colours, under ids in that order; their
+ * markers come from the general supply, a dummy row's from its colour's own.
+ */
 function fillKnightRows(state: HydratedFeudumGameState) {
-    const { influence } = state.supply
     const markers = GuildSetupSpaces.knight.markersPerRow
     const dummyColours = FeudumColors.filter(
         (colour) => !state.players.some((player) => player.color === colour)
     ).slice(0, Math.max(MinimumKnightRows - state.numPlayers, 0))
 
     for (const colour of dummyColours) {
-        influence[colour] = ComponentTotals.markersPerColour
+        state.supply.dummyInfluence[colour] = ComponentTotals.markersPerColour
     }
-    state.guilds.knight.rows = [
-        ...state.players.map(({ color, playerId }) => ({ colour: color, playerId, markers })),
-        ...dummyColours.map((colour) => ({ colour, markers }))
+    const owners: KnightRowOwner[] = [
+        ...state.players.map(({ playerId }) => ({ playerId })),
+        ...dummyColours.map((dummyColour) => ({ dummyColour }))
     ]
-    for (const row of state.guilds.knight.rows) {
-        influence[row.colour] -= row.markers
-    }
+    owners.forEach((owner, index) => {
+        state.guilds.knight.rows[KnightRowIds[index]] = { owner, markers }
+        changeOwnerSupply(state, owner, -markers)
+    })
 }
 
 /** R-1.4.5 Scrolls red side up; rosary and chicken flipped to beads; the rest stay in the pile. */

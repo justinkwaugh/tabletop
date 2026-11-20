@@ -30,18 +30,14 @@
       },
       {
         "op": "replace",
-        "path": "/players/0/goods/saltpeter",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/goods/iron",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/goods/wood",
-        "value": 0
+        "path": "/players/0/goods",
+        "value": {
+          "saltpeter": 0,
+          "sulfur": 0,
+          "iron": 0,
+          "wood": 0,
+          "food": 7
+        }
       },
       {
         "op": "remove",
@@ -58,23 +54,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/saltpeter",
-        "value": 22
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 20
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 17
-      },
-      {
-        "op": "replace",
-        "path": "/flow/setupOrder/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 22,
+          "sulfur": 23,
+          "iron": 20,
+          "wood": 17,
+          "food": 29
+        }
       }
     ]
   },
@@ -110,13 +97,14 @@
       },
       {
         "op": "replace",
-        "path": "/players/1/goods/iron",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/goods/wood",
-        "value": 0
+        "path": "/players/1/goods",
+        "value": {
+          "saltpeter": 0,
+          "sulfur": 0,
+          "iron": 0,
+          "wood": 0,
+          "food": 7
+        }
       },
       {
         "op": "replace",
@@ -143,23 +131,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 23
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 19
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/flow/setupOrder/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 21,
+          "sulfur": 23,
+          "iron": 19,
+          "wood": 16,
+          "food": 29
+        }
       }
     ]
   },
@@ -204,12 +183,11 @@
         "value": 7
       },
       {
-        "op": "remove",
-        "path": "/players/0/pawns/0/character"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/pawns/0/spaceId"
+        "op": "replace",
+        "path": "/players/0/pawns/0",
+        "value": {
+          "n": 1
+        }
       },
       {
         "op": "remove",
@@ -227,11 +205,6 @@
       {
         "op": "remove",
         "path": "/guilds/tracks/noble/master"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/setupOrder/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -281,12 +254,11 @@
         "value": 7
       },
       {
-        "op": "remove",
-        "path": "/players/1/pawns/0/character"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/pawns/0/spaceId"
+        "op": "replace",
+        "path": "/players/1/pawns/0",
+        "value": {
+          "n": 1
+        }
       },
       {
         "op": "replace",
@@ -305,13 +277,6 @@
       {
         "op": "remove",
         "path": "/guilds/tracks/farmer/master"
-      },
-      {
-        "op": "add",
-        "path": "/flow/setupOrder",
-        "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU"
-        }
       }
     ]
   },
@@ -320,7 +285,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.767Z",
+    "createdAt": "2026-11-20T05:14:17.430Z",
     "metadata": {
       "round": 1,
       "drunk": []
@@ -328,12 +293,9 @@
     "index": 4,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -395,20 +357,9 @@
         "value": 2035878287
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -453,20 +404,9 @@
         "value": 1450219857
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -480,7 +420,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.776Z",
+    "createdAt": "2026-11-20T05:14:17.433Z",
     "metadata": {
       "pouches": []
     },
@@ -528,17 +468,15 @@
         "path": "/phaseManager/series/2"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw",
-            "xVxV1Xn5UQq54-oz_yKWU"
-          ]
+          "selection": {
+            "finalised": [
+              "1xR9m1pAy_W5irFjMM2pw",
+              "xVxV1Xn5UQq54-oz_yKWU"
+            ]
+          }
         }
       }
     ]
@@ -589,7 +527,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.779Z",
+    "createdAt": "2026-11-20T05:14:17.435Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -623,11 +561,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 2
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -694,7 +627,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.781Z",
+    "createdAt": "2026-11-20T05:14:17.437Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -728,11 +661,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 2
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -926,7 +854,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.788Z",
+    "createdAt": "2026-11-20T05:14:17.443Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -960,11 +888,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 3
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -1017,12 +940,11 @@
         "value": 5
       },
       {
-        "op": "remove",
-        "path": "/players/1/pawns/1/character"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/pawns/1/spaceId"
+        "op": "replace",
+        "path": "/players/1/pawns/1",
+        "value": {
+          "n": 2
+        }
       },
       {
         "op": "replace",
@@ -1054,7 +976,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.791Z",
+    "createdAt": "2026-11-20T05:14:17.445Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -1088,11 +1010,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 3
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -1142,7 +1059,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.794Z",
+    "createdAt": "2026-11-20T05:14:17.446Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -1176,11 +1093,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 4
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -1230,7 +1142,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.796Z",
+    "createdAt": "2026-11-20T05:14:17.447Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -1264,11 +1176,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 4
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -1318,7 +1225,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.799Z",
+    "createdAt": "2026-11-20T05:14:17.448Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -1352,11 +1259,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 5
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -1406,7 +1308,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.801Z",
+    "createdAt": "2026-11-20T05:14:17.450Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -1450,7 +1352,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "secondCard": false,
           "followUps": []
         }
@@ -1462,7 +1363,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.801Z",
+    "createdAt": "2026-11-20T05:14:17.450Z",
     "metadata": {
       "fed": [
         {
@@ -1585,7 +1486,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.808Z",
+    "createdAt": "2026-11-20T05:14:17.452Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -1657,7 +1558,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.812Z",
+    "createdAt": "2026-11-20T05:14:17.453Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
@@ -1681,68 +1582,48 @@
         "value": -351512493
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "influence",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "influence",
+            "use": "forfeited"
+          },
+          {
+            "kind": "conquer",
+            "use": "regular"
+          },
+          {
+            "kind": "tax",
+            "use": "forfeited"
+          },
+          {
+            "kind": "harvest",
+            "use": "forfeited"
+          }
+        ]
       },
       {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "conquer",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "tax",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "harvest",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "influence",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "migrate",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "conquer",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "tax",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "influence",
+            "use": "regular"
+          },
+          {
+            "kind": "migrate",
+            "use": "regular"
+          },
+          {
+            "kind": "conquer",
+            "use": "forfeited"
+          },
+          {
+            "kind": "tax",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -1751,13 +1632,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "1xR9m1pAy_W5irFjMM2pw",
+          "xVxV1Xn5UQq54-oz_yKWU"
+        ]
       },
       {
         "op": "remove",
@@ -1770,7 +1649,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.815Z",
+    "createdAt": "2026-11-20T05:14:17.454Z",
     "metadata": {
       "round": 2,
       "drunk": []
@@ -1778,12 +1657,9 @@
     "index": 30,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -1845,20 +1721,9 @@
         "value": -876935376
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -1903,20 +1768,9 @@
         "value": 610759067
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -1930,7 +1784,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.821Z",
+    "createdAt": "2026-11-20T05:14:17.457Z",
     "metadata": {
       "pouches": []
     },
@@ -1978,17 +1832,15 @@
         "path": "/phaseManager/series/6"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU",
-            "1xR9m1pAy_W5irFjMM2pw"
-          ]
+          "selection": {
+            "finalised": [
+              "xVxV1Xn5UQq54-oz_yKWU",
+              "1xR9m1pAy_W5irFjMM2pw"
+            ]
+          }
         }
       }
     ]
@@ -2046,7 +1898,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.827Z",
+    "createdAt": "2026-11-20T05:14:17.458Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -2080,11 +1932,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 6
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -2169,13 +2016,14 @@
       },
       {
         "op": "replace",
-        "path": "/players/0/goods/saltpeter",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/goods/sulfur",
-        "value": 0
+        "path": "/players/0/goods",
+        "value": {
+          "saltpeter": 0,
+          "sulfur": 0,
+          "iron": 1,
+          "wood": 1,
+          "food": 6
+        }
       },
       {
         "op": "replace",
@@ -2232,7 +2080,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.830Z",
+    "createdAt": "2026-11-20T05:14:17.460Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -2266,11 +2114,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 6
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -2343,12 +2186,14 @@
         }
       },
       {
-        "op": "remove",
-        "path": "/flow/turn/followUps/0"
-      },
-      {
-        "op": "remove",
-        "path": "/flow/writDraw"
+        "op": "replace",
+        "path": "/flow",
+        "value": {
+          "turn": {
+            "secondCard": false,
+            "followUps": []
+          }
+        }
       }
     ]
   },
@@ -2422,171 +2267,46 @@
       },
       {
         "op": "replace",
-        "path": "/writDeck/top",
-        "value": 2
-      },
-      {
-        "op": "replace",
-        "path": "/writDeck/nextBottom",
-        "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/0/slot",
-        "value": 2
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/0/writId",
-        "value": "writ.mandate.2"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/1/slot",
-        "value": 3
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/1/writId",
-        "value": "writ.charter.eastern-kingdom"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/2/slot",
-        "value": 4
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/2/writId",
-        "value": "writ.mandate.4"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/3/slot",
-        "value": 5
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/3/writId",
-        "value": "writ.charter.western-kingdom"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/4/slot",
-        "value": 6
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/4/writId",
-        "value": "writ.mandate.5"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/5/slot",
-        "value": 7
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/5/writId",
-        "value": "writ.mandate.7"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/6/slot",
-        "value": 8
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/6/writId",
-        "value": "writ.charter.sulfur-barrel"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/7/slot",
-        "value": 9
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/7/writId",
-        "value": "writ.mandate.8"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/8/slot",
-        "value": 10
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/8/writId",
-        "value": "writ.charter.monster-defeat"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/9/slot",
-        "value": 11
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/9/writId",
-        "value": "writ.charter.isolated-kingdom"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/10/slot",
-        "value": 12
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/10/writId",
-        "value": "writ.charter.central-kingdom"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/11/slot",
-        "value": 13
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/11/writId",
-        "value": "writ.charter.northern-kingdom"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/12/slot",
-        "value": 14
-      },
-      {
-        "op": "replace",
-        "path": "/vault/writDeck/12/writId",
-        "value": "writ.mandate.1"
-      },
-      {
-        "op": "add",
-        "path": "/vault/writDeck/13",
+        "path": "/writDeck",
         "value": {
-          "slot": 15,
-          "writId": "writ.mandate.6"
+          "top": 2,
+          "nextBottom": 16
         }
       },
       {
-        "op": "replace",
-        "path": "/flow/writDraw/source",
-        "value": "explore"
+        "op": "add",
+        "path": "/vault/writDeck/0",
+        "value": {
+          "slot": 2,
+          "writId": "writ.mandate.2"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/vault/writDeck/1",
+        "value": {
+          "slot": 3,
+          "writId": "writ.charter.eastern-kingdom"
+        }
+      },
+      {
+        "op": "remove",
+        "path": "/vault/writDeck/14"
       },
       {
         "op": "replace",
-        "path": "/flow/writDraw/shovelsOffered",
-        "value": true
-      },
-      {
-        "op": "replace",
-        "path": "/flow/writDraw/drawn/0",
-        "value": "writ.charter.southern-kingdom"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/writDraw/drawn/1",
-        "value": "writ.mandate.3"
+        "path": "/flow/writDraw",
+        "value": {
+          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+          "drawnCount": 2,
+          "keep": 1,
+          "source": "explore",
+          "shovelsOffered": true,
+          "drawn": [
+            "writ.charter.southern-kingdom",
+            "writ.mandate.3"
+          ]
+        }
       }
     ]
   },
@@ -2684,7 +2404,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.835Z",
+    "createdAt": "2026-11-20T05:14:17.465Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -2718,11 +2438,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 7
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -2789,7 +2504,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.837Z",
+    "createdAt": "2026-11-20T05:14:17.466Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -2823,11 +2538,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 7
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -3003,7 +2713,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.842Z",
+    "createdAt": "2026-11-20T05:14:17.472Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -3037,11 +2747,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 8
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -3091,7 +2796,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.844Z",
+    "createdAt": "2026-11-20T05:14:17.473Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -3125,11 +2830,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 8
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -3179,7 +2879,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.846Z",
+    "createdAt": "2026-11-20T05:14:17.474Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -3213,11 +2913,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 9
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -3267,7 +2962,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.848Z",
+    "createdAt": "2026-11-20T05:14:17.476Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -3311,7 +3006,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "secondCard": false,
           "followUps": []
         }
@@ -3323,7 +3017,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.848Z",
+    "createdAt": "2026-11-20T05:14:17.476Z",
     "metadata": {
       "fed": [
         {
@@ -3446,7 +3140,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.850Z",
+    "createdAt": "2026-11-20T05:14:17.477Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -3518,7 +3212,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.851Z",
+    "createdAt": "2026-11-20T05:14:17.478Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
@@ -3542,36 +3236,26 @@
         "value": -1677940793
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "influence",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "conquer",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "repeat",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "influence",
+            "use": "regular"
+          },
+          {
+            "kind": "conquer",
+            "use": "forfeited"
+          },
+          {
+            "kind": "repeat",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "add",
@@ -3579,36 +3263,26 @@
         "value": "merchant"
       },
       {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "explore",
-          "use": "special"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "influence",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "repeat",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "explore",
+            "use": "special"
+          },
+          {
+            "kind": "influence",
+            "use": "regular"
+          },
+          {
+            "kind": "repeat",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -3617,13 +3291,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "xVxV1Xn5UQq54-oz_yKWU",
+          "1xR9m1pAy_W5irFjMM2pw"
+        ]
       },
       {
         "op": "remove",
@@ -3636,7 +3308,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.851Z",
+    "createdAt": "2026-11-20T05:14:17.478Z",
     "metadata": {
       "round": 3,
       "drunk": []
@@ -3644,12 +3316,9 @@
     "index": 58,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -3711,20 +3380,9 @@
         "value": 61675662
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -3769,20 +3427,9 @@
         "value": 390875731
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -3796,7 +3443,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.854Z",
+    "createdAt": "2026-11-20T05:14:17.481Z",
     "metadata": {
       "pouches": []
     },
@@ -3844,17 +3491,15 @@
         "path": "/phaseManager/series/10"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw",
-            "xVxV1Xn5UQq54-oz_yKWU"
-          ]
+          "selection": {
+            "finalised": [
+              "1xR9m1pAy_W5irFjMM2pw",
+              "xVxV1Xn5UQq54-oz_yKWU"
+            ]
+          }
         }
       }
     ]
@@ -3985,47 +3630,17 @@
       },
       {
         "op": "replace",
-        "path": "/vault/sealPile/0",
-        "value": "seal.9"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/1",
-        "value": "seal.8"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/2",
-        "value": "seal.1"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/3",
-        "value": "seal.3"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/4",
-        "value": "seal.6"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/5",
-        "value": "seal.4"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/6",
-        "value": "seal.14"
-      },
-      {
-        "op": "replace",
-        "path": "/vault/sealPile/7",
-        "value": "seal.2"
-      },
-      {
-        "op": "remove",
-        "path": "/vault/sealPile/8"
+        "path": "/vault/sealPile",
+        "value": [
+          "seal.9",
+          "seal.8",
+          "seal.1",
+          "seal.3",
+          "seal.6",
+          "seal.4",
+          "seal.14",
+          "seal.2"
+        ]
       },
       {
         "op": "remove",
@@ -4097,7 +3712,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.859Z",
+    "createdAt": "2026-11-20T05:14:17.485Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -4131,11 +3746,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 10
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -4207,13 +3817,11 @@
       },
       {
         "op": "replace",
-        "path": "/spaces/space.desert.3/location/kind",
-        "value": "outpost"
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.desert.3/location/discId",
-        "value": "disc.start.6"
+        "path": "/spaces/space.desert.3/location",
+        "value": {
+          "kind": "outpost",
+          "discId": "disc.start.6"
+        }
       },
       {
         "op": "add",
@@ -4230,114 +3838,13 @@
         "value": 15
       },
       {
-        "op": "replace",
+        "op": "add",
         "path": "/supply/discs/0",
         "value": "disc.double.1"
       },
       {
-        "op": "replace",
-        "path": "/supply/discs/1",
-        "value": "disc.double.2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/2",
-        "value": "disc.double.3"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/3",
-        "value": "disc.double.4"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/4",
-        "value": "disc.double.5"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/5",
-        "value": "disc.double.6"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/6",
-        "value": "disc.double.7"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/7",
-        "value": "disc.double.8"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/8",
-        "value": "disc.double.9"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/9",
-        "value": "disc.double.10"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/10",
-        "value": "disc.feudum.farmer-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/11",
-        "value": "disc.feudum.farmer-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/12",
-        "value": "disc.feudum.merchant-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/13",
-        "value": "disc.feudum.merchant-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/14",
-        "value": "disc.feudum.alchemist-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/15",
-        "value": "disc.feudum.alchemist-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/16",
-        "value": "disc.feudum.knight-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/17",
-        "value": "disc.feudum.knight-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/18",
-        "value": "disc.feudum.noble-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/19",
-        "value": "disc.feudum.noble-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/20",
-        "value": "disc.feudum.monk-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/21",
-        "value": "disc.feudum.monk-2"
+        "op": "remove",
+        "path": "/supply/discs/22"
       },
       {
         "op": "add",
@@ -4351,7 +3858,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.862Z",
+    "createdAt": "2026-11-20T05:14:17.486Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -4385,11 +3892,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 10
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -4442,12 +3944,11 @@
         "value": 5
       },
       {
-        "op": "remove",
-        "path": "/players/0/pawns/1/character"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/pawns/1/spaceId"
+        "op": "replace",
+        "path": "/players/0/pawns/1",
+        "value": {
+          "n": 2
+        }
       },
       {
         "op": "replace",
@@ -4479,7 +3980,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.863Z",
+    "createdAt": "2026-11-20T05:14:17.488Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -4513,11 +4014,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 11
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -4721,7 +4217,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.869Z",
+    "createdAt": "2026-11-20T05:14:17.492Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -4755,11 +4251,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 11
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -4804,13 +4295,14 @@
       },
       {
         "op": "replace",
-        "path": "/players/0/goods/saltpeter",
-        "value": 2
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/goods/food",
-        "value": 4
+        "path": "/players/0/goods",
+        "value": {
+          "saltpeter": 2,
+          "sulfur": 1,
+          "iron": 1,
+          "wood": 1,
+          "food": 4
+        }
       },
       {
         "op": "replace",
@@ -4818,12 +4310,11 @@
         "value": 4
       },
       {
-        "op": "remove",
-        "path": "/players/0/pawns/2/character"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/pawns/2/spaceId"
+        "op": "replace",
+        "path": "/players/0/pawns/2",
+        "value": {
+          "n": 3
+        }
       },
       {
         "op": "replace",
@@ -4850,13 +4341,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/saltpeter",
-        "value": 22
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/food",
-        "value": 38
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 22,
+          "sulfur": 22,
+          "iron": 18,
+          "wood": 16,
+          "food": 38
+        }
       }
     ]
   },
@@ -4865,7 +4357,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.871Z",
+    "createdAt": "2026-11-20T05:14:17.493Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -4899,11 +4391,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 12
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -4953,7 +4440,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.873Z",
+    "createdAt": "2026-11-20T05:14:17.495Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -4987,11 +4474,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 12
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -5048,7 +4530,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.875Z",
+    "createdAt": "2026-11-20T05:14:17.496Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -5082,11 +4564,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 13
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -5136,7 +4613,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.877Z",
+    "createdAt": "2026-11-20T05:14:17.497Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -5180,7 +4657,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "secondCard": false,
           "followUps": []
         }
@@ -5192,7 +4668,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.877Z",
+    "createdAt": "2026-11-20T05:14:17.498Z",
     "metadata": {
       "fed": [
         {
@@ -5327,7 +4803,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.880Z",
+    "createdAt": "2026-11-20T05:14:17.499Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -5404,7 +4880,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.881Z",
+    "createdAt": "2026-11-20T05:14:17.500Z",
     "metadata": {
       "epoch": 2,
       "sheet": [
@@ -5528,7 +5004,7 @@
     "type": "ReplenishMap",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.882Z",
+    "createdAt": "2026-11-20T05:14:17.501Z",
     "metadata": {
       "goods": [
         {
@@ -5616,23 +5092,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/saltpeter",
-        "value": 23
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 22
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 18
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/food",
-        "value": 43
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 23,
+          "sulfur": 22,
+          "iron": 18,
+          "wood": 16,
+          "food": 43
+        }
       }
     ]
   },
@@ -5641,7 +5108,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.883Z",
+    "createdAt": "2026-11-20T05:14:17.502Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
@@ -5665,38 +5132,28 @@
         "value": -159393481
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "conquer",
-          "use": "special"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "migrate",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "repeat",
-          "use": "regular",
-          "replayedKind": "migrate",
-          "dejaVu": true
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "conquer",
+            "use": "special"
+          },
+          {
+            "kind": "migrate",
+            "use": "regular"
+          },
+          {
+            "kind": "repeat",
+            "use": "regular",
+            "replayedKind": "migrate",
+            "dejaVu": true
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -5704,36 +5161,26 @@
         "value": true
       },
       {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "improve",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "explore",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "repeat",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "improve",
+            "use": "regular"
+          },
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "explore",
+            "use": "forfeited"
+          },
+          {
+            "kind": "repeat",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "add",
@@ -5747,13 +5194,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "1xR9m1pAy_W5irFjMM2pw",
+          "xVxV1Xn5UQq54-oz_yKWU"
+        ]
       },
       {
         "op": "remove",
@@ -5766,7 +5211,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.884Z",
+    "createdAt": "2026-11-20T05:14:17.502Z",
     "metadata": {
       "round": 4,
       "drunk": [
@@ -5779,12 +5224,9 @@
     "index": 88,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -5851,20 +5293,9 @@
         "value": 1794810227
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -5909,20 +5340,9 @@
         "value": -324227735
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -5936,7 +5356,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.887Z",
+    "createdAt": "2026-11-20T05:14:17.504Z",
     "metadata": {
       "pouches": []
     },
@@ -5984,17 +5404,15 @@
         "path": "/phaseManager/series/15"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU",
-            "1xR9m1pAy_W5irFjMM2pw"
-          ]
+          "selection": {
+            "finalised": [
+              "xVxV1Xn5UQq54-oz_yKWU",
+              "1xR9m1pAy_W5irFjMM2pw"
+            ]
+          }
         }
       }
     ]
@@ -6063,7 +5481,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.889Z",
+    "createdAt": "2026-11-20T05:14:17.506Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -6097,11 +5515,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 14
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -6235,7 +5648,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.891Z",
+    "createdAt": "2026-11-20T05:14:17.508Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -6269,11 +5682,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 14
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -6352,18 +5760,11 @@
       },
       {
         "op": "replace",
-        "path": "/spaces/space.desert.3/location/kind",
-        "value": "farm"
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.desert.3/location/discId",
-        "value": "disc.double.1"
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.desert.3/location/face",
-        "value": "a"
+        "path": "/spaces/space.desert.3/location",
+        "value": {
+          "kind": "farm",
+          "discId": "disc.double.1"
+        }
       },
       {
         "op": "add",
@@ -6380,114 +5781,13 @@
         "value": 16
       },
       {
-        "op": "replace",
+        "op": "add",
         "path": "/supply/discs/0",
         "value": "disc.double.2"
       },
       {
-        "op": "replace",
-        "path": "/supply/discs/1",
-        "value": "disc.double.3"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/2",
-        "value": "disc.double.4"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/3",
-        "value": "disc.double.5"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/4",
-        "value": "disc.double.6"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/5",
-        "value": "disc.double.7"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/6",
-        "value": "disc.double.8"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/7",
-        "value": "disc.double.9"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/8",
-        "value": "disc.double.10"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/9",
-        "value": "disc.feudum.farmer-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/10",
-        "value": "disc.feudum.farmer-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/11",
-        "value": "disc.feudum.merchant-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/12",
-        "value": "disc.feudum.merchant-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/13",
-        "value": "disc.feudum.alchemist-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/14",
-        "value": "disc.feudum.alchemist-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/15",
-        "value": "disc.feudum.knight-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/16",
-        "value": "disc.feudum.knight-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/17",
-        "value": "disc.feudum.noble-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/18",
-        "value": "disc.feudum.noble-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/19",
-        "value": "disc.feudum.monk-1"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/20",
-        "value": "disc.feudum.monk-2"
-      },
-      {
-        "op": "replace",
-        "path": "/supply/discs/21",
-        "value": "disc.start.6"
+        "op": "remove",
+        "path": "/supply/discs/22"
       },
       {
         "op": "add",
@@ -6501,7 +5801,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.894Z",
+    "createdAt": "2026-11-20T05:14:17.509Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -6535,11 +5835,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 15
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -6704,7 +5999,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.897Z",
+    "createdAt": "2026-11-20T05:14:17.512Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -6738,11 +6033,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 15
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -6805,7 +6095,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.900Z",
+    "createdAt": "2026-11-20T05:14:17.514Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -6839,11 +6129,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -6918,7 +6203,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.902Z",
+    "createdAt": "2026-11-20T05:14:17.515Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -6952,11 +6237,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -7013,7 +6293,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.904Z",
+    "createdAt": "2026-11-20T05:14:17.516Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -7047,11 +6327,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 17
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -7108,7 +6383,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.905Z",
+    "createdAt": "2026-11-20T05:14:17.518Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -7152,7 +6427,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "secondCard": false,
           "followUps": []
         }
@@ -7164,7 +6438,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.906Z",
+    "createdAt": "2026-11-20T05:14:17.518Z",
     "metadata": {
       "fed": [
         {
@@ -7214,34 +6488,25 @@
         "value": 610695580
       },
       {
-        "op": "add",
-        "path": "/players/0/pawns/0/character",
-        "value": "noble"
-      },
-      {
-        "op": "add",
-        "path": "/players/0/pawns/0/spaceId",
-        "value": "space.forest.3"
-      },
-      {
-        "op": "add",
-        "path": "/players/0/pawns/1/character",
-        "value": "alchemist"
-      },
-      {
-        "op": "add",
-        "path": "/players/0/pawns/1/spaceId",
-        "value": "space.desert.4"
-      },
-      {
-        "op": "add",
-        "path": "/players/0/pawns/2/character",
-        "value": "knight"
-      },
-      {
-        "op": "add",
-        "path": "/players/0/pawns/2/spaceId",
-        "value": "space.desert.4"
+        "op": "replace",
+        "path": "/players/0/pawns",
+        "value": [
+          {
+            "n": 1,
+            "character": "noble",
+            "spaceId": "space.forest.3"
+          },
+          {
+            "n": 2,
+            "character": "alchemist",
+            "spaceId": "space.desert.4"
+          },
+          {
+            "n": 3,
+            "character": "knight",
+            "spaceId": "space.desert.4"
+          }
+        ]
       },
       {
         "op": "remove",
@@ -7337,19 +6602,14 @@
         "value": 3
       },
       {
-        "op": "add",
-        "path": "/players/1/pawns/0/character",
-        "value": "farmer"
-      },
-      {
-        "op": "add",
-        "path": "/players/1/pawns/0/spaceId",
-        "value": "space.desert.3"
-      },
-      {
-        "op": "add",
-        "path": "/players/1/pawns/0/vessel",
-        "value": "flying-machine"
+        "op": "replace",
+        "path": "/players/1/pawns/0",
+        "value": {
+          "n": 1,
+          "character": "farmer",
+          "spaceId": "space.desert.3",
+          "vessel": "flying-machine"
+        }
       },
       {
         "op": "replace",
@@ -7362,35 +6622,40 @@
         "value": 0
       },
       {
-        "op": "add",
-        "path": "/guilds/tracks/farmer/master",
+        "op": "replace",
+        "path": "/guilds/tracks",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
-          "reeve": true
-        }
-      },
-      {
-        "op": "add",
-        "path": "/guilds/tracks/alchemist/master",
-        "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
-          "reeve": false
-        }
-      },
-      {
-        "op": "add",
-        "path": "/guilds/tracks/knight/master",
-        "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
-          "reeve": false
-        }
-      },
-      {
-        "op": "add",
-        "path": "/guilds/tracks/noble/master",
-        "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
-          "reeve": false
+          "farmer": {
+            "master": {
+              "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+              "reeve": true
+            }
+          },
+          "merchant": {
+            "master": {
+              "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+              "reeve": false
+            }
+          },
+          "alchemist": {
+            "master": {
+              "playerId": "1xR9m1pAy_W5irFjMM2pw",
+              "reeve": false
+            }
+          },
+          "knight": {
+            "master": {
+              "playerId": "1xR9m1pAy_W5irFjMM2pw",
+              "reeve": false
+            }
+          },
+          "noble": {
+            "master": {
+              "playerId": "1xR9m1pAy_W5irFjMM2pw",
+              "reeve": false
+            }
+          },
+          "monk": {}
         }
       },
       {
@@ -7409,7 +6674,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.909Z",
+    "createdAt": "2026-11-20T05:14:17.520Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -7481,7 +6746,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.909Z",
+    "createdAt": "2026-11-20T05:14:17.521Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
@@ -7510,37 +6775,27 @@
         "value": -1668222587
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "move",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "repeat",
-          "use": "regular",
-          "replayedKind": "move"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "influence",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "move",
+            "use": "regular"
+          },
+          {
+            "kind": "repeat",
+            "use": "regular",
+            "replayedKind": "move"
+          },
+          {
+            "kind": "influence",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -7558,36 +6813,26 @@
         "value": "drunk"
       },
       {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "influence",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "improve",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "influence",
+            "use": "regular"
+          },
+          {
+            "kind": "improve",
+            "use": "regular"
+          },
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -7596,13 +6841,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "xVxV1Xn5UQq54-oz_yKWU",
+          "1xR9m1pAy_W5irFjMM2pw"
+        ]
       },
       {
         "op": "remove",
@@ -7620,7 +6863,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.910Z",
+    "createdAt": "2026-11-20T05:14:17.521Z",
     "metadata": {
       "round": 5,
       "drunk": []
@@ -7628,12 +6871,9 @@
     "index": 113,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -7695,20 +6935,9 @@
         "value": -958126427
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -7753,20 +6982,9 @@
         "value": 1379560316
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -7780,7 +6998,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.914Z",
+    "createdAt": "2026-11-20T05:14:17.523Z",
     "metadata": {
       "pouches": []
     },
@@ -7828,17 +7046,15 @@
         "path": "/phaseManager/series/19"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw",
-            "xVxV1Xn5UQq54-oz_yKWU"
-          ]
+          "selection": {
+            "finalised": [
+              "1xR9m1pAy_W5irFjMM2pw",
+              "xVxV1Xn5UQq54-oz_yKWU"
+            ]
+          }
         }
       }
     ]
@@ -7908,43 +7124,25 @@
       },
       {
         "op": "replace",
-        "path": "/spaces/space.forest.3/goods/saltpeter",
-        "value": 0
+        "path": "/spaces/space.forest.3/goods",
+        "value": {
+          "saltpeter": 0,
+          "sulfur": 0,
+          "iron": 0,
+          "wood": 0,
+          "food": 0
+        }
       },
       {
         "op": "replace",
-        "path": "/spaces/space.forest.3/goods/sulfur",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/goods/iron",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/goods/wood",
-        "value": 0
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/saltpeter",
-        "value": 22
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 21
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 17
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 16
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 22,
+          "sulfur": 21,
+          "iron": 17,
+          "wood": 16,
+          "food": 42
+        }
       }
     ]
   },
@@ -7953,7 +7151,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.916Z",
+    "createdAt": "2026-11-20T05:14:17.525Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -7987,11 +7185,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 18
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -8192,7 +7385,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.921Z",
+    "createdAt": "2026-11-20T05:14:17.528Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -8226,11 +7419,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 18
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -8336,23 +7524,14 @@
       },
       {
         "op": "replace",
-        "path": "/spaces/space.forest.3/goods/saltpeter",
-        "value": 1
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/goods/sulfur",
-        "value": 1
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/goods/iron",
-        "value": 2
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/goods/wood",
-        "value": 1
+        "path": "/spaces/space.forest.3/goods",
+        "value": {
+          "saltpeter": 1,
+          "sulfur": 1,
+          "iron": 2,
+          "wood": 1,
+          "food": 0
+        }
       },
       {
         "op": "replace",
@@ -8361,18 +7540,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 20
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 15
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 15
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 21,
+          "sulfur": 20,
+          "iron": 15,
+          "wood": 15,
+          "food": 42
+        }
       },
       {
         "op": "replace",
@@ -8386,7 +7561,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.923Z",
+    "createdAt": "2026-11-20T05:14:17.530Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -8420,11 +7595,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 19
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -8525,7 +7695,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.925Z",
+    "createdAt": "2026-11-20T05:14:17.531Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -8559,11 +7729,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 19
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -8642,18 +7807,11 @@
       },
       {
         "op": "replace",
-        "path": "/spaces/space.forest.3/location/kind",
-        "value": "farm"
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/location/discId",
-        "value": "disc.start.2"
-      },
-      {
-        "op": "replace",
-        "path": "/spaces/space.forest.3/location/face",
-        "value": "a"
+        "path": "/spaces/space.forest.3/location",
+        "value": {
+          "kind": "farm",
+          "discId": "disc.start.2"
+        }
       },
       {
         "op": "add",
@@ -8686,7 +7844,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.927Z",
+    "createdAt": "2026-11-20T05:14:17.533Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -8720,11 +7878,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 20
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -8787,7 +7940,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.929Z",
+    "createdAt": "2026-11-20T05:14:17.534Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -8821,11 +7974,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 20
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -8882,7 +8030,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.931Z",
+    "createdAt": "2026-11-20T05:14:17.536Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -8916,11 +8064,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 21
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -8970,7 +8113,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.933Z",
+    "createdAt": "2026-11-20T05:14:17.537Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -9014,7 +8157,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "secondCard": false,
           "followUps": []
         }
@@ -9026,7 +8168,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.934Z",
+    "createdAt": "2026-11-20T05:14:17.538Z",
     "metadata": {
       "fed": []
     },
@@ -9119,14 +8261,13 @@
         "value": 4
       },
       {
-        "op": "add",
-        "path": "/players/1/pawns/1/character",
-        "value": "merchant"
-      },
-      {
-        "op": "add",
-        "path": "/players/1/pawns/1/spaceId",
-        "value": "space.desert.1"
+        "op": "replace",
+        "path": "/players/1/pawns/1",
+        "value": {
+          "n": 2,
+          "character": "merchant",
+          "spaceId": "space.desert.1"
+        }
       },
       {
         "op": "replace",
@@ -9157,7 +8298,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.936Z",
+    "createdAt": "2026-11-20T05:14:17.539Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -9235,7 +8376,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.937Z",
+    "createdAt": "2026-11-20T05:14:17.540Z",
     "metadata": {
       "epoch": 3,
       "sheet": [
@@ -9335,7 +8476,7 @@
     "type": "ReplenishMap",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.938Z",
+    "createdAt": "2026-11-20T05:14:17.540Z",
     "metadata": {
       "goods": [
         {
@@ -9418,23 +8559,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 21
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 18
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/food",
-        "value": 42
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 21,
+          "sulfur": 21,
+          "iron": 18,
+          "wood": 16,
+          "food": 42
+        }
       }
     ]
   },
@@ -9444,7 +8576,7 @@
     "type": "ReplenishGuilds",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.939Z",
+    "createdAt": "2026-11-20T05:14:17.541Z",
     "metadata": {
       "market": [
         "guild.merchant.space.saltpeter-3",
@@ -9531,18 +8663,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/saltpeter",
-        "value": 21
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 20
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/food",
-        "value": 40
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 21,
+          "sulfur": 20,
+          "iron": 16,
+          "wood": 15,
+          "food": 40
+        }
       },
       {
         "op": "replace",
@@ -9561,7 +8689,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.940Z",
+    "createdAt": "2026-11-20T05:14:17.542Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
@@ -9585,36 +8713,26 @@
         "value": -1371171905
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "harvest",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "improve",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "harvest",
+            "use": "regular"
+          },
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "improve",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          }
+        ]
       },
       {
         "op": "add",
@@ -9622,36 +8740,26 @@
         "value": "farmer"
       },
       {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "move",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "migrate",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "move",
+            "use": "regular"
+          },
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "migrate",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "add",
@@ -9670,13 +8778,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "1xR9m1pAy_W5irFjMM2pw",
+          "xVxV1Xn5UQq54-oz_yKWU"
+        ]
       },
       {
         "op": "remove",
@@ -9689,7 +8795,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.941Z",
+    "createdAt": "2026-11-20T05:14:17.542Z",
     "metadata": {
       "round": 6,
       "drunk": []
@@ -9697,12 +8803,9 @@
     "index": 141,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -9764,20 +8867,9 @@
         "value": -350800832
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -9822,20 +8914,9 @@
         "value": -1568813128
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -9849,7 +8930,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.944Z",
+    "createdAt": "2026-11-20T05:14:17.545Z",
     "metadata": {
       "pouches": []
     },
@@ -9897,17 +8978,15 @@
         "path": "/phaseManager/series/24"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU",
-            "1xR9m1pAy_W5irFjMM2pw"
-          ]
+          "selection": {
+            "finalised": [
+              "xVxV1Xn5UQq54-oz_yKWU",
+              "1xR9m1pAy_W5irFjMM2pw"
+            ]
+          }
         }
       }
     ]
@@ -9971,7 +9050,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.946Z",
+    "createdAt": "2026-11-20T05:14:17.546Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -10005,11 +9084,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 22
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -10081,13 +9155,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 17
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 15
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 20,
+          "sulfur": 17,
+          "iron": 16,
+          "wood": 15,
+          "food": 38
+        }
       }
     ]
   },
@@ -10096,7 +9171,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.948Z",
+    "createdAt": "2026-11-20T05:14:17.548Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -10130,11 +9205,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 22
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -10191,7 +9261,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.950Z",
+    "createdAt": "2026-11-20T05:14:17.550Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -10225,11 +9295,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 23
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -10292,7 +9357,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.952Z",
+    "createdAt": "2026-11-20T05:14:17.551Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -10326,11 +9391,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 23
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -10380,7 +9440,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.954Z",
+    "createdAt": "2026-11-20T05:14:17.552Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -10414,11 +9474,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 24
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -10468,7 +9523,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.956Z",
+    "createdAt": "2026-11-20T05:14:17.554Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -10502,11 +9557,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 24
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -10556,7 +9606,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.958Z",
+    "createdAt": "2026-11-20T05:14:17.555Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -10590,11 +9640,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 25
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -10644,7 +9689,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.960Z",
+    "createdAt": "2026-11-20T05:14:17.557Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -10688,7 +9733,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "secondCard": false,
           "followUps": []
         }
@@ -10700,7 +9744,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.961Z",
+    "createdAt": "2026-11-20T05:14:17.557Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
@@ -10742,7 +9786,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.962Z",
+    "createdAt": "2026-11-20T05:14:17.558Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -10814,7 +9858,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.963Z",
+    "createdAt": "2026-11-20T05:14:17.558Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
@@ -10838,68 +9882,48 @@
         "value": 1753617972
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "improve",
-          "use": "special"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "improve",
+            "use": "special"
+          },
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "move",
+            "use": "forfeited"
+          },
+          {
+            "kind": "influence",
+            "use": "forfeited"
+          }
+        ]
       },
       {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "move",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "influence",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "influence",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "move",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "influence",
+            "use": "forfeited"
+          },
+          {
+            "kind": "move",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -10908,13 +9932,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "xVxV1Xn5UQq54-oz_yKWU",
+          "1xR9m1pAy_W5irFjMM2pw"
+        ]
       },
       {
         "op": "remove",
@@ -10927,7 +9949,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.964Z",
+    "createdAt": "2026-11-20T05:14:17.559Z",
     "metadata": {
       "round": 7,
       "drunk": []
@@ -10935,12 +9957,9 @@
     "index": 164,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -11002,20 +10021,9 @@
         "value": 1419708292
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -11060,20 +10068,9 @@
         "value": 1455701014
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -11087,7 +10084,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.967Z",
+    "createdAt": "2026-11-20T05:14:17.561Z",
     "metadata": {
       "pouches": []
     },
@@ -11135,17 +10132,15 @@
         "path": "/phaseManager/series/28"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw",
-            "xVxV1Xn5UQq54-oz_yKWU"
-          ]
+          "selection": {
+            "finalised": [
+              "1xR9m1pAy_W5irFjMM2pw",
+              "xVxV1Xn5UQq54-oz_yKWU"
+            ]
+          }
         }
       }
     ]
@@ -11248,7 +10243,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.970Z",
+    "createdAt": "2026-11-20T05:14:17.563Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -11282,11 +10277,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 26
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -11373,7 +10363,7 @@
       },
       {
         "op": "replace",
-        "path": "/guilds/knight/rows/1/markers",
+        "path": "/guilds/knight/rows/knight-row-2/markers",
         "value": 2
       },
       {
@@ -11388,7 +10378,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.972Z",
+    "createdAt": "2026-11-20T05:14:17.565Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -11422,11 +10412,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 26
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -11489,7 +10474,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.974Z",
+    "createdAt": "2026-11-20T05:14:17.567Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -11523,11 +10508,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 27
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -11590,7 +10570,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.977Z",
+    "createdAt": "2026-11-20T05:14:17.569Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -11624,11 +10604,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 27
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -11685,7 +10660,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.979Z",
+    "createdAt": "2026-11-20T05:14:17.570Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -11719,11 +10694,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 28
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -11780,7 +10750,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.981Z",
+    "createdAt": "2026-11-20T05:14:17.572Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -11814,11 +10784,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 28
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -11868,7 +10833,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.983Z",
+    "createdAt": "2026-11-20T05:14:17.573Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -11902,11 +10867,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 29
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -11956,7 +10916,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.985Z",
+    "createdAt": "2026-11-20T05:14:17.575Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -12000,7 +10960,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "secondCard": false,
           "followUps": []
         }
@@ -12012,7 +10971,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.986Z",
+    "createdAt": "2026-11-20T05:14:17.575Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
@@ -12054,7 +11013,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.987Z",
+    "createdAt": "2026-11-20T05:14:17.576Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -12126,7 +11085,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.988Z",
+    "createdAt": "2026-11-20T05:14:17.576Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
@@ -12150,36 +11109,26 @@
         "value": -1042741739
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "move",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "move",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "add",
@@ -12187,36 +11136,26 @@
         "value": "alchemist"
       },
       {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "migrate",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "migrate",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "add",
@@ -12230,13 +11169,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "1xR9m1pAy_W5irFjMM2pw",
+          "xVxV1Xn5UQq54-oz_yKWU"
+        ]
       },
       {
         "op": "remove",
@@ -12249,7 +11186,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.989Z",
+    "createdAt": "2026-11-20T05:14:17.577Z",
     "metadata": {
       "round": 8,
       "drunk": []
@@ -12257,12 +11194,9 @@
     "index": 187,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -12324,20 +11258,9 @@
         "value": -433351781
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -12382,20 +11305,9 @@
         "value": -865847305
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -12409,7 +11321,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:20.992Z",
+    "createdAt": "2026-11-20T05:14:17.579Z",
     "metadata": {
       "pouches": []
     },
@@ -12457,17 +11369,15 @@
         "path": "/phaseManager/series/32"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU",
-            "1xR9m1pAy_W5irFjMM2pw"
-          ]
+          "selection": {
+            "finalised": [
+              "xVxV1Xn5UQq54-oz_yKWU",
+              "1xR9m1pAy_W5irFjMM2pw"
+            ]
+          }
         }
       }
     ]
@@ -12576,7 +11486,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.995Z",
+    "createdAt": "2026-11-20T05:14:17.581Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -12610,11 +11520,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 30
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -12677,7 +11582,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:20.998Z",
+    "createdAt": "2026-11-20T05:14:17.583Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -12711,11 +11616,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 30
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -12778,7 +11678,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.000Z",
+    "createdAt": "2026-11-20T05:14:17.585Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -12812,11 +11712,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 31
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -12873,7 +11768,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.002Z",
+    "createdAt": "2026-11-20T05:14:17.586Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -12907,11 +11802,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 31
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -12968,7 +11858,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.005Z",
+    "createdAt": "2026-11-20T05:14:17.588Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -13002,11 +11892,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 32
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -13056,7 +11941,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.008Z",
+    "createdAt": "2026-11-20T05:14:17.589Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -13090,11 +11975,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 32
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -13144,7 +12024,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.011Z",
+    "createdAt": "2026-11-20T05:14:17.591Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -13178,11 +12058,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 33
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -13232,7 +12107,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.018Z",
+    "createdAt": "2026-11-20T05:14:17.592Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -13276,7 +12151,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "secondCard": false,
           "followUps": []
         }
@@ -13288,7 +12162,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.020Z",
+    "createdAt": "2026-11-20T05:14:17.593Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
@@ -13330,7 +12204,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.022Z",
+    "createdAt": "2026-11-20T05:14:17.593Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -13403,7 +12277,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.023Z",
+    "createdAt": "2026-11-20T05:14:17.594Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
@@ -13427,68 +12301,48 @@
         "value": -46163200
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "move",
+            "use": "forfeited"
+          },
+          {
+            "kind": "migrate",
+            "use": "forfeited"
+          }
+        ]
       },
       {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "move",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "migrate",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "guild",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "migrate",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "guild",
+            "use": "regular"
+          },
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "migrate",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "add",
@@ -13502,13 +12356,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "xVxV1Xn5UQq54-oz_yKWU",
+          "1xR9m1pAy_W5irFjMM2pw"
+        ]
       },
       {
         "op": "remove",
@@ -13521,7 +12373,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.024Z",
+    "createdAt": "2026-11-20T05:14:17.594Z",
     "metadata": {
       "round": 9,
       "drunk": []
@@ -13529,12 +12381,9 @@
     "index": 210,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -13596,20 +12445,9 @@
         "value": 1863126942
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -13654,20 +12492,9 @@
         "value": -1499169939
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -13681,7 +12508,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:21.029Z",
+    "createdAt": "2026-11-20T05:14:17.597Z",
     "metadata": {
       "pouches": []
     },
@@ -13729,17 +12556,15 @@
         "path": "/phaseManager/series/36"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw",
-            "xVxV1Xn5UQq54-oz_yKWU"
-          ]
+          "selection": {
+            "finalised": [
+              "1xR9m1pAy_W5irFjMM2pw",
+              "xVxV1Xn5UQq54-oz_yKWU"
+            ]
+          }
         }
       }
     ]
@@ -13803,7 +12628,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.032Z",
+    "createdAt": "2026-11-20T05:14:17.599Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -13837,11 +12662,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 34
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -13904,7 +12724,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.034Z",
+    "createdAt": "2026-11-20T05:14:17.601Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -13938,11 +12758,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 34
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -13999,7 +12814,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.036Z",
+    "createdAt": "2026-11-20T05:14:17.602Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -14033,11 +12848,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 35
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -14094,7 +12904,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.039Z",
+    "createdAt": "2026-11-20T05:14:17.604Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -14128,11 +12938,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 35
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -14182,7 +12987,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.041Z",
+    "createdAt": "2026-11-20T05:14:17.605Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -14216,11 +13021,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 36
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -14270,7 +13070,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.045Z",
+    "createdAt": "2026-11-20T05:14:17.606Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -14304,11 +13104,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 36
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -14358,7 +13153,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.047Z",
+    "createdAt": "2026-11-20T05:14:17.608Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -14392,11 +13187,6 @@
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
         "value": 37
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       }
     ]
   },
@@ -14446,7 +13236,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.050Z",
+    "createdAt": "2026-11-20T05:14:17.609Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -14490,7 +13280,6 @@
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "secondCard": false,
           "followUps": []
         }
@@ -14502,7 +13291,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.051Z",
+    "createdAt": "2026-11-20T05:14:17.610Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
@@ -14544,7 +13333,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.052Z",
+    "createdAt": "2026-11-20T05:14:17.610Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -14621,7 +13410,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.053Z",
+    "createdAt": "2026-11-20T05:14:17.611Z",
     "metadata": {
       "epoch": 4,
       "sheet": [
@@ -14702,6 +13491,10 @@
       },
       {
         "op": "remove",
+        "path": "/turnManager/series/76"
+      },
+      {
+        "op": "remove",
         "path": "/phaseManager/series/38/end"
       },
       {
@@ -14724,13 +13517,11 @@
         "value": 14
       },
       {
-        "op": "remove",
-        "path": "/flow/landscapes"
-      },
-      {
-        "op": "add",
-        "path": "/flow/epochTriggered",
-        "value": 4
+        "op": "replace",
+        "path": "/flow",
+        "value": {
+          "epochTriggered": 4
+        }
       }
     ]
   },
@@ -14796,6 +13587,15 @@
         "value": "CollectingLandscapes"
       },
       {
+        "op": "remove",
+        "path": "/turnManager/series/76/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
+        "value": 38
+      },
+      {
         "op": "replace",
         "path": "/spaces/space.desert.3/landscape/amount",
         "value": 6
@@ -14817,7 +13617,7 @@
     "type": "ReplenishMap",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:21.057Z",
+    "createdAt": "2026-11-20T05:14:17.613Z",
     "metadata": {
       "goods": [
         {
@@ -14905,28 +13705,14 @@
       },
       {
         "op": "replace",
-        "path": "/supply/haversack/saltpeter",
-        "value": 20
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/sulfur",
-        "value": 11
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/iron",
-        "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/wood",
-        "value": 16
-      },
-      {
-        "op": "replace",
-        "path": "/supply/haversack/food",
-        "value": 38
+        "path": "/supply/haversack",
+        "value": {
+          "saltpeter": 20,
+          "sulfur": 11,
+          "iron": 16,
+          "wood": 16,
+          "food": 38
+        }
       }
     ]
   },
@@ -14935,7 +13721,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.058Z",
+    "createdAt": "2026-11-20T05:14:17.614Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
@@ -14959,68 +13745,48 @@
         "value": 1268087059
       },
       {
-        "op": "add",
-        "path": "/players/0/played/0",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
+        "op": "replace",
+        "path": "/players/0/played",
+        "value": [
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "move",
+            "use": "forfeited"
+          },
+          {
+            "kind": "migrate",
+            "use": "forfeited"
+          }
+        ]
       },
       {
-        "op": "add",
-        "path": "/players/0/played/1",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/2",
-        "value": {
-          "kind": "move",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/0/played/3",
-        "value": {
-          "kind": "migrate",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/0",
-        "value": {
-          "kind": "tax",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/1",
-        "value": {
-          "kind": "defend",
-          "use": "regular"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/2",
-        "value": {
-          "kind": "influence",
-          "use": "forfeited"
-        }
-      },
-      {
-        "op": "add",
-        "path": "/players/1/played/3",
-        "value": {
-          "kind": "move",
-          "use": "forfeited"
-        }
+        "op": "replace",
+        "path": "/players/1/played",
+        "value": [
+          {
+            "kind": "tax",
+            "use": "regular"
+          },
+          {
+            "kind": "defend",
+            "use": "regular"
+          },
+          {
+            "kind": "influence",
+            "use": "forfeited"
+          },
+          {
+            "kind": "move",
+            "use": "forfeited"
+          }
+        ]
       },
       {
         "op": "replace",
@@ -15029,13 +13795,11 @@
       },
       {
         "op": "replace",
-        "path": "/turnManager/turnOrder/0",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
-      },
-      {
-        "op": "replace",
-        "path": "/turnManager/turnOrder/1",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "1xR9m1pAy_W5irFjMM2pw",
+          "xVxV1Xn5UQq54-oz_yKWU"
+        ]
       },
       {
         "op": "remove",
@@ -15048,7 +13812,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.060Z",
+    "createdAt": "2026-11-20T05:14:17.614Z",
     "metadata": {
       "round": 10,
       "drunk": []
@@ -15056,12 +13820,9 @@
     "index": 236,
     "undoPatch": [
       {
-        "op": "remove",
-        "path": "/activePlayerIds/1"
-      },
-      {
-        "op": "remove",
-        "path": "/activePlayerIds/0"
+        "op": "replace",
+        "path": "/activePlayerIds",
+        "value": []
       },
       {
         "op": "replace",
@@ -15123,20 +13884,9 @@
         "value": 1301416892
       },
       {
-        "op": "remove",
-        "path": "/players/1/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/1/hand/0"
+        "op": "replace",
+        "path": "/players/1/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -15181,20 +13931,9 @@
         "value": -1472130136
       },
       {
-        "op": "remove",
-        "path": "/players/0/hand/3"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/2"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/1"
-      },
-      {
-        "op": "remove",
-        "path": "/players/0/hand/0"
+        "op": "replace",
+        "path": "/players/0/hand",
+        "value": []
       },
       {
         "op": "remove",
@@ -15208,7 +13947,7 @@
     "type": "RevealPouches",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:21.064Z",
+    "createdAt": "2026-11-20T05:14:17.617Z",
     "metadata": {
       "pouches": []
     },
@@ -15245,7 +13984,7 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/76"
+        "path": "/turnManager/series/77"
       },
       {
         "op": "remove",
@@ -15256,17 +13995,15 @@
         "path": "/phaseManager/series/41"
       },
       {
-        "op": "remove",
-        "path": "/flow/turn"
-      },
-      {
-        "op": "add",
-        "path": "/flow/selection",
+        "op": "replace",
+        "path": "/flow",
         "value": {
-          "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU",
-            "1xR9m1pAy_W5irFjMM2pw"
-          ]
+          "selection": {
+            "finalised": [
+              "xVxV1Xn5UQq54-oz_yKWU",
+              "1xR9m1pAy_W5irFjMM2pw"
+            ]
+          }
         }
       }
     ]
@@ -15330,7 +14067,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.067Z",
+    "createdAt": "2026-11-20T05:14:17.619Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -15354,21 +14091,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/76/end"
+        "path": "/turnManager/series/77/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/77"
+        "path": "/turnManager/series/78"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 38
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -15431,7 +14163,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.069Z",
+    "createdAt": "2026-11-20T05:14:17.620Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -15455,21 +14187,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/77/end"
+        "path": "/turnManager/series/78/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/78"
+        "path": "/turnManager/series/79"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
-        "value": 38
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "value": 39
       }
     ]
   },
@@ -15526,7 +14253,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.072Z",
+    "createdAt": "2026-11-20T05:14:17.622Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -15550,21 +14277,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/78/end"
+        "path": "/turnManager/series/79/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/79"
+        "path": "/turnManager/series/80"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 39
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -15621,7 +14343,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.075Z",
+    "createdAt": "2026-11-20T05:14:17.624Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -15645,21 +14367,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/79/end"
+        "path": "/turnManager/series/80/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/80"
+        "path": "/turnManager/series/81"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
-        "value": 39
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "value": 40
       }
     ]
   },
@@ -15709,7 +14426,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.078Z",
+    "createdAt": "2026-11-20T05:14:17.625Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -15733,21 +14450,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/80/end"
+        "path": "/turnManager/series/81/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/81"
+        "path": "/turnManager/series/82"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 40
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -15797,7 +14509,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.080Z",
+    "createdAt": "2026-11-20T05:14:17.627Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
@@ -15821,21 +14533,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/81/end"
+        "path": "/turnManager/series/82/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/82"
+        "path": "/turnManager/series/83"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
-        "value": 40
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
+        "value": 41
       }
     ]
   },
@@ -15885,7 +14592,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.083Z",
+    "createdAt": "2026-11-20T05:14:17.629Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
@@ -15909,21 +14616,16 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/82/end"
+        "path": "/turnManager/series/83/end"
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/83"
+        "path": "/turnManager/series/84"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/xVxV1Xn5UQq54-oz_yKWU",
         "value": 41
-      },
-      {
-        "op": "replace",
-        "path": "/flow/turn/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       }
     ]
   },
@@ -15973,7 +14675,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.086Z",
+    "createdAt": "2026-11-20T05:14:17.630Z",
     "metadata": {
       "outcome": "last-card"
     },
@@ -16006,18 +14708,17 @@
       },
       {
         "op": "remove",
-        "path": "/turnManager/series/83/end"
+        "path": "/turnManager/series/84/end"
       },
       {
         "op": "replace",
         "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
-        "value": 41
+        "value": 42
       },
       {
         "op": "add",
         "path": "/flow/turn",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "secondCard": false,
           "followUps": []
         }
@@ -16029,7 +14730,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.087Z",
+    "createdAt": "2026-11-20T05:14:17.631Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
@@ -16071,7 +14772,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.088Z",
+    "createdAt": "2026-11-20T05:14:17.631Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -16148,7 +14849,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-12T20:33:21.089Z",
+    "createdAt": "2026-11-20T05:14:17.632Z",
     "metadata": {
       "epoch": 5,
       "sheet": [
@@ -16229,6 +14930,10 @@
       },
       {
         "op": "remove",
+        "path": "/turnManager/series/85"
+      },
+      {
+        "op": "remove",
         "path": "/phaseManager/series/43/end"
       },
       {
@@ -16251,13 +14956,11 @@
         "value": 10
       },
       {
-        "op": "remove",
-        "path": "/flow/landscapes"
-      },
-      {
-        "op": "add",
-        "path": "/flow/epochTriggered",
-        "value": 5
+        "op": "replace",
+        "path": "/flow",
+        "value": {
+          "epochTriggered": 5
+        }
       }
     ]
   },
@@ -16323,6 +15026,15 @@
         "value": "CollectingLandscapes"
       },
       {
+        "op": "remove",
+        "path": "/turnManager/series/85/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/1xR9m1pAy_W5irFjMM2pw",
+        "value": 43
+      },
+      {
         "op": "replace",
         "path": "/spaces/space.desert.3/landscape/amount",
         "value": 3
@@ -16344,7 +15056,7 @@
     "type": "ScoreGame",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-12T20:33:21.092Z",
+    "createdAt": "2026-11-20T05:14:17.634Z",
     "metadata": {
       "sheet": [
         {

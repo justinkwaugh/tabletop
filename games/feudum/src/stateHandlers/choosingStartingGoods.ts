@@ -6,6 +6,7 @@ import {
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { setupSeat } from '../model/turns.js'
 import { askNextSetupSeat, endSetupTurn } from './setupTurns.js'
 
 /** R-1.4.8 Seat by seat in turn order, each takes three starting goods. */
@@ -24,9 +25,7 @@ export class ChoosingStartingGoodsStateHandler implements MachineStateHandler<
         playerId: string,
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return context.gameState.flow.setupOrder?.playerId === playerId
-            ? [ActionType.ChooseStartingGoods]
-            : []
+        return setupSeat(context.gameState) === playerId ? [ActionType.ChooseStartingGoods] : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {

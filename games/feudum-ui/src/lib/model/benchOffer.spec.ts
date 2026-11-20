@@ -1,6 +1,7 @@
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+    knightRows,
     merchantTradeOffers,
     type GuildFunctionName,
     type GuildId,
@@ -167,14 +168,14 @@ describe('R-4.6.1 what the bench lights', () => {
     it('R-4.6.1 the inputs read from the stages: picks by kind, in press order', () => {
         const stages: BenchStages = {
             picks: [
-                { kind: 'row', row: 2 },
+                { kind: 'row', row: 'knight-row-3' },
                 { kind: 'scroll', spaceId: R1C1 },
-                { kind: 'row', row: 0 }
+                { kind: 'row', row: 'knight-row-1' }
             ],
             count: 'columns'
         }
         expect(paramsOf(stages)).toEqual({
-            knightRows: [2, 0],
+            knightRows: ['knight-row-3', 'knight-row-1'],
             scrollSpaces: [R1C1],
             count: 'columns'
         })
@@ -224,14 +225,14 @@ describe('R-4.6.1 ghosts: each pick at its destination', () => {
                 { kind: 'invention', invention: 'krud-barrel' }
             ]
         })
-        const rows = turn.session.gameState.guilds.knight.rows
+        const rows = knightRows(turn.session.gameState)
         expect(offer.ghosts.filter(({ item: ghost }) => ghost === 'invention:ship')).toEqual([
             { item: 'invention:ship', at: 'vessel-space' }
         ])
         expect(offer.ghosts.filter(({ item: ghost }) => ghost === 'invention:krud-barrel')).toEqual(
-            rows.map(({ colour }) => ({
+            rows.map(({ rowId }) => ({
                 item: 'invention:krud-barrel',
-                at: `knight-row:${colour}`,
+                at: `knight-row:${rowId}`,
                 count: 1
             }))
         )
@@ -244,11 +245,11 @@ describe('R-4.6.1 ghosts: each pick at its destination', () => {
         })
         const offer = offerOf(turn, 'noble', 'pull', {
             picks: [
-                { kind: 'row', row: 0 },
+                { kind: 'row', row: 'knight-row-1' },
                 { kind: 'scroll', spaceId: R1C1 }
             ]
         })
-        expect(offer.ghosts).toEqual([{ item: 'row:0', at: R1C1 }])
+        expect(offer.ghosts).toEqual([{ item: 'row:knight-row-1', at: R1C1 }])
     })
 })
 
@@ -572,10 +573,12 @@ describe('R-4.6 per guild and function', () => {
         expect(none.line).toBe('Move up to 3')
         expect(none.items.some(({ id }) => id.endsWith('r1c1'))).toBe(false)
 
-        const one = offerOf(turn, 'knight', 'push', { picks: [{ kind: 'row', row: 0 }] })
+        const one = offerOf(turn, 'knight', 'push', {
+            picks: [{ kind: 'row', row: 'knight-row-1' }]
+        })
         expect(item(one, /r1c1$/).role).toBe('lit')
         expect(one.primary?.enabled).toBe(false)
-        const used = one.items.find(({ id }) => id === 'row:0')
+        const used = one.items.find(({ id }) => id === 'row:knight-row-1')
         expect(used?.role).toBe('picked')
         expect(used?.press).toBeUndefined()
     })

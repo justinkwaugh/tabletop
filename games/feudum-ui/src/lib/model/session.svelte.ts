@@ -22,6 +22,7 @@ import {
     reasonStartingGoodRefused,
     reasonStartingGoodsRefused,
     reasonStartingPawnRefused,
+    setupSeat,
     startingGoodOffers,
     StartingGoodsChosen,
     startingPawnOffers,
@@ -504,7 +505,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     startingGoodsPanel: StartingGoodsPanel | undefined = $derived.by(() => {
         const state = this.gameState
-        const deciderId = state.flow.setupOrder?.playerId
+        const deciderId = setupSeat(state)
         if (
             this.isViewingHistory ||
             state.machineState !== MachineState.ChoosingStartingGoods ||
@@ -590,7 +591,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     startingPawnPanel: StartingPawnPanel | undefined = $derived.by(() => {
         const state = this.gameState
-        const deciderId = state.flow.setupOrder?.playerId
+        const deciderId = setupSeat(state)
         if (
             this.isViewingHistory ||
             state.machineState !== MachineState.PlacingStartingPawn ||

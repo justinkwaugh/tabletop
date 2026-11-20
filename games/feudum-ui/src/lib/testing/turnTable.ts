@@ -2,6 +2,7 @@ import { assertExists } from '@tabletop/common'
 import {
     ActionCards,
     ActionType,
+    cardTurnSeat,
     collectTopTile,
     Goods,
     handSizeFor,
@@ -54,7 +55,7 @@ export async function atPlayingCards(
             ...(pouchGood ? { pouchGood } : {})
         })
     }
-    const seat = host.state.flow.turn?.playerId
+    const seat = cardTurnSeat(host.state)
     assertExists(seat, 'R-3.2 A seat is asked for a card')
     const other = order[(order.indexOf(seat) + 1) % order.length]
     host.edit((state) => {

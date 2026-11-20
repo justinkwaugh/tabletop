@@ -361,6 +361,13 @@ export interface KnightSection {
 /** R-1.4-H1 Dummy rows make up the difference at 2 and 3 players. */
 export const MinimumKnightRows = 4
 
+/**
+ * R-1.3, R-1.4-H1 A Knight row's id, given at setup (the seats' rows in seat order, then the dummy
+ * rows) and never changed; one row per colour in the box at most.
+ */
+export const KnightRowIds = FeudumColors.map((_, index) => `knight-row-${index + 1}` as const)
+export type KnightRowId = (typeof KnightRowIds)[number]
+
 /** R-1.3, R-4.6.6 The barrel sections of any Knight row, player or dummy. */
 export const KnightSections: readonly KnightSection[] = [
     { section: 1, spaces: 1, firstColumn: 1, lastColumn: 1, setupMarkers: 1 },

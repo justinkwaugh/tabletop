@@ -41,6 +41,7 @@ import { typesOf } from '../testing/roundEnd.js'
 import { isBeginDawn } from './beginDawn.js'
 import { isReplenishGuilds } from './replenishGuilds.js'
 import { isReplenishMap } from './replenishMap.js'
+import { knightRows, rowSeat } from '../model/knightRows.js'
 
 const SetupChicken = chickenWhere(true)
 
@@ -337,6 +338,30 @@ describe('R-4.12.3 the landscapes', () => {
         ])
     })
 
+    it('R-4.12.3 the turn manager asks each serf; the seats still to answer keep no order', () => {
+        const spaces: SpaceId[] = []
+        const { table, order } = playToDawn(2, (state, [first, second]) => {
+            spaces.push(placeLandscape(state, { rulerId: first, serfId: second }))
+            spaces.push(placeLandscape(state, { rulerId: second, serfId: first, except: spaces }))
+        })
+        const [first, second] = order
+        const turnOf = () => table.hydrated().turnManager.currentTurn()?.playerId
+
+        expect(turnOf()).toBe(first)
+        table.moveTo((state) => {
+            state.flow.landscapes?.pending.reverse()
+            return MachineState.CollectingLandscapes
+        })
+        expect(turnOf()).toBe(first)
+        expect(table.asked).toBe(first)
+        expect(table.offered(second)).toEqual([])
+
+        table.send(first, { type: ActionType.CollectLandscapes, spaceIds: [] })
+        expect(turnOf()).toBe(second)
+        table.send(second, { type: ActionType.CollectLandscapes, spaceIds: [] })
+        expect(table.state.flow.landscapes).toBeUndefined()
+    })
+
     it('R-4.12.3 with no serf on a landscape, nobody is asked', () => {
         const { table } = playToDawn(2, (state, [ruler]) => {
             placeLandscape(state, { rulerId: ruler })
@@ -541,42 +566,37 @@ describe('R-4.12.5, R-4.12-H2 the guilds refill at III', () => {
     it('R-4.12.5 every knight row refills, a dummy row too, and extras stay', () => {
         const { markersPerRow } = GuildSetupSpaces.knight
         const { table, processed } = playToDawn(3, (state) => {
-            const { rows } = state.guilds.knight
             setRowMarkers(
                 state,
-                rows.map((_, index) => (index === 0 ? markersPerRow + 1 : 0))
+                knightRows(state).map((_, index) => (index === 0 ? markersPerRow + 1 : 0))
             )
         })
 
-        const [extra, ...short] = table.hydrated().guilds.knight.rows
-        expect(extra.markers).toBe(markersPerRow + 1)
+        const [extra, ...short] = knightRows(table.hydrated())
+        expect(extra.row.markers).toBe(markersPerRow + 1)
         expect(short.length).toBeGreaterThan(0)
-        expect(short.some((row) => row.playerId === undefined)).toBe(true)
-        for (const row of short) {
+        expect(short.some(({ row }) => 'dummyColour' in row.owner)).toBe(true)
+        for (const { row } of short) {
             expect(row.markers).toBe(markersPerRow)
         }
         expect(refillOf(processed).knightRows).toEqual(
-            short.map(({ colour, playerId }) => ({
-                colour,
-                ...(playerId ? { playerId } : {}),
-                added: markersPerRow
-            }))
+            short.map(({ rowId, row }) => ({ rowId, owner: row.owner, added: markersPerRow }))
         )
     })
 
-    it('R-1.1-H1 a colour short in the supply refills its row as far as it can', () => {
+    it('R-1.1-H1 a seat short in the supply refills its row as far as it can', () => {
         const { table, processed } = playToDawn(3, (state) => {
             setRowMarkers(state, [0])
-            const [row] = state.guilds.knight.rows
-            assertExists(row.playerId, 'R-1.3 The first row is a seat’s')
-            state.getPlayerState(row.playerId).influenceSupply +=
-                state.supply.influence[row.colour] - 1
-            state.supply.influence[row.colour] = 1
+            const [{ row }] = knightRows(state)
+            const seat = rowSeat(row.owner)
+            assertExists(seat, 'R-1.3 The first row is a seat’s')
+            state.getPlayerState(seat).influenceSupply += state.supply.influence[seat] - 1
+            state.supply.influence[seat] = 1
         })
 
-        const [row] = table.hydrated().guilds.knight.rows
-        expect(row.markers).toBe(1)
-        expect(refillOf(processed).knightRows[0]).toMatchObject({ colour: row.colour, added: 1 })
+        const [row] = knightRows(table.hydrated())
+        expect(row.row.markers).toBe(1)
+        expect(refillOf(processed).knightRows[0]).toMatchObject({ rowId: row.rowId, added: 1 })
     })
 
     it('R-5-H1, R-4.12.5 the scrolls refill concealed, and another scroll stays', () => {

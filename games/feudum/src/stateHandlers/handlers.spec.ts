@@ -34,6 +34,7 @@ import { playOutCards, typesOf } from '../testing/roundEnd.js'
 import { giveFood, starve, tableAtStarve } from '../testing/starve.js'
 import { Table, tableAtPlayingCards } from '../testing/table.js'
 import { stateAfterCardStep } from './cardTurns.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const Goods = ['saltpeter', 'sulfur', 'iron']
 const Pawn = { character: 'farmer', spaceId: 'space.desert.3' }
@@ -52,7 +53,7 @@ describe('Setup states', () => {
         const table = new Table(numPlayers)
         for (const playerId of table.order) {
             expect(table.state.machineState).toBe(MachineState.ChoosingStartingGoods)
-            expect(table.state.flow.setupOrder).toEqual({ playerId })
+            expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(playerId)
             expect(table.state.activePlayerIds).toEqual([playerId])
             for (const other of table.order) {
                 expect(table.offered(other)).toEqual(
@@ -62,14 +63,14 @@ describe('Setup states', () => {
             table.send(playerId, { type: ActionType.ChooseStartingGoods, goods: Goods })
         }
         expect(table.state.machineState).toBe(MachineState.PlacingStartingPawn)
-        expect(table.state.flow.setupOrder).toEqual({ playerId: table.order[0] })
+        expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(table.order[0])
     })
 
     it.each(Seats)('R-1.4.9 pawns are asked of each of %i seats in turn order', (numPlayers) => {
         const table = tableAtPawns(numPlayers)
         for (const playerId of table.order) {
             expect(table.state.machineState).toBe(MachineState.PlacingStartingPawn)
-            expect(table.state.flow.setupOrder).toEqual({ playerId })
+            expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(playerId)
             expect(table.state.activePlayerIds).toEqual([playerId])
             for (const other of table.order) {
                 expect(table.offered(other)).toEqual(
@@ -109,7 +110,7 @@ describe('Setup states', () => {
         for (const playerId of table.order) {
             table.send(playerId, { type: ActionType.PlaceStartingPawn, ...Pawn })
         }
-        expect(table.state.flow.setupOrder).toBeUndefined()
+        expect(table.hydrated().turnManager.currentTurn()?.playerId).toBeUndefined()
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
         expect(table.hydrated().roundManager.currentRound?.number).toBe(1)
         expect(table.hydrated().phaseManager.currentPhase?.name).toBe(PhaseName.HandSelection)
@@ -133,7 +134,7 @@ function expectAsked(table: Table, asked: string, offers: string[]) {
 
 /** R-3.2 The turn is still the attacker's while another seat is asked. */
 function expectHeldTurn(table: Table, playerId: string) {
-    expect(table.state.flow.turn?.playerId).toBe(playerId)
+    expect(cardTurnSeat(table.hydrated())).toBe(playerId)
     expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(playerId)
 }
 

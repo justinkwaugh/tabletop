@@ -1,6 +1,11 @@
 import {
     ActionType,
+    cardTurnSeat,
     MachineState,
+    placeDiscOffer,
+    reasonPlaceDiscRefused,
+    serfAsked,
+    setupSeat,
     StartingSpaceIds,
     type Good,
     type GuildId,
@@ -8,12 +13,10 @@ import {
     type LocationKind,
     type MonsterId,
     type PawnNumber,
-    placeDiscOffer,
-    reasonPlaceDiscRefused,
-    type PlaceDiscOffer,
     type PieceRef,
     type PilferResource,
     type PilferSource,
+    type PlaceDiscOffer,
     type RegionId,
     type RouteMedium,
     type SpaceId
@@ -204,7 +207,7 @@ function startingPawnPick(
     state: HydratedFeudumGameState,
     stages: BoardStages
 ): MapPick | undefined {
-    const deciderId = state.flow.setupOrder?.playerId
+    const deciderId = setupSeat(state)
     if (!deciderId) {
         return undefined
     }
@@ -219,7 +222,7 @@ function startingPawnPick(
 
 /** R-3.2 What the open flow lights. The choice is the deciding seat's until it is sent. */
 function cardPlayPick(state: HydratedFeudumGameState, stages: BoardStages): MapPick | undefined {
-    const deciderId = state.flow.turn?.playerId
+    const deciderId = cardTurnSeat(state)
     const pick = stages.guildPick ?? stages.movePick ?? stages.cardPick
     return deciderId && pick
         ? {
@@ -310,7 +313,7 @@ const MapPicks: Partial<
             ? { action: ActionType.Nourish, ...stages.nourishPick, isPublic: false }
             : undefined),
     [MachineState.CollectingLandscapes]: (state, stages) => {
-        const deciderId = state.flow.landscapes?.pending[0]
+        const deciderId = serfAsked(state)
         return deciderId && stages.landscapesPick
             ? {
                   action: ActionType.CollectLandscapes,

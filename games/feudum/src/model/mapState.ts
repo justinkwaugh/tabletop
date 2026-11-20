@@ -4,19 +4,19 @@ import {
     ComponentCount,
     DiscIdSchema,
     GoodCounts,
-    GuildIdSchema,
     SpaceIdSchema,
     TileIdSchema,
     VesselCounts
 } from './stateSchemas.js'
 
-/** R-4.1 The disc on a space and which face shows. */
+/**
+ * R-4.1 The disc on a space and the location it shows. The face showing and a feudum's guild are
+ * the disc's own, printed (`feudumGuildOf`).
+ */
 export type LocationState = Type.Static<typeof LocationState>
 export const LocationState = Type.Object({
     kind: Type.Enum(LocationKinds),
-    discId: DiscIdSchema,
-    face: Type.Union([Type.Literal('a'), Type.Literal('b')]),
-    feudumGuild: Type.Optional(GuildIdSchema)
+    discId: DiscIdSchema
 })
 
 /** R-4.3.4 One per space, never removed. The tile's landscape is in `tileLandscapes`. */

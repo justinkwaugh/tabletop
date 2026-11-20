@@ -1,10 +1,10 @@
 import { Color } from '@tabletop/common'
 import * as Type from 'typebox'
-import { MonsterIds } from '../data/components.js'
 import {
     AlchemistCartSpaces,
     ChickenSpaces,
     KnightSections,
+    type KnightRowId,
     MarketSpaces,
     ScrollSpaces
 } from '../data/guilds.js'
@@ -12,6 +12,7 @@ import {
     ComponentCount,
     GoodCounts,
     GuildIdSchema,
+    KnightRowIdSchema,
     recordOf,
     SealIdSchema,
     VesselTypeSchema
@@ -33,11 +34,17 @@ export const GuildTrack = Type.Object({
     apprentice: Type.Optional(RankHolder)
 })
 
-/** R-1.4-H1 A player row names its playerId; a dummy row is keyed by its colour alone. */
+/** R-1.4-H1 Whose row it is: a seat's, by its playerId, or a dummy row's, by its colour alone. */
+export type KnightRowOwner = Type.Static<typeof KnightRowOwner>
+export const KnightRowOwner = Type.Union([
+    Type.Object({ playerId: Type.String() }, { additionalProperties: false }),
+    Type.Object({ dummyColour: Type.Enum(Color) }, { additionalProperties: false })
+])
+
+/** R-1.3 A Knight row: its owner and how many markers stand in it. */
 export type KnightRow = Type.Static<typeof KnightRow>
 export const KnightRow = Type.Object({
-    colour: Type.Enum(Color),
-    playerId: Type.Optional(Type.String()),
+    owner: KnightRowOwner,
     markers: Type.Integer({
         minimum: 0,
         maximum: KnightSections.reduce((sum, section) => sum + section.spaces, 0)
@@ -74,9 +81,13 @@ export const GuildsState = Type.Object({
         vesselsForSale: Type.Array(VesselTypeSchema)
     }),
     knight: Type.Object({
-        rows: Type.Array(KnightRow),
-        /** R-4.2.4 The marker of the player controlling each monster. */
-        monsterIcons: Type.Record(Type.Enum(MonsterIds), Type.Union([Type.String(), Type.Null()]))
+        /**
+         * R-1.3, R-1.4-H1 The rows in play, by row id. R-4.2.4 A monster's icon holds its
+         * controller's marker; who that is lies on the monster (`monsters`).
+         */
+        rows: Type.Unsafe<Partial<Record<KnightRowId, KnightRow>>>(
+            Type.Partial(Type.Record(KnightRowIdSchema, KnightRow), { additionalProperties: false })
+        )
     }),
     noble: Type.Object({
         /** R-5-H1 True: a concealed seal lies there, its id in the vault. */

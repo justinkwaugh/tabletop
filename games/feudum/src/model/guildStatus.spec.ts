@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { GuildIds, type GuildId } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
+import { makeFeudum } from '../testing/improving.js'
 import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import type { HydratedFeudumGameState } from './gameState.js'
@@ -12,7 +13,7 @@ import { recomputeRanks, rankOf, RankChange, statusStars } from './guildStatus.j
 function dealtState(numPlayers = 4, markers = 7): HydratedFeudumGameState {
     const state = initialState(numPlayers)
     for (const player of state.players) {
-        state.supply.influence[player.color] += player.influenceSupply - markers
+        state.supply.influence[player.playerId] += player.influenceSupply - markers
         player.influenceSupply = markers
     }
     return state
@@ -39,7 +40,11 @@ function rule(
     feudumGuild?: GuildId
 ) {
     const space = state.spaces[spaceId]
-    space.location = { ...space.location, kind, ...(feudumGuild ? { feudumGuild } : {}) }
+    if (feudumGuild) {
+        makeFeudum(state, spaceId, feudumGuild)
+    } else {
+        space.location = { ...space.location, kind }
+    }
     space.ruler = { playerId, subject: false }
 }
 

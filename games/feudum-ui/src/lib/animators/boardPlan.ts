@@ -3,18 +3,21 @@ import {
     AlchemistCartSpaces,
     EpochTrack,
     FarmerBarn,
-    GuildTrackSpaces,
+    feudumGuildOf,
     Goods,
-    KnightMonsterIcons,
-    MarketSpaces,
-    RegionTiles,
-    Spaces,
+    GuildTrackSpaces,
     isAnswerAttack,
     isBeginDawn,
     isCommitAttack,
     isMove,
     isPinned,
     isRollProgressDie,
+    KnightMonsterIcons,
+    knightRows,
+    MarketSpaces,
+    RegionTiles,
+    seatKnightRow,
+    Spaces,
     type Good,
     type GuildId,
     type HydratedFeudumGameState,
@@ -37,6 +40,7 @@ import {
     type SeatScore,
     type TrackDisc
 } from '$lib/model/boardView.js'
+import { knightMarkerPiece, rowLane } from '$lib/model/knightLanes.js'
 import {
     goodKinds,
     goodStacks,
@@ -547,21 +551,24 @@ function slideRanks(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
 /** R-4.8 Markers fill a Knight row inside the guild area, one a beat after another. */
 function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
-    for (const row of to.guilds.knight.rows) {
-        const was =
-            from.guilds.knight.rows.find(({ colour }) => colour === row.colour)?.markers ?? 0
-        const label = guildPoint('knight', knightRowLabel(row.colour))
+    for (const { rowId, row } of knightRows(to)) {
+        const was = from.guilds.knight.rows[rowId]?.markers ?? 0
+        const lane = rowLane(to, row.owner)
+        const label = guildPoint('knight', knightRowLabel(lane))
         for (let column = was + 1; column <= row.markers; column += 1) {
             const token = plan.token(
                 {
                     kind: 'marker',
-                    owner: row.playerId ? { playerId: row.playerId } : { colour: row.colour },
+                    owner:
+                        'playerId' in row.owner
+                            ? { playerId: row.owner.playerId }
+                            : { colour: row.owner.dummyColour },
                     size: GuildSizes.marker * GuildScale
                 },
                 label
             )
             ends = plan.move('markers', token, at + (column - was - 1) * GoodGap, SlideSeconds, {
-                path: [label, guildPoint('knight', knightCell(row.colour, column))],
+                path: [label, guildPoint('knight', knightCell(lane, column))],
                 reveal: true
             })
         }
@@ -573,15 +580,16 @@ function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number
 function markMonsterIcons(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
     for (const icon of KnightMonsterIcons) {
-        const controller = to.guilds.knight.monsterIcons[icon.monster]
-        const row = from.guilds.knight.rows.find(({ playerId }) => playerId === controller)
-        if (!controller || from.guilds.knight.monsterIcons[icon.monster] === controller || !row) {
+        const controller = to.monsters[icon.monster].playerId
+        const own = controller ? seatKnightRow(from, controller) : undefined
+        if (!controller || from.monsters[icon.monster].playerId === controller || !own) {
             continue
         }
-        const start = knightCell(row.colour, row.markers)
+        const { rowId, row } = own
+        const start = knightCell(rowLane(from, row.owner), row.markers)
         ends = plan.move(
             'markers',
-            { piece: `knight:${row.colour}:${row.markers}` },
+            { piece: knightMarkerPiece(rowId, row.markers) },
             at,
             SlideSeconds,
             {
@@ -653,7 +661,8 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
     for (const { id, startingSpace } of Spaces) {
         const was = from.spaces[id].location
         const now = to.spaces[id].location
-        if (was.kind === now.kind && was.feudumGuild === now.feudumGuild) {
+        const guild = feudumGuildOf(now)
+        if (was.kind === now.kind && feudumGuildOf(was) === guild) {
             continue
         }
         plan.move('discs', { piece: `disc:${id}` }, at, FlipSeconds, { scaleX: 0 })
@@ -661,7 +670,7 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
             {
                 kind: 'location',
                 location: now.kind,
-                ...(now.feudumGuild ? { guild: now.feudumGuild } : {}),
+                ...(guild ? { guild } : {}),
                 start: startingSpace === true
             },
             spaceGeometry(id).centre,

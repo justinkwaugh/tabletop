@@ -45,6 +45,7 @@ import { reasonDiscardWritRefused } from './discardWrit.js'
 import { reasonSpendRegionTileRefused, spendRegionTileOffers } from './spendRegionTile.js'
 import { keepWritsOffer } from './keepWrits.js'
 import { nourishOffer } from './nourish.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const Windows: readonly WindowName[] = [
     'before a card',
@@ -238,7 +239,7 @@ describe('R-4.4.4 the writ limit', () => {
         })
         const state = table.hydrated()
         expect(state.machineState).toBe(MachineState.PlayingCards)
-        expect(state.flow.turn?.playerId).not.toBe(playerId)
+        expect(cardTurnSeat(state)).not.toBe(playerId)
     })
 })
 

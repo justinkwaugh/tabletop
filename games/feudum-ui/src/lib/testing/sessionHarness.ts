@@ -29,9 +29,10 @@ import {
     Definition,
     FeudumGameStateValidator,
     FeudumRuntime,
-    MachineState,
-    startingPawnOffers,
     HydratedFeudumGameState,
+    MachineState,
+    setupSeat,
+    startingPawnOffers,
     type FeudumGameState,
     type FeudumProjectedState,
     type Good
@@ -141,7 +142,7 @@ export class FeudumHost {
     }
 
     get setupSeat(): string {
-        const playerId = this.state.flow.setupOrder?.playerId
+        const playerId = setupSeat(this.state)
         assertExists(playerId, 'A seat is setting up')
         return playerId
     }

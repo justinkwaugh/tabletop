@@ -71,6 +71,8 @@ import { moveOffers } from './move.js'
 import { starveOffers } from './starveThePeople.js'
 import { reinforcementsOffered, taxPreview } from './tax.js'
 import { tendLandscapeOffers } from './tendLandscape.js'
+import { KnightRowIds } from '../data/guilds.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const Windows: readonly WindowName[] = [
     'before a card',
@@ -292,7 +294,7 @@ const DrawRoutes: Readonly<
             guildId: 'noble',
             fn: 'pull',
             params: {
-                knightRows: [0, 1],
+                knightRows: [KnightRowIds[0], KnightRowIds[1]],
                 scrollSpaces: ['guild.noble.scroll.r1c2', 'guild.noble.scroll.r2c1']
             }
         })
@@ -392,10 +394,8 @@ describe('corpus reach: the cards', () => {
 
             play(row, held, { secondCard: true }, { kind: row.kind, use: row.use })
 
-            expect(held.table.hydrated().flow.turn).toMatchObject({
-                playerId: held.seat,
-                secondCard: true
-            })
+            expect(cardTurnSeat(held.table.hydrated())).toBe(held.seat)
+            expect(held.table.hydrated().flow.turn).toMatchObject({ secondCard: true })
             forfeit(held.table, held.seat, last)
             expectTurnPassed(held.table, held.seat)
         })
@@ -440,10 +440,8 @@ describe('corpus reach: the cards', () => {
 
             play(row, held, { asRepeat: row.mode, secondCard: true }, replayRecord(row))
 
-            expect(held.table.hydrated().flow.turn).toMatchObject({
-                playerId: held.seat,
-                secondCard: true
-            })
+            expect(cardTurnSeat(held.table.hydrated())).toBe(held.seat)
+            expect(held.table.hydrated().flow.turn).toMatchObject({ secondCard: true })
             forfeit(held.table, held.seat, filler)
             expectTurnPassed(held.table, held.seat)
         })
@@ -517,7 +515,8 @@ describe('corpus reach: the cards', () => {
             const [last, other] = fillersBeside(kind)
             const { table, seat } = tableHolding([kind, last, other], true)
             forfeit(table, seat, kind, true)
-            expect(table.hydrated().flow.turn).toMatchObject({ playerId: seat, secondCard: true })
+            expect(cardTurnSeat(table.hydrated())).toBe(seat)
+            expect(table.hydrated().flow.turn).toMatchObject({ secondCard: true })
             forfeit(table, seat, last)
             expectTurnPassed(table, seat)
         })

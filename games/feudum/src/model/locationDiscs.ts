@@ -9,6 +9,7 @@ import {
     type LocationKind
 } from '../data/discs.js'
 import type { HydratedFeudumGameState } from './gameState.js'
+import type { LocationState } from './mapState.js'
 
 /** R-3.9.1 The face showing this location, and what the other shows; a starting disc has no other. */
 interface Showing {
@@ -80,10 +81,16 @@ export function replaceLocationDisc(
         ...state.supply.discs.filter((id) => id !== discId),
         space.location.discId
     ]
-    space.location = {
-        kind,
-        discId,
-        face: shown.face,
-        ...(guild ? { feudumGuild: guild } : {})
+    space.location = { kind, discId }
+}
+
+/** R-1.2.4, R-4.1 The guild a feudum's disc shows; no other location has one. */
+export function feudumGuildOf(
+    location: Pick<LocationState, 'kind' | 'discId'>
+): GuildId | undefined {
+    if (location.kind !== 'feudum') {
+        return undefined
     }
+    const disc = LocationDiscs.find((candidate) => candidate.id === location.discId)
+    return disc && 'guild' in disc ? disc.guild : undefined
 }

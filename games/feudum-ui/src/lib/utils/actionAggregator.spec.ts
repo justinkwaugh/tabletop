@@ -9,10 +9,11 @@ import {
 } from '@tabletop/common'
 import {
     ActionType,
-    MachineState,
+    cardTurnSeat,
     isAdvanceTurn,
     isEndRound,
     isStartRound,
+    MachineState,
     RoyalWrits,
     type FeudumGameState
 } from '@tabletop/feudum'
@@ -877,7 +878,7 @@ describe('R-5-H1 Whole games, from every seat and a spectator', () => {
                 expect(group?.kind, `${action.type} ${action.index}`).toBe(kindByState(before))
                 if (group?.kind === 'turn' && action.playerId) {
                     expect(group.playerId, `${action.type} ${action.index}`).toBe(
-                        before.flow.turn?.playerId
+                        cardTurnSeat(before)
                     )
                 }
             }

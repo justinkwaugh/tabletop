@@ -1,6 +1,8 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import {
+    askNextSerf,
     isCollectLandscapes,
+    serfAsked,
     type HydratedCollectLandscapes
 } from '../actions/collectLandscapes.js'
 import { ActionType } from '../definition/actions.js'
@@ -8,7 +10,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterLandscapes } from './replenishing.js'
 
-/** R-4.3.4, R-4.12.3 One serf asked at a time, from `flow.landscapes.pending`. */
+/** R-4.3.4, R-4.12.3 One serf asked at a time, each in a turn of the turn manager's. */
 export class CollectingLandscapesStateHandler implements MachineStateHandler<
     HydratedCollectLandscapes,
     HydratedFeudumGameState
@@ -24,13 +26,11 @@ export class CollectingLandscapesStateHandler implements MachineStateHandler<
         playerId: string,
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return context.gameState.flow.landscapes?.pending[0] === playerId
-            ? [ActionType.CollectLandscapes]
-            : []
+        return serfAsked(context.gameState) === playerId ? [ActionType.CollectLandscapes] : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
-        const next = context.gameState.flow.landscapes?.pending[0]
+        const next = askNextSerf(context.gameState)
         context.gameState.activePlayerIds = next ? [next] : []
     }
 

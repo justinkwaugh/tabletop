@@ -1,4 +1,4 @@
-import { Color } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { FeudumRuntime } from '../definition/runtime.js'
 import { ComponentTotals, GoodRows } from '../data/components.js'
@@ -12,13 +12,10 @@ import {
     type ConservedComponent
 } from './canonicalValidator.js'
 import type { FeudumGameState } from './gameState.js'
+import { knightRows, seatKnightRow } from './knightRows.js'
 
 function table(numPlayers = 4): FeudumGameState {
     return canonicalState(numPlayers)
-}
-
-function colourOf(state: FeudumGameState, playerId: string): Color {
-    return state.players.filter((player) => player.playerId === playerId)[0].color
 }
 
 /** Lays a tile on a space with its landscape shown. */
@@ -173,45 +170,53 @@ describe('R-1.1-H1 shillings, 78 in all', () => {
 })
 
 describe('R-1.1 markers, 20 per colour', () => {
-    it('R-1.1 rejects a marker made or lost in one colour', () => {
+    it("R-1.1 rejects a marker made or lost among a seat's", () => {
         const made = table()
-        made.supply.influence[made.players[0].color] += 1
+        made.supply.influence[made.players[0].playerId] += 1
         expectBroken(made, 'markers')
         const lost = table()
-        lost.supply.influence[lost.players[1].color] -= 1
+        lost.supply.influence[lost.players[1].playerId] -= 1
         expectBroken(lost, 'markers')
     })
 
-    it('R-1.1 a marker moved from one colour to another breaks both', () => {
+    it('R-1.1 a marker moved from one seat to another breaks both', () => {
         const state = table()
-        state.supply.influence[state.players[0].color] += 1
-        state.supply.influence[state.players[1].color] -= 1
+        state.supply.influence[state.players[0].playerId] += 1
+        state.supply.influence[state.players[1].playerId] -= 1
         expect(conservationBreaks(state).map((broken) => broken.part)).toEqual([
-            state.players[0].color,
-            state.players[1].color
+            state.players[0].playerId,
+            state.players[1].playerId
         ])
+    })
+
+    it('R-1.4.2 a marker counted for no seat and no dummy row breaks', () => {
+        const state = table()
+        state.supply.influence.nobody = 1
+        expect(conservationBreaks(state).map((broken) => broken.part)).toEqual(['nobody'])
     })
 
     it('R-4.1, R-4.5.2, R-4.2.4 counts personal supply, spaces, tracks, rows and icons', () => {
         const state = table()
         const seat = state.players[0].playerId
-        const colour = colourOf(state, seat)
         state.spaces['space.sea.1'].ruler = { playerId: seat, subject: true }
         state.spaces['space.sea.2'].serf = { playerId: seat }
         state.guilds.tracks.monk.master = { playerId: seat, reeve: false }
-        state.guilds.knight.rows.filter((row) => row.playerId === seat)[0].markers += 2
-        state.guilds.knight.monsterIcons.behemoth = seat
+        const own = seatKnightRow(state, seat)
+        assertExists(own, 'R-1.4-H1 Each seat has a row')
+        own.row.markers += 2
         state.monsters.behemoth = { playerId: seat, spaceId: 'space.sea.1' }
-        state.supply.influence[colour] -= 2 + 1 + 1 + 2 + 1
+        state.supply.influence[seat] -= 2 + 1 + 1 + 2 + 1
         expectConserved(state)
     })
 
     it('R-1.4-H1 holds a dummy row to the same total, by colour', () => {
         const state = table(2)
-        const dummy = state.guilds.knight.rows.filter((row) => row.playerId === undefined)[0]
+        const dummy = knightRows(state).find(({ row }) => 'dummyColour' in row.owner)?.row
+        assertExists(dummy, 'R-1.4-H1 Two seats play beside dummy rows')
+        assert('dummyColour' in dummy.owner, 'R-1.4-H1 A dummy row names its colour')
         dummy.markers += 1
         expectBroken(state, 'markers')
-        state.supply.influence[dummy.colour] -= 1
+        state.supply.dummyInfluence[dummy.owner.dummyColour] -= 1
         expectConserved(state)
     })
 })

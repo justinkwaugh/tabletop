@@ -1,16 +1,18 @@
 import { afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     Goods,
-    HydratedFeudumGameState,
-    RoyalWrits,
-    Seals,
-    Spaces,
     hiddenBeadCandidates,
+    HydratedFeudumGameState,
+    knightRow,
     placeMarker,
     returnGoodToHaversack,
+    RoyalWrits,
+    Seals,
+    seatKnightRow,
+    Spaces,
     type FeudumGameState,
     type SealId,
     type WritId
@@ -327,30 +329,31 @@ describe('each row of the animation plan that crosses the wrapper', () => {
         const table = await emptyTable()
         const { seat, host: game } = table
         game.edit((state) => {
-            const [row] = state.guilds.knight.rows
-            row.playerId = seat
-            row.markers = 3
+            const own = seatKnightRow(state, seat)
+            assertExists(own, 'R-1.4-H1 The seat has a row')
+            own.row.markers = 3
         })
-        const colour = hydrated(game.state).guilds.knight.rows[0].colour
+        const rowId = seatKnightRow(hydrated(game.state), seat)?.rowId
+        assertExists(rowId, 'R-1.4-H1 The seat has a row')
         const left = planFlights(
             changeFrom(
                 table,
                 (to) => {
-                    to.guilds.knight.rows[0].markers = 0
+                    knightRow(to, rowId).markers = 0
                 },
                 anAction(seat)
             )
         )
         expect(rowOf(left, 'markers').map(({ from }) => 'piece' in from && from.piece)).toEqual([
-            `knight:${colour}:1`,
-            `knight:${colour}:2`,
-            `knight:${colour}:3`
+            `knight:${rowId}:1`,
+            `knight:${rowId}:2`,
+            `knight:${rowId}:3`
         ])
         const filled = planFlights(
             changeFrom(
                 table,
                 (to) => {
-                    to.guilds.knight.rows[0].markers = 5
+                    knightRow(to, rowId).markers = 5
                 },
                 anAction(seat)
             )

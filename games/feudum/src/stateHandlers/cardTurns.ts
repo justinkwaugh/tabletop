@@ -11,6 +11,7 @@ import { seatOverLimit } from '../model/atWill.js'
 import type { FollowUp } from '../model/flow.js'
 import { nextOpenFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 /** R-3.2 The state that decides each follow-up. A new kind is one row here and one in `FollowUp`. */
 const FollowUpStates: Readonly<Record<FollowUp['kind'], MachineState>> = {
@@ -65,8 +66,9 @@ export function askCardTurn(state: HydratedFeudumGameState): void {
         const first = turnManager.turnOrder.find((playerId) => holdsCards(state, playerId))
         if (first) {
             turnManager.startTurn(first, actionCount)
-            state.flow.turn = { playerId: first, secondCard: false, followUps: [] }
+            state.flow.turn = { secondCard: false, followUps: [] }
         }
     }
-    state.activePlayerIds = state.flow.turn ? [state.flow.turn.playerId] : []
+    const seat = cardTurnSeat(state)
+    state.activePlayerIds = seat ? [seat] : []
 }

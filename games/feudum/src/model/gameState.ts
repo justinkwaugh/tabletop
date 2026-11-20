@@ -48,7 +48,7 @@ export const FeudumGameState = Type.Object({
     players: Type.Array(FeudumPlayerState),
     machineState: Type.Enum(MachineState),
     /** R-X.3 */
-    feudumRevision: Type.Number(),
+    feudumRevision: Type.Integer({ minimum: 1 }),
     roundManager: RoundManager,
     phaseManager: PhaseManager,
     /** R-2.1, R-4.11 */

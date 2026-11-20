@@ -5,7 +5,7 @@ import type { DiscId } from '../data/discs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
-import { discChoices } from '../model/locationDiscs.js'
+import { discChoices, feudumGuildOf } from '../model/locationDiscs.js'
 import { placeMarker } from '../model/locationControl.js'
 import { giveGood, giveSeal, setUp, spaceOfKind, tableImproving } from '../testing/improving.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
@@ -51,7 +51,7 @@ describe('R-3.9.1 outpost to farm', () => {
 
         const after = table.hydrated()
         const space = after.spaces[spaceId]
-        expect(space.location).toEqual({ kind: 'farm', discId: FarmDisc, face: 'a' })
+        expect(space.location).toEqual({ kind: 'farm', discId: FarmDisc })
         expect(space.ruler).toEqual({ playerId, subject: false })
         expect(after.supply.discs).toContain(oldDisc)
         expect(after.supply.discs).not.toContain(FarmDisc)
@@ -105,8 +105,7 @@ describe('R-3.9.1 farm to town', () => {
         const after = table.hydrated()
         expect(after.spaces[spaceId].location).toEqual({
             kind: 'town',
-            discId: FarmDisc,
-            face: 'b'
+            discId: FarmDisc
         })
         expect(Object.values(after.spaces[spaceId].goods).every((count) => count === 0)).toBe(true)
         expect(after.supply.haversack.food).toBe(food)
@@ -151,10 +150,9 @@ describe('R-3.9.1 town to feudum', () => {
         const seat = after.getPlayerState(playerId)
         expect(after.spaces[spaceId].location).toEqual({
             kind: 'feudum',
-            discId: 'disc.feudum.noble-1',
-            face: 'a',
-            feudumGuild: 'noble'
+            discId: 'disc.feudum.noble-1'
         })
+        expect(feudumGuildOf(after.spaces[spaceId].location)).toBe('noble')
         expect(after.spaces[spaceId].goods).toEqual(goods)
         expect(seat.sealCount).toBe(0)
         expect(after.supply.sealPileCount).toBe(pile.length + 1)
@@ -220,7 +218,7 @@ describe('R-3.9.1 town to feudum', () => {
             const { table, playerId, spaceId } = atTown()
             const [action] = improve(table, playerId, spaceId, { feudumGuild })
             expect(action).toMatchObject({ metadata: { discId: `disc.feudum.${feudumGuild}-1` } })
-            expect(table.hydrated().spaces[spaceId].location.feudumGuild).toBe(feudumGuild)
+            expect(feudumGuildOf(table.hydrated().spaces[spaceId].location)).toBe(feudumGuild)
         }
     )
 })
@@ -252,8 +250,7 @@ describe('R-3.9-H1 which disc', () => {
         improve(table, playerId, spaceId, { discId: OutpostFarmDisc })
         expect(table.hydrated().spaces[spaceId].location).toEqual({
             kind: 'farm',
-            discId: OutpostFarmDisc,
-            face: 'b'
+            discId: OutpostFarmDisc
         })
     })
 

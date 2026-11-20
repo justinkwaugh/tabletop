@@ -10,6 +10,7 @@ import {
 } from '../data/guilds.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
 import type { KnightRow } from '../model/guildsState.js'
+import { seatKnightRow } from '../model/knightRows.js'
 import { presenceSpaceIds } from '../model/locationControl.js'
 import { monsterReaches } from '../model/media.js'
 import { canPayGuild, guildSplit, payGuild } from '../model/payments.js'
@@ -17,9 +18,9 @@ import type { GuildFunctionName, GuildFunctionParams, GuildFunctionRow } from '.
 import { makeInventions, mostInventions, reasonInventionsRefused } from './inventions.js'
 import { rowsToScrollsRow } from './rowsToScrolls.js'
 
-/** R-1.4-H1 A player row names its playerId. */
+/** R-1.4-H1 A seat's row is the one it owns. */
 function seatRow(state: HydratedFeudumGameState, playerId: string): KnightRow | undefined {
-    return state.guilds.knight.rows.find((row) => row.playerId === playerId)
+    return seatKnightRow(state, playerId)?.row
 }
 
 function markersInRow(state: HydratedFeudumGameState, playerId: string): number {
@@ -145,7 +146,7 @@ const KnightTrade: GuildFunctionRow = {
 
     /**
      * R-4.6.3, R-4.6.2, R-4.2.4 Every marker in the seat's row comes home. A tame returns 3 of them:
-     * one lies on the monster's icon, the rest go to the general supply, by colour (R-1.4.2).
+     * one lies on the monster's icon, the rest go to the seat's markers in the general supply (R-1.4.2).
      */
     perform(state, { playerId }, params) {
         const details = tradeDetails(state, playerId, params)
@@ -158,8 +159,7 @@ const KnightTrade: GuildFunctionRow = {
         const { monster, deploySpaceId } = params
         if (row && monster && deploySpaceId) {
             const toSupply = tameCost(monster) - TameMarkersOnIcon
-            state.supply.influence[row.colour] += toSupply
-            state.guilds.knight.monsterIcons[monster] = playerId
+            state.supply.influence[playerId] += toSupply
             state.monsters[monster] = { playerId, spaceId: deploySpaceId }
         }
         return {

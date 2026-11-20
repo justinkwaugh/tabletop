@@ -3,13 +3,15 @@
     import {
         KnightMonsterIcons,
         KnightSections,
+        knightRows,
         type HydratedFeudumGameState
     } from '@tabletop/feudum'
     import type { Color } from '@tabletop/common'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import MonsterToken from '$lib/components/pieces/MonsterToken.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
-    import type { SeatPaint } from '$lib/model/seatPaint.js'
+    import { knightMarkerPiece, rowLane } from '$lib/model/knightLanes.js'
+    import { ownerPaint, type SeatPaint } from '$lib/model/seatPaint.js'
     import {
         GuildSizes,
         KnightCell,
@@ -26,8 +28,8 @@
     import { BarrelPath } from '$lib/utils/trackShape.js'
 
     /**
-     * R-1.3 One row per colour in use, each of three barrel sections; a dummy row wears its colour and is
-     * named by it, with no seat behind it (R-1.4-H1). R-4.2.4 Each monster's icon carries the marker of whoever controls it.
+     * R-1.3 One row per seat and dummy row, each of three barrel sections, in its printed lane; a dummy
+     * row wears a colour no seat is shown in and is named by it, with no seat behind it (R-1.4-H1). R-4.2.4 Each monster's icon carries the marker of whoever controls it.
      */
     let {
         state,
@@ -81,10 +83,11 @@
         </g>
     {/each}
 {/if}
-{#each state.guilds.knight.rows as row (row.colour)}
-    {@const paint = row.playerId ? paintOf(row.playerId) : colourPaintOf(row.colour)}
-    {@const label = knightRowLabel(row.colour)}
-    <g data-knight-row={row.colour} data-markers={row.markers}>
+{#each knightRows(state) as { rowId, row } (rowId)}
+    {@const paint = ownerPaint(row.owner, paintOf, colourPaintOf)}
+    {@const lane = rowLane(state, row.owner)}
+    {@const label = knightRowLabel(lane)}
+    <g data-knight-row={lane} data-row-id={rowId} data-markers={row.markers}>
         <SeatToken
             kind="disc"
             {paint}
@@ -93,7 +96,7 @@
             y={label.y - RowDisc / 2}
         />
         {#each Columns as column (column)}
-            {@const at = knightCell(row.colour, column)}
+            {@const at = knightCell(lane, column)}
             {#if !printed}
                 <rect
                     x={at.x - KnightCell / 2}
@@ -109,7 +112,7 @@
                 ></rect>
             {/if}
             {#if column <= row.markers}
-                <BoardPiece {at} piece="knight:{row.colour}:{column}">
+                <BoardPiece {at} piece={knightMarkerPiece(rowId, column)}>
                     <SeatToken
                         kind="marker"
                         {paint}
@@ -125,7 +128,7 @@
 
 {#each KnightMonsterIcons as icon (icon.id)}
     {@const at = guildSlot(icon.id)}
-    {@const controller = state.guilds.knight.monsterIcons[icon.monster]}
+    {@const controller = state.monsters[icon.monster].playerId}
     {#if !printed}
         <g data-monster-icon={icon.monster}>
             <rect

@@ -131,22 +131,31 @@ describe('player rows', () => {
 })
 
 describe('Knight rows', () => {
-    it('R-1.4-H1 a player row names its playerId; a dummy row only its colour', () => {
+    it('R-1.4-H1 a seat row names its playerId, a dummy row its colour alone, under a row id', () => {
         const state = dehydrated()
-        state.guilds.knight.rows = [
-            { colour: Color.Red, playerId: 'p1', markers: 2 },
-            { colour: Color.Purple, markers: 2 }
-        ]
+        state.guilds.knight.rows = {
+            'knight-row-1': { owner: { playerId: 'p1' }, markers: 2 },
+            'knight-row-2': { owner: { dummyColour: Color.Purple }, markers: 2 }
+        }
         expect(FeudumGameStateValidator.Check(state)).toBe(true)
-        state.guilds.knight.rows = [{ colour: Color.Red, markers: 7 }]
+        state.guilds.knight.rows = {
+            'knight-row-1': { owner: { dummyColour: Color.Red }, markers: 7 }
+        }
+        expect(FeudumGameStateValidator.Check(state)).toBe(false)
+        state.guilds.knight.rows = {
+            'knight-row-1': { owner: { colour: Color.Red } as never, markers: 2 }
+        }
+        expect(FeudumGameStateValidator.Check(state)).toBe(false)
+        state.guilds.knight.rows = {
+            'row-9': { owner: { playerId: 'p1' }, markers: 2 }
+        } as never
         expect(FeudumGameStateValidator.Check(state)).toBe(false)
     })
 })
 
 describe('flow', () => {
-    const turn = { playerId: 'p1', secondCard: false, followUps: [] }
+    const turn = { secondCard: false, followUps: [] }
     const pending = {
-        setupOrder: { playerId: 'p1' },
         selection: { finalised: ['p1'] },
         turn,
         writDraw: {
@@ -184,9 +193,10 @@ describe('flow', () => {
         return FeudumGameStateValidator.Check({ ...dehydrated(), flow })
     }
 
-    it("R-X.1, R-1.4.8 starts with only the starting player's choice pending", () => {
+    it("R-X.1, R-1.4.8 starts with nothing pending but the starting player's turn", () => {
         const state = initialState()
-        expect(state.flow).toEqual({ setupOrder: { playerId: state.startingPlayerId } })
+        expect(state.flow).toEqual({})
+        expect(state.turnManager.currentTurn()?.playerId).toBe(state.startingPlayerId)
     })
 
     it('R-X.1 holds every pending decision', () => {
@@ -194,8 +204,6 @@ describe('flow', () => {
     })
 
     it.each([
-        ['setupOrder', 'playerId'],
-        ['turn', 'playerId'],
         ['writDraw', 'playerId'],
         ['harvest', 'playerId'],
         ['combat', 'attackerId'],
@@ -267,12 +275,7 @@ describe('derived, not stored', () => {
         state.spaces['space.sea.2'].serf = { playerId: 'p1' }
         expect(state.ruledSpaceIds('p1')).toEqual(['space.sea.1'])
         expect(state.isVassal('p1')).toBe(false)
-        state.spaces['space.sea.1'].location = {
-            kind: 'feudum',
-            discId: 'disc.feudum.monk-1',
-            face: 'a',
-            feudumGuild: 'monk'
-        }
+        state.spaces['space.sea.1'].location = { kind: 'feudum', discId: 'disc.feudum.monk-1' }
         expect(state.isVassal('p1')).toBe(true)
     })
 })

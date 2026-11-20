@@ -12,6 +12,7 @@ import {
 } from '@tabletop/feudum'
 import { paymentTotal, type BenchChoice, type BenchItem, type BenchOffer } from './benchOffer.js'
 import type { GhostPiece } from './benchView.js'
+import { seatRowId } from './knightLanes.js'
 
 /**
  * Contract, Guild and Feast, The trade picker: a guild's trade read as choice cards beside its board
@@ -140,7 +141,10 @@ function knightCards(
         return []
     }
     const { markers } = knightTradeOffer(state, playerId)
-    const row = state.guilds.knight.rows.findIndex((held) => held.playerId === playerId)
+    const row = seatRowId(state, playerId)
+    if (!row) {
+        return []
+    }
     const gain = `${markers} marker${markers === 1 ? '' : 's'}`
     const press = buy(item, gain)
     return [

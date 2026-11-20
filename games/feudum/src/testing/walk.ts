@@ -37,6 +37,7 @@ import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gam
 import { nextMarkerRole } from '../model/locationControl.js'
 import type { GoodCounts } from '../model/stateSchemas.js'
 import { testGame } from './state.js'
+import { giveCardTurn } from './table.js'
 
 const engine = new GameEngine(FeudumRuntime)
 
@@ -378,7 +379,7 @@ function usefulCards(
     }
     const seat = trial.getPlayerState(playerId)
     seat.hand = ActionCards.map((card) => card.kind)
-    trial.flow.turn = { playerId, secondCard: false, followUps: [] }
+    giveCardTurn(trial, playerId)
     return cardsInOrder(state, playerId).filter(
         (kind) => kind !== 'repeat' && cardMove(trial, playerId, kind, progress) !== undefined
     )

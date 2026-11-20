@@ -1,13 +1,16 @@
 import { assert } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
-    ChickenSpaces,
+    changeOwnerSupply,
     chickenBeads,
+    ChickenSpaces,
     Goods,
+    knightRows,
     MarketSpaces,
     moveConcealedSeal,
     placeMarker,
     recordFrom,
+    rowSeat,
     ScrollSpaces,
     Seals,
     type ActionCardKind,
@@ -144,16 +147,16 @@ export function setVesselsForSale(
 
 /** Each Knight row, in order, holds this many markers, keeping totals. */
 export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly number[]): void {
-    state.guilds.knight.rows.forEach((row, index) => {
+    knightRows(state).forEach(({ row }, index) => {
         const wanted = markers.at(index) ?? 0
-        state.supply.influence[row.colour] -= wanted - row.markers
+        changeOwnerSupply(state, row.owner, row.markers - wanted)
         row.markers = wanted
     })
 }
 
 /** The place among the Knight rows of this seat's own row (R-1.4-H1). */
 export function seatRowIndex(state: HydratedFeudumGameState, playerId: string): number {
-    return state.guilds.knight.rows.findIndex((row) => row.playerId === playerId)
+    return knightRows(state).findIndex(({ row }) => rowSeat(row.owner) === playerId)
 }
 
 /** A seal of this value out of the pile. */

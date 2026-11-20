@@ -40,10 +40,10 @@ export function targetToMarker(state: HydratedFeudumGameState, playerId: string)
     const player = state.getPlayerState(playerId)
     const { influence } = state.supply
     state.supply.targets += 1
-    if ((influence[player.color] ?? 0) === 0) {
+    if ((influence[playerId] ?? 0) === 0) {
         return false
     }
-    influence[player.color] -= 1
+    influence[playerId] -= 1
     player.influenceSupply += 1
     return true
 }
@@ -56,8 +56,8 @@ export function takeInfluenceMarkers(
 ): number {
     const player = state.getPlayerState(playerId)
     const { influence } = state.supply
-    const taken = Math.min(amount, influence[player.color] ?? 0)
-    influence[player.color] -= taken
+    const taken = Math.min(amount, influence[playerId] ?? 0)
+    influence[playerId] -= taken
     player.influenceSupply += taken
     return taken
 }

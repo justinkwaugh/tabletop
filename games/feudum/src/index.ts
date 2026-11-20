@@ -82,8 +82,14 @@ export * from './model/gameState.js'
 export * from './model/guildStatus.js'
 export * from './model/guildsState.js'
 export * from './model/haversack.js'
+export * from './model/knightRows.js'
 export * from './model/locationControl.js'
-export { discChoices, replaceLocationDisc, type DiscChoice } from './model/locationDiscs.js'
+export {
+    discChoices,
+    feudumGuildOf,
+    replaceLocationDisc,
+    type DiscChoice
+} from './model/locationDiscs.js'
 export * from './model/mapState.js'
 export * from './model/media.js'
 export * from './model/payments.js'
@@ -93,6 +99,7 @@ export * from './model/seals.js'
 export * from './model/stateSchemas.js'
 export * from './model/supply.js'
 export * from './model/supplyState.js'
+export * from './model/turns.js'
 export * from './model/vault.js'
 export * from './model/writDeck.js'
 

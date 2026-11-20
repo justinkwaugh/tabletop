@@ -29,6 +29,7 @@ import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { discardWritOffers, reasonDiscardWritRefused } from './discardWrit.js'
 import { keepWritsOffer, reasonKeepWritsRefused } from './keepWrits.js'
 import { playMandateOffers, reasonPlayMandateRefused } from './playMandate.js'
+import { cardTurnSeat } from '../model/turns.js'
 
 const OUTPOST: SpaceId = 'space.forest.1'
 const FEUDUM: SpaceId = 'space.forest.3'
@@ -152,7 +153,7 @@ describe('KeepWrits', () => {
         expect(player.writs).toEqual([drawn[1]])
         expect(player.writCount).toBe(1)
         expect(state.flow.writDraw).toBeUndefined()
-        expect(state.flow.turn?.playerId).not.toBe(playerId)
+        expect(cardTurnSeat(state)).not.toBe(playerId)
         expect(state.machineState).toBe(MachineState.PlayingCards)
         expect(writDeckCount(state)).toBe(deck + 1)
         expect(player.deckKnowledge).toEqual([{ slot, writId: drawn[0] }])
@@ -233,7 +234,8 @@ describe('KeepWrits', () => {
         const state = table.hydrated()
         expect(state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(playerId)
-        expect(state.flow.turn).toMatchObject({ playerId, secondCard: true, followUps: [] })
+        expect(cardTurnSeat(state)).toBe(playerId)
+        expect(state.flow.turn).toMatchObject({ secondCard: true, followUps: [] })
     })
 
     it('R-3.7.5 a voyage draw is kept the same way, with no Shovels & Swords', () => {
@@ -311,7 +313,7 @@ describe('DiscardWrit', () => {
         expect(state.getPlayerState(other).deckKnowledge).toEqual([{ slot, writId: Weapon }])
         expect(state.machineState).toBe(MachineState.PlayingCards)
         expect(state.activePlayerIds).toEqual([playerId])
-        expect(state.flow.turn?.playerId).toBe(playerId)
+        expect(cardTurnSeat(state)).toBe(playerId)
     })
 
     it('R-4.4-H5 a discard is taken while play waits on another seat, which is still asked', () => {
@@ -391,7 +393,7 @@ describe('DiscardWrit', () => {
         // R-3.2-H2 The turn is still this seat's, with no card played.
         expect(state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(playerId)
-        expect(state.flow.turn?.playerId).toBe(playerId)
+        expect(cardTurnSeat(state)).toBe(playerId)
         expect(player.handCount).toBe(HAND.length)
     })
 

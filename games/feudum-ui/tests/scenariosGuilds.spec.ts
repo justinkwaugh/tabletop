@@ -138,7 +138,9 @@ scenario('S44 R-4.6.3, R-4.2.4 Knight trade and tame', 'guild-knight-trade', asy
     expect(flights.filter((flight) => flight === "markers: Ana's influence marker")).toHaveLength(3)
     // The Knight's row moves on a phone's board; a desk's stands behind the East guilds button.
     if (table.phone) {
-        expect(flights).toContain('board: knight:blue:4')
+        expect(
+            flights.filter((flight) => /^board: knight:knight-row-\d:4$/.test(flight))
+        ).toHaveLength(1)
     }
     await expect(header(table)).toHaveCount(0)
     await expect(
@@ -150,19 +152,19 @@ scenario('S45 R-4.6.5, R-5-H1 Noble pull picks', 'guild-noble-pull', async (tabl
     await openFunction(table, 'noble', 'Pull')
     await pressBench(
         table,
-        'row:0',
-        'row:1',
+        'row:knight-row-1',
+        'row:knight-row-2',
         'scroll:guild.noble.scroll.r1c2',
         'scroll:guild.noble.scroll.r2c1'
     )
     const seals = ghostsIn(table, 'noble')
     await expect(seals).toHaveCount(2)
     // A used row stays picked, with no press and no line.
-    await expect(bench(table).locator('[data-bench-place="row:0"]')).toHaveAttribute(
+    await expect(bench(table).locator('[data-bench-place="row:knight-row-1"]')).toHaveAttribute(
         'data-bench-role',
         'picked'
     )
-    await expect(benchItem(table, 'row:0')).toHaveCount(0)
+    await expect(benchItem(table, 'row:knight-row-1')).toHaveCount(0)
     await expect(seals.getByRole('img', { name: "king's seal" })).toHaveCount(2)
     await expect(result(table)).toHaveText("3 vp · 2 writs, keep 1 · can't be undone")
 })

@@ -32,6 +32,7 @@ import {
     reasonReclaimImmunitySealRefused,
     reclaimImmunitySealOffers
 } from './reclaimImmunitySeal.js'
+import { endCardTurn, giveCardTurn } from '../testing/table.js'
 
 const WITH_DEFEND = ['defend', 'tax'] as const
 const WITHOUT_DEFEND = ['tax', 'guild'] as const
@@ -418,7 +419,7 @@ describe('R-3.14.2, R-3.14-H2 ReclaimImmunitySeal', () => {
     /** The owner's own turn, the card still to play. */
     function onOwnersTurn({ table, defenderId }: StarveTable) {
         table.moveTo((state) => {
-            state.flow.turn = { playerId: defenderId, secondCard: false, followUps: [] }
+            giveCardTurn(state, defenderId)
             return MachineState.PlayingCards
         })
     }
@@ -457,7 +458,7 @@ describe('R-3.14.2, R-3.14-H2 ReclaimImmunitySeal', () => {
         onOwnersTurn(combat)
         reclaim(combat)
         table.moveTo((state) => {
-            state.flow.turn = { playerId: attackerId, secondCard: false, followUps: [] }
+            giveCardTurn(state, attackerId)
             return MachineState.PlayingCards
         })
         starve(combat)
@@ -512,7 +513,7 @@ describe('R-3.14.2, R-3.14-H2 ReclaimImmunitySeal', () => {
         const combat = immune()
         const { table, defenderId } = combat
         table.moveTo((state) => {
-            state.flow.turn = undefined
+            endCardTurn(state)
             state.flow.selection = { finalised: [] }
             state.turnManager.turnOrder = [
                 defenderId,

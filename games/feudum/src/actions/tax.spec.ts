@@ -6,6 +6,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { reasonTaxRefused, taxPreview, taxShillings } from './tax.js'
+import { knightRows, rowSeat, seatKnightRow } from '../model/knightRows.js'
 
 const SPACES: readonly SpaceId[] = ['space.forest.1', 'space.forest.3', 'space.desert.1']
 
@@ -40,11 +41,11 @@ function knight(state: HydratedFeudumGameState, playerId: string): void {
     state.getPlayerState(playerId).pawns[0].character = 'knight'
 }
 
-/** Moves every marker of the seat's colour out of the general supply, onto its own supply. */
+/** Moves every marker of the seat's out of the general supply, onto its own supply. */
 function emptyColour(state: HydratedFeudumGameState, playerId: string): void {
     const player = state.getPlayerState(playerId)
-    player.influenceSupply += state.supply.influence[player.color]
-    state.supply.influence[player.color] = 0
+    player.influenceSupply += state.supply.influence[playerId]
+    state.supply.influence[playerId] = 0
 }
 
 describe('Tax: R-3.12.1', () => {
@@ -143,12 +144,12 @@ describe('Reinforcements: R-3.12.2, R-3.12-H1 (S22)', () => {
         const { table, playerId } = tableWith(['town'], knight)
         const seat = table.seat(playerId)
         const markers = seat.influenceSupply
-        const inSupply = table.state.supply.influence[seat.color]
+        const inSupply = table.state.supply.influence[seat.playerId]
 
         const [action] = table.send(playerId, { type: ActionType.Tax, collect: true })
 
         expect(table.seat(playerId).influenceSupply).toBe(markers + 1)
-        expect(table.state.supply.influence[seat.color]).toBe(inSupply - 1)
+        expect(table.state.supply.influence[seat.playerId]).toBe(inSupply - 1)
         expect(table.seat(playerId).played).toEqual([{ kind: 'tax', use: 'special' }])
         expect(action).toMatchObject({
             metadata: { shillings: 2, reinforcements: 'general-supply', rankChanges: [] }
@@ -159,13 +160,13 @@ describe('Reinforcements: R-3.12.2, R-3.12-H1 (S22)', () => {
         const { table, playerId } = tableWith(['town'], knight)
         const seat = table.seat(playerId)
         const markers = seat.influenceSupply
-        const inSupply = table.state.supply.influence[seat.color]
+        const inSupply = table.state.supply.influence[seat.playerId]
 
         const [action] = table.send(playerId, { type: ActionType.Tax, collect: false })
 
         expect(table.seat(playerId).shillings).toBe(seat.shillings + 2)
         expect(table.seat(playerId).influenceSupply).toBe(markers)
-        expect(table.state.supply.influence[seat.color]).toBe(inSupply)
+        expect(table.state.supply.influence[seat.playerId]).toBe(inSupply)
         expect(table.seat(playerId).played).toEqual([{ kind: 'tax', use: 'regular' }])
         expect(action).toMatchObject({ metadata: { shillings: 2, rankChanges: [] } })
         expect(action).not.toHaveProperty('metadata.reinforcements')
@@ -183,20 +184,20 @@ describe('Reinforcements: R-3.12.2, R-3.12-H1 (S22)', () => {
         expect(table.seat(playerId).influenceSupply).toBe(markers + 1)
     })
 
-    it('R-3.12.2 with none of the colour in the general supply, from the seat’s own row', () => {
+    it("R-3.12.2 with none of the seat's markers in the general supply, from the seat’s own row", () => {
         const { table, playerId } = tableWith(['town'], (state, id) => {
             knight(state, id)
             emptyColour(state, id)
         })
-        const rows = table.state.guilds.knight.rows
-        const before = rows.map((row) => row.markers)
-        const own = rows.findIndex((row) => row.playerId === playerId)
+        const rows = knightRows(table.state)
+        const before = rows.map(({ row }) => row.markers)
+        const own = rows.findIndex(({ row }) => rowSeat(row.owner) === playerId)
         const markers = table.seat(playerId).influenceSupply
 
         const [action] = table.send(playerId, { type: ActionType.Tax, collect: true })
 
         expect(table.seat(playerId).influenceSupply).toBe(markers + 1)
-        expect(table.state.guilds.knight.rows.map((row) => row.markers)).toEqual(
+        expect(knightRows(table.state).map(({ row }) => row.markers)).toEqual(
             before.map((count, index) => (index === own ? count - 1 : count))
         )
         expect(action).toMatchObject({ metadata: { reinforcements: 'knight-row' } })
@@ -206,7 +207,7 @@ describe('Reinforcements: R-3.12.2, R-3.12-H1 (S22)', () => {
         const { table, playerId } = tableWith(['town'], (state, id) => {
             knight(state, id)
             emptyColour(state, id)
-            const row = state.guilds.knight.rows.find((candidate) => candidate.playerId === id)
+            const row = seatKnightRow(state, id)?.row
             if (row) {
                 state.getPlayerState(id).influenceSupply += row.markers
                 row.markers = 0
@@ -240,19 +241,18 @@ describe('Reinforcements: R-3.12.2, R-3.12-H1 (S22)', () => {
             // The farmer keeps its rank's marker on the track.
             second.spaceId = first.spaceId
             second.character = 'farmer'
-            state.supply.influence[player.color] += player.influenceSupply
+            state.supply.influence[player.playerId] += player.influenceSupply
             player.influenceSupply = 0
             state.guilds.tracks.knight = {}
         })
-        const { color } = table.seat(playerId)
-        const inSupply = table.state.supply.influence[color]
+        const inSupply = table.state.supply.influence[playerId]
         expect(table.state.guilds.tracks.knight.master).toBeUndefined()
 
         const [action] = table.send(playerId, { type: ActionType.Tax, collect: true })
 
         expect(table.state.guilds.tracks.knight.master?.playerId).toBe(playerId)
         expect(table.seat(playerId).influenceSupply).toBe(0)
-        expect(table.state.supply.influence[color]).toBe(inSupply - 1)
+        expect(table.state.supply.influence[playerId]).toBe(inSupply - 1)
         expect(action).toMatchObject({
             metadata: {
                 reinforcements: 'general-supply',
