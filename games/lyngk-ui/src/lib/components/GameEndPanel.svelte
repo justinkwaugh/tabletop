@@ -29,8 +29,7 @@
             .map((player) => gameState.rankingOf(player.playerId)[decider])
             .toSorted((a, b) => b - a)
             .join(' to ')
-        const level = decider === 0 ? '' : `Level on ${HEIGHTS.slice(0, decider).join(', ')}; `
-        return `${level}decided on ${HEIGHTS[decider]}, ${counts}`
+        return `Won on ${HEIGHTS[decider]}, ${counts}`
     })
 </script>
 

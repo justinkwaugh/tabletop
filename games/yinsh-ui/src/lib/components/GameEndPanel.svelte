@@ -7,8 +7,8 @@
     const session = getGameSession()
 
     const ENDINGS: Record<Exclude<EndReason, EndReason.Rows>, string> = {
-        [EndReason.PoolEmpty]: 'The markers ran out',
-        [EndReason.NoMoves]: 'Neither player could move'
+        [EndReason.PoolEmpty]: 'Markers ran out',
+        [EndReason.NoMoves]: 'No moves left'
     }
 
     const winners = $derived(session.gameState.winningPlayerIds)
@@ -31,7 +31,7 @@
             .map((player) => player.ringsRemoved)
             .toSorted((a, b) => b - a)
             .join(' to ')
-        return `${ended}; rings removed ${counts}`
+        return `${ended}; rings ${counts}`
     })
 </script>
 
