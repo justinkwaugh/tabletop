@@ -189,6 +189,11 @@
 - **Source:** the viewer's `uniformPips` and `classicDeck` title preferences, saved per account, both off at first. `uniformPips` shows the red 1–4 as red 10 9 8 7, so they rank like the black suits' pips. `classicDeck` swaps in the Industrie und Glück Tarock art as printed, for players who want the traditional pack; it prints no indices but Roman numerals on trumps.
 - **Effect:** changes how cards look and how history text names cards for that viewer only, never the game. The only toggle sits in the Players tab, below the player panels.
 
+### Hand order
+
+- **Display:** a hand is laid out in blocks, the four suits alternating colour (♥ ♠ ♦ ♣) and then the trumps. Within each block the cards run from the weakest to the strongest, left to right: 7 8 9 10 J C Q K (red 4 3 2 1 J C Q K), and trumps I to XXI, then the Sküs.
+- **High → Low:** the viewer's `handHighToLow` title preference, off at first, set by the "High → Low" box beside the card-style boxes in the Players tab. It turns every block round, strongest first; the blocks keep their places. Open hands in ouvert games follow the viewer's order. `utils/handOrder.ts`, tested in `handOrder.spec.ts`.
+
 ## Render ownership
 
 - **The card component** is the only renderer of card faces: the Tarot Nouveau as printed, with its court indices R D C V reset as K Q C J in a monoline slab (the Q's tail crosses the bowl and ends in a flat foot, after the Bicycle pack's), cut from the scans by a card-import script kept outside the repository. Under `classicDeck` it draws the Industrie und Glück faces from the same script, with red 10–7 faces composed from the pack's own red pip and laid out like its black spades, and trump II turned so the eagle is on top. Both packs share the Industrie und Glück's printed back. Each pack keeps its own proportion, 229:432 and 239:432, with corners rounded by 7% of the width, and cards of either pack stand equally tall: places are laid out for a 5:9 width, `--card-w`, faces and backs take the pack's share of it, the hand spaces that narrower width, and flights read a card's width from its height.
