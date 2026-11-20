@@ -261,7 +261,7 @@ export const PrintedCounts = {
     barn: { x: 236, y: 190 }
 } as const
 
-/** Contract, Desk layout: the faces are cut by `scripts/make-faces.mjs`, lying as on the board. */
+/** Contract, Desk layout: each guild button's face, cropped from its print round this centre. */
 export const PrintedFaces: Record<GuildId, Point> = {
     alchemist: { x: 241, y: 87.5 },
     merchant: { x: 236, y: 53.5 },

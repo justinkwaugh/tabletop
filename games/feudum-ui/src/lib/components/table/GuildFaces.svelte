@@ -1,24 +1,37 @@
 <script lang="ts">
-    import { assetUrl, guildFaceAsset } from '$lib/art/assetMap.js'
+    import { assetUrl, guildPanelAsset } from '$lib/art/assetMap.js'
     import type { GuildSide } from '$lib/model/boardFocus.svelte.js'
-    import { guildsDownSide } from '$lib/utils/boardGeometry.js'
+    import { GuildBox, guildsDownSide } from '$lib/utils/boardGeometry.js'
+    import { PrintedFaceRadius, PrintedFaces, printedFaceTurn } from '$lib/utils/printedGuilds.js'
 
-    /** Contract, Desk layout: small cut faces, so the prints stay unloaded until a side opens. */
     let { side }: { side: GuildSide } = $props()
+
+    const FaceBox = `${-PrintedFaceRadius} ${-PrintedFaceRadius} ${2 * PrintedFaceRadius} ${2 * PrintedFaceRadius}`
 
     let faces = $derived(
         guildsDownSide(side === 'west').flatMap((guild) => {
-            const url = assetUrl(guildFaceAsset(guild))
-            return url ? [{ guild, url }] : []
+            const url = assetUrl(guildPanelAsset(guild))
+            return url
+                ? [{ guild, url, centre: PrintedFaces[guild], turn: printedFaceTurn(guild) }]
+                : []
         })
     )
 </script>
 
 {#if faces.length > 0}
     <span class="faces" aria-hidden="true" data-guild-faces={side}>
-        {#each faces as { guild, url } (guild)}
+        {#each faces as { guild, url, centre, turn } (guild)}
             <span class="ring" data-face-ring>
-                <img src={url} alt="" width="36" height="36" data-guild-face={guild} />
+                <svg width="36" height="36" viewBox={FaceBox} data-guild-face={guild}>
+                    <image
+                        href={url}
+                        x={-centre.x}
+                        y={-centre.y}
+                        width={GuildBox.width}
+                        height={GuildBox.height}
+                        transform="rotate({turn})"
+                    ></image>
+                </svg>
             </span>
         {/each}
     </span>
@@ -42,7 +55,7 @@
             0 2px 4px color-mix(in srgb, var(--feudum-halo) 60%, transparent);
     }
 
-    .ring img {
+    .ring svg {
         display: block;
     }
 </style>

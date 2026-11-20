@@ -28,7 +28,6 @@ import {
     cardAsset,
     cardBackAsset,
     goodAsset,
-    guildFaceAsset,
     guildPanelAsset,
     locationAsset,
     monsterAsset,
@@ -153,24 +152,22 @@ describe('image coverage (R-1.1)', () => {
         folder.files = {}
     })
 
-    it('the map holds exactly the components that can be shown, plus the cover and the guild faces', () => {
-        expect(new Set(AssetIds)).toEqual(
-            new Set([...shownBy.keys(), CoverAsset, ...GuildIds.map(guildFaceAsset)])
-        )
+    it('the map holds exactly the components that can be shown, plus the cover', () => {
+        expect(new Set(AssetIds)).toEqual(new Set([...shownBy.keys(), CoverAsset]))
     })
 
-    it('a guild button shows each face’s file when the folder holds it, and no face without; a face is decoration, with no label of its own', () => {
+    it('a guild button crops each face from its guild’s print when the folder holds it, and draws no face without; a face is decoration, with no label of its own', () => {
         const faces = () =>
             (['west', 'east'] as const)
                 .map((side) => render(GuildFaces, { props: { side } }).body)
                 .join('')
-        expect(faces()).not.toContain('<img')
+        expect(faces()).not.toContain('<image')
         folder.files = everyAssetSupplied()
         const markup = faces()
         for (const guild of GuildIds) {
-            expect(markup).toContain(`src="/art/${guildFaceAsset(guild)}.webp"`)
+            expect(markup).toContain(`href="/art/${guildPanelAsset(guild)}.webp"`)
         }
-        expect(markup).not.toContain('board.guild')
+        expect(markup).not.toContain('<img')
         expect(markup).not.toMatch(/aria-label/)
     })
 
@@ -281,7 +278,6 @@ const LargestRender: readonly [prefix: string, px: number][] = [
     ['board.ring', 2500],
     ['board.map', 1598],
     ['board.guild.', 640],
-    ['face.', 36],
     ['cover', 340],
     ['good.', 47],
     ['shilling.', 47],
@@ -335,16 +331,6 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
         ...PrintedColours.map((colour): Cut => [cardBackAsset(colour), 580, 938]),
         [TargetAsset, 64, 64]
     ]
-
-    it.each(GuildIds.map(guildFaceAsset))(
-        '%s is a lossy 72 x 72 cut, twice the 36 px circle a guild button draws it in',
-        (id) => {
-            const file = readFileSync(new URL(`${id}.webp`, suppliedFolder))
-            expect(webpSize(file)).toMatchObject({ width: 72, height: 72 })
-            expect(file.includes('VP8 ', 12, 'latin1')).toBe(true)
-            expect(file.includes('VP8L', 12, 'latin1')).toBe(false)
-        }
-    )
 
     it.each(cutInsideTheLine)(
         '%s is cut inside its print line, at %i x %i',

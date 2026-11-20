@@ -180,8 +180,10 @@ async function motionWhile(page: Page, act: () => Promise<void>) {
 /** A desk's guild button: "West guilds" or "East guilds". */
 /** The two guild buttons, 45 px each, and their 4 px gaps to the map: what the map gives up. */
 const Gutters = 2 * (45 + 4)
-/** The guild faces are in the folder, so the buttons carry them. */
-const printed = existsSync(new URL('../src/lib/art/supplied/face.merchant.webp', import.meta.url))
+/** The guild prints are in the folder, so the buttons carry their faces. */
+const printed = existsSync(
+    new URL('../src/lib/art/supplied/board.guild.merchant.webp', import.meta.url)
+)
 
 const sideButton = (page: Page, side: 'West' | 'East') =>
     page.getByRole('button', { name: `${side} guilds`, exact: true })
@@ -382,6 +384,12 @@ test.describe('a 1440 px desk', () => {
     test('Contract, Desk layout: each guild button is wood with a gold edge, its label in the title font, and under it its side’s three faces, upright; the label stays its name', async ({
         page
     }) => {
+        const prints = new Set<string>()
+        page.on('request', (request) => {
+            if (request.resourceType() === 'image' && request.url().includes('board.guild')) {
+                prints.add(request.url())
+            }
+        })
         await openFixture(page, 'seats-four-mid-game')
         await settled(page)
         const Faces = {
@@ -428,16 +436,17 @@ test.describe('a 1440 px desk', () => {
                 'aria-hidden',
                 'true'
             )
-            // Each face is its own small file, decoration with empty alt text.
+            // Each face is cropped from its guild's own print.
             expect(
                 await faces.evaluateAll((all) =>
                     all.map((face) => [
                         face.getAttribute('data-guild-face'),
-                        face.getAttribute('alt'),
-                        /face\.([a-z]+)\.webp/.exec(face.getAttribute('src') ?? '')?.[1]
+                        /board\.guild\.([a-z]+)\.webp/.exec(
+                            face.querySelector('image')?.getAttribute('href') ?? ''
+                        )?.[1]
                     ])
                 )
-            ).toEqual(Faces[side].map((guild) => [guild, '', guild]))
+            ).toEqual(Faces[side].map((guild) => [guild, guild]))
             const rings = await Promise.all(
                 (await button.locator('[data-face-ring]').all()).map((ring) => rect(ring))
             )
@@ -458,19 +467,21 @@ test.describe('a 1440 px desk', () => {
             expect(Math.abs(top - foot)).toBeLessThan(2)
         }
 
-        // At rest no guild print is drawn or fetched: the faces are their own small files.
-        expect(
-            await page.evaluate(() => ({
-                drawn: [...document.querySelectorAll('image, img')].filter((image) =>
-                    (image.getAttribute('href') ?? image.getAttribute('src') ?? '').includes(
-                        'board.guild'
-                    )
-                ).length,
-                fetched: performance
-                    .getEntriesByType('resource')
-                    .filter(({ name }) => name.includes('board.guild')).length
-            }))
-        ).toEqual({ drawn: 0, fetched: 0 })
+        // At rest a guild print is drawn only in its button's face: six prints, one file each.
+        const drawn = await page.evaluate(() => {
+            const images = [...document.querySelectorAll('image, img')].filter((image) =>
+                (image.getAttribute('href') ?? image.getAttribute('src') ?? '').includes(
+                    'board.guild'
+                )
+            )
+            return {
+                drawn: images.length,
+                inFaces: images.filter((image) => image.closest('[data-guild-face]')).length
+            }
+        })
+        expect({ ...drawn, fetched: prints.size }).toEqual(
+            printed ? { drawn: 6, inFaces: 6, fetched: 6 } : { drawn: 0, inFaces: 0, fetched: 0 }
+        )
 
         // Open, the button's edge is light gold and it glows; a keyboard focus ring shows.
         const west = sideButton(page, 'West')

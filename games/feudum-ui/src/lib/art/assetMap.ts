@@ -48,7 +48,6 @@ export type PrintedColour = (typeof PrintedColours)[number]
 export const cardBackAsset = (colour: PrintedColour) => `card.back.${colour}` as const
 export const ReeveAsset = 'piece.reeve'
 export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
-export const guildFaceAsset = (guild: GuildId) => `face.${guild}` as const
 
 export function locationAsset(kind: LocationKind, guild?: GuildId) {
     return kind === 'feudum'
@@ -69,7 +68,6 @@ export const AssetIds = [
     MapAsset,
     ...RingParts.map(({ part }) => ringPartAsset(part)),
     ...GuildIds.map(guildPanelAsset),
-    ...GuildIds.map(guildFaceAsset),
     SealAsset,
     TargetAsset,
     WritBackAsset,
