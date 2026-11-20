@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { compactHeap } from './heapCompaction.js'
+import { HeapCompactor } from './heapCompaction.js'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -19,7 +19,7 @@ describe('heap compaction', () => {
             .mockReturnValueOnce(usage(460, 280))
         const collectGarbage = vi.fn<NodeJS.GCFunction>()
 
-        compactHeap(collectGarbage)
+        new HeapCompactor(collectGarbage).compact()
 
         expect(collectGarbage.mock.calls).toEqual([
             [{ type: 'major', execution: 'sync', flavor: 'last-resort' }]
@@ -45,16 +45,34 @@ describe('heap compaction', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
         const refused = new Error('unsupported collection')
 
-        expect(() =>
-            compactHeap(() => {
-                throw refused
-            })
-        ).not.toThrow()
+        const compactor = new HeapCompactor(() => {
+            throw refused
+        })
+
+        expect(() => compactor.compact()).not.toThrow()
 
         expect(warn).toHaveBeenCalledWith(
             'Heap compaction failed; the loaded titles keep serving',
             refused
         )
         expect(log).not.toHaveBeenCalled()
+    })
+
+    it('is due at first, then not again until five minutes after the last compaction', () => {
+        vi.spyOn(console, 'log').mockImplementation(() => {})
+        const clock = vi.spyOn(performance, 'now')
+        const minute = 60_000
+        const compactor = new HeapCompactor(vi.fn<NodeJS.GCFunction>())
+
+        clock.mockReturnValue(10 * minute)
+        expect(compactor.isDue()).toBe(true)
+        compactor.compact()
+
+        clock.mockReturnValue(11 * minute)
+        expect(compactor.isDue()).toBe(false)
+        clock.mockReturnValue(15 * minute - 1)
+        expect(compactor.isDue()).toBe(false)
+        clock.mockReturnValue(15 * minute)
+        expect(compactor.isDue()).toBe(true)
     })
 })
