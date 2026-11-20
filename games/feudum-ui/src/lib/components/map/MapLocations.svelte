@@ -12,6 +12,7 @@
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { spaceLabel } from '$lib/model/cardFlows.js'
     import { DiscFrame, SpaceRingFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
+    import { crossesEdge } from '$lib/utils/pointerEdge.js'
     import BoardPiece from './BoardPiece.svelte'
     import PickChrome from './PickChrome.svelte'
 
@@ -105,12 +106,16 @@
                     chrome.openSite?.(space.id)
                 }
             }}
-            onpointerenter={(event) => {
-                if (event.pointerType === 'mouse') {
+            onpointerover={(event) => {
+                if (event.pointerType === 'mouse' && crossesEdge(event)) {
                     chrome.hoverSite?.(space.id)
                 }
             }}
-            onpointerleave={() => chrome.hoverSite?.(undefined)}
+            onpointerout={(event) => {
+                if (crossesEdge(event)) {
+                    chrome.hoverSite?.(undefined)
+                }
+            }}
         ></circle>
     {/if}
     {#each onDisc as target (target)}

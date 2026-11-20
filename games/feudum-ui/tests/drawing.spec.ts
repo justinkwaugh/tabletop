@@ -15,10 +15,13 @@ declare global {
     }
 }
 
-/** Every wheel and touch listener added or removed on the page, from its first script on. */
-async function logListeners(page: Page) {
-    await page.addInitScript(() => {
-        const watched = new Set(['wheel', 'mousewheel', 'touchstart', 'touchmove'])
+const WheelAndTouch = ['wheel', 'mousewheel', 'touchstart', 'touchmove']
+const Pointer = ['pointerenter', 'pointerleave', 'pointerover', 'pointerout']
+
+/** Every listener of these types added or removed on the page, from its first script on. */
+async function logListeners(page: Page, types: readonly string[] = WheelAndTouch) {
+    await page.addInitScript((types) => {
+        const watched = new Set(types)
         const log: string[] = []
         window.feudumListenerLog = log
         const { addEventListener, removeEventListener } = EventTarget.prototype
@@ -38,7 +41,7 @@ async function logListeners(page: Page) {
             if (watched.has(type)) log.push(`remove ${type}`)
             return removeEventListener.call(this, type, ...(rest as [EventListener]))
         }
-    })
+    }, types)
 }
 
 /** The properties each running CSS animation changes, by animation name. */
@@ -116,6 +119,29 @@ test('opening, switching and closing the guild sides adds and removes no wheel o
     await page.mouse.wheel(0, -400)
     await page.waitForTimeout(400)
     expect(await page.locator('[data-board-surface]').boundingBox()).toEqual(before)
+
+    expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
+})
+
+test('a map pick and the panel rows it brings add and remove no pointer listener', async ({
+    page
+}) => {
+    await logListeners(page, Pointer)
+    await createGame(page)
+    await playToCards(page)
+    await settled(page)
+    await page.evaluate(() => window.feudumListenerLog.splice(0))
+
+    for (const card of ['Move', 'Influence']) {
+        const press = page.locator(`[data-cards="hand"] [data-row^="${card}"] button`).first()
+        if ((await press.count()) === 0) continue
+        await press.hover()
+        await press.click()
+        await settled(page)
+        await page.getByRole('button', { name: 'Undo', exact: true }).click()
+        await settled(page)
+    }
+    await expect(page.locator('[data-open-site]').first()).toBeAttached()
 
     expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
 })

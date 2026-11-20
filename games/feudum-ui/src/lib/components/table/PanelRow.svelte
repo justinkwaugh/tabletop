@@ -14,6 +14,7 @@
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import type { BoardTarget } from '$lib/model/boardOffer.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
+    import { crossesEdge } from '$lib/utils/pointerEdge.js'
 
     /**
      * One row of a panel or popup. A row's hover or focus brightens what its press would light, and a
@@ -67,6 +68,18 @@
         pointer.leaveRow(owner)
     }
 
+    function pointOver(event: PointerEvent) {
+        if (crossesEdge(event)) {
+            point(event)
+        }
+    }
+
+    function leaveOut(event: PointerEvent) {
+        if (crossesEdge(event)) {
+            leave()
+        }
+    }
+
     function press() {
         leave()
         if (refused) {
@@ -96,8 +109,8 @@
                 aria-label={choice.label}
                 aria-pressed={choice.picked}
                 aria-disabled={dimmed}
-                onpointerenter={point}
-                onpointerleave={leave}
+                onpointerover={pointOver}
+                onpointerout={leaveOut}
                 onfocus={point}
                 onblur={leave}
                 onclick={press}
@@ -116,8 +129,8 @@
             title={choice.label}
             aria-pressed={choice.picked}
             aria-disabled={dimmed}
-            onpointerenter={point}
-            onpointerleave={leave}
+            onpointerover={pointOver}
+            onpointerout={leaveOut}
             onfocus={point}
             onblur={leave}
             onclick={press}
@@ -139,8 +152,8 @@
             aria-pressed={choice.picked}
             aria-disabled={dimmed}
             data-quiet={quiet ? '' : undefined}
-            onpointerenter={point}
-            onpointerleave={leave}
+            onpointerover={pointOver}
+            onpointerout={leaveOut}
             onfocus={point}
             onblur={leave}
             onclick={press}
