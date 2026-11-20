@@ -42,6 +42,7 @@ import { answerAttackPanelOf, type AnswerAttackPanel } from './answerAttack.js'
 import { AnswerStarveDraft, type AnswerStarvePanel } from './answerStarveDraft.svelte.js'
 import { AtWillDraft, type AtWillContext, type AtWillPanel } from './atWillDraft.svelte.js'
 import type { BoardChrome } from './boardChrome.js'
+import { pickFrameOf, type PickFrame } from './boardFocus.svelte.js'
 import { deriveBoardOffer, spaceTarget, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { CommitAttackDraft, type CommitPanel } from './commitAttackDraft.svelte.js'
 import { CantBeUndone, primaryLabel, sendsOnPress } from './confirmingSend.js'
@@ -210,7 +211,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly startingPawn = new StartingPawnDraft()
     readonly hand = new HandDraft(() => this.handKey)
     /** What is open over the table: the enlarged card, the open seat, the stack view. */
-    readonly layers = new TableLayers()
+    readonly layers = new TableLayers(() => this.pickFrame)
     readonly turn = new TurnDraft(
         () => this.turnContext,
         () => {
@@ -833,6 +834,13 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         const bench = this.guildPanel?.bench
         return bench !== undefined && bench.collapsed === undefined
     })
+
+    /** Contract, Pick framing: what the open pick shows of the board, none while the bench covers it. */
+    pickFrame: PickFrame | undefined = $derived(
+        this.benchCovers
+            ? undefined
+            : pickFrameOf(this.gameState, this.boardOffer, this.boardPopup?.anchor)
+    )
 
     pressTurnCard(kind: ActionCardKind) {
         this.turnPanel?.cards.find((card) => card.kind === kind)?.press()

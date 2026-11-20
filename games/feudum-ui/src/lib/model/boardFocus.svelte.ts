@@ -1,3 +1,4 @@
+import { untrack } from 'svelte'
 import {
     EpicVoyageTrack,
     GuildIds,
@@ -465,6 +466,7 @@ export interface BoardFocusSetting {
     /** Held sideways the board fits the chosen view by height, not the cover fit. */
     readonly sideways: () => boolean
     readonly animate: () => boolean
+    readonly pickFrame: () => PickFrame | undefined
 }
 
 /**
@@ -476,11 +478,15 @@ export interface BoardFocusSetting {
 export class BoardFocus {
     /** The chip the board stands on, until a hand moves it. */
     chosen: FramedArea | undefined = $state('map')
-    /** What the open pick has framed, until a hand or a chip takes the view. */
-    framed: PickFrame | undefined = $state.raw(undefined)
-
-    /** The lit set last framed, so a hand's pan stays until the lit set changes. */
-    private followedKey: string | undefined
+    private readonly pickKey = $derived.by(() => this.setting.pickFrame()?.key)
+    /**
+     * What the open pick frames: each lit set new to it, until a hand or a chip takes the view, so a
+     * hand's pan stays until the lit set changes.
+     */
+    framed: PickFrame | undefined = $derived.by(() => {
+        void this.pickKey
+        return untrack(() => this.setting.pickFrame())
+    })
 
     constructor(private readonly setting: BoardFocusSetting) {}
 
@@ -516,8 +522,8 @@ export class BoardFocus {
     }
 
     /**
-     * Puts the board back on what it stands on, on opening, when the phone turns, or when the view's
-     * size changes with the panel; nothing over a hand's view.
+     * Moves the view to what the board stands on: the pick's frame, else the chosen chip, and
+     * nothing over a hand's view.
      */
     settle() {
         if (this.framed) {
@@ -530,28 +536,10 @@ export class BoardFocus {
     choose(area: FramedArea) {
         this.framed = undefined
         this.chosen = area
-        this.show(area)
     }
 
     handMoved() {
         this.chosen = undefined
         this.framed = undefined
-    }
-
-    /** Reads the open pick: frames a lit set new to it, and gives the view back when it closes. */
-    follow(frame: PickFrame | undefined) {
-        if (frame?.key === this.followedKey) {
-            return
-        }
-        this.followedKey = frame?.key
-        if (frame) {
-            this.framed = frame
-            this.frame(frame.rect)
-        } else if (this.framed) {
-            this.framed = undefined
-            if (this.chosen) {
-                this.show(this.chosen)
-            }
-        }
     }
 }

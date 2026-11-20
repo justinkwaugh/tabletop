@@ -1,7 +1,7 @@
 <script lang="ts">
     import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
-    import type { BoardFocus, FocusArea, PickFrame } from '$lib/model/boardFocus.svelte.js'
+    import type { BoardFocus, FocusArea } from '$lib/model/boardFocus.svelte.js'
 
     /**
      * A phone's focus chooser: four chips over the board's top edge. Map and the guild chips frame
@@ -12,13 +12,11 @@
     let {
         focus,
         lit,
-        frame,
         turned,
         onTracks
     }: {
         focus: BoardFocus
         lit: ReadonlySet<FocusArea>
-        frame: PickFrame | undefined
         /** Which way up the phone is: the chosen view fits again when it turns. */
         turned: boolean
         onTracks: () => void
@@ -31,16 +29,13 @@
         { area: 'tracks', label: 'Tracks' }
     ]
 
-    let frameKey = $derived(frame?.key)
-
-    const settleOnTheChip: Attachment<HTMLElement> = () => {
-        void turned
+    /**
+     * The scaling wrapper's view is an imperative camera: it moves to what the board stands on when
+     * that changes or the phone turns. Nothing here writes the focus.
+     */
+    const moveTheView: Attachment<HTMLElement> = () => {
+        void [focus.framed, focus.chosen, turned]
         untrack(() => focus.settle())
-    }
-
-    const followThePick: Attachment<HTMLElement> = () => {
-        void frameKey
-        untrack(() => focus.follow(frame))
     }
 
     function press(area: FocusArea) {
@@ -57,8 +52,7 @@
     role="group"
     aria-label="Focus the board"
     data-focus-chooser="phone"
-    {@attach settleOnTheChip}
-    {@attach followThePick}
+    {@attach moveTheView}
 >
     {#each Chips as { area, label } (area)}
         <button

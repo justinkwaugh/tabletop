@@ -1,16 +1,12 @@
 <script lang="ts">
-    import { untrack } from 'svelte'
-    import type { Attachment } from 'svelte/attachments'
     import OpenGuild from '$lib/components/guilds/OpenGuild.svelte'
     import {
         SideButtonGap,
         SideButtonWidth,
         SideGutter,
-        guildSideFollowing,
         type BoardRect,
         type FocusArea,
-        type GuildSide,
-        type PickFrame
+        type GuildSide
     } from '$lib/model/boardFocus.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { GuildBox, guildsDownSide } from '$lib/utils/boardGeometry.js'
@@ -26,13 +22,11 @@
      */
     let {
         rest,
-        lit,
-        frame
+        lit
     }: {
         /** The map's box at its rest, in the view's pixels. */
         rest: BoardRect
         lit: ReadonlySet<FocusArea>
-        frame: PickFrame | undefined
     } = $props()
 
     const gameSession = getGameSession()
@@ -61,12 +55,6 @@
         )
     )
 
-    let frameKey = $derived(frame?.key)
-    const followThePick: Attachment<HTMLElement> = () => {
-        void frameKey
-        untrack(() => layers.followGuildPick(frame?.key, guildSideFollowing(frame)))
-    }
-
     /**
      * A wheel over an open side never zooms the board beneath. The one listener is the root's own,
      * there for as long as the buttons are: WebKit restyles the whole page each time a wheel listener
@@ -83,7 +71,7 @@
     }
 </script>
 
-<div class="contents" {@attach followThePick} onwheel={keepWheelInView}>
+<div class="contents" onwheel={keepWheelInView}>
     {#each Sides as { side, label } (side)}
         <button
             type="button"

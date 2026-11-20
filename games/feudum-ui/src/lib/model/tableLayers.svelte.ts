@@ -10,7 +10,8 @@ import type {
     TileEpoch,
     WritId
 } from '@tabletop/feudum'
-import type { GuildSide, GuildSideFollowing } from './boardFocus.svelte.js'
+import { untrack } from 'svelte'
+import { guildSideFollowing, type GuildSide, type PickFrame } from './boardFocus.svelte.js'
 import type { SeatPaint } from './seatPaint.js'
 
 /** What the enlarged view draws: its owner's props, so a back stays a back (R-4.4.4). */
@@ -72,15 +73,36 @@ export class TableLayers {
     guildsOpen: boolean = $state(false)
     /** Contract, Supply: the writ reference, every writ in the game, for looking. */
     writsOpen: boolean = $state(false)
-    /** Contract, Desk layout: the guild side open over a desk's map, one at a time. */
-    guildSide: GuildSide | undefined = $state(undefined)
+    private readonly pickKey = $derived.by(() => this.pickFrame()?.key)
+    /** The side shown last, which a pick in both sides keeps. */
+    private sideShown: GuildSide | undefined
+    /**
+     * Contract, Desk layout and Pick framing: the guild side open over a desk's map, one at a time.
+     * A pick new to it opens the side that holds every target, keeps the side as it is when its
+     * targets stand in both sides, and closes it when one stands on the map or a track, as the
+     * pick's end does. A button opens, switches or closes it until the pick changes; with no pick
+     * open a side opened by hand is a look, and stays open.
+     */
+    guildSide: GuildSide | undefined = $derived.by(() => {
+        void this.pickKey
+        const next = untrack(() => guildSideFollowing(this.pickFrame()))
+        if (next !== 'keep') {
+            this.sideShown = next
+        }
+        return this.sideShown
+    })
 
-    /** The pick last followed, so a side closed by hand stays closed until the pick changes. */
-    private followedPick: string | undefined
+    /** A site's card: the one pressed open, else the one under a desk pointer; a side opening closes it. */
+    private sitePressed: SpaceId | undefined = $derived.by(() => {
+        void this.guildSide
+        return undefined
+    })
+    private siteHovered: SpaceId | undefined = $derived.by(() => {
+        void this.guildSide
+        return undefined
+    })
 
-    /** A site's card: the one pressed open, else the one under a desk pointer. */
-    private sitePressed: SpaceId | undefined = $state(undefined)
-    private siteHovered: SpaceId | undefined = $state(undefined)
+    constructor(private readonly pickFrame: () => PickFrame | undefined = () => undefined) {}
     get site(): SpaceId | undefined {
         return this.sitePressed ?? this.siteHovered
     }
@@ -168,33 +190,16 @@ export class TableLayers {
             this.closeGuildSide()
             return
         }
-        this.closeSite()
-        this.guildSide = side
+        this.showSide(side)
     }
 
     closeGuildSide(): void {
-        this.guildSide = undefined
+        this.showSide(undefined)
     }
 
-    /**
-     * Contract, Pick framing: a pick new to it opens the side that holds every target, keeps the
-     * side as it is when its targets stand in both sides, and closes it when one stands on the map
-     * or a track, as the pick's end does (`guildSideFollowing`). The same pick again changes
-     * nothing, so a side closed or opened by hand stays so until the pick changes. With no pick open
-     * a side opened by hand is a look, and stays open.
-     */
-    followGuildPick(key: string | undefined, next: GuildSideFollowing): void {
-        if (key === this.followedPick) {
-            return
-        }
-        this.followedPick = key
-        if (next === 'keep') {
-            return
-        }
-        if (next) {
-            this.closeSite()
-        }
-        this.guildSide = next
+    private showSide(side: GuildSide | undefined): void {
+        this.sideShown = side
+        this.guildSide = side
     }
 
     closeSeatOrStack(): void {

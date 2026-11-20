@@ -12,9 +12,15 @@ import { NoBoardOffer, spaceTarget } from '$lib/model/boardOffer.js'
 import type { BoardOffer, BoardTarget } from '$lib/model/boardOffer.js'
 import { stackTilesByEpoch } from '$lib/model/boardView.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
+import type { PickFrame, PlacedArea } from '$lib/model/boardFocus.svelte.js'
 import { TableLayers, type EnlargedFace } from '$lib/model/tableLayers.svelte.js'
+import { OpenPick } from '$lib/testing/openPick.svelte.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import { atPlayingCards, giveSeal, ruleTown } from '$lib/testing/turnTable.js'
+
+function frameOn(key: string, ...holds: PlacedArea[]): PickFrame {
+    return { key, rect: { x: 0, y: 0, width: 1, height: 1 }, holds }
+}
 
 const Back: EnlargedFace = { kind: 'tile', faceShown: false, epoch: 1 }
 const Bead: EnlargedFace = { kind: 'bead', faceShown: true, beadValue: 4 }
@@ -110,33 +116,44 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
     })
 
     it('Contract, Pick framing: a pick wholly on one side opens it once; one in both sides opens nothing; the map’s closes it', () => {
-        const layers = new TableLayers()
-        layers.followGuildPick('guild:merchant', 'west')
+        const pick = new OpenPick()
+        const layers = new TableLayers(pick.read)
+        pick.frame = frameOn('guild:merchant', 'west')
         expect(layers.guildSide).toBe('west')
         // Closed by hand, the same pick leaves it closed.
         layers.closeGuildSide()
-        layers.followGuildPick('guild:merchant', 'west')
+        pick.frame = frameOn('guild:merchant', 'west')
         expect(layers.guildSide).toBeUndefined()
         // A new pick on the other side opens that one.
-        layers.followGuildPick('guild:knight', 'east')
+        pick.frame = frameOn('guild:knight', 'east')
         expect(layers.guildSide).toBe('east')
         // A pick in both sides opens nothing and keeps the side as it is.
-        layers.followGuildPick('guild:knight guild:merchant', 'keep')
+        pick.frame = frameOn('guild:knight guild:merchant', 'east', 'west')
         expect(layers.guildSide).toBe('east')
         layers.closeGuildSide()
-        layers.followGuildPick('guild:knight guild:merchant guild:monk', 'keep')
+        pick.frame = frameOn('guild:knight guild:merchant guild:monk', 'east', 'west')
         expect(layers.guildSide).toBeUndefined()
         // A pick on the map closes it, and so does a pick's end.
         layers.toggleGuildSide('west')
-        layers.followGuildPick('space:a', undefined)
+        pick.frame = frameOn('space:a', 'map')
         expect(layers.guildSide).toBeUndefined()
         layers.toggleGuildSide('west')
-        layers.followGuildPick(undefined, undefined)
+        pick.frame = undefined
         expect(layers.guildSide).toBeUndefined()
         // With no pick it is a look, and nothing closes it.
         layers.toggleGuildSide('east')
-        layers.followGuildPick(undefined, undefined)
+        pick.frame = undefined
         expect(layers.guildSide).toBe('east')
+    })
+
+    it('Contract, Site card: a pick that opens a guild side closes the site card; a map pick leaves it', () => {
+        const pick = new OpenPick()
+        const layers = new TableLayers(pick.read)
+        layers.openSite(A)
+        pick.frame = frameOn('space:a', 'map')
+        expect(layers.site).toBe(A)
+        pick.frame = frameOn('guild:merchant', 'west')
+        expect(layers.site).toBeUndefined()
     })
 
     it('R-4.3.1 A stack view names epochs and counts: nothing of a landscape reaches it', async () => {

@@ -36,7 +36,6 @@
         deskScaledHeight,
         deskViewHeight,
         litAreasOf,
-        pickFrameOf,
         restScaleOf,
         ZoomRowBand
     } from '$lib/model/boardFocus.svelte.js'
@@ -79,7 +78,8 @@
         view: () => wrapper,
         restScale: () => restScaleOf(viewSize.width, viewSize.height),
         sideways: () => phone.sideways,
-        animate: () => !phone.reducedMotion
+        animate: () => !phone.reducedMotion,
+        pickFrame: () => feudumSession.pickFrame
     })
 
     /**
@@ -125,15 +125,6 @@
     })
 
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
-    let pickFrame = $derived(
-        feudumSession.benchCovers
-            ? undefined
-            : pickFrameOf(
-                  feudumSession.gameState,
-                  feudumSession.boardOffer,
-                  feudumSession.boardPopup?.anchor
-              )
-    )
 
     const measureView: (viewport: HTMLElement) => Attachment<HTMLElement> = (viewport) => () => {
         const read = () => {
@@ -323,16 +314,11 @@
                                         <FocusChooser
                                             {focus}
                                             lit={litAreas}
-                                            frame={pickFrame}
                                             turned={phone.sideways}
                                             onTracks={() => feudumSession.layers.openTracks()}
                                         />
                                     {:else}
-                                        <GuildSides
-                                            rest={deskRest}
-                                            lit={litAreas}
-                                            frame={pickFrame}
-                                        />
+                                        <GuildSides rest={deskRest} lit={litAreas} />
                                         {#if column}
                                             <DeskColumn
                                                 box={deskColumnBox(viewSize, column)}

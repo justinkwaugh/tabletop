@@ -1,6 +1,7 @@
 import { GuildIds, HydratedFeudumGameState } from '@tabletop/feudum'
 import { flushSync } from 'svelte'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { OpenPick } from '$lib/testing/openPick.svelte.js'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     BoardHeight,
@@ -64,14 +65,16 @@ const Rest = 0.33
 
 function focusOn(setting: Partial<BoardFocusSetting> = {}) {
     const { view, calls } = fakeView()
+    const pick = new OpenPick()
     const focus = new BoardFocus({
         view: () => view,
         restScale: () => Rest,
         sideways: () => false,
         animate: () => false,
+        pickFrame: pick.read,
         ...setting
     })
-    return { focus, calls }
+    return { focus, calls, pick }
 }
 
 const frameA: PickFrame = { key: 'a', rect: { x: 1, y: 2, width: 3, height: 4 } }
@@ -88,14 +91,16 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     it('a pick may bring the board to 2.5 times its rest, and no further', () => {
         expect(PickFrameZoom).toBe(2.5)
         expect(pickFrameScale(Rest)).toBeCloseTo(0.825)
-        const { focus, calls } = focusOn()
-        focus.follow(frameA)
+        const { focus, calls, pick } = focusOn()
+        pick.frame = frameA
+        focus.settle()
         expect(calls.focused).toEqual([{ rect: frameA.rect, maxScale: Rest * 2.5 }])
     })
 
     it('a chosen guild column is framed under the same cap', () => {
         const { focus, calls } = focusOn()
         focus.choose('west')
+        focus.settle()
         expect(calls.focused[0]?.rect).toEqual(rectOfArea('west'))
         expect(calls.focused[0]?.maxScale).toBeCloseTo(Rest * 2.5)
         expect(focus.shown).toBe('west')
@@ -104,10 +109,12 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     it('the Map rests at the cover fit upright, and fits by height sideways', () => {
         const upright = focusOn()
         upright.focus.choose('map')
+        upright.focus.settle()
         expect(upright.calls.fits).toBe(1)
         expect(upright.calls.focused).toEqual([])
         const sideways = focusOn({ sideways: () => true })
         sideways.focus.choose('map')
+        sideways.focus.settle()
         expect(sideways.calls.fits).toBe(0)
         expect(sideways.calls.focused[0]?.rect).toEqual(MapArea)
     })
@@ -347,42 +354,47 @@ describe('Contract, Pick framing: a desk opens a guild side only for a pick whol
 })
 
 describe('R-3.7 a pick frames once, and a hand clears it', () => {
-    it('frames a lit set only when it is new', () => {
-        const { focus, calls } = focusOn()
-        focus.follow(frameA)
-        focus.follow(frameA)
-        expect(calls.focused).toHaveLength(1)
-        focus.follow(frameB)
-        expect(calls.focused).toHaveLength(2)
+    it('frames a lit set only when it is new: a hand’s pan stays until the lit set changes', () => {
+        const { focus, pick } = focusOn()
+        pick.frame = frameA
+        expect(focus.framed).toBe(frameA)
+        focus.handMoved()
+        pick.frame = { ...frameA }
+        expect(focus.framed).toBeUndefined()
+        pick.frame = frameB
+        expect(focus.framed).toBe(frameB)
     })
 
     it('closing gives back the chip it found', () => {
-        const { focus, calls } = focusOn()
+        const { focus, calls, pick } = focusOn()
         focus.choose('west')
-        focus.follow(frameA)
+        pick.frame = frameA
         expect(focus.framed).toBe(frameA)
-        focus.follow(undefined)
+        expect(focus.shown).toBeUndefined()
+        pick.frame = undefined
         expect(focus.framed).toBeUndefined()
         expect(focus.shown).toBe('west')
+        focus.settle()
         expect(calls.focused.at(-1)?.rect).toEqual(rectOfArea('west'))
     })
 
     it('a hand pan clears the framing and the chip: closing moves nothing', () => {
-        const { focus, calls } = focusOn()
-        focus.follow(frameA)
+        const { focus, calls, pick } = focusOn()
+        pick.frame = frameA
         focus.handMoved()
         expect(focus.framed).toBeUndefined()
         expect(focus.chosen).toBeUndefined()
         expect(focus.shown).toBeUndefined()
-        const before = { focused: calls.focused.length, fits: calls.fits }
-        focus.follow(undefined)
-        expect(calls.focused).toHaveLength(before.focused)
-        expect(calls.fits).toBe(before.fits)
+        pick.frame = undefined
+        focus.settle()
+        expect(calls.focused).toHaveLength(0)
+        expect(calls.fits).toBe(0)
     })
 
     it('settling keeps a framing framed, as the view’s size changes', () => {
-        const { focus, calls } = focusOn()
-        focus.follow(frameA)
+        const { focus, calls, pick } = focusOn()
+        pick.frame = frameA
+        focus.settle()
         focus.settle()
         expect(calls.focused).toHaveLength(2)
         expect(calls.focused[1]?.rect).toEqual(frameA.rect)
@@ -398,23 +410,27 @@ describe('R-3.7 a pick frames once, and a hand clears it', () => {
     })
 
     it('a chip takes the view back from a pick', () => {
-        const { focus, calls } = focusOn()
-        focus.follow(frameA)
+        const { focus, calls, pick } = focusOn()
+        pick.frame = frameA
         focus.choose('east')
         expect(focus.framed).toBeUndefined()
+        focus.settle()
         expect(calls.focused.at(-1)?.rect).toEqual(rectOfArea('east'))
     })
 
     it('a frame reaches no offer: it reads the view only', () => {
         const focusRect = vi.fn()
         const view = { focusRect, fitToContent: vi.fn() }
+        const pick = new OpenPick()
         const focus = new BoardFocus({
             view: () => view,
             restScale: () => Rest,
             sideways: () => false,
-            animate: () => false
+            animate: () => false,
+            pickFrame: pick.read
         })
-        flushSync(() => focus.follow(frameA))
+        pick.frame = frameA
+        flushSync(() => focus.settle())
         expect(focusRect).toHaveBeenCalledOnce()
     })
 })
