@@ -7,6 +7,7 @@ import {
     Role,
     TournamentDraft,
     UserStatus,
+    isActiveNamedAccount,
     type GameDefinition,
     type Tournament,
     type TournamentDetail,
@@ -537,7 +538,7 @@ export class TournamentService {
 
     async substituteEntrant(id: string, request: SubstituteTournamentEntrantRequest, user: User) {
         const account = await this.users.getUserByUsername(request.substituteUsername)
-        if (account?.status !== UserStatus.Active || !account.username)
+        if (!isActiveNamedAccount(account))
             throw new TournamentError('The substitute needs an active account', 400)
         const substitute = { id: account.id, username: account.username }
         return this.replacePlace(id, request, user, {

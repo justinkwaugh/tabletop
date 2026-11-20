@@ -114,4 +114,25 @@ describe('ChatService', () => {
             'g1'
         )
     })
+
+    it('announces as the administrator to everyone with the game open', async () => {
+        const { service, store, games } = fixture()
+
+        await service.announceAsAdministrator(admin, 'g1', "Carol has taken over Bob's seat.")
+
+        const posted = expect.objectContaining({
+            admin: true,
+            userId: 'admin',
+            text: "Carol has taken over Bob's seat."
+        })
+        expect(store.addGameChatMessage).toHaveBeenCalledWith(posted, 'g1')
+        expect(store.addGameChatMessage).toHaveBeenCalledWith(
+            expect.not.objectContaining({ playerId: expect.anything() }),
+            'g1'
+        )
+        expect(games.notifyGameInstance).toHaveBeenCalledWith(
+            GameNotificationAction.Chat,
+            expect.objectContaining({ message: posted })
+        )
+    })
 })

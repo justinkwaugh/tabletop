@@ -11,6 +11,7 @@
     } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { accountName } from '$lib/utils/accountName'
+    import { UsernameSuggestions } from '$lib/utils/usernameSuggestions.svelte'
 
     let { detail, onchanged }: { detail: TournamentDetail; onchanged: () => void } = $props()
     const { api } = getAppContext()
@@ -42,14 +43,7 @@
         tournamentAccountIds(detail.tournament).map((id) => detail.usernames[id] ?? '')
     )
 
-    let matches = $state<string[]>([])
-    let searchRequest = 0
-    async function search() {
-        const request = ++searchRequest
-        const text = substitute.trim()
-        const found = text.length > 1 ? await api.searchUsernames(text) : []
-        if (request === searchRequest) matches = found.filter((value) => !taken.includes(value))
-    }
+    const suggestions = new UsernameSuggestions((text) => api.searchUsernames(text))
 
     function name(userId: string) {
         return accountName(detail.usernames, userId)
@@ -173,12 +167,13 @@
                     autocomplete="off"
                     placeholder="Username"
                     bind:value={substitute}
-                    oninput={() => void search()}
+                    oninput={() => void suggestions.suggest(substitute, taken)}
                     required
                     disabled={busy}
                 />
                 <datalist id="tournament-substitute-matches">
-                    {#each matches as match (match)}<option value={match}></option>{/each}
+                    {#each suggestions.matches as match (match)}<option value={match}
+                        ></option>{/each}
                 </datalist>
                 {#if activeTables.length}
                     <fieldset disabled={busy} class="space-y-2">

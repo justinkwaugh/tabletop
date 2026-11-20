@@ -1232,6 +1232,23 @@ export class TabletopApi {
         return this.validateGame(response.payload.game)
     }
 
+    async handOverSeatAsAdministrator(
+        gameId: string,
+        playerId: string,
+        username: string
+    ): Promise<Game> {
+        const response = await this.wretch
+            .post(
+                { username },
+                `/admin/games/${encodeURIComponent(gameId)}/players/${encodeURIComponent(playerId)}/handover`
+            )
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
     private async moderateUser(userId: string, operation: string, body: object): Promise<User> {
         const response = await this.wretch
             .post(body, `/admin/users/${encodeURIComponent(userId)}/${operation}`)

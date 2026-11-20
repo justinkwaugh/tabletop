@@ -38,6 +38,7 @@ import {
     isListedPublicGame,
     isYourTurnNotification,
     omitGameState,
+    sameSeatAccounts,
     type SeriesActivity,
     type UndoVotePreview,
     type User
@@ -48,6 +49,8 @@ import { SvelteMap } from 'svelte/reactivity'
 import type { NotificationService } from './notificationService.svelte'
 import { isUsersGameTurn, isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
+import { gamePageDependency } from '$lib/utils/gamePage'
+import { invalidate } from '$app/navigation'
 
 import type { LibraryService } from './libraryService.svelte'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
@@ -604,6 +607,7 @@ export class GameService implements GameServiceInterface {
             ) {
                 this.changesDuringLoad?.push({ game, removed: false })
                 this.upsertCachedGame(game)
+                this.reloadOpenGameAfterSeatHandover(game)
             } else if (notification.action === GameNotificationAction.Delete) {
                 this.changesDuringLoad?.push({ game, removed: true })
                 this.removeFromPrivateCache(game.id)
@@ -612,6 +616,14 @@ export class GameService implements GameServiceInterface {
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             await this.loadGames()
         }
+    }
+
+    // The open Game Session keeps its own Game and perspective, so a seat changing hands
+    // needs a new session rather than an update to this one.
+    private reloadOpenGameAfterSeatHandover(game: Game) {
+        const open = this.currentGameSession?.game
+        if (open?.id !== game.id || sameSeatAccounts(open.players, game.players)) return
+        void invalidate(gamePageDependency(game.id))
     }
 
     private isGameNotification(notification: Notification): notification is GameNotification {

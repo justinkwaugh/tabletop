@@ -117,6 +117,17 @@ async function generateLocalNotification(
                 body: `Vote in game ${notification.data.game.name}`,
                 tag: notification.data.game.id
             }
+        } else if (notification.action === UserNotificationAction.TookOverSeat) {
+            title = `You've joined a game in progress`
+            options = {
+                body: `You've taken over ${notification.data.formerHolder.name}'s seat in ${notification.data.game.name}`,
+                tag: notification.data.game.id
+            }
+        } else if (notification.action === UserNotificationAction.LostSeat) {
+            title = `Your seat was given to another player`
+            options = {
+                body: `${notification.data.newHolder.name} has taken over your seat in ${notification.data.game.name}`
+            }
         }
     }
     if (title && options) {
