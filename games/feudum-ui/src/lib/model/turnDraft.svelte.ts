@@ -358,7 +358,6 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         input: CardPlayInput
     ): readonly PanelChoice[] {
         const replay = this.value('replay')
-        // Rule 5: a played card none of whose modes is open now is not drawn.
         return offers.repeats
             .filter(({ kind, mode }) =>
                 cardModes(context, kind, { ...input, asRepeat: mode }).some(

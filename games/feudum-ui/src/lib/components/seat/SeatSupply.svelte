@@ -6,7 +6,7 @@
     import { sealFaceShown } from '$lib/model/perspective.js'
     import type { SeatSupplyItem } from '$lib/model/seatLines.js'
 
-    /** Contract, Seat panel, the supply line. R-5-H1 A held seal is a count to everyone. */
+    /** Contract, Seat panel: the holdings line. R-5-H1 A held seal is a count to everyone. */
     let { items, scale }: { items: readonly SeatSupplyItem[]; scale: number } = $props()
 
     const Piece = 15

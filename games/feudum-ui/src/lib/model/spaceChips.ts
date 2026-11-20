@@ -1,6 +1,7 @@
 import type { Point } from '@tabletop/common'
 import type { HydratedFeudumGameState, SpaceId } from '@tabletop/feudum'
 import { PawnSize, SpaceRingFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
+import type { Span } from '$lib/utils/benchPresses.js'
 import { isPickable } from './boardChrome.js'
 import {
     chipOf,
@@ -58,9 +59,7 @@ export function chipLayout(chip: BoardChip): {
     return { pieces, width: x - ChipGap + ChipPadding }
 }
 
-export function chipRow(
-    wanted: readonly { readonly x: number; readonly width: number }[]
-): number[] {
+export function chipRow(wanted: readonly Span[]): number[] {
     const order = wanted.map((_, index) => index).sort((a, b) => wanted[a].x - wanted[b].x)
     const packed: number[] = []
     order.forEach((index, place) => {

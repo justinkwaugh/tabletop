@@ -251,7 +251,6 @@
         align-self: flex-start;
     }
 
-    /* Contract, The trade picker on a phone: compact rows. */
     .compact {
         gap: 0.5rem;
     }
