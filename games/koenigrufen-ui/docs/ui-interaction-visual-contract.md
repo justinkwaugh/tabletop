@@ -17,6 +17,7 @@
 ### The table on larger screens
 
 - **Trigger:** the viewport is wider than 640px.
+- **Middle:** the trick, and the talon turned up in the middle, centre on the room between the top seat and my seat (it ends at 153 board pixels and mine starts at 554), so a whole trick has about 54 pixels above it and below it, with the winner's caption in the space below.
 - **Fit:** the 1200×860 table fits the room under the action area inside a margin (12px above, 16px at the sides and below) and grows past its natural size up to 1.5 times, so a large monitor shows it bigger without it reaching the edges (at 2560×1277 it is about 1365×978). Zooming in stops at 1.5 times too.
 
 ### Depth
