@@ -177,7 +177,8 @@ export function createSyntheticHost({ activeSeats = 1, playerIds = ['p1', 'p2', 
         sendAccountChangeNotificationEmail: unused,
         sendContentReportEmail: unused,
         sendGameInvitationEmail: unused,
-        sendGameEndEmail: unused
+        sendGameEndEmail: unused,
+        sendGameStartedEmail: unused
     }
     const notifications: NotificationService = {
         addTopicTransport: vi.fn(),
@@ -186,6 +187,7 @@ export function createSyntheticHost({ activeSeats = 1, playerIds = ['p1', 'p2', 
         addTransport: vi.fn(),
         registerNotificationSubscription: unused,
         unregisterNotificationSubscription: unused,
+        hasUserDirectSubscription: unused,
         sendNotification: vi.fn(async () => {})
     }
     const service = new GameService(

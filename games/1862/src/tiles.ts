@@ -114,6 +114,9 @@ const TitleCounts: Readonly<Record<string, number>> = {
     '798': 3
 }
 
+/** A small station is worth £20 to Local trains (§7.8.2). */
+export const SmallStationRevenue = 20
+
 export const TileSet1862 = new TileSet(
     {
         id: '1862:standard',
@@ -130,6 +133,8 @@ export const TileSet1862 = new TileSet(
             }))
         ]
     },
-    [StandardTileCatalog, TileCatalog1862]
+    [StandardTileCatalog, TileCatalog1862],
+    {},
+    { trackStopRevenue: SmallStationRevenue }
 )
 export const Tiles1862 = TileSet1862.definitions

@@ -5,17 +5,21 @@ import type { AnimationContext } from '@tabletop/frontend-components'
 import {
     isChooseTalonHalf,
     isDealHand,
+    isGiveTalonCard,
     isLayAway,
+    type GivenTalonCard,
     type HydratedKoenigrufenGameState
 } from '@tabletop/koenigrufen'
 import {
     defenderCollector,
+    givenTalonCards,
     talonGoesToDefenders,
     talonViewOf,
+    TalonPlace,
     type TalonView
 } from '$lib/utils/talonView.js'
 import { centerOf, scaleOf, type CardPlaces, type Center } from './cardPlaces.js'
-import { layoutWidthOf, type CardFlights, type Flight } from './flights.js'
+import { layoutWidthOf, type CardFlights, type CardSpot, type Flight } from './flights.js'
 
 const REVEAL = {
     // Each card slides out of the stack to its place in a half, then turns face up.
@@ -26,6 +30,11 @@ const REVEAL = {
 const LEAVE = { flight: 0.6, stagger: 0.06 }
 const GLIDE = 0.5
 const LAY_AWAY = { flight: 0.45, stagger: 0.06, fade: 0.3 }
+// A talon card given for a trick: to the middle of the table face up, a pause there for everyone to
+// see it, then into the winner's pile.
+const GIVE = { flight: 0.45, hold: 0.8 }
+// The card's width while it is shown in the middle, as the talon's cards are drawn there.
+const ShownCardWidth = 86
 // Undo and state-only history: every card straight to its new place at once, within the 200ms
 // budget.
 const DIRECT = 0.2
@@ -79,6 +88,12 @@ export class TalonAnimator {
         if (prefersReducedMotion.current || isDealHand(action)) {
             return
         }
+        if (isGiveTalonCard(action)) {
+            if (action.metadata) {
+                await this.give(action.metadata, to, animationContext)
+            }
+            return
+        }
         if (isLayAway(action)) {
             const laidAway =
                 from.getPlayerState(action.playerId).handCount -
@@ -128,6 +143,103 @@ export class TalonAnimator {
                 }
             }
         }
+    }
+
+    // Trischaken with the talon by trick: the stack's top card is shown to everyone in the middle of
+    // the table, then goes into the trick winner's pile.
+    private async give(
+        given: GivenTalonCard,
+        to: HydratedKoenigrufenGameState,
+        context: AnimationContext
+    ) {
+        const top = this.topBack()
+        const board = this.places.boardElement()
+        const pile = this.pileSpot(given.playerId)
+        if (!top || !board || !pile) {
+            return
+        }
+        const shown = this.flights.show(
+            [
+                {
+                    key: `give-${given.cardId}`,
+                    cardId: given.cardId,
+                    from: { element: top, cardWidth: layoutWidthOf(top) },
+                    via: {
+                        spot: { element: board, cardWidth: ShownCardWidth * scaleOf(board) },
+                        hold: GIVE.hold
+                    },
+                    to: pile,
+                    at: 0,
+                    duration: GIVE.flight
+                }
+            ],
+            context
+        )
+        // The stack lets its top card go as the card sets off.
+        this.presenter.presentTalon(talonViewOf(to))
+        await tick()
+        if (shown) {
+            this.flights.start(shown, context.actionTimeline)
+        }
+    }
+
+    private topBack(): Element | undefined {
+        const stack = this.places.talonStackElement()
+        return stack ? [...stack.querySelectorAll(':scope > .back')].at(-1) : undefined
+    }
+
+    // A player's capture pile, at the size of its card, or their seat while it draws none.
+    private pileSpot(playerId: string): CardSpot | undefined {
+        const pile = this.places.trickPileOf(playerId)
+        if (pile) {
+            return { element: pile, cardWidth: centerOf(pile).width }
+        }
+        const seat = this.places.seatOf(playerId)
+        return seat ? { element: seat } : undefined
+    }
+
+    // Talon cards a direct step gives to the first tricks' winners, from the stack's top, or takes
+    // back from their piles to the stack.
+    private givenStep(
+        from: HydratedKoenigrufenGameState,
+        to: HydratedKoenigrufenGameState
+    ): Flight[] {
+        const before = new Set(givenTalonCards(from))
+        const after = new Set(givenTalonCards(to))
+        const winnerOf = (state: HydratedKoenigrufenGameState, cardId: string) =>
+            state.tricks.find((trick) => trick.talonCardId === cardId)?.winnerId
+        const flights: Flight[] = []
+        const top = this.topBack()
+        for (const cardId of after) {
+            const winnerId = winnerOf(to, cardId)
+            const pile = winnerId === undefined ? undefined : this.pileSpot(winnerId)
+            if (!before.has(cardId) && top && pile) {
+                flights.push({
+                    key: `direct-give-${cardId}`,
+                    cardId,
+                    from: { element: top, cardWidth: layoutWidthOf(top) },
+                    to: pile,
+                    at: 0,
+                    duration: DIRECT
+                })
+            }
+        }
+        const slot = this.places.talonSlotElement(TalonPlace.Corner)
+        for (const cardId of before) {
+            const winnerId = winnerOf(from, cardId)
+            const pile = winnerId === undefined ? undefined : this.pileSpot(winnerId)
+            if (!after.has(cardId) && slot && pile) {
+                flights.push({
+                    key: `direct-ungive-${cardId}`,
+                    cardId,
+                    from: pile,
+                    to: { element: slot },
+                    at: 0,
+                    duration: DIRECT
+                })
+            }
+        }
+        return flights
     }
 
     // Talon cards leaving the table: the declarer's half or the Sechserdreier talon to the
@@ -264,7 +376,10 @@ export class TalonAnimator {
         const viewer = to.players.find((player) => this.flights.isViewer(player.playerId))
         const before = talonViewOf(from)
         const after = talonViewOf(to)
-        const talonMoves = JSON.stringify(before) !== JSON.stringify(after)
+        // Talon cards given for tricks fly on their own; the stack only changes its count.
+        const given = this.givenStep(from, to)
+        const changed = JSON.stringify(before) !== JSON.stringify(after)
+        const talonMoves = changed && given.length === 0
 
         // Measure everything where it is, before it is drawn in its new place.
         const stack = this.places.talonStackElement()
@@ -286,12 +401,12 @@ export class TalonAnimator {
             })
         )
 
-        const flights: Flight[] = talonMoves ? this.homeward(before, after, to, backs) : []
+        const flights: Flight[] = talonMoves ? this.homeward(before, after, to, backs) : given
         if (viewer) {
             flights.push(...this.myLaidAway(viewer.playerId, from, to, timeline))
         }
         const shown = this.flights.show(flights, context)
-        if (talonMoves) {
+        if (changed) {
             this.presenter.presentTalon(after)
         }
         await tick()

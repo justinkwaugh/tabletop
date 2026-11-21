@@ -402,8 +402,6 @@ describe('Run instructions', () => {
             declare(game, 'alex', 'AR', solvedRun(state, 'AR'))
         )
         const sold = structuredClone(declared.updatedState)
-        const company = getCompany(sold, 'AR')
-        company.president = { kind: 'player', playerId: 'casey' }
         for (const certificate of sold.certificates)
             if (
                 certificate.companyId === 'AR' &&
@@ -458,7 +456,6 @@ describe('Run instructions', () => {
             'run-lowered'
         )
         const sold = structuredClone(lowered.updatedState)
-        getCompany(sold, 'AR').president = { kind: 'player', playerId: 'casey' }
         for (const certificate of sold.certificates)
             if (
                 certificate.companyId === 'AR' &&

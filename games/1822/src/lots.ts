@@ -333,7 +333,7 @@ function awardMinor(
     const title = requireState1822(state)
     const { marketSpaceId, treasury } = minorStart1822(title.phaseId, award.amount)
     const director = { kind: 'player' as const, playerId: award.playerId }
-    startCompanyAtPar(title, Market1822, award.lotId, marketSpaceId, director)
+    startCompanyAtPar(title, Market1822, award.lotId, marketSpaceId)
     const company = getCompany(state, award.lotId)
     company.floated = true
     company.funded = true

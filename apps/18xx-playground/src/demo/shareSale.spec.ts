@@ -3,6 +3,7 @@ import { ActionSource } from '@tabletop/common'
 import {
     cashOwnedBy,
     getCompany,
+    presidentOf,
     sharesOwned,
     placeStockMarker,
     evaluateShareSale,
@@ -74,7 +75,7 @@ it.each([
         expect(cashOwnedBy(result.updatedState, alex)).toBe(240 + price * 2)
         expect(sharesOwned(result.updatedState, companyId, alex)).toBe(1)
         expect(sharesOwned(result.updatedState, companyId, blair)).toBe(2)
-        expect(getCompany(result.updatedState, companyId).president).toEqual(blair)
+        expect(presidentOf(result.updatedState, companyId)).toEqual(blair)
         expect(
             result.updatedState.certificates.find(
                 (certificate) => certificate.id === `${companyId}:president`
@@ -110,7 +111,7 @@ it.each([Shikoku, Top])('retains the incumbent on a tied holding in $info.id', (
         state,
         action: sell([{ companyId, shares: 1 }], price)
     })
-    expect(getCompany(result.updatedState, companyId).president).toEqual(alex)
+    expect(presidentOf(result.updatedState, companyId)).toEqual(alex)
 })
 
 it.each([Shikoku, Top])('supports a presidency change on purchase in $info.id', (definition) => {
@@ -123,7 +124,7 @@ it.each([Shikoku, Top])('supports a presidency change on purchase in $info.id', 
         state,
         action: purchase(`${companyId}:share:5`, definition === Top ? 92 : 70, buyer)
     })
-    expect(getCompany(result.updatedState, companyId).president).toEqual(buyer)
+    expect(presidentOf(result.updatedState, companyId)).toEqual(buyer)
     expect(sharesOwned(result.updatedState, companyId, buyer)).toBe(4)
     const previous = definition === Top ? alex : blair
     expect(sharesOwned(result.updatedState, companyId, previous)).toBe(3)
@@ -147,7 +148,7 @@ it('chooses players before Union Bank when successor holdings tie', () => {
         state,
         action: sell([{ companyId: 'ML', shares: 2 }], 184)
     })
-    expect(getCompany(result.updatedState, 'ML').president).toEqual(blair)
+    expect(presidentOf(result.updatedState, 'ML')).toEqual(blair)
     expect(sharesOwned(result.updatedState, 'ML', union)).toBe(2)
 })
 it('allows Union Bank to take a presidency through another owner’s sale', () => {
@@ -159,7 +160,7 @@ it('allows Union Bank to take a presidency through another owner’s sale', () =
         state,
         action: sell([{ companyId: 'ML', shares: 2 }], 184)
     })
-    expect(getCompany(result.updatedState, 'ML').president).toEqual(union)
+    expect(presidentOf(result.updatedState, 'ML')).toEqual(union)
     expect(sharesOwned(result.updatedState, 'ML', union)).toBe(2)
 })
 it('resolves 1889 successor ties clockwise from the incumbent using turn order', () => {

@@ -1,4 +1,10 @@
-import { finiteCashOwnedBy, getCompany, placeStockMarker, type Owner } from '@tabletop/18xx'
+import {
+    finiteCashOwnedBy,
+    getCompany,
+    placeStockMarker,
+    presidentOf,
+    type Owner
+} from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import { IpoPoolId, MarketPoolId, charterPoolId } from '../src/pools.js'
 import type { State1862 } from '../src/state.js'
@@ -45,7 +51,6 @@ export function hold(state: State1862, companyId: string, holdings: readonly Hol
             director.poolId === IpoPoolId
         ) {
             place(director)
-            getCompany(state, companyId).president = owner
             left -= 3
         }
         for (; left > 0; left--) {
@@ -109,7 +114,7 @@ export function operatingTurn(
     if (step === 'LayingTrack') state.trackStep = { companyId, lays: [], completed: false }
     else state.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
     state.machineState = step
-    const director = getCompany(state, companyId).president
+    const director = presidentOf(state, companyId)
     state.activePlayerIds = director?.kind === 'player' ? [director.playerId] : []
 }
 

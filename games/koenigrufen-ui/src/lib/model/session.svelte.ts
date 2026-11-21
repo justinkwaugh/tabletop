@@ -11,7 +11,6 @@ import {
     Announce,
     Bid,
     CallKing,
-    card,
     ChooseContract,
     ChooseTalonHalf,
     GiveUp,
@@ -23,7 +22,7 @@ import {
     Pass,
     PlayCard,
     SayMeinSpiel,
-    Suits,
+    trischakenTalonByTrick,
     type BidChoice,
     type Bonus,
     type CalledKing,
@@ -42,6 +41,8 @@ import { TrickAnimator } from '$lib/animators/trickAnimator.js'
 import { shownTrickOf, type ShownTrick } from '$lib/utils/trickMotion.js'
 import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
+import { sortHand } from '$lib/utils/handOrder.js'
+import type { TableRules } from '$lib/utils/contractText.js'
 import { wonCardCount } from '$lib/utils/wonCards.js'
 import {
     announcementSections,
@@ -68,16 +69,6 @@ import {
     type PlaySelection
 } from './stagedSelection.js'
 
-// Suits alternate colour; trumps follow, low to high.
-const SuitSortOrder = [Suits[0], Suits[2], Suits[1], Suits[3]]
-
-function handSortKey(cardId: string): number {
-    const found = card(cardId)
-    return found.kind === 'trump'
-        ? 100 + found.number
-        : SuitSortOrder.indexOf(found.suit) * 10 + (10 - found.strength)
-}
-
 type SessionOptions = ConstructorParameters<
     typeof GameSession<KoenigrufenProjectedState, HydratedKoenigrufenGameState>
 >[0]
@@ -94,6 +85,9 @@ export class KoenigrufenGameSession extends GameSession<
         uniformPips: this.preferences.values.uniformPips,
         classicDeck: this.preferences.values.classicDeck
     })
+
+    // Each block of the hand runs from high to low, left to right, in place of low to high.
+    readonly handHighToLow: boolean = $derived(this.preferences.values.handHighToLow)
 
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
 
@@ -131,7 +125,7 @@ export class KoenigrufenGameSession extends GameSession<
     readonly machineState = $derived(this.gameState.machineState)
 
     readonly myHand: string[] = $derived(
-        (this.myPlayerState?.hand ?? []).toSorted((a, b) => handSortKey(a) - handSortKey(b))
+        sortHand(this.myPlayerState?.hand ?? [], this.handHighToLow)
     )
 
     // Another player's hand, sorted like mine, once an ouvert game has laid the hands open.
@@ -139,7 +133,7 @@ export class KoenigrufenGameSession extends GameSession<
         const hand = this.gameState.handsShown
             ? this.gameState.getPlayerState(playerId).hand
             : undefined
-        return hand?.toSorted((a, b) => handSortKey(a) - handSortKey(b))
+        return hand === undefined ? undefined : sortHand(hand, this.handHighToLow)
     }
 
     // Seats from mine round the table in turn order; the board draws them clockwise from my seat.
@@ -243,6 +237,11 @@ export class KoenigrufenGameSession extends GameSession<
     // while it is shown and taken), so arriving cards are drawn before the state swap.
     shownTrick: ShownTrick = $derived(shownTrickOf(this.gameState))
 
+    // House rules this game was created with, for what the table says about the contracts.
+    readonly tableRules: TableRules = $derived({
+        talonByTrick: trischakenTalonByTrick(this.game.config)
+    })
+
     readonly cardPlaces = new CardPlaces()
 
     // Cards crossing the table (a deal, the talon going to the declarer, cards laid away), drawn
@@ -327,6 +326,10 @@ export class KoenigrufenGameSession extends GameSession<
 
     setCardStyle(change: Partial<CardStyle>) {
         this.preferences.set(change)
+    }
+
+    setHandHighToLow(highToLow: boolean) {
+        this.preferences.set({ handHighToLow: highToLow })
     }
 
     override async onGameStateChange(change: {

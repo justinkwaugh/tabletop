@@ -1,7 +1,13 @@
 import { assertExists } from '@tabletop/common'
 import type { CompanyCharters } from '../company/companyCharters.js'
 import type { CompanyRules } from '../company/companyRules.js'
-import { getCompany, sameOwner, treasuryPoolId, type FinancialState } from '../finance/finance.js'
+import {
+    getCompany,
+    presidentOf,
+    sameOwner,
+    treasuryPoolId,
+    type FinancialState
+} from '../finance/finance.js'
 import type { StationState } from '../map/station.js'
 import { allSharesHeld } from './stockRoundRules.js'
 import { priorityOrder } from './priorityOrder.js'
@@ -68,21 +74,17 @@ export function treasuryShareStockRules(trading: TreasuryShareTrading): StockRul
         },
         saleTerms(state, companyId, _shares, seller) {
             const company = getCompany(state, companyId)
-            if (
-                company.kind !== 'major' ||
-                !company.started ||
-                company.closed ||
-                !company.president
-            )
+            const president = presidentOf(state, companyId)
+            if (company.kind !== 'major' || !company.started || company.closed || !president)
                 return 'This corporation has no saleable stock.'
-            const president = sameOwner(company.president, seller)
-            if (!company.operated && !president)
+            const presides = sameOwner(president, seller)
+            if (!company.operated && !presides)
                 return 'Only the president may sell before the corporation operates.'
             return marketSaleTerms(market, state, companyId, {
                 destinationPoolId: marketPoolId,
                 marketLimit: 50,
                 maximumShares: 10,
-                movement: president ? 1 : 0
+                movement: presides ? 1 : 0
             })
         },
         certificateLimit: trading.certificateLimit,

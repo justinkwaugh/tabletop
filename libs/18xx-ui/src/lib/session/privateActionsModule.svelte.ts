@@ -1,5 +1,6 @@
 import { assert } from '@tabletop/common'
-import type { EighteenXXState, TrackConstruction, TrackLayDetails } from '@tabletop/18xx'
+import type { EighteenXXState, TrackLayDetails } from '@tabletop/18xx'
+import type { TitleTrackConstruction } from './trackModule.svelte.js'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import type { LocalSelection } from '@tabletop/frontend-components'
 import type { PrivatesModule } from './privatesModule.svelte.js'
@@ -15,10 +16,7 @@ export type PrivateTrackPower = { privateCompanyId: string; playerId: string }
 export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: string } & (
         | {
               kind: 'track'
-              construction: Pick<
-                  TrackConstruction,
-                  'choices' | 'canReach' | 'evaluate' | 'inventoryAfter' | 'stationsAfter'
-              >
+              construction: TitleTrackConstruction
               commit(details: TrackLayDetails): Promise<void>
               /** Ends a power that allows several lays with the lays staged so far. */
               finish?: { label: string; run(): Promise<void> }

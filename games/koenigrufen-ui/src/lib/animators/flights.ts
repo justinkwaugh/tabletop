@@ -30,6 +30,8 @@ export type Flight = {
     count?: number
     from: CardSpot
     to: CardSpot
+    // A stop on the way, where the card rests for `hold` seconds; each leg takes `duration`.
+    via?: { spot: CardSpot; hold: number }
     at: number
     duration: number
 }
@@ -136,6 +138,23 @@ export class CardFlights {
             const startX = origin.left + (card.left + card.width / 2) * boardScale
             const startY = origin.top + (card.top + (card.width * CardAspect) / 2) * boardScale
             const width = flight.to.cardWidth ?? seatWidth
+            let leaveAt = flight.at
+            if (flight.via) {
+                const stop = centerOf(flight.via.spot.element)
+                const stopWidth = flight.via.spot.cardWidth ?? seatWidth
+                timeline.to(
+                    element,
+                    {
+                        x: (stop.x - startX) / boardScale,
+                        y: (stop.y - startY) / boardScale,
+                        scale: stopWidth / (card.width * boardScale),
+                        duration: flight.duration,
+                        ease: 'power2.inOut'
+                    },
+                    flight.at
+                )
+                leaveAt = flight.at + flight.duration + flight.via.hold
+            }
             timeline.to(
                 element,
                 {
@@ -145,9 +164,9 @@ export class CardFlights {
                     duration: flight.duration,
                     ease: 'power2.inOut'
                 },
-                flight.at
+                leaveAt
             )
-            timeline.to(element, { opacity: 0, duration: 0.12 }, flight.at + flight.duration - 0.12)
+            timeline.to(element, { opacity: 0, duration: 0.12 }, leaveAt + flight.duration - 0.12)
         })
     }
 }

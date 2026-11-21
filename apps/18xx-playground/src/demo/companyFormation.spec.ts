@@ -5,6 +5,7 @@ import { ActionSource } from '@tabletop/common'
 import {
     cashOwnedBy,
     getCompany,
+    presidentOf,
     sharesOwned,
     companyMarketSpaceId,
     placeStockMarker,
@@ -87,9 +88,9 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
             funded: false,
             floated: false,
             operated: false,
-            parPrice,
-            president: alex
+            parPrice
         })
+        expect(presidentOf(result.updatedState, companyId)).toEqual(alex)
         expect(cashOwnedBy(result.updatedState, alex)).toBe(240 - parPrice * 2)
         expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId })).toBe(0)
         expect(sharesOwned(result.updatedState, companyId, alex)).toBe(2)
@@ -197,7 +198,7 @@ it('starts a company for Union Bank using its cash before its owner’s contribu
     })
     expect(cashOwnedBy(result.updatedState, union)).toBe(0)
     expect(cashOwnedBy(result.updatedState, alex)).toBe(120)
-    expect(getCompany(result.updatedState, 'A').president).toEqual(union)
+    expect(presidentOf(result.updatedState, 'A')).toEqual(union)
     expect(result.updatedState.stockRound.companyPurchases).toEqual(['UB'])
     expect(result.updatedState.tranches[1].companyIds).toEqual(['A'])
 })
@@ -306,8 +307,7 @@ it('floats an already funded branch without granting initial capital again', () 
         started: true,
         funded: true,
         floated: false,
-        parPrice: 80,
-        president: alex
+        parPrice: 80
     })
     const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
     state.certificates.push(
@@ -375,7 +375,7 @@ it('closes PEIR and removes its cash and trains on its final exchange', () => {
     expect(replay).toEqual(result.updatedState)
     expect(peirShares(result.updatedState)).toHaveLength(0)
     expect(getCompany(result.updatedState, 'PEIR')).toMatchObject({ closed: true })
-    expect(getCompany(result.updatedState, 'PEIR').president).toBeUndefined()
+    expect(presidentOf(result.updatedState, 'PEIR')).toBeUndefined()
     expect(getCompany(result.updatedState, 'KM').closed).toBe(true)
     expect(
         privateIncomePayments(result.updatedState, { charters: TheOldPrinceCharters }).filter(
@@ -433,7 +433,6 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
     const company = getCompany(state, 'MS')
     company.started = true
     company.parPrice = 80
-    company.president = alex
     state.tranches[1].companyIds.push('MS')
     placeStockMarker(state.stockMarket, 'MS', '3:1')
     give(state, 'MS:president', alex)
@@ -445,9 +444,9 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
         state,
         action: purchase('MS:share:4', 80, union)
     })
-    expect(getCompany(result.updatedState, 'MS').president).toEqual(blair)
+    expect(presidentOf(result.updatedState, 'MS')).toEqual(blair)
     expect(peirShares(result.updatedState)).toHaveLength(4)
-    expect(getCompany(result.updatedState, 'PEIR').president).toEqual({
+    expect(presidentOf(result.updatedState, 'PEIR')).toEqual({
         kind: 'player',
         playerId: 'casey'
     })

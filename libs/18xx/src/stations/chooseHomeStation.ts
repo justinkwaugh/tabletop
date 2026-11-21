@@ -103,7 +103,7 @@ export class HydratedChooseHomeStation
             position: { locationId: this.locationId, nodeId: this.nodeId, slot },
             cost: 0
         }
-        applyStationPlacement(state, details)
+        applyStationPlacement(state, details, this.#rules.map)
         releaseHomeReservations(state, this.companyId, [
             ...new Set(choice.positions.map((position) => position.locationId))
         ])

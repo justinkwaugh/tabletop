@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest'
-import { stationMapTokens } from '../lib/maps/stationPresentation.js'
+import {
+    stationMapTokens,
+    type StationAppearance,
+    type StationViews
+} from '../lib/maps/stationPresentation.js'
 
+const withoutNeutral = { neutralStations: [] }
 it('prints a station another company shares through access in its shared art', () => {
     const appearances = {
         A: { color: '#f38221', label: 'A' },
@@ -25,6 +30,7 @@ it('prints a station another company shares through access in its shared art', (
         stationAccess: [{ companyId: 'B', locationId: 'F5', nodeId: 'city', sourceId: 'joint' }]
     }
     const tokens = stationMapTokens(state, {
+        map: withoutNeutral,
         stations: appearances,
         sharedStations: {
             joint: { color: '#8d807d', label: 'A / B', imageUrl: 'joint.png' }
@@ -34,10 +40,11 @@ it('prints a station another company shares through access in its shared art', (
         ['F5', 'A / B'],
         ['B3', 'A']
     ])
-    expect(stationMapTokens(state, { stations: appearances }).map((token) => token.label)).toEqual([
-        'A',
-        'A'
-    ])
+    expect(
+        stationMapTokens(state, { map: withoutNeutral, stations: appearances }).map(
+            (token) => token.label
+        )
+    ).toEqual(['A', 'A'])
 })
 
 it('prints a neutral station in the neutral art, whichever company runs from it', () => {
@@ -50,16 +57,16 @@ it('prints a neutral station in the neutral art, whichever company runs from it'
                 position: { locationId: 'F5', nodeId: 'city', slot: 0 }
             }
         ],
-        stationReservations: [],
-        neutralStations: [{ stationId: 'CN:neutral:A', heldBy: 'A' }]
+        stationReservations: []
     }
     const view = {
+        map: { neutralStations: [{ stationId: 'CN:neutral:A', heldBy: 'A' }] },
         stations: { CN: { color: '#f38221', label: 'CN' } },
         neutralStation: { color: '#ffffff', label: '' }
     }
     expect(stationMapTokens(state, view).map((token) => token.color)).toEqual(['#ffffff'])
     expect(
-        stationMapTokens({ ...state, neutralStations: [] }, view).map((token) => token.color)
+        stationMapTokens(state, { ...view, map: withoutNeutral }).map((token) => token.color)
     ).toEqual(['#f38221'])
 })
 
@@ -91,12 +98,47 @@ it('prints a closed company’s station in the closed-company art where the map 
     }
     const blocking = { color: '#010101', label: 'Blocking' }
     expect(
-        stationMapTokens(state, { stations, closedCompanyStation: blocking }).map(
-            (token) => token.label
-        )
+        stationMapTokens(state, {
+            map: withoutNeutral,
+            stations,
+            closedCompanyStation: blocking
+        }).map((token) => token.label)
     ).toEqual(['Blocking', 'B&O'])
-    expect(stationMapTokens(state, { stations }).map((token) => token.label)).toEqual([
-        'C&O',
-        'B&O'
+    expect(
+        stationMapTokens(state, { map: withoutNeutral, stations }).map((token) => token.label)
+    ).toEqual(['C&O', 'B&O'])
+})
+
+it('prints the stations of companies the state singles out in their own art, on the map only', () => {
+    const state = {
+        stations: [
+            {
+                id: 'A:1',
+                companyId: 'A',
+                status: 'placed' as const,
+                position: { locationId: 'F5', nodeId: 'city', slot: 0 }
+            },
+            {
+                id: 'B:1',
+                companyId: 'B',
+                status: 'placed' as const,
+                position: { locationId: 'B3', nodeId: 'city', slot: 0 }
+            }
+        ],
+        stationReservations: [],
+        faceDown: ['B']
+    }
+    const view: StationViews = {
+        map: withoutNeutral,
+        stations: { A: { color: '#f38221', label: 'A' }, B: { color: '#8d807d', label: 'B' } },
+        stateStations: (shown: object): Readonly<Record<string, StationAppearance>> =>
+            'faceDown' in shown && Array.isArray(shown.faceDown) && shown.faceDown.includes('B')
+                ? { B: { color: '#999999', label: 'B' } }
+                : {}
+    }
+    expect(stationMapTokens(state, view).map((token) => [token.label, token.color])).toEqual([
+        ['A', '#f38221'],
+        ['B', '#999999']
     ])
+    expect(view.stations.B?.color).toBe('#8d807d')
 })

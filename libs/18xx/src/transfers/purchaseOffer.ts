@@ -109,6 +109,12 @@ export function companyOfferRequest(offer: PurchaseOffer): PurchaseOfferRequest 
 export function isCompanyPurchaseOffer(offer: PendingPurchaseOffer): offer is PurchaseOffer {
     return offer.buyer.kind === 'company'
 }
+/**
+ * The prices an asset may change hands at: from the minimum, to the maximum where there is one,
+ * in multiples of ``multipleOf`` where given, as 1860's trains go for multiples of £10.
+ */
+export type PriceRange = { minimum: number; maximum?: number; multipleOf?: number }
+
 export interface TransferRules {
     charters: CompanyCharters
     /** Whether a company may be bought whole, as 1846's independents are. */
@@ -117,11 +123,12 @@ export interface TransferRules {
     stationPurchases?: true
     operatingCompany(state: CompanyDecisionState): string | undefined
     canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean
+    /** The prices the asset may change hands at. */
     priceRange(
         state: CompanyDecisionState,
         companyId: string,
         asset: PurchaseAsset
-    ): { minimum: number; maximum?: number } | undefined
+    ): PriceRange | undefined
     afterPurchase(state: CompanyDecisionState, offer: PurchaseOffer): PurchaseEffects | void
     /**
      * Who makes up a price the buyer's treasury cannot cover, in order, and the highest price
@@ -207,7 +214,8 @@ export function evaluatePurchaseOffer(
         !range ||
         !Number.isInteger(request.price) ||
         request.price < range.minimum ||
-        (range.maximum !== undefined && request.price > range.maximum)
+        (range.maximum !== undefined && request.price > range.maximum) ||
+        (range.multipleOf !== undefined && request.price % range.multipleOf !== 0)
     )
         return { reason: 'This purchase or price is not permitted.' }
     if (!canFund(state, request, rules)) return { reason: 'The buyer cannot afford the offer.' }
@@ -298,9 +306,6 @@ export function settlePurchaseOffer(
                 certificate.owner = owner
                 delete certificate.poolId
             }
-        const company = state.companies.find((company) => company.id === asset.companyId)
-        assertExists(company, 'An acquired company exists')
-        company.president = owner
     }
     const effects = rules.afterPurchase(state, offer)
     return { payments, ...(effects ? { effects } : {}) }

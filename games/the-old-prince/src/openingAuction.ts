@@ -59,11 +59,6 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
             RF: [`${mainline}:share:2`]
         }
         awardCertificates(state, award, [`${award.lotId}:charter`, ...(extras[award.lotId] ?? [])])
-        if (award.lotId === 'MLC' || award.lotId === 'SLC')
-            getCompany(state, award.lotId === 'MLC' ? mainline : shortline).president = {
-                kind: 'player',
-                playerId: award.playerId
-            }
     },
     incomePayments(state) {
         return privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(

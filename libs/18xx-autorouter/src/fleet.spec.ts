@@ -1,27 +1,14 @@
 import { readFile } from 'node:fs/promises'
 import { expect, it } from 'vitest'
-import { HexOrientation } from '@tabletop/common'
 import {
-    RailwayMap,
     RouteEvaluation,
-    TileSet,
-    TrainDepot,
-    createCityTileFace as city,
-    createJunctionTileFace as junction,
-    createOffboardTileFace as offboard,
-    createStagedTileRevenue as staged,
-    createTownTileFace as town,
-    createTrackTileFace as track,
     type FleetRules,
-    type RevenueCenter,
     type RouteRules,
-    type TileEdge,
-    type TileFace,
-    type TrainDistance,
     type TrainRunningState
 } from '@tabletop/18xx'
 import { Autorouter, routeProblemKey } from './autorouter.js'
 import { exhaustiveFleetValue, exhaustiveRevenue } from './testing/exhaustiveRevenue.js'
+import { Home, generated } from './testing/generatedFleet.js'
 const router = await Autorouter.create(
     new Uint8Array(await readFile(new URL('../esm/solver.wasm', import.meta.url))).buffer
 )
@@ -31,42 +18,6 @@ const solve = (
     companyId: string,
     timeLimitMs: number
 ) => router.solve(state, rules, companyId, { timeLimitMs })
-
-const Home: RevenueCenter = { locationId: '0,0', nodeId: 'city' }
-const Edges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
-const Distances: Readonly<Record<string, TrainDistance>> = {
-    R2: { measure: 'revenue-centers', maximum: 2 },
-    R3: { measure: 'revenue-centers', maximum: 3 },
-    H3: { measure: 'hex-edges', maximum: 3 },
-    C2: { measure: 'cities-and-offboards', maximum: 2 },
-    L: { measure: 'revenue-centers', maximum: 3 }
-}
-
-function random(seed: number): () => number {
-    let value = seed
-    return () => {
-        value = (value + 0x6d2b79f5) | 0
-        let mixed = Math.imul(value ^ (value >>> 15), 1 | value)
-        mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed
-        return ((mixed ^ (mixed >>> 14)) >>> 0) / 2 ** 32
-    }
-}
-
-function generatedFace(next: () => number, open: readonly TileEdge[], outer: boolean): TileFace {
-    const roll = next()
-    const value = (base: number) => base + 10 * Math.floor(next() * 5)
-    if (!open.length) return track('yellow', [])
-    if (outer && roll < 0.15) return offboard(open, staged([['yellow', value(30)]]))
-    if (roll < 0.5) return city('yellow', open, value(10), 1)
-    if (roll < 0.7) return town('yellow', [open], value(10))
-    if (roll < 0.85 && open.length >= 3) return junction('yellow', open)
-    return track(
-        'yellow',
-        open.flatMap((edge, index) =>
-            index % 2 && open[index - 1] !== undefined ? [[open[index - 1], edge] as const] : []
-        )
-    )
-}
 
 function toyFleet({
     sharedTrack,
@@ -83,111 +34,6 @@ function toyFleet({
             L: { hexSubsidy: 10, payingStopLimit: { count: 1, kinds: ['city', 'offboard'] } }
         }
     }
-}
-
-function generated(
-    seed: number,
-    radius: number,
-    trainKinds: readonly string[],
-    fleet: FleetRules
-): { state: TrainRunningState; rules: RouteRules } {
-    const next = random(seed)
-    const places = []
-    for (let q = -radius; q <= radius; q++)
-        for (let r = -radius; r <= radius; r++)
-            if (Math.abs(q + r) <= radius)
-                places.push({ id: `${q},${r}`, coordinates: { q, r }, buildable: true })
-    const grid = new RailwayMap({
-        id: 'grid',
-        name: 'Grid',
-        orientation: HexOrientation.Flat,
-        locations: places.map((place) => ({ ...place, preprintedTile: track('yellow', []) }))
-    })
-    // Track meets across a hex side exactly where both tiles open onto it.
-    const open = new Map(places.map((place): [string, TileEdge[]] => [place.id, []]))
-    for (const { id } of places)
-        for (const edge of Edges) {
-            const across = grid.across(id, edge)
-            if (!across || across.location.id < id || next() >= 0.6) continue
-            open.get(id)!.push(edge)
-            open.get(across.location.id)!.push(across.edge)
-        }
-    const locations = places.map((place) => {
-        const sides = open.get(place.id)!
-        const { q, r } = place.coordinates
-        const outer = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) === radius
-        return {
-            ...place,
-            preprintedTile:
-                place.id === Home.locationId
-                    ? city('yellow', sides, 20, 2)
-                    : generatedFace(next, sides, outer)
-        }
-    })
-    const tileSet = new TileSet({ id: 'empty', entries: [] }, [])
-    const kinds = [...new Set(trainKinds)]
-    const depot = new TrainDepot({
-        id: 'fleet',
-        trains: kinds.map((kind) => ({
-            id: kind,
-            name: kind,
-            price: 0,
-            distance: Distances[kind]
-        })),
-        supply: []
-    })
-    const rival = locations.find(
-        (location) =>
-            location.id !== Home.locationId && location.preprintedTile.nodes[0]?.kind === 'city'
-    )
-    const state: TrainRunningState = {
-        bank: {},
-        companies: [{ id: 'A', kind: 'major', shareCount: 10 }],
-        cash: [],
-        certificates: [],
-        certificatePools: [],
-        stations: [
-            { id: 'A:home', companyId: 'A', status: 'placed', position: { ...Home, slot: 0 } },
-            ...(rival && next() < 0.5
-                ? [
-                      {
-                          id: 'rival',
-                          companyId: 'B',
-                          status: 'placed' as const,
-                          position: { locationId: rival.id, nodeId: 'city', slot: 0 }
-                      }
-                  ]
-                : [])
-        ],
-        stationReservations: [],
-        tileInventory: tileSet.createInventory(),
-        trainInventory: {
-            depotId: 'fleet',
-            nextTrainNumber: 1,
-            trains: trainKinds.map((kind, index) => ({
-                id: `${kind}-${index}`,
-                definitionId: kind,
-                status: 'owned',
-                owner: { kind: 'company', companyId: 'A' }
-            }))
-        },
-        phaseId: 'yellow',
-        routeStep: { companyId: 'A' }
-    }
-    const rules: RouteRules = {
-        map: new RailwayMap({
-            id: 'generated',
-            name: 'Generated',
-            orientation: HexOrientation.Flat,
-            locations
-        }),
-        tileSet,
-        depot,
-        requiresCity: (train) => train.distance.measure === 'cities-and-offboards',
-        revenueStage: (state) => [state.phaseId],
-        fleet
-    }
-    return { state, rules }
 }
 
 const Fleets: readonly (readonly string[])[] = [

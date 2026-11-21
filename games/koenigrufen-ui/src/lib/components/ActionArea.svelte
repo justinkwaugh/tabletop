@@ -192,7 +192,7 @@
                         king={standingContract.calledKing}
                     />{/if}.</strong
             >
-            {contractSummary(standingContract.choice)}
+            {contractSummary(standingContract.choice, gameSession.tableRules)}
         </p>
     {/if}
 </div>

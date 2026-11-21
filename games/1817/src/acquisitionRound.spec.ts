@@ -215,7 +215,6 @@ describe('the acquisition round', () => {
                     certificate.owner.playerId === 'blair'
                 )
                     certificate.owner = player('alex')
-            getCompany(state, 'BA').president = player('alex')
             state.activePlayerIds = ['alex']
         })
         play.act('OfferCompany', { companyId: 'PLE' })
@@ -314,7 +313,6 @@ describe('the closing zones', () => {
                 certificate.owner = { ...market.owner }
                 certificate.poolId = market.id
             }
-        delete getCompany(play.state, 'PLE').president
         play.act('PassMerger', { companyId: 'BA' })
         const alex = cash(play.state, player('alex'))
         play.act('PassOnCompany', { companyId: 'PLE' })

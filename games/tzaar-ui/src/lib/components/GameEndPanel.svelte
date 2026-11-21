@@ -28,13 +28,52 @@
     })
 </script>
 
-<div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--tzaar-ink)">
+<div class="ending">
     {#if outcome}
-        <div class="text-[22px] font-semibold tracking-[0.06em]">
+        <span class="winner">
             {outcome.winner === session.myPlayer?.id ? 'You win' : `${nameOf(outcome.winner)} wins`}
-        </div>
-        <div class="text-[15px] text-(--tzaar-ink-quiet)">{outcome.reason}</div>
+        </span>
+        <span class="reason" title={outcome.reason}>{outcome.reason}</span>
     {:else}
         <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
     {/if}
 </div>
+
+<style>
+    /* Within the height the action panel holds: the winner over the reason, the reason trimmed
+       rather than wrapped. */
+    .ending {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+    }
+
+    .winner {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .reason {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 15px;
+        color: var(--tzaar-ink-quiet);
+    }
+
+    @media (max-width: 639px) {
+        .reason {
+            font-size: 13px;
+        }
+    }
+</style>

@@ -42,7 +42,6 @@ it.each([
                 floated: true,
                 funded: true,
                 operated: true,
-                president: owner,
                 parPrice: space.price
             })
             placeStockMarker(state.stockMarket, company.id, space.id)
@@ -84,7 +83,6 @@ it.each([
             floated: true,
             funded: true,
             operated: true,
-            president: otherOwner,
             parPrice: space.price
         })
         placeStockMarker(state.stockMarket, exemptCompany.id, yellow.id)

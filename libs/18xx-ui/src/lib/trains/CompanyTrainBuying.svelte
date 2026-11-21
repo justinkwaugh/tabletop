@@ -92,8 +92,9 @@
                 >Price <span>{currencyAffixes(money).before}</span><input
                     aria-label="Train price"
                     type="number"
-                    min="1"
-                    step="1"
+                    min={session.trainBuying.companyPriceRange?.minimum ?? 1}
+                    max={session.trainBuying.companyPriceRange?.maximum}
+                    step={session.trainBuying.companyPriceRange?.multipleOf ?? 1}
                     value={request.price}
                     oninput={(event) =>
                         session.trainBuying.setCompanyTrainPrice(Number(event.currentTarget.value))}

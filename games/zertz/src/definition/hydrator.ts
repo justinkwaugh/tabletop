@@ -2,6 +2,7 @@ import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/co
 import { HydratedZertzGameState, ZertzGameState } from '../model/gameState.js'
 import { HydratedPlaceMarble, isPlaceMarble } from '../actions/placeMarble.js'
 import { HydratedCapture, isCapture } from '../actions/capture.js'
+import { HydratedSetAutoJump, isSetAutoJump } from '../actions/setAutoJump.js'
 
 export class ZertzHydrator implements GameHydrator<ZertzGameState, HydratedZertzGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -10,6 +11,8 @@ export class ZertzHydrator implements GameHydrator<ZertzGameState, HydratedZertz
                 return new HydratedPlaceMarble(data)
             case isCapture(data):
                 return new HydratedCapture(data)
+            case isSetAutoJump(data):
+                return new HydratedSetAutoJump(data)
             default:
                 throw new Error(`Unknown action type ${data.type}`)
         }

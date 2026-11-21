@@ -26,7 +26,7 @@
 
 ### Short names
 
-- Cards are written as rank then suit (K♠, 10♥, Q♦); trumps as their pack prints them (21, or XXI with Industrie und Glück), the Sküs by name. A called king is K♠, or "4th K" for the fourth king. The header reads "Hand 1/12".
+- Cards are written as rank then suit (K♠, 10♥, Q♦); trumps as their pack prints them (21, or XXI with Industrie und Glück), the Sküs by name. A card's own hover tooltip and accessible name add the number to an Industrie und Glück trump, "XII (12)", since that pack prints no Arabic index; history text keeps "XII". A called king is K♠, or "4th K" for the fourth king. The header reads "Hand 1/12".
 - **Called King:** wherever the table names the contract for everyone (the header from the call to the end of the hand, and the "Contract:" line during announcements), the called King follows the word "called" as a card-coloured chip: cream with a thin border and shadow, bold and a little larger than the text around it, red for ♥ ♦ and black for ♠ ♣ and "4th K". Its accessible name is "the King of hearts" or "the fourth King". While the declarer calls, each King on offer is a button drawn as that chip, a little larger, rising on hover and ringed in gold on keyboard focus; its accessible name is "Call the King of hearts".
 - A seat's won cards are a pile and a number, with no word; the words ("8 cards won") are in its tooltip and accessible name.
 
@@ -61,7 +61,7 @@
 - **Trigger:** it is the viewing player's turn to bid, or to name the contract after “Mein Spiel”.
 - **Bidding row:** the action area offers only **Bid ▾**, **Mein Spiel** (forehand's opening turn, with its meaning in a small line below) and **Pass** (when passing is allowed). **Mein Spiel** and **Pass** act at once.
 - **Menu:** **Bid ▾** opens the biddable contracts in a table under the button row, across the action area (up to 1040px wide). It covers the top of the table but stops above the player's hand, so the hand stays in view; only when less than 160px is left does it run over the hand. A tap or click outside, **✕** or Escape closes it; choosing a bid closes it and bids. Naming after “Mein Spiel” uses the same menu behind **Name contract ▾**, already open when the turn starts. The menu follows its button on resize and scroll, and each opening starts with no bid previewed.
-- **Rows:** one row per contract, cheapest first, in plain words: value (win and loss when they differ, Sechserdreier `4/−8`), contract, teams ("2 v 2", "1 v 3", "None" for Trischaken), goal ("36+ card points", "Exactly 1 trick"), talon ("Take 3", "To defenders", "Last trick", "Unused") and rule tags ("No bonuses", "Bonuses ×2", "No trumps", "Only Valat and Four Kings", "Open hands", "Opening only", "Names a bird"). No symbols, pips or glyphs.
+- **Rows:** one row per contract, cheapest first, in plain words: value (win and loss when they differ, Sechserdreier `4/−8`), contract, teams ("2 v 2", "1 v 3", "None" for Trischaken), goal ("36+ card points", "Exactly 1 trick"), talon ("Take 3", "To defenders", "Last trick", or "1 per trick" for Trischaken when the game gives the talon by trick, "Unused") and rule tags ("No bonuses", "Bonuses ×2", "No trumps", "Only Valat and Four Kings", "Open hands", "Opening only", "Names a bird"). No symbols, pips or glyphs.
 - **Forehand's opening bid:** Sechserdreier heads the table, its row tinted gold and its name gold. Next come Rufer and Trischaken, greyed and tagged "After Mein Spiel": pointing at one or tapping it shows its description with "Say Mein Spiel first." but never bids. A gold rule separates them from the ordinary bids, cheapest first. Once "Mein Spiel" is said, Sechserdreier is no longer offered, and when it is passed out, Rufer and Trischaken are named in rank order like any other contract.
 - **Besserrufer:** one row for every bird, placed where its cheapest open bird ranks, its value the range of the open birds ("3–9"; "7–9" over a Besserrufer Uhu). Its birds are the bids: Pagat 3, Uhu 5, Kakadu 7, Quapil 9 (the game plus the bird's announced value), each a button with its total; birds the player may not bid stay visible, dashed and disabled.
 - **Wide menu (800px and up):** the table sits beside a pane. Pointing at a bid with a mouse, or focusing it from the keyboard, shows its name, value and description in the pane; clicking a bid makes it. Clicking Besserrufer holds the pane on it, listing the four birds one per line with each bird's goal, so the pointer may cross other rows on the way. The pane is empty until a bid is shown, with no instructions.
@@ -109,6 +109,7 @@
     - cards the declarer takes (the chosen half; all six in Sechserdreier) into the declarer's hand;
     - cards for the defenders, when declarer plays alone against three (the other half in Dreier and Farbendreier, and in Rufer when the called King was in the talon; the whole talon in Solodreier and Farbensolo), to the first opponent after the declarer, who gathers them;
     - cards for no team yet to the upper left, where they wait for the hand: Rufer's and Besserrufer's other half face up (the partner is secret), and the face-down talon in Solorufer, Trischaken and the negative games.
+- **Trischaken talon by trick** (game option): the waiting stack in the upper left gives up its top card for each of the first six tricks and is gone after the sixth. The contract's descriptions (bid table, "Contract:" line) say "First 6 trick winners each reveal and take 1 talon card" instead of "Last trick takes the talon".
 
 ### Open hands (ouvert)
 
@@ -120,7 +121,7 @@
 
 - **Trigger:** a trick's fourth card is played.
 - **Display:** once the fourth card lands, all four cards stay at full brightness, the winning card gets a thin blue edge, and a caption names the winner. After one second the trick slides to the winner's trick pile, and the table is empty for the lead.
-- **Capture piles:** each seat shows how many cards lie face down in its capture pile, a large number beside a pile 18×27px: a dashed outline until its first card, then a face-down card in the backs' dark blue (a stack once it holds more than a trick). The pile shows from the first lead, or earlier once it holds cards. A card counts when it is face down in a capture pile (user's rule): every card of a won trick, the declarer's cards laid away face down (not those shown face up), and the talon cards the defenders' collector gathers. Cards waiting in the upper left do not count. `wonCards.ts` holds the rule, tested in `wonCards.spec.ts`; the player panel shows the same number ("12 in hand · 8 won").
+- **Capture piles:** each seat shows how many cards lie face down in its capture pile, a large number beside a pile 18×27px: a dashed outline until its first card, then a face-down card in the backs' dark blue (a stack once it holds more than a trick). The pile shows from the first lead (and while a talon card is given for a trick), or earlier once it holds cards. A card counts when it is face down in a capture pile (user's rule): every card of a won trick and any talon card given for it (Trischaken talon by trick), the declarer's cards laid away face down (not those shown face up), and the talon cards the defenders' collector gathers. Cards waiting in the upper left do not count. `wonCards.ts` holds the rule, tested in `wonCards.spec.ts`; the player panel shows the same number ("12 in hand · 8 won").
 
 ### Card motion
 
@@ -129,6 +130,7 @@
 - **The deal:** after the last hand's trick has gone, the new hand leaves the dealer's seat in packets of fanned backs, in Pagat's order: one to each player in turn order from the dealer, one to the talon, then one to each player again (about 1.4s). Packets land on the seats, in my hand at hand size, and on the talon; the state swap then shows the hands.
 - **The talon turning up:** the six cards slide out of the face-down stack in the middle to their places in the two halves, then each turns face up (narrowing to an edge and opening again), one after another (about 1s).
 - **The talon leaving the middle:** cards for the declarer fly into the declarer's hand (mine: growing to hand size; another declarer's: onto their seat's backs), the chosen half first; cards for the defenders fly to their gatherer's seat; cards that wait glide to the upper left, shrinking to its size. A face-down talon moves as backs.
+- **A talon card given for a trick** (Trischaken talon by trick): once the won trick has reached its pile, the top card of the waiting stack flies face up to the middle of the table at the talon's middle size (0.45s), rests there for everyone to see (0.8s), then flies into the winner's pile, shrinking to the pile's size (0.45s); the pile's count then rises by one. The history says "Anna took the talon card 8". Undo and history steps move it straight between the stack and the pile (0.2s).
 - **Laying away:** my laid-away cards fly from my hand to my name plate, shrinking and fading. Another declarer's seat lets that many backs rise and fade.
 - **Undo and history steps:** a single card arriving in the trick flies in 0.2s; everything else, including a card taken back, changes at once. Replaying history plays the full motion. With reduced motion, every change is the fast one, and the deal and talon do not move.
 - **Interaction:** none waits on the motion beyond the session's own busy state, since the next player's turn starts when the state swaps after the motion.
@@ -186,6 +188,11 @@
 
 - **Source:** the viewer's `uniformPips` and `classicDeck` title preferences, saved per account, both off at first. `uniformPips` shows the red 1–4 as red 10 9 8 7, so they rank like the black suits' pips. `classicDeck` swaps in the Industrie und Glück Tarock art as printed, for players who want the traditional pack; it prints no indices but Roman numerals on trumps.
 - **Effect:** changes how cards look and how history text names cards for that viewer only, never the game. The only toggle sits in the Players tab, below the player panels.
+
+### Hand order
+
+- **Display:** a hand is laid out in blocks, the four suits alternating colour (♥ ♠ ♦ ♣) and then the trumps. Within each block the cards run from the weakest to the strongest, left to right: 7 8 9 10 J C Q K (red 4 3 2 1 J C Q K), and trumps I to XXI, then the Sküs.
+- **High → Low:** the viewer's `handHighToLow` title preference, off at first, set by the "High → Low" box beside the card-style boxes in the Players tab. It turns every block round, strongest first; the blocks keep their places. Open hands in ouvert games follow the viewer's order. `utils/handOrder.ts`, tested in `handOrder.spec.ts`.
 
 ## Render ownership
 

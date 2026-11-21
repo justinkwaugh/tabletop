@@ -140,7 +140,7 @@ export class ScenarioInitializer<
         state.trackStep = { companyId, lays: [], completed: false }
         state.machineState = 'LayingTrack'
         for (const home of new StationPlacement(state, stationRules).homePlacements())
-            applyStationPlacement(state, home)
+            applyStationPlacement(state, home, stationRules.map)
         if (position === 'stations') {
             state.trackStep.completed = true
             state.stationStep = { companyId, placedStationIds: [], completed: false }

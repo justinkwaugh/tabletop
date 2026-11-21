@@ -57,8 +57,7 @@ export function runMinor(
         floated: true,
         funded: true,
         operated,
-        parPrice: price,
-        president: player(playerId)
+        parPrice: price
     })
     placeStockMarker(state.stockMarket, minorId, spaceAt(price))
     const certificate = state.certificates.find(
@@ -66,6 +65,7 @@ export function runMinor(
     )
     assertExists(certificate, 'A minor company has its certificate')
     certificate.owner = player(playerId)
+    delete certificate.poolId
     setCash(state, company(minorId), cash)
     state.bidBoxes.boxes = state.bidBoxes.boxes.filter((box) => box.lotId !== minorId)
     state.bidBoxes.stacks = state.bidBoxes.stacks.map((stack) => ({

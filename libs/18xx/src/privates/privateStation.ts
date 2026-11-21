@@ -119,7 +119,7 @@ export class HydratedPlacePrivateStation
         const stationId = nextStationId(state, companyId)
         assertExists(stationId, 'The company has a station to place')
         const details = { companyId, stationId, position: { ...this.position }, cost: 0 }
-        applyStationPlacement(state, details)
+        applyStationPlacement(state, details, this.#rules.map)
         useTurnStationPlacement(state, companyId, stationId)
         delete state.privateStation
         this.metadata = details

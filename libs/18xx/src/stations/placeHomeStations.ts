@@ -46,7 +46,7 @@ export class HydratedPlaceHomeStations
         const placements = new StationPlacement(state, this.#rules).homePlacements()
         assert(placements.length, 'No home stations are pending')
         for (const placement of placements) {
-            applyStationPlacement(state, placement)
+            applyStationPlacement(state, placement, this.#rules.map)
             releaseHomeReservations(state, placement.companyId, [placement.position.locationId])
         }
         this.metadata = placements

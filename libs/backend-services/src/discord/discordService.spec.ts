@@ -77,6 +77,7 @@ describe('DiscordService webhook events', () => {
             addTransport: vi.fn(),
             registerNotificationSubscription: vi.fn().mockResolvedValue(undefined),
             unregisterNotificationSubscription: vi.fn().mockResolvedValue(undefined),
+            hasUserDirectSubscription: vi.fn(),
             sendNotification: vi.fn()
         }
         userService = Object.create(UserService.prototype)

@@ -7,7 +7,8 @@ import {
     evaluateShareSale,
     getCompany,
     privateOwner,
-    type EighteenXXState
+    type EighteenXXState,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
@@ -56,7 +57,7 @@ describe('company auctions', () => {
         play.act('FormCompany', { companyId: 'AS', shareCount: 2, privateIds: [] })
         const company = getCompany(play.state, 'AS')
         expect(company).toMatchObject({ started: true, floated: true, shareCount: 2, parPrice: 50 })
-        expect(company.president).toEqual({ kind: 'player', playerId: 'alex' })
+        expect(presidentOf(play.state, 'AS')).toEqual({ kind: 'player', playerId: 'alex' })
         expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').price).toBe(50)
         expect(play.treasury('AS')).toBe(100)
         expect(play.cash('alex')).toBe(200)
@@ -76,7 +77,7 @@ describe('company auctions', () => {
         play.act('PassCompanyAuction', { companyId: 'AS' })
         expect(play.state.activePlayerIds).toEqual(['alex'])
         play.act('PassCompanyAuction', { companyId: 'AS' })
-        expect(getCompany(play.state, 'AS').president).toEqual({
+        expect(presidentOf(play.state, 'AS')).toEqual({
             kind: 'player',
             playerId: 'blair'
         })

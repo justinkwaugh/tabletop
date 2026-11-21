@@ -12,7 +12,13 @@ import {
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
 import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
-import { finiteCashOwnedBy, getCompany, sharesOwned, type Owner } from '../finance/finance.js'
+import {
+    finiteCashOwnedBy,
+    getCompany,
+    presidentOf,
+    sharesOwned,
+    type Owner
+} from '../finance/finance.js'
 import { operatingPlayerIds } from '../finance/receivership.js'
 import type { HydratedEighteenXXState } from '../game/eighteenXXState.js'
 import type { EighteenXXStateHandler } from '../game/eighteenXXTitleRules.js'
@@ -112,7 +118,7 @@ export class PriceProtectionProcedure<State extends ProtectionState> {
         sellerPlayerId: string
     ): string | undefined {
         const company = getCompany(state, companyId)
-        const president = company.president
+        const president = presidentOf(state, companyId)
         return !company.closed &&
             president?.kind === 'player' &&
             president.playerId !== sellerPlayerId

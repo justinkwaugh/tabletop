@@ -1,7 +1,6 @@
 import {
     President,
     finiteCashOwnedBy,
-    getCompany,
     settleCashPayments,
     type CashPayment,
     type Owner
@@ -386,7 +385,6 @@ export function settleDirector(state: HydratedState1862): string | undefined {
     )
     assertExists(certificate, 'The survivor has a director’s certificate')
     const previous = certificate.owner
-    const company = getCompany(state, merge.survivorId)
     const directorOwner = director ? ({ kind: 'player', playerId: director } as const) : undefined
     const holdsIt =
         directorOwner && previous.kind === 'player' && previous.playerId === directorOwner.playerId
@@ -404,7 +402,5 @@ export function settleDirector(state: HydratedState1862): string | undefined {
         if (directorOwner) toHolder(certificate, directorOwner)
         else toPool(certificate)
     }
-    if (directorOwner) company.president = directorOwner
-    else delete company.president
     return director
 }

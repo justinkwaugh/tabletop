@@ -17,7 +17,8 @@ import {
     trainsCountingForLimit,
     trainsOwnedBy,
     type StepAction,
-    type TrackLayDetails
+    type TrackLayDetails,
+    presidentOf
 } from '@tabletop/18xx'
 import { ActionSource, assert, assertExists, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -178,7 +179,7 @@ export function privateAgreementPlayerId1822(
     companyId: string,
     privateCompanyId: string
 ): string | undefined {
-    const director = getCompany(state, companyId).president
+    const director = presidentOf(state, companyId)
     const owner = privateOwner(state, privateCompanyId)
     return owner?.kind === 'player' &&
         !(director?.kind === 'player' && director.playerId === owner.playerId)
@@ -383,7 +384,7 @@ export class HydratedAnswerPrivateOffer extends AnswerPrivateOfferAction.Base {
         const offer = state.privateOffer
         assertExists(offer, 'An answer needs an offer')
         const { companyId, privateCompanyId, choice } = offer
-        const director = getCompany(state, companyId).president
+        const director = presidentOf(state, companyId)
         assert(director?.kind === 'player', 'An operating company has a director')
         const terms = { companyId, privateCompanyId, ...(choice ? { choice } : {}) }
         if (this.accept) this.metadata = { ...terms, acquired: takeUpPrivate(state, offer) }

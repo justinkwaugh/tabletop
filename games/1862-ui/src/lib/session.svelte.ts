@@ -37,7 +37,6 @@ import {
     redeemableShare,
     refinancingCapital,
     smallStationLines,
-    SmallStationRevenue,
     stationCounts,
     trainWarranties,
     treasurySale,
@@ -392,7 +391,7 @@ export class Session1862 extends BaseSession {
         const inventory = this.gameState.tileInventory
         const placement = inventory.placements[locationId]
         assertExists(placement, 'A small station stands on a laid tile')
-        const stop: TrackStop = { edges: [line[0], line[1]], revenue: SmallStationRevenue }
+        const stop: TrackStop = { edges: [line[0], line[1]] }
         const tile = new RailwayMapState(this.mapView.map, this.mapView.tileSet, {
             ...inventory,
             placements: {

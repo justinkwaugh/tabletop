@@ -94,7 +94,7 @@ export function routesBetween(
     if (sameCenter(from, to)) return { routes, exhausted: true }
     const passable = (locationId: string, node: TileNode) =>
         node.kind !== 'offboard' &&
-        !cityIsBlocked(state, companyId, locationId, node) &&
+        !cityIsBlocked(state, network.mapState.map, companyId, locationId, node) &&
         stopAllowed({ locationId, nodeId: node.id })
     const remaining = stopsToTarget(network, to, passable)
     const key = (center: RevenueCenter) =>
@@ -164,7 +164,7 @@ export function connectedWithin(
         (locationId) => network.face(locationId),
         [from],
         (locationId, node) =>
-            cityIsBlocked(state, companyId, locationId, node) ||
+            cityIsBlocked(state, network.mapState.map, companyId, locationId, node) ||
             !stopAllowed({ locationId, nodeId: node.id }),
         {
             reached(locationId, endpoint) {

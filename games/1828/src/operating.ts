@@ -22,7 +22,8 @@ import {
     type OperatingRules,
     type PhaseRules,
     type PrivateRules,
-    type TransferRules
+    type TransferRules,
+    presidentOf
 } from '@tabletop/18xx'
 import { PrivateCatalog1828 } from './companies.js'
 import { cobourgPurchased, erieKalamazooPurchased } from './cobourg.js'
@@ -80,14 +81,15 @@ function mohawkShares(state: Parameters<PrivateRules['exchangeTerms']>[0]): stri
                 return false
             const company = getCompany(state, certificate.companyId)
             if (!company.started || company.closed) return false
+            const president = presidentOf(state, company.id)
             // Control of the company buying a train may not change hands (§8.3.5.2).
             return !(
                 company.id === funding &&
                 owner &&
-                company.president &&
-                !sameOwner(owner, company.president) &&
+                president &&
+                !sameOwner(owner, president) &&
                 sharesOwned(state, company.id, owner) + certificate.shares >
-                    sharesOwned(state, company.id, company.president)
+                    sharesOwned(state, company.id, president)
             )
         })
         .map((certificate) => certificate.id)

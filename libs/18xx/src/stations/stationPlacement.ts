@@ -10,6 +10,7 @@ import {
     StationPosition,
     filledStationSpaces,
     stationPlacer,
+    type NeutralStations,
     type StationReservation,
     type StationState
 } from '../map/station.js'
@@ -121,7 +122,7 @@ export class StationPlacement {
     choices(stationId: string): StationPlacementDetails[] {
         const station = this.state.stations.find((station) => station.id === stationId)
         if (!station || station.status !== 'available') return []
-        const placer = stationPlacer(this.state, station)
+        const placer = stationPlacer(this.rules.map, station)
         if (!placer) return []
         return this.rules.map.definition.locations.flatMap((location) =>
             this.mapState.tile(location.id).face.nodes.flatMap((node) =>
@@ -146,7 +147,7 @@ export class StationPlacement {
         if (step.placedStationIds.length >= this.rules.placementLimit(this.state, companyId))
             return { reason: 'No station placement remains this turn.' }
         const station = this.state.stations.find((entry) => entry.id === stationId)
-        if (station?.status !== 'available' || stationPlacer(this.state, station) !== companyId)
+        if (station?.status !== 'available' || stationPlacer(this.rules.map, station) !== companyId)
             return { reason: 'Choose an available station belonging to this company.' }
         if (
             !this.openSlots(station.companyId, position.locationId, position.nodeId).includes(
@@ -307,7 +308,7 @@ export class StationPlacement {
                 position: { locationId: home.locationId, nodeId: home.nodeId, slot },
                 cost: 0
             }
-            applyStationPlacement(planned, details)
+            applyStationPlacement(planned, details, this.rules.map)
             releaseHomeReservations(planned, station.companyId, [home.locationId])
             placements.push(details)
         }
@@ -362,10 +363,15 @@ export function releaseHomeReservations(
                 reservation.companyId !== companyId || !locationIds.includes(reservation.locationId)
         )
 }
-export function applyStationPlacement(state: StationState, details: StationPlacementDetails): void {
+/** Places a station; ``map`` lists the title's neutral stations, which it may be one of. */
+export function applyStationPlacement(
+    state: StationState,
+    details: StationPlacementDetails,
+    map: NeutralStations
+): void {
     const station = state.stations.find((station) => station.id === details.stationId)
     assert(
-        station?.status === 'available' && stationPlacer(state, station) === details.companyId,
+        station?.status === 'available' && stationPlacer(map, station) === details.companyId,
         'Station placement requires an available company station'
     )
     const ownerId = station.companyId

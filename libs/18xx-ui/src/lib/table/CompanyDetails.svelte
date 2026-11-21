@@ -14,6 +14,7 @@
         certificatesOwnedBy,
         controllingOwner,
         getCompany,
+        presides,
         privateOwner,
         sameOwner,
         trainsOwnedBy,
@@ -340,7 +341,7 @@
                                     entry.poolId
                                 )
                                     ? `Holds the ${session.terms.presidentWord}’s certificate`
-                                    : company.president && sameOwner(entry.owner, company.president)
+                                    : presides(gameState, company.id, entry.owner)
                                       ? session.terms.president
                                       : undefined}
                             <tr

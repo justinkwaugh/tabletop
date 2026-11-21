@@ -12,6 +12,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedPickUpTalon, isPickUpTalon } from '../actions/pickUpTalon.js'
 import { HydratedPlayCard, isPlayCard } from '../actions/playCard.js'
 import { HydratedRevealTalon, isRevealTalon } from '../actions/revealTalon.js'
+import { HydratedGiveTalonCard, isGiveTalonCard } from '../actions/giveTalonCard.js'
 import { HydratedSayMeinSpiel, isSayMeinSpiel } from '../actions/sayMeinSpiel.js'
 import { HydratedKoenigrufenGameState, type KoenigrufenProjectedState } from '../model/gameState.js'
 
@@ -47,6 +48,8 @@ export class KoenigrufenHydrator implements GameHydrator<
                 return new HydratedAnnounce(data)
             case isPlayCard(data):
                 return new HydratedPlayCard(data)
+            case isGiveTalonCard(data):
+                return new HydratedGiveTalonCard(data)
             case isEndHand(data):
                 return new HydratedEndHand(data)
             default:

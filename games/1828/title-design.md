@@ -273,7 +273,7 @@ like either one would justify revisiting this.
     otherwise it chooses as it next operates (§8.3.2, §13.3.2).
 14. **Tile counts follow the designer's manifest** (`track_tiles.csv`): three #4, fifteen #8,
     twelve #9, where the research engine has four, sixteen and sixteen.
-15. **The bank is unlimited in practice** ($1,000,000), as the designer advises for digital play.
+15. **The bank is unlimited** (`amount: 'unlimited'`), as the designer advises for digital play, so the board shows no bank. Games started before this change (logic 0.4.1 and earlier) keep a $1,000,000 bank in their stored state.
 16. **The game ends after the set of operating rounds that starts in purple** (designer, thread
     2377057).
 17. **The D&H is used in the owning company's track step or its station step** (§13.2.2.4), and the

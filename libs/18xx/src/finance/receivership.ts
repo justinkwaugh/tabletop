@@ -48,7 +48,6 @@ export function inReceivership(state: FinancialState, companyId: string): boolea
         company.kind !== 'private' &&
         !!company.started &&
         !company.closed &&
-        !company.president &&
         state.certificates.some(
             (certificate) =>
                 certificate.kind === 'share' &&

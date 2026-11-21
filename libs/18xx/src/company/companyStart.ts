@@ -5,11 +5,15 @@ import {
     finiteCashOwnedBy,
     sameOwner,
     getCompany,
-    type FinancialState,
-    type President
+    type FinancialState
 } from '../finance/finance.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
-import { homeStationId, sameCenter, type StationState } from '../map/station.js'
+import {
+    CompanyStationsOnly,
+    homeStationId,
+    sameCenter,
+    type StationState
+} from '../map/station.js'
 import {
     StationPlacementDetails,
     applyStationPlacement,
@@ -98,7 +102,7 @@ export function evaluateCompanyStart(
         : []
     const terms = rules.startTerms(projected, company.id, request.buyer, space.id)
     if (typeof terms === 'string') return { reason: terms }
-    startCompanyAtPar(projected, stockRules.market, company.id, space.id, request.buyer)
+    startCompanyAtPar(projected, stockRules.market, company.id, space.id)
     const result = evaluateShareAcquisition(
         projected,
         { playerId: request.playerId, buyer: request.buyer, certificateId: certificate.id },
@@ -221,7 +225,7 @@ export function placeStartHome(
     state: FinancialState & StationState,
     home: StationPlacementDetails
 ): void {
-    applyStationPlacement(state, home)
+    applyStationPlacement(state, home, CompanyStationsOnly)
     if (home.cost)
         settleCashPayments(state, [
             {
@@ -236,12 +240,10 @@ export function startCompanyAtPar(
     state: FormationState,
     market: StockMarketChart,
     companyId: string,
-    marketSpaceId: string,
-    president: President
+    marketSpaceId: string
 ): void {
     const company = getCompany(state, companyId)
     company.started = true
     company.parPrice = market.space(marketSpaceId).price
-    company.president = president
     market.placeMarker(state.stockMarket, companyId, marketSpaceId)
 }

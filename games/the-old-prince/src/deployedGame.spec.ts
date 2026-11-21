@@ -14,7 +14,7 @@ import { Definition } from './definition/gameDefinition.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrinceNames } from './names.js'
 import { TheOldPrinceCharters } from './charters.js'
-import { recordLeavingNumber, type StockMarketSpace } from '@tabletop/18xx'
+import { presidentOf, recordLeavingNumber, sameOwner, type StockMarketSpace } from '@tabletop/18xx'
 
 function readFixture(name: string) {
     return JSON.parse(
@@ -97,6 +97,27 @@ function currentCertificates(
         assert(certificateLimitCount === 1, 'Every deployed certificate counted once')
         if (certificate.kind !== 'share' || !president) return [certificate]
         return [{ ...certificate, president }]
+    })
+}
+
+/** A company with a president's certificate derives its president from that certificate. */
+function withoutRecordedPresidents(
+    state: Pick<TheOldPrinceState, 'companies' | 'certificates'>
+): TheOldPrinceState['companies'] {
+    return state.companies.map(({ president, ...company }) => {
+        const certified = state.certificates.some(
+            (certificate) =>
+                certificate.kind === 'share' &&
+                certificate.president &&
+                certificate.companyId === company.id
+        )
+        if (!certified) return president ? { ...company, president } : company
+        const derived = presidentOf(state, company.id)
+        assert(
+            president ? !!derived && sameOwner(president, derived) : !derived,
+            `The recorded ${company.id} president holds its president's certificate`
+        )
+        return company
     })
 }
 
@@ -204,10 +225,12 @@ function currentShape({
         certificatePools: recorded.certificatePools.map(({ name: _name, ...pool }) => pool),
         bank: withoutName(recorded.bank)
     }
+    const current = currentCertificates(state, certificates)
     return withoutDefinitionData({
         ...state,
+        companies: withoutRecordedPresidents({ companies: state.companies, certificates: current }),
         stockMarket: { stacks },
-        certificates: currentCertificates(state, certificates),
+        certificates: current,
         trainInventory: {
             ...trainInventory,
             trains: trains.flatMap(({ hasRun: _hasRun, ...train }) =>

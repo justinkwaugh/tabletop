@@ -2,10 +2,11 @@ import { companyShareCount } from '../company/companyCharters.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
-    Owner,
     cashOwnedBy,
     certificatesOwnedBy,
     getCompany,
+    Owner,
+    presidentOf,
     sameOwner,
     sharesOwned
 } from '../finance/finance.js'
@@ -63,8 +64,8 @@ export function presidencyLapse(
     kept: number,
     poolId: string
 ): { soldCertificateIds: string[]; lapse: PresidencyLapse } | undefined {
-    const company = getCompany(state, companyId)
-    if (!company.president || !sameOwner(company.president, seller)) return undefined
+    const previous = presidentOf(state, companyId)
+    if (!previous || !sameOwner(previous, seller)) return undefined
     const owned = certificatesOwnedBy(state, seller).filter(
         (certificate) => certificate.kind === 'share' && certificate.companyId === companyId
     )
@@ -93,7 +94,7 @@ export function presidencyLapse(
             president.id,
             ...ordinary.filter((certificate) => !keptIds.includes(certificate.id)).map((c) => c.id)
         ],
-        lapse: { previous: company.president, takenCertificateIds: taken }
+        lapse: { previous, takenCertificateIds: taken }
     }
 }
 
@@ -351,7 +352,6 @@ export function transferSaleCertificates(state: StockState, sale: ShareSaleSettl
         certificate.owner = sale.lapse.previous
         delete certificate.poolId
     }
-    delete getCompany(state, sale.companyId).president
 }
 
 export function applyShareSale(state: StockState, details: ShareSaleDetails): void {

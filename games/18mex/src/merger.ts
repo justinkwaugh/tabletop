@@ -15,6 +15,7 @@ import {
     continuePhaseChange,
     getCompany,
     isObsoleteTrain,
+    presidentOf,
     removeCertificates,
     removeCompanyStations,
     removeStockMarker,
@@ -83,8 +84,8 @@ export const MergerOutcome = Type.Object(
 )
 export type MergerOutcome = Type.Static<typeof MergerOutcome>
 
-function presidentOf(state: HydratedStateMex, companyId: string): string | undefined {
-    const president = getCompany(state, companyId).president
+function presidentPlayer(state: HydratedStateMex, companyId: string): string | undefined {
+    const president = presidentOf(state, companyId)
     return president?.kind === 'player' ? president.playerId : undefined
 }
 
@@ -92,7 +93,7 @@ function presidentOf(state: HydratedStateMex, companyId: string): string | undef
 export function floatedMergeCandidates(state: HydratedStateMex, playerId: string): string[] {
     return MergeableMajorIds.filter((id) => {
         const company = getCompany(state, id)
-        return company.floated && !company.closed && presidentOf(state, id) === playerId
+        return company.floated && !company.closed && presidentPlayer(state, id) === playerId
     })
 }
 
@@ -100,7 +101,7 @@ export function floatedMergeCandidates(state: HydratedStateMex, playerId: string
 function offerOrder(state: HydratedStateMex, merger: NdmMergerMex): string[] {
     const order = state.turnManager.turnOrder
     const start = order.indexOf(merger.triggerPlayerId) + 1
-    const president = presidentOf(state, NdmId)
+    const president = presidentPlayer(state, NdmId)
     return [...order.slice(start), ...order.slice(0, start)].filter((id) => id !== president)
 }
 
@@ -120,10 +121,10 @@ export function mergerOfferee(state: HydratedStateMex): string | undefined {
  * and those with their president's certificate still in the Initial Offering if any (5.3(c)).
  */
 export function unfloatedMergeCandidates(state: HydratedStateMex): string[] {
-    const president = presidentOf(state, NdmId)
+    const president = presidentPlayer(state, NdmId)
     const candidates = MergeableMajorIds.filter((id) => {
         const company = getCompany(state, id)
-        return !company.floated && !company.closed && presidentOf(state, id) !== president
+        return !company.floated && !company.closed && presidentPlayer(state, id) !== president
     })
     const unsold = candidates.filter((id) => !getCompany(state, id).started)
     return unsold.length ? unsold : candidates
@@ -133,7 +134,7 @@ export function unfloatedMergeCandidates(state: HydratedStateMex): string[] {
 export function mergerDecider(state: HydratedStateMex): string | undefined {
     const merger = state.ndmMerger
     if (!merger) return undefined
-    return merger.stage === 'offering' ? mergerOfferee(state) : presidentOf(state, NdmId)
+    return merger.stage === 'offering' ? mergerOfferee(state) : presidentPlayer(state, NdmId)
 }
 
 function ndmHasStationIn(state: HydratedStateMex, locationId: string): boolean {
@@ -286,7 +287,7 @@ export function mergerPayout(state: HydratedStateMex, companyId: string, playerI
  */
 function mergeIntoNdm(state: HydratedStateMex, companyId: string): MergerDetails {
     const company = getCompany(state, companyId)
-    const presidentPlayerId = presidentOf(state, companyId)
+    const presidentPlayerId = presidentPlayer(state, companyId)
     const payouts = Object.fromEntries(
         state.players.map(({ playerId }) => [playerId, mergerPayout(state, companyId, playerId)])
     )
@@ -367,7 +368,7 @@ function beginNdmMerger(state: HydratedStateMex, event: PhaseOccurrence): Merger
         train?.status === 'owned' && train.owner.kind === 'company',
         'A company bought the first 5-train'
     )
-    const buyer = presidentOf(state, train.owner.companyId)
+    const buyer = presidentPlayer(state, train.owner.companyId)
     assertExists(buyer, 'The 5-train buyer has a president')
     state.ndmMerger = { stage: 'offering', triggerPlayerId: buyer, declinedPlayerIds: [] }
     return settleWithoutOffers(state)
@@ -486,7 +487,7 @@ export class HydratedChooseExchangeStation extends ChooseExchangeStationAction.B
         return (
             this.source === ActionSource.User &&
             merger?.stage === 'choosing-station' &&
-            presidentOf(state, NdmId) === this.playerId &&
+            presidentPlayer(state, NdmId) === this.playerId &&
             !!merger.stationChoices?.some((choice) => choice.locationId === this.locationId)
         )
     }

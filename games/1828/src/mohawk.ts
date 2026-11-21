@@ -127,7 +127,7 @@ function takeDirectorship(state: HydratedState1828, request: DirectorshipRequest
     const { details, reason } = mohawkDirectorship(state, playerId, companyId, marketSpaceId)
     assert(details, reason ?? 'The M&H cannot take this directorship')
     assert(details.price === request.expectedPrice, 'The price has changed')
-    startCompanyAtPar(state, Market1828, companyId, marketSpaceId, { kind: 'player', playerId })
+    startCompanyAtPar(state, Market1828, companyId, marketSpaceId)
     if (inStockRound(state)) {
         applySharePurchase(state, details)
         recordStockAction(state, playerId, StockRules1828.round)

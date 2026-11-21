@@ -201,6 +201,8 @@ type UndoPlan = {
     actions: GameAction[]
 }
 
+type GameEmailRecipient = User & { email: string }
+
 export class GameService {
     constructor(
         private readonly gameStore: GameStore,
@@ -453,9 +455,8 @@ export class GameService {
             masterSeed ? { masterSeed } : undefined
         )
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: created })
-        await this.notifyGameStarted(created)
-        await this.scheduleStartingTurnNotifications(created)
         await this.startStallCheck(created)
+        await this.announceGameStart(created)
         return created
     }
 
@@ -1498,10 +1499,14 @@ export class GameService {
     }
 
     private async notifyStartedGame(game: Game): Promise<void> {
-        //TODO: Send game started email
         await this.notifyGamePlayers(GameNotificationAction.Update, { game })
+        await this.announceGameStart(game)
+    }
+
+    private async announceGameStart(game: Game): Promise<void> {
         await this.notifyGameStarted(game)
         await this.scheduleStartingTurnNotifications(game)
+        await this.sendGameStartedEmail(game)
     }
 
     @Retryable({
@@ -2935,25 +2940,41 @@ export class GameService {
         })
     }
 
-    private async sendGameEndEmail(game: Game): Promise<void> {
-        const userIds = game.players.map((p) => p.userId).filter((id): id is string => !!id)
+    private async sendGameStartedEmail(game: Game): Promise<void> {
+        if (game.hotseat) return
+        for (const user of await this.gameEmailRecipients(game)) {
+            await this.taskService.sendGameStartedEmail({
+                userId: user.id,
+                gameId: game.id,
+                toEmail: user.email
+            })
+        }
+    }
 
-        for (const userId of userIds) {
-            // I'm not sure why we send the email through the task, when
-            // it could just get it on the other end.
-            const user = await this.userService.getUser(userId)
+    private async sendGameEndEmail(game: Game): Promise<void> {
+        for (const user of await this.gameEmailRecipients(game)) {
+            await this.taskService.sendGameEndEmail({
+                userId: user.id,
+                gameId: game.id,
+                toEmail: user.email
+            })
+        }
+    }
+
+    private async gameEmailRecipients(game: Game): Promise<GameEmailRecipient[]> {
+        const recipients: GameEmailRecipient[] = []
+        for (const player of game.players) {
+            if (!player.userId) continue
+            const user = await this.userService.getUser(player.userId)
             if (
                 user &&
                 canHoldAuthenticatedSession(user) &&
                 receivesGameAndCompetitionEmail(user)
             ) {
-                await this.taskService.sendGameEndEmail({
-                    userId: user.id,
-                    gameId: game.id,
-                    toEmail: user.email
-                })
+                recipients.push(user)
             }
         }
+        return recipients
     }
 
     private async notifyGameAudience(

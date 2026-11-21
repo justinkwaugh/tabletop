@@ -35,8 +35,7 @@ export function createEighteenThirtyFinanceExample(
                 started: true,
                 funded: true,
                 operated: true,
-                floated: true,
-                president: alex
+                floated: true
             },
             {
                 id: EighteenThirtyMajors.PRR.id,
@@ -45,8 +44,7 @@ export function createEighteenThirtyFinanceExample(
                 started: true,
                 funded: true,
                 operated: true,
-                floated: true,
-                president: blair
+                floated: true
             },
             ...EighteenThirtyPrivates.filter((company) => ['CS', 'DH'].includes(company.id)).map(
                 (company) => ({

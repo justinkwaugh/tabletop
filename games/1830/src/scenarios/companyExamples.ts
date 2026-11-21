@@ -1,4 +1,5 @@
 import {
+    CompanyStationsOnly,
     applyStationPlacement,
     createOrdinaryShareCertificates,
     getCompany,
@@ -65,7 +66,6 @@ export function createEighteenThirtyCompanyExample(
         const company = getCompany(state, 'CO')
         company.started = true
         company.parPrice = 67
-        company.president = { kind: 'player', playerId: players[0].playerId }
         for (const [id, index] of [
             ['CO:president', 0],
             ['CO:share:1', 1],
@@ -128,12 +128,16 @@ export function createEighteenThirtyCompanyExample(
     }
     if (position === 'stations' || position === 'routes' || position === 'operations') {
         state.tileInventory = EighteenThirtyTileSet.createInventory(BuiltTrack)
-        applyStationPlacement(state, {
-            companyId: 'NYC',
-            stationId: 'NYC:station:1',
-            position: { locationId: 'H16', nodeId: 'city', slot: 0 },
-            cost: 0
-        })
+        applyStationPlacement(
+            state,
+            {
+                companyId: 'NYC',
+                stationId: 'NYC:station:1',
+                position: { locationId: 'H16', nodeId: 'city', slot: 0 },
+                cost: 0
+            },
+            CompanyStationsOnly
+        )
     }
     if (position === 'trains') {
         state.phaseId = '2'

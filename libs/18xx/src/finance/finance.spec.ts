@@ -10,6 +10,8 @@ import {
     sharesOwned,
     privateOwner,
     controllingOwner,
+    presidentCertificate,
+    presidentOf,
     standardCertificateWeight,
     issueShareCertificates,
     removeCertificates,
@@ -28,7 +30,7 @@ const position: FinancialState = {
     bank: {},
     companies: [
         { id: 'investment', kind: 'private' },
-        { id: 'railway', kind: 'major', shareCount: 20, president: investor }
+        { id: 'railway', kind: 'major', shareCount: 20 }
     ],
     certificatePools: [
         { id: 'ipo', owner: bank },
@@ -127,16 +129,29 @@ describe('finances', () => {
         expect(certificatesOwnedBy(validatedCopy(state), player)).toHaveLength(3)
     })
 
+    it('takes a presidency from its certificate, none while it lies in a pool', () => {
+        const state = validatedCopy()
+        expect(presidentOf(state, 'railway')).toEqual(investor)
+        const certificate = presidentCertificate(state, 'railway')
+        if (!certificate) throw new Error('The railway has a president’s certificate')
+        certificate.owner = investor
+        certificate.poolId = 'treasury'
+        expect(presidentOf(state, 'railway')).toBeUndefined()
+        certificate.owner = bank
+        certificate.poolId = 'market'
+        expect(presidentOf(state, 'railway')).toBeUndefined()
+    })
+
     it('derives controlling owners from private ownership and immediate presidencies', () => {
         const state = validatedCopy()
-        expect(getCompany(state, 'railway').president).toEqual(investor)
         expect(privateOwner(state, 'investment')).toEqual(player)
-        expect(getCompany(state, 'investment').president).toBeUndefined()
         expect(controllingOwner(state, 'investment')).toEqual(player)
         expect(controllingOwner(state, 'railway')).toEqual(player)
         certificatesOwnedBy(state, player)[0].owner = { kind: 'player', playerId: 'two' }
         expect(controllingOwner(state, 'railway')).toEqual({ kind: 'player', playerId: 'two' })
-        getCompany(state, 'railway').president = player
+        const certificate = presidentCertificate(state, 'railway')
+        if (!certificate) throw new Error('The railway has a president’s certificate')
+        certificate.owner = player
         expect(controllingOwner(state, 'railway')).toEqual(player)
         certificatesOwnedBy(state, { kind: 'player', playerId: 'two' })[0].owner = bank
         expect(controllingOwner(state, 'investment')).toBeUndefined()

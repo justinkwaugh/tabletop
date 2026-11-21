@@ -344,7 +344,7 @@ export class HydratedObtainCharter extends ObtainAction.Base {
         ]
         settleCashPayments(state, payments)
         state.chartered = [...state.chartered.filter((id) => id !== this.companyId), this.companyId]
-        startCompanyAtPar(state, Market1862, this.companyId, marketSpaceIdAt(this.parPrice), buyer)
+        startCompanyAtPar(state, Market1862, this.companyId, marketSpaceIdAt(this.parPrice))
         for (const certificate of bought) {
             certificate.owner = buyer
             delete certificate.poolId

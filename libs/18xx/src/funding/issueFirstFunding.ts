@@ -240,8 +240,6 @@ export function sellBankruptHoldings(
             certificate.owner = { kind: 'bank' }
             certificate.poolId = marketPoolId
         }
-        if (company.president?.kind === 'player' && company.president.playerId === playerId)
-            delete company.president
     }
     settleCashPayments(state, payments)
     return { forcedSales, payments }

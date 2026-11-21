@@ -7,10 +7,14 @@
     import HistoryEntryLine from './HistoryEntryLine.svelte'
     import PieceIcon from './PieceIcon.svelte'
     import { holdTallest } from './holdTallest.js'
+    import GameEndPanel from './GameEndPanel.svelte'
 
     const session = getGameSession()
 
     const CHOICES = [Color.White, Color.Black] as const
+
+    // The ending takes the panel's place, so the height it holds keeps the board still.
+    const ended = $derived(session.gameState.result !== undefined && !session.isViewingHistory)
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
     const opening = $derived(session.gameState.isOpeningTurn())
@@ -33,7 +37,9 @@
 
 <!-- One row: the last move while you wait, the prompt on your turn. -->
 <div class="panel" {@attach holdTallest}>
-    {#if session.isViewingHistory || !prompt}
+    {#if ended}
+        <GameEndPanel />
+    {:else if session.isViewingHistory || !prompt}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />
         {:else}

@@ -192,8 +192,7 @@ export function formSystem(
         started: true,
         funded: true,
         floated: true,
-        operated: true,
-        president
+        operated: true
     })
     state.cash.push({ owner: { kind: 'company', companyId: systemId }, amount: 0 })
 

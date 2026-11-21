@@ -5,7 +5,8 @@ import {
     finiteCashOwnedBy,
     getCompany,
     placeStockMarker,
-    privateIncomePayments
+    privateIncomePayments,
+    presidentOf
 } from '@tabletop/18xx'
 import { Charters1846 } from './charters.js'
 import { stockGame, start } from '../test/testSupport.js'
@@ -50,7 +51,7 @@ describe('1846 phase-I construction', () => {
             privateIncomePaid: true
         })
         expect(table.state.trackStep).toEqual({ companyId: 'MS', completed: false, lays: [] })
-        const president = getCompany(table.state, 'MS').president
+        const president = presidentOf(table.state, 'MS')
         expect(table.state.activePlayerIds).toEqual([
             president?.kind === 'player' ? president.playerId : ''
         ])

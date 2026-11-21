@@ -14,7 +14,7 @@ import { HydratedZertzGameState, ZertzGameState } from '../model/gameState.js'
 import { HydratedZertzPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { ZertzColors } from './colors.js'
-import { SETUP_RULES, setupFromConfig } from './config.js'
+import { autoJumpFromConfig, SETUP_RULES, setupFromConfig } from './config.js'
 import { layoutCoordinates } from '../model/layouts.js'
 import { noMarbles } from '../model/marbles.js'
 
@@ -50,7 +50,8 @@ export class ZertzGameInitializer
             setup,
             board: { rings: layoutCoordinates(rules.board).map((coords) => ({ coords })) },
             pool: structuredClone(rules.pool),
-            positions: []
+            positions: [],
+            ...(autoJumpFromConfig(game.config) ? { autoJumpForAll: true } : {})
         })
 
         return new HydratedZertzGameState(zertzGameState)

@@ -334,10 +334,65 @@ change freely.
   zone's limit and what they hold, so a protected or merged excess is kept until they sell
   but cannot grow; 1832 no longer composes `ownershipLimitExemptions`.
 
-Still open, for the owner: **`companies[].president`** repeats the president certificate's
-owner. Receivership deletes it while the certificate is in the market, and presidency
-changes write both. Deriving it from the certificate touches every reader across the family
-and changes stored TOP, 1889 and 1830 States; keeping it needs a recorded reason here.
+## Family readiness findings (2026-11-20)
+
+Readiness reviews reported four family fields as definition data or repeated facts. Each is
+fixed in `libs/18xx` and every title that wrote or read it.
+
+- **SHAPE-001 `bank.breaksOnShortfall`.** 1856's bank-breaking rule is a title rule now:
+  `defineEighteenXXState(schema, validations, { bank: { breaksOnShortfall: true } })` gives
+  the hydrated state a `bankRules` getter, which `settleCashPayments` reads. It is not a
+  member of the stored State, so it never dehydrates. Settlement is called from about 130 places
+  across the family and titles, and none of them holds title rules. The state definition is
+  the one title-owned object that reaches all of them. A plain copy of the State settles with
+  the default rule, where reaching nothing breaks the bank.
+- **SHAPE-002 `neutralStations[]`.** 1882's neutral stations are a title definition,
+  `NeutralStations1882`, which its `RailwayMap` carries (`new RailwayMap(definition,
+{ neutralStations })`). Station placement, routes, construction and the UI already hold the
+  map, so `neutralStation`, `stationPlacer`, `placeableStations`, `cityHasNeutralStation`,
+  `cityBlockedForCompanies`, `cityIsBlocked` and `validateStations` take the map's list.
+  `applyStationPlacement` takes it only where a neutral station may be placed.
+- **SHAPE-003 `trackStops[].revenue`.** A track stop records only its two edges. Its worth
+  comes from the tile set (`new TileSet(manifest, catalogs, variants, { trackStopRevenue })`,
+  1862's £20 small station), and a stop carried onto an upgrade is worth the same.
+- **SHAPE-004 `companies[].president`.** `presidentOf(state, companyId)` reads the holder of
+  the company's president's certificate. There is none while that certificate is with the bank
+  or in any pool, including a company's own treasury pool. `presides(state, companyId, owner)`
+  is the boolean form. Presidency changes, claims, lapses, acquisitions, forced sales and
+  company starts no longer write the field. `startCompanyAtPar` no longer takes a president.
+    - **Not derivable from a president's certificate: TOP's PEIR and 1828's C&P railway
+      (`CPRY`).** Neither has one. PEIR's president comes from TOP's `peirPresident`, a rule over
+      its numbered shares. CPRY's is the player holding the C&P private. Both keep writing the
+      field, and `presidentOf` falls back to it for a company without a president's certificate.
+      **Decided (2026-11-21): the record stays for these two.** Deriving them needs a title hook
+      every reader of `presidentOf` reaches. The only title-owned channel the hydrated State
+      offers, the state definition's options (how 1856's `bankRules` arrives), is lost on a plain
+      copy of the State, and the family and these titles build such copies in several places
+      (station placement previews, route views), some of which read presidents; there PEIR's and
+      the C&P's presidents would silently vanish. 1856's rule tolerates that miss (it differs only
+      when the bank lands exactly on zero); a president does not. Revisit if the family gains a
+      title channel that survives copying. The field's doc says to read it only through
+      `presidentOf`, and finance validation checks it only where no president's certificate
+      exists.
+    - **Two behaviour changes.** A president's certificate awarded in an opening auction before
+      par (1830's B&O, 1849, 1870, 1880's BCR, 1882's CPR, 1894, 18Chesapeake, 18MEX's NdM,
+      1832, 1828) makes its holder president at once, where the record waited for par. Stale
+      records left on closed companies (1880's merged investors, 1846's closed independents) and
+      1862's director during a share merge are no longer read.
+    - TOP's deployed-game replay asserts that the recorded president equals `presidentOf` in
+      every recorded State.
+
+**Stored games.** `bank.breaksOnShortfall`, `neutralStations` and `trackStops[].revenue` stay
+in the schema as optional `never`, keeping their old value schema, so stored States and undo
+patches still load. `companies[].president` stays an optional `President`, because PEIR and
+CPRY write it. For any other company it is never read.
+
+**Logic majors.** States written by this logic lack fields that older logic reads or requires:
+the president of every certificate company, 1856's bank rule, 1882's neutral stations and
+1862's stop revenue. Every released 18xx title therefore takes it as a Logic major, with its
+UI: 1817, 1822, 1828, 1830, 1832, 1833ne, 1846, 1849, 1850, 1856, 1861, 1862, 1867, 1870,
+1880, 1882, 1894, 18Chesapeake, 18MEX, 18RoyalGorge, Shikoku 1889 and The Old Prince. 1860
+is unreleased.
 
 ## Turn series
 

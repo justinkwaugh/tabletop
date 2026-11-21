@@ -54,6 +54,8 @@ function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
 export type HistoryTitle = {
     isEvent?: (action: GameAction) => boolean
     rounds?: readonly TitleRound[]
+    /** The title's own opening round, which heads the actions taken while it is under way. */
+    openingRound?: Pick<TitleRound, 'name' | 'abbreviation'>
 }
 
 /** The game's end shares the round of the action before it, which may close a title's round. */
@@ -85,16 +87,18 @@ export function historyRounds(
     for (const [position, action] of reversed.entries()) {
         const snapshot = states.get(action.id)
         if (!snapshot) continue
-        const { phase, stock, operating, set, round, part, auction } = snapshot.after
+        const { phase, stock, operating, set, round, part, auction, opening } = snapshot.after
         const closing = roundClosingAction(reversed, position)
         openRound = titleRounds.find((round) => round.ends(closing)) ?? openRound
         const heading = auction
             ? AuctionHeading
             : openRound
               ? titleRoundHeading(openRound, snapshot.after)
-              : operating && !isCompleteStockRound(action)
-                ? operatingRoundHeading(set, round, undefined, part)
-                : stockRoundHeading(stock)
+              : opening && title.openingRound
+                ? { ...title.openingRound, number: '' }
+                : operating && !isCompleteStockRound(action)
+                  ? operatingRoundHeading(set, round, undefined, part)
+                  : stockRoundHeading(stock)
         const label = roundLabel(heading)
         if (openRound?.starts(action)) openRound = undefined
         let section = rounds.at(-1)

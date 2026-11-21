@@ -1293,6 +1293,7 @@
                                     companies={companyOrder}
                                     companyName={(companyId) => session.companyName(companyId)}
                                     {gameState}
+                                    neutral={session.mapView.map}
                                     trainDepot={session.trainDepot}
                                     {trainColors}
                                     trainTokens={(train) =>

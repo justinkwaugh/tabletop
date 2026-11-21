@@ -1,4 +1,4 @@
-import { getCompany, priceProtectedStock } from '@tabletop/18xx'
+import { presidentOf, priceProtectedStock } from '@tabletop/18xx'
 import { Charters1850, CompanyIds1850 } from './companies.js'
 import { CreditMobilierPrivateId } from './privates.js'
 import { requireState1850, type HydratedState1850 } from './state.js'
@@ -30,7 +30,7 @@ const Stock = priceProtectedStock<HydratedState1850>({
     // Owned by a company, the Crédit Mobilier pays that company's president (§4.1.2, §15.2).
     privateIncomeRecipient(state, privateId, owner) {
         if (privateId !== CreditMobilierPrivateId || owner.kind !== 'company') return owner
-        return getCompany(state, owner.companyId).president ?? owner
+        return presidentOf(state, owner.companyId) ?? owner
     }
 })
 

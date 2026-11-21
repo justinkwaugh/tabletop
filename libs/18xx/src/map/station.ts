@@ -94,20 +94,25 @@ export const NeutralStation = Type.Object(
     { additionalProperties: false }
 )
 export type NeutralStation = Type.Static<typeof NeutralStation>
+/** A title's neutral stations, which its map lists. */
+export type NeutralStations = { readonly neutralStations: readonly NeutralStation[] }
+/** For a placement that is only ever a company's own station, never a neutral one. */
+export const CompanyStationsOnly: NeutralStations = { neutralStations: [] }
 export const StationFields = {
     stations: Type.Array(Station),
     stationReservations: Type.Array(StationReservation),
     hexReservations: Type.Optional(Type.Array(HexReservation)),
     stationAccess: Type.Optional(Type.Array(StationAccess)),
-    neutralStations: Type.Optional(Type.Array(NeutralStation))
+    // Stored games from before this stopped being recorded may hold it; never read.
+    neutralStations: Type.Optional(Type.Unsafe<never>(Type.Array(NeutralStation)))
 }
 export type StationState = Type.Static<Type.TObject<typeof StationFields>>
 
 export function neutralStation(
-    state: Pick<StationState, 'neutralStations'>,
+    neutral: NeutralStations,
     stationId: string
 ): NeutralStation | undefined {
-    return state.neutralStations?.find((neutral) => neutral.stationId === stationId)
+    return neutral.neutralStations.find((entry) => entry.stationId === stationId)
 }
 
 /**
@@ -115,20 +120,21 @@ export function neutralStation(
  * station the company holding it, if any.
  */
 export function stationPlacer(
-    state: Pick<StationState, 'neutralStations'>,
+    neutral: NeutralStations,
     station: Pick<Station, 'id' | 'companyId'>
 ): string | undefined {
-    const neutral = neutralStation(state, station.id)
-    return neutral ? neutral.heldBy : station.companyId
+    const definition = neutralStation(neutral, station.id)
+    return definition ? definition.heldBy : station.companyId
 }
 
 /** The stations a company may place: its own still available, and the neutral ones it holds. */
 export function placeableStations(
-    state: Pick<StationState, 'stations' | 'neutralStations'>,
+    state: Pick<StationState, 'stations'>,
+    neutral: NeutralStations,
     companyId: string
 ): Station[] {
     return state.stations.filter(
-        (station) => station.status === 'available' && stationPlacer(state, station) === companyId
+        (station) => station.status === 'available' && stationPlacer(neutral, station) === companyId
     )
 }
 
@@ -146,7 +152,8 @@ export function waitingStationIndex(
 
 /** Whether a city holds a neutral station, which keeps it open to every route (1882 §11.1). */
 export function cityHasNeutralStation(
-    state: Pick<StationState, 'stations' | 'neutralStations'>,
+    state: Pick<StationState, 'stations'>,
+    neutral: NeutralStations,
     locationId: string,
     nodeId: string
 ): boolean {
@@ -155,7 +162,7 @@ export function cityHasNeutralStation(
             station.status === 'placed' &&
             station.position.locationId === locationId &&
             station.position.nodeId === nodeId &&
-            !!neutralStation(state, station.id)
+            !!neutralStation(neutral, station.id)
     )
 }
 
@@ -209,7 +216,11 @@ export function replaceStation(state: StationState, previousId: string, nextId: 
         return station
     })
 }
-export function validateStations(state: StationState, companyIds: readonly string[]): void {
+export function validateStations(
+    state: StationState,
+    companyIds: readonly string[],
+    neutral: NeutralStations
+): void {
     assert(
         new Set(state.stations.map((station) => station.id)).size === state.stations.length,
         'Duplicate station'
@@ -227,13 +238,13 @@ export function validateStations(state: StationState, companyIds: readonly strin
         assert(companyIds.includes(reservation.companyId), 'Unknown reservation company')
     for (const access of state.stationAccess ?? [])
         assert(companyIds.includes(access.companyId), 'Unknown station access company')
-    for (const neutral of state.neutralStations ?? []) {
+    for (const definition of neutral.neutralStations) {
         assert(
-            state.stations.some((station) => station.id === neutral.stationId),
+            state.stations.some((station) => station.id === definition.stationId),
             'Unknown neutral station'
         )
         assert(
-            neutral.heldBy === undefined || companyIds.includes(neutral.heldBy),
+            definition.heldBy === undefined || companyIds.includes(definition.heldBy),
             'Unknown neutral station holder'
         )
     }
@@ -259,11 +270,12 @@ export function filledStationSpaces(
 
 export function cityIsBlocked(
     state: StationState,
+    neutral: NeutralStations,
     companyId: string,
     locationId: string,
     node: TileNode
 ): boolean {
-    return cityBlockedForCompanies(state, [companyId], locationId, node)
+    return cityBlockedForCompanies(state, neutral, [companyId], locationId, node)
 }
 
 /**
@@ -272,6 +284,7 @@ export function cityIsBlocked(
  */
 export function cityBlockedForCompanies(
     state: StationState,
+    neutral: NeutralStations,
     companyIds: readonly string[],
     locationId: string,
     node: TileNode
@@ -280,7 +293,7 @@ export function cityBlockedForCompanies(
     return (
         filledStationSpaces(state, locationId, node) >= node.stationSlots &&
         !companyIds.some((companyId) => usesStationAt(state, companyId, locationId, node.id)) &&
-        !cityHasNeutralStation(state, locationId, node.id)
+        !cityHasNeutralStation(state, neutral, locationId, node.id)
     )
 }
 

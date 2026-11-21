@@ -29,8 +29,7 @@ export const Majors1882 = [
 ] as const satisfies readonly { id: string; name: string; stationCosts: readonly number[] }[]
 export type MajorId1882 = (typeof Majors1882)[number]['id']
 
-/** The companies with a neutral station on their charters (§10.4). */
-export const NeutralHolders1882: readonly string[] = [CnorId, GtpId, HbrId, QlId, ScrId]
+export { NeutralHolders1882 } from './neutralStationDefinitions.js'
 
 /** The companies the Trestle Bridge's share is drawn from (§3). */
 export const TrestleShareCompanyIds: readonly string[] = [CnorId, CprId, GtpId, HbrId, QlId]

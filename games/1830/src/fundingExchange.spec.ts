@@ -5,7 +5,8 @@ import {
     getCompany,
     privateExchangeOffers,
     sharesOwned,
-    type EighteenXXState
+    type EighteenXXState,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenThirtyScenarios } from './scenarios/index.js'
@@ -238,7 +239,7 @@ it('keeps the train and sales obligation when an exchange changes the operating 
     })
     const sales = structuredClone(play.state.trainFunding?.sales)
     exchange(play, 'casey')
-    expect(getCompany(play.state, 'NYC').president).toEqual({ kind: 'player', playerId: 'casey' })
+    expect(presidentOf(play.state, 'NYC')).toEqual({ kind: 'player', playerId: 'casey' })
     expect(play.state.trainFunding?.purchase).toEqual(purchase)
     expect(play.state.trainFunding?.sales).toEqual(sales)
     expect(play.state.trainFunding?.playerId).toBe('casey')

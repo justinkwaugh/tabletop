@@ -49,8 +49,8 @@
             </div>
         {:else if view.kind === 'stack'}
             <div class="stack" {@attach gameSession.cardPlaces.talonStack()}>
-                <!-- Two piles of three, as the halves it turns up into. -->
-                {#each { length: 6 }, index (index)}
+                <!-- Two piles of three, as the halves it turns up into; the top card goes first. -->
+                {#each { length: view.count }, index (index)}
                     <div class="back" style:--pile={Math.floor(index / 3)} style:--i={index % 3}>
                         <CardBack />
                     </div>

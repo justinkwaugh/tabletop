@@ -179,6 +179,10 @@ struct Choice {
     /// Each route's own reach, when the routes of a chain do not all meet each other.
     parts: Vec<(Bits, bool)>,
     resources: Bits,
+    /// What the routes' stops pay the treasury, part of `add`.
+    subsidy: i32,
+    /// The blocked cities and towns the routes run through.
+    passes: u32,
     /// The (profile, source candidate) of each route.
     members: Vec<(usize, usize)>,
 }
@@ -204,6 +208,7 @@ impl Choice {
     /// track `other` leaves free.
     fn covers(&self, other: &Choice) -> bool {
         self.add >= other.add
+            && self.passes <= other.passes
             && self.ends == other.ends
             && (self.root || !other.root)
             && self.parts.is_empty()
@@ -419,11 +424,13 @@ impl<'a> Fleet<'a> {
                             reach: bits(0),
                             root: false,
                             resources: bits(0),
+                            passes: 0,
                             members: vec![],
                             ..route.clone()
                         });
                         sketches.len() - 1
                     });
+                    sketches[sketch].add = sketches[sketch].add.max(route.add);
                     for &(item, value) in &route.cover {
                         raise(&mut sketches[sketch].cover, item, value);
                     }
@@ -500,6 +507,40 @@ impl<'a> Fleet<'a> {
             let stops: Vec<_> = std::iter::once(connections[0].from)
                 .chain(connections.iter().map(|edge| edge.to))
                 .collect();
+            let called: Vec<usize> = if train.calls_selectively() {
+                let required = |(index, &stop): (usize, &usize)| {
+                    index == 0 || index == stops.len() - 1 || !train.optional(stop)
+                };
+                let cost = connections
+                    .iter()
+                    .map(|edge| train.crossing_cost(edge))
+                    .sum::<u32>()
+                    + stops
+                        .iter()
+                        .enumerate()
+                        .filter(|&entry| required(entry))
+                        .map(|(_, &stop)| train.visit_costs[stop])
+                        .sum::<u32>();
+                let majors = stops
+                    .iter()
+                    .enumerate()
+                    .filter(|&entry| required(entry))
+                    .map(|(_, &stop)| train.majors(&problem.stops[stop]))
+                    .sum();
+                let calls = train.called(problem, &stops, cost, majors);
+                stops
+                    .iter()
+                    .zip(calls)
+                    .filter_map(|(&stop, call)| call.then_some(stop))
+                    .collect()
+            } else {
+                stops.clone()
+            };
+            let subsidy = called.iter().map(|&stop| train.subsidy(stop)).sum::<i32>();
+            let passes = stops[1..stops.len() - 1]
+                .iter()
+                .filter(|&&stop| problem.stops[stop].blocked)
+                .count() as u32;
             let hexes: Vec<_> = connections
                 .iter()
                 .flat_map(|edge| &edge.paths)
@@ -555,7 +596,7 @@ impl<'a> Fleet<'a> {
             let mut add = 0;
             if fleet.freight.is_none() {
                 let mut pay = vec![];
-                for &stop in &stops {
+                for &stop in &called {
                     if !fleet.paying[stop] {
                         continue;
                     }
@@ -587,7 +628,7 @@ impl<'a> Fleet<'a> {
                 }
             }
             let route = Choice {
-                add,
+                add: add + subsidy,
                 cover,
                 offers,
                 ends: fleet.freight.map(|_| ends),
@@ -595,6 +636,8 @@ impl<'a> Fleet<'a> {
                 root: root.is_some_and(|root| stops.contains(&root)),
                 parts: vec![],
                 resources,
+                subsidy,
+                passes,
                 members: vec![(profile, source_id)],
             };
             if route.bytes() > left {
@@ -641,6 +684,8 @@ impl<'a> Fleet<'a> {
             root: false,
             parts: vec![],
             resources: links[0].resources.iter().map(|_| 0).collect(),
+            subsidy: 0,
+            passes: 0,
             members: vec![],
         };
         let pays = ends.map(|(profile, end)| {
@@ -670,6 +715,8 @@ impl<'a> Fleet<'a> {
             join(&mut choice.reach, &link.reach);
             choice.root |= link.root;
             choice.add += link.add;
+            choice.subsidy += link.subsidy;
+            choice.passes += link.passes;
             for &(item, value) in &link.cover {
                 raise(&mut choice.cover, item, value);
             }
@@ -867,6 +914,8 @@ impl<'a> Fleet<'a> {
                 root: false,
                 parts: vec![],
                 resources: bits(0),
+                subsidy: 0,
+                passes: 0,
                 members: vec![],
             });
         }
@@ -890,7 +939,7 @@ impl<'a> Fleet<'a> {
             }
             subsidy += self.runs[profile]
                 .iter()
-                .map(|run| run.cover.iter().map(|&(_, amount)| amount).sum::<i32>())
+                .map(|run| run.add + run.cover.iter().map(|&(_, amount)| amount).sum::<i32>())
                 .max()
                 .unwrap_or(0);
         }
@@ -1092,7 +1141,6 @@ fn partitions(rest: &[usize], blocks: &mut Vec<Vec<usize>>, visit: &mut impl FnM
 /// best first; deeper levels look only at those.
 struct Search<'s> {
     classes: &'s [Vec<Choice>],
-    shared: bool,
     connected: bool,
     rooted: bool,
     /// Where the hexes start among the items, and where they end.
@@ -1112,6 +1160,11 @@ struct Search<'s> {
     slack: i32,
     trail: Vec<(usize, i32)>,
     used: Bits,
+    /// The blocked passes the choices taken make, and how many the fleet may make.
+    passes: u32,
+    pass_limit: u32,
+    /// Whether one unit's choice can keep another from its own: exclusive track or blocked passes.
+    contended: bool,
     value: i32,
     chosen: Vec<Option<usize>>,
     /// By depth and slot, the (gain, choice) pairs still worth taking.
@@ -1169,7 +1222,6 @@ impl<'s> Search<'s> {
         }
         Self {
             classes: &fleet.classes,
-            shared: policy.shared_track,
             connected: policy.connectivity.is_some(),
             rooted: policy
                 .connectivity
@@ -1188,6 +1240,12 @@ impl<'s> Search<'s> {
             } else {
                 problem.resource_count
             }),
+            passes: 0,
+            pass_limit: problem.blocked_passes,
+            contended: !policy.shared_track
+                || slots
+                    .iter()
+                    .any(|&class| fleet.classes[class].iter().any(|choice| choice.passes > 0)),
             value: 0,
             chosen: vec![None; units.len()],
             lists: vec![vec![vec![]; slots.len()]; units.len()],
@@ -1227,8 +1285,14 @@ impl<'s> Search<'s> {
             .max(0)
     }
 
+    /// Whether the choice may join those taken: its track is free and its blocked passes fit.
+    fn fits(&self, choice: &Choice) -> bool {
+        !meet(&self.used, &choice.resources) && self.passes + choice.passes <= self.pass_limit
+    }
+
     fn take(&mut self, choice: &Choice) {
         self.value += choice.add;
+        self.passes += choice.passes;
         for &(item, amount) in &choice.cover {
             let paid = self.paid[item];
             if amount > paid {
@@ -1248,6 +1312,7 @@ impl<'s> Search<'s> {
         for (used, resources) in self.used.iter_mut().zip(&choice.resources) {
             *used &= !resources;
         }
+        self.passes -= choice.passes;
         self.value = value;
         self.slack = slack;
     }
@@ -1310,7 +1375,7 @@ impl<'s> Search<'s> {
             let slot = self.units[unit];
             let class = &classes[self.slots[slot]];
             let best = (0..class.len())
-                .filter(|&option| !meet(&self.used, &class[option].resources))
+                .filter(|&option| self.fits(&class[option]))
                 .max_by_key(|&option| self.gain(&class[option]));
             if let Some(option) = best {
                 self.take(&class[option]);
@@ -1321,6 +1386,7 @@ impl<'s> Search<'s> {
         self.offer();
         self.paid.fill(0);
         self.used.fill(0);
+        self.passes = 0;
         self.trail.clear();
         self.chosen.fill(None);
         self.value = 0;
@@ -1425,7 +1491,7 @@ impl<'s> Search<'s> {
             }
             let option = option as usize;
             let choice = &class[option];
-            if self.barred[slot][option] || meet(&self.used, &choice.resources) {
+            if self.barred[slot][option] || !self.fits(choice) {
                 continue;
             }
             let (mark, value, slack) = (self.trail.len(), self.value, self.slack);
@@ -1449,7 +1515,7 @@ impl<'s> Search<'s> {
         // Leaving a train out can only help where trains get in each other's way, or where no
         // choice of this unit is worth taking; a fleet that does not hold together is cut down
         // when it is offered.
-        if (!explored || !self.shared)
+        if (!explored || self.contended)
             && !self.exhausted
             && self.value + self.slack + after > self.total
         {
@@ -1535,8 +1601,10 @@ impl<'s> Search<'s> {
     fn keep(&mut self, kept: &[&Choice]) {
         let mut paid = vec![0; self.paid.len()];
         let mut total = 0;
+        let mut stop_subsidy = 0;
         for choice in kept {
             total += choice.add;
+            stop_subsidy += choice.subsidy;
             for &(item, amount) in &choice.cover {
                 if amount > paid[item] {
                     total += amount - paid[item];
@@ -1545,7 +1613,7 @@ impl<'s> Search<'s> {
             }
         }
         if total > self.total {
-            let subsidy = paid[self.hexes..self.pairs].iter().sum::<i32>();
+            let subsidy = paid[self.hexes..self.pairs].iter().sum::<i32>() + stop_subsidy;
             self.total = total;
             self.found = Some((
                 Score {
@@ -1645,7 +1713,7 @@ mod tests {
         trains
             .extend((1..=lone).map(|route| train(&[(2 * route, 100), (2 * route + 1, 100)], None)));
         let problem: Problem = serde_json::from_value(serde_json::json!({
-            "version": 10, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
+            "version": 11, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
             "hex_bonuses": vec![0; lone + 1], "budget_ms": 1, "memory_budget_bytes": 1,
             "stops": (0..stops).map(|stop| serde_json::json!({
                 "token": true, "blocked": false, "endpoint": true, "allowed": true,
@@ -1684,6 +1752,7 @@ mod tests {
         let network = Network {
             problem: &problem,
             connections: &connections,
+            stays: &[],
             adjacency: &[],
             departures: &[],
         };

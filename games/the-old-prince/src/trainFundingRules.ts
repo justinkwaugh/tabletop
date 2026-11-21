@@ -4,7 +4,7 @@ import { TheOldPrinceOperatingRules } from './roundRules.js'
 import {
     marketSaleTerms,
     reorderPendingOperatingCompanies,
-    getCompany,
+    presidentOf,
     privateOwner,
     type TrainFundingRules
 } from '@tabletop/18xx'
@@ -15,7 +15,7 @@ export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
     },
     includeMarketTrains: false,
     contributors(state, companyId) {
-        const president = getCompany(state, companyId).president
+        const president = presidentOf(state, companyId)
         assertExists(president, 'A railway requires its president')
         if (president.kind === 'player') return [president]
         const owner = privateOwner(state, president.companyId)

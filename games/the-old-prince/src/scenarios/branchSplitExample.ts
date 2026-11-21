@@ -1,7 +1,6 @@
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
-    getCompany,
     treasuryPool,
     type CompanyState,
     type MapStateData,
@@ -21,7 +20,6 @@ export function prepareTheOldPrinceBranchSplit(
     const other = { kind: 'player' as const, playerId: players[1].playerId }
     const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
     const companyId = 'So'
-    getCompany(state, companyId).president = president
     state.certificates = state.certificates.filter(
         (certificate) => certificate.companyId !== companyId
     )

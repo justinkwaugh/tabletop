@@ -148,7 +148,6 @@ describe('1846 corporate acquisitions', () => {
             assert(charter)
             const seller = table.state.players.find((p) => p.playerId !== buyer)!.playerId
             charter.owner = { kind: 'player', playerId: seller }
-            getCompany(table.state, 'MS').president = charter.owner
         }
         const before = structuredClone(table.state)
         table.act('OfferPurchase', choice(table, 'MS'))

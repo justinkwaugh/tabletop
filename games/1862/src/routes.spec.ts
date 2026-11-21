@@ -71,7 +71,13 @@ function cromer(trains: readonly string[]) {
         operated: true,
         parPrice: 100
     })
-    company.president = { kind: 'player', playerId: 'p1' }
+    const director = state.certificates.find(
+        (certificate) =>
+            certificate.kind === 'share' && certificate.companyId === 'ENR' && certificate.president
+    )
+    if (!director) throw new Error('The ENR has a director’s certificate')
+    director.owner = { kind: 'player', playerId: 'p1' }
+    delete director.poolId
     placeStockMarker(state.stockMarket, 'ENR', marketSpaceIdAt(100))
     state.permits.ENR = ['express', 'local', 'freight']
     state.stations.push({

@@ -5,6 +5,7 @@ import {
     finiteCashOwnedBy,
     floatedCompaniesInMarketOrder,
     getCompany,
+    presidentOf,
     trainsOwnedBy,
     type EarningsRules,
     type EndingRules,
@@ -73,8 +74,7 @@ export function hudsonTopUp(
     companyId: string,
     revenue: number
 ): number | undefined {
-    const company = getCompany(state, companyId)
-    if (!company.president) return undefined
+    if (!presidentOf(state, companyId)) return undefined
     const price = Market1862.companySpace(state.stockMarket, companyId).price
     if (revenue < 10 || revenue >= price) return undefined
     const topUp = Math.ceil((price - revenue) / 10) * 10
@@ -181,7 +181,7 @@ export const TransferRules1862: TransferRules = {
         if (asset.kind !== 'train' || requireState1862(state).lner) return undefined
         const train = state.trainInventory.trains.find((train) => train.id === asset.trainId)
         if (!train || train.status !== 'owned' || train.owner.kind !== 'company') return undefined
-        if (!getCompany(state, train.owner.companyId).president) return undefined
+        if (!presidentOf(state, train.owner.companyId)) return undefined
         const price = trainPrice(state.phaseId, train.definitionId)
         return { minimum: price, maximum: price }
     },

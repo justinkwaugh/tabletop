@@ -7,6 +7,7 @@ import {
     type TabletopApiPublic
 } from '@tabletop/frontend-components'
 import { tabChannel } from './tabChannel'
+import { withDeadline } from './withDeadline'
 
 const RESULT_CHANNEL = 'discord-authorization'
 
@@ -136,25 +137,11 @@ export function openPreparedDiscordAuthorization(
 export async function prepareDiscordLink(
     api: DiscordAuthorizationApi
 ): Promise<DiscordAuthorizationStart> {
-    let deadline: Timer | undefined
-    try {
-        return await Promise.race([
-            api.beginDiscordAuthorization('link'),
-            new Promise<never>((_resolve, reject) => {
-                deadline = setTimeout(
-                    () =>
-                        reject(
-                            new DiscordAuthorizationError(
-                                'The Discord authorization could not start in time'
-                            )
-                        ),
-                    POPUP_START_TIMEOUT_MS
-                )
-            })
-        ])
-    } finally {
-        clearTimeout(deadline)
-    }
+    return withDeadline(
+        api.beginDiscordAuthorization('link'),
+        POPUP_START_TIMEOUT_MS,
+        () => new DiscordAuthorizationError('The Discord authorization could not start in time')
+    )
 }
 
 function openPopup(

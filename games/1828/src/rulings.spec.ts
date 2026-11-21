@@ -11,7 +11,8 @@ import {
     sharesOwned,
     stateWith,
     trainsOverLimit,
-    type Owner
+    type Owner,
+    presidentCertificate
 } from '@tabletop/18xx'
 import { edit, floatCompany, kit, openAuction, setCash, type Table } from '../test/kit.js'
 import {
@@ -187,7 +188,6 @@ function mergerPosition(holdings: {
             const company = state.companies.find((entry) => entry.id === companyId)
             if (!company) throw new Error('Unknown company')
             Object.assign(company, { started: true, floated: true, funded: true, parPrice: 67 })
-            company.president = { kind: 'player', playerId: Object.keys(holders)[0] }
             state.stockMarket.stacks.push({ spaceId: '13:7', companyIds: [companyId] })
             const certificates = state.certificates.filter(
                 (certificate) => certificate.companyId === companyId
@@ -534,10 +534,10 @@ describe('mergers that cannot succeed (§7.5.2.2)', () => {
         edit(game, (state) => {
             removeStockMarker(state.stockMarket, 'BO')
             placeStockMarker(state.stockMarket, 'BO', '9:0')
-            getCompany(state, 'BO').president = {
-                kind: 'player',
-                playerId: state.activePlayerIds[0]
-            }
+            const director = presidentCertificate(state, 'BO')
+            if (!director) throw new Error('The system has a director’s certificate')
+            director.owner = { kind: 'player', playerId: state.activePlayerIds[0] }
+            delete director.poolId
         })
         const certificate = game.state.certificates.find(
             (entry) => entry.companyId === 'BO' && entry.owner.kind === 'bank'
@@ -631,7 +631,10 @@ describe('system shells (§8.3.5.1, §15.4)', () => {
             bought = ids.at(-1) ?? ''
             state.systems.BO = { absorbedId: 'CO', shellTrainIds: [ids.slice(0, -1), []] }
             getCompany(state, 'CO').closed = true
-            getCompany(state, 'BO').president = player('p1')
+            const director = presidentCertificate(state, 'BO')
+            if (!director) throw new Error('The B&O has a director’s certificate')
+            director.owner = player('p1')
+            delete director.poolId
         })
         return { game, state: game.state, bought }
     }
@@ -763,8 +766,7 @@ describe('stations and names', () => {
             Object.assign(getCompany(state, 'ERIE'), {
                 started: true,
                 floated: true,
-                parPrice: 67,
-                president: { kind: 'player', playerId: director.playerId }
+                parPrice: 67
             })
             placeStockMarker(state.stockMarket, 'ERIE', kit.spaceAt(67))
             const certificate = state.certificates.find(

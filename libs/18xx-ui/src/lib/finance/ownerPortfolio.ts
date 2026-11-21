@@ -4,7 +4,7 @@ import {
     certificatesOwnedBy,
     getCompany,
     portfolioWealth,
-    sameOwner,
+    presides,
     sharesOwned,
     type Owner,
     type StockState,
@@ -52,7 +52,7 @@ export function ownerPortfolio(
             return {
                 company,
                 percentage: (shares / total) * 100,
-                president: !!company.president && sameOwner(company.president, owner)
+                president: presides(state, company.id, owner)
             }
         })
     const privates = certificates

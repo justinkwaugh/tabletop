@@ -5,6 +5,7 @@ import {
     createCompanyStations,
     createOrdinaryShareCertificates,
     getCompany,
+    presidentOf,
     homeStationId,
     privateIncomePayments,
     requirePar,
@@ -73,9 +74,8 @@ export function auctionLotsMex(
 }
 
 /** A minor's owner takes charge of it as it is bought; it floats at once (1.3.3). */
-function activateMinor(state: FinancialState, minorId: string, playerId: string): void {
+function activateMinor(state: FinancialState, minorId: string): void {
     const minor = getCompany(state, minorId)
-    minor.president = { kind: 'player', playerId }
     minor.started = true
     minor.floated = true
     minor.funded = true
@@ -88,10 +88,11 @@ function activateMinor(state: FinancialState, minorId: string, playerId: string)
 function auctionIncome(state: HydratedStateMex): CashPayment[] {
     const minors = MinorsMex.flatMap((minor): CashPayment[] => {
         const company = getCompany(state, minor.id)
-        if (!company.president || company.closed) return []
+        const owner = presidentOf(state, minor.id)
+        if (!owner || company.closed) return []
         const half = MinorAuctionRun / 2
         return [
-            { from: { kind: 'bank' }, to: company.president, amount: half },
+            { from: { kind: 'bank' }, to: owner, amount: half },
             { from: { kind: 'bank' }, to: { kind: 'company', companyId: minor.id }, amount: half }
         ]
     })
@@ -109,7 +110,7 @@ export const AuctionRulesMex: WaterfallAuctionRules<HydratedStateMex> = {
     award(state, award) {
         const extra = AwardedCertificates[award.lotId]
         awardCertificates(state, award, [`${award.lotId}:charter`, ...(extra ? [extra] : [])])
-        if (minorMex(award.lotId)) activateMinor(state, award.lotId, award.playerId)
+        if (minorMex(award.lotId)) activateMinor(state, award.lotId)
         // The MNR's buyer sets the NdM's par at once (Table III).
         if (award.lotId === MnrId) requirePar(state, NdmId, award.playerId)
     },

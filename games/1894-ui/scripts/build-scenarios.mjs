@@ -114,8 +114,7 @@ mkdirSync(OUT, { recursive: true })
         floated: true,
         funded: true,
         operated: true,
-        parPrice: 67,
-        president: { kind: 'player', playerId: state.players[0].playerId }
+        parPrice: 67
     })
     EighteenNinetyFourMarket.placeMarker(state.stockMarket, 'CFOR', '4:3')
     const places = { 1: 'pool', 2: 'pool', 3: 'pool', 4: 'treasury', 5: 'treasury', 6: 'treasury' }

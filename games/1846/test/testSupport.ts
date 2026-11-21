@@ -2,7 +2,6 @@ import {
     EmergencyTrainFunding,
     placeStockMarker,
     discardableTrains,
-    getCompany,
     type TileRotation,
     type TrackLayDetails
 } from '@tabletop/18xx'
@@ -202,7 +201,6 @@ export function setCompanyInReceivership(table: StockTestGame, companyId: string
     assert(president, 'Receiver must have an active president certificate')
     president.owner = { kind: 'bank' }
     president.poolId = 'open-market'
-    delete getCompany(table.state, companyId).president
 }
 
 export function emergencyBuyingGame(cash = 10, price = 100) {

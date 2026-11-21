@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placeStockMarker } from '@tabletop/18xx'
+import { placeStockMarker, createOrdinaryShareCertificates } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoMajors,
@@ -14,6 +14,7 @@ import {
     type EighteenThirtyTwoState
 } from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
+import { EighteenThirtyTwoTrainDepot } from './trains.js'
 
 /** The state as a phase begins, with the title's phase changes applied. */
 function beginPhase(state: EighteenThirtyTwoState, phaseId: string) {
@@ -110,7 +111,8 @@ describe('Miami and Key West', () => {
                 { ...state, phaseId, ...(miamiRun ? { miamiRun } : {}) },
                 'CG',
                 miami,
-                20
+                20,
+                EighteenThirtyTwoTrainDepot.trainDefinition('2')
             )
         expect(value('3')).toBe(0)
         expect(value('3', true)).toBe(20)
@@ -147,6 +149,9 @@ function keyWestPlay(phaseId: string) {
             id: EighteenThirtyTwoMajors.FEC.id
         })
         state.cash.push({ owner: { kind: 'company', companyId: 'FEC' }, amount: 300 })
+        state.certificates.push(
+            ...createOrdinaryShareCertificates('FEC', [], { kind: 'player', playerId: 'blair' })
+        )
         placeStockMarker(state.stockMarket, 'FEC', '1:6')
         state.stations.push(
             {

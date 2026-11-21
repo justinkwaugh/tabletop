@@ -11,6 +11,7 @@
         type Company,
         type FinancialState,
         type TrainState,
+        type NeutralStations,
         type StationState,
         type Train,
         type TrainDepot,
@@ -29,6 +30,7 @@
         companies,
         companyName,
         gameState,
+        neutral,
         trainDepot,
         trainColors,
         trainTokens,
@@ -49,6 +51,7 @@
         companies: readonly Company[]
         companyName: (companyId: string) => string
         gameState: Pick<FinancialState, 'cash'> & TrainState & StationState
+        neutral: NeutralStations
         trainColors: Readonly<Record<string, string>>
         trainDepot: TrainDepot
         trainTokens?: (train: Train) => TrainTokens | undefined
@@ -151,7 +154,7 @@
                     obsolete: isObsoleteTrain(train),
                     tokens: trainTokens?.(train)
                 })),
-                remainingTokens: placeableStations(gameState, company.id)
+                remainingTokens: placeableStations(gameState, neutral, company.id)
             }
         })
     )

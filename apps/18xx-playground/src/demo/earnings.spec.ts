@@ -216,7 +216,7 @@ it.each(Titles)(
         let current = state
         expect(current.machineState).toBe('LayingTrack')
         const order = [...state.turnManager.turnOrder],
-            rounds = state.operatingSet!.roundCount
+            rounds = state.operatingSet!.roundCount!
         const expectedTurns = state.operatingSet!.companyOrder.length * rounds
         const privateId = definition === Top ? 'KM' : 'ER',
             recipient = definition === Top ? 'PEIR' : 'IR',

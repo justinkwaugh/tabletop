@@ -12,7 +12,7 @@ import {
     type HexGridNode
 } from '@tabletop/common'
 import { TileEdge, TileFace, type ImmutableTileData } from '../tiles/tile.js'
-import { CityReservation, type StationReservation } from './station.js'
+import { CityReservation, type NeutralStation, type StationReservation } from './station.js'
 import { assertTileTopology } from '../tiles/validation.js'
 import { rotateTileEdge, tileEdgeDirection } from '../tiles/topology.js'
 
@@ -106,11 +106,17 @@ export class RailwayMap {
     readonly definition: RailwayMapDefinition
     readonly preprintedTiles: Readonly<Record<string, TileFace>>
     readonly markedPrivateIds: readonly string[]
+    /** The stations that fill a city space without closing it, such as 1882's (§11.1). */
+    readonly neutralStations: readonly NeutralStation[]
     private readonly locationsById: Map<string, MapLocation>
     private readonly grid: HexGrid<HexGridNode & { locationId: string }>
 
-    constructor(value: RailwayMapDefinition) {
+    constructor(
+        value: RailwayMapDefinition,
+        { neutralStations = [] }: { neutralStations?: readonly NeutralStation[] } = {}
+    ) {
         assert(MapValidator.Check(value), 'Invalid railway map schema')
+        this.neutralStations = Object.freeze([...neutralStations])
         this.definition = Clone(value)
         deepFreeze(this.definition)
         this.locationsById = new Map()

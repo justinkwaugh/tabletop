@@ -20,8 +20,7 @@ function cforFinances(
             floated: true,
             funded: true,
             operated: true,
-            parPrice: 67,
-            president: { kind: 'player', playerId: state.players[0].playerId }
+            parPrice: 67
         })
         EighteenNinetyFourMarket.placeMarker(state.stockMarket, 'CFOR', '4:3')
         for (const certificate of state.certificates) {

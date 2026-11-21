@@ -16,6 +16,7 @@ import {
     getCompany,
     nextOperatingCompany,
     presidentCertificate,
+    presidentOf,
     recordStockAction,
     recordTurnPurchase,
     releaseTrains,
@@ -279,7 +280,7 @@ export function relieveNationalPresidency(state: object, details: SharePurchaseD
     const title = requireState1856(state)
     const owed = title.national?.presidencyOwedBy
     if (!owed || details.companyId !== CgrId) return
-    const president = getCompany(title, CgrId).president
+    const president = presidentOf(title, CgrId)
     if (president?.kind !== 'player' || president.playerId === owed) return
     // The exchange has given the old president a single share; one the new president still
     // holds completes the certificate.

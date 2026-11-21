@@ -12,6 +12,9 @@
     >Email me about games and competitions</Toggle
 >
 <p class="text-sm text-gray-700 dark:text-gray-300">
-    Invitations, finished games, and league and tournament news, including sign-up reminders. Turn
-    notifications are never sent by email, and account emails always are.
+    Invitations, games starting and finishing, and league and tournament news, including sign-up
+    reminders. Account emails are always sent.
+</p>
+<p class="text-sm font-medium text-gray-900 dark:text-white">
+    Email never tells you it's your turn. For that, turn on web or Discord notifications above.
 </p>

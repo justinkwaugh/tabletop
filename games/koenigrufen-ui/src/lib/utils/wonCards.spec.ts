@@ -101,4 +101,12 @@ describe('cards won', () => {
             )
         ).toBe(0)
     })
+
+    it('adds the talon card given for a trick in Trischaken', () => {
+        const won = table({
+            contract: Contract.Trischaken,
+            tricks: [{ ...trickWonBy('a'), talonCardId: 't1' }, trickWonBy('a')]
+        })
+        expect(wonCardCount(won, 'a')).toBe(9)
+    })
 })

@@ -1,6 +1,7 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedPlayCard, isPlayCard } from '../actions/playCard.js'
 import { ActionType } from '../definition/actions.js'
+import { trischakenTalonByTrick } from '../definition/config.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedKoenigrufenGameState } from '../model/gameState.js'
 
@@ -25,11 +26,17 @@ export class PlayingStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        _action: HydratedPlayCard,
+        action: HydratedPlayCard,
         context: MachineContext<HydratedKoenigrufenGameState>
     ): MachineState {
         const state = context.gameState
         state.finishTurn()
+        if (
+            action.metadata?.trickWinnerId !== undefined &&
+            state.givesTalonCard(trischakenTalonByTrick(context.gameConfig))
+        ) {
+            return MachineState.GivingTalonCard
+        }
         return state.isHandOver() ? MachineState.EndingHand : MachineState.Playing
     }
 }

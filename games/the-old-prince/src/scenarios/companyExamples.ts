@@ -83,7 +83,6 @@ export function createTheOldPrinceCompanyExample(
         const company = getCompany(state, 'A')
         company.started = true
         company.parPrice = 80
-        company.president = { kind: 'player', playerId: players[0].playerId }
         state.tranches[1].companyIds.push('A')
         for (const [id, index] of [
             ['A:president', 0],
@@ -221,10 +220,10 @@ export function createTheOldPrinceCompanyExample(
         }
     }
     if (position === 'transfers' || position === 'powers') {
-        getCompany(state, 'So').president = { kind: 'player', playerId: players[1].playerId }
         const shortlinePresident = state.certificates.find((item) => item.id === 'So:president')
         assert(shortlinePresident, 'The example requires Shortline presidency')
         shortlinePresident.owner = { kind: 'player', playerId: players[1].playerId }
+        delete shortlinePresident.poolId
         state.phaseId = '4H'
         for (const companyId of ['ML', 'So']) {
             const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '3H')
@@ -277,8 +276,6 @@ export function createTheOldPrinceCompanyExample(
         const alex = { kind: 'player', playerId: players[0].playerId } as const
         const blair = { kind: 'player', playerId: players[1].playerId } as const
         const casey = { kind: 'player', playerId: players[2].playerId } as const
-        getCompany(state, 'ML').president = union
-        getCompany(state, 'So').president = blair
         for (const [id, owner] of [
             ['ML:president', union],
             ['ML:share:2', alex],
