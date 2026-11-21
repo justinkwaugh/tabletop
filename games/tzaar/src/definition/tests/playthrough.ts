@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    Color,
     defaultGameConfig,
     GameEngine,
     PlayerStatus,
@@ -8,7 +9,7 @@ import {
 import { Definition } from '../definition.js'
 import { TzaarRuntime } from '../runtime.js'
 import { TzaarInfo } from '../info.js'
-import type { TzaarVersion, WhitePlayer } from '../config.js'
+import type { TzaarVersion, FirstPlayer } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedTzaarGameState, type TzaarGameState } from '../../model/gameState.js'
@@ -18,7 +19,7 @@ export const engine = new GameEngine(TzaarRuntime)
 // A fixed master seed, so the random start is the same on every run.
 export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-export type TzaarConfig = { version?: TzaarVersion; whitePlayer?: WhitePlayer }
+export type TzaarConfig = { version?: TzaarVersion; whitePlayer?: FirstPlayer }
 
 // `userIds` gives seats a user; the game's creator is the user `ownerId`.
 export function createGame(
@@ -61,9 +62,16 @@ export function execute(game: TzaarGame, state: TzaarGameState, action: GameActi
 export function legalActions(game: TzaarGame, state: TzaarGameState): GameAction[] {
     const hydrated = new HydratedTzaarGameState(state)
     const [playerId] = state.activePlayerIds
+    if (state.machineState === MachineState.ChoosingColor) {
+        return [Color.White, Color.Black].map((color) => ({
+            ...actionBase(game, playerId),
+            type: ActionType.ChooseColor,
+            color
+        }))
+    }
     if (state.machineState === MachineState.PlacingPieces) {
         return hydrated.board.vacantSpaces().flatMap((coords) =>
-            hydrated.kindsInHand(playerId).map((kind) => ({
+            hydrated.kindsInHand(hydrated.ownerOfNextPiece()).map((kind) => ({
                 ...actionBase(game, playerId),
                 type: ActionType.PlacePiece,
                 coords,

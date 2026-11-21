@@ -13,6 +13,7 @@ import {
 import {
     ActionType,
     Capture,
+    ChooseColor,
     isCapture,
     isStack,
     Pass,
@@ -22,8 +23,11 @@ import {
     spaceKey,
     Stack,
     TzaarPreferenceDefinition,
+    TzaarVersion,
+    versionFromConfig,
     type HydratedTzaarGameState,
     type Piece,
+    type PieceColor,
     type TzaarGameState,
     type TzaarPreferences
 } from '@tabletop/tzaar'
@@ -120,9 +124,24 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     canCapture = $derived(this.canAct(ActionType.Capture))
     canStack = $derived(this.canAct(ActionType.Stack))
     canPass = $derived(this.canAct(ActionType.Pass))
+    canChooseColor = $derived(this.canAct(ActionType.ChooseColor))
+
+    // Whose pieces the next placement puts down: the placer's own, unless the first player is
+    // setting an I set, you choose board for both.
+    private placingFor: string | undefined = $derived(
+        this.canPlace ? this.gameState.ownerOfNextPiece() : undefined
+    )
+
+    private setsBoth: boolean = $derived(
+        versionFromConfig(this.game.config) === TzaarVersion.ISetYouChoose
+    )
+
+    placingColor: PieceColor | undefined = $derived(
+        this.canPlace && this.setsBoth ? this.gameState.colorToPlace() : undefined
+    )
 
     kindsInHand: PieceKind[] = $derived(
-        this.canPlace ? this.gameState.kindsInHand(this.actorId()) : []
+        this.placingFor === undefined ? [] : this.gameState.kindsInHand(this.placingFor)
     )
 
     // The chosen type while the player still has one; otherwise the next they have.
@@ -191,13 +210,18 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         return { tone: this.toneOfPlayer(piece.playerId), kind: piece.kind, seedKey: `${piece.id}` }
     }
 
-    // The placing player's tone, and how many pieces of a type they have left to place.
+    // The tone of the pieces being placed, and how many of a type are left to place.
     placingTone(): Tone {
-        return this.toneOfPlayer(this.actorId())
+        return this.toneOfPlayer(this.placingOwner())
     }
 
     piecesInHand(kind: PieceKind): number {
-        return this.gameState.piecesInHand(this.actorId(), kind)
+        return this.gameState.piecesInHand(this.placingOwner(), kind)
+    }
+
+    private placingOwner(): string {
+        assertExists(this.placingFor, 'Only a placement has pieces to place')
+        return this.placingFor
     }
 
     chooseKind(kind: PieceKind) {
@@ -270,6 +294,11 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     letGo() {
         if (this.moving || this.chosenFrom === undefined) return
         this.select(setTzaarSelection(this.ownSelection, 'from', undefined))
+    }
+
+    async chooseColor(color: PieceColor) {
+        if (this.moving || !this.canChooseColor) return
+        await this.applyAction(this.createPlayerAction(ChooseColor, { color }))
     }
 
     async pass() {

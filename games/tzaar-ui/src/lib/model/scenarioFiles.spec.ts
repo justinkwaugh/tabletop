@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ActionSource, GameEngine, type Game } from '@tabletop/common'
+import { ActionSource, Color, GameEngine, type Game } from '@tabletop/common'
 import {
     ActionType,
     HydratedTzaarGameState,
@@ -12,7 +12,9 @@ import {
     spaceName,
     TzaarGameStateValidator,
     TzaarRuntime,
+    isPlacePiece,
     type Capture,
+    type ChooseColor,
     type Pass,
     type PlacePiece,
     type Stack,
@@ -41,9 +43,11 @@ describe('the scenarios the harness offers', () => {
             expect(game.id).toBe(`scenario-${name.replace(/\.json$/, '')}`)
             expect(state.gameId).toBe(game.id)
             expect(actions).toEqual([])
-            expect([MachineState.Capturing, MachineState.PlacingPieces]).toContain(
-                state.machineState
-            )
+            expect([
+                MachineState.Capturing,
+                MachineState.PlacingPieces,
+                MachineState.ChoosingColor
+            ]).toContain(state.machineState)
             expect(state.activePlayerIds).toEqual([ALICE])
         }
     )
@@ -148,5 +152,50 @@ describe('what each scenario claims', () => {
         )
         expect(state.machineState).toBe(MachineState.Capturing)
         expect(state.activePlayerIds).toEqual([ALICE])
+    })
+
+    it('Setting the board: Alice puts down a white piece, then a black one, and Bob chooses', () => {
+        const { game, state: start }: { game: Game; state: TzaarGameState } =
+            load('setting-the-board')
+        const hydrated = new HydratedTzaarGameState(start)
+        let state = start
+        const colors = hydrated.board.vacantSpaces().map((coords, index) => {
+            const placing = new HydratedTzaarGameState(state)
+            const action: PlacePiece = {
+                id: `p${index}`,
+                gameId: game.id,
+                source: ActionSource.User,
+                playerId: ALICE,
+                type: ActionType.PlacePiece,
+                coords,
+                kind: placing.kindsInHand(placing.ownerOfNextPiece())[0]
+            }
+            const result = engine.executeCanonicalAction({ game, state, action })
+            state = result.updatedState
+            const [placed] = result.processedActions
+            return isPlacePiece(placed) ? placed.metadata?.color : undefined
+        })
+        expect(colors).toEqual([Color.White, Color.Black])
+        expect(state.machineState).toBe(MachineState.ChoosingColor)
+        expect(state.activePlayerIds).toEqual([BOB])
+    })
+
+    it('Choosing a colour: Alice takes White or Black, and White opens', () => {
+        const { game, state }: { game: Game; state: TzaarGameState } = load('choosing-a-colour')
+        for (const color of [Color.White, Color.Black] as const) {
+            const action: ChooseColor = {
+                id: 'choose',
+                gameId: game.id,
+                source: ActionSource.User,
+                playerId: ALICE,
+                type: ActionType.ChooseColor,
+                color
+            }
+            const { updatedState } = engine.executeCanonicalAction({ game, state, action })
+            const alice = updatedState.players.find((player) => player.playerId === ALICE)
+            expect(alice?.color).toBe(color)
+            expect(updatedState.machineState).toBe(MachineState.Capturing)
+            expect(updatedState.activePlayerIds).toEqual([color === Color.White ? ALICE : BOB])
+        }
     })
 })

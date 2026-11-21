@@ -13,7 +13,13 @@ import {
 import { HydratedTzaarGameState, TzaarGameState } from '../model/gameState.js'
 import { HydratedTzaarPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
-import { TzaarVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
+import {
+    FirstPlayer,
+    firstPlayerFromConfig,
+    placesPieces,
+    TzaarVersion,
+    versionFromConfig
+} from './config.js'
 import { emptyBoard, PIECE_KINDS, PIECES_OF_KIND, type TzaarBoard } from '../model/board.js'
 import { SPACES } from '../model/geometry.js'
 import { FIXED_START, type StartingPiece } from '../model/startPositions.js'
@@ -34,7 +40,7 @@ export class TzaarGameInitializer
         const turnManager = HydratedTurnManager.generate(
             game.players.map((player) => ({ playerId: player.id, color: Color.White })),
             prng.random,
-            assignment ?? this.chosenWhite(game)
+            assignment ?? this.chosenFirstPlayer(game)
         )
         turnManager.seriesKeeps = 'latest'
 
@@ -56,7 +62,7 @@ export class TzaarGameInitializer
             })
         )
 
-        if (version === TzaarVersion.Tournament) {
+        if (placesPieces(version)) {
             tzaarGameState.turnManager.startTurn(tzaarGameState.turnManager.turnOrder[0], 0)
         } else {
             tzaarGameState.machineState = beginPlay(
@@ -69,23 +75,23 @@ export class TzaarGameInitializer
 
     // The game creator is the player whose user created the game; in a local game every seat
     // belongs to that user, so the first listed seat counts as the creator's. A creator who does
-    // not play leaves White to the draw.
-    private chosenWhite(game: Game): StartingPositionAssignment | undefined {
-        const choice = whitePlayerFromConfig(game.config)
+    // not play leaves the first player to the draw.
+    private chosenFirstPlayer(game: Game): StartingPositionAssignment | undefined {
+        const choice = firstPlayerFromConfig(game.config)
         const creator = game.players.find((player) => player.userId === game.ownerId)
-        if (choice === WhitePlayer.Random || creator === undefined) {
+        if (choice === FirstPlayer.Random || creator === undefined) {
             return undefined
         }
         const opponent = game.players.find((player) => player.id !== creator.id)
         assertExists(opponent, 'TZAAR needs two players')
-        const white = choice === WhitePlayer.Creator ? creator : opponent
-        const black = white === creator ? opponent : creator
-        return { playerIds: [white.id, black.id] }
+        const first = choice === FirstPlayer.Creator ? creator : opponent
+        const second = first === creator ? opponent : creator
+        return { playerIds: [first.id, second.id] }
     }
 
     private startingBoard(version: TzaarVersion, playerIds: string[], prng: Prng): TzaarBoard {
         const [whiteId, blackId] = playerIds
-        if (version === TzaarVersion.Tournament) {
+        if (placesPieces(version)) {
             return emptyBoard()
         }
         const pieces = version === TzaarVersion.Fixed ? FIXED_START : this.randomStart(prng)

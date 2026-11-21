@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
     CALL_GAME_ACTION_TYPE,
+    Color,
     GameCallKind,
     type CallGameAction,
     type GameAction
@@ -51,6 +52,21 @@ describe('historyEntries', () => {
                 passedPlayerId: 'a',
                 firstIndex: 1
             }
+        ])
+    })
+
+    it('reads the colour placed and the colour taken in I set, you choose', () => {
+        const entries = historyEntries([
+            action('a', {
+                type: ActionType.PlacePiece,
+                coords: s('E3'),
+                metadata: { piece: { playerId: 'b', placedAt: s('E3') }, color: Color.Black }
+            }),
+            action('b', { type: ActionType.ChooseColor, color: Color.White, metadata: {} })
+        ])
+        expect(entries).toMatchObject([
+            { kind: 'place', playerId: 'a', dvonn: false, color: Color.Black },
+            { kind: 'choose', playerId: 'b', color: Color.White }
         ])
     })
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { Color } from '@tabletop/common'
 import { spaceFromName as s, spaceName } from '@tabletop/dvonn'
 import { entrySegments, type Segment } from './entryText.js'
 import type { PlayerEntry } from './historyEntries.js'
@@ -60,5 +61,18 @@ describe('entrySegments', () => {
         )
         const place: PlayerEntry = { ...span, kind: 'place', coords: s('E3'), dvonn: true }
         expect(read(entrySegments(place))).toBe(' placed a DVONN piece on E3')
+    })
+
+    it('names the colour of each piece placed and taken in I set, you choose', () => {
+        const place: PlayerEntry = {
+            ...span,
+            kind: 'place',
+            coords: s('E3'),
+            dvonn: false,
+            color: Color.Black
+        }
+        expect(read(entrySegments(place))).toBe(' placed a black piece on E3')
+        const choose: PlayerEntry = { ...span, kind: 'choose', color: Color.White }
+        expect(read(entrySegments(choose))).toBe(' took White')
     })
 })

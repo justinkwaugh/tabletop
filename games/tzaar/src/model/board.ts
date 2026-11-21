@@ -1,6 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assertExists, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    AxialCoordinates,
+    Color,
+    Hydratable,
+    sameCoordinates
+} from '@tabletop/common'
 import { DIRECTIONS, firstOccupiedFrom, isSpace, SPACES } from './geometry.js'
 
 export enum PieceKind {
@@ -17,6 +23,9 @@ export const PIECES_OF_KIND: Readonly<Record<PieceKind, number>> = {
     [PieceKind.Tzarra]: 9,
     [PieceKind.Tott]: 15
 }
+
+export type PieceColor = Type.Static<typeof PieceColor>
+export const PieceColor = Type.Union([Type.Literal(Color.White), Type.Literal(Color.Black)])
 
 // The id tells a piece apart from the others for as long as it stays on the board.
 export type Piece = Type.Static<typeof Piece>
@@ -115,6 +124,13 @@ export class HydratedTzaarBoard extends Hydratable<typeof TzaarBoard> implements
         return this.stacks.filter(
             (stack) => this.ownerOf(stack.pieces) === playerId && stack.pieces.at(-1)?.kind === kind
         ).length
+    }
+
+    // Every piece of one player's becomes the other's, and the other way round.
+    trade(playerId: string, otherId: string) {
+        for (const piece of this.stacks.flatMap((stack) => stack.pieces)) {
+            piece.playerId = piece.playerId === playerId ? otherId : playerId
+        }
     }
 
     place(coords: AxialCoordinates, piece: Piece) {

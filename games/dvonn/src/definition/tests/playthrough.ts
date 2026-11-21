@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    Color,
     defaultGameConfig,
     GameEngine,
     PlayerStatus,
@@ -8,14 +9,14 @@ import {
 import { Definition } from '../definition.js'
 import { DvonnRuntime } from '../runtime.js'
 import { DvonnInfo } from '../info.js'
-import type { DvonnVersion, WhitePlayer } from '../config.js'
+import type { DvonnVersion, FirstPlayer } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedDvonnGameState, type DvonnGameState } from '../../model/gameState.js'
 
 export const engine = new GameEngine(DvonnRuntime)
 
-export type DvonnConfig = { version?: DvonnVersion; whitePlayer?: WhitePlayer }
+export type DvonnConfig = { version?: DvonnVersion; whitePlayer?: FirstPlayer }
 
 // `userIds` gives seats a user; the game's creator is the user `ownerId`.
 export function createGame(
@@ -58,6 +59,13 @@ export function execute(game: DvonnGame, state: DvonnGameState, action: GameActi
 export function legalActions(game: DvonnGame, state: DvonnGameState): GameAction[] {
     const hydrated = new HydratedDvonnGameState(state)
     const [playerId] = state.activePlayerIds
+    if (state.machineState === MachineState.ChoosingColor) {
+        return [Color.White, Color.Black].map((color) => ({
+            ...actionBase(game, playerId),
+            type: ActionType.ChooseColor,
+            color
+        }))
+    }
     if (state.machineState === MachineState.PlacingPieces) {
         return hydrated.board.vacantSpaces().map((coords) => ({
             ...actionBase(game, playerId),

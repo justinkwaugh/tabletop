@@ -60,4 +60,14 @@ describe('entrySegments', () => {
         expect(read(entrySegments(plain))).toBe(' moved [blue/red] from 0,-3 to 1,2')
         expect(read(entrySegments(plain, true))).toBe(' moved [blue/red] 0,-3 to 1,2')
     })
+
+    it('tells a piece placed while the players set the board', () => {
+        const place: PlayerEntry = {
+            ...span,
+            kind: 'place',
+            color: PieceColor.Joker,
+            coords: { q: 0, r: 1 }
+        }
+        expect(read(entrySegments(place))).toBe(' placed [joker] on 0,1')
+    })
 })

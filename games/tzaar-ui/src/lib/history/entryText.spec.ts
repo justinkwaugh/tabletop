@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { Color } from '@tabletop/common'
 import { PieceKind, spaceFromName, spaceName } from '@tabletop/tzaar'
 import { entrySegments } from './entryText.js'
 import type { MoveEntry } from './historyEntries.js'
@@ -56,5 +57,18 @@ describe('history text', () => {
             joined({ ...span, kind: 'place', coords: spaceFromName('E5'), piece: PieceKind.Tzarra })
         ).toBe(' placed a Tzarra on E5')
         expect(joined({ ...span, kind: 'pass' })).toBe(' passed the second move')
+    })
+
+    it('names the colour of each piece placed and taken in I set, you choose', () => {
+        const coords = spaceFromName('E4')
+        const place: MoveEntry = {
+            ...span,
+            kind: 'place',
+            coords,
+            piece: PieceKind.Tzarra,
+            color: Color.Black
+        }
+        expect(joined(place)).toBe(' placed a black Tzarra on E4')
+        expect(joined({ ...span, kind: 'choose', color: Color.White })).toBe(' took White')
     })
 })

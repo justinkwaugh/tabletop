@@ -1,0 +1,470 @@
+{
+ "game": {
+  "id": "scenario-i-set-you-start",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "lyngk",
+  "deleted": false,
+  "name": "I set, you start",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "variant": "Standard",
+   "setup": "ISetYouStart"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 174832474,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-20T23:45:37.294Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-20T23:45:37.294Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "a-vT8U0JmIFFwCR8B3rD_",
+  "gameId": "scenario-i-set-you-start",
+  "seed": 174832474,
+  "prng": {
+   "seed": 174832474,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "4ce16213aca863f095b4741a0ffb2670fe4bd81c9d39a210e020bc79b44bba56",
+   "invocations": 0
+  },
+  "masterSeed": "36c34ed8d7d62f2d68ddd9dd2611aa50",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "purple",
+    "claimed": [],
+    "scored": []
+   },
+   {
+    "playerId": "player-2",
+    "color": "orange",
+    "claimed": [],
+    "scored": []
+   }
+  ],
+  "machineState": "PlacingPieces",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 41,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "variant": "Standard",
+  "board": {
+   "stacks": [
+    {
+     "coords": {
+      "q": 0,
+      "r": 0
+     },
+     "pieces": [
+      24
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -1
+     },
+     "pieces": [
+      0
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 0
+     },
+     "pieces": [
+      1
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 1
+     },
+     "pieces": [
+      2
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 1
+     },
+     "pieces": [
+      40
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 0
+     },
+     "pieces": [
+      41
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -1
+     },
+     "pieces": [
+      16
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -2
+     },
+     "pieces": [
+      25
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -2
+     },
+     "pieces": [
+      8
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -1
+     },
+     "pieces": [
+      3
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 0
+     },
+     "pieces": [
+      4
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 1
+     },
+     "pieces": [
+      5
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 2
+     },
+     "pieces": [
+      32
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 2
+     },
+     "pieces": [
+      33
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 2
+     },
+     "pieces": [
+      6
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 1
+     },
+     "pieces": [
+      26
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 0
+     },
+     "pieces": [
+      34
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -1
+     },
+     "pieces": [
+      35
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -2
+     },
+     "pieces": [
+      36
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -3
+     },
+     "pieces": [
+      27
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -3
+     },
+     "pieces": [
+      37
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -2
+     },
+     "pieces": [
+      28
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -1
+     },
+     "pieces": [
+      17
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 0
+     },
+     "pieces": [
+      18
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 1
+     },
+     "pieces": [
+      19
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 2
+     },
+     "pieces": [
+      29
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 3
+     },
+     "pieces": [
+      9
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 3
+     },
+     "pieces": [
+      7
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 3
+     },
+     "pieces": [
+      10
+     ]
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 3
+     },
+     "pieces": [
+      30
+     ]
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 2
+     },
+     "pieces": [
+      11
+     ]
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 1
+     },
+     "pieces": [
+      31
+     ]
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 0
+     },
+     "pieces": [
+      20
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": -1
+     },
+     "pieces": [
+      21
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -2
+     },
+     "pieces": [
+      22
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -3
+     },
+     "pieces": [
+      12
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -3
+     },
+     "pieces": [
+      13
+     ]
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -2
+     },
+     "pieces": [
+      23
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 2
+     },
+     "pieces": [
+      38
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 4
+     },
+     "pieces": [
+      14
+     ]
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 2
+     },
+     "pieces": [
+      42
+     ]
+    }
+   ]
+  },
+  "claimedThisTurn": false
+ },
+ "actions": []
+}

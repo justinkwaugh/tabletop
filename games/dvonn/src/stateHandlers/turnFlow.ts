@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, Color } from '@tabletop/common'
 import { HydratedDvonnGameState } from '../model/gameState.js'
 
 export function turnHolder(state: HydratedDvonnGameState): string {
@@ -29,7 +29,8 @@ export function nextTurnAfterMove(state: HydratedDvonnGameState, moverId: string
     return nextTurnFrom(state, state.opponentOf(moverId))
 }
 
-// Rule E1: White, who placed the last piece, also makes the first move.
+// Rule E1: White, who placed the last piece, also makes the first move, as White does once the
+// board of I set, you choose is set.
 export function firstMovingTurn(state: HydratedDvonnGameState): NextTurn {
-    return nextTurnFrom(state, state.whitePlayerId())
+    return nextTurnFrom(state, state.playerWith(Color.White))
 }

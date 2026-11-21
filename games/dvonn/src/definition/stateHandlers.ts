@@ -3,6 +3,7 @@ import { MachineState } from './states.js'
 import type { HydratedDvonnGameState } from '../model/gameState.js'
 import { PlacingPiecesStateHandler } from '../stateHandlers/placingPieces.js'
 import { MovingStacksStateHandler } from '../stateHandlers/movingStacks.js'
+import { ChoosingColorStateHandler } from '../stateHandlers/choosingColor.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 
 export const DvonnStateHandlers: Record<
@@ -10,6 +11,7 @@ export const DvonnStateHandlers: Record<
     MachineStateHandler<HydratedAction, HydratedDvonnGameState>
 > = {
     [MachineState.PlacingPieces]: new PlacingPiecesStateHandler(),
+    [MachineState.ChoosingColor]: new ChoosingColorStateHandler(),
     [MachineState.MovingStacks]: new MovingStacksStateHandler(),
     [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

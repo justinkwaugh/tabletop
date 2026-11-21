@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assert, Color, validateGameResult } from '@tabletop/common'
-import { TzaarVersion, WhitePlayer } from './config.js'
+import { TzaarVersion, FirstPlayer } from './config.js'
 import { TzaarRuntime } from './runtime.js'
 import { TzaarGameStateValidator, type TzaarGameState } from '../model/gameState.js'
 import {
@@ -30,7 +30,7 @@ function swapPlayers(state: TzaarGameState): TzaarGameState {
 }
 
 const setups = Object.values(TzaarVersion).flatMap((version) =>
-    Object.values(WhitePlayer).map((whitePlayer) => [version, whitePlayer] as const)
+    Object.values(FirstPlayer).map((whitePlayer) => [version, whitePlayer] as const)
 )
 
 describe.each(setups)('TZAAR %s tournaments, White %s', (version, whitePlayer) => {
@@ -50,9 +50,11 @@ describe.each(setups)('TZAAR %s tournaments, White %s', (version, whitePlayer) =
             expect(colorOf(order[0])).toBe(Color.White)
             expect(colorOf(order[1])).toBe(Color.Black)
 
-            // White's first placement, or White's opening capture, is a whole turn.
+            // White's first placement, or White's opening capture, is a whole turn; the first
+            // player sets an I set, you choose board alone.
             const afterFirst = execute(game, initialState, legalActions(game, initialState)[0])
-            expect(afterFirst.activePlayerIds).toEqual([order[1]])
+            const secondActor = version === TzaarVersion.ISetYouChoose ? 0 : 1
+            expect(afterFirst.activePlayerIds).toEqual([order[secondActor]])
         }
     })
 

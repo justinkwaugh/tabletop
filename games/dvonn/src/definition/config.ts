@@ -9,10 +9,11 @@ import {
 
 export enum DvonnVersion {
     Standard = 'Standard',
-    RandomPlacement = 'RandomPlacement'
+    RandomPlacement = 'RandomPlacement',
+    ISetYouChoose = 'ISetYouChoose'
 }
 
-export enum WhitePlayer {
+export enum FirstPlayer {
     Random = 'Random',
     Creator = 'Creator',
     Opponent = 'Opponent'
@@ -21,11 +22,14 @@ export enum WhitePlayer {
 export type DvonnGameConfig = Type.Static<typeof DvonnGameConfig>
 export const DvonnGameConfig = Type.Object({
     version: Type.Optional(Type.Enum(DvonnVersion)),
-    whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
+    // Stored games keep the key from before the first player could end up with Black.
+    whitePlayer: Type.Optional(Type.Enum(FirstPlayer))
 })
 
 const standardDescription = 'Players place every piece, then stack.'
 const randomDescription = 'The board starts filled at random and play begins with stacking.'
+const iSetYouChooseDescription =
+    'The first player places every piece, then the other picks a colour. White moves first.'
 
 export const DvonnGameConfigOptions: GameConfigOptions = [
     {
@@ -33,7 +37,7 @@ export const DvonnGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.List,
         name: 'Version',
         // Older site forms show only this, so it describes every version.
-        description: `Standard: ${standardDescription} Random placement: ${randomDescription}`,
+        description: `Standard: ${standardDescription} Random placement: ${randomDescription} I set, you choose: ${iSetYouChooseDescription}`,
         default: DvonnVersion.Standard,
         options: [
             { name: 'Standard', value: DvonnVersion.Standard, description: standardDescription },
@@ -41,6 +45,11 @@ export const DvonnGameConfigOptions: GameConfigOptions = [
                 name: 'Random placement',
                 value: DvonnVersion.RandomPlacement,
                 description: randomDescription
+            },
+            {
+                name: 'I set, you choose',
+                value: DvonnVersion.ISetYouChoose,
+                description: iSetYouChooseDescription
             }
         ],
         alwaysShow: true
@@ -48,20 +57,24 @@ export const DvonnGameConfigOptions: GameConfigOptions = [
     {
         id: 'whitePlayer',
         type: ConfigOptionType.List,
-        name: 'White',
-        description: 'Who plays White and goes first.',
-        default: WhitePlayer.Random,
+        name: 'First player',
+        description: 'Who plays White and goes first, or in I set, you choose sets the board.',
+        default: FirstPlayer.Random,
         options: [
-            { name: 'Random', value: WhitePlayer.Random, description: 'White is drawn by lot.' },
+            {
+                name: 'Random',
+                value: FirstPlayer.Random,
+                description: 'The first player is drawn by lot.'
+            },
             {
                 name: 'Game creator',
-                value: WhitePlayer.Creator,
-                description: 'The player who created the game plays White.'
+                value: FirstPlayer.Creator,
+                description: 'The player who created the game goes first.'
             },
             {
                 name: 'Opponent',
-                value: WhitePlayer.Opponent,
-                description: "The creator's opponent plays White."
+                value: FirstPlayer.Opponent,
+                description: "The creator's opponent goes first."
             }
         ],
         alwaysShow: true
@@ -80,9 +93,9 @@ export function versionFromConfig(config: GameConfig): DvonnVersion {
     return version
 }
 
-export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
-    if (config.whitePlayer === undefined) return WhitePlayer.Random
-    const choice = Object.values(WhitePlayer).find((known) => known === config.whitePlayer)
-    assertExists(choice, `Unknown choice of White ${String(config.whitePlayer)}`)
+export function firstPlayerFromConfig(config: GameConfig): FirstPlayer {
+    if (config.whitePlayer === undefined) return FirstPlayer.Random
+    const choice = Object.values(FirstPlayer).find((known) => known === config.whitePlayer)
+    assertExists(choice, `Unknown choice of first player ${String(config.whitePlayer)}`)
     return choice
 }

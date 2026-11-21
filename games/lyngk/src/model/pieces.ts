@@ -40,6 +40,15 @@ export function pieceColor(id: number): PieceColor {
 
 export const PIECE_COUNT = FIRST_JOKER_ID + JOKER_COUNT
 
+export const PIECE_COLORS: readonly PieceColor[] = [...ACTIVE_COLORS, PieceColor.Joker]
+
+// Every piece of a colour, by number.
+export function piecesOfColor(color: PieceColor): number[] {
+    return Array.from({ length: PIECE_COUNT }, (_, id) => id).filter(
+        (id) => pieceColor(id) === color
+    )
+}
+
 // A piece, by its number.
 export const PieceId = Type.Integer({ minimum: 0, maximum: PIECE_COUNT - 1 })
 
