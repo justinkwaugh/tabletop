@@ -16,7 +16,8 @@ import { moneyFormat } from '../../../../libs/18xx-ui/src/lib/presentation/money
 import {
     EighteenSeventeenCompanyColumns,
     eighteenSeventeenCompanyFacts,
-    eighteenSeventeenGameFacts
+    eighteenSeventeenGameFacts,
+    loansAgainstLimit
 } from '../../../../games/1817-ui/src/lib/titleFacts.js'
 import { eighteenSeventeenHistoryDescription } from '../../../../games/1817-ui/src/lib/history.js'
 
@@ -46,15 +47,17 @@ describe('1817’s game facts', () => {
 })
 
 describe('1817’s company presentation', () => {
-    it('lists each started company’s size and loans against its limit', () => {
+    // Loans are the shared spreadsheet's column for every title with loans; 1817 keeps size.
+    it('lists each started company’s size, and its loans against its limit as a fact', () => {
         const play = playExample(EighteenSeventeenScenarios, 'trading', 3)
         const text = (id: string, companyId: string) =>
             EighteenSeventeenCompanyColumns.find((column) => column.id === id)?.text(
                 play.state,
                 companyId
             )
-        expect([text('size', 'BA'), text('loans', 'BA')]).toEqual(['5', '0/5'])
-        expect([text('size', 'AS'), text('loans', 'AS')]).toEqual(['—', '—'])
+        expect([text('size', 'BA'), text('size', 'AS')]).toEqual(['5', '—'])
+        expect(EighteenSeventeenCompanyColumns.some((column) => column.id === 'loans')).toBe(false)
+        expect(loansAgainstLimit(play.state, 'BA')).toBe('0/5')
     })
 
     it('gives a company’s interest and closing zone in its details', () => {

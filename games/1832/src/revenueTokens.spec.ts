@@ -14,6 +14,7 @@ import {
     type EighteenThirtyTwoState
 } from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
+import { EighteenThirtyTwoTrainDepot } from './trains.js'
 
 /** The state as a phase begins, with the title's phase changes applied. */
 function beginPhase(state: EighteenThirtyTwoState, phaseId: string) {
@@ -110,7 +111,8 @@ describe('Miami and Key West', () => {
                 { ...state, phaseId, ...(miamiRun ? { miamiRun } : {}) },
                 'CG',
                 miami,
-                20
+                20,
+                EighteenThirtyTwoTrainDepot.trainDefinition('2')
             )
         expect(value('3')).toBe(0)
         expect(value('3', true)).toBe(20)
