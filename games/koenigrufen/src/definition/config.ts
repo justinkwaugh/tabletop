@@ -24,7 +24,7 @@ const trischakenTalonByTrickOption: BooleanConfigOption = {
     type: ConfigOptionType.Boolean,
     name: 'Trischaken: talon by trick',
     description:
-        'Winners of the first 6 tricks each take 1 talon card, shown to all. Off: the last trick’s winner takes all 6.',
+        'Winners of the first 6 tricks each reveal and take 1 talon card. Off: the last trick’s winner takes all 6.',
     default: false
 }
 

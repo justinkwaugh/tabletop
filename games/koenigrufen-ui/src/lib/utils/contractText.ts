@@ -42,13 +42,13 @@ export const StandardRules: TableRules = { talonByTrick: false }
 // Where the Trischaken talon goes, in the words of the contract note and of the bid table.
 export function trischakenTalonNote(rules: TableRules): string {
     return rules.talonByTrick
-        ? 'Winners of the first 6 tricks each take 1 talon card, shown to all.'
+        ? 'Winners of the first 6 tricks each reveal and take 1 talon card.'
         : 'The last trick’s winner takes the talon.'
 }
 
 export function trischakenTalonDetail(rules: TableRules): string {
     return rules.talonByTrick
-        ? 'First 6 tricks take 1 talon card each, shown.'
+        ? 'First 6 trick winners each reveal and take 1 talon card.'
         : 'Last trick takes the talon.'
 }
 
