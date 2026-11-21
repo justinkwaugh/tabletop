@@ -349,6 +349,10 @@ export class EncodedRoutes {
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
                 paying_stop_limit: policy?.payingStopLimit ?? null,
+                ...(policy?.payingStopLimit !== undefined && nodes.some((node) => node.uncounted)
+                    ? { uncounted: nodes.map((node) => !!node.uncounted) }
+                    : {}),
+                ...(policy?.passesBlockedCity ? { blocked_passes: 1 } : {}),
                 require_paying_token: policy?.requirePayingStation ?? false,
                 bonuses_along_route: policy?.bonusesAlongRoute ?? false,
                 connection_bonuses: [
@@ -527,6 +531,7 @@ export class EncodedRoutes {
             if (arc.from !== null)
                 departures.set(arc.from, [...(departures.get(arc.from) ?? []), id])
         const extendsPastBlocked = trains.some((train) => train.interconnections.length > 0)
+        const trainPassesBlocked = trains.some((train) => (train.blocked_passes ?? 0) > 0)
         const reachedStops = new Set<number>()
         const reachedArcs = new Set<number>()
         const pending: ({ stop: number } | { arc: number })[] = stops.flatMap((stop, index) =>
@@ -539,7 +544,8 @@ export class EncodedRoutes {
                 const stop = stops[next.stop]
                 const passable =
                     extendsPastBlocked ||
-                    (this.problem.blocked_passes > 0 && (stop.city || stop.town))
+                    ((this.problem.blocked_passes > 0 || trainPassesBlocked) &&
+                        (stop.city || stop.town))
                 if (!stop.allowed || (stop.blocked && !stop.token && !passable)) continue
                 for (const arc of departures.get(next.stop) ?? []) pending.push({ arc })
                 continue
@@ -591,6 +597,8 @@ export class EncodedRoutes {
                     ...(train.fleet ? { fleet: train.fleet } : {}),
                     major_limit: train.major_limit,
                     paying_stop_limit: train.paying_stop_limit,
+                    ...(train.uncounted ? { uncounted: perStop(train.uncounted.map(Number)) } : {}),
+                    ...(train.blocked_passes ? { blocked_passes: train.blocked_passes } : {}),
                     require_paying_token: train.require_paying_token,
                     bonuses_along_route: train.bonuses_along_route,
                     visit_costs: perStop(train.visit_costs),

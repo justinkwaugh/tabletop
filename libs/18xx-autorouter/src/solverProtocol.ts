@@ -36,6 +36,10 @@ export type SolverTrain = {
     revenues: number[]
     first_bonus: number[]
     paying_stop_limit: number | null
+    /** Stops called at without counting toward the train, which pay outside the paying limit. */
+    uncounted?: boolean[]
+    /** Tokened-out cities the train may run through on its own allowance, which pay it nothing. */
+    blocked_passes?: number
     require_paying_token: boolean
     bonuses_along_route: boolean
     major_limit: number | null

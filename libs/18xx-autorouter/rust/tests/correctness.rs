@@ -315,17 +315,26 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
             let Some(route_edges) = route_edges else {
                 continue;
             };
+            // The paying limit chooses among the counted stops; uncounted ones always pay.
+            let uncounted = |node: usize| train["uncounted"][node].as_bool() == Some(true);
+            let counted: Vec<usize> = (0..path.len()).filter(|&i| !uncounted(path[i])).collect();
             let paying_count = train["paying_stop_limit"]
                 .as_u64()
-                .map_or(path.len(), |n| n as usize)
-                .min(path.len());
-            let paid_revenue = (0u64..1 << path.len())
+                .map_or(counted.len(), |n| n as usize)
+                .min(counted.len());
+            let paid_revenue = (0u64..1 << counted.len())
                 .filter(|bits| bits.count_ones() as usize == paying_count)
                 .filter_map(|bits| {
+                    let chosen = |index: usize| {
+                        counted
+                            .iter()
+                            .position(|&at| at == index)
+                            .is_some_and(|k| bits & (1 << k) != 0)
+                    };
                     let paid: Vec<_> = path
                         .iter()
                         .enumerate()
-                        .filter(|(index, _)| bits & (1 << index) != 0)
+                        .filter(|&(index, &node)| uncounted(node) || chosen(index))
                         .map(|(_, &node)| node)
                         .collect();
                     if train["require_paying_token"] == true
@@ -455,6 +464,9 @@ fn agrees_with_unpruned_permutation_oracle_on_200_graphs() {
         p["longest_route_bonus_per_stop"] = json!((case % 3) * 10);
         for (id, train) in p["trains"].as_array_mut().unwrap().iter_mut().enumerate() {
             train["paying_stop_limit"] = json!(1 + (case + id) % 4);
+            if (case + id) % 3 == 0 {
+                train["uncounted"] = json!((0..5).map(|node| node == case % 5).collect::<Vec<_>>());
+            }
             train["require_paying_token"] = json!(case % 2 == 0);
             train["connection_bonuses"] = json!([{
                 "from": [0, 30, null, null, null],

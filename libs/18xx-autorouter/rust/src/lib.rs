@@ -144,6 +144,12 @@ struct Train {
     first_bonus: Vec<i32>,
     #[serde(default)]
     paying_stop_limit: Option<usize>,
+    /// Stops called at without counting toward the train, which pay outside the paying limit.
+    #[serde(default)]
+    uncounted: Vec<bool>,
+    /// Tokened-out cities the train may run through on its own allowance, which pay it nothing.
+    #[serde(default)]
+    blocked_passes: u32,
     #[serde(default)]
     require_paying_token: bool,
     /// Bonuses count the stops from the first paid to the last, which are the route's ends.
@@ -189,37 +195,71 @@ struct Payment<'a> {
 }
 
 impl Train {
+    fn uncounted(&self, stop: usize) -> bool {
+        self.uncounted.get(stop) == Some(&true)
+    }
+
+    /// The best the route's stops pay, the paying limit choosing among the stops that count. A
+    /// tokened-out city the train runs through on its own allowance pays nothing.
     fn paid_revenue(&self, payment: &Payment) -> i32 {
-        let visits = payment.visits;
+        let last = payment.visits.len().saturating_sub(1);
+        let paying: Vec<usize> = payment
+            .visits
+            .iter()
+            .enumerate()
+            .filter(|&(index, &id)| {
+                self.blocked_passes == 0
+                    || index == 0
+                    || index == last
+                    || !payment.stops[id].blocked
+            })
+            .map(|(_, &id)| id)
+            .collect();
+        let counted: Vec<usize> = paying
+            .iter()
+            .copied()
+            .filter(|&id| !self.uncounted(id))
+            .collect();
         let count = self
             .paying_stop_limit
-            .unwrap_or(visits.len())
-            .min(visits.len());
-        if count == visits.len() {
-            return self.selected_revenue(payment, visits);
+            .unwrap_or(counted.len())
+            .min(counted.len());
+        let payment = Payment {
+            visits: &paying,
+            ..*payment
+        };
+        if count == counted.len() {
+            return self.selected_revenue(&payment, &paying);
         }
         let mut best = 0;
-        self.select_payments(payment, 0, count, &mut Vec::new(), &mut best);
+        self.select_payments(&payment, &counted, 0, count, &mut Vec::new(), &mut best);
         best
     }
 
     fn select_payments(
         &self,
         payment: &Payment,
+        counted: &[usize],
         start: usize,
         count: usize,
         selected: &mut Vec<usize>,
         best: &mut i32,
     ) {
         if selected.len() == count {
-            if !self.require_paying_token || selected.iter().any(|&id| payment.stops[id].token) {
-                *best = (*best).max(self.selected_revenue(payment, selected));
+            let paid: Vec<usize> = payment
+                .visits
+                .iter()
+                .copied()
+                .filter(|&id| self.uncounted(id) || selected.contains(&id))
+                .collect();
+            if !self.require_paying_token || paid.iter().any(|&id| payment.stops[id].token) {
+                *best = (*best).max(self.selected_revenue(payment, &paid));
             }
             return;
         }
-        for index in start..=payment.visits.len() - (count - selected.len()) {
-            selected.push(payment.visits[index]);
-            self.select_payments(payment, index + 1, count, selected, best);
+        for index in start..=counted.len() - (count - selected.len()) {
+            selected.push(counted[index]);
+            self.select_payments(payment, counted, index + 1, count, selected, best);
             selected.pop();
         }
     }
@@ -284,6 +324,7 @@ impl Train {
 
     fn scores_payments(&self) -> bool {
         self.paying_stop_limit.is_some()
+            || self.blocked_passes > 0
             || !self.connection_bonuses.is_empty()
             || !self.interconnections.is_empty()
     }
@@ -852,6 +893,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
             })
             || train.first_bonus.len() != n
             || (!train.optional.is_empty() && train.optional.len() != n)
+            || (!train.uncounted.is_empty() && train.uncounted.len() != n)
             || (!train.subsidies.is_empty() && train.subsidies.len() != n)
             || train
                 .revenues
@@ -1150,7 +1192,8 @@ impl<'a> Search<'a> {
                 },
             );
         }
-        let passable = (stop.city || stop.town) && passes < self.problem.blocked_passes;
+        let passable = (stop.city || stop.town)
+            && passes < self.problem.blocked_passes + self.train.blocked_passes;
         if !self.walking.is_empty()
             && (stop.blocked && !passable
                 || (self.connections[*self.walking.last().unwrap()].last_terminal
@@ -1450,7 +1493,17 @@ impl<'a> Search<'a> {
         ) > self.memory_budget
         {
             if !self.best_only {
-                self.reclaim();
+                self.reclaim(false);
+                // Halved whatever the payload when growing would still overflow, so the floor rises
+                // and the next routes are not trimmed for nothing over and over.
+                if self.candidates.growth_peak(
+                    ids,
+                    self.selection_bytes_per_candidate,
+                    self.problem.resource_count,
+                ) > self.memory_budget
+                {
+                    self.reclaim(true);
+                }
             }
             if !self.wanted(revenue, visits) {
                 return;
@@ -1479,7 +1532,7 @@ impl<'a> Search<'a> {
         });
     }
 
-    fn reclaim(&mut self) {
+    fn reclaim(&mut self, halve: bool) {
         self.candidates.dedup(Network {
             problem: self.problem,
             connections: self.connections,
@@ -1498,7 +1551,10 @@ impl<'a> Search<'a> {
                 )
             })
             .sum();
-        if payload + Candidates::dedup_bytes(self.problem.resource_count) > self.memory_budget / 2 {
+        if halve
+            || payload + Candidates::dedup_bytes(self.problem.resource_count)
+                > self.memory_budget / 2
+        {
             let fleet_bonus = self.problem.longest_route_bonus_per_stop;
             self.candidates
                 .entries
@@ -1511,8 +1567,9 @@ impl<'a> Search<'a> {
             self.candidates.compact();
             self.limited = true;
         }
-        self.candidates
-            .shrink(self.selection_bytes_per_candidate, self.memory_budget);
+        // The halved lists keep their capacity for the routes that follow: shrinking them only to
+        // grow them again scatters freed blocks that WebAssembly's allocator cannot reuse for the
+        // next growth, which then traps at the memory maximum. The search shrinks them once, at its end.
     }
 
     // Extensions search arcs by the stretch gauge they leave on, as each continues only on track a
@@ -2294,6 +2351,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         });
     }
     let mut streamed_result = None;
+    let mut best_single = 0;
     let fleet = problem.trains.len() > 1 || problem.fleet.is_some();
     let deadline = started + problem.budget_ms;
     let path_deadline = if fleet && !streaming {
@@ -2370,6 +2428,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             .bytes(selection_bytes_per_candidate)
             .min(candidate_budget);
         counts[train_id] = search.count;
+        best_single = best_single.max(search.max_value);
         expansions += search.expansions;
         path_exhaustive &= !search.exhausted && !search.limited;
         memory_limited |= search.limited;
@@ -2445,25 +2504,50 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             (train_order[0], train_order[1])
         };
         drop(candidates);
-        let now = milliseconds();
-        let stored = network.search(
-            &problem.trains[stored_id],
-            SearchPlan {
-                deadline: now + (deadline - now).max(0.0) / 2.0,
-                memory_budget: (problem.memory_budget_bytes - compiled_bytes)
-                    .saturating_sub(network.streaming_scratch_bytes()),
-                selection_bytes_per_candidate: if problem.longest_route_bonus_per_stop == 0 {
-                    0
-                } else {
-                    std::mem::size_of::<usize>()
+        // Alike trains first store only routes well above the floor that proves the answer, as
+        // the best single routes often crowd one stretch of track and cannot pair: a better pair
+        // then raises the proving floor. The floor rises while the stored routes overflow memory
+        // and falls to half the revenue once an answer is found, which is exact there.
+        let mut floor = if alike {
+            threshold.max((threshold + best_single) / 2)
+        } else {
+            threshold
+        };
+        // The highest floor whose routes overflowed memory: no floor at or below it can be tried.
+        let mut overflowed: Option<i32> = None;
+        loop {
+            let now = milliseconds();
+            if now >= deadline {
+                break;
+            }
+            let stored = network.search(
+                &problem.trains[stored_id],
+                SearchPlan {
+                    deadline: now + (deadline - now).max(0.0) / 2.0,
+                    memory_budget: (problem.memory_budget_bytes - compiled_bytes)
+                        .saturating_sub(network.streaming_scratch_bytes()),
+                    selection_bytes_per_candidate: if problem.longest_route_bonus_per_stop == 0 {
+                        0
+                    } else {
+                        std::mem::size_of::<usize>()
+                    },
+                    best_only: false,
+                    floor: Some(floor),
+                    streaming: None,
                 },
-                best_only: false,
-                floor: Some(threshold),
-                streaming: None,
-            },
-        );
-        expansions += stored.expansions;
-        if !stored.limited && !stored.exhausted {
+            );
+            expansions += stored.expansions;
+            if stored.exhausted {
+                break;
+            }
+            if stored.limited {
+                overflowed = Some(overflowed.map_or(floor, |highest| highest.max(floor)));
+                if !alike || floor >= best_single {
+                    break;
+                }
+                floor = (floor + best_single + 1) / 2;
+                continue;
+            }
             let mut selection = StreamingSelection::new(
                 &stored.candidates,
                 network,
@@ -2483,25 +2567,34 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
                 },
             );
             expansions += streamed.expansions;
-            if !streamed.exhausted
-                && let Some(selection) = streamed.streaming
-            {
-                if selection.revenue > revenue {
-                    revenue = selection.revenue;
-                    routes = vec![];
-                    if let Some(id) = selection.best_stored {
-                        routes.push(selection.stored.route(id, stored_id, network));
-                    }
-                    if let Some(mut route) = selection.best_streamed {
-                        route.train = streamed_id;
-                        routes.push(route);
-                    }
-                    routes.sort_unstable_by_key(|route| route.train);
+            if streamed.exhausted {
+                break;
+            }
+            let Some(selection) = streamed.streaming else {
+                break;
+            };
+            if selection.revenue > revenue {
+                revenue = selection.revenue;
+                routes = vec![];
+                if let Some(id) = selection.best_stored {
+                    routes.push(selection.stored.route(id, stored_id, network));
                 }
+                if let Some(mut route) = selection.best_streamed {
+                    route.train = streamed_id;
+                    routes.push(route);
+                }
+                routes.sort_unstable_by_key(|route| route.train);
+            }
+            if !alike || floor <= revenue / 2 {
                 path_exhaustive = true;
                 combination_exhaustive = true;
                 memory_limited = false;
+                break;
             }
+            if overflowed.is_some_and(|highest| revenue / 2 <= highest) {
+                break;
+            }
+            floor = revenue / 2;
         }
     }
     Ok(Solution {
@@ -2608,7 +2701,8 @@ impl<'a> Network<'a> {
                 let stop = &problem.stops[edge.to];
                 if stop.blocked
                     && !stop.token
-                    && !((stop.city || stop.town) && problem.blocked_passes > 0)
+                    && !((stop.city || stop.town)
+                        && (problem.blocked_passes > 0 || train.blocked_passes > 0))
                 {
                     continue;
                 }
@@ -2712,6 +2806,8 @@ fn same_profile(problem: &Problem, train_id: usize) -> Option<usize> {
             && other.revenues == train.revenues
             && other.first_bonus == train.first_bonus
             && other.paying_stop_limit == train.paying_stop_limit
+            && other.uncounted == train.uncounted
+            && other.blocked_passes == train.blocked_passes
             && other.require_paying_token == train.require_paying_token
             && other.bonuses_along_route == train.bonuses_along_route
             && other.connection_bonuses == train.connection_bonuses

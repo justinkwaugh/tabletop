@@ -463,6 +463,9 @@ export class RouteEvaluation {
             : trace
         const seen = new Set<string>()
         const passableBlocks = this.rules.blockedCityPasses?.(this.state, companyId) ?? 0
+        const policy = this.rules.revenuePolicy?.(definition, this.state, companyId) ?? {}
+        // A city the train runs through on its own allowance, which pays it nothing.
+        const ownPasses = new Set<string>()
         let blockedPasses = 0
         for (const [index, visit] of trace.visits.entries()) {
             const key = JSON.stringify([visit.locationId, visit.nodeId])
@@ -475,7 +478,10 @@ export class RouteEvaluation {
                 trace.end.locationId === visit.locationId &&
                 trace.end.endpoint.nodeId === visit.nodeId
             if (index > 0 && !isEnd && this.passageBlocked(companyId, visit, visit.node)) {
-                if (visit.node.kind === 'offboard' || ++blockedPasses > passableBlocks)
+                if (visit.node.kind === 'offboard')
+                    return { reason: 'The route cannot pass through a blocked city or offboard.' }
+                if (policy.passesBlockedCity && !ownPasses.size) ownPasses.add(key)
+                else if (++blockedPasses > passableBlocks)
                     return { reason: 'The route cannot pass through a blocked city or offboard.' }
             }
         }
@@ -570,10 +576,13 @@ export class RouteEvaluation {
                 amount: this.revenue(companyId, visit, definition),
                 bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
                 ...(bonusSourceIds.length ? { bonusSourceIds } : {}),
+                ...(visit.node.uncounted ? { uncounted: true } : {}),
+                ...(ownPasses.has(JSON.stringify([visit.locationId, visit.nodeId]))
+                    ? { blockedPass: true }
+                    : {}),
                 companyStation: usesStationAt(this.state, companyId, visit.locationId, visit.nodeId)
             }
         })
-        const policy = this.rules.revenuePolicy?.(definition, this.state, companyId) ?? {}
         const extension = route.extension ? this.extension(companyId, route, definition) : undefined
         if (extension?.reason) return { reason: extension.reason }
         const shape: RouteShape = {

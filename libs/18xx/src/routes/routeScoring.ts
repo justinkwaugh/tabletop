@@ -5,6 +5,10 @@ export interface RouteRevenueStop extends RoutePayment {
     /** What earned the stop's bonus, by the ids the title names. */
     bonusSourceIds?: readonly string[]
     companyStation: boolean
+    /** Called at without counting toward the train's distance, as 18USA's rural junctions are. */
+    uncounted?: true
+    /** A tokened-out city the train runs through on its own allowance, which pays nothing. */
+    blockedPass?: true
 }
 
 export type PaidConnectionBonus = {
@@ -51,7 +55,13 @@ export type BestStopBonus = {
 }
 
 export type RouteRevenuePolicy = {
+    /** How many of the stops counting toward the train pay; stops it calls at uncounted always pay. */
     payingStopLimit?: number
+    /**
+     * The train may run through one tokened-out city, which then pays nothing, as 18USA's P19
+     * switcher treats one city as plain track.
+     */
+    passesBlockedCity?: true
     requirePayingStation?: true
     connectionBonuses?: readonly PaidConnectionBonus[]
     interconnections?: readonly Interconnection[]
@@ -211,14 +221,19 @@ export function payingRouteStops(
     policy: RouteRevenuePolicy,
     shape?: RouteShape
 ): readonly RouteRevenueStop[] {
-    const count = policy.payingStopLimit ?? visits.length
-    if (visits.length <= count) return visits
+    // The limit chooses among the stops that count toward the train; the others always pay, and a
+    // city run through on the train's own allowance never does.
+    const paying = visits.filter((stop) => !stop.blockedPass)
+    const counted = paying.filter((stop) => !stop.uncounted)
+    const count = policy.payingStopLimit ?? counted.length
+    if (counted.length <= count) return paying
     let best: readonly RouteRevenueStop[] = []
     let revenue = -1
     const requiresStation =
         policy.requirePayingStation && visits.some((stop) => stop.companyStation)
-    function select(stops: RouteRevenueStop[], start: number): void {
-        if (stops.length === count) {
+    function select(chosen: RouteRevenueStop[], start: number): void {
+        if (chosen.length === count) {
+            const stops = paying.filter((stop) => stop.uncounted || chosen.includes(stop))
             if (requiresStation && !stops.some((stop) => stop.companyStation)) return
             const route = bonusRoute(visits, stops, policy, shape)
             const value =
@@ -233,8 +248,8 @@ export function payingRouteStops(
             }
             return
         }
-        for (let i = start; i <= visits.length - (count - stops.length); i++)
-            select([...stops, visits[i]], i + 1)
+        for (let i = start; i <= counted.length - (count - chosen.length); i++)
+            select([...chosen, counted[i]], i + 1)
     }
     select([], 0)
     return best

@@ -63,3 +63,20 @@ describe('route bonuses for N/M trains', () => {
         expect(routeStopBonuses(route.stops, along, route.shape)).toEqual([])
     })
 })
+
+describe('paying stop limits', () => {
+    it('choose among the stops that count, paying uncounted ones besides and blocked passes never', () => {
+        const junction = { ...stop('junction', 10), uncounted: true as const }
+        const passed = { ...stop('passed', 90), blockedPass: true as const }
+        const run = [stop('home', 30), junction, stop('mid', 40), passed, stop('coast', 20)]
+        expect(
+            payingRouteStops(run, { payingStopLimit: 2 }).map((entry) => entry.locationId)
+        ).toEqual(['home', 'junction', 'mid'])
+        expect(payingRouteStops(run, {}).map((entry) => entry.locationId)).toEqual([
+            'home',
+            'junction',
+            'mid',
+            'coast'
+        ])
+    })
+})

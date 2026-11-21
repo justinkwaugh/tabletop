@@ -159,7 +159,8 @@ export const EighteenUSARouteRules: RouteRules = {
         const payingStopLimit = switcherPayingStops(train)
         return {
             ...greatNorthernPolicy(state, companyId),
-            ...(payingStopLimit === undefined ? {} : { payingStopLimit })
+            // P19 treats one city as plain track, which may be a tokened-out one (PR-19a).
+            ...(payingStopLimit === undefined ? {} : { payingStopLimit, passesBlockedCity: true })
         }
     },
     extendedDefinition: (state: RouteState & EighteenUSAState, companyId, train, definition) =>

@@ -213,6 +213,10 @@ export class Autorouter {
     ): AutoroutingResult {
         const { stopGroupRouteLimits: limits = {}, ...unlimited } = rules
         const evaluation = new RouteEvaluation(state, rules)
+        // A fleet no larger than every limit cannot break one, so its search has all the time.
+        const trainCount = evaluation.runnableTrains(companyId).length
+        if (Object.values(limits).every((limit) => trainCount <= limit))
+            return this.solve(state, unlimited, companyId, { timeLimitMs })
         const best = this.solve(state, unlimited, companyId, { timeLimitMs: timeLimitMs / 2 })
         const group = evaluation.overStopGroupLimit(best.result.routes)
         if (!group) return this.revalidated(evaluation, companyId, best)

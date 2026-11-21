@@ -732,3 +732,42 @@ it('matches exhaustive route enumeration on random mixed-gauge lines', () => {
         )
     }
 })
+
+it.each([
+    [false, 120],
+    [true, 140]
+])(
+    'runs a switched train through one blocked city unpaid, paying an uncounted junction beside its limit (switched %s)',
+    (switched, expected) => {
+        const junction = city('yellow', [3, 0], 10, 0)
+        const uncounted: TileFace = {
+            ...junction,
+            nodes: junction.nodes.map((node) => ({ ...node, uncounted: true }))
+        }
+        const { state, rules } = position(
+            [
+                city('yellow', [0], 20, 1),
+                uncounted,
+                city('yellow', [3, 0], 90, 1),
+                city('yellow', [3, 0], 40, 1),
+                city('yellow', [3], 70, 1)
+            ],
+            [{ measure: 'revenue-centers', maximum: 4 }],
+            {},
+            {
+                revenuePolicy: () =>
+                    switched ? { payingStopLimit: 3, passesBlockedCity: true } : {}
+            }
+        )
+        state.stations.push({
+            id: 'rival',
+            companyId: 'B',
+            status: 'placed',
+            position: { locationId: '2', nodeId: 'city', slot: 0 }
+        })
+        const result = router.solve(state, rules, 'A')
+        expect(result.exhaustive).toBe(true)
+        expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+        expect(result.result.revenue).toBe(expected)
+    }
+)

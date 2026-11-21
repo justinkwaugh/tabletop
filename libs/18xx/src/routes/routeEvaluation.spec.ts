@@ -805,3 +805,29 @@ it('forbids re-entering only the hexes the rules name', () => {
         'enter a hex again'
     )
 })
+
+it('lets a train run through one blocked city on its own allowance, which pays it nothing', () => {
+    const { route, state, rules } = fixture(
+        [
+            city('yellow', [0], 20, 1),
+            city('yellow', [3, 0], 30, 1),
+            city('yellow', [3, 0], 40, 1),
+            city('yellow', [3], 50, 1)
+        ],
+        { measure: 'revenue-centers', maximum: 4 }
+    )
+    const rival = (locationId: string) => ({
+        id: `rival-${locationId}`,
+        companyId: 'B',
+        status: 'placed' as const,
+        position: { locationId, nodeId: 'city', slot: 0 }
+    })
+    state.stations.push(rival('1'))
+    expect(new RouteEvaluation(state, rules).evaluateRoute('A', route).reason).toContain('blocked')
+    rules.revenuePolicy = () => ({ payingStopLimit: 3, passesBlockedCity: true })
+    const result = new RouteEvaluation(state, rules).evaluateRoute('A', route).result!
+    expect(result.payments.map((payment) => payment.locationId)).toEqual(['0', '2', '3'])
+    expect(result.revenue).toBe(110)
+    state.stations.push(rival('2'))
+    expect(new RouteEvaluation(state, rules).evaluateRoute('A', route).reason).toContain('blocked')
+})
