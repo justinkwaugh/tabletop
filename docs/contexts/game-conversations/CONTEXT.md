@@ -51,3 +51,10 @@ _Avoid_: Checksum
 
 **Conversation Reconciliation**:
 Replacement or completion of client Conversation state from canonical Conversation History after initial load, reconnect, delivery discontinuity, or Conversation Revision mismatch.
+
+## Shared variations (proposed)
+
+Proposed in [Variations and Conditional Moves](../../variations-and-conditional-moves.md); not yet built.
+
+**Shared Variation**:
+A Variation Tree attached to a Conversation Message as Actions anchored to one position in the Game's Canonical Action History, without Game State. It is stale once Undo removes that position.
