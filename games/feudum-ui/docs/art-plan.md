@@ -8,7 +8,7 @@ The drawn forms in this plan are our own work and are the fallback for every sup
 
 ## Palette
 
-Colours are CSS custom properties declared once in `src/app.css` under `[data-game-ui="feudum"]` and exposed as utilities. Components use these tokens and never a raw colour. `palette.spec.ts` fails on a raw colour anywhere else in the package and on a token that is used but not declared.
+Colours are CSS custom properties declared once in `src/app.css` under `[data-game-ui="feudum"]` and exposed as utilities. Components use these tokens and never a raw colour. Every browser scenario fails on a raw colour, an undeclared token or a token utility with no rule in what the title draws on the page.
 
 The table keeps its dusk look in both site themes, so most Light and Dark values are equal; the site's own chrome around the title follows the theme. The one that differs, `surface`, does so because it is translucent over the page.
 
@@ -271,7 +271,8 @@ Where this plan adds to `ui-interaction-visual-contract.md`:
 
 ## Specs that guard it
 
-- `palette.spec.ts`: every colour is a declared token and every used token is declared; the declared set equals the contract's table and this one, with this plan's values; the seat colours under both colorizers are mutually distinct and clear of `danger` (yellow against `accent` allow-listed), with ink at 4.5:1.
+- `palette.spec.ts`: every good, location and region has its token in this table; the seat colours under both colorizers are mutually distinct and clear of `danger` (yellow against `accent` allow-listed), with ink at 4.5:1.
+- `scenariosPalette.spec.ts` and every browser scenario: the title's root declares exactly this table's tokens, at its Light and Dark values; what the title draws names no raw colour other than a seat colour the colourizer gives, no undeclared token and no token utility without a rule, and puts no `aria-label` on an element that takes no name.
 - `imageCoverage.spec.ts`: every id in the asset map, present or not, has a component, a labelled fallback and a file slot; the folder holds no file the map doesn't know; the cover's size, format and budget.
 - `definitions/entry.spec.ts`: the UI entry reaches only the title info and the cover.
 - `emptyArt.spec.ts`: with the folder empty, the state of every commit before the art lands, every id falls back and the catalog gets no cover: its thumbnail is the empty string.

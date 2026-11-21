@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { expect } from '@playwright/test'
 import { Routes, ScoreTrack, Spaces } from '@tabletop/feudum'
+import { plannedPalette } from '../src/lib/testing/artPlanPalette.js'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
 
 /**
@@ -8,6 +10,47 @@ import { scenario, type ScenarioTable } from './scenarioTable.js'
  */
 
 const Desert5 = 'space:space.desert.5'
+
+const planned = plannedPalette(
+    readFileSync(new URL('../docs/art-plan.md', import.meta.url), 'utf8')
+)
+
+/** The colour tokens the title's table sees on the page, by name: the site's dark theme overrides them inside the title's root. */
+function declaredOnPage(table: ScenarioTable): Promise<Record<string, string>> {
+    return table.page.evaluate(() => {
+        const root = document.querySelector('[data-game-ui="feudum"] .feudum-table')
+        if (!root) {
+            return {}
+        }
+        const style = getComputedStyle(root)
+        return Object.fromEntries(
+            [...style]
+                .filter(
+                    (name) => name.startsWith('--feudum-') && !name.startsWith('--feudum-font-')
+                )
+                .map((name) => [name.slice(2), style.getPropertyValue(name).trim().toLowerCase()])
+        )
+    })
+}
+
+scenario(
+    "S71 Palette: the title's root declares the art plan's colour tokens, each at its value in both site themes",
+    'move-ferry',
+    async (table) => {
+        const plan = (theme: 'light' | 'dark') =>
+            Object.fromEntries(planned.map((row) => [row.token, row[theme]]))
+        const theme = (dark: boolean) =>
+            table.page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark)
+        const wasDark = await table.page.evaluate(() =>
+            document.documentElement.classList.contains('dark')
+        )
+        await theme(false)
+        expect(await declaredOnPage(table)).toEqual(plan('light'))
+        await theme(true)
+        expect(await declaredOnPage(table)).toEqual(plan('dark'))
+        await theme(wasDark)
+    }
+)
 
 const attributes = (table: ScenarioTable, selector: string, name: string) =>
     table.page

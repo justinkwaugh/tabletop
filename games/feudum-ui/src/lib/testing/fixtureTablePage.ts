@@ -3,6 +3,7 @@ import { dev } from '$app/environment'
 import GameTable from '$lib/components/GameTable.svelte'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { fixtureNamed, forfeitRound } from './fixtures.js'
+import { tableMarkupProblems } from './renderedMarkup.js'
 import { settled, type FeudumHost } from './sessionHarness.js'
 
 export interface FixturePage {
@@ -12,6 +13,8 @@ export interface FixturePage {
     settled(): Promise<void>
     /** R-3.2 Every seat plays out its cards by forfeit, and the round ends by the real roll. */
     forfeitRound(): Promise<void>
+    /** Contract, Palette and S71: what the shown table's own markup breaks. */
+    markupProblems(): string[]
 }
 
 /** Served by the dev server alone: no route and no other file of the package imports it. */
@@ -52,7 +55,8 @@ export async function openFixture(name: string): Promise<void> {
                 await settled(showing)
             }
         },
-        forfeitRound: () => forfeitRound(host)
+        forfeitRound: () => forfeitRound(host),
+        markupProblems: () => (showing ? tableMarkupProblems(target, showing.colors) : [])
     }
     Object.assign(window, { feudumFixture: page })
 }

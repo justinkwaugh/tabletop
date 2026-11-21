@@ -445,6 +445,11 @@ function guildSideOf(target: string): 'west' | 'east' | undefined {
     return ['alchemist', 'merchant', 'farmer'].includes(guild ?? '') ? 'west' : 'east'
 }
 
+/** Contract, Palette and S71: what the title's own markup on the page breaks, read from the rendered DOM. */
+export function markupProblems(page: Page): Promise<string[]> {
+    return page.evaluate(() => window.feudumFixture.markupProblems())
+}
+
 /** Opens a named fixture on the page. A name that is no fixture throws here, with the loader's words. */
 export async function openFixture(page: Page, name: string): Promise<void> {
     await page.goto('/')
@@ -509,6 +514,7 @@ export function scenario(
                 )
                 const windowErrors = await page.locator('html').getAttribute('data-window-errors')
                 expect([...problems, ...(windowErrors ? [windowErrors] : [])]).toEqual([])
+                expect(await markupProblems(page)).toEqual([])
             })
         })
     }
