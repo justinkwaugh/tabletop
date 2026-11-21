@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { flushSync } from 'svelte'
 import {
     ActionSource,
@@ -136,10 +136,11 @@ afterEach(() => {
 })
 
 let current: ZertzGameSession
+let saving: MockInstance
 
 async function sessionFor({ game, state, actions }: ReturnType<typeof prepared>) {
     const app = createHarnessAppContext(definition)
-    vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
+    saving = vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
     const bridgedContext = new BridgedContext({
         authorizationService: app.authorizationService,
         gameService: app.gameService,
@@ -345,5 +346,24 @@ describe('Stepping through history', () => {
             color: MarbleColor.Black
         })
         expect(session.undoneAction({ actionCount: 0 })).toMatchObject({ playerId: FIRST })
+    })
+})
+
+describe('The auto-jump chip', () => {
+    it('says what the game now holds once the declaration lands', async () => {
+        const session = await sessionFor(prepared())
+        const on = await session.toggleAutoJump()
+        await settled(Promise.resolve())
+        expect(on).toBe(true)
+        expect(session.autoJump).toBe(true)
+    })
+
+    it('says nothing when the declaration fails and the game is put back', async () => {
+        const session = await sessionFor(prepared())
+        saving.mockRejectedValueOnce(new Error('Saving failed'))
+        const on = await session.toggleAutoJump()
+        await settled(Promise.resolve())
+        expect(on).toBeUndefined()
+        expect(session.autoJump).toBe(false)
     })
 })

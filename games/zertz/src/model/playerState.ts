@@ -8,7 +8,9 @@ export const ZertzPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,
         Type.Object({
-            captured: MarbleCounts
+            captured: MarbleCounts,
+            // Jumps with only one choice are made for the player at once.
+            autoJump: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -22,6 +24,7 @@ export class HydratedZertzPlayerState
     declare playerId: string
     declare color: Color
     declare captured: MarbleCounts
+    declare autoJump?: boolean
 
     constructor(data: ZertzPlayerState) {
         super(data, ZertzPlayerStateValidator)

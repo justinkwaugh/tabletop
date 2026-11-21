@@ -8,6 +8,7 @@ export * from './definition/states.js'
 
 export * from './actions/placeMarble.js'
 export * from './actions/capture.js'
+export * from './actions/setAutoJump.js'
 
 export * from './model/board.js'
 export * from './model/gameState.js'

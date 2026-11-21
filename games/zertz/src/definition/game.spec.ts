@@ -257,7 +257,10 @@ describe('captures', () => {
             start(game),
             line(4, { 0: MarbleColor.White, 1: MarbleColor.Black })
         )
-        expect(engine.getValidActionTypesForPlayer(game, state, 'p0')).toEqual([ActionType.Capture])
+        expect(engine.getValidActionTypesForPlayer(game, state, 'p0')).toEqual([
+            ActionType.Capture,
+            ActionType.SetAutoJump
+        ])
         expect(() => place(game, state, 'p0', MarbleColor.Grey, { q: 3, r: 0 })).toThrow()
 
         const after = capture(game, state, 'p0', { q: 0, r: 0 }, { q: 2, r: 0 })

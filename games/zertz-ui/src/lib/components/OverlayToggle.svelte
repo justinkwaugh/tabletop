@@ -6,6 +6,7 @@
         label,
         hint,
         pressed,
+        disabled = false,
         onToggle,
         children
     }: {
@@ -13,6 +14,7 @@
         label: string
         hint: string
         pressed: boolean
+        disabled?: boolean
         onToggle: () => void
         children?: Snippet
     } = $props()
@@ -24,6 +26,7 @@
     aria-pressed={pressed}
     title={hint}
     aria-label={label}
+    {disabled}
     onclick={onToggle}
 >
     <span class="glyph"
@@ -67,6 +70,10 @@
         stroke-linejoin: round;
     }
 
+    .glyph :global(.dot) {
+        fill: currentColor;
+    }
+
     .toggle[aria-pressed='true'] {
         color: var(--zertz-ink);
         box-shadow:
@@ -74,9 +81,13 @@
             var(--zertz-panel-shadow);
     }
 
+    .toggle:disabled {
+        opacity: 0.5;
+    }
+
     /* Only where a pointer really hovers: on touch, a tap would leave the hover stuck on. */
     @media (hover: hover) {
-        .toggle:hover {
+        .toggle:hover:enabled {
             background: var(--zertz-panel-hover);
         }
     }
