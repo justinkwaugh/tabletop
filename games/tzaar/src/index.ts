@@ -10,6 +10,7 @@ export * from './actions/placePiece.js'
 export * from './actions/capture.js'
 export * from './actions/stack.js'
 export * from './actions/pass.js'
+export * from './actions/chooseColor.js'
 
 export * from './model/board.js'
 export * from './model/gameState.js'

@@ -1,6 +1,6 @@
 # TZAAR scenarios
 
-The dev harness lists these under **Scenarios**. Alice (White) makes the first capture of her turn in each; loading one again starts it over. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/tzaar`; the games start from a fixed master seed, so the boards come out the same each time. `src/lib/model/scenarioFiles.spec.ts` plays each claim below through the engine.
+The dev harness lists these under **Scenarios**. Alice (White) makes the first capture of her turn in each but the two I set, you choose positions; loading one again starts it over. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/tzaar`; the games start from a fixed master seed, so the boards come out the same each time. `src/lib/model/scenarioFiles.spec.ts` plays each claim below through the engine.
 
 - **Midgame.** A board reached by seeded play from a random start, with stacks of several heights. Tap a white-topped stack to see what it can capture, tap a dashed rim to capture it, then capture again, stack onto your own, or Pass.
 - **Two Tzaars left.** Bob has two Tzaars on top, D2 and F2, and a third buried under a Tott on G3, which does not count. Capture D1 onto D2: the game goes on. Then capture F1 onto F2 with the second move: Bob has no Tzaar left on top, and Alice wins at once.
@@ -16,3 +16,5 @@ The dev harness lists these under **Scenarios**. Alice (White) makes the first c
 - **Tall stack on E8.** For whole stacks (Stack limit off): capture E7 onto E8 with a stack of 12, then stack D8 onto E8, making 18 on the board's top point. Each move stands the stack out of the frame, so the board shrinks to keep it in view; take them back and it grows again.
 - **Tall stack on E1.** The same at the other end of column E, the top point seen from the far side: capture E2 onto E1, then stack D1 onto E1.
 - **Tall stack on A2.** The same on the rotated board's top row: capture B3 onto A2, then stack A3 onto A2.
+- **Setting the board.** I set, you choose, with two spaces left: Alice sets the board for both colours. The banner asks her to place a white piece, its type buttons in white with the counts White has left, then a black one. Once the board is full the turn passes to Bob, who takes a colour.
+- **Choosing a colour.** I set, you choose: Bob has set the whole board and Alice takes a colour, from the two buttons in the banner. Take White: the white pieces become hers and she makes the opening capture. Take Black: Bob, White, opens. Either way the history says which colour she took.

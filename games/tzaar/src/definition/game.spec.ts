@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assert, Color, GameResult, type GameAction } from '@tabletop/common'
 import { TzaarRuntime } from './runtime.js'
-import { TzaarVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
+import { TzaarVersion, versionFromConfig, FirstPlayer, firstPlayerFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { HydratedTzaarGameState, type TzaarGameState } from '../model/gameState.js'
@@ -179,14 +179,14 @@ describe('setups', () => {
     it('gives White to the game creator or the opponent when chosen', () => {
         const owner = { ownerId: 'u-black', userIds: { [W]: 'u-white', [B]: 'u-black' } }
         const creatorWhite = startUnassigned(
-            createGame({ whitePlayer: WhitePlayer.Creator }, owner)
+            createGame({ whitePlayer: FirstPlayer.Creator }, owner)
         )
         const whiteOf = (state: TzaarGameState) =>
             state.players.find((player) => player.color === Color.White)?.playerId
         expect(whiteOf(creatorWhite)).toBe(B)
         expect(creatorWhite.activePlayerIds).toEqual([B])
         const opponentWhite = startUnassigned(
-            createGame({ whitePlayer: WhitePlayer.Opponent }, owner)
+            createGame({ whitePlayer: FirstPlayer.Opponent }, owner)
         )
         expect(whiteOf(opponentWhite)).toBe(W)
     })
@@ -222,6 +222,104 @@ describe('tournament placement', () => {
         })
         expect(state.machineState).toBe(MachineState.Capturing)
         expect(state.activePlayerIds).toEqual([W])
+    })
+})
+
+describe('I set, you choose', () => {
+    const game = createGame({ version: TzaarVersion.ISetYouChoose })
+    const kit = PIECE_KINDS.flatMap((kind) =>
+        Array.from({ length: PIECES_OF_KIND[kind] }, () => kind)
+    )
+
+    function setBoard(): { state: TzaarGameState; placed: PlacePiece[] } {
+        let state = start(game)
+        const placed: PlacePiece[] = []
+        SPACES.forEach((coords, index) => {
+            expect(state.machineState).toBe(MachineState.PlacingPieces)
+            expect(state.activePlayerIds).toEqual([W])
+            const action = placeAction(game, W, spaceName(coords), kit[Math.floor(index / 2)])
+            const done = processed(game, state, action)
+            assert(isPlacePiece(done), 'The placement is processed')
+            placed.push(done)
+            state = execute(game, state, action)
+        })
+        return { state, placed }
+    }
+
+    const chooseAction = (color: Color.White | Color.Black) => ({
+        ...base(game, B),
+        type: ActionType.ChooseColor,
+        color
+    })
+
+    const colorOf = (state: TzaarGameState, playerId: string) =>
+        state.players.find((player) => player.playerId === playerId)?.color
+
+    it('has the first player place every piece, White and Black in turn', () => {
+        const { state, placed } = setBoard()
+        expect(placed.map((action) => action.metadata?.color).slice(0, 4)).toEqual([
+            Color.White,
+            Color.Black,
+            Color.White,
+            Color.Black
+        ])
+        const hydrated = new HydratedTzaarGameState(state)
+        for (const playerId of [W, B]) {
+            expect(PIECE_KINDS.map((kind) => hydrated.board.topsOf(playerId, kind))).toEqual([
+                6, 9, 15
+            ])
+        }
+        expect(() =>
+            execute(game, start(game), placeAction(game, B, 'E4', PieceKind.Tott))
+        ).toThrow()
+        expect(state.machineState).toBe(MachineState.ChoosingColor)
+        expect(state.activePlayerIds).toEqual([B])
+        expect(engine.getValidActionTypesForPlayer(game, state, B)).toEqual([
+            ActionType.ChooseColor
+        ])
+    })
+
+    it('refuses a type the colour being placed has no more of', () => {
+        let state = start(game)
+        SPACES.slice(0, 12).forEach((coords) => {
+            state = execute(game, state, placeAction(game, W, spaceName(coords), PieceKind.Tzaar))
+        })
+        const next = spaceName(SPACES[12])
+        expect(() => execute(game, state, placeAction(game, W, next, PieceKind.Tzaar))).toThrow()
+    })
+
+    it('keeps everything as set when the other player takes Black, and White opens', () => {
+        const { state: set } = setBoard()
+        const state = execute(game, set, chooseAction(Color.Black))
+        expect(state.board).toEqual(set.board)
+        expect(state.machineState).toBe(MachineState.Capturing)
+        expect(state.activePlayerIds).toEqual([W])
+    })
+
+    it('hands over the white pieces when the other player takes White, who opens', () => {
+        const { state: set } = setBoard()
+        const state = execute(game, set, chooseAction(Color.White))
+        expect(colorOf(state, B)).toBe(Color.White)
+        expect(colorOf(state, W)).toBe(Color.Black)
+        const owners = (board: TzaarGameState) =>
+            board.board.stacks.map((stack) => stack.pieces[0].playerId)
+        expect(owners(state)).toEqual(owners(set).map((owner) => (owner === W ? B : W)))
+        expect(state.machineState).toBe(MachineState.Capturing)
+        expect(state.activePlayerIds).toEqual([B])
+        const opening = new HydratedTzaarGameState(state).captures(B)[0]
+        const capture = captureAction(game, B, spaceName(opening.from), spaceName(opening.to))
+        const action = processed(game, state, capture)
+        assert(isCapture(action), 'The capture is processed')
+        expect(action.metadata).toMatchObject({ opening: true })
+        expect(execute(game, state, capture).activePlayerIds).toEqual([W])
+    })
+
+    it('lets only the other player choose, and only once the board is set', () => {
+        const { state: set } = setBoard()
+        expect(() => execute(game, set, { ...chooseAction(Color.White), playerId: W })).toThrow()
+        expect(() => execute(game, start(game), chooseAction(Color.White))).toThrow()
+        const chosen = execute(game, set, chooseAction(Color.White))
+        expect(() => execute(game, chosen, chooseAction(Color.Black))).toThrow()
     })
 })
 
@@ -457,9 +555,9 @@ describe('setup options', () => {
     it('draws White by lot when Random, and when the creator does not play', () => {
         const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
         for (const [config, owner] of [
-            [{ whitePlayer: WhitePlayer.Random }, undefined],
-            [{ whitePlayer: WhitePlayer.Creator }, outsider],
-            [{ whitePlayer: WhitePlayer.Opponent }, outsider]
+            [{ whitePlayer: FirstPlayer.Random }, undefined],
+            [{ whitePlayer: FirstPlayer.Creator }, outsider],
+            [{ whitePlayer: FirstPlayer.Opponent }, outsider]
         ] as const) {
             const whites = new Set(
                 [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
@@ -476,12 +574,12 @@ describe('setup options', () => {
         const local = { ownerId: 'u-local', userIds: { [W]: 'u-local', [B]: 'u-local' } }
         for (const seed of [1, 2, 3, 4]) {
             const creator = startUnassigned(
-                createGame({ whitePlayer: WhitePlayer.Creator }, local),
+                createGame({ whitePlayer: FirstPlayer.Creator }, local),
                 masterSeed(seed)
             )
             expect(whiteOf(creator)).toBe(W)
             const opponent = startUnassigned(
-                createGame({ whitePlayer: WhitePlayer.Opponent }, local),
+                createGame({ whitePlayer: FirstPlayer.Opponent }, local),
                 masterSeed(seed)
             )
             expect(whiteOf(opponent)).toBe(B)
@@ -490,9 +588,9 @@ describe('setup options', () => {
 
     it('reads a missing option as its default and rejects an unknown one', () => {
         expect(versionFromConfig({})).toBe(TzaarVersion.Random)
-        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+        expect(firstPlayerFromConfig({})).toBe(FirstPlayer.Random)
         expect(() => versionFromConfig({ version: 'Bogus' })).toThrow()
-        expect(() => whitePlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
+        expect(() => firstPlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
     })
 
     it('spreads the same random start from the same master seed', () => {
