@@ -7,7 +7,7 @@ import {
 import { EighteenSeventeenCorporations } from './corporations.js'
 import { EighteenSeventeenMap } from './map.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
-import { MarketPoolId } from './roundRules.js'
+import { MarketPoolId } from './marketZones.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenTrainDepot } from './trains.js'
 

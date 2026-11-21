@@ -4,6 +4,7 @@ import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, getCompany } from '../finance/finance.js'
 import { StockMarketMove, type StockMarketChart } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
+import { nextOperatingCompany, type OperatingSet } from '../operating/operatingSet.js'
 
 export const LoanStep = Type.Object(
     {
@@ -34,8 +35,11 @@ export const LoanFields = {
     turnLoans: Type.Optional(TurnLoans),
     turnInterest: Type.Optional(TurnInterest)
 }
-/** The company's run, where a title's interest falls due after it. */
-type RunState = { routeStep?: { result?: { companyId: string } } }
+/** The company's run, where a title's interest falls due after it, and the round's turns. */
+type RunState = {
+    routeStep?: { result?: { companyId: string } }
+    operatingSet?: OperatingSet
+}
 export type LoanState = StockState & RunState & Type.Static<Type.TObject<typeof LoanFields>>
 
 export type LoanMarketMove = { direction: string; steps: number }
@@ -68,28 +72,53 @@ export const InterestDefault = Type.Object(
 export type InterestDefault = Type.Static<typeof InterestDefault>
 
 /**
- * A printed interest table: its rows lend ``loansPerRow`` loans each, in order, at the rows'
- * ``rates``, and the rate is the row the loans outstanding have reached (1817).
+ * A printed interest table: its rows lend ``loansPerRow`` loans each, or each row its own number,
+ * in order, at the rows' ``rates``, and the rate is the row the loans outstanding have reached
+ * (1817; 18USA's mat for five or more players lends four at 5% and six on every other row).
  */
-export type LoanRateTable = { loansPerRow: number; rates: readonly number[] }
+export type LoanRateTable = { loansPerRow: number | readonly number[]; rates: readonly number[] }
+
+/** A title's printed table that depends on the game, as the side of 18USA's mat by player count. */
+export type LoanRateTables = { tableFor(state: LoanState): LoanRateTable }
+
+/** The loans the table's row lends. */
+export function loanRateTableRowLoans(table: LoanRateTable, row: number): number {
+    return typeof table.loansPerRow === 'number' ? table.loansPerRow : table.loansPerRow[row]
+}
+
+/** The loans the rows before this one lend. */
+export function loanRateTableRowStart(table: LoanRateTable, row: number): number {
+    let start = 0
+    for (let earlier = 0; earlier < row; earlier++) start += loanRateTableRowLoans(table, earlier)
+    return start
+}
 
 /** The table's row the loans outstanding have reached; its first row before any are taken. */
 export function loanRateTableRow(table: LoanRateTable, outstanding: number): number {
-    return Math.min(
-        table.rates.length - 1,
-        Math.max(0, Math.ceil(outstanding / table.loansPerRow) - 1)
+    let row = 0
+    while (
+        row < table.rates.length - 1 &&
+        outstanding > loanRateTableRowStart(table, row) + loanRateTableRowLoans(table, row)
     )
+        row++
+    return row
 }
 
 export function loanRateTableRate(table: LoanRateTable, outstanding: number): number {
     return table.rates[loanRateTableRow(table, outstanding)]
 }
 
+/** The printed table the rate follows, where it follows one. */
+export function loanRateTable(state: LoanState, rules: LoanRules): LoanRateTable | undefined {
+    if (typeof rules.rate === 'function') return undefined
+    return 'tableFor' in rules.rate ? rules.rate.tableFor(state) : rules.rate
+}
+
 /** The percentage rate the operating round about to start would fix. */
 export function loanRate(state: LoanState, rules: LoanRules): number {
-    return typeof rules.rate === 'function'
-        ? rules.rate(state)
-        : loanRateTableRate(rules.rate, loansOutstanding(state))
+    if (typeof rules.rate === 'function') return rules.rate(state)
+    const table = 'tableFor' in rules.rate ? rules.rate.tableFor(state) : rules.rate
+    return loanRateTableRate(table, loansOutstanding(state))
 }
 
 export interface LoanRules {
@@ -107,7 +136,7 @@ export interface LoanRules {
      * The percentage rate fixed for the operating round about to start, or the printed table it
      * follows, where it rises with the loans outstanding (1817).
      */
-    rate: ((state: LoanState) => number) | LoanRateTable
+    rate: ((state: LoanState) => number) | LoanRateTable | LoanRateTables
     takeMove?: LoanMarketMove
     repayMove?: LoanMarketMove
     /** The title's consequence when a company cannot pay interest after borrowing all it can. */
@@ -140,6 +169,11 @@ export interface LoanRules {
     interestBeforeEarnings?: true
     /** The most loans a company takes in one operating turn, as 1856's one. */
     loansPerTurn?: number
+    /**
+     * A company repays no loan in an operating turn in which it took one, and takes none once
+     * its interest is paid (18USA §12.8–§12.9).
+     */
+    noRepaymentAfterBorrowing?: true
 }
 
 export function companyLoans(state: LoanState, companyId: string): number {
@@ -191,6 +225,11 @@ function interestOnTaking(state: LoanState, rules: LoanRules, companyId: string)
     )
 }
 
+/** Whether the company has borrowed in its operating turn under way. */
+export function borrowedThisTurn(state: LoanState, companyId: string): boolean {
+    return state.turnLoans?.companyId === companyId
+}
+
 export function repayLoanReason(
     state: LoanState,
     rules: LoanRules,
@@ -221,7 +260,11 @@ export function takeLoan(state: LoanState, rules: LoanRules, companyId: string):
         rules.takeMove
     )
     const charged = interestOnTaking(state, rules, companyId)
-    if (charged || rules.loansPerTurn !== undefined)
+    if (
+        charged ||
+        rules.loansPerTurn !== undefined ||
+        (rules.noRepaymentAfterBorrowing && nextOperatingCompany(state) === companyId)
+    )
         state.turnLoans =
             state.turnLoans?.companyId === companyId
                 ? { companyId, loans: state.turnLoans.loans + 1 }

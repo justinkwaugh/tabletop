@@ -42,6 +42,7 @@
         zones = [],
         ledge,
         cell = DefaultMarketCell,
+        wraps = [],
         markers = [],
         renderScale = 1
     }: {
@@ -53,31 +54,46 @@
         zones?: readonly MarketZone[]
         ledge?: MarketLedge
         cell?: MarketCellDimensions
+        /** The columns that start a new line, each line drawn below the last. */
+        wraps?: readonly number[]
         /** The title's markers, each hung as a tab under its space. */
         markers?: readonly MarketMarker[]
         renderScale?: number
     } = $props()
     // Below this width a three-digit price at full size reaches the space's right edge.
     const NarrowCellWidth = 34
-    const geometry = $derived(marketGeometry(chart, cell, zones))
-    // Each gap is a grid track of its own, so a column's track counts the gaps before it.
+    const geometry = $derived(
+        marketGeometry(chart, cell, zones, { wraps, tabs: markers.length > 0 })
+    )
+    const lines = $derived(
+        geometry.lineTops.map((top, line) => ({
+            line,
+            columns: geometry.columnLines.flatMap((columnLine, column) =>
+                columnLine === line ? [column] : []
+            )
+        }))
+    )
+    // Each gap is a grid track of its own, so a column's track counts the gaps before it in its line.
     const columnTracks = $derived(
-        geometry.gapBefore.map(
-            (_, column) => column + geometry.gapBefore.slice(0, column + 1).filter(Boolean).length
-        )
+        geometry.gapBefore.map((_, column) => {
+            const first = geometry.columnLines.indexOf(geometry.columnLines[column])
+            return (
+                column - first + geometry.gapBefore.slice(first, column + 1).filter(Boolean).length
+            )
+        })
     )
     const step = $derived(cell.step ?? cell.width)
     const span = $derived(Math.round(cell.width / step))
-    const gridColumns = $derived(
-        [
-            ...geometry.gapBefore.map((gap) =>
-                gap
+    function gridColumns(columns: readonly number[]): string {
+        return [
+            ...columns.map((column) =>
+                geometry.gapBefore[column]
                     ? `${MarketZoneGap * renderScale}px ${step * renderScale}px`
                     : `${step * renderScale}px`
             ),
             ...Array.from({ length: span - 1 }, () => `${step * renderScale}px`)
         ].join(' ')
-    )
+    }
     const spaceColumns = $derived(new Map(chart.spaces.map((space) => [space.id, space.column])))
     // An edge arrow marks a sideways move that jumps away, such as up at a row's end.
     function leavesRow(space: StockMarketSpace, move: 'left' | 'right'): boolean {
@@ -85,11 +101,12 @@
         const column = target === undefined ? undefined : spaceColumns.get(target)
         return column === undefined || Math.abs(column - space.column) !== 1
     }
-    const banners = $derived(
-        zones.flatMap((zone) => {
+    // A zone wrapped onto two lines has a banner on each.
+    function lineBanners(columns: readonly number[]) {
+        return zones.flatMap((zone) => {
             const { color, banner } = zone
             const zoneColumns = chart.spaces
-                .filter((space) => space.color === color)
+                .filter((space) => space.color === color && columns.includes(space.column))
                 .map((space) => space.column)
             return banner && zoneColumns.length
                 ? [
@@ -103,7 +120,7 @@
                   ]
                 : []
         })
-    )
+    }
     let tokens = $derived(marketTokenLayout(chart, market, geometry))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
@@ -238,99 +255,135 @@
     style:--render-scale={renderScale}
     style:padding={`${MarketScenePadding * renderScale}px`}
 >
-    {#if banners.length}<div
-            class="banners"
-            class:narrow={cell.width < NarrowCellWidth}
-            style:grid-template-columns={gridColumns}
-            style:height={`${MarketZoneBannerHeight * renderScale}px`}
-        >
-            {#each banners as banner (banner.color)}<div
-                    class="banner market-zone-tint"
-                    class:arrow={banner.shape === 'arrow'}
-                    style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 1 + span}`}
-                    style:--market-color={banner.zoneColor}
-                    style:--market-lightness={marketDarkLightness[banner.color]}
-                >
-                    {#if banner.shape === 'span'}<span class="banner-tick"></span><span
-                            class="banner-line"
-                        ></span>{/if}<span>{banner.label}</span><span
-                        class="banner-line"
-                        class:arrow-shaft={banner.shape === 'arrow'}
-                    ></span>{#if banner.shape === 'arrow'}<svg
-                            class="banner-head"
-                            viewBox="0 0 12 12"
-                            aria-hidden="true"><path d="M0 0L12 6L0 12L3 6Z"></path></svg
-                        >{:else}<span class="banner-tick"></span>{/if}
-                </div>{/each}
-        </div>{/if}
     <div
-        class="grid"
-        class:narrow={cell.width < NarrowCellWidth}
+        class="field"
         role="group"
         aria-label="Market spaces"
         onpointerleave={() => (hoveredSpace = undefined)}
-        style:grid-template-columns={gridColumns}
-        style:grid-template-rows={`repeat(${geometry.rows}, ${cell.height * renderScale}px)`}
     >
-        {#each chart.spaces as space (space.id)}
-            {@const crowded = tokens.some(
-                (token) => token.spaceId === space.id && token.overlapped
+        {#each lines as { line, columns } (line)}
+            {@const banners = lineBanners(columns)}
+            {@const lineMarkers = markers.filter((marker) =>
+                columns.includes(chart.space(marker.spaceId).column)
             )}
-            {@const tinted = space.color !== 'white'}
-            {@const zone = marketZone(zones, space.color)}
-            {@const fillKind = zone?.fill?.kind}
-            <div
-                class="space"
-                class:market-zone-tint={tinted || fillKind}
-                class:tinted={tinted && !fillKind}
-                class:solid={fillKind === 'solid'}
-                class:recessed={fillKind === 'recessed'}
-                role="button"
-                tabindex={crowded ? 0 : -1}
-                aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
-                title={zone ? marketZoneTitle(zone) : undefined}
-                data-market-space={space.id}
-                style:grid-column={`${columnTracks[space.column] + 1} / span ${span}`}
-                style:grid-row={space.row + 1}
-                style:--market-color={tinted || fillKind
-                    ? marketSpaceColor(space.color, zone)
-                    : undefined}
-                style:--market-lightness={marketDarkLightness[space.color]}
-                style:--price-ink={marketSolidInk(zone)}
-                onpointerenter={() => expandStack(space.id)}
-                onfocus={() => expandStack(space.id)}
-                onblur={() => (hoveredSpace = undefined)}
-                onclick={() => expandStack(space.id)}
-                onkeydown={(event) => {
-                    if (event.key === 'Escape') hoveredSpace = undefined
-                    else if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        expandStack(space.id)
-                    }
-                }}
-            >
-                <strong>{space.price}</strong>
-                {#if zone?.label}<span class="zone-label" aria-hidden="true">{zone.label}</span
-                    >{/if}
-                {#if zone?.marks}<span class="marks" aria-hidden="true"
-                        >{#each zone.marks as mark (mark)}<span>{mark}</span>{/each}</span
-                    >{/if}
-                {#each ledge?.edges.filter((edge) => edge.spaceId === space.id) ?? [] as edge (edge.side)}<span
-                        class="ledge {edge.side}"
-                        aria-hidden="true"
-                    ></span>{/each}
-                {#if space.moves.up && leavesRow(space, 'right')}<svg
-                        class="edge-arrow right"
-                        viewBox="0 0 10 32"
-                        role="img"
-                        aria-label="Right moves up"><path d="M7 28V4L3 10"></path></svg
-                    >{/if}
-                {#if space.moves.down && leavesRow(space, 'left')}<svg
-                        class="edge-arrow left"
-                        viewBox="0 0 10 32"
-                        role="img"
-                        aria-label="Left moves down"><path d="M7 28V4L3 10"></path></svg
-                    >{/if}
+            <div class="line">
+                {#if geometry.linesBannered[line]}<div
+                        class="banners"
+                        class:narrow={cell.width < NarrowCellWidth}
+                        style:grid-template-columns={gridColumns(columns)}
+                        style:height={`${MarketZoneBannerHeight * renderScale}px`}
+                    >
+                        {#each banners as banner (banner.color)}<div
+                                class="banner market-zone-tint"
+                                class:arrow={banner.shape === 'arrow'}
+                                style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 1 + span}`}
+                                style:--market-color={banner.zoneColor}
+                                style:--market-lightness={marketDarkLightness[banner.color]}
+                            >
+                                {#if banner.shape === 'span'}<span class="banner-tick"></span><span
+                                        class="banner-line"
+                                    ></span>{/if}<span>{banner.label}</span><span
+                                    class="banner-line"
+                                    class:arrow-shaft={banner.shape === 'arrow'}
+                                ></span>{#if banner.shape === 'arrow'}<svg
+                                        class="banner-head"
+                                        viewBox="0 0 12 12"
+                                        aria-hidden="true"
+                                        ><path d="M0 0L12 6L0 12L3 6Z"></path></svg
+                                    >{:else}<span class="banner-tick"></span>{/if}
+                            </div>{/each}
+                    </div>{/if}
+                <div
+                    class="grid"
+                    class:narrow={cell.width < NarrowCellWidth}
+                    style:grid-template-columns={gridColumns(columns)}
+                    style:grid-template-rows={`repeat(${geometry.rows}, ${cell.height * renderScale}px)`}
+                >
+                    {#each chart.spaces.filter( (space) => columns.includes(space.column) ) as space (space.id)}
+                        {@const crowded = tokens.some(
+                            (token) => token.spaceId === space.id && token.overlapped
+                        )}
+                        {@const tinted = space.color !== 'white'}
+                        {@const zone = marketZone(zones, space.color)}
+                        {@const fillKind = zone?.fill?.kind}
+                        <div
+                            class="space"
+                            class:market-zone-tint={tinted || fillKind}
+                            class:tinted={tinted && !fillKind}
+                            class:solid={fillKind === 'solid'}
+                            class:recessed={fillKind === 'recessed'}
+                            role="button"
+                            tabindex={crowded ? 0 : -1}
+                            aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
+                            title={zone ? marketZoneTitle(zone) : undefined}
+                            data-market-space={space.id}
+                            style:grid-column={`${columnTracks[space.column] + 1} / span ${span}`}
+                            style:grid-row={space.row + 1}
+                            style:--market-color={tinted || fillKind
+                                ? marketSpaceColor(space.color, zone)
+                                : undefined}
+                            style:--market-lightness={marketDarkLightness[space.color]}
+                            style:--price-ink={marketSolidInk(zone)}
+                            onpointerenter={() => expandStack(space.id)}
+                            onfocus={() => expandStack(space.id)}
+                            onblur={() => (hoveredSpace = undefined)}
+                            onclick={() => expandStack(space.id)}
+                            onkeydown={(event) => {
+                                if (event.key === 'Escape') hoveredSpace = undefined
+                                else if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault()
+                                    expandStack(space.id)
+                                }
+                            }}
+                        >
+                            <strong>{space.price}</strong>
+                            {#if zone?.label}<span class="zone-label" aria-hidden="true"
+                                    >{zone.label}</span
+                                >{/if}
+                            {#if zone?.marks}<span class="marks" aria-hidden="true"
+                                    >{#each zone.marks as mark (mark)}<span>{mark}</span
+                                        >{/each}</span
+                                >{/if}
+                            {#each ledge?.edges.filter((edge) => edge.spaceId === space.id) ?? [] as edge (edge.side)}<span
+                                    class="ledge {edge.side}"
+                                    aria-hidden="true"
+                                ></span>{/each}
+                            {#if space.moves.up && leavesRow(space, 'right')}<svg
+                                    class="edge-arrow right"
+                                    viewBox="0 0 10 32"
+                                    role="img"
+                                    aria-label="Right moves up"><path d="M7 28V4L3 10"></path></svg
+                                >{/if}
+                            {#if space.moves.down && leavesRow(space, 'left')}<svg
+                                    class="edge-arrow left"
+                                    viewBox="0 0 10 32"
+                                    role="img"
+                                    aria-label="Left moves down"><path d="M7 28V4L3 10"></path></svg
+                                >{/if}
+                        </div>
+                    {/each}
+                </div>
+                {#if markers.length}<div
+                        class="marker-tabs"
+                        style:width={`${geometry.width * renderScale}px`}
+                        style:height={`${MarketTabHeight * renderScale}px`}
+                    >
+                        {#each lineMarkers as marker (marker.id)}
+                            {@const space = chart.space(marker.spaceId)}
+                            <span
+                                class="tab"
+                                role="img"
+                                aria-label={marker.name}
+                                title={marker.name}
+                                data-market-tab={marker.id}
+                                style:left={`${geometry.columnLefts[space.column] * renderScale}px`}
+                                style:width={`${cell.width * renderScale}px`}
+                                style:--tab-color={marker.color}
+                                style:--tab-ink={contrastingTextColor(marker.color)}
+                                >{marker.label}</span
+                            >
+                        {/each}
+                    </div>{/if}
             </div>
         {/each}
         {#if hitbox}<div
@@ -375,26 +428,6 @@
             </div>
         {/each}
     </div>
-    {#if markers.length}<div
-            class="marker-tabs"
-            style:width={`${geometry.width * renderScale}px`}
-            style:height={`${MarketTabHeight * renderScale}px`}
-        >
-            {#each markers as marker (marker.id)}
-                {@const space = chart.space(marker.spaceId)}
-                <span
-                    class="tab"
-                    role="img"
-                    aria-label={marker.name}
-                    title={marker.name}
-                    data-market-tab={marker.id}
-                    style:left={`${geometry.columnLefts[space.column] * renderScale}px`}
-                    style:width={`${cell.width * renderScale}px`}
-                    style:--tab-color={marker.color}
-                    style:--tab-ink={contrastingTextColor(marker.color)}>{marker.label}</span
-                >
-            {/each}
-        </div>{/if}
 </div>
 
 <style>
@@ -474,8 +507,11 @@
         height: calc(14px * var(--render-scale));
         fill: var(--zone-ink);
     }
-    .grid {
+    .field {
         position: relative;
+        width: max-content;
+    }
+    .grid {
         display: grid;
         width: max-content;
     }

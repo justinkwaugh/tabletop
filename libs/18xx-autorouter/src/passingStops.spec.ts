@@ -14,6 +14,7 @@ import {
 import { Autorouter, routeProblemKey } from './autorouter.js'
 import { exhaustiveFleetValue, exhaustiveRevenue } from './testing/exhaustiveRevenue.js'
 import { Home, generated } from './testing/generatedFleet.js'
+import { loopPosition } from './testing/loopPosition.js'
 
 const router = await Autorouter.create(
     new Uint8Array(await readFile(new URL('../esm/solver.wasm', import.meta.url))).buffer
@@ -106,6 +107,36 @@ describe('passed stops, halts, hex reentry and blocked passes', () => {
         }
     })
 
+    it('keeps routes out of only the hexes that forbid entering them again', () => {
+        const odd = (locationId: string) =>
+            [...locationId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 2 === 1
+        for (let seed = 1; seed <= 24; seed++) {
+            const base = generated(seed, 1, ['P21', 'R3'], undefined, 'halts')
+            const rules: RouteRules = {
+                ...passing(base.rules, { fleet: false }),
+                forbidsHexReentry: (_state, locationId) => odd(locationId)
+            }
+            const solved = router.solve(base.state, rules, 'A', { timeLimitMs: 30_000 })
+            expect(solved.exhaustive, `seed ${seed}`).toBe(true)
+            expect(solved.result.revenue, `seed ${seed}`).toBe(
+                exhaustiveRevenue(base.state, rules, 'A')
+            )
+        }
+    })
+
+    it('turns back a route only where it would enter a forbidden hex again', () => {
+        const revenue = (forbids?: RouteRules['forbidsHexReentry']) => {
+            const { state, rules } = loopPosition({ forbidsHexReentry: forbids })
+            const solved = router.solve(state, rules, 'A', { timeLimitMs: 30_000 })
+            expect(solved.exhaustive).toBe(true)
+            return solved.result.revenue
+        }
+        expect(revenue()).toBe(50)
+        expect(revenue((_state, locationId) => locationId !== '0')).toBe(50)
+        expect(revenue((_state, locationId) => locationId === '0')).toBe(0)
+        expect(revenue(() => true)).toBe(0)
+    })
+
     it('runs a leased train that earns by the stops it calls at', () => {
         for (let seed = 1; seed <= 12; seed++) {
             const base = generated(seed, 1, ['P32'], undefined, 'halts')
@@ -146,6 +177,13 @@ describe('passed stops, halts, hex reentry and blocked passes', () => {
         const key = routeProblemKey(state, passingRules, 'A')
         expect(
             routeProblemKey(state, { ...passingRules, forbidsHexReentry: () => false }, 'A')
+        ).not.toBe(key)
+        expect(
+            routeProblemKey(
+                state,
+                { ...passingRules, forbidsHexReentry: (_state, id) => id.endsWith('1') },
+                'A'
+            )
         ).not.toBe(key)
         expect(
             routeProblemKey(state, { ...passingRules, blockedCityPasses: () => 2 }, 'A')

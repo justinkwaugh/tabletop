@@ -9,6 +9,7 @@
     import { lotSaleConsequence, pyramidLot } from './lotPyramid.js'
     import AuctionTurnLayout from './AuctionTurnLayout.svelte'
     import { selectionLotDetail } from './auctionLotDetails.js'
+    import { auctionSummaryPlayers, type AuctionSummaryLine } from './auctionSummary.js'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -24,16 +25,18 @@
     const lot = $derived(selectionLotDetail(session, bidding.lotId))
     const high = $derived(new PassableBidding(bidding.auction))
     const amount = $derived(auction.selection?.amount ?? model.minimumBid(bidding.lotId))
-    const passedNames = $derived(
+    const passedIds = $derived(
         bidding.auction.participants
             .filter((participant) => participant.passed)
-            .map((participant) => session.getPlayerName(participant.playerId))
+            .map((participant) => participant.playerId)
     )
-    const summary = $derived([
-        { label: 'Auctioned by', value: session.getPlayerName(bidding.nominatorId) },
-        { label: 'High bidder', value: session.getPlayerName(high.highBidderId) },
+    const summary: AuctionSummaryLine[] = $derived([
+        { label: 'Auctioned by', players: auctionSummaryPlayers(session, [bidding.nominatorId]) },
+        { label: 'High bidder', players: auctionSummaryPlayers(session, [high.highBidderId]) },
         { label: 'High bid', value: money(high.highBid) },
-        ...(passedNames.length ? [{ label: 'Passed', value: passedNames.join(', ') }] : [])
+        ...(passedIds.length
+            ? [{ label: 'Passed', players: auctionSummaryPlayers(session, passedIds) }]
+            : [])
     ])
     function changeBid(value: number) {
         if (!auction.selection) auction.select(bidding.lotId)

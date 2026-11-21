@@ -535,7 +535,13 @@ export class StockModule implements LocalSelection {
                         certificate.kind === 'share' &&
                         (certificate.poolId !== undefined ||
                             (certificate.owner.kind === 'company' &&
-                                certificate.owner.companyId === certificate.companyId))
+                                certificate.owner.companyId === certificate.companyId) ||
+                            (certificate.owner.kind === 'player' &&
+                                !sameOwner(certificate.owner, buyer) &&
+                                !!rules.stockRules.sellsFromPlayers?.(
+                                    state,
+                                    certificate.companyId
+                                )))
                 )
                 .map((certificate) => {
                     const request = { playerId, buyer, certificateId: certificate.id }

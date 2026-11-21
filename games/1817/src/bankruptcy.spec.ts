@@ -10,14 +10,10 @@ import {
     presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import {
-    EighteenSeventeenCashCrisisRules,
-    biddingOrder,
-    EighteenSeventeenStockRules,
-    isLiquidated
-} from './index.js'
+import { EighteenSeventeenCashCrisisRules, EighteenSeventeenStockRules } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
+import { EighteenSeventeenCompanyMarket, EighteenSeventeenSales } from './index.js'
 
 function setCash(state: EighteenXXState, owner: 'company' | 'player', id: string, amount: number) {
     const cash = state.cash.find((cash) =>
@@ -55,7 +51,9 @@ const cash = (play: ExamplePlay, playerId: string) =>
 describe('a cash crisis', () => {
     it('leaves the president owing the interest a liquidated company could not pay', () => {
         const play = pleDefaults()
-        expect(isLiquidated(play.state.stockMarket, 'PLE')).toBe(true)
+        expect(EighteenSeventeenCompanyMarket.isLiquidated(play.state.stockMarket, 'PLE')).toBe(
+            true
+        )
         expect(play.state.machineState).toBe('RaisingCash')
         expect(play.state.cashCrisis).toEqual({
             debts: [{ playerId: 'alex', amount: 20 }],
@@ -192,6 +190,6 @@ describe('a bankrupt president’s companies', () => {
         expect(record.liquidatedCompanyIds).toEqual(['BA', 'PLE'])
         expect(presidentOf(state, 'BA')).toBeUndefined()
         expect(state.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])
-        expect(biddingOrder(state, 'BA')).toEqual(['casey', 'alex', 'blair'])
+        expect(EighteenSeventeenSales.biddingOrder(state, 'BA')).toEqual(['casey', 'alex', 'blair'])
     })
 })

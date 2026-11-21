@@ -1,7 +1,7 @@
 import { isTreasuryPoolId, titleNames } from '@tabletop/18xx'
 import { EighteenSeventeenCorporations } from './corporations.js'
 import { EighteenSeventeenPrivates } from './privates.js'
-import { MarketPoolId } from './roundRules.js'
+import { MarketPoolId } from './marketZones.js'
 
 export const EighteenSeventeenNames = titleNames(
     Object.fromEntries([

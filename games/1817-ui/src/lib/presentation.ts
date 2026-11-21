@@ -1,14 +1,14 @@
 import { EighteenSeventeenTitleRules, type EighteenSeventeenState } from '@tabletop/1817'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { MarketPoolId } from '@tabletop/1817'
 import {
-    MarketPoolId,
     activeAcquisitionRound,
-    activeMergerRound,
+    activeConversionRound,
     isEndAcquisitionRound,
-    isEndMergerRound,
+    isEndConversionRound,
     isStartAcquisitionRound,
-    isStartMergerRound
-} from '@tabletop/1817'
+    isStartConversionRound
+} from '@tabletop/18xx'
 import { EighteenSeventeenCompanyNames } from './companyPresentation.js'
 import { EighteenSeventeenPhaseChart } from './phaseChart.js'
 import {
@@ -36,9 +36,9 @@ export const EighteenSeventeenPresentation: TitlePresentation<EighteenSeventeenS
         {
             name: 'Merger round',
             abbreviation: 'MR',
-            inProgress: (state) => !!activeMergerRound(state),
-            starts: isStartMergerRound,
-            ends: isEndMergerRound
+            inProgress: (state) => !!activeConversionRound(state),
+            starts: isStartConversionRound,
+            ends: isEndConversionRound
         },
         {
             name: 'Acquisition round',

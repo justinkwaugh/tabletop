@@ -14,18 +14,15 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import {
-    acquisitionRoundCompanyId,
-    bidCeiling,
-    bidRejection,
-    isLiquidated,
-    buyerLimit
-} from './index.js'
-import { mergerRoundCompanyId } from './mergerRound.js'
-import { marketPool } from './shorts.js'
-import { activeAcquisitionRound } from './state.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
+import {
+    EighteenSeventeenAcquisitionRounds,
+    EighteenSeventeenCompanyMarket,
+    EighteenSeventeenConversionRounds,
+    EighteenSeventeenSales
+} from './index.js'
+import { activeAcquisitionRound } from '@tabletop/18xx'
 
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 const company = (companyId: string) => ({ kind: 'company' as const, companyId })
@@ -66,7 +63,9 @@ function acquisitionRound(prepare: (state: EighteenXXState) => void = () => {}) 
     const play = playExample(EighteenSeventeenScenarios, 'construction', 3, prepare)
     passUntil(play, (state) => state.machineState === 'MergerRound')
     while (play.state.machineState === 'MergerRound')
-        play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
+        play.act('PassMerger', {
+            companyId: EighteenSeventeenConversionRounds.companyId(play.state)
+        })
     return play
 }
 
@@ -81,10 +80,10 @@ describe('the acquisition round', () => {
     it('follows the merger round, offering the cheapest company first', () => {
         const play = acquisitionRound()
         expect(play.state.machineState).toBe('AcquisitionRound')
-        expect(acquisitionRoundCompanyId(play.state)).toBe('PLE')
+        expect(EighteenSeventeenAcquisitionRounds.companyId(play.state)).toBe('PLE')
         expect(play.valid('alex')).toEqual(['OfferCompany', 'DeclineOffer', 'SetRunInstruction'])
         play.act('DeclineOffer', { companyId: 'PLE' })
-        expect(acquisitionRoundCompanyId(play.state)).toBe('BA')
+        expect(EighteenSeventeenAcquisitionRounds.companyId(play.state)).toBe('BA')
         expect(play.valid('blair')).toEqual(['OfferCompany', 'DeclineOffer', 'SetRunInstruction'])
         play.act('DeclineOffer', { companyId: 'BA' })
         expect(play.state.operatingSet?.roundNumber).toBe(2)
@@ -99,7 +98,7 @@ describe('the acquisition round', () => {
         expect(play.state.activePlayerIds).toEqual(['blair'])
         const sale = activeAcquisitionRound(play.state)?.sale
         assertExists(sale, 'A company is being sold')
-        expect(bidRejection(play.state, sale, 'blair', 290)).toBe(
+        expect(EighteenSeventeenSales.bidRejection(play.state, sale, 'blair', 290)).toBe(
             'Bid at least 300, in steps of 10.'
         )
         play.act('BidToAcquire', { companyId: 'PLE', amount: 300 })
@@ -156,7 +155,12 @@ describe('the acquisition round', () => {
     it('charges a short holder the payment per share, as a cash crisis if need be', () => {
         const play = acquisitionRound((state) => {
             pleWithTreasury(state)
-            openShort(state, 'PLE', player('casey'), marketPool(state))
+            openShort(
+                state,
+                'PLE',
+                player('casey'),
+                EighteenSeventeenCompanyMarket.marketPool(state)
+            )
             const account = state.cash.find(
                 (entry) => entry.owner.kind === 'player' && entry.owner.playerId === 'casey'
             )
@@ -192,14 +196,21 @@ describe('the acquisition round', () => {
         }
         expect(outstanding).toBe(0)
         expect(loansOutstanding(state)).toBe(70)
-        expect(buyerLimit(state, 'BA', { companyId: 'PLE', kind: 'offered' })).toBe(150)
+        expect(
+            EighteenSeventeenSales.buyerLimit(state, 'BA', { companyId: 'PLE', kind: 'offered' })
+        ).toBe(150)
         // Liquidation loans stay with the seller, so neither add supply nor cost the buyer.
-        expect(buyerLimit(state, 'BA', { companyId: 'PLE', kind: 'liquidation' })).toBe(150)
+        expect(
+            EighteenSeventeenSales.buyerLimit(state, 'BA', {
+                companyId: 'PLE',
+                kind: 'liquidation'
+            })
+        ).toBe(150)
         play.replaceState(state)
         play.act('OfferCompany', { companyId: 'PLE' })
         const sale = activeAcquisitionRound(play.state)?.sale
         assertExists(sale, 'PLE is offered for sale')
-        expect(bidCeiling(play.state, sale, 'blair')).toBe(150)
+        expect(EighteenSeventeenSales.bidCeiling(play.state, sale, 'blair')).toBe(150)
         play.act('BidToAcquire', { companyId: 'PLE', amount: 120 })
         expect(cash(play.state, company('BA'))).toBe(30)
         expect(getCompany(play.state, 'BA').loans).toBe(1)
@@ -221,10 +232,10 @@ describe('the acquisition round', () => {
         expect(play.state.activePlayerIds).toEqual(['alex'])
         const sale = activeAcquisitionRound(play.state)?.sale
         assertExists(sale, 'A company is being sold')
-        expect(bidRejection(play.state, sale, 'alex', 130)).toBe(
+        expect(EighteenSeventeenSales.bidRejection(play.state, sale, 'alex', 130)).toBe(
             'A company’s own president may bid only the minimum.'
         )
-        expect(bidCeiling(play.state, sale, 'alex')).toBe(120)
+        expect(EighteenSeventeenSales.bidCeiling(play.state, sale, 'alex')).toBe(120)
         play.act('BidToAcquire', { companyId: 'PLE', amount: 120 })
         expect(sharesOwned(play.state, 'PLE', player('alex'))).toBe(2)
         finishAcquisition(play)
@@ -307,7 +318,7 @@ describe('the closing zones', () => {
             setCash(state, 'PLE', 20)
         })
         passUntil(play, (state) => state.machineState === 'MergerRound')
-        const market = marketPool(play.state)
+        const market = EighteenSeventeenCompanyMarket.marketPool(play.state)
         for (const certificate of play.state.certificates)
             if (certificate.companyId === 'PLE' && certificate.kind === 'share') {
                 certificate.owner = { ...market.owner }
@@ -358,7 +369,9 @@ describe('the buyer', () => {
         })
         play.act('OfferCompany', { companyId: 'PLE' })
         play.act('BidToAcquire', { companyId: 'PLE', amount: 300 })
-        expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(false)
+        expect(EighteenSeventeenCompanyMarket.isLiquidated(play.state.stockMarket, 'BA')).toBe(
+            false
+        )
         expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id).toBe('0:3')
         // Boston & Albany is not offered after it falls into the zone.
         expect(play.state.operatingSet?.roundNumber).toBe(2)

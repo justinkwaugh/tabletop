@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
-import { TileRotation, type ImmutableTileData, type TileDefinition } from './tile.js'
+import { TileRevenue, TileRotation, type ImmutableTileData, type TileDefinition } from './tile.js'
 import { TrackStop } from './trackStops.js'
 import type { TileCatalog } from './catalog.js'
 
@@ -46,6 +46,11 @@ export const TileInventory = Type.Object(
         /** The set's variant chosen at setup, such as a scenario's board and smaller supply. */
         variantId: Type.Optional(Identifier),
         placements: Type.Record(Identifier, TilePlacement),
+        /**
+         * Revenue dealt at setup onto a location's printed stops, by location, such as 18USA's
+         * red-area value tokens (§2.6).
+         */
+        dealtRevenues: Type.Optional(Type.Record(Identifier, TileRevenue)),
         retiredPieceIds: Type.Array(Identifier, { uniqueItems: true })
     },
     { additionalProperties: false }
@@ -261,6 +266,7 @@ export class TileSet {
         placements.set(replacement.locationId, { ...next })
         return {
             ...(inventory.variantId ? { variantId: inventory.variantId } : {}),
+            ...(inventory.dealtRevenues ? { dealtRevenues: { ...inventory.dealtRevenues } } : {}),
             placements: Object.fromEntries(
                 [...placements].map(([id, placement]) => [id, { ...placement }])
             ),

@@ -3,7 +3,7 @@
     "AdvancePhase": "2f9ac94079d8c4318e27ae945a40b685d862a99ef06373818a16bb2154f56202",
     "AssignRevenueMarker": "127b13ebfb7e99a0cc6847c4b6925ef6f557f369dd903bbb608160f58f27d6b1",
     "AssignSteamboat": "ee1aa86a3ec152fc1d956d798b2701cab42af89dfc7e24057b7b4222eebed841",
-    "BuildPrivateTrack": "8d0471844e7af8865bb00be416bf1a580b73cdd383b7b657d4837adc3709c929",
+    "BuildPrivateTrack": "768f86880596ccffb12f8db36f6a6ff44ef55784b5fa05acc9f3e76491e46763",
     "BuyOpeningCompany": "037beb29789c4752646b76d22a226c413602bab29a5fb17e4b54fd5164eea860",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
     "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
@@ -28,8 +28,8 @@
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
-    "LayPrivateTile": "211402caf2ebd81400106d9b2f43208ada7ea8717489b1468db11d1d75abf2f0",
-    "LayTile": "a85decb4c77850f7fffdddbe40b752e0636e3e0320140ae79691d08dd1aaf698",
+    "LayPrivateTile": "3645574a76b08ec83a0a3de8944fe4a1e2867a4aead1d5d7562f91e1e2370dd5",
+    "LayTile": "9086c58f0b6c10eea662766df10184dc0d72c5ce662c03385c04e945a1215454",
     "OfferPurchase": "cc9f7dd68e38b943fa907e5a6f284f2da89c11dd3ffe5cd3c3313c0a963cd9be",
     "PassFinalCompany": "6755635a7b9754ed7f369640a5bb9314aa10672e2dd7a8030514f6d3f0bab8c2",
     "PassOpeningPurchase": "a10e80c18e5c5dc2e594f731057e7213ad6990d505610de010f3ffa49320954c",
@@ -38,7 +38,7 @@
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "e798173d5818e1a80dd54089f9bcab2a3f3a34266a268f41001354b40ee46765",
-    "RespondToTrackConsent": "ba4ab8b4f9266ce8a64f31905685b556a03e9d45aedaccab53bd0642cecf9ce6",
+    "RespondToTrackConsent": "d7dd542d8c35bf2f0b20990e2ef8f95562155fb15207eaa8d712752d283e01df",
     "ResumeOpeningPurchases": "b34f78e0a18a485f85b0e63c4116e1ab110ea1993dbd9276375e6bba51728931",
     "RevealDraft": "c2b83e5b8b845a50157a61a13c0bc7c7e18b849e134b8c205ffbda7c59dda05e",
     "RunTrains": "2fe2b2ead2f259153217cd6779773d1a823106ef8a08ba17cb1c77950d37c2e9",
@@ -3810,6 +3810,69 @@
       "tileInventory": {
         "additionalProperties": false,
         "properties": {
+          "dealtRevenues": {
+            "patternProperties": {
+              "^.*$": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "amount": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "kind": {
+                        "const": "fixed",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "amount",
+                      "kind"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "staged",
+                        "type": "string"
+                      },
+                      "values": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "amount": {
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            "stage": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "amount",
+                            "stage"
+                          ],
+                          "type": "object"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "values"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            },
+            "type": "object"
+          },
           "placements": {
             "patternProperties": {
               "^.*$": {
@@ -4013,6 +4076,10 @@
                 },
                 "locationId": {
                   "type": "string"
+                },
+                "upgrade": {
+                  "const": true,
+                  "type": "boolean"
                 }
               },
               "required": [

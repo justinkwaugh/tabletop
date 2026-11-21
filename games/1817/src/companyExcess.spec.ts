@@ -8,10 +8,9 @@ import {
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
-import { removableStations, stationsOverLimit } from './mergerRules.js'
-import { mergerRoundCompanyId } from './mergerRound.js'
-import { isRemoveStation, type RemoveStation } from './companyExcess.js'
 import { passUntil } from '../test/passTurns.js'
+import { EighteenSeventeenConversionRounds, EighteenSeventeenStations } from './index.js'
+import { isRemoveStation, type RemoveStation } from '@tabletop/18xx'
 
 function newYorkStations(state: EighteenXXState) {
     getCompany(state, 'PLE').shareCount = 5
@@ -48,15 +47,17 @@ it.each(['merger', 'acquisition'] as const)(
         if (mode === 'merger') play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
         else {
             while (play.state.machineState === 'MergerRound')
-                play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
+                play.act('PassMerger', {
+                    companyId: EighteenSeventeenConversionRounds.companyId(play.state)
+                })
             play.act('OfferCompany', { companyId: 'PLE' })
             play.act('BidToAcquire', { companyId: 'PLE', amount: 300 })
         }
         const state = play.state
         const { game, engine } = play
         expect(state.machineState).toBe('ReducingStations')
-        expect(stationsOverLimit(state, 'BA')).toBe(0)
-        const choices = removableStations(state, 'BA')
+        expect(EighteenSeventeenStations.stationsOverLimit(state, 'BA')).toBe(0)
+        const choices = EighteenSeventeenStations.removableStations(state, 'BA')
         expect(choices.map((station) => station.position.nodeId).sort()).toEqual([
             'city-0',
             'city-1'
@@ -145,19 +146,21 @@ it('resolves a duplicate hex before other placed stations above the eight-piece 
             : station
     )
     play.replaceState(state)
-    expect(stationsOverLimit(play.state, 'BA')).toBe(2)
+    expect(EighteenSeventeenStations.stationsOverLimit(play.state, 'BA')).toBe(2)
     expect(
-        removableStations(play.state, 'BA').map((station) => station.position.locationId)
+        EighteenSeventeenStations.removableStations(play.state, 'BA').map(
+            (station) => station.position.locationId
+        )
     ).toEqual(['E22', 'E22'])
     play.act('RemoveStation', { companyId: 'BA', stationId: 'BA:home' })
     expect(play.state.machineState).toBe('ReducingStations')
-    expect(stationsOverLimit(play.state, 'BA')).toBe(1)
+    expect(EighteenSeventeenStations.stationsOverLimit(play.state, 'BA')).toBe(1)
     expect(play.state.stations.find((station) => station.id === 'BA:home')?.status).toBe('removed')
-    const remaining = removableStations(play.state, 'BA')
+    const remaining = EighteenSeventeenStations.removableStations(play.state, 'BA')
     expect(remaining).toHaveLength(9)
     const choice = remaining.find((station) => station.position.locationId === 'B5')
     assertExists(choice, 'Stations outside New York are now eligible')
     play.act('RemoveStation', { companyId: 'BA', stationId: choice.id })
-    expect(stationsOverLimit(play.state, 'BA')).toBe(0)
+    expect(EighteenSeventeenStations.stationsOverLimit(play.state, 'BA')).toBe(0)
     expect(play.state.machineState).toBe('TradingConvertedShares')
 })

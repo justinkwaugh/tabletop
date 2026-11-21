@@ -18,16 +18,27 @@ export function keptFace(
     return withoutStops(before, rules.removedStops?.(locationId, before, after) ?? [])
 }
 
+/** A replacement's step through the colour order: 1 for the next colour. */
+export function colorStep(
+    rules: Pick<TrackRules, 'colorOrder'>,
+    before: TileFace,
+    after: TileFace
+): number {
+    return rules.colorOrder.indexOf(after.color) - rules.colorOrder.indexOf(before.color)
+}
+
+/** Whether the tile may replace the face, a colour on unless ``skipsColors`` lets it go further. */
 export function replacesColorAndStops(
     rules: TileReplacementRules,
     locationId: string,
     before: TileFace,
-    after: TileFace
+    after: TileFace,
+    skipsColors = false
 ): boolean {
-    const colorStep = rules.colorOrder.indexOf(after.color) - rules.colorOrder.indexOf(before.color)
-    if (colorStep === 0) return !!rules.upgradesWithinColor?.(locationId, before, after)
+    const step = colorStep(rules, before, after)
+    if (step === 0) return !!rules.upgradesWithinColor?.(locationId, before, after)
     return (
-        colorStep === 1 &&
+        (step === 1 || (step > 1 && skipsColors)) &&
         (rules.preservesStops(keptFace(rules, locationId, before, after), after) ||
             !!rules.reconfigures?.(locationId, before, after))
     )

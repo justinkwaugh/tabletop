@@ -9,7 +9,8 @@ import {
     createOffboardTileFace as offboard,
     createStagedTileRevenue as staged
 } from '../tiles/faces.js'
-import type { TileFace } from '../tiles/tile.js'
+import type { TileEdge, TileFace } from '../tiles/tile.js'
+import { TileEdges } from '../tiles/topology.js'
 import { TrainDepot } from '../trains/trainDepot.js'
 import type { TrainDistance } from '../trains/train.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
@@ -725,4 +726,82 @@ it('runs from a place the company has station access to as from its own station'
     expect(running.evaluate('A', [route]).reason).toContain('station')
     state.stationAccess = [{ companyId: 'A', locationId: '0', nodeId: 'city', sourceId: 'joint' }]
     expect(running.evaluate('A', [route]).result?.revenue).toBe(50)
+})
+it('forbids re-entering only the hexes the rules name', () => {
+    const coordinates = [
+        { q: 0, r: 0 },
+        { q: 1, r: -1 },
+        { q: 1, r: 0 },
+        { q: 0, r: 1 },
+        { q: -1, r: 1 },
+        { q: -1, r: 0 },
+        { q: 0, r: -1 }
+    ]
+    const layout = (faces: readonly TileFace[]) =>
+        new RailwayMap({
+            id: 'loop',
+            name: 'Loop',
+            orientation: HexOrientation.Flat,
+            locations: coordinates.map((coordinate, index) => ({
+                id: String(index),
+                coordinates: coordinate,
+                preprintedTile: faces[index] ?? track('yellow', []),
+                buildable: true
+            }))
+        })
+    const blank = layout([])
+    const edge = (from: number, to: number): TileEdge => {
+        const found = TileEdges.find(
+            (edge) => blank.neighbor(String(from), edge)?.id === String(to)
+        )
+        if (found === undefined) throw new Error(`${from} and ${to} are not adjacent`)
+        return found
+    }
+    // The route runs 1 → 0 → 2 → 3 → 0 → 4: through hex 0 twice on its crossing tile.
+    const faces: TileFace[] = [
+        track('yellow', [
+            [edge(0, 1), edge(0, 2)],
+            [edge(0, 3), edge(0, 4)]
+        ]),
+        city('yellow', [edge(1, 0)], 20, 1),
+        track('yellow', [[edge(2, 0), edge(2, 3)]]),
+        track('yellow', [[edge(3, 2), edge(3, 0)]]),
+        city('yellow', [edge(4, 0)], 30, 1)
+    ]
+    const { state, rules: base } = fixture([city('yellow', [0], 20, 1)])
+    state.stations = [
+        {
+            id: 'home',
+            companyId: 'A',
+            status: 'placed',
+            position: { locationId: '1', nodeId: 'city', slot: 0 }
+        }
+    ]
+    const pathFrom = (index: number, from: TileEdge) => {
+        const path = faces[index].paths.find((path) =>
+            path.endpoints.some((end) => end.kind === 'edge' && end.edge === from)
+        )
+        if (!path) throw new Error(`No path from edge ${from} in hex ${index}`)
+        return { locationId: String(index), pathId: path.id }
+    }
+    const route: TrainRoute = {
+        trainId: state.trainInventory.trains[0].id,
+        start: { locationId: '1', nodeId: 'city' },
+        paths: [
+            pathFrom(1, edge(1, 0)),
+            pathFrom(0, edge(0, 1)),
+            pathFrom(2, edge(2, 0)),
+            pathFrom(3, edge(3, 2)),
+            pathFrom(0, edge(0, 3)),
+            pathFrom(4, edge(4, 0))
+        ]
+    }
+    const rules: RouteRules = { ...base, map: layout(faces) }
+    const evaluate = (forbids?: RouteRules['forbidsHexReentry']) =>
+        new RouteEvaluation(state, { ...rules, forbidsHexReentry: forbids }).evaluate('A', [route])
+    expect(evaluate().result?.revenue).toBe(50)
+    expect(evaluate((_state, locationId) => locationId !== '0').result?.revenue).toBe(50)
+    expect(evaluate((_state, locationId) => locationId === '0').reason).toContain(
+        'enter a hex again'
+    )
 })

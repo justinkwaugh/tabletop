@@ -389,7 +389,9 @@
                                                 fullName={lot.name}
                                                 {description}
                                                 value={lot.price}
-                                                income={lot.company?.revenue}
+                                                income={session.presentation.privatesWithoutIncome
+                                                    ? undefined
+                                                    : lot.company?.revenue}
                                             />{:else}{session.lotName(lot)}{/if}
                                     </th>
                                     <td class="amount">{money(amount)}</td>

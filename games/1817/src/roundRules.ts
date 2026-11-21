@@ -2,15 +2,11 @@ import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
-import { corporationShareCount } from './corporations.js'
-import { isLiquidated } from './liquidation.js'
+import { EighteenSeventeenCompanyMarket } from './marketZones.js'
 import { eighteenSeventeenOptions } from './state.js'
 import {
-    certificatesInPool,
     privateOwningCompany,
-    sharesOwned,
     trainsOwnedBy,
-    signedShares,
     type StockState,
     floatedCompaniesInMarketOrder,
     playerOrderAfterLastTurn,
@@ -24,36 +20,14 @@ export const EighteenSeventeenStockRoundRules: StockRoundRules = {
     nextPlayerOrder: playerOrderAfterLastTurn,
     // A company of more than two shares whose players hold every share net moves up; with
     // Short Squeeze, once more when they hold over 100%.
-    soldOut: (state, companyId) =>
-        corporationShareCount(state, companyId) > 2 &&
-        playerHoldings(state, companyId) >= corporationShareCount(state, companyId),
+    soldOut: (state, companyId) => EighteenSeventeenCompanyMarket.soldOut(state, companyId),
     squeezed: (state: StockState & Pick<EighteenSeventeenState, 'shortSqueeze'>, companyId) =>
         eighteenSeventeenOptions(state).shortSqueeze &&
-        playerHoldings(state, companyId) > corporationShareCount(state, companyId),
+        EighteenSeventeenCompanyMarket.oversold(state, companyId),
     // Each share left in the market pool, less the market's shorts, moves the company down.
     poolDrop: (state, companyId) =>
-        Math.max(
-            0,
-            certificatesInPool(state, MarketPoolId).reduce(
-                (sum, certificate) =>
-                    sum + (certificate.companyId === companyId ? signedShares(certificate) : 0),
-                0
-            )
-        )
+        EighteenSeventeenCompanyMarket.marketPoolShares(state, companyId)
 }
-
-function playerHoldings(state: StockState, companyId: string): number {
-    return state.players.reduce(
-        (sum, player) =>
-            sum +
-            Math.max(
-                0,
-                sharesOwned(state, companyId, { kind: 'player', playerId: player.playerId })
-            ),
-        0
-    )
-}
-export const MarketPoolId = 'market'
 
 // A mail private pays its company as each operating round starts, if the company has a train.
 const MailIncome: Readonly<Record<string, number>> = { MINM: 10, MAIL: 15, MAJM: 20 }
@@ -63,7 +37,8 @@ export const EighteenSeventeenOperatingRules: OperatingRules = {
     roundCount: (state) => EighteenSeventeenPhases.phase(state.phaseId).operatingRounds,
     companyOrder: (state) =>
         floatedCompaniesInMarketOrder(EighteenSeventeenMarket, state).filter(
-            (companyId) => !isLiquidated(state.stockMarket, companyId)
+            (companyId) =>
+                !EighteenSeventeenCompanyMarket.isLiquidated(state.stockMarket, companyId)
         ),
     // After each round the next depot train is exported; while that is a 2, every 2 goes.
     trainsToExport(state) {

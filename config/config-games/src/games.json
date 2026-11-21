@@ -222,5 +222,9 @@
     {
         "gameId": "1860",
         "packageId": "1860"
+    },
+    {
+        "gameId": "18usa",
+        "packageId": "18usa"
     }
 ]

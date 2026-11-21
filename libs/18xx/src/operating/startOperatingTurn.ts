@@ -35,7 +35,7 @@ import { BetweenCompaniesState } from './operatingSteps.js'
 import {
     ExportTrains,
     isExportTrains,
-    trainsAwaitingExport,
+    exportAwaited,
     type HydratedExportTrains
 } from './exportTrains.js'
 import type { OperatingRules } from './operatingSet.js'
@@ -105,7 +105,7 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
         private readonly firstStep: string
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        const exporting = trainsAwaitingExport(context.gameState, this.operatingRules).length > 0
+        const exporting = exportAwaited(context.gameState, this.operatingRules)
         if (exporting) return action.source === ActionSource.System && isExportTrains(action)
         return (
             action.source === ActionSource.System &&
@@ -124,7 +124,7 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
         return []
     }
     enter(context: MachineContext<State>): void {
-        if (trainsAwaitingExport(context.gameState, this.operatingRules).length) {
+        if (exportAwaited(context.gameState, this.operatingRules)) {
             context.addSystemAction(ExportTrains, {})
             return
         }

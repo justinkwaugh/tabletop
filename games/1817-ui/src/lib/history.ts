@@ -1,53 +1,18 @@
+import { isFormCompany, type CashPayment } from '@tabletop/18xx'
 import {
-    isFormCompany,
-    type CashPayment,
-    type DeparturePayment,
-    isDiscardMergedTrain
-} from '@tabletop/18xx'
-import {
-    departurePaymentsDetail,
+    describeSizedCompanyAction,
     joinDetails,
     type HistoryDescription,
     type HistoryNames,
     type MoneyFormat
 } from '@tabletop/18xx-ui'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     EighteenSeventeenLoanRules,
     EighteenSeventeenMap,
     LoanSharkCash,
-    LoanSharkId,
-    isAcquireCompany,
-    isBidToAcquire,
-    isCloseCompanySale,
-    isDeclineOffer,
-    isFinishAcquisitionLoans,
-    isOfferCompany,
-    isOpenCompanySale,
-    isPassOnCompany,
-    isRepayAcquiredLoan,
-    isSkipCompanySale,
-    isBuyBackShares,
-    isBuyConvertedShare,
-    isBuyOwedStations,
-    isCloseMarketShorts,
-    isConvertCompany,
-    isEighteenSeventeenGoBankrupt,
-    isFinishConversionLoans,
-    isLiquidateCompany,
-    isMergeCompanies,
-    isPassConvertedShares,
-    isPassMerger,
-    isRemoveStation,
-    isShortShare,
-    isSellConvertedShares
+    LoanSharkId
 } from '@tabletop/1817'
-import { plural } from './plural.js'
-
-const reasons = {
-    'no-train': 'it has no train',
-    'unpaid-stations': 'it did not pay for its stations'
-}
 
 /** 1817's own history rows, and the shared ones it adds to. */
 export function eighteenSeventeenHistoryDescription(
@@ -56,13 +21,7 @@ export function eighteenSeventeenHistoryDescription(
     money: MoneyFormat,
     shared: () => HistoryDescription
 ): HistoryDescription | undefined {
-    const { companyName, playerName, poolName } = names
-    const parachute = (payment: CashPayment | undefined) =>
-        payment && payment.to.kind === 'player'
-            ? `Golden Parachute paid ${playerName(payment.to.playerId)} ${money(payment.amount)}`
-            : undefined
-    const paid = (payments: readonly DeparturePayment[] = []) =>
-        departurePaymentsDetail(payments, names, money)
+    const { companyName, playerName } = names
     if (isFormCompany(action) && action.privateIds.includes(LoanSharkId)) {
         const description = shared()
         return {
@@ -73,154 +32,19 @@ export function eighteenSeventeenHistoryDescription(
             )
         }
     }
-    if (
-        isEighteenSeventeenGoBankrupt(action) &&
-        action.metadata?.changes.liquidatedCompanyIds.length
-    ) {
-        const description = shared()
-        return {
-            ...description,
-            detail: joinDetails(
-                description.detail,
-                `Liquidated ${action.metadata.changes.liquidatedCompanyIds.map(companyName).join(', ')}`
-            )
-        }
-    }
-    if (isLiquidateCompany(action))
-        return {
-            text: `${companyName(action.companyId)} liquidated: ${reasons[action.reason]}`,
-            omitActor: true,
-            important: true
-        }
-    if (isBuyOwedStations(action) && action.metadata)
-        return {
-            text: `${companyName(action.companyId)} bought ${plural(action.metadata.stations, 'station')}`,
-            omitActor: true,
-            value: money(action.metadata.payment.amount)
-        }
-    if (isBuyBackShares(action))
-        return {
-            text: `Bought back ${plural(action.certificateIds.length, `${companyName(action.companyId)} share`)}`,
-            value: action.metadata ? money(action.metadata.payment.amount) : undefined
-        }
-    if (isShortShare(action))
-        return {
-            text: `Shorted ${companyName(action.companyId)}`,
-            value: money(action.expectedPrice)
-        }
-    if (isConvertCompany(action) && action.metadata)
-        return {
-            text: `Converted ${companyName(action.companyId)} to ${action.metadata.shareCount} shares`,
-            important: true
-        }
-    if (isMergeCompanies(action) && action.metadata)
-        return {
-            text: `Merged ${companyName(action.targetId)} into ${companyName(action.companyId)}`,
-            value: money(action.metadata.price),
-            important: true
-        }
-    if (isPassMerger(action) && action.source === ActionSource.User)
-        return { text: `Passed with ${companyName(action.companyId)}`, routine: true }
-    if (isBuyConvertedShare(action)) {
-        const poolId = action.metadata?.poolId
-        return {
-            text: `Bought a ${companyName(action.companyId)} share${poolId ? ` from ${poolName(poolId)}` : ''}`,
-            value: money(action.expectedPrice)
-        }
-    }
-    if (isSellConvertedShares(action))
-        return {
-            text: `Sold ${plural(action.shares, `${companyName(action.companyId)} share`)}`,
-            value: money(action.expectedProceeds)
-        }
-    if (isPassConvertedShares(action) && action.source === ActionSource.User)
-        return {
-            text: `Passed on ${companyName(action.companyId)} shares`,
-            routine: true
-        }
-    if (isFinishConversionLoans(action) && action.metadata?.liquidation)
-        return {
-            text: `${companyName(action.companyId)} liquidated: it could not pay for its stations`,
-            omitActor: true,
-            important: true
-        }
-    if (isFinishConversionLoans(action) && action.metadata?.payment)
-        return {
-            text: `${companyName(action.companyId)} bought ${plural(action.metadata.stations, 'station')}`,
-            omitActor: true,
-            value: money(action.metadata.payment.amount)
-        }
-    if (isRemoveStation(action))
-        return {
-            text:
-                action.metadata?.destination === 'available'
-                    ? `Returned a ${companyName(action.companyId)} station to its charter`
-                    : `Removed a ${companyName(action.companyId)} station`,
-            detail:
-                action.metadata &&
-                (EighteenSeventeenMap.location(action.metadata.locationId).name ??
-                    action.metadata.locationId)
-        }
-    if (isDiscardMergedTrain(action))
-        return {
-            text: `Discarded a ${companyName(action.companyId)} train`,
-            detail: paid(action.metadata?.departurePayments)
-        }
-    if (isOfferCompany(action)) return { text: `Offered ${companyName(action.companyId)} for sale` }
-    if (isDeclineOffer(action)) return { text: `Kept ${companyName(action.companyId)}` }
-    if (isOpenCompanySale(action) && action.metadata)
-        return {
-            text: `${companyName(action.companyId)} auctioned from the ${action.metadata.kind} zone`,
-            omitActor: true,
-            important: true
-        }
-    if (isSkipCompanySale(action) && action.reason === 'entered-zone')
-        return {
-            text: `${companyName(action.companyId)} entered a closing zone and sits out`,
-            omitActor: true
-        }
-    if (isBidToAcquire(action))
-        return {
-            text: `Bid for ${companyName(action.companyId)}`,
-            value: money(action.amount)
-        }
-    if (isPassOnCompany(action)) return { text: `Passed on ${companyName(action.companyId)}` }
-    if (isCloseCompanySale(action))
-        return {
-            text: action.metadata
-                ? `The bank liquidated ${companyName(action.companyId)}`
-                : `${companyName(action.companyId)} was not sold`,
-            omitActor: true,
-            detail: joinDetails(
-                paid(action.metadata?.departurePayments),
-                parachute(action.metadata?.parachute)
-            ),
-            important: !!action.metadata
-        }
-    if (isAcquireCompany(action) && action.metadata)
-        return {
-            text: `${companyName(action.buyerId)} acquired ${companyName(action.companyId)}`,
-            value: money(action.metadata.price),
-            detail: parachute(action.metadata.parachute),
-            important: true
-        }
-    if (isRepayAcquiredLoan(action))
-        return {
-            text: `Repaid a loan ${companyName(action.companyId)} took on`,
-            value: money(EighteenSeventeenLoanRules.value)
-        }
-    if (isFinishAcquisitionLoans(action) && action.metadata)
-        return {
-            text: `${companyName(action.metadata.targetId)} holders received ${money(action.metadata.settlement.perShare)} a share`,
-            omitActor: true
-        }
-    if (isCloseMarketShorts(action) && action.metadata)
-        return {
-            text: `Market closed ${plural(action.metadata.closed, `${companyName(action.companyId)} short`)}`,
-            omitActor: true,
-            detail: action.metadata.payments.length
-                ? `The bank bought ${action.metadata.payments.length} from the treasury`
-                : undefined
-        }
-    return undefined
+    return describeSizedCompanyAction(
+        action,
+        names,
+        money,
+        {
+            poolName: names.poolName,
+            place: (locationId) => EighteenSeventeenMap.location(locationId).name ?? locationId,
+            loanValue: EighteenSeventeenLoanRules.value,
+            salePayment: (payment: CashPayment) =>
+                payment.to.kind === 'player'
+                    ? `Golden Parachute paid ${playerName(payment.to.playerId)} ${money(payment.amount)}`
+                    : undefined
+        },
+        shared
+    )
 }

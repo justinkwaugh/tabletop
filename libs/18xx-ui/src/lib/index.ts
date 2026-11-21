@@ -265,3 +265,35 @@ export {
     describeNationalRailwayAction,
     type NationalRailwayNames
 } from './mergers/nationalRailwayHistory.js'
+export {
+    AcquisitionRoundModule,
+    CompanyExcessModule,
+    ConversionRoundModule,
+    CorporateBuyBackModule,
+    ShortSellingModule,
+    type SizedCompanyModuleSession
+} from './session/sizedCompanyModules.svelte.js'
+export {
+    SizedCompanySession,
+    type SizedCompanyMechanisms,
+    type SizedCompanySessionView,
+    type SizedCompanyStockPanel
+} from './session/sizedCompanySession.svelte.js'
+export { default as ConversionRoundPanel } from './sizedCompanies/ConversionRoundPanel.svelte'
+export { default as AcquisitionRoundPanel } from './sizedCompanies/AcquisitionRoundPanel.svelte'
+export { default as CompanyExcessPanel } from './sizedCompanies/CompanyExcessPanel.svelte'
+export { default as CorporateActionsPanel } from './sizedCompanies/CorporateActionsPanel.svelte'
+export { default as ShortSellingPanel } from './sizedCompanies/ShortSellingPanel.svelte'
+export { default as CompanyRoundPanel } from './sizedCompanies/CompanyRoundPanel.svelte'
+export {
+    companyAssetFacts,
+    companyFinanceFacts,
+    companyRoundFacts,
+    loansAgainstLimit,
+    takeLoanAction,
+    zoneFact
+} from './sizedCompanies/companyRoundFacts.js'
+export {
+    describeSizedCompanyAction,
+    type SizedCompanyHistoryTerms
+} from './sizedCompanies/sizedCompanyHistory.js'

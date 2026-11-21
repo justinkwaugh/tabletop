@@ -1,13 +1,19 @@
 import type { EighteenSeventeenState } from '@tabletop/1817'
-import { moneyFormat, type CompanyColumn, type MarketZone, type TitleFact } from '@tabletop/18xx-ui'
-import { companyLoans, getCompany, interestOwed } from '@tabletop/18xx'
 import {
+    moneyFormat,
+    zoneFact,
+    type CompanyColumn,
+    type MarketZone,
+    type TitleFact
+} from '@tabletop/18xx-ui'
+import { getCompany, interestOwed } from '@tabletop/18xx'
+import {
+    EighteenSeventeenCompanyMarket,
     EighteenSeventeenLoanRules,
+    EighteenSeventeenStations,
     MarketZoneColors,
-    closingZone,
     corporationShareCount,
     seedMoneyLeft,
-    stationsOwed,
     EighteenSeventeenTitleRules
 } from '@tabletop/1817'
 
@@ -31,11 +37,6 @@ export function eighteenSeventeenGameFacts(state: EighteenSeventeenState): Title
             value: `after AR ${ending.finalOperatingSet}.${ending.finalOperatingRounds}`
         })
     return facts
-}
-
-/** A company's loans against its limit, as "2/5". */
-export function loansAgainstLimit(state: EighteenSeventeenState, companyId: string): string {
-    return `${companyLoans(state, companyId)}/${EighteenSeventeenLoanRules.capacity(state, companyId)}`
 }
 
 // A column with a value for started companies only, which sort before the others.
@@ -73,19 +74,11 @@ export function eighteenSeventeenCompanyFacts(
         const interest = interestOwed(state, EighteenSeventeenLoanRules, companyId)
         if (interest) facts.push({ label: 'Interest', value: money(interest) })
     }
-    const owed = stationsOwed(state, companyId)
+    const owed = EighteenSeventeenStations.stationsOwed(state, companyId)
     if (owed) facts.push({ label: 'Stations owed', value: String(owed) })
-    const zone = zoneFact(state, companyId)
+    const zone = zoneFact({ market: EighteenSeventeenCompanyMarket }, state, companyId)
     if (zone) facts.push(zone)
     return facts
-}
-
-/** The closing zone a company's price is in, when it is in one. */
-export function zoneFact(state: EighteenSeventeenState, companyId: string): TitleFact | undefined {
-    const zone = closingZone(state.stockMarket, companyId)
-    return zone
-        ? { label: 'Zone', value: zone === 'acquisition' ? 'Acquisition' : 'Liquidation' }
-        : undefined
 }
 
 export const EighteenSeventeenMarketZones: readonly MarketZone[] = [

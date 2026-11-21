@@ -15,6 +15,7 @@ import {
     createMapDrawing,
     isMapSelectionValid,
     overfullCityKeys,
+    type MapDrawing,
     type MapSelection
 } from '../maps/mapDrawing.js'
 import { untrack } from 'svelte'
@@ -140,9 +141,20 @@ export class MapModule {
     private cityOffer = $derived(this.cityOffers.find((offer) => offer.locationIds.length))
     offeredCityLocationIds = $derived(this.cityOffer?.locationIds ?? [])
 
-    // Held apart so a display state that only moves tokens doesn't redraw the board.
-    private tileInventory = $derived.by(() => this.displayState().tileInventory)
-    private placedLocationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    // Held apart and keyed, so a display state that only moves tokens, or an action that leaves the
+    // map as it was, doesn't redraw the board.
+    private tileInventoryKey = $derived.by(() => JSON.stringify(this.displayState().tileInventory))
+    private tileInventory = $derived.by(() => {
+        void this.tileInventoryKey
+        return untrack(() => this.displayState().tileInventory)
+    })
+    private placedLocationMarkerKey = $derived.by(() =>
+        JSON.stringify(this.displayState().locationMarkers)
+    )
+    private placedLocationMarkers = $derived.by(() => {
+        void this.placedLocationMarkerKey
+        return untrack(() => this.displayState().locationMarkers)
+    })
     private stateMarkers = $derived.by(() => this.view().stateMarkers?.(this.displayState()) ?? [])
     // Keyed, so a display state implying the same markers doesn't redraw the board.
     private stateMarkerKey = $derived.by(() => JSON.stringify(this.stateMarkers))
@@ -168,14 +180,19 @@ export class MapModule {
     private companies = $derived.by(() => this.displayState().companies)
     private certificates = $derived.by(() => this.displayState().certificates)
     private phaseId = $derived.by(() => this.displayState().phaseId)
-    private liftedPrivateBlocks = $derived.by(() =>
+    private liftedPrivateBlockKey = $derived.by(() =>
         liftedPrivateBlocks(this.view().map.markedPrivateIds, this.session.rules.privateRules, {
             companies: this.companies,
             certificates: this.certificates,
             phaseId: this.phaseId
-        })
+        }).join('|')
     )
-    scene = $derived.by(() => this.draw(this.tileInventory))
+    private liftedPrivateBlocks = $derived(
+        this.liftedPrivateBlockKey ? this.liftedPrivateBlockKey.split('|') : []
+    )
+    // The last board drawn, whose unchanged locations the next drawing reuses.
+    private drawnScene: MapDrawing | undefined
+    scene = $derived.by(() => (this.drawnScene = this.draw(this.tileInventory, this.drawnScene)))
     tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view()))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
     /** The tiles of the supply, which the manifest lists; the board's own tiles are not among them. */
@@ -197,7 +214,7 @@ export class MapModule {
         (): StationState => this.landedLayStations ?? this.stations.displayState
     )
     displayedScene = $derived.by(() =>
-        this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
+        this.previewTileInventory ? this.draw(this.previewTileInventory, this.scene) : this.scene
     )
     displayedTokens = $derived.by(() => {
         if (this.landedLayStations)
@@ -355,7 +372,7 @@ export class MapModule {
         this.stations.selectPosition(choice)
         void this.stations.confirm()
     }
-    private draw(inventory: MapState['tileInventory']) {
+    private draw(inventory: MapState['tileInventory'], previous?: MapDrawing) {
         const view = this.view()
         return createMapDrawing(
             view.map,
@@ -366,7 +383,8 @@ export class MapModule {
                 liftedPrivateBlocks: this.liftedPrivateBlocks,
                 overfullCities: this.overfullCities
             },
-            view
+            view,
+            previous
         )
     }
 }

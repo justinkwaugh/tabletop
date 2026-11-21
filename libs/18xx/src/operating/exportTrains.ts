@@ -17,7 +17,12 @@ import {
     type PhaseState
 } from '../phases/phaseChange.js'
 import type { FinancialState } from '../finance/finance.js'
-import { nextOperatingCompany, type OperatingRules, type OperatingState } from './operatingSet.js'
+import {
+    nextOperatingCompany,
+    type OperatingRules,
+    type OperatingState,
+    type RoundEndPhase
+} from './operatingSet.js'
 import { BetweenCompaniesState } from './operatingSteps.js'
 import {
     DeparturePayments,
@@ -27,18 +32,35 @@ import {
 
 type State = OperatingState & TrainState & PhaseState
 
-export function trainsAwaitingExport(state: State, rules: OperatingRules): string[] {
+function roundEnding(state: State): boolean {
     const set = state.operatingSet
-    if (
-        !rules.trainsToExport ||
-        !set ||
-        set.completed ||
-        !set.privateIncomePaid ||
-        nextOperatingCompany(state) ||
-        set.exportedRound === set.roundNumber
+    return (
+        !!set &&
+        !set.completed &&
+        !!set.privateIncomePaid &&
+        !nextOperatingCompany(state) &&
+        set.exportedRound !== set.roundNumber
     )
-        return []
-    return rules.trainsToExport(state)
+}
+
+export function trainsAwaitingExport(state: State, rules: OperatingRules): string[] {
+    return rules.trainsToExport && roundEnding(state) ? rules.trainsToExport(state) : []
+}
+
+/** The phase the ending operating round begins though no train starts it. */
+export function phaseAwaitingRoundEnd(
+    state: State,
+    rules: OperatingRules
+): RoundEndPhase | undefined {
+    return roundEnding(state) ? rules.phaseAtRoundEnd?.(state) : undefined
+}
+
+/** Whether the ending operating round exports trains or begins a phase before it is over. */
+export function exportAwaited(state: State, rules: OperatingRules): boolean {
+    return (
+        trainsAwaitingExport(state, rules).length > 0 ||
+        phaseAwaitingRoundEnd(state, rules) !== undefined
+    )
 }
 
 /** A train taken out of the depot by an export. */
@@ -92,14 +114,25 @@ export class HydratedExportTrains
     }
     apply(state: HydratedGameState & State): void {
         assert(this.source === ActionSource.System, 'Exports are a system action')
+        assert(exportAwaited(state, this.#operatingRules), 'No trains are awaiting export')
         const definitionIds = trainsAwaitingExport(state, this.#operatingRules)
-        assert(definitionIds.length > 0, 'No trains are awaiting export')
+        const roundEndPhase = phaseAwaitingRoundEnd(state, this.#operatingRules)
         const set = state.operatingSet
         assertExists(set, 'Exports follow an operating round')
+        const continuation = { machineState: BetweenCompaniesState }
+        const exported = exportDepotTrains(state, this.#trainRules, definitionIds, continuation)
+        if (roundEndPhase && !exported.toPhaseId) {
+            preparePhaseChange(
+                state,
+                `round-end:${set.number}.${set.roundNumber}`,
+                roundEndPhase.definitionId,
+                roundEndPhase.phaseId,
+                continuation
+            )
+            exported.toPhaseId = roundEndPhase.phaseId
+        }
         set.exportedRound = set.roundNumber
-        this.metadata = exportDepotTrains(state, this.#trainRules, definitionIds, {
-            machineState: BetweenCompaniesState
-        })
+        this.metadata = exported
     }
 }
 

@@ -3,18 +3,18 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
     import {
+        AcquisitionRoundPanel,
+        CompanyExcessPanel,
+        ConversionRoundPanel,
+        CorporateActionsPanel,
         GameTable,
         OperatingActions,
         SelectionAuctionBidding,
         SelectionAuctionLots,
+        ShortSellingPanel,
         type TitleActionDescription
     } from '@tabletop/18xx-ui'
     import { eighteenSeventeenHistoryDescription } from './history.js'
-    import CorporateActions from './CorporateActions.svelte'
-    import AcquisitionRound from './AcquisitionRound.svelte'
-    import CompanyExcess from './CompanyExcess.svelte'
-    import MergerRound from './MergerRound.svelte'
-    import ShortSelling from './ShortSelling.svelte'
     import { requireEighteenSeventeenSession } from './session.svelte.js'
     let {
         gameSession
@@ -52,15 +52,15 @@
                 <SelectionAuctionLots {session} />
             {/if}
         {:else if session.stockPanels.open === 'company'}
-            <CorporateActions {session} />
+            <CorporateActionsPanel {session} />
         {:else if session.stockPanels.open === 'short'}
-            <ShortSelling {session} />
-        {:else if session.companyExcess}
-            <CompanyExcess {session} excess={session.companyExcess} />
-        {:else if session.mergerCompanyId}
-            <MergerRound {session} companyId={session.mergerCompanyId} />
-        {:else if session.acquisitionCompanyId}
-            <AcquisitionRound {session} companyId={session.acquisitionCompanyId} />
+            <ShortSellingPanel {session} />
+        {:else if session.excess.current}
+            <CompanyExcessPanel {session} excess={session.excess.current} />
+        {:else if session.conversions.companyId}
+            <ConversionRoundPanel {session} companyId={session.conversions.companyId} />
+        {:else if session.acquisitions.companyId}
+            <AcquisitionRoundPanel {session} companyId={session.acquisitions.companyId} />
         {:else}
             <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} />
         {/if}

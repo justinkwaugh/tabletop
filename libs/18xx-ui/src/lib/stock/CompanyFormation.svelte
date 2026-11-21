@@ -3,6 +3,8 @@
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import AuctionPlayers from '../auctions/AuctionPlayers.svelte'
+    import { auctionSummaryPlayers } from '../auctions/auctionSummary.js'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -31,8 +33,10 @@
             <div>
                 <strong>{session.actionCompanyName(company.id)}</strong>
                 <span
-                    >{session.getPlayerName(pending.playerId)} won for {money(pending.price)} · starts
-                    at {money(startPrice)}</span
+                    ><AuctionPlayers
+                        players={auctionSummaryPlayers(session, [pending.playerId])}
+                        emphasis={false}
+                    /> won for {money(pending.price)} · starts at {money(startPrice)}</span
                 >
             </div>
         </div>

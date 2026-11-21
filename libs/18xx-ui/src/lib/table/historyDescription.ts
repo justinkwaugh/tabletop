@@ -686,8 +686,12 @@ function describeShared(
     }
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
-        const { poolId, removedCertificateIds = [] } = action.metadata
-        const source = poolId ? ` from ${poolName(poolId)}` : ''
+        const { poolId, removedCertificateIds = [], seller } = action.metadata
+        const source = poolId
+            ? ` from ${poolName(poolId)}`
+            : seller.kind === 'player'
+              ? ` from ${playerName(seller.playerId)}`
+              : ''
         const removed = removedCertificateIds.length
         if (purchaseForfeited(action.metadata))
             return {

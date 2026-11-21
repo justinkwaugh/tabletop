@@ -59,14 +59,23 @@ export interface CompanyAuctionRules {
     openingBid: number
     increment: number
     /** The most a player can bid; a player who cannot reach the minimum leaves the auction. */
-    maximumBid(state: CompanyAuctionState, playerId: string): number
+    /**
+     * The most a player can bid, for the auction's home or, as the auction opens, the home
+     * offered with the opening bid.
+     */
+    maximumBid(state: CompanyAuctionState, playerId: string, home?: StationPosition): number
     /**
      * What a player can put toward a bid before the title's limits on it, where more than cash
      * counts, as 1817's privates do.
      */
     biddingPower?(state: CompanyAuctionState, playerId: string): number
     /** Whether the player could pay this exact amount and form a company with it now. */
-    formable(state: CompanyAuctionState, playerId: string, amount: number): boolean
+    formable(
+        state: CompanyAuctionState,
+        playerId: string,
+        amount: number,
+        home?: StationPosition
+    ): boolean
     homes(state: CompanyAuctionState, companyId: string): StationPosition[]
     startSpace(state: CompanyAuctionState, price: number): string
     /** The share counts a company may be formed with now. */
@@ -126,20 +135,22 @@ export class CompanyAuctionModel {
     }
 
     /** The lowest amount the player can bid now, when any is valid. */
-    lowestBid(playerId: string): number | undefined {
-        const maximum = this.terms.maximumBid(this.state, playerId)
+    lowestBid(playerId: string, home?: StationPosition): number | undefined {
+        const maximum = this.terms.maximumBid(this.state, playerId, home)
         for (let amount = this.minimumBid; amount <= maximum; amount += this.terms.increment)
-            if (this.affords(playerId, amount)) return amount
+            if (this.affords(playerId, amount, home)) return amount
         return undefined
     }
 
     /** Whether the player may open an auction this turn for some company. */
     canOpen(playerId: string): boolean {
         if (this.auction || this.state.stockRound.turn.bought) return false
-        if (this.lowestBid(playerId) === undefined) return false
         return this.state.companies.some(
             (company) =>
-                canBeAuctioned(company) && this.terms.homes(this.state, company.id).length > 0
+                canBeAuctioned(company) &&
+                this.terms
+                    .homes(this.state, company.id)
+                    .some((home) => this.lowestBid(playerId, home) !== undefined)
         )
     }
 
@@ -149,10 +160,10 @@ export class CompanyAuctionModel {
             return 'A company cannot be auctioned after this turn’s purchase.'
         const company = this.state.companies.find((company) => company.id === request.companyId)
         if (!company || !canBeAuctioned(company)) return 'This company cannot be started.'
-        if (!this.affords(request.playerId, request.amount))
+        const home = this.home(request.companyId, request.home)
+        if (!home) return 'Choose a city with an open station slot.'
+        if (!this.affords(request.playerId, request.amount, home))
             return 'The player cannot make this opening bid.'
-        if (!this.home(request.companyId, request.home))
-            return 'Choose a city with an open station slot.'
         return undefined
     }
 
@@ -311,11 +322,11 @@ export class CompanyAuctionModel {
             )
     }
 
-    private affords(playerId: string, amount: number): boolean {
+    private affords(playerId: string, amount: number, home?: StationPosition): boolean {
         return (
             isValidBidStep(amount, this.minimumBid, this.terms.increment) &&
-            amount <= this.terms.maximumBid(this.state, playerId) &&
-            this.terms.formable(this.state, playerId, amount)
+            amount <= this.terms.maximumBid(this.state, playerId, home) &&
+            this.terms.formable(this.state, playerId, amount, home)
         )
     }
 

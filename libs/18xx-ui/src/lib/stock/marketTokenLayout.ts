@@ -25,21 +25,46 @@ const MarketStackInset = 4
 /** Where the market's columns and rows fall, in unscaled scene pixels. */
 export interface MarketGeometry {
     readonly cell: MarketCellDimensions
+    /** Each column's left edge within its line. */
     readonly columnLefts: readonly number[]
     /** Whether a gap comes before each column, either side of a set-apart zone's columns. */
     readonly gapBefore: readonly boolean[]
     readonly rows: number
+    /** The widest line's width. */
     readonly width: number
+    /** The height of one line's spaces. */
     readonly height: number
+    /** The line each column is drawn on, the first unless the market wraps. */
+    readonly columnLines: readonly number[]
+    /** Whether each line has a row of zone banners above its spaces. */
+    readonly linesBannered: readonly boolean[]
+    /** How far each line's spaces start below the scene's top, past its banners and earlier lines. */
+    readonly lineTops: readonly number[]
+    /** The height of every line with its banners and tabs. */
+    readonly sceneHeight: number
+}
+
+export interface MarketLayoutOptions {
+    /** The columns that start a new line, each line drawn below the last. */
+    readonly wraps?: readonly number[]
+    /** Whether each line has a row of the title's marker tabs below its spaces. */
+    readonly tabs?: boolean
 }
 
 export function marketGeometry(
     chart: StockMarketChart,
     cell = DefaultMarketCell,
-    zones: readonly MarketZone[] = []
+    zones: readonly MarketZone[] = [],
+    { wraps = [], tabs = false }: MarketLayoutOptions = {}
 ): MarketGeometry {
     const columns = Math.max(...chart.spaces.map((space) => space.column)) + 1
     const rows = Math.max(...chart.spaces.map((space) => space.row)) + 1
+    const columnLines = Array.from(
+        { length: columns },
+        (_, column) => wraps.filter((wrap) => wrap > 0 && wrap <= column).length
+    )
+    const startsLine = (column: number) =>
+        column === 0 || columnLines[column] !== columnLines[column - 1]
     const apartColors = new Set(zones.filter((zone) => zone.setApart).map((zone) => zone.color))
     const groups = Array.from(
         { length: columns },
@@ -47,27 +72,58 @@ export function marketGeometry(
             chart.spaces.find((space) => space.column === column && apartColors.has(space.color))
                 ?.color
     )
-    const gapBefore = groups.map((group, column) => column > 0 && group !== groups[column - 1])
+    const gapBefore = groups.map(
+        (group, column) => !startsLine(column) && group !== groups[column - 1]
+    )
+    const step = cell.step ?? cell.width
+    const lineWidths: number[] = []
     let left = 0
-    const columnLefts = gapBefore.map((gap) => {
+    const columnLefts = gapBefore.map((gap, column) => {
+        if (startsLine(column)) left = 0
         if (gap) left += MarketZoneGap
         const columnLeft = left
-        left += cell.step ?? cell.width
+        left += step
+        lineWidths[columnLines[column]] = columnLeft + cell.width
         return columnLeft
     })
-    const width = left - (cell.step ?? cell.width) + cell.width
-    return { cell, columnLefts, gapBefore, rows, width, height: rows * cell.height }
+    const height = rows * cell.height
+    const bannerColors = new Set(zones.filter((zone) => zone.banner).map((zone) => zone.color))
+    const linesBannered = lineWidths.map((_, line) =>
+        chart.spaces.some(
+            (space) => columnLines[space.column] === line && bannerColors.has(space.color)
+        )
+    )
+    const lineTops: number[] = []
+    let top = 0
+    for (const bannered of linesBannered) {
+        top += bannered ? MarketZoneBannerHeight : 0
+        lineTops.push(top)
+        top += height + (tabs ? MarketTabHeight : 0)
+    }
+    return {
+        cell,
+        columnLefts,
+        gapBefore,
+        rows,
+        width: Math.max(...lineWidths),
+        height,
+        columnLines,
+        linesBannered,
+        lineTops,
+        sceneHeight: top
+    }
 }
 
 /**
  * The largest empty rectangle in the market's lower-right corner, in unscaled scene pixels, or
- * undefined when the bottom row reaches the last column.
+ * undefined when the bottom row reaches the last column or the market wraps.
  */
 export function marketLowerRightSpace(
     chart: StockMarketChart,
     geometry = marketGeometry(chart)
 ): BoundingBox | undefined {
-    const { cell, columnLefts, rows } = geometry
+    const { cell, columnLefts, rows, lineTops } = geometry
+    if (lineTops.length > 1) return undefined
     let firstEmptyColumn = 0
     let largest: BoundingBox | undefined
     for (let top = rows - 1; top >= 0; top--) {
@@ -96,7 +152,7 @@ export function marketTokenLayout(
     market: StockMarket,
     geometry = marketGeometry(chart)
 ) {
-    const { cell, columnLefts } = geometry
+    const { cell, columnLefts, columnLines, lineTops } = geometry
     const topInset = cell.width < 50 ? 20 : MarketStackInset
     const tokenHeight = cell.height - topInset - MarketStackInset
     return market.stacks.flatMap((stack) => {
@@ -114,6 +170,7 @@ export function marketTokenLayout(
             spaceId: space.id,
             x: columnLefts[space.column] + x,
             y:
+                lineTops[columnLines[space.column]] +
                 space.row * cell.height +
                 topInset +
                 tokenHeight / 2 +
@@ -134,7 +191,7 @@ export function expandedMarketStack(
     spaceId: string,
     geometry = marketGeometry(chart)
 ): Point[] {
-    const { cell, columnLefts, width, height } = geometry
+    const { cell, columnLefts, columnLines, lineTops, width, height } = geometry
     const count = market.stacks.find((stack) => stack.spaceId === spaceId)?.companyIds.length ?? 0
     const space = chart.space(spaceId)
     const step = MarketTokenSize + 4
@@ -144,9 +201,10 @@ export function expandedMarketStack(
         radius,
         Math.min(width - radius, columnLefts[space.column] + stackOffsetX(count, cell))
     )
+    const top = lineTops[columnLines[space.column]]
     const y = Math.max(
-        radius,
-        Math.min(height - radius - span, (space.row + 0.5) * cell.height - span / 2)
+        top + radius,
+        Math.min(top + height - radius - span, top + (space.row + 0.5) * cell.height - span / 2)
     )
     return Array.from({ length: count }, (_, index) => ({ x, y: y + index * step }))
 }

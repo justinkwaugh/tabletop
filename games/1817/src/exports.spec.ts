@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { placeStockMarker, type EighteenXXState, type Train } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
-import { EighteenSeventeenTrainDepot, acquisitionRoundOf } from './index.js'
+import { EighteenSeventeenTrainDepot } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
+import { acquisitionRoundOf } from '@tabletop/18xx'
 
 const roundOf = (number: number, roundNumber: number) => (state: EighteenXXState) =>
     state.operatingSet?.number === number && state.operatingSet.roundNumber === roundNumber

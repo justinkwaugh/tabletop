@@ -75,7 +75,9 @@
                                 fullName={lot.name}
                                 description={info.description}
                                 value={lot.price}
-                                income={lot.company?.revenue}
+                                income={session.presentation.privatesWithoutIncome
+                                    ? undefined
+                                    : lot.company?.revenue}
                             />
                         </div></th
                     >

@@ -28,8 +28,8 @@
     "InterruptOperatingTurn": "8731a101d84c827f4df47ae55e3abc43c88001cd7062c60530ab9f405d50f228",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
     "JoinInvestor": "429cf27ca86141c9e11e5f5c5b774ebb4018b1add7bce3c64a5979d2d659405b",
-    "LayPrivateTile": "211402caf2ebd81400106d9b2f43208ada7ea8717489b1468db11d1d75abf2f0",
-    "LayTile": "a85decb4c77850f7fffdddbe40b752e0636e3e0320140ae79691d08dd1aaf698",
+    "LayPrivateTile": "3645574a76b08ec83a0a3de8944fe4a1e2867a4aead1d5d7562f91e1e2370dd5",
+    "LayTile": "9086c58f0b6c10eea662766df10184dc0d72c5ce662c03385c04e945a1215454",
     "LeaseTrain": "06f697b7f8c187626c35f5c41a61919b22680efdb9edeb1183b2add5db8d562d",
     "MergeInvestor": "a2bb913fa4d12e3404b800fcb8b5773b5b08e61cbdd1ab2e25cba553909cf910",
     "NominateLot": "3c5d5ad3909871df9997fd484262eeb2ec811bb0aaceb771f77c8efd292927f1",
@@ -43,7 +43,7 @@
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "ResolveSelectionAuction": "4b9c0cad368dca3af02277da083979632cf020833ed25a36fe338e53adf520d4",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
-    "RespondToTrackConsent": "ba4ab8b4f9266ce8a64f31905685b556a03e9d45aedaccab53bd0642cecf9ce6",
+    "RespondToTrackConsent": "d7dd542d8c35bf2f0b20990e2ef8f95562155fb15207eaa8d712752d283e01df",
     "ResumeOperatingTurn": "c03700b795b58501c7b64d6c1a24b4a9735dc797c102806a2082920d3c29dc30",
     "ReturnLeasedTrain": "643679b97998db1c34d295dd625c944506ba6b49dc2a6c730ae90d0b196ab1f2",
     "RunTrains": "2fe2b2ead2f259153217cd6779773d1a823106ef8a08ba17cb1c77950d37c2e9",
@@ -3712,6 +3712,69 @@
       "tileInventory": {
         "additionalProperties": false,
         "properties": {
+          "dealtRevenues": {
+            "patternProperties": {
+              "^.*$": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "amount": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "kind": {
+                        "const": "fixed",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "amount",
+                      "kind"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "staged",
+                        "type": "string"
+                      },
+                      "values": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "amount": {
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            "stage": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "amount",
+                            "stage"
+                          ],
+                          "type": "object"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "values"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            },
+            "type": "object"
+          },
           "placements": {
             "patternProperties": {
               "^.*$": {
@@ -3915,6 +3978,10 @@
                 },
                 "locationId": {
                   "type": "string"
+                },
+                "upgrade": {
+                  "const": true,
+                  "type": "boolean"
                 }
               },
               "required": [

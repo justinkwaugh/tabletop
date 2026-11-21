@@ -29,7 +29,7 @@ import { SystemActionFirstHandler } from '../game/systemActionFirstHandler.js'
 import type { RailwayMap } from '../map/map.js'
 import { RailwayMapState } from '../map/mapState.js'
 import { cityBlockedForCompanies, replaceStation, type PlacedStation } from '../map/station.js'
-import { trainsAwaitingExport } from '../operating/exportTrains.js'
+import { exportAwaited } from '../operating/exportTrains.js'
 import { nextOperatingCompany, type OperatingRules } from '../operating/operatingSet.js'
 import { applyPresidencyChange, evaluatePresidency } from '../stock/presidency.js'
 import {
@@ -696,7 +696,7 @@ export class MergerRounds {
             set.privateIncomePaid &&
             !nextOperatingCompany(state) &&
             this.rules.phaseIds.includes(state.phaseId) &&
-            !trainsAwaitingExport(state, this.rules.operatingRules).length &&
+            !exportAwaited(state, this.rules.operatingRules) &&
             !state.gameEnding?.finalOperatingRound &&
             !(latest?.set === set.number && latest.round === set.roundNumber)
         )

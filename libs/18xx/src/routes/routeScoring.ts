@@ -21,6 +21,11 @@ export type PaidConnectionBonus = {
     arrowIds?: readonly string[]
     /** The destination counts only as a paid end of the route, such as a port it ends in. */
     destinationAtEnd?: true
+    /**
+     * Places the route must also stop at for the bonus, as 18USA's Great Northern pays $30 more
+     * to the train that runs Seattle and Chicago besides Fargo and Helena (P17).
+     */
+    requires?: readonly string[]
 }
 
 /**
@@ -111,7 +116,13 @@ export function routeConnectionBonuses(
     shape?: RouteShape
 ): RouteBonus[] {
     return (policy.connectionBonuses ?? []).flatMap(
-        ({ from, to, nodeIds, sourceId, arrowIds, destinationAtEnd }) => {
+        ({ from, to, nodeIds, sourceId, arrowIds, destinationAtEnd, requires }) => {
+            if (
+                requires?.some(
+                    (locationId) => !stops.some((stop) => stop.locationId === locationId)
+                )
+            )
+                return []
             const best = (values: Readonly<Record<string, number>>, atEnd?: true) =>
                 stops.reduce<RouteBonus | undefined>((selected, stop) => {
                     if (atEnd && !isEnd(stop, shape)) return selected

@@ -9,7 +9,14 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import { LoanRecord, repayLoan, repayLoanReason, type LoanRules, type LoanState } from './loans.js'
+import {
+    LoanRecord,
+    borrowedThisTurn,
+    repayLoan,
+    repayLoanReason,
+    type LoanRules,
+    type LoanState
+} from './loans.js'
 
 export const RepayLoan = Type.Object(
     {
@@ -39,6 +46,7 @@ export function canRepayLoan(
     return (
         state.loanStep?.companyId === companyId &&
         !state.loanStep.borrowedAfterInterest &&
+        !(rules.noRepaymentAfterBorrowing && borrowedThisTurn(state, companyId)) &&
         controllingOwner(state, companyId)?.playerId === playerId &&
         !repayLoanReason(state, rules, companyId)
     )

@@ -110,6 +110,11 @@ export interface StockRules {
      * fetch the unmoved price. It sees the sale's certificates in the market, marker unmoved.
      */
     holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
+    /**
+     * Whether players' certificates in the company are for sale to other players, which
+     * `purchaseTerms` then prices, as 18USA's president's shares past 60% (§17).
+     */
+    sellsFromPlayers?(state: StockState, companyId: string): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /**

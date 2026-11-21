@@ -5,6 +5,8 @@
     import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PlaceLink from '../places/PlaceLink.svelte'
+    import AuctionPlayers from '../auctions/AuctionPlayers.svelte'
+    import { auctionSummaryPlayers } from '../auctions/auctionSummary.js'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -36,14 +38,22 @@
             <div>
                 <strong>{session.actionCompanyName(company.id)}</strong>
                 <span>Home <PlaceLink locationId={auction.home.locationId} /></span>
+                {#each session.presentation.homeNotes?.(session.gameState, auction.home.locationId) ?? [] as note (note)}<span
+                        class="home-note">{note}</span
+                    >{/each}
             </div>
         </div>
         <div class="turn">
             <div class="summary">
-                <span>Auctioned by <strong>{session.getPlayerName(auction.openerId)}</strong></span>
                 <span
-                    >High bidder <strong>{session.getPlayerName(bidding.highBidderId)}</strong
-                    ></span
+                    >Auctioned by <AuctionPlayers
+                        players={auctionSummaryPlayers(session, [auction.openerId])}
+                    /></span
+                >
+                <span
+                    >High bidder <AuctionPlayers
+                        players={auctionSummaryPlayers(session, [bidding.highBidderId])}
+                    /></span
                 >
                 <span
                     >High bid <strong>{money(bidding.highBid)}</strong> · starts at {money(
@@ -51,7 +61,10 @@
                     )}</span
                 >
                 {#if module.playerId}<span
-                        >{session.getPlayerName(module.playerId)} may bid up to
+                        ><AuctionPlayers
+                            players={auctionSummaryPlayers(session, [module.playerId])}
+                            emphasis={false}
+                        /> may bid up to
                         <strong
                             >{money(
                                 model.terms.maximumBid(session.gameState, module.playerId)
@@ -98,6 +111,9 @@
     .summary {
         font-size: 12px;
         color: var(--rail-text, #786550);
+    }
+    .home-note {
+        max-width: 18em;
     }
     .turn {
         display: flex;

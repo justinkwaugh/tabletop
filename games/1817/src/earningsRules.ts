@@ -4,7 +4,7 @@ import {
     type EarningsRules,
     type StockMarket
 } from '@tabletop/18xx'
-import { MarketPoolId } from './roundRules.js'
+import { MarketPoolId } from './marketZones.js'
 import { corporationShareCount } from './corporations.js'
 import { isAcquisitionSpace, EighteenSeventeenMarket } from './stockMarket.js'
 

@@ -71,6 +71,7 @@
 <style>
     .company-card {
         flex: none;
+        max-width: 100%;
         display: flex;
         flex-direction: column;
         border: 1px solid var(--rail-border, #c7b8a6);
@@ -91,20 +92,23 @@
         font-size: 14px;
         font-weight: 600;
     }
+    /* Each cell draws its left and top rules, pulled over the card's edge, so wrapped rows stay ruled. */
     .facts {
         display: flex;
+        flex-wrap: wrap;
         margin: 0;
         border-top: 1px solid var(--rail-border, #d8cbbc);
     }
     .facts div {
-        flex: 1;
+        flex: 1 1 auto;
+        margin: -1px 0 0 -1px;
         padding: 4px 10px;
+        border-top: 1px solid var(--rail-border, #d8cbbc);
+        border-left: 1px solid var(--rail-border, #d8cbbc);
         text-align: center;
     }
-    .facts div + div {
-        border-left: 1px solid var(--rail-border, #d8cbbc);
-    }
     dt {
+        white-space: nowrap;
         font-size: 9px;
         line-height: 11px;
         text-transform: uppercase;
@@ -115,26 +119,30 @@
         font-size: 14px;
         font-variant-numeric: tabular-nums;
     }
+    /* Wrapped like the facts: each button rules its top and divides itself from the one before. */
     .actions {
         display: flex;
+        flex-wrap: wrap;
         align-self: stretch;
         border-top: 1px solid var(--rail-border, #d8cbbc);
     }
     button {
         position: relative;
-        flex: 1;
+        flex: 1 1 auto;
+        margin: -1px 0 0 -1px;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 1px;
         padding: clamp(3px, 0.8cqw, 8px) clamp(7px, 1.6cqw, 16px);
         border: 0;
+        border-top: 1px solid var(--rail-border, #d8cbbc);
         background: var(--rail-surface-inset, #1b232d);
         color: inherit;
         font: inherit;
         cursor: pointer;
     }
-    button + button::before {
+    button::before {
         content: '';
         position: absolute;
         left: 0;

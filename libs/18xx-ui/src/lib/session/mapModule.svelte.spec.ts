@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import {
     minimalPlayState,
     minimalRouteRules,
@@ -92,7 +93,7 @@ function table(
         routes,
         homeOffers
     )
-    return { map, track }
+    return { map, track, stations, routes, session }
 }
 
 describe('MapModule', () => {
@@ -102,6 +103,46 @@ describe('MapModule', () => {
         expect(map.tokens).toMatchObject([
             { locationId: TestTrackHomeLocationId, label: TestCompanyId }
         ])
+    })
+
+    it('keeps the drawn board through a new state with the same map, and redraws for a new tile', () => {
+        const { session, track, stations, routes } = table('StockRound', [])
+        let shown = $state.raw(session.state)
+        const map = new MapModule(
+            session,
+            () => view,
+            track,
+            stations,
+            routes,
+            [noAuctionHomes],
+            () => shown
+        )
+        const drawn = map.scene
+        shown = {
+            ...shown,
+            tileInventory: structuredClone(shown.tileInventory),
+            locationMarkers: structuredClone(shown.locationMarkers),
+            companies: shown.companies.map((company) => ({ ...company })),
+            certificates: shown.certificates.map((certificate) => ({ ...certificate }))
+        }
+        expect(map.scene).toBe(drawn)
+        const locationId = minimalTrackMap.definition.locations.find(
+            (location) => location.id !== TestTrackHomeLocationId
+        )?.id
+        assertExists(locationId)
+        shown = {
+            ...shown,
+            tileInventory: tileSet.replace(shown.tileInventory, {
+                locationId,
+                placement: {
+                    pieceId: 'test-straight/straight/1',
+                    definitionId: '18xx:9',
+                    rotation: 0
+                },
+                returnPrevious: true
+            })
+        }
+        expect(map.scene).not.toBe(drawn)
     })
 
     it('lists the supply’s tiles in the manifest, each with its count, and none of the board’s', () => {

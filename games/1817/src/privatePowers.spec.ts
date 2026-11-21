@@ -16,7 +16,7 @@ import {
     EighteenSeventeenRouteRules,
     EighteenSeventeenTrackRules,
     EighteenSeventeenTrainDepot,
-    buyOwedStations,
+    EighteenSeventeenStations,
     EighteenSeventeenTileSet
 } from './index.js'
 import { passUntil } from '../test/passTurns.js'
@@ -285,7 +285,7 @@ describe('the Train Station', () => {
     it('gives its company one station beyond its size’s once those are bought', () => {
         const play = playExample(EighteenSeventeenScenarios, 'trading', 3, (state) => {
             givePrivate(state, 'TS', 'PLE')
-            buyOwedStations(state, 'PLE')
+            EighteenSeventeenStations.buyOwedStations(state, 'PLE')
         })
         expect(
             play.state.stations.filter(

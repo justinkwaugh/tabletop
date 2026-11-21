@@ -10,6 +10,8 @@
     import AuctionBidRow from './AuctionBidRow.svelte'
     import SelectionAuctionPyramid from './SelectionAuctionPyramid.svelte'
     import AuctionTurnLayout from './AuctionTurnLayout.svelte'
+    import AuctionPlayers from './AuctionPlayers.svelte'
+    import { auctionSummaryPlayers } from './auctionSummary.js'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -103,7 +105,9 @@
                                                 fullName={lot.name}
                                                 description={lot.company.description}
                                                 value={lot.price}
-                                                income={lot.company.revenue}
+                                                income={session.presentation.privatesWithoutIncome
+                                                    ? undefined
+                                                    : lot.company.revenue}
                                             />
                                             {#if lot.company.description}<span class="power"
                                                     ><PlaceText
@@ -147,7 +151,10 @@
     {#if playerId && !bidsInline}<div class="summary">
             <span
                 >{#if tiered && selected}Auction <strong>{session.lotName(selected)}</strong
-                    >{' · '}{/if}{session.getPlayerName(playerId)} has
+                    >{' · '}{/if}<AuctionPlayers
+                    players={auctionSummaryPlayers(session, [playerId])}
+                    emphasis={false}
+                /> has
                 <strong>{money(model.cash(playerId))}</strong></span
             >
         </div>{/if}

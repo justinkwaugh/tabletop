@@ -1022,13 +1022,15 @@
                       marketGeometry(
                           session.stockMarketChart,
                           session.presentation.marketCell,
-                          session.presentation.marketZones
+                          session.presentation.marketZones,
+                          { wraps: session.presentation.marketWraps }
                       )
                   )
                 : undefined}
             <div class="board-market">
                 <StockMarketScene
                     cell={session.presentation.marketCell}
+                    wraps={session.presentation.marketWraps}
                     animation={session.marketAnimation}
                     appearances={session.mapView.stations}
                     chart={session.stockMarketChart}
@@ -1530,6 +1532,7 @@
                                     <div class="market-with-loans">
                                         <StockMarketScene
                                             cell={session.presentation.marketCell}
+                                            wraps={session.presentation.marketWraps}
                                             animation={session.marketAnimation}
                                             appearances={session.mapView.stations}
                                             renderScale={2}

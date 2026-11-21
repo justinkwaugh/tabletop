@@ -6,6 +6,7 @@ import type { StationState } from '../map/station.js'
 import { createCityTileFace, createTrackTileFace } from '../tiles/faces.js'
 import { TileSet } from '../tiles/inventory.js'
 import { TrackNetwork } from './trackNetwork.js'
+import { ConstructionReachability } from './constructionReachability.js'
 import type { TileFace } from '../tiles/tile.js'
 const tiles = new TileSet({ id: 'empty', entries: [] }, [])
 function map(middle: TileFace) {
@@ -93,4 +94,12 @@ it('can choose either branch when entering their shared hex edge', () => {
     const network = new TrackNetwork(map(branching), ownOnly, 'A')
     expect(network.usesPath('1', branching.paths[0].id)).toBe(true)
     expect(network.usesPath('1', branching.paths[1].id)).toBe(true)
+})
+it('builds through a full rival city the rules let the company pass', () => {
+    const state = map(createCityTileFace('yellow', [3, 0], 20, 1))
+    const reach = (passes?: (locationId: string, nodeId: string) => boolean) =>
+        new ConstructionReachability(state, stations, 'A', undefined, passes).canReach('2')
+    expect(reach()).toBe(false)
+    expect(reach((locationId) => locationId === '1')).toBe(true)
+    expect(reach((locationId) => locationId === '2')).toBe(false)
 })

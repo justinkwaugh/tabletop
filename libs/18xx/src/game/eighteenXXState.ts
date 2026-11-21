@@ -278,7 +278,8 @@ export function railwayStateValidation({
         validateCompanyDecisions(state)
         validateRouteStep(state)
         validatePhaseChange(state, phaseDecisionStates)
-        validateEarningsDistribution(state, operatingInterruptions)
+        // A train bought after the run may change the phase, whose decisions pause the turn too.
+        validateEarningsDistribution(state, [...operatingInterruptions, ...phaseDecisionStates])
         validateTrainPurchaseStep(state)
         validateRailwayComponents(state, components)
     }

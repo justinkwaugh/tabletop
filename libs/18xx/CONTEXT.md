@@ -233,3 +233,31 @@ The itemized revenue earned by a company's submitted train runs in an operating 
 **Purchase Offer**:
 A proposed asset purchase identifying the buyer, seller, asset, and price, awaiting
 the agreement required by the title's rules.
+
+**Sized Company**:
+A company of the 1817 family started at one of several sizes (2, 5 or 10 shares), which
+grows by conversion or merger, borrows up to a limit, can be shorted, and is sold to
+another company or liquidated through the closing zones.
+
+**Closing Zone**:
+The acquisition or liquidation zone of a sized-company market: a company priced there
+cannot have its shares bought or sold, and it is sold in the next acquisition round.
+
+**Conversion Round**:
+The 1817 family's merger and conversion round after each operating round, in which each
+sized company in turn may convert to its next size or merge another of its size into it.
+Its stored record and Actions keep the published names `mergerRound`, `StartMergerRound`,
+`PassMerger` and `EndMergerRound`.
+_Avoid_: merger round (the 1861 family's minor-to-major round)
+
+**Acquisition Round**:
+The round after a conversion round in which companies in the closing zones are auctioned
+and presidents may offer the rest, each to another company bid for by its president.
+
+**Company Excess**:
+The stations over the station limit, duplicate stations in one hex and trains over the
+train limit that a merged or acquiring company gives up before its round goes on.
+
+**Acting Company Action**:
+A title's own Action that a company may take within a family step that lets it act, as
+18USA's Pullman scrapping, offered beside the step's Actions without replacing any.

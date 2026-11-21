@@ -1,16 +1,15 @@
-import type { StockMarket } from '@tabletop/18xx'
-import type { ClosingZone } from './state.js'
-import { isAcquisitionSpace, isLiquidationSpace, EighteenSeventeenMarket } from './stockMarket.js'
+import { SizedCompanyMarket } from '@tabletop/18xx'
+import { EighteenSeventeenCharters } from './charters.js'
+import { EighteenSeventeenMarket, isAcquisitionSpace, isLiquidationSpace } from './stockMarket.js'
 
-/** Shares of a company in the acquisition or liquidation zone cannot be bought or sold. */
-export function inClosingZone(market: StockMarket, companyId: string): boolean {
-    const space = EighteenSeventeenMarket.companySpace(market, companyId)
-    return isAcquisitionSpace(space) || isLiquidationSpace(space)
-}
+export const MarketPoolId = 'market'
 
-export function closingZone(market: StockMarket, companyId: string): ClosingZone | undefined {
-    const space = EighteenSeventeenMarket.companySpace(market, companyId)
-    if (isLiquidationSpace(space)) return 'liquidation'
-    if (isAcquisitionSpace(space)) return 'acquisition'
-    return undefined
-}
+/** 1817's companies of 2, 5 and 10 shares on its one-row market, sold and shorted to the pool. */
+export const EighteenSeventeenCompanyMarket = new SizedCompanyMarket({
+    market: EighteenSeventeenMarket,
+    charters: EighteenSeventeenCharters,
+    marketPoolId: MarketPoolId,
+    charterShareCount: 2,
+    isLiquidationSpace,
+    isAcquisitionSpace
+})

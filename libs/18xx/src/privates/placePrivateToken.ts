@@ -11,7 +11,11 @@ import {
 import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyStationsOnly, StationPosition, sameStationPosition } from '../map/station.js'
 import { StationPlacementDetails, applyStationPlacement } from '../stations/stationPlacement.js'
-import { recordPrivatePowerUse, type CompanyDecisionState } from './companyDecision.js'
+import {
+    privatePowerUsed,
+    recordPrivatePowerUse,
+    type CompanyDecisionState
+} from './companyDecision.js'
 import type { PrivatePowerRules, PrivateTokenTerms } from './privatePowers.js'
 
 export const PlacePrivateToken = Type.Object(
@@ -64,6 +68,7 @@ export class HydratedPlacePrivateToken
     private terms(state: CompanyDecisionState): PrivateTokenTerms | undefined {
         const terms = this.#powers.tokenTerms?.(state, this.privateCompanyId, this.playerId)
         return this.source === ActionSource.User &&
+            !privatePowerUsed(state, this.privateCompanyId) &&
             state.activePlayerIds.includes(this.playerId) &&
             !!privateTokenStationId(state, terms?.companyId ?? '') &&
             terms?.positions.some((position) => sameStationPosition(position, this.position))

@@ -24,6 +24,9 @@ pub struct Problem {
     /// A route may not leave a hex and enter it again.
     #[serde(default)]
     no_reentry: bool,
+    /// The hexes a route may not leave and enter again, when not every hex.
+    #[serde(default)]
+    no_reentry_hexes: Vec<bool>,
     /// How many blocked cities or towns the company's routes may run through, all together.
     #[serde(default)]
     blocked_passes: u32,
@@ -32,6 +35,15 @@ pub struct Problem {
 }
 
 impl Problem {
+    /// Whether any hex forbids a route entering it again, so routes' hexes are followed.
+    fn tracks_reentry(&self) -> bool {
+        self.no_reentry || self.no_reentry_hexes.iter().any(|&hex| hex)
+    }
+
+    fn forbids_reentry(&self, hex: usize) -> bool {
+        self.no_reentry || self.no_reentry_hexes.get(hex).copied().unwrap_or(false)
+    }
+
     fn stretch_states(&self) -> usize {
         if self.arcs.iter().all(|arc| arc.gauge == Gauge::Standard) {
             1
@@ -158,6 +170,9 @@ struct PaidConnectionBonus {
     to: Vec<Option<i32>>,
     #[serde(default)]
     ends_only: bool,
+    /// Stops the route must also call at, one of each mask's, for the bonus.
+    #[serde(default)]
+    requires: Vec<Vec<bool>>,
 }
 
 #[derive(Deserialize, PartialEq)]
@@ -232,6 +247,13 @@ impl Train {
             .connection_bonuses
             .iter()
             .map(|bonus| {
+                if !bonus
+                    .requires
+                    .iter()
+                    .all(|mask| bonused.iter().any(|&id| mask[id]))
+                {
+                    return 0;
+                }
                 let from = bonused.iter().filter_map(|&id| bonus.from[id]).max();
                 let to = bonused
                     .iter()
@@ -761,6 +783,11 @@ fn validate(problem: &Problem) -> Result<(), String> {
     {
         return Err("Unsupported problem version or budget".into());
     }
+    if !problem.no_reentry_hexes.is_empty()
+        && problem.no_reentry_hexes.len() != problem.hex_bonuses.len()
+    {
+        return Err("Invalid re-entry hexes".into());
+    }
     for stop in &problem.stops {
         if stop.groups.iter().any(|&g| g >= problem.group_count)
             || stop.hex >= problem.hex_bonuses.len()
@@ -806,6 +833,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
             || train.connection_bonuses.iter().any(|bonus| {
                 bonus.from.len() != n
                     || bonus.to.len() != n
+                    || bonus.requires.iter().any(|mask| mask.len() != n)
                     || bonus
                         .from
                         .iter()
@@ -871,13 +899,13 @@ impl Compiler<'_> {
     /// none when it enters one again itself.
     fn stays(&self) -> Option<Vec<usize>> {
         let mut stays = vec![];
-        if self.problem.no_reentry {
+        if self.problem.tracks_reentry() {
             for &a in &self.walking {
                 let hex = self.problem.arcs[a].hex;
                 if stays.last() == Some(&hex) {
                     continue;
                 }
-                if stays.contains(&hex) {
+                if stays.contains(&hex) && self.problem.forbids_reentry(hex) {
                     return None;
                 }
                 stays.push(hex);
@@ -977,7 +1005,7 @@ impl Compiler<'_> {
                     } else {
                         self.stored_bytes += bytes + grown;
                         self.connections.push(connection);
-                        if self.problem.no_reentry {
+                        if self.problem.tracks_reentry() {
                             self.stays.push(stays);
                         }
                     }
@@ -1174,7 +1202,10 @@ impl<'a> Search<'a> {
                 continue;
             }
             let entered = self.entered(start, connection_id);
-            if entered.iter().any(|&hex| self.been[hex]) {
+            if entered
+                .iter()
+                .any(|&hex| self.been[hex] && self.problem.forbids_reentry(hex))
+            {
                 continue;
             }
             for &hex in entered {
@@ -2634,7 +2665,7 @@ impl<'a> Network<'a> {
         };
         for (id, stop) in problem.stops.iter().enumerate() {
             if stop.allowed && stop.endpoint {
-                search.been[stop.hex] = problem.no_reentry;
+                search.been[stop.hex] = problem.tracks_reentry();
                 search.walk(
                     id,
                     id,

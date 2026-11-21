@@ -1,6 +1,6 @@
 import { EighteenXXOperatingAction, EighteenXXPlayerAction } from './eighteenXXPlayerAction.js'
 import { defineAction, type ActionDefinition } from './actionDefinition.js'
-import { HydratableAction, type GameAction, type HydratedAction } from '@tabletop/common'
+import { GameAction, HydratableAction, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 
@@ -37,6 +37,28 @@ export function systemAction<const Name extends string, Own extends Type.TProper
     return actionKit(
         Type.Object(
             { ...EighteenXXOperatingAction.properties, type: Type.Literal(type), ...own },
+            { additionalProperties: false }
+        )
+    )
+}
+
+/** The schema of a `systemEvent` Action. */
+export type SystemEventSchema<Name extends string, Own extends Type.TProperties> = Type.TObject<
+    EventFields<Name, Own>
+>
+type EventFields<Name extends string, Own extends Type.TProperties> = Omit<
+    typeof GameAction.properties,
+    'type'
+> & { type: Type.TLiteral<Name> } & Own
+
+/** The system's Actions that act for no player and carry no instructed runs. */
+export function systemEvent<const Name extends string, Own extends Type.TProperties>(
+    type: Name,
+    own: Own
+): TitleActionKit<SystemEventSchema<Name, Own>> {
+    return actionKit(
+        Type.Object(
+            { ...GameAction.properties, type: Type.Literal(type), ...own },
             { additionalProperties: false }
         )
     )

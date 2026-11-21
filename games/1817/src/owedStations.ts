@@ -6,104 +6,47 @@ import {
     GameAction,
     HydratableAction,
     assert,
-    assertExists,
     type HydratedGameState
 } from '@tabletop/common'
 import {
-    CashPayment,
+    SizedCompanyStations,
+    addCompanyStations,
     closePrivate,
-    finiteCashOwnedBy,
     privateOwningCompany,
     type StationState,
     type StockState,
     SystemActionFirstHandler
 } from '@tabletop/18xx'
-import { StationPrice, TrainStationId, buyOwedStations, stationsOwed } from './stockRules.js'
-import { LiquidateCompany, isLiquidated } from './liquidation.js'
+import { EighteenSeventeenCompanyMarket } from './marketZones.js'
+import { StationSubsidyId, companyHolding } from './privateHolders.js'
 
-const Fields = Type.Object({
-    type: Type.Literal('BuyOwedStations'),
-    companyId: Type.String(),
-    metadata: Type.Optional(
-        Type.Object(
-            { stations: Type.Integer({ minimum: 1 }), payment: CashPayment },
-            { additionalProperties: false }
-        )
-    )
+export const StationsBySize: Readonly<Record<number, number>> = { 2: 1, 5: 2, 10: 4 }
+export const StationPrice = 50
+export const StationLimit = 8
+export const TrainStationId = 'TS'
+// The Station Subsidy's company pays $50 less for the stations it buys when it converts.
+const StationSubsidy = 50
+
+/** A company needs 1, 2 or 4 stations for its size, at $50 beyond its home, and holds 8 at most. */
+export const EighteenSeventeenStations = new SizedCompanyStations(EighteenSeventeenCompanyMarket, {
+    bySize: StationsBySize,
+    price: StationPrice,
+    limit: StationLimit,
+    afterStationsBought: grantTrainStation,
+    conversionDiscount: (state, companyId) =>
+        companyHolding(state, StationSubsidyId) === companyId ? StationSubsidy : 0
 })
-export const BuyOwedStations: Type.TObject<
-    Omit<typeof GameAction.properties, 'type'> & typeof Fields.properties
-> = Type.Object({ ...GameAction.properties, ...Fields.properties }, { additionalProperties: false })
-export type BuyOwedStations = Type.Static<typeof BuyOwedStations>
-const Validator = Compile(BuyOwedStations)
-export function isBuyOwedStations(action: GameAction): action is BuyOwedStations {
-    return (
-        action instanceof HydratedBuyOwedStations ||
-        (action.type === 'BuyOwedStations' && Validator.Check(action))
+
+// The Train Station's free station comes beyond those the company's size needs, so it waits
+// until those are bought; its only power used, the private closes.
+function grantTrainStation(state: StockState & StationState, companyId: string): void {
+    if (
+        privateOwningCompany(state, TrainStationId) !== companyId ||
+        EighteenSeventeenStations.stationsOwed(state, companyId)
     )
-}
-
-export function companyAbleToBuyStations(state: StockState & StationState): string | undefined {
-    return state.companies.find((company) => {
-        const owed = stationsOwed(state, company.id)
-        return (
-            owed > 0 &&
-            !isLiquidated(state.stockMarket, company.id) &&
-            finiteCashOwnedBy(state, { kind: 'company', companyId: company.id }) >=
-                owed * StationPrice
-        )
-    })?.id
-}
-
-export class HydratedBuyOwedStations
-    extends HydratableAction<typeof BuyOwedStations>
-    implements BuyOwedStations
-{
-    declare type: 'BuyOwedStations'
-    declare companyId: string
-    declare metadata?: BuyOwedStations['metadata']
-    constructor(data: BuyOwedStations) {
-        super(data instanceof HydratedBuyOwedStations ? data.dehydrate() : data, Validator)
-    }
-    apply(state: HydratedGameState & StockState & StationState): void {
-        assert(
-            this.source === ActionSource.System &&
-                companyAbleToBuyStations(state) === this.companyId,
-            'The system buys stations a company can now pay for'
-        )
-        const stations = stationsOwed(state, this.companyId)
-        const payment = buyOwedStations(state, this.companyId)
-        assertExists(payment, 'The company can pay for its stations')
-        this.metadata = { stations, payment }
-    }
-}
-
-/** Buys owed stations as soon as a company's treasury can pay for them. */
-export function buysOwedStations(
-    handler: EighteenSeventeenStateHandler
-): EighteenSeventeenStateHandler {
-    return new SystemActionFirstHandler(handler, BuyOwedStations, (state) => {
-        const companyId = companyAbleToBuyStations(state)
-        return companyId ? { companyId } : undefined
-    })
-}
-
-/** A company that still owes stations when the stock round ends is liquidated. */
-export function liquidatesUnpaidStations(
-    handler: EighteenSeventeenStateHandler
-): EighteenSeventeenStateHandler {
-    return new SystemActionFirstHandler(
-        handler,
-        LiquidateCompany,
-        (state): Partial<LiquidateCompany> | undefined => {
-            const companyId = state.companies.find(
-                (company) =>
-                    stationsOwed(state, company.id) > 0 &&
-                    !isLiquidated(state.stockMarket, company.id)
-            )?.id
-            return companyId ? { companyId, reason: 'unpaid-stations' } : undefined
-        }
-    )
+        return
+    addCompanyStations(state, companyId, 1)
+    closePrivate(state, TrainStationId)
 }
 
 const CloseFields = Type.Object({

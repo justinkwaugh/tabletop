@@ -33,4 +33,16 @@ describe('the loan rate table', () => {
         expect(charged(20)).toEqual([20])
         expect(charged(25)).toEqual([])
     })
+
+    it('fills rows of different sizes, as a mat lending four at its first rate', () => {
+        const uneven = { loansPerRow: [4, 6, 6], rates: [5, 10, 15] }
+        const view = loanRateTableView(uneven, 7, undefined)
+        expect(view.rows.map((row) => [row.loans, row.taken])).toEqual([
+            [4, 4],
+            [6, 3],
+            [6, 0]
+        ])
+        expect(view.rows.map((row) => row.standing)).toEqual(['used', 'current', 'open'])
+        expect(loanRateTableView(uneven, 4, undefined).rows[0].standing).toBe('current')
+    })
 })

@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
-import { placeStockMarker, type BuyTrain, type FormCompany } from '@tabletop/18xx'
 import {
-    InventorId,
+    placeStockMarker,
     type AcquireCompany,
+    type BuyTrain,
     type CloseCompanySale,
-    type PassMerger,
-    type SellConvertedShares,
-    EighteenSeventeenMarket
-} from '@tabletop/1817'
+    type FormCompany,
+    type PassConversion,
+    type SellConvertedShares
+} from '@tabletop/18xx'
+import { InventorId, EighteenSeventeenMarket } from '@tabletop/1817'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
@@ -204,7 +205,7 @@ describe('1817’s history', () => {
     })
 
     it('marks a passed merger as routine', () => {
-        const action: PassMerger = { ...base, id: 'pass', type: 'PassMerger', companyId: 'BA' }
+        const action: PassConversion = { ...base, id: 'pass', type: 'PassMerger', companyId: 'BA' }
         expect(eighteenSeventeenHistoryDescription(action, names, money, shared)).toEqual({
             text: 'Passed with BA',
             routine: true

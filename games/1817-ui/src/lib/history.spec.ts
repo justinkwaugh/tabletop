@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
-import type { BuyConvertedShare } from '@tabletop/1817'
+import type { BuyConvertedShare } from '@tabletop/18xx'
 import { moneyFormat } from '@tabletop/18xx-ui'
 import { eighteenSeventeenHistoryDescription } from './history.js'
 

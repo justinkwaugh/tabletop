@@ -7,6 +7,8 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import './auctionLotTable.css'
     import AuctionBidRow from './AuctionBidRow.svelte'
+    import AuctionPlayers from './AuctionPlayers.svelte'
+    import { auctionSummaryPlayers } from './auctionSummary.js'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -265,8 +267,9 @@
             {/snippet}
             {#snippet figures()}
                 <span
-                    >High bidder <strong>{session.getPlayerName(contest.highBidderId)}</strong
-                    ></span
+                    >High bidder <AuctionPlayers
+                        players={auctionSummaryPlayers(session, [contest.highBidderId])}
+                    /></span
                 >
                 <span>High bid <strong>{money(contest.highBid)}</strong></span>
             {/snippet}

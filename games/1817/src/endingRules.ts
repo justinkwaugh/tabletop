@@ -1,6 +1,7 @@
 import { EighteenSeventeenNames } from './names.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import {
+    acquisitionRoundPending,
     certificateWealthItem,
     getCompany,
     marketShareValue,
@@ -8,7 +9,6 @@ import {
     type EndingRules
 } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
-import { acquisitionRoundPending } from './acquisitionRound.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { EighteenSeventeenPhases } from './trains.js'
 export const EighteenSeventeenEndingRules: EndingRules = {

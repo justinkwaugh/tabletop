@@ -2,7 +2,7 @@ import type { StationAppearance } from '../maps/stationPresentation.js'
 import type { TileAppearance } from './tileAppearance.js'
 import { svgDataUrl } from '../presentation/svgDataUrl.js'
 
-export type TileSymbolName = 'port' | 'horns' | 'lock'
+export type TileSymbolName = 'port' | 'horns' | 'lock' | 'coal' | 'oil' | 'ore' | 'bridge'
 
 export const PortSymbol = {
     radius: 8,
@@ -29,10 +29,48 @@ export const LockSymbol = {
     body: 'M -3.2 -0.8 H 3.2 A 1 1 0 0 1 4.2 0.2 V 4.6 A 1 1 0 0 1 3.2 5.6 H -3.2 A 1 1 0 0 1 -4.2 4.6 V 0.2 A 1 1 0 0 1 -3.2 -0.8 Z M 0 1.2 A 1 1 0 1 0 0 3.2 A 1 1 0 1 0 0 1.2 Z'
 }
 
+// A lump of coal, filled in ink.
+export const CoalSymbol = {
+    radius: 8,
+    path: 'M -4.8 2.6 L -3.9 -1.4 L -1.2 -3.8 L 2.4 -3.2 L 4.9 -0.4 L 4.2 3.1 L 0.6 4.6 L -3.1 4.3 Z'
+}
+
+// A drop of oil, filled in ink.
+export const OilSymbol = {
+    radius: 8,
+    path: 'M 0 -5.4 C 1.6 -2.8 4.2 -0.6 4.2 1.8 A 4.2 4.2 0 0 1 -4.2 1.8 C -4.2 -0.6 -1.6 -2.8 0 -5.4 Z'
+}
+
+// A miner's pick, stroked in ink: its curved head across the top of its handle.
+export const OreSymbol = {
+    radius: 8,
+    strokeWidth: 1.5,
+    head: 'M -5 -1.6 Q 0 -5.6 5 -1.6',
+    handle: 'M 0 -3.6 V 5.2'
+}
+
+// An arched bridge, stroked in ink: its deck over the arch and the piers it stands on.
+export const BridgeSymbol = {
+    radius: 8,
+    strokeWidth: 1.4,
+    deck: 'M -5.8 -1.4 H 5.8',
+    arch: 'M -4.6 4.2 Q 0 -3 4.6 4.2 M -2.3 -1.4 V 0.6 M 2.3 -1.4 V 0.6'
+}
+
 export function tileSymbolMarkup(symbol: TileSymbolName, ink: string): string {
     if (symbol === 'lock') {
         const { strokeWidth, shackle, body } = LockSymbol
         return `<path fill="none" stroke="${ink}" stroke-width="${strokeWidth}" d="${shackle}"/><path fill="${ink}" fill-rule="evenodd" stroke="none" d="${body}"/>`
+    }
+    if (symbol === 'coal') return `<path fill="${ink}" stroke="none" d="${CoalSymbol.path}"/>`
+    if (symbol === 'oil') return `<path fill="${ink}" stroke="none" d="${OilSymbol.path}"/>`
+    if (symbol === 'ore') {
+        const { strokeWidth, head, handle } = OreSymbol
+        return `<g fill="none" stroke="${ink}" stroke-width="${strokeWidth}" stroke-linecap="round"><path d="${head}"/><path d="${handle}"/></g>`
+    }
+    if (symbol === 'bridge') {
+        const { strokeWidth, deck, arch } = BridgeSymbol
+        return `<g fill="none" stroke="${ink}" stroke-width="${strokeWidth}" stroke-linecap="round"><path d="${deck}"/><path d="${arch}"/></g>`
     }
     if (symbol === 'horns')
         return HornsSymbol.paths

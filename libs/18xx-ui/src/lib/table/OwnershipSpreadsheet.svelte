@@ -396,6 +396,9 @@
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
                     count: (companyId: string) => session.playerShares(companyId, playerId),
+                    sells: (certificate: PurchaseCertificate) =>
+                        certificate.owner.kind === 'player' &&
+                        certificate.owner.playerId === playerId,
                     holder: (): CertificateHolder => ({ owner: { kind: 'player', playerId } })
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)

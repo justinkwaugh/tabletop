@@ -3,13 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { cashOwnedBy, getCompany, loanRate, type EighteenXXState } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import {
-    EighteenSeventeenLoanRules,
-    EighteenSeventeenTransferRules,
-    isLiquidated
-} from './index.js'
+import { EighteenSeventeenLoanRules, EighteenSeventeenTransferRules } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
+import { EighteenSeventeenCompanyMarket } from './index.js'
 
 const treasury = (state: EighteenXXState, companyId: string) =>
     cashOwnedBy(state, { kind: 'company', companyId })
@@ -128,7 +125,9 @@ describe('loans in the operating turn', () => {
         expect(getCompany(play.state, 'BA').loans).toBe(3)
         expect(treasury(play.state, 'BA')).toBe(70)
         expect(price(play.state, 'BA')).toBeLessThan(before)
-        expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(false)
+        expect(EighteenSeventeenCompanyMarket.isLiquidated(play.state.stockMarket, 'BA')).toBe(
+            false
+        )
         expect(play.state.loanStep).toEqual({ companyId: 'BA' })
     })
 
@@ -140,7 +139,7 @@ describe('loans in the operating turn', () => {
         const blair = cashOwnedBy(play.state, { kind: 'player', playerId: 'blair' })
         play.act('FinishTrack', { companyId: 'BA' })
         play.act('FinishTrains', { companyId: 'BA' })
-        expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
+        expect(EighteenSeventeenCompanyMarket.isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
         expect(treasury(play.state, 'BA')).toBe(0)
         expect(cashOwnedBy(play.state, { kind: 'player', playerId: 'blair' })).toBe(
             Number(blair) + 20 - 50
@@ -187,7 +186,7 @@ describe('loans in the operating turn', () => {
         })
         toLoanStep(play)
         play.act('FinishOperatingTurn', { companyId: 'BA' })
-        expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
+        expect(EighteenSeventeenCompanyMarket.isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
         expect(play.state.trackStep?.companyId).toBe('PLE')
         const train = play.state.trainInventory.trains.find(
             (train) => train.status === 'owned' && train.owner.kind === 'company'

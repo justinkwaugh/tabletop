@@ -3,6 +3,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBiddingCard from './AuctionBiddingCard.svelte'
     import { auctionLotDetails } from './auctionLotDetails.js'
+    import { auctionSummaryPlayers } from './auctionSummary.js'
 
     let {
         session,
@@ -62,11 +63,14 @@
     }}
     summary={bidding.auction.highBid === undefined
         ? [
-              { label: 'Offered by', value: session.getPlayerName(highBidderId) },
+              { label: 'Offered by', players: auctionSummaryPlayers(session, [highBidderId]) },
               { label: 'Initial value', value: money(lot.price) }
           ]
         : [
-              { label: 'Current bidder', value: session.getPlayerName(highBidderId) },
+              {
+                  label: 'Current bidder',
+                  players: auctionSummaryPlayers(session, [highBidderId])
+              },
               { label: 'High bid', value: money(bidding.auction.highBid) }
           ]}
     {amount}

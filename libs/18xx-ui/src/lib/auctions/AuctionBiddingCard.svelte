@@ -5,6 +5,7 @@
     import PublishedCardPlate from '../privates/PublishedCardPlate.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import AuctionBidTurn from './AuctionBidTurn.svelte'
+    import type { AuctionSummaryLine } from './auctionSummary.js'
 
     let {
         session,
@@ -28,7 +29,7 @@
             description: string
             cardTokens?: readonly StationAppearance[]
         }
-        summary: readonly { label: string; value: string }[]
+        summary: readonly AuctionSummaryLine[]
         amount: number
         increment: number
         ownTurn: boolean

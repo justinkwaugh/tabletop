@@ -51,6 +51,7 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
         return [
             ...(canRepayLoan(state, this.rules, playerId, companyId) ? ['RepayLoan'] : []),
             ...(!this.rules.interestBeforeEarnings &&
+            !this.rules.noRepaymentAfterBorrowing &&
             canTakeLoan(state, this.rules, playerId, companyId)
                 ? ['TakeLoan']
                 : []),

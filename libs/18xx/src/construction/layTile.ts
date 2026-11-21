@@ -109,7 +109,8 @@ export function applyTrackLay(
         assert(state.trackStep, 'An ordinary lay requires a track step')
         state.trackStep.lays.push({
             locationId: details.locationId,
-            definitionId: details.definitionId
+            definitionId: details.definitionId,
+            ...(details.upgrade || details.previous ? { upgrade: true } : {})
         })
     } else if (privateCompanyId && state.trackStep?.companyId === details.companyId)
         (state.trackStep.extraLays ??= []).push({

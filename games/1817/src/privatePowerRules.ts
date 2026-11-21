@@ -9,14 +9,12 @@ import {
     placeLocationMarker,
     removeLocationMarkers,
     privateOwningCompany,
-    rotateTileFace,
     TileEdges,
     type CompanyDecisionState,
     type PrivatePowerRules,
     type PrivateTrackTerms,
     type TrackRequest,
-    rotateTileEdge,
-    TrackConstruction
+    tileFacesStop
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
 import { CityTilePrivates } from './privates.js'
@@ -168,32 +166,9 @@ function besideCityTile(state: CompanyDecisionState, request: TrackRequest): str
 
 // A mine or ranch faces a neighbouring city, town or offboard.
 function facesStop(state: CompanyDecisionState, request: TrackRequest): string | undefined {
-    const definition = EighteenSeventeenTileSet.definitions.find(
-        (tile) => tile.id === request.definitionId
-    )
-    assertExists(definition, 'A mine or ranch is one of its private’s tiles')
-    const map = mapState(state)
-    const edges = rotateTileFace(definition.face, request.rotation).paths.flatMap((path) =>
-        path.endpoints.flatMap((endpoint) => (endpoint.kind === 'edge' ? [endpoint.edge] : []))
-    )
-    const construction = new TrackConstruction(state, EighteenSeventeenTrackRules)
-    const faces = edges.some((edge) => {
-        const neighbor = EighteenSeventeenMap.neighbor(request.locationId, edge)
-        if (!neighbor) return false
-        const tile = map.tile(neighbor.id)
-        const face = rotateTileFace(tile.face, tile.rotation)
-        return (
-            face.nodes.some((node) => node.kind !== 'junction') &&
-            (face.paths.some((path) =>
-                path.endpoints.some(
-                    (endpoint) =>
-                        endpoint.kind === 'edge' && endpoint.edge === rotateTileEdge(edge, 3)
-                )
-            ) ||
-                construction.hasFutureUpgrade(neighbor.id))
-        )
-    })
-    return faces ? undefined : 'The tile must face a neighbouring city, town or offboard.'
+    return tileFacesStop(state, EighteenSeventeenTrackRules, request)
+        ? undefined
+        : 'The tile must face a neighbouring city, town or offboard.'
 }
 
 export function markersOf(state: CompanyDecisionState, kind: string): string[] {

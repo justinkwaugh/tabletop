@@ -39,7 +39,13 @@ export type SolverTrain = {
     require_paying_token: boolean
     bonuses_along_route: boolean
     major_limit: number | null
-    connection_bonuses: { from: (number | null)[]; to: (number | null)[]; ends_only: boolean }[]
+    connection_bonuses: {
+        from: (number | null)[]
+        to: (number | null)[]
+        ends_only: boolean
+        /** Stops the route must also call at, one of each mask's, for the bonus. */
+        requires?: boolean[][]
+    }[]
     interconnections: { from: number[]; to: number[]; amount: number }[]
     allowed_stops: boolean[]
     /** The stops the train may pass without calling at them. */
@@ -78,6 +84,8 @@ export type SolverProblem = {
     minimum_cities_and_towns: number
     /** A route may not leave a hex and enter it again. */
     no_reentry: boolean
+    /** The hexes, by index, a route may not leave and enter again, when not every hex. */
+    no_reentry_hexes?: boolean[]
     /** How many blocked cities or towns the company's routes may run through, all together. */
     blocked_passes: number
     budget_ms: number

@@ -2,40 +2,25 @@ import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
+    SizedCompanyAuction,
     StationPlacement,
-    addCompanyStations,
     closePrivate,
-    privateOwningCompany,
-    finiteCashOwnedBy,
+    companyShareCount,
     getCompany,
-    issueShareCertificates,
-    marketSaleTerms,
     playersAfterPresident,
-    presidentOf,
-    privateOwner,
     settleCashPayments,
-    sharesOwned,
     solventPlayerCount,
-    stockCertificateCount,
-    treasuryPoolId,
-    type CashPayment,
-    type CompanyAuctionRules,
-    type CompanyAuctionState,
-    type CompanyFormation,
-    type ShareSaleTerms,
-    type StationState,
-    type StockRules,
-    type StockState,
     standardCertificateWeight,
-    companyShareCount
+    stockCertificateCount,
+    type StockRules
 } from '@tabletop/18xx'
-import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRoundRules } from './roundRules.js'
 import { EighteenSeventeenMap } from './map.js'
 import { EighteenSeventeenStationRules } from './stationRules.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { EighteenSeventeenCompanySizes } from './trains.js'
-import { inClosingZone } from './marketZones.js'
-import { closeMarketShortsAgainstPool } from './shorts.js'
+import { EighteenSeventeenCompanyMarket } from './marketZones.js'
+import { EighteenSeventeenStations } from './owedStations.js'
 import { LoanSharkCash, LoanSharkId, PonziSchemeId } from './privateHolders.js'
 
 export const EighteenSeventeenCertificateLimits: Readonly<Record<number, number>> = {
@@ -50,172 +35,23 @@ export const EighteenSeventeenCertificateLimits: Readonly<Record<number, number>
     11: 6,
     12: 5
 }
-export const StationsBySize: Readonly<Record<number, number>> = { 2: 1, 5: 2, 10: 4 }
-export const StationPrice = 50
-const MaximumCompanyBid = 400
 
-export function playerPrivateIds(state: StockState, playerId: string): string[] {
-    return state.companies
-        .filter((company) => {
-            if (company.kind !== 'private' || company.closed) return false
-            const owner = privateOwner(state, company.id)
-            return owner?.kind === 'player' && owner.playerId === playerId
-        })
-        .map((company) => company.id)
-}
-
-function privateValue(privateIds: readonly string[]): number {
-    return privateIds.reduce((sum, id) => sum + EighteenSeventeenPrivateCatalog.faceValue(id), 0)
-}
-
-/** The stations a company that has not yet operated still needs to buy for its size. */
-export function stationsOwed(state: StockState & StationState, companyId: string): number {
-    const company = getCompany(state, companyId)
-    const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
-    if (!company.started || company.operated || !shareCount) return 0
-    const held = state.stations.filter(
-        (station) => station.companyId === companyId && station.status !== 'removed'
-    ).length
-    return Math.max(0, StationsBySize[shareCount] - held)
-}
-
-/** Buys every station the company owes when its treasury can pay for all of them. */
-export function buyOwedStations(
-    state: StockState & StationState,
-    companyId: string
-): CashPayment | undefined {
-    const owed = stationsOwed(state, companyId)
-    const company = { kind: 'company' as const, companyId }
-    const amount = owed * StationPrice
-    if (owed && finiteCashOwnedBy(state, company) < amount) return undefined
-    const payment = owed ? { from: company, to: { kind: 'bank' as const }, amount } : undefined
-    if (payment) {
-        settleCashPayments(state, [payment])
-        addCompanyStations(state, companyId, owed)
-    }
-    grantTrainStation(state, companyId)
-    return payment
-}
-
-export const TrainStationId = 'TS'
-
-// The Train Station's free station comes beyond those the company's size needs, so it waits
-// until those are bought; its only power used, the private closes.
-function grantTrainStation(state: StockState & StationState, companyId: string): void {
-    if (privateOwningCompany(state, TrainStationId) !== companyId || stationsOwed(state, companyId))
-        return
-    addCompanyStations(state, companyId, 1)
-    closePrivate(state, TrainStationId)
-}
-
-function companyShareCounts(state: CompanyAuctionState): readonly number[] {
-    const shareCounts = EighteenSeventeenCompanySizes[state.phaseId]
-    assertExists(shareCounts, 'Every 1817 phase names its company sizes')
-    return shareCounts
-}
-
-// A winning bid is paid in the winner's cash and privates at face value, up to the whole bid.
-function contributionRange(
-    state: CompanyAuctionState,
-    playerId: string,
-    price: number
-): { minimum: number; maximum: number } {
-    const cash = finiteCashOwnedBy(state, { kind: 'player', playerId })
-    return { minimum: price - cash, maximum: price }
-}
-
-function subsetSums(privateIds: readonly string[]): number[] {
-    return [
-        ...new Set(
-            privateIds.reduce<number[]>(
-                (sums, id) => [...sums, ...sums.map((sum) => sum + privateValue([id]))],
-                [0]
-            )
-        )
-    ]
-}
-
-function someContributionFits(
-    state: CompanyAuctionState,
-    playerId: string,
-    price: number,
-    privateIds: readonly string[],
-    included: number
-): boolean {
-    const range = contributionRange(state, playerId, price)
-    return subsetSums(privateIds).some(
-        (sum) => sum + included >= range.minimum && sum + included <= range.maximum
-    )
-}
-
-function formationReason(state: CompanyAuctionState, formation: CompanyFormation) {
-    if (!companyShareCounts(state).includes(formation.shareCount))
-        return 'This size is not available in this phase.'
-    const owned = playerPrivateIds(state, formation.playerId)
-    if (!formation.privateIds.every((id) => owned.includes(id)))
-        return 'Only the winner’s own privates can be contributed.'
-    const contributed = privateValue(formation.privateIds)
-    const range = contributionRange(state, formation.playerId, formation.price)
-    if (contributed < range.minimum) return 'Contribute enough privates to pay the winning bid.'
-    if (contributed > range.maximum) return 'The privates are worth more than the winning bid.'
-    return undefined
-}
-
-// The Loan Shark brings its company cash when contributed; the Ponzi Scheme closes then.
-function form(state: CompanyAuctionState, formation: CompanyFormation): void {
-    const company = { kind: 'company' as const, companyId: formation.companyId }
-    const player = { kind: 'player' as const, playerId: formation.playerId }
-    const contributed = privateValue(formation.privateIds)
-    const payments: CashPayment[] = [
-        { from: player, to: company, amount: formation.price },
-        { from: company, to: player, amount: contributed },
-        ...(formation.privateIds.includes(LoanSharkId)
-            ? [{ from: { kind: 'bank' as const }, to: company, amount: LoanSharkCash }]
-            : [])
-    ]
-    settleCashPayments(
-        state,
-        payments.filter((payment) => payment.amount > 0)
-    )
-    for (const certificate of state.certificates)
-        if (
-            certificate.kind === 'private' &&
-            formation.privateIds.includes(certificate.companyId)
-        ) {
-            certificate.owner = company
-            delete certificate.poolId
-        }
-    if (formation.privateIds.includes(PonziSchemeId)) closePrivate(state, PonziSchemeId)
-    getCompany(state, formation.companyId).shareCount = formation.shareCount
-    issueShareCertificates(state, formation.companyId, formation.shareCount - 2, {
-        owner: company,
-        poolId: treasuryPoolId(formation.companyId)
-    })
-    buyOwedStations(state, formation.companyId)
-}
-
-function biddingPower(state: CompanyAuctionState, playerId: string): number {
-    return (
-        finiteCashOwnedBy(state, { kind: 'player', playerId }) +
-        privateValue(playerPrivateIds(state, playerId))
-    )
-}
-
-export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
+/**
+ * Bids open at $100 and rise in $5 steps to $400; the company starts at half the bid. The Loan
+ * Shark brings its company cash when contributed, and the Ponzi Scheme closes then.
+ */
+export const EighteenSeventeenCompanyAuction = new SizedCompanyAuction({
+    market: EighteenSeventeenCompanyMarket,
+    stations: EighteenSeventeenStations,
     openingBid: 100,
     increment: 5,
-    maximumBid(state, playerId) {
-        const player = { kind: 'player' as const, playerId }
-        if (
-            stockCertificateCount(state, player, EighteenSeventeenStockRules) >=
-            EighteenSeventeenStockRules.certificateLimit(state, player)
-        )
-            return 0
-        return Math.min(MaximumCompanyBid, biddingPower(state, playerId))
+    bidCap: 400,
+    privateFaceValue: (privateId) => EighteenSeventeenPrivateCatalog.faceValue(privateId),
+    shareCounts(state) {
+        const shareCounts = EighteenSeventeenCompanySizes[state.phaseId]
+        assertExists(shareCounts, 'Every 1817 phase names its company sizes')
+        return shareCounts
     },
-    biddingPower,
-    formable: (state, playerId, amount) =>
-        someContributionFits(state, playerId, amount, playerPrivateIds(state, playerId), 0),
     homes(state, companyId) {
         const placement = new StationPlacement(state, EighteenSeventeenStationRules)
         return EighteenSeventeenMap.definition.locations.flatMap((location) =>
@@ -227,94 +63,42 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
             })
         )
     },
-    // The company starts on the highest space at or below half the winning bid.
-    startSpace(state, price) {
-        const half = Math.floor(price / 2)
-        const space = EighteenSeventeenMarket.spaces
-            .filter((space) => space.price > 0 && space.price <= half)
-            .reduce((best, space) => (space.price > best.price ? space : best))
-        return space.id
-    },
-    shareCounts: companyShareCounts,
-    // A private is offered when some contribution that includes it would form the company.
-    contributions(state, playerId, price) {
-        const owned = playerPrivateIds(state, playerId)
-        return owned.filter((id) =>
-            someContributionFits(
-                state,
-                playerId,
-                price,
-                owned.filter((other) => other !== id),
-                privateValue([id])
-            )
+    atCertificateLimit(state, playerId) {
+        const player = { kind: 'player' as const, playerId }
+        return (
+            stockCertificateCount(state, player, EighteenSeventeenStockRules) >=
+            EighteenSeventeenStockRules.certificateLimit(state, player)
         )
     },
-    contributionValue: privateValue,
-    formationReason,
-    form
-}
-
-/** A sale into the market, at no price drop, outside the acquisition and liquidation zones. */
-export function marketSale(
-    state: StockState,
-    companyId: string,
-    shares: number
-): ShareSaleTerms | string {
-    const company = getCompany(state, companyId)
-    if (
-        !companyShareCount(state, EighteenSeventeenCharters, companyId) ||
-        !presidentOf(state, companyId) ||
-        company.closed
-    )
-        return 'This company has no saleable shares.'
-    if (inClosingZone(state.stockMarket, companyId))
-        return 'Shares in the acquisition or liquidation zone cannot be sold.'
-    return marketSaleTerms(EighteenSeventeenMarket, state, companyId, {
-        destinationPoolId: MarketPoolId,
-        marketLimit: 1000,
-        maximumShares: shares,
-        movement: 0
-    })
-}
+    formed(state, formation) {
+        if (formation.privateIds.includes(LoanSharkId))
+            settleCashPayments(state, [
+                {
+                    from: { kind: 'bank' },
+                    to: { kind: 'company', companyId: formation.companyId },
+                    amount: LoanSharkCash
+                }
+            ])
+        if (formation.privateIds.includes(PonziSchemeId)) closePrivate(state, PonziSchemeId)
+    }
+})
 
 export const EighteenSeventeenStockRules: StockRules = {
     market: EighteenSeventeenMarket,
     charters: EighteenSeventeenCharters,
     round: EighteenSeventeenStockRoundRules,
     instructions: {
-        // A short issues an extra share, so a rival can pass a president holding half.
-        securePresidency(state, companyId, owner) {
-            const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
-            assertExists(shareCount, 'A company with a president has shares')
-            return sharesOwned(state, companyId, owner) * 2 > shareCount
-        }
+        securePresidency: (state, companyId, owner) =>
+            EighteenSeventeenCompanyMarket.securePresidency(state, companyId, owner)
     },
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
-    purchaseTerms(state, certificate, buyer) {
-        const company = getCompany(state, certificate.companyId)
-        if (!company.started || company.closed) return 'This company has not started or is closed.'
-        if (certificate.president) return 'The president’s certificate is won by auction.'
-        if (inClosingZone(state.stockMarket, company.id))
-            return 'Shares in the acquisition or liquidation zone cannot be bought.'
-        const market = certificate.owner.kind === 'bank' && certificate.poolId === MarketPoolId
-        const treasury =
-            certificate.owner.kind === 'company' &&
-            certificate.owner.companyId === company.id &&
-            certificate.poolId === treasuryPoolId(company.id)
-        if (!market && !treasury) return 'This certificate is not available for purchase.'
-        return {
-            price:
-                EighteenSeventeenMarket.companySpace(state.stockMarket, company.id).price *
-                certificate.shares,
-            recipient: certificate.owner,
-            payers: [buyer]
-        }
-    },
+    purchaseTerms: (state, certificate, buyer) =>
+        EighteenSeventeenCompanyMarket.purchaseTerms(state, certificate, buyer),
     saleTerms(state, companyId, shares) {
         if (!getCompany(state, companyId).operated)
             return 'Shares cannot be sold until the company has operated.'
-        return marketSale(state, companyId, shares)
+        return EighteenSeventeenCompanyMarket.marketSale(state, companyId, shares)
     },
     // Bankruptcies lower the limit to that of the players left, never below three players'.
     certificateLimit(state) {
@@ -329,7 +113,7 @@ export const EighteenSeventeenStockRules: StockRules = {
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
-    afterSale: closeMarketShortsAgainstPool,
+    afterSale: (state) => EighteenSeventeenCompanyMarket.closeMarketShortsAgainstPool(state),
     turnOrder: 'sell-buy',
     repeatSales: 'separate',
     companyAuction: EighteenSeventeenCompanyAuction

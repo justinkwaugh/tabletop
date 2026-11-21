@@ -26,7 +26,9 @@ export class ConstructionReachability {
         mapState: RailwayMapState,
         stations: StationState,
         private readonly companyId: string,
-        private readonly closedStop: (locationId: string, nodeId: string) => boolean = () => false
+        private readonly closedStop: (locationId: string, nodeId: string) => boolean = () => false,
+        private readonly passesStations: (locationId: string, nodeId: string) => boolean = () =>
+            false
     ) {
         this.neutral = mapState.map
         const faces = new Map<string, TileFace>()
@@ -126,7 +128,8 @@ export class ConstructionReachability {
 
     private blocked(stations: StationState, neutral: NeutralStations) {
         return (locationId: string, node: TileNode) =>
-            cityIsBlocked(stations, neutral, this.companyId, locationId, node) ||
+            (cityIsBlocked(stations, neutral, this.companyId, locationId, node) &&
+                !this.passesStations(locationId, node.id)) ||
             this.closedStop(locationId, node.id)
     }
 }

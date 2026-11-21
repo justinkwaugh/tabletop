@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ActionSource, GameCallKind, type CallGameAction } from '@tabletop/common'
+import { ActionSource, GameCallKind, assertExists, type CallGameAction } from '@tabletop/common'
 import type {
     AuctionAwardDetails,
     BuyAuctionLot,
@@ -257,6 +257,10 @@ it('names the pool a share was bought from', () => {
     expect(describe(buy('open-market'))).toBe('Bought 1 R from Market for $67')
     expect(describe(buy('initial-offering'))).toBe('Bought 1 R from IPO for $67')
     expect(describe(buy())).toBe('Bought 1 R for $67')
+    const fromPlayer = buy()
+    assertExists(fromPlayer.metadata, 'A recorded purchase')
+    fromPlayer.metadata.seller = { kind: 'player', playerId: 'blake' }
+    expect(describe(fromPlayer)).toMatch(/^Bought 1 R from \S+ for \$67$/)
 })
 
 it('keeps a leading company name as written after the player name', () => {

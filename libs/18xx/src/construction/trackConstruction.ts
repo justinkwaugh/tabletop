@@ -36,6 +36,7 @@ import {
     keepsExits,
     keptFace,
     replacementMappings,
+    colorStep,
     replacesColorAndStops,
     requiredLabels,
     sameLabels,
@@ -57,6 +58,11 @@ export const TrackStep = Type.Object(
                     locationId: Type.String(),
                     /** The tile laid; stored games from before it was recorded lack it. */
                     definitionId: Type.Optional(Type.String()),
+                    /**
+                     * The lay counted as an upgrade: it replaced a tile, or skipped colours onto
+                     * an empty hex (18USA §12.2.4). Stored games' lays may lack it.
+                     */
+                    upgrade: Type.Optional(Type.Literal(true)),
                     // Stored games from before these stopped being recorded may hold them; never read.
                     color: Type.Optional(Type.Unsafe<never>(Type.String())),
                     cost: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 0 })))
@@ -135,6 +141,8 @@ export const TrackLayDetails = Type.Object(
         consentPlayerId: Type.Optional(Type.String()),
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
+        /** The lay skipped colours onto an empty hex and counts as an upgrade (18USA §12.2.4). */
+        upgrade: Type.Optional(Type.Literal(true)),
         /** Who the allowance's cost is paid to, where not the bank. */
         allowanceRecipient: Type.Optional(Owner),
         movedStations: Type.Array(PlacedStation),
@@ -151,6 +159,9 @@ export const TrackLayDetails = Type.Object(
 export type TrackLayDetails = Type.Static<typeof TrackLayDetails>
 export type TrackEvaluation =
     { details: TrackLayDetails; reason?: never } | { reason: string; details?: never }
+/** What a lay skipping colours costs beyond the lay, and whether it counts as an upgrade. */
+export type ColorSkip = { cost: number; upgrade: boolean }
+
 export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
@@ -185,6 +196,11 @@ export interface TrackRules {
     sharesFullCities?: true
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
+    /**
+     * Whether the company's network may continue through this city though other companies'
+     * stations fill it, as 18USA's Company Town never blocks (P27).
+     */
+    passesStations?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
     /**
      * Stops of the replaced tile that this replacement removes, by their node ids: the rest of
@@ -230,6 +246,18 @@ export interface TrackRules {
         cost: number
     ): number
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
+    /**
+     * A tile that replaces a face more than one colour below it, where the title allows one: what
+     * that costs beyond the lay, and whether it counts as an upgrade, as 18USA's plain track
+     * skipping colours at $10 each, and its green city on an empty city hex, from phase 5
+     * (§12.2.4). Undefined forbids it.
+     */
+    colorSkip?(
+        state: ConstructionState,
+        locationId: string,
+        before: TileFace,
+        after: TileFace
+    ): ColorSkip | undefined
     /**
      * Tiles a lay places beside its own as one piece, such as 18RoyalGorge's brown gorge across
      * its three hexes: drawn with it while previewed and laid with it, for its one lay and cost.
@@ -303,7 +331,7 @@ export class TrackConstruction {
                     this.rules.allowance(
                         this.state,
                         definition.face.color,
-                        this.replacesTile(locationId)
+                        this.countsAsUpgrade(locationId, definition)
                     )
             )
                 continue
@@ -397,7 +425,7 @@ export class TrackConstruction {
         const allowance = this.rules.allowance(
             this.state,
             definition.face.color,
-            this.replacesTile(locationId)
+            this.countsAsUpgrade(locationId, definition)
         )
         if ('reason' in allowance) return allowance
         const restriction = this.rules.restriction(this.state, request)
@@ -458,7 +486,8 @@ export class TrackConstruction {
         const terrainCost =
             this.rules.terrainCost?.(this.state, request, printedTerrainCost) ?? printedTerrainCost
         const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
-        const cost = terrainCost + allowance.cost
+        const cost =
+            terrainCost + allowance.cost + (this.colorSkip(locationId, definition)?.cost ?? 0)
         const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
         const borrowable = this.payer
             ? 0
@@ -531,6 +560,9 @@ export class TrackConstruction {
                 ...(previous.placement ? { previous: previous.placement } : {}),
                 cost,
                 terrainCost,
+                ...(!previous.placement && this.colorSkip(locationId, definition)?.upgrade
+                    ? { upgrade: true as const }
+                    : {}),
                 ...(consentPlayerId ? { consentPlayerId } : {}),
                 allowanceCost: allowance.cost,
                 ...(allowance.recipient ? { allowanceRecipient: allowance.recipient } : {}),
@@ -556,12 +588,11 @@ export class TrackConstruction {
         )
     }
     private network(companyId: string): ConstructionReachability {
-        return (this.reachability ??= new ConstructionReachability(
-            this.mapState,
+        return (this.reachability ??= trackReachability(
             this.state,
+            this.rules,
             companyId,
-            (locationId, nodeId) =>
-                this.rules.stopAllowed?.(this.state, companyId, { locationId, nodeId }) === false
+            this.mapState
         ))
     }
     private availablePieces(definitionId: string): ReturnType<TileSet['availablePieces']> {
@@ -605,6 +636,14 @@ export class TrackConstruction {
     private replacesTile(locationId: string): boolean {
         return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0
     }
+    private colorSkip(locationId: string, definition: TileDefinition): ColorSkip | undefined {
+        const before = this.mapState.tile(locationId).face
+        if (colorStep(this.rules, before, definition.face) < 2) return undefined
+        return this.rules.colorSkip?.(this.state, locationId, before, definition.face)
+    }
+    private countsAsUpgrade(locationId: string, definition: TileDefinition): boolean {
+        return this.replacesTile(locationId) || !!this.colorSkip(locationId, definition)?.upgrade
+    }
     private basicTileAllowed(
         locationId: string,
         definition: TileDefinition,
@@ -616,7 +655,13 @@ export class TrackConstruction {
         if (
             !location.buildable ||
             !colors.includes(after.color) ||
-            !replacesColorAndStops(this.rules, locationId, before, after)
+            !replacesColorAndStops(
+                this.rules,
+                locationId,
+                before,
+                after,
+                !!this.colorSkip(locationId, definition)
+            )
         )
             return false
         return (
@@ -877,5 +922,23 @@ export function validateTrackStep(state: {
     assert(
         state.trackStep.completed === (state.machineState !== 'LayingTrack'),
         'Track completion does not match the machine state'
+    )
+}
+
+/** The company's network as its track rules trace it: the stops it may not continue through, and the full cities it may. */
+export function trackReachability(
+    state: ConstructionState,
+    rules: Pick<TrackRules, 'map' | 'tileSet' | 'stopAllowed' | 'passesStations'>,
+    companyId: string,
+    mapState = new RailwayMapState(rules.map, rules.tileSet, state.tileInventory)
+): ConstructionReachability {
+    return new ConstructionReachability(
+        mapState,
+        state,
+        companyId,
+        (locationId, nodeId) =>
+            rules.stopAllowed?.(state, companyId, { locationId, nodeId }) === false,
+        (locationId, nodeId) =>
+            rules.passesStations?.(state, companyId, { locationId, nodeId }) ?? false
     )
 }

@@ -17,11 +17,11 @@
                 class="row {row.standing}"
                 class:charged={row.charged}
                 aria-current={row.standing === 'current' ? 'true' : undefined}
-                aria-label={`${row.rate}%: ${row.taken} of ${view.loansPerRow} loans taken`}
+                aria-label={`${row.rate}%: ${row.taken} of ${row.loans} loans taken`}
             >
                 <span class="rate">{row.rate}%</span>
                 <span class="loans" aria-hidden="true"
-                    >{#each { length: view.loansPerRow }, loan (loan)}<span
+                    >{#each { length: row.loans }, loan (loan)}<span
                             class="loan"
                             class:taken={loan < row.taken}
                         ></span>{/each}</span

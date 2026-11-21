@@ -37,6 +37,11 @@
                 {#if home}· Home <PlaceLink locationId={home.locationId} />{:else}· Choose a
                     highlighted city on the map for its home{/if}
             </p>
+            {#if home}{#each session.presentation.homeNotes?.(session.gameState, home.locationId) ?? [] as note (note)}<p
+                        class="home-note"
+                    >
+                        {note}
+                    </p>{/each}{/if}
             {#if home && amount !== undefined}
                 <AuctionBidControl
                     {money}
@@ -54,6 +59,13 @@
 </div>
 
 <style>
+    .home-note {
+        max-width: 30em;
+        margin: 0;
+        font-size: 12px;
+        text-align: center;
+        color: var(--rail-text, #786550);
+    }
     .opening {
         display: flex;
         flex-direction: column;

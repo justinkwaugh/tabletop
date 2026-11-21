@@ -293,6 +293,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * treasury pays as it starts.
      */
     startNotes?(state: State, companyId: string): readonly string[]
+    /**
+     * Lines of the title's own about what a home city brings the company started there, shown
+     * beside the home as the company is auctioned, such as a subsidy the city offers.
+     */
+    homeNotes?(state: State, locationId: string): readonly string[]
     /** Facts of the title's own about a player, such as a loan they owe, shown beside their cash. */
     playerFacts?(state: State, playerId: string): readonly TitleFact[]
     /**
@@ -337,6 +342,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     actionCompanyInitials?: true
     /** Player cards leave out their privates' value, where privates are worth nothing, as 1880's (§XV). */
     privatesWithoutValue?: true
+    /** Private cards and details leave out income, where no private pays any, as 18USA's. */
+    privatesWithoutIncome?: true
     /**
      * Whether building shows a projected run for this company, for a title where a company's run
      * does not follow from its network, as 1828's C&P pays only for a run through its new tile.
@@ -373,6 +380,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
     historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions
+    /** The columns that start a new line of a long market, each line drawn below the last. */
+    marketWraps?: readonly number[]
     /** Markers of the title's own on the stock market, beside the companies' tokens. */
     marketMarkers?(state: State): readonly MarketMarker[]
     marketZones?: readonly MarketZone[]

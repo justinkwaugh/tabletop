@@ -772,3 +772,75 @@ it('places a token near its printed point, or at the clear spot nearest it where
     expect(Math.hypot(tracked.x - preferred.x, tracked.y - preferred.y)).toBeGreaterThan(2)
     expect(Math.hypot(tracked.x, tracked.y)).toBeLessThan(43)
 })
+
+it('redraws from an earlier drawing only the locations whose tile, markers or cities changed', () => {
+    const tileSet = new TileSet(
+        {
+            id: 'reuse',
+            entries: [
+                { id: 'reuse/9', faceDefinitionIds: ['18xx:9'], count: 1 },
+                { id: 'reuse/57', faceDefinitionIds: ['18xx:57'], count: 1 }
+            ]
+        },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        id: 'reuse',
+        name: 'Reuse',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', [])
+            },
+            {
+                id: 'A2',
+                coordinates: { q: 1, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', []),
+                markers: [
+                    { id: 'blocks-B', label: 'B', description: 'Blocked', privateCompanyId: 'B' }
+                ]
+            },
+            {
+                id: 'A3',
+                coordinates: { q: 2, r: 0 },
+                buildable: true,
+                preprintedTile: createCityTileFace('white', [], 0, 1)
+            }
+        ]
+    })
+    const view = { locationMarkerNames: { mine: 'Mine' } }
+    const empty = tileSet.createInventory()
+    type Supply = NonNullable<Parameters<typeof createMapDrawing>[1]>
+    const base: Supply = { tileSet, inventory: empty }
+    const first = createMapDrawing(map, base, view)
+    const changes: [Supply, string[]][] = [
+        [
+            {
+                ...base,
+                inventory: tileSet.createInventory([
+                    { locationId: 'A1', definitionId: '18xx:9', rotation: 1 }
+                ])
+            },
+            ['A1']
+        ],
+        [{ ...base, liftedPrivateBlocks: ['B'] }, ['A2']],
+        [{ ...base, overfullCities: ['A3 city'] }, ['A3']],
+        [{ ...base, markers: [{ kind: 'mine', locationId: 'A1' }] }, ['A1']],
+        [{ ...base, liftedPrivateBlocks: ['C'] }, []]
+    ]
+    for (const [supply, changed] of changes) {
+        const redrawn = createMapDrawing(map, supply, view, first)
+        expect(redrawn).toEqual(createMapDrawing(map, supply, view))
+        expect(
+            redrawn.locations
+                .filter((entry, index) => entry !== first.locations[index])
+                .map((entry) => entry.location.id)
+        ).toEqual(changed)
+    }
+    const otherView = createMapDrawing(map, base, { ...view }, first)
+    expect(otherView.locations.some((entry, index) => entry === first.locations[index])).toBe(false)
+})

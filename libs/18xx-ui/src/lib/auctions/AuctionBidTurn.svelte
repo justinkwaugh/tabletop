@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
     import AuctionBidControl from './AuctionBidControl.svelte'
+    import AuctionPlayers from './AuctionPlayers.svelte'
+    import type { AuctionSummaryLine } from './auctionSummary.js'
 
     let {
         money,
@@ -15,7 +17,7 @@
         onPass
     }: {
         money: MoneyFormat
-        summary: readonly { label: string; value: string }[]
+        summary: readonly AuctionSummaryLine[]
         amount: number
         increment: number
         ownTurn: boolean
@@ -29,7 +31,12 @@
 
 <div class="bid-summary">
     {#each summary as line (line.label)}
-        <span class="value">{line.label} <strong>{line.value}</strong></span>
+        <span class="value"
+            >{line.label}
+            {#if 'players' in line}<AuctionPlayers players={line.players} />{:else}<strong
+                    >{line.value}</strong
+                >{/if}</span
+        >
     {/each}
 </div>
 {#if ownTurn}

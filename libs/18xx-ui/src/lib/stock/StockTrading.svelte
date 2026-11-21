@@ -187,7 +187,9 @@
                                 >{session.ownerName(choice.request.buyer)} · {choice.certificate
                                     .poolId
                                     ? session.poolName(choice.certificate.poolId)
-                                    : ''}</span
+                                    : choice.certificate.owner.kind === 'player'
+                                      ? `from ${session.ownerName(choice.certificate.owner)}`
+                                      : ''}</span
                             >
                             <span
                                 >{choice.result.details

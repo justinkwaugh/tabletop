@@ -70,6 +70,16 @@ export interface TrainRules {
         definitionId: string
     ): string | undefined
     marketDefinitions?(state: TrainPurchaseState, train: Train): readonly string[]
+    /**
+     * What the company pays the bank for a train from the depot or the market, where the title
+     * discounts it from its printed price, as 18USA's American Locomotive's 10% (P25).
+     */
+    bankPrice?(
+        state: TrainPurchaseState,
+        companyId: string,
+        definitionId: string,
+        printed: number
+    ): number
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
     /**
      * Where a train given in exchange goes: the open market unless the title removes it, or back
@@ -298,7 +308,11 @@ export class TrainPurchase {
         )
         if (purchaseLimit !== 'unlimited' && step.purchasedTrainIds.length >= purchaseLimit)
             return { reason: 'The company has used its depot purchase allowance.' }
-        const price = exchangePrice ?? this.rules.depot.trainDefinition(definitionId).price
+        const printed = this.rules.depot.trainDefinition(definitionId).price
+        const price =
+            exchangePrice ??
+            this.rules.bankPrice?.(this.state, companyId, definitionId, printed) ??
+            printed
         const cash = cashOwnedBy(this.state, { kind: 'company', companyId })
         const borrowable = this.rules.borrowing?.allowed(this.state, request)
             ? this.rules.borrowing.loans.capacity(this.state, companyId)

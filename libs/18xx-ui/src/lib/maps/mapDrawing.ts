@@ -425,6 +425,22 @@ export function overfullCityKeys(
     })
 }
 
+type DrawnLocationEntry = { key: string; entry: MapDrawnLocation }
+/** The locations of each drawing, with what each was drawn from, for a later drawing to reuse. */
+const drawnLocations = new WeakMap<
+    MapDrawing,
+    {
+        map: RailwayMap
+        view: object
+        tileSet: TileSet | undefined
+        entries: ReadonlyMap<string, DrawnLocationEntry>
+    }
+>()
+
+/**
+ * The map as drawn from its tiles and markers; given an earlier drawing of the same map and view,
+ * it redraws only the locations whose tiles, markers or cities changed.
+ */
 export function createMapDrawing(
     map: RailwayMap,
     supply?: {
@@ -434,46 +450,7 @@ export function createMapDrawing(
         liftedPrivateBlocks?: readonly string[]
         overfullCities?: readonly string[]
     },
-    {
-        layouts = {},
-        markerArt: sharedMarkerArt = {},
-        locationMarkerArt = {},
-        printedLines = {},
-        placements = {},
-        joinedEdges = {},
-        joinedTileEdges = {},
-        drawnLast = [],
-        splitHexes = {},
-        locationMarkerNames = {},
-        hideLocationNames,
-        boardTiles = {},
-        labelsReplaceNames,
-        drawingStyle,
-        revenueStageLabels,
-        revenueStageCaptions,
-        revenueStageCaptionColors,
-        revenueStack,
-        terrainCostPrefix = '',
-        terrainIcons = DefaultTerrainIcons,
-        borderWidths: viewBorderWidths = {},
-        printedReservations = [],
-        sharedStations = {},
-        namePositions = {},
-        nameOffsets = {},
-        cityNames = {},
-        namesBelow = [],
-        nameTurns = {},
-        symbolPositions = {},
-        nameLines = {},
-        offboardNames,
-        nameStyles = {},
-        sharedCityLayouts = {},
-        terrainPositions = {},
-        terrainCostsBelow = [],
-        terrainSymbolsBelow = [],
-        terrainKeptOnTiles = false,
-        bonusArrows = []
-    }: Pick<
+    view: Pick<
         MapViewDefinition,
         | 'layouts'
         | 'markerArt'
@@ -513,8 +490,49 @@ export function createMapDrawing(
         | 'terrainSymbolsBelow'
         | 'terrainKeptOnTiles'
         | 'bonusArrows'
-    > = {}
+    > = {},
+    previous?: MapDrawing
 ): MapDrawing {
+    const {
+        layouts = {},
+        markerArt: sharedMarkerArt = {},
+        locationMarkerArt = {},
+        printedLines = {},
+        placements = {},
+        joinedEdges = {},
+        joinedTileEdges = {},
+        drawnLast = [],
+        splitHexes = {},
+        locationMarkerNames = {},
+        hideLocationNames,
+        boardTiles = {},
+        labelsReplaceNames,
+        drawingStyle,
+        revenueStageLabels,
+        revenueStageCaptions,
+        revenueStageCaptionColors,
+        revenueStack,
+        terrainCostPrefix = '',
+        terrainIcons = DefaultTerrainIcons,
+        borderWidths: viewBorderWidths = {},
+        printedReservations = [],
+        sharedStations = {},
+        namePositions = {},
+        nameOffsets = {},
+        cityNames = {},
+        namesBelow = [],
+        nameTurns = {},
+        symbolPositions = {},
+        nameLines = {},
+        offboardNames,
+        nameStyles = {},
+        sharedCityLayouts = {},
+        terrainPositions = {},
+        terrainCostsBelow = [],
+        terrainSymbolsBelow = [],
+        terrainKeptOnTiles = false,
+        bonusArrows = []
+    } = view
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
     const placedMarkers = (locationId: string) =>
         (supply?.markers ?? [])
@@ -530,7 +548,7 @@ export function createMapDrawing(
         ...map.definition.locations.filter((location) => !drawnLast.includes(location.id)),
         ...map.definition.locations.filter((location) => drawnLast.includes(location.id))
     ]
-    const locations = drawingOrder.map((printed): MapDrawnLocation => {
+    const drawLocation = (printed: MapLocation): MapDrawnLocation => {
         const markerArt = { ...sharedMarkerArt, ...locationMarkerArt[printed.id] }
         const placed = placedMarkers(printed.id)
         const marked =
@@ -895,6 +913,29 @@ export function createMapDrawing(
                 ...splitLine(splitHexes[location.id], segment)
             ]
         }
+    }
+    // A location's drawing turns on its own tile, markers and cities alone, so one drawn before
+    // from the same map and view is reused while those stay the same.
+    const locationKey = (printed: MapLocation) =>
+        JSON.stringify([
+            mapState?.tile(printed.id).placement ?? null,
+            supply?.inventory.dealtRevenues?.[printed.id] ?? null,
+            placedMarkers(printed.id).map((marker) => marker.id),
+            (printed.markers ?? []).filter(blockLifted).map((marker) => marker.privateCompanyId),
+            (supply?.overfullCities ?? []).filter((city) => city.startsWith(`${printed.id} `))
+        ])
+    const earlier = previous ? drawnLocations.get(previous) : undefined
+    const reusable =
+        earlier?.map === map && earlier.view === view && earlier.tileSet === supply?.tileSet
+            ? earlier.entries
+            : undefined
+    const entries = new Map<string, DrawnLocationEntry>()
+    const locations = drawingOrder.map((printed) => {
+        const key = locationKey(printed)
+        const prior = reusable?.get(printed.id)
+        const entry = prior?.key === key ? prior.entry : drawLocation(printed)
+        entries.set(printed.id, { key, entry })
+        return entry
     })
     const vertices = locations
         .filter((entry) => !entry.outOfPlay)
@@ -908,7 +949,7 @@ export function createMapDrawing(
     const x = Math.min(...vertices.map((point) => point.x)) - 26
     const y = Math.min(...vertices.map((point) => point.y)) - 26
     const drawnArrows = bonusArrows.map(drawBonusArrow)
-    return {
+    const drawing: MapDrawing = {
         map,
         locations,
         bonusArrows: drawnArrows,
@@ -924,6 +965,8 @@ export function createMapDrawing(
             height: Math.max(...vertices.map((point) => point.y)) - y + 26
         })
     }
+    drawnLocations.set(drawing, { map, view, tileSet: supply?.tileSet, entries })
+    return drawing
 }
 
 function withSharedCities(face: TileFace, cityIds: readonly string[]): TileFace {

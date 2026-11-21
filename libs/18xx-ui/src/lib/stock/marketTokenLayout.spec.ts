@@ -6,6 +6,7 @@ import {
     type StockMarket
 } from '@tabletop/18xx'
 import type { Point } from '@tabletop/common'
+import type { MarketZone } from '../session/titlePresentation.js'
 import {
     marketTokenLayout,
     expandedMarketStack,
@@ -184,4 +185,47 @@ it('sets a set-apart zone off with a gap either side, keeping every cell its ful
         geometry.columnLefts[4] + cell.width / 2
     )
     expect(marketGeometry(chart, cell).columnLefts).toEqual([0, 30, 60, 90, 120, 150])
+})
+
+it('wraps a long row onto lines below, each starting at the left, banners only where its zones are', () => {
+    const cell = { width: 30, height: 100 }
+    const chart = new StockMarketChart(
+        createRectangularStockMarketSpaces([[0, 10, 20, 30, 40, 50]], (_row, column) =>
+            column === 0 ? 'red' : 'white'
+        )
+    )
+    const zones: readonly MarketZone[] = [
+        {
+            color: 'red',
+            name: 'Closing',
+            description: 'Closes.',
+            banner: { label: 'Closing', shape: 'span' },
+            setApart: true
+        }
+    ]
+    const geometry = marketGeometry(chart, cell, zones, { wraps: [4] })
+    expect(geometry.columnLines).toEqual([0, 0, 0, 0, 1, 1])
+    expect(geometry.columnLefts).toEqual([0, 38, 68, 98, 0, 30])
+    expect(geometry.width).toBe(128)
+    expect(geometry.linesBannered).toEqual([true, false])
+    expect(geometry.lineTops).toEqual([24, 124])
+    expect(geometry.sceneHeight).toBe(224)
+    expect(marketLowerRightSpace(chart, geometry)).toBeUndefined()
+
+    const market: StockMarket = { stacks: [] }
+    placeStockMarker(market, 'A', '0:1')
+    placeStockMarker(market, 'B', '0:5')
+    const [first, second] = marketTokenLayout(chart, market, geometry)
+    expect(second.x - first.x).toBe(geometry.columnLefts[5] - geometry.columnLefts[1])
+    expect(second.y - first.y).toBe(geometry.lineTops[1] - geometry.lineTops[0])
+})
+
+it('lays an unwrapped market on one line, its spaces below any banners', () => {
+    const chart = new StockMarketChart(
+        createRectangularStockMarketSpaces([[40, 50, 60]], () => 'white')
+    )
+    const geometry = marketGeometry(chart)
+    expect(geometry.columnLines).toEqual([0, 0, 0])
+    expect(geometry.lineTops).toEqual([0])
+    expect(geometry.sceneHeight).toBe(geometry.height)
 })

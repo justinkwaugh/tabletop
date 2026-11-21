@@ -63,6 +63,9 @@ export function operatingRoundPart(
     return endlessOperatingSet(set) ? (set.resumptions ?? 0) + 1 : undefined
 }
 export type OperatingState = StockState & { operatingSet?: OperatingSet }
+/** A phase an operating round's end begins, named by the train kind whose phase it is. */
+export type RoundEndPhase = { phaseId: string; definitionId: string }
+
 export interface OperatingRules {
     charters: CompanyCharters
     /** The rounds of the set starting: a count, or `endless` (1880 §IX). */
@@ -70,6 +73,11 @@ export interface OperatingRules {
     companyOrder(state: OperatingState): string[]
     /** The kinds of the depot trains exported, in order, when the current operating round ends. */
     trainsToExport?(state: OperatingState & TrainState): string[]
+    /**
+     * The phase the current operating round's end begins though no train has, after its exports,
+     * as 18USA's phase 3 after the second operating round (§8).
+     */
+    phaseAtRoundEnd?(state: OperatingState & TrainState): RoundEndPhase | undefined
     /**
      * What a private pays its owner as an operating round starts, when its state decides it,
      * such as its owner's kind or a hex's tile.

@@ -39,6 +39,20 @@ export type EncodingBudget = {
     fleet?: readonly EncodedTrain[]
 }
 
+/** Every hex or none forbids re-entry as one flag; otherwise the hexes that do, by index. */
+function reentryRules(
+    state: TrainRunningState,
+    rules: RouteRules,
+    locations: readonly { id: string }[]
+): Pick<SolverProblem, 'no_reentry' | 'no_reentry_hexes'> {
+    const forbids = rules.forbidsHexReentry
+    const hexes = forbids ? locations.map((location) => forbids(state, location.id)) : []
+    if (hexes.length && hexes.every(Boolean)) return { no_reentry: true }
+    return hexes.some(Boolean)
+        ? { no_reentry: false, no_reentry_hexes: hexes }
+        : { no_reentry: false }
+}
+
 export class EncodedRoutes {
     readonly problem: SolverProblem
     private readonly centers: RevenueCenter[]
@@ -204,7 +218,8 @@ export class EncodedRoutes {
                 endpoint:
                     (rules.fleet?.routeShape?.endKinds.includes(node.kind) ?? true) &&
                     (stopsAt[0]?.[index] ?? true) &&
-                    !isHalt(node),
+                    !isHalt(node) &&
+                    (rules.endsRoutes?.(state, companyId, center) ?? true),
                 allowed: rules.stopAllowed?.(state, companyId, center) ?? true,
                 groups: [
                     ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
@@ -338,7 +353,7 @@ export class EncodedRoutes {
                 bonuses_along_route: policy?.bonusesAlongRoute ?? false,
                 connection_bonuses: [
                     ...(policy?.connectionBonuses ?? []).map(
-                        ({ from, to, nodeIds, destinationAtEnd }) => {
+                        ({ from, to, nodeIds, destinationAtEnd, requires }) => {
                             const amounts = (values: Readonly<Record<string, number>>) =>
                                 this.centers.map((center) => {
                                     const nodeId = nodeIds?.[center.locationId]
@@ -349,7 +364,16 @@ export class EncodedRoutes {
                             return {
                                 from: amounts(from),
                                 to: amounts(to),
-                                ends_only: destinationAtEnd ?? false
+                                ends_only: destinationAtEnd ?? false,
+                                ...(requires?.length
+                                    ? {
+                                          requires: requires.map((locationId) =>
+                                              this.centers.map(
+                                                  (center) => center.locationId === locationId
+                                              )
+                                          )
+                                      }
+                                    : {})
                             }
                         }
                     ),
@@ -389,7 +413,7 @@ export class EncodedRoutes {
             ),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
             minimum_cities_and_towns: rules.minimumCitiesAndTowns ?? 0,
-            no_reentry: rules.forbidsHexReentry?.(state) ?? false,
+            ...reentryRules(state, rules, locations),
             blocked_passes: blockedPasses,
             budget_ms: budget.timeLimitMs,
             memory_budget_bytes: budget.memoryBudgetBytes
@@ -552,7 +576,7 @@ export class EncodedRoutes {
                 ]
             }),
             trains: trains.map((train) => {
-                const perStop = (values: readonly (number | null)[]) =>
+                const perStop = <T>(values: readonly T[]) =>
                     stopIndices.map((index) => values[index])
                 const locations = (hexes: readonly number[]) =>
                     hexes.map((hex) => this.locationIds[hex])
@@ -572,11 +596,14 @@ export class EncodedRoutes {
                     visit_costs: perStop(train.visit_costs),
                     revenues: perStop(train.revenues),
                     first_bonus: perStop(train.first_bonus),
-                    connection_bonuses: train.connection_bonuses.map(({ from, to, ends_only }) => ({
-                        from: perStop(from),
-                        to: perStop(to),
-                        ends_only
-                    })),
+                    connection_bonuses: train.connection_bonuses.map(
+                        ({ from, to, ends_only, requires }) => ({
+                            from: perStop(from),
+                            to: perStop(to),
+                            ends_only,
+                            ...(requires ? { requires: requires.map(perStop) } : {})
+                        })
+                    ),
                     interconnections: train.interconnections.map(({ from, to, amount }) => ({
                         from: locations(from),
                         to: locations(to),
@@ -590,6 +617,13 @@ export class EncodedRoutes {
             longest_route_bonus_per_stop: this.problem.longest_route_bonus_per_stop,
             minimum_cities_and_towns: this.problem.minimum_cities_and_towns,
             no_reentry: this.problem.no_reentry,
+            ...(this.problem.no_reentry_hexes
+                ? {
+                      no_reentry_hexes: this.problem.no_reentry_hexes.flatMap((forbidden, hex) =>
+                          forbidden ? [this.locationIds[hex]] : []
+                      )
+                  }
+                : {}),
             blocked_passes: this.problem.blocked_passes
         })
     }

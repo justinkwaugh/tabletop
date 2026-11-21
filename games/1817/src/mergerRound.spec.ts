@@ -15,19 +15,15 @@ import {
     presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import {
-    conversionPreview,
-    isLiquidated,
-    mergerPreview,
-    treasuryShareIds,
-    stationsForConversion,
-    stationsOverLimit,
-    trimStations
-} from './index.js'
-import { mergerRoundCompanyId, convertedShareSales } from './mergerRound.js'
-import { mergerRoundOf } from './state.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
+import {
+    EighteenSeventeenCompanyMarket,
+    EighteenSeventeenConversionRounds,
+    EighteenSeventeenConversions,
+    EighteenSeventeenStations
+} from './index.js'
+import { conversionRoundOf } from '@tabletop/18xx'
 
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 const price = (state: EighteenXXState, companyId: string) =>
@@ -71,16 +67,16 @@ function mergerRound(prepare: (state: EighteenXXState) => void = () => {}) {
 }
 
 function passOn(play: ExamplePlay) {
-    play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
+    play.act('PassMerger', { companyId: EighteenSeventeenConversionRounds.companyId(play.state) })
 }
 
 describe('the merger round', () => {
     it('follows an operating round and offers each company in operating order', () => {
         const play = mergerRound()
-        expect(mergerRoundCompanyId(play.state)).toBe('BA')
+        expect(EighteenSeventeenConversionRounds.companyId(play.state)).toBe('BA')
         expect(play.valid('blair')).toEqual(['ConvertCompany', 'PassMerger', 'SetRunInstruction'])
         passOn(play)
-        expect(mergerRoundCompanyId(play.state)).toBe('PLE')
+        expect(EighteenSeventeenConversionRounds.companyId(play.state)).toBe('PLE')
         passOn(play)
         expect(play.state.machineState).toBe('AcquisitionRound')
     })
@@ -93,7 +89,7 @@ describe('the merger round', () => {
             issueShareCertificates(state, 'PLE', 8, { owner: player('blair') })
         })
         passUntil(play, (state) => state.operatingSet?.roundNumber === 2)
-        expect(mergerRoundOf(play.state)?.completed).toBe(true)
+        expect(conversionRoundOf(play.state)?.completed).toBe(true)
         expect(play.state.machineState).toBe('LayingTrack')
     })
 })
@@ -134,7 +130,9 @@ describe('conversion', () => {
             account.amount = 0
         })
         play.act('ConvertCompany', { companyId: 'BA' })
-        expect(convertedShareSales(play.state, 'blair')).toEqual([])
+        expect(EighteenSeventeenConversionRounds.convertedShareSales(play.state, 'blair')).toEqual(
+            []
+        )
         expect(() =>
             play.act('SellConvertedShares', { companyId: 'BA', shares: 1, expectedProceeds: 110 })
         ).toThrow()
@@ -191,12 +189,14 @@ describe('conversion', () => {
             delete certificate.poolId
         })
         play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
-        expect(treasuryShareIds(play.state, 'BA')).toEqual([])
+        expect(EighteenSeventeenConversions.treasuryShareIds(play.state, 'BA')).toEqual([])
         // The president has nothing to buy and is automatically passed.
         expect(play.state.machineState).toBe('TradingConvertedShares')
         expect(play.valid('blair')).toContain('SellConvertedShares')
         expect(
-            convertedShareSales(play.state, 'blair').map((sale) => sale.sales[0].shares)
+            EighteenSeventeenConversionRounds.convertedShareSales(play.state, 'blair').map(
+                (sale) => sale.sales[0].shares
+            )
         ).toEqual([1, 2, 3])
         play.act('SellConvertedShares', { companyId: 'BA', shares: 2, expectedProceeds: 160 })
         expect(sharesOwned(play.state, 'BA', player('blair'))).toBe(1)
@@ -206,11 +206,13 @@ describe('conversion', () => {
 
     it('previews the shares and stations a conversion brings before the president converts', () => {
         const play = mergerRound()
-        const preview = conversionPreview(play.state, 'BA')
+        const preview = EighteenSeventeenConversions.conversionPreview(play.state, 'BA')
         expect([preview.shareCount, preview.newShares]).toEqual([10, 5])
         play.act('ConvertCompany', { companyId: 'BA' })
-        expect(stationsForConversion(play.state, 'BA')).toBe(preview.stations.stations)
-        expect(conversionPreview(mergerRound().state, 'PLE')).toEqual({
+        expect(EighteenSeventeenConversions.stationsForConversion(play.state, 'BA')).toBe(
+            preview.stations.stations
+        )
+        expect(EighteenSeventeenConversions.conversionPreview(mergerRound().state, 'PLE')).toEqual({
             shareCount: 5,
             newShares: 3,
             stations: { stations: 1, cost: 50, affordable: true }
@@ -227,8 +229,8 @@ describe('conversion', () => {
             play.act('PassConvertedShares', { companyId: 'BA' })
         expect(play.state.machineState).toBe('BorrowingAfterConversion')
         play.act('FinishConversionLoans', { companyId: 'BA' })
-        expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
-        expect(mergerRoundCompanyId(play.state)).toBe('PLE')
+        expect(EighteenSeventeenCompanyMarket.isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
+        expect(EighteenSeventeenConversionRounds.companyId(play.state)).toBe('PLE')
     })
 })
 
@@ -319,12 +321,12 @@ describe('mergers', () => {
         ]
     ])('previews what merging %s makes of the company', (_, prepare) => {
         const play = mergerRound(prepare)
-        const preview = mergerPreview(play.state, 'BA', 'PLE')
+        const preview = EighteenSeventeenConversions.mergerPreview(play.state, 'BA', 'PLE')
         play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
         expect(preview).toEqual({
             price: price(play.state, 'BA'),
             shareCount: getCompany(play.state, 'BA').shareCount,
-            treasuryShares: treasuryShareIds(play.state, 'BA').length,
+            treasuryShares: EighteenSeventeenConversions.treasuryShareIds(play.state, 'BA').length,
             stations: stations(play.state, 'BA')
         })
     })
@@ -347,9 +349,9 @@ describe('mergers', () => {
         const play = mergerRound()
         const state = structuredClone(play.state)
         addCompanyStations(state, 'BA', 8)
-        expect(stationsOverLimit(state, 'BA')).toBe(2)
-        trimStations(state, 'BA')
-        expect(stationsOverLimit(state, 'BA')).toBe(0)
+        expect(EighteenSeventeenStations.stationsOverLimit(state, 'BA')).toBe(2)
+        EighteenSeventeenStations.trimStations(state, 'BA')
+        expect(EighteenSeventeenStations.stationsOverLimit(state, 'BA')).toBe(0)
         expect(stations(state, 'BA')).toBe(8)
     })
 })

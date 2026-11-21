@@ -547,7 +547,9 @@
                     shortName={session.companyName(item.id)}
                     fullName={session.companyFullName(item.id)}
                     description={item.description}
-                    income={item.closed ? undefined : item.revenue}
+                    income={item.closed || session.presentation.privatesWithoutIncome
+                        ? undefined
+                        : item.revenue}
                 />{#each session.privateActions.powersFor(item.id) as power, index (index)}<span
                         class="private-power"
                         ><PrivateTrackPowerButton
@@ -570,7 +572,9 @@
                         : companyPowers
                           ? ''
                           : (session.presentation.privateStatus?.(gameState, item.id) ??
-                            `${money(item.revenue)} / OR`))}</span
+                            (session.presentation.privatesWithoutIncome
+                                ? ''
+                                : `${money(item.revenue)} / OR`)))}</span
             >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span

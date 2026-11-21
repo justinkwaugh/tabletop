@@ -26,7 +26,9 @@
         tokens={session.privateCardTokens[company.id]}
         name={session.companyFullName(company.id)}
         description=""
-        income={session.privateIncome(company.id)}
+        income={session.presentation.privatesWithoutIncome
+            ? undefined
+            : session.privateIncome(company.id)}
         {purchaseRange}
     />
 {:else}

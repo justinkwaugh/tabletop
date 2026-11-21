@@ -2,8 +2,10 @@ import { expect } from 'vitest'
 import { trainsOwnedBy } from '@tabletop/18xx'
 import type { EighteenSeventeenState } from '../src/state.js'
 import type { ExamplePlay } from '@tabletop/18xx/scenarios'
-import { acquisitionRoundCompanyId } from '../src/acquisitionRound.js'
-import { mergerRoundCompanyId } from '../src/mergerRound.js'
+import {
+    EighteenSeventeenAcquisitionRounds,
+    EighteenSeventeenConversionRounds
+} from '../src/companyRounds.js'
 
 function actingCompanyId(state: EighteenSeventeenState): string | undefined {
     return (
@@ -11,8 +13,8 @@ function actingCompanyId(state: EighteenSeventeenState): string | undefined {
         state.trainPurchaseStep?.companyId ??
         state.loanStep?.companyId ??
         state.phaseChange?.discardCompanyIds[0] ??
-        mergerRoundCompanyId(state) ??
-        acquisitionRoundCompanyId(state)
+        EighteenSeventeenConversionRounds.companyId(state) ??
+        EighteenSeventeenAcquisitionRounds.companyId(state)
     )
 }
 

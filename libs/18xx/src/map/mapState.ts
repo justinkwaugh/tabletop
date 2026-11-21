@@ -3,7 +3,7 @@ import { assert, assertExists } from '@tabletop/common'
 import type { RailwayMap } from './map.js'
 import type { StationState } from './station.js'
 import { TileInventory, type TilePlacement, type TileSet } from '../tiles/inventory.js'
-import type { TileEdge, TileFace, TileRotation } from '../tiles/tile.js'
+import type { TileEdge, TileFace, TileRevenue, TileRotation } from '../tiles/tile.js'
 import { rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
 import { withTrackStops } from '../tiles/trackStops.js'
 
@@ -57,7 +57,13 @@ export class RailwayMapState {
                     rotation: placement.rotation,
                     placement
                 })
-            } else this.tiles.set(location.id, { face: location.preprintedTile, rotation: 0 })
+            } else {
+                const dealt = parsed.dealtRevenues?.[location.id]
+                const face = dealt
+                    ? withDealtRevenue(location.preprintedTile, dealt)
+                    : location.preprintedTile
+                this.tiles.set(location.id, { face, rotation: 0 })
+            }
         }
     }
     tile(locationId: string): MapTile {
@@ -107,5 +113,13 @@ export class RailwayMapState {
             )
             assert(node?.kind === 'city', 'Station reservation requires an existing city')
         }
+    }
+}
+
+/** A printed face whose stops carry the revenue dealt onto them at setup. */
+function withDealtRevenue(face: TileFace, revenue: TileRevenue): TileFace {
+    return {
+        ...face,
+        nodes: face.nodes.map((node) => (node.kind === 'junction' ? node : { ...node, revenue }))
     }
 }

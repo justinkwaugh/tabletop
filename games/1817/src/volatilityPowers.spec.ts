@@ -23,13 +23,12 @@ import {
     EighteenSeventeenTrainRules,
     InventorId,
     ScrapperId,
-    recordPrivateLay,
-    stationPurchase
+    recordPrivateLay
 } from './index.js'
-import { mergerRoundCompanyId } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
 import { addPrivate } from '../test/privates.js'
+import { EighteenSeventeenConversionRounds, EighteenSeventeenStations } from './index.js'
 
 const company = (companyId: string) => ({ kind: 'company' as const, companyId })
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
@@ -234,7 +233,9 @@ describe('the Golden Parachute', () => {
         })
         passUntil(play, (state) => state.machineState === 'MergerRound')
         while (play.state.machineState === 'MergerRound')
-            play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
+            play.act('PassMerger', {
+                companyId: EighteenSeventeenConversionRounds.companyId(play.state)
+            })
         play.act('OfferCompany', { companyId: 'PLE' })
         play.act('BidToAcquire', { companyId: 'PLE', amount: 120 })
         return cash(play, player('alex'))
@@ -250,9 +251,9 @@ describe('the Station Subsidy', () => {
         const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) =>
             addPrivate(state, 'P21', company('PLE'))
         )
-        expect(stationPurchase(play.state, 'PLE', 2).cost).toBe(50)
-        expect(stationPurchase(play.state, 'PLE', 0).cost).toBe(0)
-        expect(stationPurchase(play.state, 'BA', 2).cost).toBe(100)
+        expect(EighteenSeventeenStations.stationPurchase(play.state, 'PLE', 2).cost).toBe(50)
+        expect(EighteenSeventeenStations.stationPurchase(play.state, 'PLE', 0).cost).toBe(0)
+        expect(EighteenSeventeenStations.stationPurchase(play.state, 'BA', 2).cost).toBe(100)
     })
 })
 
@@ -365,7 +366,9 @@ describe('a bank liquidation', () => {
         })
         passUntil(play, (state) => state.machineState === 'MergerRound')
         while (play.state.machineState === 'MergerRound')
-            play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
+            play.act('PassMerger', {
+                companyId: EighteenSeventeenConversionRounds.companyId(play.state)
+            })
         const before = cash(play, company('PLE'))
         play.act('PassOnCompany', { companyId: 'PLE' })
         return { alex: cash(play, player('alex')), inventor: cash(play, company('PLE')) - before }
