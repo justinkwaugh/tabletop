@@ -1,0 +1,13 @@
+import type { GameScoring } from '@tabletop/common'
+import type { YGameState } from '../model/gameState.js'
+
+export class YScoring implements GameScoring<YGameState> {
+    finalScores(state: YGameState): Record<string, number> {
+        return Object.fromEntries(
+            state.players.map((player) => [
+                player.playerId,
+                state.winningPlayerIds.includes(player.playerId) ? 1 : 0
+            ])
+        )
+    }
+}

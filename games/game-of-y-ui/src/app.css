@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fff5f2;
+    --color-primary-100: #fff1ee;
+    --color-primary-200: #ffe4de;
+    --color-primary-300: #ffd5cc;
+    --color-primary-400: #ffbcad;
+    --color-primary-500: #fe795d;
+    --color-primary-600: #ef562f;
+    --color-primary-700: #eb4f27;
+    --color-primary-800: #cc4522;
+    --color-primary-900: #a5371b;
+
+    --color-secondary-50: #f0f9ff;
+    --color-secondary-100: #e0f2fe;
+    --color-secondary-200: #bae6fd;
+    --color-secondary-300: #7dd3fc;
+    --color-secondary-400: #38bdf8;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+    --color-secondary-700: #0369a1;
+    --color-secondary-800: #075985;
+    --color-secondary-900: #0c4a6e;
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    /* disable chrome cancel button */
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}
+
+:root {
+    /* A pale table, so the wooden board and both colours of stone stand out on it. */
+    --y-table: #e6dfd2;
+    --y-table-deep: #d6ccba;
+    /* Cards and controls on light panels, lifted by a soft shadow. */
+    --y-panel: #f8f4ec;
+    --y-panel-edge: rgb(60 40 20 / 0.16);
+    --y-panel-shadow: 0 2px 8px rgb(60 40 20 / 0.18);
+    --y-panel-hover: color-mix(in srgb, var(--y-panel), #3a2410 7%);
+    --y-panel-inset: color-mix(in srgb, var(--y-panel), #ffffff 50%);
+    --y-panel-rule: color-mix(in srgb, var(--y-panel), #3a2410 20%);
+    /* The ring round a toggle that is on. */
+    --y-toggle-on: #0a8fb0;
+    --y-line: #1c150d;
+    --y-label: #3a2c1d;
+    --y-ink: #1f160c;
+    --y-ink-quiet: #6b5a48;
+    --y-control-off: #b9ac98;
+    /* Text standing straight on the table. */
+    --y-table-ink: #2c2116;
+    --y-target: #e08a00;
+    /* Marks on the stones, drawn over a dark band so they read on both colours. */
+    --y-mark: #5ef0ff;
+}
