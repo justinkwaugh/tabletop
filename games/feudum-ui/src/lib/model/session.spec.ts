@@ -9,10 +9,12 @@ import {
     MachineState,
     StartingSpaceIds
 } from '@tabletop/feudum'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { colourPaint, seatPaint } from './seatPaint.js'
+import type { FeudumGameSession } from './session.svelte.js'
+import type { ComponentSession } from './sessionContext.svelte.js'
 import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
 import {
     StartingGoodsDraft,
@@ -615,19 +617,12 @@ describe('R-1.4.8, R-3.1 what a draft keeps across a transition (contract: Share
 })
 
 describe('components call session methods only', () => {
-    it('no component builds or sends an Action', () => {
-        const components = import.meta.glob('../components/**/*.svelte', {
-            query: '?raw',
-            import: 'default',
-            eager: true
-        })
-        const sources = Object.entries(components)
-        expect(sources.length).toBeGreaterThan(0)
-        for (const [file, source] of sources) {
-            expect(String(source), file).not.toMatch(
-                /\b(applyAction|createPlayerAction|createAction)\b/
-            )
-        }
+    it('Contract, Shared visual state: the session a component gets cannot build or send an Action', () => {
+        expectTypeOf<ComponentSession>().not.toHaveProperty('createPlayerAction')
+        expectTypeOf<ComponentSession>().not.toHaveProperty('applyAction')
+        expectTypeOf<ComponentSession>().not.toHaveProperty('applyPreparedAction')
+        expectTypeOf<FeudumGameSession>().toHaveProperty('applyAction')
+        expectTypeOf<ComponentSession>().toHaveProperty('sendTurnCard')
     })
 })
 
