@@ -22,10 +22,10 @@
     })
 </script>
 
-<div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--zertz-ink)">
+<div class="ending">
     {#if victory}
-        <div class="text-[22px] font-semibold tracking-[0.06em]">{verdict}</div>
-        <div class="flex items-center gap-2 text-[15px] text-(--zertz-ink-quiet)">
+        <span class="winner">{verdict}</span>
+        <span class="reason">
             {#if victory.reason === EndReason.FullBoard}
                 by filling the last ring on the board
             {:else if victory.reason === EndReason.Repetition}
@@ -39,8 +39,52 @@
             {:else}
                 with {victory.eachColor} marbles of each colour
             {/if}
-        </div>
+        </span>
     {:else}
         <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
     {/if}
 </div>
+
+<style>
+    /* Within the height the action panel holds: the winner over the reason, the reason trimmed
+       rather than wrapped. */
+    .ending {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.1;
+    }
+
+    .winner {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .reason {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+        color: var(--zertz-ink-quiet);
+    }
+
+    .reason :global(svg) {
+        display: inline-block;
+        vertical-align: -2px;
+    }
+
+    @media (max-width: 639px) {
+        .reason {
+            font-size: 13px;
+        }
+    }
+</style>

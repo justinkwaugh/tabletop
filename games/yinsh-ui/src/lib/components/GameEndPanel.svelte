@@ -7,8 +7,8 @@
     const session = getGameSession()
 
     const ENDINGS: Record<Exclude<EndReason, EndReason.Rows>, string> = {
-        [EndReason.PoolEmpty]: 'The markers ran out',
-        [EndReason.NoMoves]: 'Neither player could move'
+        [EndReason.PoolEmpty]: 'Markers ran out',
+        [EndReason.NoMoves]: 'No moves left'
     }
 
     const winners = $derived(session.gameState.winningPlayerIds)
@@ -31,21 +31,60 @@
             .map((player) => player.ringsRemoved)
             .toSorted((a, b) => b - a)
             .join(' to ')
-        return `${ended}; rings removed ${counts}`
+        return `${ended}; rings ${counts}`
     })
 </script>
 
-<div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--yinsh-ink)">
+<div class="ending">
     {#if reason}
-        <div class="text-[22px] font-semibold tracking-[0.06em]">
+        <span class="winner">
             {#if isDraw}
                 A draw
             {:else if winners[0]}
                 {winners[0] === session.myPlayer?.id ? 'You win' : `${nameOf(winners[0])} wins`}
             {/if}
-        </div>
-        <div class="text-[15px] text-(--yinsh-ink-quiet)">{reason}</div>
+        </span>
+        <span class="reason" title={reason}>{reason}</span>
     {:else}
         <CalledGameEnding class="text-[18px] tracking-[0.02em]" />
     {/if}
 </div>
+
+<style>
+    /* Within the height the action panel holds: the winner over the reason, the reason trimmed
+       rather than wrapped. */
+    .ending {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+    }
+
+    .winner {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .reason {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 15px;
+        color: var(--yinsh-ink-quiet);
+    }
+
+    @media (max-width: 639px) {
+        .reason {
+            font-size: 13px;
+        }
+    }
+</style>
