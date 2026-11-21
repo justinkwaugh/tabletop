@@ -13,7 +13,13 @@ import {
     type BidChoice
 } from '@tabletop/koenigrufen'
 import { bonusGoal, bonusName } from './announcementText.js'
-import { bidKey, bidValueText } from './contractText.js'
+import {
+    bidKey,
+    bidValueText,
+    StandardRules,
+    trischakenTalonDetail,
+    type TableRules
+} from './contractText.js'
 
 // The bid menu's table: one row per contract open to the player, cheapest first. Besserrufer is a
 // single row whose birds are the actual bids. Forehand's opening bid leads with Sechserdreier, then
@@ -57,7 +63,7 @@ const Details: Record<Contract, string> = {
     [Contract.Rufer]:
         'Call a King; its holder is your secret partner. If the King lies in the talon, give up or play alone.',
     [Contract.Trischaken]:
-        'Forehand leads; must beat, Pagat only as last trump. Last trick takes the talon. The two highest pay 1 to the two lowest; 36+ pays 2 to each; no trick is paid 2 by each.',
+        'Forehand leads; must beat, Pagat only as last trump. {talon} The two highest pay 1 to the two lowest; 36+ pays 2 to each; no trick is paid 2 by each.',
     [Contract.Piccolo]:
         'You lead; must beat, Pagat only as last trump. Ends as soon as you take a second trick.',
     [Contract.Zwiccolo]:
@@ -104,7 +110,7 @@ function goal(contract: Contract): [long: string, short: string] {
     }
 }
 
-function talon(contract: Contract): string {
+function talon(contract: Contract, rules: TableRules): string {
     const definition = contractDefinition(contract)
     if (definition.talonCards > 0) {
         return `Take ${definition.talonCards}`
@@ -113,7 +119,7 @@ function talon(contract: Contract): string {
         case Goal.TakePoints:
             return 'To defenders'
         case Goal.AvoidPoints:
-            return 'Last trick'
+            return rules.talonByTrick ? '1 per trick' : 'Last trick'
         case Goal.TakeTricks:
             return 'Unused'
     }
@@ -158,7 +164,13 @@ const AllChoices: BidChoice[] = PlayableContracts.flatMap((contract) =>
         : [{ contract }]
 ).toSorted((a, b) => bidRank(a) - bidRank(b))
 
-function row(choice: BidChoice, value: string, birds: BirdOption[], closed = false): BidRow {
+function row(
+    choice: BidChoice,
+    value: string,
+    birds: BirdOption[],
+    rules: TableRules,
+    closed = false
+): BidRow {
     const { contract } = choice
     const [goalLong, goalShort] = goal(contract)
     return {
@@ -169,9 +181,9 @@ function row(choice: BidChoice, value: string, birds: BirdOption[], closed = fal
         teams: Teams[contractDefinition(contract).partnership],
         goal: goalLong,
         goalShort,
-        talon: talon(contract),
+        talon: talon(contract, rules),
         tags: tags(contract, closed),
-        details: Details[contract],
+        details: Details[contract].replace('{talon}', trischakenTalonDetail(rules)),
         birds,
         featured: contractDefinition(contract).forehandOpening,
         closed,
@@ -207,15 +219,18 @@ function valueRange(birds: BirdOption[]): string {
 // The rows for the bids open to the player, cheapest first. A contract that names a bird sits where
 // its cheapest open bird ranks, its value the range of its open birds. Forehand's opening call comes
 // first, followed by the contracts only named after "Mein Spiel", closed.
-export function bidRows(choices: readonly BidChoice[]): BidRow[] {
-    const rows = openRows(choices)
+export function bidRows(
+    choices: readonly BidChoice[],
+    rules: TableRules = StandardRules
+): BidRow[] {
+    const rows = openRows(choices, rules)
     if (!rows.some((row) => row.featured)) {
         return rows
     }
     const named = AllChoices.filter((choice) => {
         const definition = contractDefinition(choice.contract)
         return definition.forehandOnly && !definition.forehandOpening
-    }).map((choice) => row(choice, bidValueText(choice), [], true))
+    }).map((choice) => row(choice, bidValueText(choice), [], rules, true))
     const ordinary = rows.filter((row) => !row.featured && !named.some((n) => n.key === row.key))
     return [
         ...rows.filter((row) => row.featured),
@@ -224,7 +239,7 @@ export function bidRows(choices: readonly BidChoice[]): BidRow[] {
     ]
 }
 
-function openRows(choices: readonly BidChoice[]): BidRow[] {
+function openRows(choices: readonly BidChoice[], rules: TableRules): BidRow[] {
     const keys = choices.map(bidKey)
     const placed = new Set<Contract>()
     return AllChoices.flatMap((choice): BidRow[] => {
@@ -232,13 +247,13 @@ function openRows(choices: readonly BidChoice[]): BidRow[] {
             return []
         }
         if (choice.bird === undefined) {
-            return [row(choice, bidValueText(choice), [])]
+            return [row(choice, bidValueText(choice), [], rules)]
         }
         if (placed.has(choice.contract)) {
             return []
         }
         placed.add(choice.contract)
         const birds = birdOptions(choice.contract, keys)
-        return [row(choice, valueRange(birds.filter((bird) => bird.open)), birds)]
+        return [row(choice, valueRange(birds.filter((bird) => bird.open)), birds, rules)]
     })
 }

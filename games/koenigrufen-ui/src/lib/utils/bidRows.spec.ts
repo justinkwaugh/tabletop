@@ -102,6 +102,15 @@ describe('bid rows', () => {
             ['Trischaken', false]
         ])
         expect(rows[0].tags.map((tag) => tag.text)).toEqual(['Forehand only'])
+        expect(rows[1].talon).toBe('Last trick')
+        expect(rows[1].details).toContain('Last trick takes the talon.')
+    })
+
+    it('gives the Trischaken talon by trick when the game was created so', () => {
+        const [row] = bidRows([{ contract: Contract.Trischaken }], { talonByTrick: true })
+        expect(row.talon).toBe('1 per trick')
+        expect(row.details).toContain('First 6 trick winners each reveal and take 1 talon card.')
+        expect(row.details).not.toContain('Last trick')
     })
 
     it('tags the rule changes', () => {

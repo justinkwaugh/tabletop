@@ -4,6 +4,7 @@
     // bird buttons, so the pointer can cross other rows to reach them. Without hover, a first tap
     // only shows a bid. Closed rows only show their description.
     import type { BidChoice } from '@tabletop/koenigrufen'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { bidRows, type BidRow } from '$lib/utils/bidRows.js'
     import { ChoicePreview } from '$lib/utils/choicePreview.svelte.js'
     import BirdButtons from './BirdButtons.svelte'
@@ -14,7 +15,8 @@
         onchoose
     }: { choices: readonly BidChoice[]; onchoose: (choice: BidChoice) => void } = $props()
 
-    const rows = $derived(bidRows(choices))
+    const gameSession = getGameSession()
+    const rows = $derived(bidRows(choices, gameSession.tableRules))
     const preview = new ChoicePreview<string>()
     let held: string | undefined = $state()
     const shownKey = $derived.by(() => {

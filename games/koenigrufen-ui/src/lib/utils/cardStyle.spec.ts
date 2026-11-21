@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardLabel, cardWidthShare, romanNumeral, StandardStyle } from './cardStyle.js'
+import { cardLabel, cardTitle, cardWidthShare, romanNumeral, StandardStyle } from './cardStyle.js'
 
 const uniform = { uniformPips: true, classicDeck: false }
 const classic = { uniformPips: false, classicDeck: true }
@@ -19,6 +19,15 @@ describe('card labels', () => {
         expect(cardLabel('trump-21', classic)).toBe('XXI')
         expect(cardLabel('trump-22', classic)).toBe('Sküs')
         expect(cardLabel('hearts-1', { ...classic, uniformPips: true })).toBe('10♥')
+    })
+
+    it('adds the number to an Industrie und Glück trump’s name on the card, not in the history', () => {
+        expect(cardTitle('trump-12', classic)).toBe('XII (12)')
+        expect(cardTitle('trump-4', classic)).toBe('IIII (4)')
+        expect(cardTitle('trump-22', classic)).toBe('Sküs')
+        expect(cardTitle('trump-12', StandardStyle)).toBe('12')
+        expect(cardTitle('spades-K', classic)).toBe('K♠')
+        expect(cardLabel('trump-12', classic)).toBe('XII')
     })
 
     it('draws each pack in its own proportion, at the same height', () => {

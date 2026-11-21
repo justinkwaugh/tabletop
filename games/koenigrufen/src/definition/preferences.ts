@@ -6,7 +6,9 @@ export const KoenigrufenPreferences = Type.Object(
         // Red pip cards marked 10 9 8 7 like the black suits, in place of 1 2 3 4.
         uniformPips: Type.Boolean(),
         // The Industrie und Glück Tarock art, as printed, in place of the indexed Tarot Nouveau.
-        classicDeck: Type.Boolean()
+        classicDeck: Type.Boolean(),
+        // Each suit and the trumps run from high to low, left to right, in place of low to high.
+        handHighToLow: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -18,7 +20,8 @@ export const KoenigrufenPreferenceDefinition = {
         schema: KoenigrufenPreferences,
         defaults: {
             uniformPips: false,
-            classicDeck: false
+            classicDeck: false,
+            handHighToLow: false
         },
         version: 1
     }

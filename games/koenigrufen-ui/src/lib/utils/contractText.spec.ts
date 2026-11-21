@@ -42,6 +42,9 @@ describe('contract text', () => {
         expect(contractSummary({ contract: Contract.Trischaken })).toBe(
             'Each alone - Goal: fewest card points - Forehand only. Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
         )
+        expect(contractSummary({ contract: Contract.Trischaken }, { talonByTrick: true })).toBe(
+            'Each alone - Goal: fewest card points - Forehand only. Forehand leads. Beat the highest card if you can; Pagat only as your last trump. Winners of the first 6 tricks each reveal and take 1 talon card. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
+        )
         expect(contractSummary({ contract: Contract.Farbensolo })).toBe(
             '1v3 - Goal: 36+. All 6 talon cards go to the defenders unseen. Trumps don’t win, and are led or played only when you have no suit cards left. No bonuses except Valat and Four Kings. Declarer leads.'
         )

@@ -42,7 +42,7 @@
         {#if declarer}<span class="badge declarer">Declarer</span>{/if}
         {#if partner}<span class="badge partner">Partner</span>{/if}
         {#if passed}<span class="badge">Passed</span>{/if}
-        {#if won > 0 || state.machineState === MachineState.Playing}
+        {#if won > 0 || state.machineState === MachineState.Playing || state.machineState === MachineState.GivingTalonCard}
             <!-- The face-down cards won and how many; an outline until the first. -->
             <span class="won" title="{won} {won === 1 ? 'card' : 'cards'} won">
                 <span

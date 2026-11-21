@@ -9,6 +9,7 @@ export enum MachineState {
     LayingAway = 'LayingAway',
     Announcing = 'Announcing',
     Playing = 'Playing',
+    GivingTalonCard = 'GivingTalonCard',
     EndingHand = 'EndingHand',
     EndOfGame = 'EndOfGame'
 }

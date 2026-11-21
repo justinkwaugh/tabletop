@@ -6,7 +6,7 @@ import {
     type TalonTable
 } from './talonView.js'
 
-export type WonCardsTable = TalonTable & {
+export type WonCardsTable = Omit<TalonTable, 'tricks'> & {
     readonly tricks: readonly CompletedTrick[]
     getPlayerState(playerId: string): {
         readonly discardCount: number
@@ -14,8 +14,9 @@ export type WonCardsTable = TalonTable & {
     }
 }
 
-// The cards lying face down in a player's capture pile: won tricks, the declarer's cards laid
-// away face down, and the talon cards the defenders' collector gathered. Face-up cards are public,
+// The cards lying face down in a player's capture pile: won tricks with any talon card given for
+// them, the declarer's cards laid away face down, and the talon cards the defenders' collector
+// gathered. Face-up cards are public,
 // so they do not count.
 export function wonCardCount(table: WonCardsTable, playerId: string): number {
     return (
@@ -28,7 +29,11 @@ export function wonCardCount(table: WonCardsTable, playerId: string): number {
 function trickCards(table: WonCardsTable, playerId: string): number {
     return table.tricks
         .filter((trick) => trick.winnerId === playerId)
-        .reduce((count, trick) => count + trick.plays.length, 0)
+        .reduce(
+            (count, trick) =>
+                count + trick.plays.length + (trick.talonCardId === undefined ? 0 : 1),
+            0
+        )
 }
 
 function faceDownDiscards(table: WonCardsTable, playerId: string): number {
