@@ -85,6 +85,9 @@
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-gray-500"
+                        messageTextColor="text-(--lyngk-ink)"
+                        composerTextColor="text-(--lyngk-ink)"
+                        messageHoverColor="hover:bg-(--lyngk-panel-hover)"
                         bgColor="bg-[#fbf9f3]"
                         inputBgColor="bg-[#fbf9f3]"
                         inputBorderColor="border-[#cfc7b4]"

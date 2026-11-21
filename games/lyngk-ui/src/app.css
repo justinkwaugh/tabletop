@@ -52,6 +52,7 @@
     --lyngk-panel: #fbf9f3;
     --lyngk-panel-edge: #b4ac98;
     --lyngk-panel-shadow: 0 2px 6px rgb(60 50 30 / 0.1);
+    --lyngk-panel-hover: color-mix(in srgb, var(--lyngk-panel), #3a2410 6%);
     --lyngk-ink: #2a2519;
     --lyngk-ink-quiet: #6b604c;
     /* Text standing on the table itself rather than on a panel. */
