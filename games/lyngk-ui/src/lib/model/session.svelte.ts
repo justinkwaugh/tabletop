@@ -11,13 +11,15 @@ import {
     isMoveStack,
     LyngkPreferenceDefinition,
     MoveStack,
+    PIECE_COLORS,
+    PieceColor,
+    PlacePiece,
     pointKey,
     POINTS,
     type LyngkGameState,
     type LyngkPreferences,
     type HydratedLyngkGameState,
-    type MovePath,
-    type PieceColor
+    type MovePath
 } from '@tabletop/lyngk'
 import { LyngkStageOrder, setLyngkSelection, type LyngkSelection } from './stagedSelection.js'
 import { viewOf, type BoardView } from '$lib/board/geometry.js'
@@ -49,6 +51,9 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
             ? this.selection
             : {}
     )
+    // The colour the next placement puts down: a tool kept from one placement to the next, so
+    // Undo neither takes it back nor clears it.
+    private chosenColor: PieceColor = $state(PieceColor.Ivory)
     // The move your own Undo takes back, whose stack is picked up again as it lands.
     private undoingMove: MoveStack | undefined
     readonly moveInterrupters = new Set<MoveInterrupter>()
@@ -91,7 +96,29 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
     view: BoardView = $derived(viewOf(this.turned))
     notation: BoardNotation = $derived(boardNotation(POINTS, this.view))
 
+    canPlace = $derived(this.canAct(ActionType.PlacePiece))
     canMove = $derived(this.canAct(ActionType.MoveStack))
+
+    placeable: AxialCoordinates[] = $derived(
+        this.canPlace ? this.gameState.board.vacantPoints() : []
+    )
+
+    private colorsLeft: PieceColor[] = $derived(this.canPlace ? this.gameState.colorsLeft() : [])
+
+    // The chosen colour while any is left; otherwise the next colour that is.
+    placingColor: PieceColor | undefined = $derived(
+        this.colorsLeft.includes(this.chosenColor)
+            ? this.chosenColor
+            : PIECE_COLORS.find((color) => this.colorsLeft.includes(color))
+    )
+
+    piecesLeft(color: PieceColor): number {
+        return this.gameState.piecesLeft(color).length
+    }
+
+    choosePlacingColor(color: PieceColor) {
+        this.chosenColor = color
+    }
     canClaim = $derived(this.canAct(ActionType.ClaimColor))
 
     claimable: PieceColor[] = $derived.by(() => {
@@ -214,10 +241,14 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
         this.undoingMove = undefined
     }
 
-    // A tap lands the chosen stack, or picks up (or puts back) a stack.
+    // A tap places a piece, lands the chosen stack, or picks up (or puts back) a stack.
     async choosePoint(coords: AxialCoordinates) {
         if (this.moving) return
-        if (includesCoords(this.landings, coords)) {
+        if (includesCoords(this.placeable, coords) && this.placingColor !== undefined) {
+            await this.applyAction(
+                this.createPlayerAction(PlacePiece, { coords, color: this.placingColor })
+            )
+        } else if (includesCoords(this.landings, coords)) {
             await this.land(coords)
         } else if (includesCoords(this.movable, coords)) {
             const same = this.chosenFrom !== undefined && sameCoordinates(this.chosenFrom, coords)

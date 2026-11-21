@@ -96,4 +96,15 @@ describe('historyEntries', () => {
             { kind: 'call', firstIndex: 1, lastIndex: 1, action: call }
         ])
     })
+
+    it('gives each piece placed while setting the board its own entry', () => {
+        const place = (playerId: string, color: PieceColor) =>
+            action(playerId, { type: ActionType.PlacePiece, coords: { q: 0, r: 0 }, color })
+        expect(
+            historyEntries([place('a', PieceColor.Red), place('b', PieceColor.Joker)])
+        ).toMatchObject([
+            { kind: 'place', playerId: 'a', color: PieceColor.Red, firstIndex: 0 },
+            { kind: 'place', playerId: 'b', color: PieceColor.Joker, firstIndex: 1 }
+        ])
+    })
 })

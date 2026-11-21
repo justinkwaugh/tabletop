@@ -8,6 +8,7 @@ export * from './definition/states.js'
 
 export * from './actions/claimColor.js'
 export * from './actions/moveStack.js'
+export * from './actions/placePiece.js'
 
 export * from './model/board.js'
 export * from './model/gameState.js'

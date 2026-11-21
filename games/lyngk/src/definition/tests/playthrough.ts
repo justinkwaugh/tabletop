@@ -8,7 +8,7 @@ import {
 import { Definition } from '../definition.js'
 import { LyngkRuntime } from '../runtime.js'
 import { LyngkInfo } from '../info.js'
-import { LyngkVariant } from '../config.js'
+import { LyngkSetup, LyngkVariant } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedLyngkGameState, type LyngkGameState } from '../../model/gameState.js'
@@ -20,7 +20,8 @@ export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
 export function createGame(
     variant: LyngkVariant = LyngkVariant.Standard,
-    playerIds: string[] = ['alice', 'bob']
+    playerIds: string[] = ['alice', 'bob'],
+    setup: LyngkSetup = LyngkSetup.Random
 ) {
     return LyngkRuntime.initializer.initializeGame(
         {
@@ -28,7 +29,7 @@ export function createGame(
             typeId: 'lyngk',
             ownerId: 'owner',
             seed: 5,
-            config: { ...defaultGameConfig(LyngkInfo.configurator?.options ?? []), variant },
+            config: { ...defaultGameConfig(LyngkInfo.configurator?.options ?? []), variant, setup },
             players: playerIds.map((id) => ({
                 id,
                 name: id,
@@ -56,6 +57,16 @@ export function execute(game: LyngkGame, state: LyngkGameState, action: GameActi
 export function legalActions(game: LyngkGame, state: LyngkGameState): GameAction[] {
     const hydrated = new HydratedLyngkGameState(state)
     const [playerId] = state.activePlayerIds
+    if (state.machineState === MachineState.PlacingPieces) {
+        return hydrated.board.vacantPoints().flatMap((coords) =>
+            hydrated.colorsLeft().map((color) => ({
+                ...actionBase(game, playerId),
+                type: ActionType.PlacePiece,
+                coords,
+                color
+            }))
+        )
+    }
     const claims = hydrated.claimableColors(playerId).map((color) => ({
         ...actionBase(game, playerId),
         type: ActionType.ClaimColor,
@@ -84,7 +95,7 @@ export function playToEnd(game: LyngkGame, state: LyngkGameState, seed: number):
         if (actions.length === 0) throw Error(`No legal action after ${steps} steps`)
         state = execute(game, state, choose(actions))
         steps += 1
-        if (steps >= 500) throw Error('The playout did not end')
+        if (steps >= 600) throw Error('The playout did not end')
     }
     return state
 }

@@ -1,7 +1,10 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
+    import { PIECE_COLORS } from '@tabletop/lyngk'
+    import { piecesForColors, PIECE_STYLES } from '$lib/board/pieceStyle.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import PieceIcon from './PieceIcon.svelte'
     import { holdTallest } from './holdTallest.js'
 
     const session = getGameSession()
@@ -9,6 +12,7 @@
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
 
     const prompt = $derived.by(() => {
+        if (session.canPlace) return 'Place'
         if (session.chosenFrom) return 'Choose where it lands'
         if (session.canMove && session.canClaim) return 'Claim a color or move a stack'
         if (session.canMove) return 'Choose a stack to move'
@@ -27,6 +31,23 @@
         {/if}
     {:else}
         <span>{prompt}</span>
+        {#if session.canPlace}
+            {#each PIECE_COLORS as color (color)}
+                {@const left = session.piecesLeft(color)}
+                <button
+                    type="button"
+                    class="color"
+                    class:chosen={session.placingColor === color}
+                    disabled={left === 0}
+                    aria-pressed={session.placingColor === color}
+                    aria-label="{PIECE_STYLES[color].name}, {left} left"
+                    onclick={() => session.choosePlacingColor(color)}
+                >
+                    <PieceIcon pieces={piecesForColors([color])} size={26} />
+                    <span>{left}</span>
+                </button>
+            {/each}
+        {/if}
     {/if}
 </div>
 
@@ -43,6 +64,25 @@
         font-size: 18px;
         letter-spacing: 0.02em;
         color: var(--lyngk-ink);
+    }
+
+    .color {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        border-radius: 8px;
+        padding: 1px 5px;
+        border: 2px solid transparent;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .color.chosen {
+        border-color: var(--lyngk-ink);
+    }
+
+    .color:disabled {
+        opacity: 0.35;
     }
 
     @media (max-width: 639px) {

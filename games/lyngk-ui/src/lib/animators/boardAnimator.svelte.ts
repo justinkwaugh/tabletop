@@ -46,6 +46,16 @@ const BOUNCE = {
 // A scored stack floats straight up off the board as it fades, once the landing has settled, so
 // it rises as one.
 const SCORE_LIFT = { delay: 0.04, duration: 0.35, rise: -34 }
+// A piece placed while the players set the board drops in as a GIPF piece does: it falls,
+// shrinking a little and fading in, then settles with two small bounces.
+const PLACE_DROP = {
+    fall: 0.26,
+    rise: -50,
+    scale: 1.08,
+    wobble: [-4, -1.5],
+    settle: 0.06,
+    shadow: 0.55
+}
 const MARK_FADE = 0.2
 // A step without an action ends within QUICK, without the rebound. A route's hops share it; a
 // scored stack's lift, or its drop back, takes QUICK_PHASE of it and the hops the rest.
@@ -272,7 +282,7 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     // A move played: the stack hops along its route and bounces as it lands; a stack it
-    // completes and scores floats off once the landing has settled.
+    // completes and scores floats off once the landing has settled. A placed piece drops in.
     private played(
         before: HydratedLyngkGameState,
         after: HydratedLyngkGameState,
@@ -280,6 +290,8 @@ export class BoardAnimator implements MoveInterrupter {
         timeline: Timeline,
         touched: SVGGElement[]
     ) {
+        for (const stack of diff.appeared)
+            this.place(this.stackKey(stack.coords), timeline, touched)
         for (const run of diff.runs) {
             const pace = { hop: run.via.length > 0 ? HOP.chained : HOP.single, rebound: true }
             const settled = this.fly(before, run, timeline, pace, 0)
@@ -498,6 +510,32 @@ export class BoardAnimator implements MoveInterrupter {
         touched.push(body, shadow)
         for (const node of [body, shadow]) this.tweened.add(node).add(poseOf(node))
         return { body, shadow }
+    }
+
+    private place(key: string, timeline: Timeline, touched: SVGGElement[]) {
+        const { body, shadow } = this.partsOf(key, touched)
+        const { fall, rise, scale, wobble, settle } = PLACE_DROP
+        const immediateRender = true
+        timeline.fromTo(
+            body,
+            { opacity: 0 },
+            { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender },
+            0
+        )
+        timeline.fromTo(
+            poseOf(body),
+            { scale, y: rise },
+            { scale: 1, y: 0, duration: fall, ease: 'power1.in', immediateRender },
+            0
+        )
+        wobble.forEach((height, bounce) => {
+            const up = fall + bounce * settle * 2
+            timeline.to(poseOf(body), { y: height, duration: settle, ease: 'power1.out' }, up)
+            timeline.to(poseOf(body), { y: 0, duration: settle, ease: 'power1.in' }, up + settle)
+        })
+        const vars = { duration: fall, ease: 'power1.in', immediateRender }
+        timeline.fromTo(shadow, { opacity: 0 }, { opacity: 1, ...vars }, 0)
+        timeline.fromTo(poseOf(shadow), { scale: PLACE_DROP.shadow }, { scale: 1, ...vars }, 0)
     }
 
     // A stack comes down from where it vanished, appearing as it falls.

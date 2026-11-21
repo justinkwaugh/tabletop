@@ -1,6 +1,6 @@
 <script lang="ts">
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-    import { pieceColor } from '@tabletop/lyngk'
+    import { pieceColor, pointKey } from '@tabletop/lyngk'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { PIECE_RADIUS } from '$lib/board/geometry.js'
@@ -114,6 +114,23 @@
                 >
             {/each}
         {/if}
+
+        <!-- While the players set the board, every empty point takes a piece. -->
+        {#each session.placeable as coords (pointKey(coords))}
+            {@const center = view.center(coords)}
+            <ellipse
+                cx={center.x}
+                cy={center.y}
+                rx={radius}
+                ry={radius * view.tilt}
+                class="vacant"
+                role="button"
+                tabindex="0"
+                aria-label="place on {session.notation.name(coords)}"
+                onclick={() => session.choosePoint(coords)}
+                onkeydown={(event) => onKey(event, () => session.choosePoint(coords))}
+            ></ellipse>
+        {/each}
 
         {#each stacks as point (point.key)}
             {@const center = view.center(point.coords)}
@@ -249,6 +266,11 @@
         stroke: var(--lyngk-line);
         stroke-opacity: var(--lyngk-line-opacity);
         stroke-width: 1.6;
+    }
+
+    .vacant {
+        fill: transparent;
+        cursor: pointer;
     }
 
     .coordinate-label {

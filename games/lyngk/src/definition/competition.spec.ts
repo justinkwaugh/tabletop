@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assert, validateGameResult } from '@tabletop/common'
-import { LyngkVariant } from './config.js'
+import { LyngkSetup, LyngkVariant } from './config.js'
 import { LyngkRuntime } from './runtime.js'
 import { LyngkGameStateValidator, type LyngkGameState } from '../model/gameState.js'
 import {
@@ -27,9 +27,14 @@ function swapPlayers(state: LyngkGameState): LyngkGameState {
     return JSON.parse(swapped)
 }
 
-describe.each(Object.values(LyngkVariant))('LYNGK %s tournaments', (variant) => {
+const setups = Object.values(LyngkVariant).flatMap((variant) =>
+    Object.values(LyngkSetup).map((setup) => [variant, setup] as const)
+)
+
+describe.each(setups)('LYNGK %s tournaments, %s setup', (variant, setup) => {
+    // Setting the board alone, the first player places every piece before seat two acts.
     it('starts the player in seat one, then seat two', () => {
-        const game = createGame(variant, [P1, P2])
+        const game = createGame(variant, [P1, P2], setup)
         for (const order of orders) {
             const { initialState } = engine.startGame(game, {
                 masterSeed: MASTER_SEED,
@@ -49,7 +54,7 @@ describe.each(Object.values(LyngkVariant))('LYNGK %s tournaments', (variant) => 
     })
 
     it('leaves the seeded setup unchanged apart from who sits where', () => {
-        const game = createGame(variant, [P1, P2])
+        const game = createGame(variant, [P1, P2], setup)
         const uninitialized = engine.generateUninitializedState(game, MASTER_SEED)
         const initialize = (playerIds: string[]) =>
             LyngkRuntime.initializer
@@ -65,7 +70,7 @@ describe.each(Object.values(LyngkVariant))('LYNGK %s tournaments', (variant) => 
     })
 
     it('finishes an assigned game with a valid result and win/loss scores', () => {
-        const game = createGame(variant, [P1, P2])
+        const game = createGame(variant, [P1, P2], setup)
         const { initialState } = engine.startGame(game, {
             masterSeed: MASTER_SEED,
             startingPositions: { playerIds: [P2, P1] }
