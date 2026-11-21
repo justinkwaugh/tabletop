@@ -7,6 +7,7 @@
     import { getAppContext } from '@tabletop/frontend-components'
     import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
     import EmailNotificationsSetting from '$lib/components/EmailNotificationsSetting.svelte'
+    import WebNotificationsSetting from '$lib/components/WebNotificationsSetting.svelte'
 
     let { authorizationService } = getAppContext()
 
@@ -32,10 +33,7 @@
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Web Notifications</h3>
-            <p class="text-sm text-gray-700 dark:text-gray-300">
-                You can receive notifications from Board Together directly in your web browser. Just
-                accept the permission prompt your browser shows you.
-            </p>
+            <WebNotificationsSetting />
         </div>
 
         {#if isDiscordSigninEnabled}

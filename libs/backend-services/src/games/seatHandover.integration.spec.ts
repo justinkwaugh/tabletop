@@ -80,7 +80,8 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 sendAccountChangeNotificationEmail: unused,
                 sendContentReportEmail: unused,
                 sendGameInvitationEmail: unused,
-                sendGameEndEmail: unused
+                sendGameEndEmail: unused,
+                sendGameStartedEmail: unused
             }
             sent = []
             const notifications: NotificationService = {
@@ -90,6 +91,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 addTransport: vi.fn(),
                 registerNotificationSubscription: unused,
                 unregisterNotificationSubscription: unused,
+                hasUserDirectSubscription: unused,
                 sendNotification: vi.fn(async (message) => {
                     sent.push({ notification: message.notification, topics: message.topics ?? [] })
                 })

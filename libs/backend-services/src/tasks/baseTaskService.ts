@@ -1,5 +1,5 @@
-import { AccountChangeType } from '../email/emailService.js'
 import type { ContentReportEmail } from '../moderation/contentReports.js'
+import type { GameEmailTask } from '../games/gameEmails.js'
 import {
     type AccountChangeNotice,
     CreatePushTaskOptions,
@@ -83,19 +83,19 @@ export abstract class BaseTaskService implements TaskService {
         })
     }
 
-    async sendGameEndEmail({
-        userId,
-        gameId,
-        toEmail
-    }: {
-        userId: string
-        gameId: string
-        toEmail: string
-    }) {
+    async sendGameEndEmail(task: GameEmailTask) {
         await this.createPushTask({
             queue: 'game-end-email',
             path: '/email/sendGameEndEmail',
-            payload: { userId, gameId, toEmail }
+            payload: task
+        })
+    }
+
+    async sendGameStartedEmail(task: GameEmailTask) {
+        await this.createPushTask({
+            queue: 'game-end-email',
+            path: '/email/sendGameStartedEmail',
+            payload: task
         })
     }
 }

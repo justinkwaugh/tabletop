@@ -18,6 +18,7 @@ import {
 import {
     AccountChangeType,
     EmailService,
+    type GameStartedEmail,
     type LeagueSeasonResultsEmail,
     type LeagueSeasonStartEmail,
     type LeagueSignUpEmail
@@ -215,6 +216,12 @@ export class ResendEmailService implements EmailService {
             `Your game of ${definition.info.metadata.name} ${game.name} has ended`,
             emailHTML
         )
+    }
+
+    async sendGameStartedEmail({ toEmail, ...props }: GameStartedEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(templates.GameStarted(props))
+        await this.send(toEmail, `Game started: ${props.gameName} (${props.title})`, emailHTML)
     }
 
     async sendTournamentResultsEmail({
