@@ -4,25 +4,38 @@ import {
     DEFERRED_TURN_REMINDER_INDEX,
     enqueueTurnReminder,
     FIRST_TURN_REMINDER_INDEX,
-    nextTurnReminderIndex,
+    planTurnReminder,
     TURN_REMINDER_DELAYS,
-    turnReminderDelaySeconds,
     turnReminderIndex,
-    TurnReminderTask
+    TurnReminderTask,
+    type TurnReminderRecipient
 } from './turnReminders.js'
+import { reminderPreferences } from './tests/turnReminderPreferences.js'
 import type { TaskService } from '../tasks/taskService.js'
-import { weekReminderHours, type User } from '@tabletop/common'
+import {
+    DEFAULT_TURN_REMINDER_CHOICES,
+    weekReminderHours,
+    type TurnReminderChoices
+} from '@tabletop/common'
 
 const HOUR = 60 * 60
 
-function reminderTimes(): number[] {
+function choosing(turnReminders: TurnReminderChoices): TurnReminderRecipient {
+    return { preferences: reminderPreferences({ turnReminders }) }
+}
+
+function reminderTimes(
+    fromIndex = FIRST_TURN_REMINDER_INDEX,
+    recipient: TurnReminderRecipient = {}
+): number[] {
+    const now = new Date('2026-10-16T12:00:00.000Z')
     const times: number[] = []
     let elapsed = 0
-    let reminderIndex: number | undefined = FIRST_TURN_REMINDER_INDEX
-    while (reminderIndex !== undefined) {
-        elapsed += TURN_REMINDER_DELAYS[reminderIndex]
+    let planned = planTurnReminder(fromIndex, now, recipient)
+    while (planned) {
+        elapsed += planned.inSeconds
         times.push(elapsed)
-        reminderIndex = nextTurnReminderIndex(reminderIndex)
+        planned = planTurnReminder(planned.reminderIndex + 1, now, recipient)
     }
     return times
 }
@@ -90,40 +103,93 @@ describe('turn reminders', () => {
     })
 })
 
+describe('chosen turn reminders', () => {
+    const allOn = DEFAULT_TURN_REMINDER_CHOICES
+    const repeatsFrom = (first: number, every: number, count: number) =>
+        Array.from({ length: count }, (_, repeat) => first + repeat * every)
+
+    it('sends every reminder when all are chosen, as with no choice saved', () => {
+        expect(reminderTimes(FIRST_TURN_REMINDER_INDEX, choosing(allOn))).toEqual(reminderTimes())
+    })
+
+    it('keeps the times of the reminders left on when one is switched off', () => {
+        expect(
+            reminderTimes(FIRST_TURN_REMINDER_INDEX, choosing({ ...allOn, afterFiveHours: false }))
+        ).toEqual([60, 60 + HOUR, 60 + 13 * HOUR, ...repeatsFrom(60 + 25 * HOUR, 12 * HOUR, 14)])
+    })
+
+    it('repeats once a day on the second of each pair of twice-daily repeats', () => {
+        expect(
+            reminderTimes(FIRST_TURN_REMINDER_INDEX, choosing({ ...allOn, repeat: 'daily' }))
+        ).toEqual([
+            60,
+            60 + HOUR,
+            60 + 5 * HOUR,
+            60 + 13 * HOUR,
+            ...repeatsFrom(60 + 37 * HOUR, 24 * HOUR, 7)
+        ])
+    })
+
+    it('sends only the first reminder when every other one is off', () => {
+        const firstOnly = choosing({
+            afterOneHour: false,
+            afterFiveHours: false,
+            afterThirteenHours: false,
+            repeat: 'none'
+        })
+        expect(reminderTimes(FIRST_TURN_REMINDER_INDEX, firstOnly)).toEqual([60])
+        expect(reminderTimes(DEFERRED_TURN_REMINDER_INDEX, firstOnly)).toEqual([])
+    })
+
+    it('starts a new game from the five and thirteen hour switches', () => {
+        expect(
+            reminderTimes(
+                DEFERRED_TURN_REMINDER_INDEX,
+                choosing({ ...allOn, afterFiveHours: false, repeat: 'none' })
+            )
+        ).toEqual([12 * HOUR])
+    })
+})
+
 describe('turn reminders in reminder hours', () => {
     const reminderHours = weekReminderHours([18, 19, 20, 21])
-    const recipient: Pick<User, 'timeZone' | 'preferences'> = {
+    const recipient: TurnReminderRecipient = {
         timeZone: 'America/Chicago',
-        preferences: {
-            preventWebNotificationPrompt: false,
-            preferredColorsEnabled: false,
-            preferredColors: [],
-            reminderHours
-        }
+        preferences: reminderPreferences({ reminderHours })
     }
     const fridayMorning = new Date('2026-10-16T12:00:00.000Z')
     const fridayEvening = new Date('2026-10-16T23:00:00.000Z')
     const secondsUntil = (time: Date) => (time.getTime() - fridayMorning.getTime()) / 1000
+    const inSeconds = (fromIndex: number, to: TurnReminderRecipient = recipient) =>
+        planTurnReminder(fromIndex, fridayMorning, to)?.inSeconds
 
     it('sends the first two reminders at their usual delay', () => {
-        expect(turnReminderDelaySeconds(0, fridayMorning, recipient)).toBe(60)
-        expect(turnReminderDelaySeconds(1, fridayMorning, recipient)).toBe(HOUR)
+        expect(inSeconds(0)).toBe(60)
+        expect(inSeconds(1)).toBe(HOUR)
     })
 
     it('waits for a reminder hour from the four hour reminder on', () => {
-        expect(
-            turnReminderDelaySeconds(DEFERRED_TURN_REMINDER_INDEX, fridayMorning, recipient)
-        ).toBe(secondsUntil(fridayEvening))
-        expect(turnReminderDelaySeconds(3, fridayMorning, recipient)).toBe(
-            secondsUntil(fridayEvening)
-        )
-        expect(turnReminderDelaySeconds(4, fridayMorning, recipient)).toBe(12 * HOUR)
+        expect(inSeconds(DEFERRED_TURN_REMINDER_INDEX)).toBe(secondsUntil(fridayEvening))
+        expect(inSeconds(3)).toBe(secondsUntil(fridayEvening))
+        expect(inSeconds(4)).toBe(12 * HOUR)
+    })
+
+    it('waits for a reminder hour when an early reminder is skipped into a later one', () => {
+        const skipsOneHour: TurnReminderRecipient = {
+            ...recipient,
+            preferences: reminderPreferences({
+                reminderHours,
+                turnReminders: { ...DEFAULT_TURN_REMINDER_CHOICES, afterOneHour: false }
+            })
+        }
+        expect(planTurnReminder(1, fridayMorning, skipsOneHour)).toEqual({
+            reminderIndex: DEFERRED_TURN_REMINDER_INDEX,
+            inSeconds: secondsUntil(fridayEvening)
+        })
     })
 
     it('keeps the usual delay without reminder hours or a time zone', () => {
-        expect(turnReminderDelaySeconds(4, fridayMorning, {})).toBe(12 * HOUR)
-        expect(
-            turnReminderDelaySeconds(4, fridayMorning, { preferences: recipient.preferences })
-        ).toBe(12 * HOUR)
+        expect(inSeconds(4, {})).toBe(12 * HOUR)
+        expect(inSeconds(4, { preferences: recipient.preferences })).toBe(12 * HOUR)
     })
 })

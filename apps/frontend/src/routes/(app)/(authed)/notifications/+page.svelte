@@ -6,6 +6,7 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
     import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
+    import TurnRemindersEditor from '$lib/components/TurnRemindersEditor.svelte'
     import EmailNotificationsSetting from '$lib/components/EmailNotificationsSetting.svelte'
     import WebNotificationsSetting from '$lib/components/WebNotificationsSetting.svelte'
 
@@ -76,6 +77,12 @@
                 {/if}
             </div>
         {/if}
+
+        <Hr class="my-6" />
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Turn Reminders</h3>
+            <TurnRemindersEditor />
+        </div>
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">

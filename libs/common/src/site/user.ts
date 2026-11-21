@@ -58,6 +58,30 @@ export function weekReminderHours(weekday: number[], weekend: number[] = weekday
     }
 }
 
+export type TurnReminderRepeat = Type.Static<typeof TurnReminderRepeat>
+export const TurnReminderRepeat = Type.Union([
+    Type.Literal('twiceDaily'),
+    Type.Literal('daily'),
+    Type.Literal('none')
+])
+
+export type TurnReminderChoices = Type.Static<typeof TurnReminderChoices>
+export const TurnReminderChoices = Type.Object({
+    afterOneHour: Type.Boolean(),
+    afterFiveHours: Type.Boolean(),
+    afterThirteenHours: Type.Boolean(),
+    repeat: TurnReminderRepeat
+})
+
+export type TurnReminderFollowUp = Exclude<keyof TurnReminderChoices, 'repeat'>
+
+export const DEFAULT_TURN_REMINDER_CHOICES: TurnReminderChoices = {
+    afterOneHour: true,
+    afterFiveHours: true,
+    afterThirteenHours: true,
+    repeat: 'twiceDaily'
+}
+
 export type UserPreferences = Type.Static<typeof UserPreferences>
 export const UserPreferences = Type.Object({
     preventWebNotificationPrompt: Type.Boolean(),
@@ -66,8 +90,13 @@ export const UserPreferences = Type.Object({
     colorBlindPalette: Type.Optional(Type.Boolean()),
     bgStatsEnabled: Type.Optional(Type.Boolean()),
     reminderHours: Type.Optional(ReminderHours),
+    turnReminders: Type.Optional(TurnReminderChoices),
     gameAndCompetitionEmails: Type.Optional(Type.Boolean())
 })
+
+export function turnReminderChoices(preferences: UserPreferences | undefined): TurnReminderChoices {
+    return preferences?.turnReminders ?? DEFAULT_TURN_REMINDER_CHOICES
+}
 
 export function wantsGameAndCompetitionEmails(preferences: UserPreferences | undefined): boolean {
     return preferences?.gameAndCompetitionEmails !== false

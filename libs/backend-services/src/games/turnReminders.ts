@@ -1,4 +1,10 @@
-import { assert, type User } from '@tabletop/common'
+import {
+    assert,
+    turnReminderChoices,
+    type TurnReminderChoices,
+    type TurnReminderFollowUp,
+    type User
+} from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 import type { TaskService } from '../tasks/taskService.js'
 import { nextReminderHour } from './reminderHours.js'
@@ -18,6 +24,16 @@ export const TURN_REMINDER_DELAYS: readonly number[] = [
 
 export const FIRST_TURN_REMINDER_INDEX = 0
 export const DEFERRED_TURN_REMINDER_INDEX = TURN_REMINDER_DELAYS.indexOf(4 * HOUR_SECONDS)
+const FIRST_REPEAT_INDEX = TURN_REMINDER_DELAYS.indexOf(REPEAT_SECONDS)
+
+const FOLLOW_UP_CHOICES: Partial<Record<number, TurnReminderFollowUp>> = {
+    [TURN_REMINDER_DELAYS.indexOf(HOUR_SECONDS)]: 'afterOneHour',
+    [DEFERRED_TURN_REMINDER_INDEX]: 'afterFiveHours',
+    [TURN_REMINDER_DELAYS.indexOf(8 * HOUR_SECONDS)]: 'afterThirteenHours'
+}
+
+export type PlannedTurnReminder = { reminderIndex: number; inSeconds: number }
+export type TurnReminderRecipient = Pick<User, 'timeZone' | 'preferences'>
 
 export const TurnReminderTask = Type.Object(
     {
@@ -45,22 +61,53 @@ export function turnReminderIndex({ reminderIndex, delay }: TurnReminderTask): n
     return legacyIndex
 }
 
-export function nextTurnReminderIndex(reminderIndex: number): number | undefined {
-    const next = reminderIndex + 1
-    return next < TURN_REMINDER_DELAYS.length ? next : undefined
+export function wantsTurnReminder(reminderIndex: number, choices: TurnReminderChoices): boolean {
+    if (reminderIndex >= FIRST_REPEAT_INDEX) {
+        const repeatNumber = reminderIndex - FIRST_REPEAT_INDEX + 1
+        return (
+            choices.repeat === 'twiceDaily' ||
+            (choices.repeat === 'daily' && repeatNumber % 2 === 0)
+        )
+    }
+    const followUp = FOLLOW_UP_CHOICES[reminderIndex]
+    return followUp === undefined || choices[followUp]
 }
 
-export function turnReminderDelaySeconds(
-    reminderIndex: number,
+// A reminder that is switched off keeps its place, so the ones after it come when they always would.
+export function planTurnReminder(
+    fromIndex: number,
     now: Date,
-    recipient: Pick<User, 'timeZone' | 'preferences'>
+    recipient: TurnReminderRecipient
+): PlannedTurnReminder | undefined {
+    const choices = turnReminderChoices(recipient.preferences)
+    let sinceLastSent = 0
+    for (
+        let reminderIndex = fromIndex;
+        reminderIndex < TURN_REMINDER_DELAYS.length;
+        reminderIndex++
+    ) {
+        sinceLastSent += TURN_REMINDER_DELAYS[reminderIndex]
+        if (wantsTurnReminder(reminderIndex, choices)) {
+            return {
+                reminderIndex,
+                inSeconds: secondsUntilSend(reminderIndex, sinceLastSent, now, recipient)
+            }
+        }
+    }
+    return undefined
+}
+
+function secondsUntilSend(
+    reminderIndex: number,
+    sinceLastSent: number,
+    now: Date,
+    recipient: TurnReminderRecipient
 ): number {
-    const delay = TURN_REMINDER_DELAYS[reminderIndex]
     const reminderHours = recipient.preferences?.reminderHours
     if (reminderIndex < DEFERRED_TURN_REMINDER_INDEX || !reminderHours || !recipient.timeZone) {
-        return delay
+        return sinceLastSent
     }
-    const due = new Date(now.getTime() + delay * 1000)
+    const due = new Date(now.getTime() + sinceLastSent * 1000)
     const sendAt = nextReminderHour(due, recipient.timeZone, reminderHours)
     return Math.ceil((sendAt.getTime() - now.getTime()) / 1000)
 }

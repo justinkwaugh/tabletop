@@ -97,7 +97,8 @@ import {
     type TournamentSchedule,
     receivesGameAndCompetitionEmail,
     playersWithDeletedAccount,
-    playersWithRenamedSeat
+    playersWithRenamedSeat,
+    turnReminderChoices
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -176,9 +177,9 @@ import {
     DEFERRED_TURN_REMINDER_INDEX,
     enqueueTurnReminder,
     FIRST_TURN_REMINDER_INDEX,
-    nextTurnReminderIndex,
-    turnReminderDelaySeconds,
+    planTurnReminder,
     turnReminderIndex,
+    wantsTurnReminder,
     type TurnReminderTask
 } from './turnReminders.js'
 import {
@@ -3008,7 +3009,7 @@ export class GameService {
     private async scheduleTurnNotifications(
         game: Game,
         playerIds: string[],
-        reminderIndex: number
+        fromReminderIndex: number
     ): Promise<void> {
         for (const playerId of playerIds) {
             const player = this.findPlayerByPlayerId(game, playerId)
@@ -3019,7 +3020,7 @@ export class GameService {
             if (!user) {
                 continue
             }
-            await this.scheduleTurnNotification(user, game.id, reminderIndex)
+            await this.scheduleTurnNotification(user, game.id, fromReminderIndex)
         }
     }
 
@@ -3027,21 +3028,25 @@ export class GameService {
     private async scheduleTurnNotification(
         user: User,
         gameId: string,
-        reminderIndex: number
+        fromReminderIndex: number
     ): Promise<void> {
-        const notificationId = nanoid()
         const cacheKey = this.makeTurnNotificationCacheKey(user.id, gameId)
-        const inSeconds = turnReminderDelaySeconds(reminderIndex, new Date(), user)
-        await this.cacheService.set(cacheKey, notificationId, inSeconds + 60)
+        const planned = planTurnReminder(fromReminderIndex, new Date(), user)
+        if (!planned) {
+            await this.cacheService.delete(cacheKey)
+            return
+        }
+        const notificationId = nanoid()
+        await this.cacheService.set(cacheKey, notificationId, planned.inSeconds + 60)
         enqueueTurnReminder(
             this.taskService,
             {
                 userId: user.id,
                 gameId,
                 notificationId,
-                reminderIndex
+                reminderIndex: planned.reminderIndex
             },
-            inSeconds
+            planned.inSeconds
         ).catch((e) => {
             console.error('Failed to send turn notification', e)
         })
@@ -3087,12 +3092,12 @@ export class GameService {
                     }
                 }
             }
-            await this.notifyUser(notification)
-            const nextReminderIndex = EnvService.isLocal()
-                ? undefined
-                : nextTurnReminderIndex(turnReminderIndex(task))
-            if (nextReminderIndex !== undefined) {
-                await this.scheduleTurnNotification(user, gameId, nextReminderIndex)
+            const reminderIndex = turnReminderIndex(task)
+            if (wantsTurnReminder(reminderIndex, turnReminderChoices(user.preferences))) {
+                await this.notifyUser(notification)
+            }
+            if (!EnvService.isLocal()) {
+                await this.scheduleTurnNotification(user, gameId, reminderIndex + 1)
             }
         } catch (e) {
             console.log('error in notifyIsYourTurn', e)
