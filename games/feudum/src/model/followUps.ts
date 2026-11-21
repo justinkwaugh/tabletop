@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import { GuildIds, PlayerDiscRoles, type GuildId } from '../data/components.js'
 import type { WritId } from '../data/writs.js'
 import type { FollowUp, WritDrawSource } from './flow.js'
@@ -15,35 +15,48 @@ export function isDiscFollowUp(followUp: FollowUp): followUp is DiscFollowUp {
     return followUp.kind === 'reeve' || followUp.kind === 'military' || followUp.kind === 'voyage'
 }
 
-/** R-3.2, R-3.3 The current card leaves this behind; `stateAfterCardStep` runs the list in order. */
+/** R-3.2-H3 Which pending follow-up is asked first: a writ keep before a reeve. */
+const FollowUpRank: Readonly<Record<FollowUp['kind'], number>> = {
+    'keep-writs': 0,
+    reeve: 1,
+    voyage: 2,
+    military: 3,
+    'inspect-harvest': 4
+}
+
+/** R-3.2, R-3.3 The current card leaves this behind, pending in no order. */
 export function queueFollowUp(state: HydratedFeudumGameState, followUp: FollowUp): void {
     assertExists(state.flow.turn, 'R-3.2 A follow-up belongs to the card being played')
     state.flow.turn.followUps.push(followUp)
 }
 
-/** R-3.2 The follow-up being decided, ahead of the rest. */
+/** R-3.2-H3 The follow-up being decided: the pending one of the first kind. */
 export function currentFollowUp(state: HydratedFeudumGameState): FollowUp | undefined {
-    return state.flow.turn?.followUps.at(0)
+    const pending = state.flow.turn?.followUps ?? []
+    return [...pending].sort((a, b) => FollowUpRank[a.kind] - FollowUpRank[b.kind]).at(0)
 }
 
 /** R-3.2 The follow-up being decided is done. */
 export function finishFollowUp(state: HydratedFeudumGameState): void {
+    const followUp = currentFollowUp(state)
+    assertExists(followUp, 'R-3.2 A follow-up is being decided')
+    dropFollowUp(state, followUp)
+}
+
+function dropFollowUp(state: HydratedFeudumGameState, followUp: FollowUp): void {
     assertExists(state.flow.turn, 'R-3.2 A follow-up belongs to the card being played')
-    assert(state.flow.turn.followUps.length > 0, 'R-3.2 A follow-up is being decided')
-    state.flow.turn.followUps.shift()
+    const { followUps } = state.flow.turn
+    followUps.splice(followUps.indexOf(followUp), 1)
 }
 
 /** R-4.7, R-4.9.1, R-3.7.5 The next follow-up still open: a disc offer whose place has gone is dropped unasked. */
 export function nextOpenFollowUp(state: HydratedFeudumGameState): FollowUp | undefined {
-    const { turn } = state.flow
-    while (turn && turn.followUps.length > 0) {
-        const [followUp] = turn.followUps
-        if (!isDiscFollowUp(followUp) || !reasonDiscRefused(state, followUp)) {
-            return followUp
-        }
-        turn.followUps.shift()
+    let followUp = currentFollowUp(state)
+    while (followUp && isDiscFollowUp(followUp) && reasonDiscRefused(state, followUp)) {
+        dropFollowUp(state, followUp)
+        followUp = currentFollowUp(state)
     }
-    return undefined
+    return followUp
 }
 
 /** R-4.4.1, R-4.4-H2 The draw is the barrier; the keep comes next. Returns how many. */
@@ -64,7 +77,7 @@ export function drawWritsToKeep(
             shovelsOffered: false,
             drawn
         }
-        state.flow.turn.followUps.unshift({ kind: 'keep-writs' })
+        queueFollowUp(state, { kind: 'keep-writs' })
     }
     return drawn.length
 }

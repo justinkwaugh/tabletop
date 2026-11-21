@@ -324,13 +324,12 @@ describe('R-3.2 follow-ups run in order', () => {
         const [voyage] = table.send(playerId, Disc)
         expect(voyage).toMatchObject({ metadata: { disc: 'voyage', space: 'track.voyage.2' } })
 
-        // R-3.2 The voyage draw's keep comes ahead of the rest.
+        // R-3.2-H3 The voyage draw's keep comes ahead of the rest.
         expect(table.state.machineState).toBe(MachineState.KeepingWrits)
         expectAsked(table, playerId, [ActionType.KeepWrits])
-        expect(table.state.flow.turn?.followUps).toEqual([
-            { kind: 'keep-writs' },
-            { kind: 'military' }
-        ])
+        expect(table.state.flow.turn?.followUps).toEqual(
+            expect.arrayContaining([{ kind: 'keep-writs' }, { kind: 'military' }])
+        )
         const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
         const keep = table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
         expect(keep.map((action) => action.type)).toEqual([ActionType.KeepWrits])

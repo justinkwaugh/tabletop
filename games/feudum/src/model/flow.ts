@@ -11,7 +11,7 @@ import {
     WritIdSchema
 } from './stateSchemas.js'
 
-/** A decision the current card leaves. A short ordered list; no follow-up opens another card. */
+/** A decision the current card leaves, pending in no order (R-3.2-H3); no follow-up opens another card. */
 export type FollowUp = Type.Static<typeof FollowUp>
 export const FollowUp = Type.Union([
     /** R-3.10, R-4.4.1 */

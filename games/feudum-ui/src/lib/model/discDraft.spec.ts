@@ -534,25 +534,24 @@ describe('DiscDraft minimum tests', () => {
         expect(table.host.sent.get(seat)).toBeUndefined()
     })
 
-    it('8 a staged advance does not carry onto the next disc: the same seat is asked about a reeve', async () => {
+    it('8 a staged advance does not carry onto the next disc: the same seat is asked about military service', async () => {
         const table = hold(
-            await atDisc({ kind: 'reeve', guildId: 'merchant' }, (state, { seat }) => {
-                setMaster(state, seat, 'merchant')
-                state.recomputeRanks()
+            await atDisc({ kind: 'voyage' }, (state, { seat }) => {
                 state.voyageTrack[seat] = 'track.voyage.1'
-                queueFollowUp(state, { kind: 'voyage' })
+                queueFollowUp(state, { kind: 'military' })
             })
         )
         const { session, seat } = table
+        expect(session.discPanel?.line).toBe("To 2? +2 writs · can't be undone")
         await press(session, session.discPanel?.place)
         expect(session.discPanel?.primary).toBeDefined()
         await table.host.send(seat, { type: ActionType.PlaceDisc, place: false })
         await settled(session)
-        expect(session.discPanel?.line).toBe('Reeve in Merchant?')
+        expect(session.discPanel?.line).toBe('Service disc?')
         expect(session.discPanel?.place?.picked).toBe(false)
         expect(session.disc.selection).toEqual({})
         expect(session.disc.play).toBeUndefined()
-        expect(roleOf(session.boardOffer, guildTarget('merchant'))).toBe('lit')
+        expect(roleOf(session.boardOffer, militaryTarget(1))).toBe('lit')
     })
 
     it('8 a reconciliation clears it too', async () => {

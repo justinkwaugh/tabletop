@@ -100,12 +100,12 @@ describe('PlaceDisc: the follow-up', () => {
             { kind: 'military' },
             { kind: 'reeve', guildId: 'farmer' }
         ])
-        table.send(playerId, { type: ActionType.PlaceDisc, place: false })
+        const [declined] = table.send(playerId, { type: ActionType.PlaceDisc, place: false })
+        expect(declined).toMatchObject({ metadata: { disc: 'reeve', guildId: 'farmer' } })
         expect(table.state.machineState).toBe(MachineState.PlacingDisc)
-        expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
-            disc: 'reeve',
-            guildId: 'farmer',
-            revealsInfo: false
+        expect(placeDiscOffer(table.hydrated(), playerId)).toMatchObject({
+            disc: 'military',
+            space: 'track.military.1'
         })
     })
 
@@ -356,10 +356,10 @@ describe('PlaceDisc: the epic voyage', () => {
             }
         )
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })
-        expect(table.hydrated().flow.turn?.followUps).toEqual([
-            { kind: 'keep-writs' },
-            { kind: 'military' }
-        ])
+        expect(table.state.machineState).toBe(MachineState.KeepingWrits)
+        expect(table.hydrated().flow.turn?.followUps).toEqual(
+            expect.arrayContaining([{ kind: 'keep-writs' }, { kind: 'military' }])
+        )
         expect(canonicalOf(table.hydrated()).flow.writDraw?.drawn).toHaveLength(2)
     })
 })

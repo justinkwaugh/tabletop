@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { stateAfterCardStep } from '../stateHandlers/cardTurns.js'
+import { AnyTime, FarmerMandate, KnightMandate, ShillingMandate } from '../testing/atWill.js'
+import { holdWrit } from '../testing/combat.js'
 import {
     setBarn,
     setBeads,
@@ -11,6 +14,7 @@ import {
     setPawns,
     tableAtGuild
 } from '../testing/guilds.js'
+import type { Table } from '../testing/table.js'
 import { guildActionPreview } from './guildAction.js'
 
 const FarmerPush = { type: ActionType.GuildAction, guildId: 'farmer', fn: 'push' } as const
@@ -210,10 +214,9 @@ describe('R-4.7, R-4.7-H1 reeves on every push and pull', () => {
             params: {}
         })
         expect(action).toMatchObject({ metadata: { points: 3, reeveOffered: true } })
-        expect(table.hydrated().flow.turn?.followUps).toEqual([
-            { kind: 'keep-writs' },
-            { kind: 'reeve', guildId: 'farmer' }
-        ])
+        expect(table.hydrated().flow.turn?.followUps).toEqual(
+            expect.arrayContaining([{ kind: 'keep-writs' }, { kind: 'reeve', guildId: 'farmer' }])
+        )
         expect(table.state.machineState).toBe(MachineState.KeepingWrits)
     })
 
@@ -244,5 +247,66 @@ describe('R-4.7, R-4.7-H1 reeves on every push and pull', () => {
                 params: { goods: ['wood'] }
             })
         ).toMatchObject({ points: 0, reevePoints: 1, reeveOffered: true })
+    })
+})
+
+describe('R-3.2-H3 a threshold pull keeps its writ before its reeve', () => {
+    const ScoringPull = { type: ActionType.GuildAction, guildId: 'farmer', fn: 'pull', params: {} }
+
+    function afterScoringPull(
+        edit: (state: HydratedFeudumGameState, seat: string) => void = () => {}
+    ) {
+        const { table, playerId } = tableAtGuild((state, seat, rest) => {
+            setJourneyman(state, seat, 'farmer', rest[0])
+            setBeads(state, { rosary: [2, 3], chickens: [3] })
+            edit(state, seat)
+        })
+        table.send(playerId, ScoringPull)
+        return { table, playerId }
+    }
+
+    function keepOne(table: Table, playerId: string) {
+        const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
+        return table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
+    }
+
+    it('R-4.6.4, R-4.7 the keep is asked, then the reeve', () => {
+        const { table, playerId } = afterScoringPull()
+        expect(table.state.machineState).toBe(MachineState.KeepingWrits)
+        expect(table.offered(playerId)).toContain(ActionType.KeepWrits)
+
+        keepOne(table, playerId)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
+        const [placed] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
+        expect(placed).toMatchObject({ metadata: { disc: 'reeve', guildId: 'farmer' } })
+    })
+
+    it('R-3.2 the order the follow-ups are stored in decides nothing', () => {
+        for (const reversed of [false, true]) {
+            const { table, playerId } = afterScoringPull()
+            table.moveTo((state, context) => {
+                if (reversed) {
+                    state.flow.turn?.followUps.reverse()
+                }
+                return stateAfterCardStep(context)
+            })
+            expect(table.state.machineState).toBe(MachineState.KeepingWrits)
+            expect(table.asked).toBe(playerId)
+        }
+    })
+
+    it('R-4.4-H9 a seat the keep takes over the limit discards before the reeve', () => {
+        const { table, playerId } = afterScoringPull((state, seat) => {
+            for (const writId of [ShillingMandate, FarmerMandate, KnightMandate]) {
+                holdWrit(state, seat, writId)
+            }
+        })
+        keepOne(table, playerId)
+        expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
+        expect(table.asked).toBe(playerId)
+
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: ShillingMandate, ...AnyTime })
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
+        expect(table.offered(playerId)).toContain(ActionType.PlaceDisc)
     })
 })
