@@ -33,8 +33,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 started: true,
                 funded: true,
                 operated: true,
-                floated: true,
-                president: alex
+                floated: true
             },
             {
                 id: 'So',
@@ -43,8 +42,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 started: true,
                 funded: true,
                 operated: true,
-                floated: true,
-                president: union
+                floated: true
             },
             { id: 'PEIR', kind: 'major', president: blair },
             { id: 'VR', kind: 'private', privateRevenue: 10 },

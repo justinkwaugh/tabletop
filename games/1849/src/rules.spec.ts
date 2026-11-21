@@ -14,6 +14,7 @@ import {
     purchaseChoices,
     stretchWeight,
     placeStockMarker,
+    presidentOf,
     sharesOwned,
     takeLoanReason,
     trainsOwnedBy,
@@ -523,8 +524,8 @@ describe('the Bonds variant (§14.2)', () => {
         state.phaseId = '8H'
         return { game, state, companyId }
     }
-    const president = (state: Parameters<typeof getCompany>[0], companyId: string) => {
-        const owner = getCompany(state, companyId).president
+    const president = (state: Parameters<typeof presidentOf>[0], companyId: string) => {
+        const owner = presidentOf(state, companyId)
         if (owner?.kind !== 'player') throw new Error('A player presides')
         return owner.playerId
     }

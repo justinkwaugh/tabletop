@@ -26,6 +26,7 @@ import {
     privateExchangeOffers,
     getCompany,
     privateOwner,
+    presidentOf,
     sharesOwned,
     stockCertificateCount,
     privateIncomePayments,
@@ -172,7 +173,6 @@ it('TOP reserved exchanges work after buying or selling the railway and permit r
             certificate.owner = owner
             delete certificate.poolId
         }
-    getCompany(state, 'So').president = owner
     state.stockRound.turn.bought = true
     state.stockRound.sales.push({ owner, companyId: 'So' })
     const result = engine.executeCanonicalAction({
@@ -297,15 +297,13 @@ it('1889 Dôgo respects ownership limits and requires an IPO share, but can exch
     const request = { playerId: 'alex', privateCompanyId: 'DR', certificateId: 'IR:share:5' }
     for (const item of state.certificates)
         if (['IR:president', 'IR:share:1'].includes(item.id)) item.owner = owner
-    getCompany(state, 'IR').president = owner
     expect(
         evaluatePrivateExchange(state, request, Shikoku1889PrivateRules, Shikoku1889StockRules)
             .reason
     ).toContain('ownership limit')
     getCompany(state, 'IR').started = false
-    delete getCompany(state, 'IR').president
-    const initialOwner = state.certificates.find((item) => item.id === 'IR:share:1')!
-    initialOwner.owner = { kind: 'bank' }
+    for (const item of state.certificates)
+        if (['IR:president', 'IR:share:1'].includes(item.id)) item.owner = { kind: 'bank' }
     expect(
         evaluatePrivateExchange(state, request, Shikoku1889PrivateRules, Shikoku1889StockRules)
             .details
@@ -398,7 +396,7 @@ it.each([
                 privateCompanyId: 'KM'
             })
             expect(privateEffects.filter((effect) => effect.kind === 'exchange')).toHaveLength(3)
-            expect(getCompany(updated, 'So').president).toEqual({
+            expect(presidentOf(updated, 'So')).toEqual({
                 kind: 'player',
                 playerId: 'alex'
             })
@@ -458,7 +456,7 @@ it('1889 out-of-turn exchange transfers the operating presidency and preserves t
     expect(result.machineState).toBe('BuyingTrains')
     expect(result.trainPurchaseStep).toEqual(state.trainPurchaseStep)
     expect(result.turnManager).toEqual(state.turnManager)
-    expect(getCompany(result, 'IR').president).toEqual({ kind: 'player', playerId: 'alex' })
+    expect(presidentOf(result, 'IR')).toEqual({ kind: 'player', playerId: 'alex' })
     expect(result.activePlayerIds).toEqual(['alex'])
     expect(result.stockRound).toEqual(state.stockRound)
 })

@@ -84,7 +84,11 @@
         </div>
     {/if}
     {#if ended}
-        <div class="fine-print" title="Cash after the final payoff">Final score ${projected}</div>
+        {#if !gameSession.gameCall}
+            <div class="fine-print" title="Cash after the final payoff">
+                Final score ${projected}
+            </div>
+        {/if}
     {:else}
         <div
             class="total"

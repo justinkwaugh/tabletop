@@ -7,9 +7,13 @@ import {
 import { assert, RecordedHistory, type GameAction, type RecordedTransition } from '@tabletop/common'
 import { roundPosition } from './roundHeading.js'
 
+/** Whether the title's own opening round, such as 1860's initial auction, is under way. */
+export type OpeningRoundInProgress = (state: Readonly<EighteenXXState>) => boolean
+
 function selectHistoryState(
     state: Readonly<EighteenXXState>,
-    endingRules: Pick<EndingRules, 'trigger'> | undefined
+    endingRules: Pick<EndingRules, 'trigger'> | undefined,
+    openingRound: OpeningRoundInProgress | undefined
 ) {
     // The title's ending rule names the ending as soon as the bank breaks; the game records it
     // in a later step.
@@ -28,6 +32,7 @@ function selectHistoryState(
         order: state.operatingSet?.companyOrder ?? [],
         bankBroken: !!state.bank.broken,
         ending: ending ? { lastRound: lastOperatingRound(state, ending) } : undefined,
+        opening: openingRound?.(state) ?? false,
         auction: !!(
             (state.offerAuction && !state.offerAuction.completed) ||
             (state.openingAuction && !state.openingAuction.completed) ||
@@ -73,9 +78,10 @@ export function historyBankBreaks(states: HistoryStates): ReadonlyMap<string, Hi
 export function historyStates(
     actions: readonly GameAction[],
     state: EighteenXXState,
-    endingRules?: Pick<EndingRules, 'trigger'>
+    endingRules?: Pick<EndingRules, 'trigger'>,
+    openingRound?: OpeningRoundInProgress
 ): HistoryStates {
     return new RecordedHistory(state, actions).select((recorded) =>
-        selectHistoryState(recorded, endingRules)
+        selectHistoryState(recorded, endingRules, openingRound)
     )
 }

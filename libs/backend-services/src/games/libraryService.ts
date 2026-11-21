@@ -63,6 +63,8 @@ export type LibraryServiceOptions = {
     // Runs for every generation before it is installed; a failure keeps the previous titles.
     prepare?: (generation: TitleGeneration) => Promise<void>
     whileLoadingTitle?: WhileLoadingTitle
+    // Runs once an activation that loaded any title has installed its generations.
+    afterTitleLoads?: () => void | Promise<void>
 }
 
 export class LibraryService {
@@ -75,6 +77,7 @@ export class LibraryService {
     private readonly logicRoot: string
     private readonly prepare?: (generation: TitleGeneration) => Promise<void>
     private readonly whileLoadingTitle: WhileLoadingTitle
+    private readonly afterTitleLoads?: () => void | Promise<void>
     private manifestSnapshot?: SiteManifest
     private manifestRefreshQueue: Promise<void> = Promise.resolve()
     private activationQueue: Promise<void> = Promise.resolve()
@@ -94,6 +97,7 @@ export class LibraryService {
         this.logicRoot = options.logicRoot ?? GAMES_ROOT
         this.prepare = options.prepare
         this.whileLoadingTitle = options.whileLoadingTitle ?? ((load) => load())
+        this.afterTitleLoads = options.afterTitleLoads
     }
 
     async invalidateManifestCache(): Promise<void> {
@@ -255,6 +259,7 @@ export class LibraryService {
     // take the new publication record. Nothing is installed until every changed title loaded.
     private async activateManifest(manifest: SiteManifest): Promise<void> {
         const next = new Map<string, TitleGeneration>()
+        let loaded = false
         for (const entry of manifest.games) {
             if (next.has(entry.gameId)) throw new Error(`Duplicate title: ${entry.gameId}`)
             const current = this.generations.get(entry.gameId)
@@ -269,9 +274,11 @@ export class LibraryService {
             const generation = await this.whileLoadingTitle(() => this.loadGeneration(entry))
             await this.prepare?.(generation)
             next.set(entry.gameId, generation)
+            loaded = true
         }
         this.generations = next
         this.loadedManifest = manifest
+        if (loaded) await this.afterTitleLoads?.()
     }
 
     private async loadGeneration(entry: SiteManifestGame): Promise<TitleGeneration> {

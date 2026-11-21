@@ -5,6 +5,7 @@ import { StationPlacement, neutralStation, placeableStations } from '@tabletop/1
 import { botMove, Random } from '../test/bot.js'
 import { fishingOnly, kit, type Table } from '../test/kit.js'
 import { CnId, NwrId } from './companies.js'
+import { Map1882 } from './map.js'
 import { StationRules1882 } from './stations.js'
 import { TrainDepot1882 } from './trains.js'
 
@@ -56,9 +57,9 @@ function neutralPlaceable(game: Table): boolean {
     if (game.state.machineState !== 'PlacingStation' || !companyId) return false
     if (!game.valid().includes('PlaceStation')) return false
     const placement = new StationPlacement(game.hydrated, StationRules1882)
-    return placeableStations(game.state, companyId).some(
+    return placeableStations(game.state, Map1882, companyId).some(
         (station) =>
-            !!neutralStation(game.state, station.id) && placement.choices(station.id).length > 0
+            !!neutralStation(Map1882, station.id) && placement.choices(station.id).length > 0
     )
 }
 

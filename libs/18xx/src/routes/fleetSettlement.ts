@@ -160,7 +160,7 @@ function joined(
                 [...reached].some((other) =>
                     route.visits.some(
                         (visit) =>
-                            visit.node.kind === fleet.connectivity?.at &&
+                            meetsAt(fleet, visit) &&
                             routes[other].visits.some((v) => sameCenter(v, visit))
                     )
                 )
@@ -170,14 +170,18 @@ function joined(
             }
         }
     }
-    return reached.size === routes.length
-        ? undefined
-        : 'Every run must meet another at a large station.'
+    return reached.size === routes.length ? undefined : 'Every run must meet another at a station.'
+}
+
+/** Whether runs may meet at the stop, by the kinds the fleet's connectivity names. */
+export function meetsAt(fleet: FleetRules, visit: RouteVisit): boolean {
+    const at = fleet.connectivity?.at
+    return typeof at === 'string' ? visit.node.kind === at : !!at?.includes(visit.node.kind)
 }
 
 function paidChoices(entry: Candidate): RouteVisit[][] {
     const { payingKinds, payingStopLimit: limit } = entry.policy
-    const payable = entry.route.visits.filter(
+    const payable = entry.route.stops.filter(
         (visit) => !payingKinds || payingKinds.includes(visit.node.kind)
     )
     if (!limit) return [payable]

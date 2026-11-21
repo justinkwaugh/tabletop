@@ -230,7 +230,7 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     // Who has committed in the current round, read from the public submission records.
     sealedPlayerIds: string[] = $derived.by(() => {
-        if (!this.planningRound) {
+        if (!this.planningRound || this.gameState.result) {
             return []
         }
         const groupId = `${this.year}-${this.planningRound}`

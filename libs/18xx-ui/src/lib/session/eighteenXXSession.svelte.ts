@@ -112,7 +112,7 @@ import type {
     TitleOperatingStep,
     TitlePresentation
 } from './titlePresentation.js'
-import { TrackModule } from './trackModule.svelte.js'
+import { TrackModule, type TitleTrackLay } from './trackModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { CorporateFinanceModule } from './corporateFinanceModule.svelte.js'
@@ -328,7 +328,10 @@ export class EighteenXXSession<
         () => this.myPlayer?.id,
         (action) => this.noticeText(action)
     )
-    readonly trainFunding = new TrainFundingModule(this.moduleSession)
+    readonly trainFunding: TrainFundingModule = new TrainFundingModule(
+        this.moduleSession,
+        () => this.trainBuying.buysOutright
+    )
     readonly decisions = new CompanyDecisionsModule(this.moduleSession)
     readonly privateActions: PrivateActionsModule = new PrivateActionsModule(
         this.moduleSession,
@@ -349,7 +352,8 @@ export class EighteenXXSession<
         () => {
             this.map.clearInspection()
         },
-        () => this.trackBuildingActive
+        () => this.trackBuildingActive,
+        () => this.titleTrackLay
     )
     readonly trainBuying = new TrainBuyingModule(
         this.moduleSession,
@@ -725,6 +729,13 @@ export class EighteenXXSession<
     }
     protected get sharedActionsBlocked(): boolean {
         return false
+    }
+    /**
+     * A lay the title asks the player for outside a company's track step, such as 1860's home
+     * tile; offered only while the player may make it.
+     */
+    protected get titleTrackLay(): TitleTrackLay | undefined {
+        return undefined
     }
     /** Private powers whose rules the title applies itself, offered under Use privates. */
     protected get titlePrivatePowers(): readonly TitlePrivatePower[] {

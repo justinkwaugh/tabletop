@@ -1,16 +1,18 @@
 import * as Type from 'typebox'
+import { assertExists } from '@tabletop/common'
 import { TileEdge, type TileFace, type TileNode, type TilePath, type TileRotation } from './tile.js'
 import { rotateTileEdge } from './topology.js'
 
 /**
  * A town standing on a line of plain track of a laid tile, owned by nobody, such as 1862's small
  * stations. Its line runs between two map edges, given as the map sees them, so the stop keeps
- * its place when an upgrade turns the tile.
+ * its place when an upgrade turns the tile. It is worth its tile set's track-stop revenue.
  */
 export const TrackStop = Type.Object(
     {
         edges: Type.Tuple([TileEdge, TileEdge]),
-        revenue: Type.Integer({ minimum: 0 })
+        // Stored games from before this stopped being recorded may hold it; never read.
+        revenue: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 0 })))
     },
     { additionalProperties: false }
 )
@@ -32,15 +34,17 @@ function sameLine(a: readonly TileEdge[], b: readonly TileEdge[]): boolean {
 
 /**
  * The face with each stop standing on its line: the plain path between the stop's edges becomes
- * a town joined to both. ``rotation`` is the tile's, so stops given as the map sees them are
- * turned back onto the unrotated face.
+ * a town worth ``revenue`` joined to both. ``rotation`` is the tile's, so stops given as the map
+ * sees them are turned back onto the unrotated face.
  */
 export function withTrackStops(
     face: TileFace,
     stops: readonly TrackStop[] | undefined,
+    revenue: number | undefined,
     rotation: TileRotation = 0
 ): TileFace {
     if (!stops?.length) return face
+    assertExists(revenue, 'Track stops need their tile set’s track-stop revenue')
     const unturn = (edge: TileEdge) => rotateTileEdge(edge, ((6 - rotation) % 6) as TileRotation)
     const nodes: TileNode[] = [...face.nodes]
     const paths: TilePath[] = []
@@ -60,7 +64,7 @@ export function withTrackStops(
         }
         placed.add(stop)
         const nodeId = trackStopNodeId(stop.edges)
-        nodes.push({ id: nodeId, kind: 'town', revenue: { kind: 'fixed', amount: stop.revenue } })
+        nodes.push({ id: nodeId, kind: 'town', revenue: { kind: 'fixed', amount: revenue } })
         for (const edge of line)
             paths.push({
                 id: `${path.id}-${edge}`,
@@ -89,18 +93,17 @@ export function openTrackStopLines(face: TileFace): [TileEdge, TileEdge][] {
  * carries onto a replacing tile as a track stop.
  */
 function townsOnLines(face: TileFace): TrackStop[] {
-    return face.nodes.flatMap((node) => {
-        if (node.kind !== 'town' || node.revenue.kind !== 'fixed') return []
+    return face.nodes.flatMap((node): TrackStop[] => {
+        if (node.kind !== 'town') return []
         const ends = face.paths.filter((path) =>
             path.endpoints.some((end) => end.kind === 'node' && end.nodeId === node.id)
         )
-        const edges = ends.flatMap((path) =>
+        const [first, second, ...more] = ends.flatMap((path) =>
             path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
         )
-        if (ends.length !== 2 || edges.length !== 2) return []
-        return [
-            { edges: [edges[0], edges[1]] as [TileEdge, TileEdge], revenue: node.revenue.amount }
-        ]
+        if (ends.length !== 2 || first === undefined || second === undefined || more.length)
+            return []
+        return [{ edges: [first, second] }]
     })
 }
 

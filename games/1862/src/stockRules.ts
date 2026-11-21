@@ -3,7 +3,7 @@ import {
     marketSaleTerms,
     playerOrderAfterLastTurn,
     playersAfterPresident,
-    sameOwner,
+    presides,
     sharesOwned,
     trainsOwnedBy,
     type Owner,
@@ -85,7 +85,7 @@ export function saleMovement(
 ): number {
     const company = getCompany(state, companyId)
     if (!company.floated || requireState1862(state).lner) return 0
-    const director = !!company.president && sameOwner(company.president, seller)
+    const director = presides(state, companyId, seller)
     const price = Market1862.companySpace(state.stockMarket, companyId).price
     return Math.max(0, shares - (director ? 0 : ignoredSales(price)))
 }

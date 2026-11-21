@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateSharePurchase, getCompany } from '@tabletop/18xx'
+import { evaluateSharePurchase, presidentOf } from '@tabletop/18xx'
 import { edit, floatCompany, kit, type Table } from '../test/kit.js'
 import { MarketPoolIdChesapeake } from './names.js'
 import { StockRoundRulesChesapeake, StockRulesChesapeake } from './stock.js'
@@ -40,7 +40,7 @@ describe('18Chesapeake two-player variant', () => {
 
     it('takes a pool share out of the game before a non-president buys one (§14.3)', () => {
         const { game, companyId } = twoPlayerFloat()
-        const president = getCompany(game.state, companyId).president
+        const president = presidentOf(game.state, companyId)
         if (president?.kind !== 'player') throw new Error('A player presides')
         const other = president.playerId === 'p1' ? 'p2' : 'p1'
         stockTurn(game, other)
@@ -65,7 +65,7 @@ describe('18Chesapeake two-player variant', () => {
 
     it('leaves the buyer nothing when the pool holds only the share that is removed (§14.3)', () => {
         const { game, companyId } = twoPlayerFloat()
-        const president = getCompany(game.state, companyId).president
+        const president = presidentOf(game.state, companyId)
         if (president?.kind !== 'player') throw new Error('A player presides')
         const other = president.playerId === 'p1' ? 'p2' : 'p1'
         const [kept, ...rest] = poolShares(game, companyId)
@@ -99,7 +99,7 @@ describe('18Chesapeake two-player variant', () => {
 
     it('lets the president buy from the pool without removing a share (§14.3)', () => {
         const { game, companyId } = twoPlayerFloat()
-        const president = getCompany(game.state, companyId).president
+        const president = presidentOf(game.state, companyId)
         if (president?.kind !== 'player') throw new Error('A player presides')
         stockTurn(game, president.playerId)
         const [share] = poolShares(game, companyId)

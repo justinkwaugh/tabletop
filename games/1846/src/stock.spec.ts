@@ -5,7 +5,8 @@ import {
     getCompany,
     placeStockMarker,
     sharesOwned,
-    treasuryPoolId
+    treasuryPoolId,
+    presidentOf
 } from '@tabletop/18xx'
 import { finishTurn, ownViewActions, setInstruction } from '@tabletop/18xx/testing'
 import { stockGame } from '../test/testSupport.js'
@@ -197,7 +198,7 @@ describe('1846 first stock round', () => {
         for (let i = 0; i < 3; i++) {
             table.buy('IC')
             if (i < 2) {
-                expect(getCompany(table.state, 'IC').president).toEqual({
+                expect(presidentOf(table.state, 'IC')).toEqual({
                     kind: 'player',
                     playerId: first
                 })
@@ -205,7 +206,7 @@ describe('1846 first stock round', () => {
                 table.finishTurn()
             }
         }
-        expect(getCompany(table.state, 'IC').president).toEqual({
+        expect(presidentOf(table.state, 'IC')).toEqual({
             kind: 'player',
             playerId: second
         })
@@ -289,7 +290,7 @@ describe('1846 first stock round', () => {
         assertExists(sale)
         expect(sale.expectedProceeds).toBe(80)
         table.act('SellShares', sale)
-        expect(getCompany(table.state, 'IC').president).toEqual({
+        expect(presidentOf(table.state, 'IC')).toEqual({
             kind: 'player',
             playerId: successor
         })

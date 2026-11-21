@@ -17,7 +17,6 @@ import {
     sameOwner,
     type Owner,
     cashOwnedBy,
-    getCompany,
     companyMarketSpaceId,
     isBuyTrain,
     isContributeTrainFunds,
@@ -249,8 +248,6 @@ it.each(Titles)(
 it('uses company, Union Bank, and player balances in order, contributing only the shortfall', () => {
     const { game, engine, state } = example(Top, 'funding')
     const union = { kind: 'company', companyId: 'UB' } as const
-    getCompany(state, 'ML').president = union
-    getCompany(state, 'So').president = { kind: 'player', playerId: 'blair' }
     for (const certificate of state.certificates) {
         if (certificate.kind !== 'share') continue
         if (certificate.id === 'ML:president') certificate.owner = union

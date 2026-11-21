@@ -13,6 +13,7 @@ import {
     type TileFace
 } from '@tabletop/18xx'
 import { CnorId, CprId, GtpId, HbId, HbrId, ScId, TbId } from './ids.js'
+import { NeutralStations1882 } from './neutralStationDefinitions.js'
 
 const Names: Readonly<Record<string, string>> = {
     I1: 'Western Canada',
@@ -160,110 +161,113 @@ const Fishing: TileFace = {
     ]
 }
 
-export const Map1882 = new RailwayMap({
-    id: '1882',
-    name: '1882: Assiniboia',
-    orientation: HexOrientation.Flat,
-    locations: [
-        ...locations('I1', exit([4, 5], 40, 80)),
-        ...locations('B2', exit([0, 5], 30, 60), rivers([0, 40])),
-        ...locations('O11', exit([3], 30, 30)),
-        ...locations('B12', exit([0, 1], 40, 50), rivers([0, 60])),
-        ...locations('I13', exit([1, 2], 30, 40)),
-        ...locations('B6', Fishing),
+export const Map1882 = new RailwayMap(
+    {
+        id: '1882',
+        name: '1882: Assiniboia',
+        orientation: HexOrientation.Flat,
+        locations: [
+            ...locations('I1', exit([4, 5], 40, 80)),
+            ...locations('B2', exit([0, 5], 30, 60), rivers([0, 40])),
+            ...locations('O11', exit([3], 30, 30)),
+            ...locations('B12', exit([0, 1], 40, 50), rivers([0, 60])),
+            ...locations('I13', exit([1, 2], 30, 40)),
+            ...locations('B6', Fishing),
 
-        ...locations('F2 H2 K5 M5 L6 M7 M9 B10 L10 H12 B4', blank),
-        ...locations('K11', blank, rivers([3, 40])),
-        ...locations('J2', blank, rivers([4, 20])),
-        ...locations('L4', blank, rivers([2, 40])),
-        ...locations('D2', blank, rivers([3, 40], [4, 20])),
-        ...locations('F6', blank, rivers([3, 40], [4, 20])),
-        ...locations('E3 J6', blank, rivers([3, 40], [4, 40])),
-        ...locations('I3 E7', blank, rivers([0, 40], [1, 20], [5, 40])),
-        ...locations('J4 H8', blank, rivers([1, 40], [2, 40], [3, 40])),
-        ...locations('C5 G5', blank, rivers([0, 40])),
-        ...locations('H4', blank, rivers([0, 40], [5, 20])),
-        ...locations('H6', blank, rivers([0, 40], [1, 40])),
-        ...locations('I7', blank, rivers([0, 20], [1, 40], [4, 40], [5, 40])),
-        ...locations('K7', blank, rivers([3, 20])),
-        ...locations('E9', blank, rivers([0, 40], [3, 20], [4, 40], [5, 40])),
-        ...locations('I9', blank, rivers([5, 60])),
-        ...locations('D10', blank, rivers([0, 60], [1, 40], [5, 40])),
-        ...locations('F10 E11', blank, rivers([2, 40], [3, 60])),
-        ...locations('H10', blank, rivers([0, 20])),
-        ...locations('D12', blank, rivers([2, 60], [3, 60])),
+            ...locations('F2 H2 K5 M5 L6 M7 M9 B10 L10 H12 B4', blank),
+            ...locations('K11', blank, rivers([3, 40])),
+            ...locations('J2', blank, rivers([4, 20])),
+            ...locations('L4', blank, rivers([2, 40])),
+            ...locations('D2', blank, rivers([3, 40], [4, 20])),
+            ...locations('F6', blank, rivers([3, 40], [4, 20])),
+            ...locations('E3 J6', blank, rivers([3, 40], [4, 40])),
+            ...locations('I3 E7', blank, rivers([0, 40], [1, 20], [5, 40])),
+            ...locations('J4 H8', blank, rivers([1, 40], [2, 40], [3, 40])),
+            ...locations('C5 G5', blank, rivers([0, 40])),
+            ...locations('H4', blank, rivers([0, 40], [5, 20])),
+            ...locations('H6', blank, rivers([0, 40], [1, 40])),
+            ...locations('I7', blank, rivers([0, 20], [1, 40], [4, 40], [5, 40])),
+            ...locations('K7', blank, rivers([3, 20])),
+            ...locations('E9', blank, rivers([0, 40], [3, 20], [4, 40], [5, 40])),
+            ...locations('I9', blank, rivers([5, 60])),
+            ...locations('D10', blank, rivers([0, 60], [1, 40], [5, 40])),
+            ...locations('F10 E11', blank, rivers([2, 40], [3, 60])),
+            ...locations('H10', blank, rivers([0, 20])),
+            ...locations('D12', blank, rivers([2, 60], [3, 60])),
 
-        ...locations('G3 L8 G11 J12', emptyCity),
-        ...locations('C3', emptyCity, rivers([0, 40], [1, 20])),
-        ...locations('K3', emptyCity, rivers([0, 20], [1, 40], [3, 40], [4, 40], [5, 40])),
-        ...locations('D4', emptyCity, rivers([0, 40], [1, 40], [5, 20])),
-        ...locations('D6', emptyCity, rivers([0, 40], [1, 40])),
-        ...locations('G7', emptyCity, rivers([3, 40], [5, 40])),
-        ...locations('J8', emptyCity, rivers([2, 40])),
-        ...locations('G9', emptyCity, rivers([2, 20], [3, 40])),
-        ...locations('C11', emptyCity, rivers([0, 60], [5, 60])),
-        ...locations('I5', emptyCity, rivers([2, 20], [3, 40], [4, 40])),
+            ...locations('G3 L8 G11 J12', emptyCity),
+            ...locations('C3', emptyCity, rivers([0, 40], [1, 20])),
+            ...locations('K3', emptyCity, rivers([0, 20], [1, 40], [3, 40], [4, 40], [5, 40])),
+            ...locations('D4', emptyCity, rivers([0, 40], [1, 40], [5, 20])),
+            ...locations('D6', emptyCity, rivers([0, 40], [1, 40])),
+            ...locations('G7', emptyCity, rivers([3, 40], [5, 40])),
+            ...locations('J8', emptyCity, rivers([2, 40])),
+            ...locations('G9', emptyCity, rivers([2, 20], [3, 40])),
+            ...locations('C11', emptyCity, rivers([0, 60], [5, 60])),
+            ...locations('I5', emptyCity, rivers([2, 20], [3, 40], [4, 40])),
 
-        ...locations('M3', emptyTown, {
-            terrain: { cost: 40, kinds: ['mountain'] },
-            ...rivers([3, 20])
-        }),
-        ...locations('L12', emptyTown),
-        ...locations('F4', emptyTown, rivers([3, 40])),
-        ...locations('K9', twoTowns),
-        ...locations('I11', twoTowns, rivers([0, 40], [1, 40])),
-        ...locations('F8', twoTowns, rivers([0, 40], [2, 40], [3, 40], [5, 20])),
+            ...locations('M3', emptyTown, {
+                terrain: { cost: 40, kinds: ['mountain'] },
+                ...rivers([3, 20])
+            }),
+            ...locations('L12', emptyTown),
+            ...locations('F4', emptyTown, rivers([3, 40])),
+            ...locations('K9', twoTowns),
+            ...locations('I11', twoTowns, rivers([0, 40], [1, 40])),
+            ...locations('F8', twoTowns, rivers([0, 40], [2, 40], [3, 40], [5, 20])),
 
-        ...locations('L2', city('gray', [4, 5], 40, 1), rivers([4, 40])),
-        ...locations('N6', city('gray', [2, 4], 30, 1)),
-        ...locations('C7', track('gray', [[0, 1]]), { borders: impassable(5) }),
-        ...locations('D8', city('gray', [0, 1], 30, 1), {
-            borders: [{ edge: 0, kind: 'water', cost: 40 }, ...impassable(2, 4)]
-        }),
-        ...locations('N8', track('gray', [[3, 4]])),
-        ...locations('C9', town('gray', [[0, 4]], 10), {
-            borders: [{ edge: 0, kind: 'water', cost: 20 }, ...impassable(1)]
-        }),
-        ...locations('N10', track('gray', [[2, 4]])),
-        ...locations('A11', town('gray', [[0, 1]], 10)),
-        ...locations('N12', town('gray', [[2, 3]], 10)),
-        ...locations('K13', city('gray', [2], 20, 1)),
+            ...locations('L2', city('gray', [4, 5], 40, 1), rivers([4, 40])),
+            ...locations('N6', city('gray', [2, 4], 30, 1)),
+            ...locations('C7', track('gray', [[0, 1]]), { borders: impassable(5) }),
+            ...locations('D8', city('gray', [0, 1], 30, 1), {
+                borders: [{ edge: 0, kind: 'water', cost: 40 }, ...impassable(2, 4)]
+            }),
+            ...locations('N8', track('gray', [[3, 4]])),
+            ...locations('C9', town('gray', [[0, 4]], 10), {
+                borders: [{ edge: 0, kind: 'water', cost: 20 }, ...impassable(1)]
+            }),
+            ...locations('N10', track('gray', [[2, 4]])),
+            ...locations('A11', town('gray', [[0, 1]], 10)),
+            ...locations('N12', town('gray', [[2, 3]], 10)),
+            ...locations('K13', city('gray', [2], 20, 1)),
 
-        ...locations(
-            'M11',
-            cities(
-                'yellow',
-                [
-                    { edges: [], revenue: 0, stationSlots: 1 },
-                    { edges: [], revenue: 0, stationSlots: 1 }
-                ],
-                ['OO']
-            )
-        ),
-        ...locations(
-            'E5',
-            cities(
-                'yellow',
-                [
-                    { edges: [], revenue: 0, stationSlots: 1 },
-                    { edges: [], revenue: 0, stationSlots: 1 }
-                ],
-                ['OO']
+            ...locations(
+                'M11',
+                cities(
+                    'yellow',
+                    [
+                        { edges: [], revenue: 0, stationSlots: 1 },
+                        { edges: [], revenue: 0, stationSlots: 1 }
+                    ],
+                    ['OO']
+                )
             ),
-            rivers([2, 20], [3, 40], [4, 40])
-        ),
-        ...locations(
-            QLHome,
-            cities(
-                'yellow',
-                [
-                    { edges: [1], revenue: 40, stationSlots: 1 },
-                    { edges: [4], revenue: 40, stationSlots: 1 }
-                ],
-                ['R']
+            ...locations(
+                'E5',
+                cities(
+                    'yellow',
+                    [
+                        { edges: [], revenue: 0, stationSlots: 1 },
+                        { edges: [], revenue: 0, stationSlots: 1 }
+                    ],
+                    ['OO']
+                ),
+                rivers([2, 20], [3, 40], [4, 40])
             ),
-            rivers([2, 60], [3, 20], [4, 40])
-        ),
-        ...locations('F12', track('yellow', [[1, 3]]))
-    ]
-})
+            ...locations(
+                QLHome,
+                cities(
+                    'yellow',
+                    [
+                        { edges: [1], revenue: 40, stationSlots: 1 },
+                        { edges: [4], revenue: 40, stationSlots: 1 }
+                    ],
+                    ['R']
+                ),
+                rivers([2, 60], [3, 20], [4, 40])
+            ),
+            ...locations('F12', track('yellow', [[1, 3]]))
+        ]
+    },
+    { neutralStations: NeutralStations1882 }
+)

@@ -84,8 +84,12 @@
                 : `${remaining} remaining`}</small
         >
         {#if reason}<small class="reason">{reason}</small>{/if}
-        {#if funding && session.trainFunding.voluntary}
-            {#each session.trainFunding.plan?.contributions ?? [] as help, index (index)}
+        {#if funding}
+            {@const plan = details && session.trainFunding.planFor(details)}
+            {#if plan?.treasuryProceeds}<small class="help"
+                    >Treasury shares will raise {money(plan.treasuryProceeds)}</small
+                >{/if}
+            {#each plan?.contributions ?? [] as help, index (index)}
                 <small class="help">{session.ownerName(help.owner)} adds {money(help.amount)}</small
                 >
             {/each}
@@ -101,7 +105,7 @@
         {#if session.gameState.purchaseOffer?.asset.kind === 'train'}
             <CompanyTrainBuying {session} {trainColors} />
         {:else}
-            {#if !session.trainFunding.purchases.length || session.trainFunding.optional}
+            {#if !session.trainFunding.fundingOnly || session.trainFunding.optional}
                 <header>
                     <h2>
                         Choose a train to buy
@@ -146,7 +150,7 @@
                 </nav>
             {/if}
             {#if session.trainBuying.source === 'depot'}
-                {#if session.trainFunding.purchases.length && !session.trainFunding.voluntary}
+                {#if session.trainFunding.fundingOnly}
                     <TrainFunding {session} {trainColors} {showUndo} />
                 {:else}
                     <div class="trains">

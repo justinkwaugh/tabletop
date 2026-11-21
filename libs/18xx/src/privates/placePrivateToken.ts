@@ -9,7 +9,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
-import { StationPosition, sameStationPosition } from '../map/station.js'
+import { CompanyStationsOnly, StationPosition, sameStationPosition } from '../map/station.js'
 import { StationPlacementDetails, applyStationPlacement } from '../stations/stationPlacement.js'
 import { recordPrivatePowerUse, type CompanyDecisionState } from './companyDecision.js'
 import type { PrivatePowerRules, PrivateTokenTerms } from './privatePowers.js'
@@ -84,7 +84,7 @@ export class HydratedPlacePrivateToken
             position: { ...this.position },
             cost: 0
         }
-        applyStationPlacement(state, details)
+        applyStationPlacement(state, details, CompanyStationsOnly)
         recordPrivatePowerUse(state, this.privateCompanyId)
         this.metadata = details
     }

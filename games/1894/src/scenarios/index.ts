@@ -88,8 +88,7 @@ export function createEighteenNinetyFourScenario(
                         started: true,
                         funded: true,
                         operated: true,
-                        floated: true,
-                        president: start.president
+                        floated: true
                     }
                 if (flotation && major.id === 'CFOR')
                     return {
@@ -99,8 +98,7 @@ export function createEighteenNinetyFourScenario(
                         started: true,
                         funded: false,
                         operated: false,
-                        floated: false,
-                        president: alex
+                        floated: false
                     }
                 return {
                     id: major.id,

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Contracts, type HandResult } from '@tabletop/koenigrufen'
+    import { Contracts, MachineState, type HandResult } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { bonusResultLine, gameDoublesLine } from '$lib/utils/announcementText.js'
     import { contractRequirement } from '$lib/utils/contractText.js'
@@ -19,7 +19,7 @@
     const names = { name: (playerId: string) => gameSession.getPlayerName(playerId) }
     const bonuses = $derived(result.bonuses ?? [])
     const kontras = $derived(result.gameDoubles ?? [])
-    const gameOver = $derived(gameSession.gameState.result !== undefined)
+    const lastHandScored = $derived(gameSession.machineState === MachineState.EndOfGame)
 
     function signed(value: number): string {
         return value > 0 ? `+${value}` : String(value)
@@ -115,7 +115,7 @@
         </ul>
     {/if}
 
-    <h3>{gameOver ? 'Final scores' : 'Scores so far'}</h3>
+    <h3>{lastHandScored ? 'Final scores' : 'Scores so far'}</h3>
     <div class="sheet" {@attach keepLatestInView}>
         <table>
             <thead>

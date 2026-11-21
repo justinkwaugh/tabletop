@@ -48,7 +48,12 @@ export class RailwayMapState {
                 const definition = definitions.get(placement.definitionId)
                 assertExists(definition, 'Placed map tile requires a definition')
                 this.tiles.set(location.id, {
-                    face: withTrackStops(definition.face, placement.trackStops, placement.rotation),
+                    face: withTrackStops(
+                        definition.face,
+                        placement.trackStops,
+                        tileSet.trackStopRevenue,
+                        placement.rotation
+                    ),
                     rotation: placement.rotation,
                     placement
                 })

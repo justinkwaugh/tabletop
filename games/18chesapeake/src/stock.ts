@@ -8,7 +8,7 @@ import {
     marketZoneHoldingLimits,
     playerOrderAfterLastTurn,
     playersAfterPresident,
-    sameOwner,
+    presides,
     type CompanyRules,
     type StockRoundRules,
     type StockRules
@@ -97,8 +97,7 @@ export const StockRulesChesapeake: StockRules = {
     // a pool share out of the game: another, or the only one, leaving the buyer nothing (§14.3).
     purchaseRemoval(state, certificate, buyer) {
         if (!twoPlayer(state) || certificate.poolId !== MarketPoolIdChesapeake) return undefined
-        const president = getCompany(state, certificate.companyId).president
-        if (president && sameOwner(president, buyer)) return undefined
+        if (presides(state, certificate.companyId, buyer)) return undefined
         const pool = state.certificates.filter(
             (entry) =>
                 entry.companyId === certificate.companyId &&

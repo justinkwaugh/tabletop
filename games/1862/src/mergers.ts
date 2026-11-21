@@ -9,6 +9,7 @@ import {
     getCompany,
     inReceivership,
     placeStockMarker,
+    presidentOf,
     replaceStation,
     settleCashPayments,
     stepAction,
@@ -110,7 +111,7 @@ function mergeable(state: State1862, companyId: string): boolean {
     return (
         !!company.floated &&
         !company.closed &&
-        !!company.president &&
+        !!presidentOf(state, companyId) &&
         !inReceivership(state, companyId) &&
         stationCenters(state, companyId).length > 0
     )

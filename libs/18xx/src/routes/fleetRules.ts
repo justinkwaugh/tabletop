@@ -5,7 +5,10 @@ import type { RouteVisit } from './routeNetwork.js'
 export type FleetRoute = {
     result: RouteResult
     train: TrainDefinition
+    /** Every stop the route reaches, those it passes included. */
     visits: readonly RouteVisit[]
+    /** The stops the train calls at, which count toward its distance and may pay. */
+    stops: readonly RouteVisit[]
     locationIds: readonly string[]
 }
 
@@ -36,7 +39,11 @@ export interface FleetRules {
      * Freight chains between the same two identities share one distance bonus.
      */
     payOnce?: { groups?: readonly (readonly RevenueCenter[])[] }
-    connectivity?: { at: RevenueKind; root?: 'home' }
+    /**
+     * Runs meet another at a stop of these kinds; 1860's runs meet at any station, large or
+     * small, or a halt.
+     */
+    connectivity?: { at: RevenueKind | readonly RevenueKind[]; root?: 'home' }
     routeShape?: { endKinds: readonly RevenueKind[]; minimumCities?: number }
     trains?: Readonly<Record<string, FleetTrainPolicy>>
     freightChains?: FreightChainPolicy

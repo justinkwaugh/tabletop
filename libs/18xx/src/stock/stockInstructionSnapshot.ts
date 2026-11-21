@@ -1,4 +1,4 @@
-import { sameOwner, sharesOwned, type Owner } from '../finance/finance.js'
+import { presidentOf, sameOwner, sharesOwned, type Owner } from '../finance/finance.js'
 import { companyShareCount } from '../company/companyCharters.js'
 import { exceedsStockLimits, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
@@ -43,11 +43,12 @@ export function stockPositionSnapshot(
                     sharesOwned(state, company.id, { kind: 'player', playerId: player.playerId })
                 )
         )
+        const president = presidentOf(state, company.id)
         return [
             {
                 companyId: company.id,
                 started: company.started === true,
-                ...(company.president ? { president: company.president } : {}),
+                ...(president ? { president } : {}),
                 ownerShares: sharesOwned(state, company.id, owner),
                 rivalShares,
                 bankShares: sharesOwned(state, company.id, { kind: 'bank' })

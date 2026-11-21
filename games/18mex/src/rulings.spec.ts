@@ -4,6 +4,7 @@ import {
     TrackConstruction,
     getCompany,
     homeStationId,
+    presidentOf,
     trainsOwnedBy,
     type RevenueCenter
 } from '@tabletop/18xx'
@@ -96,7 +97,7 @@ describe('the auction (3.1, Table III)', () => {
         const state = opened().state
         for (const minor of ['A', 'B', 'C']) {
             const company = getCompany(state, minor)
-            expect(company.president).toEqual(holder(state, `${minor}:charter`))
+            expect(presidentOf(state, minor)).toEqual(holder(state, `${minor}:charter`))
             expect(company.floated).toBe(true)
             expect(
                 state.stations.find((station) => station.id === homeStationId(minor))?.status

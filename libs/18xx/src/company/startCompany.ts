@@ -92,13 +92,7 @@ export class HydratedStartCompany
                 this.companyId,
                 this.presidentShares
             )
-        startCompanyAtPar(
-            state,
-            this.#stockRules.market,
-            this.companyId,
-            this.marketSpaceId,
-            result.details.buyer
-        )
+        startCompanyAtPar(state, this.#stockRules.market, this.companyId, this.marketSpaceId)
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)

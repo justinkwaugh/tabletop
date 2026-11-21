@@ -8,6 +8,7 @@ import {
     Role,
     User
 } from '@tabletop/common'
+import { nanoid } from 'nanoid'
 import { ChatStore } from '../persistence/stores/chatStore.js'
 import { GameService } from '../games/gameService.js'
 import { AddMessageError, InvalidChatMemberError } from './errors.js'
@@ -64,6 +65,18 @@ export class ChatService {
             })
 
         return chat
+    }
+
+    async announceAsAdministrator(
+        administrator: User,
+        gameId: string,
+        text: string
+    ): Promise<GameChat> {
+        return this.addGameChatMessage(
+            administrator,
+            { id: nanoid(), userId: administrator.id, timestamp: new Date(), text },
+            gameId
+        )
     }
 
     async redactGameChatMessage(

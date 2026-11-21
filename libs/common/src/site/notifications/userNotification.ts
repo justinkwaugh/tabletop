@@ -11,7 +11,9 @@ export enum UserNotificationAction {
     WasInvited = 'wasInvited',
     GameStarted = 'gameStarted',
     IsYourTurn = 'isYourTurn',
-    PlayerVoteRequested = 'playerVoteRequested'
+    PlayerVoteRequested = 'playerVoteRequested',
+    TookOverSeat = 'tookOverSeat',
+    LostSeat = 'lostSeat'
 }
 
 export type PlayerJoinedNotification = Type.Static<typeof PlayerJoinedNotification>
@@ -109,6 +111,38 @@ export const PlayerVoteRequestedNotification = Type.Evaluate(
     ])
 )
 
+export type TookOverSeatNotification = Type.Static<typeof TookOverSeatNotification>
+export const TookOverSeatNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.User),
+            action: Type.Literal(UserNotificationAction.TookOverSeat),
+            data: Type.Object({
+                user: Type.Pick(User, ['id']),
+                game: Type.Pick(Game, ['id', 'typeId', 'name']),
+                formerHolder: Type.Pick(Player, ['name'])
+            })
+        })
+    ])
+)
+
+export type LostSeatNotification = Type.Static<typeof LostSeatNotification>
+export const LostSeatNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.User),
+            action: Type.Literal(UserNotificationAction.LostSeat),
+            data: Type.Object({
+                user: Type.Pick(User, ['id']),
+                game: Type.Pick(Game, ['id', 'typeId', 'name']),
+                newHolder: Type.Pick(Player, ['name'])
+            })
+        })
+    ])
+)
+
 export function isYourTurnNotification(
     notification: Notification
 ): notification is IsYourTurnNotification {
@@ -125,3 +159,5 @@ export type UserNotification =
     | GameStartedNotification
     | IsYourTurnNotification
     | PlayerVoteRequestedNotification
+    | TookOverSeatNotification
+    | LostSeatNotification

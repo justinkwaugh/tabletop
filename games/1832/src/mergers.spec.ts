@@ -5,7 +5,8 @@ import {
     getCompany,
     isStartOperatingRound,
     recordedRoundEnd,
-    sharesOwned
+    sharesOwned,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
@@ -131,7 +132,7 @@ describe('merger phase', () => {
         expect(play.valid('blair')).toEqual(['AnswerMerger', 'SetRunInstruction'])
         play.act('AnswerMerger', { accept: true }, 'blair')
         expect(play.state.systems).toEqual({ AMTK: ['ACL', 'CG'] })
-        expect(getCompany(play.state, 'AMTK').president).toEqual(player('alex'))
+        expect(presidentOf(play.state, 'AMTK')).toEqual(player('alex'))
         // Nothing remains to merge, so the phase ends and the operating set begins.
         expect(play.state.mergerPhase).toBeUndefined()
         expect(play.state.mergerPhaseHeld).toBeUndefined()
@@ -226,7 +227,7 @@ describe('merger phase', () => {
         ])
         play.act('SellTakeoverShares', { companyId: 'ACL', shares: 1 }, 'alex')
         expect(getCompany(play.state, 'CG').closed).toBe(true)
-        expect(getCompany(play.state, 'ACL').president).toEqual(player('alex'))
+        expect(presidentOf(play.state, 'ACL')).toEqual(player('alex'))
         expect(play.state.mergerPhase).toBeUndefined()
         const payments = play.processed.find(isCompleteTakeover)?.metadata?.payments ?? []
         const acl = { kind: 'company', companyId: 'ACL' }
@@ -325,9 +326,6 @@ describe('merger phase', () => {
                 if (certificate.id === 'CG:president') certificate.owner = player('alex')
                 else if (certificate.id === 'CG:share:2') certificate.owner = player('blair')
             }
-            const company = state.companies.find((entry) => entry.id === 'CG')
-            assertExists(company, 'CG is in play')
-            company.president = player('alex')
         })
         expect(play.state.machineState).toBe('Merging')
         expect(play.state.mergerPhase?.final).toBe(true)

@@ -264,7 +264,7 @@ export function botMove(game: Table, random: Random, steering: BotSteering = {})
         }
         case 'PlacingStation': {
             const companyId = state.stationStep?.companyId ?? ''
-            const stations = placeableStations(state, companyId)
+            const stations = placeableStations(state, StationRules1880.map, companyId)
             if (valid.includes('PlaceStation') && stations.length) {
                 const placement = new StationPlacement(state, StationRules1880)
                 const choices = placement.choices(pick(stations).id)

@@ -12,7 +12,8 @@ import {
     type CompanyRules,
     type StockRoundRules,
     type StockRules,
-    type StockState
+    type StockState,
+    presidentOf
 } from '@tabletop/18xx'
 import { MajorIds1828, Privates1828 } from './companies.js'
 import { CobourgRailwayId } from './ids.js'
@@ -89,7 +90,7 @@ export const StockRoundRules1828: StockRoundRules = {
     // One row, another when the director holds 80%, and another when the price started in the
     // gray area (§12.2).
     soldOutRises(state, companyId) {
-        const president = getCompany(state, companyId).president
+        const president = presidentOf(state, companyId)
         const directorShares = president ? sharesOwned(state, companyId, president) : 0
         return 1 + (directorShares >= 8 ? 1 : 0) + (inGrayZone(state, companyId) ? 1 : 0)
     }
@@ -123,7 +124,7 @@ export const StockRules1828: StockRules = {
     // bank pool (§7.3, §12.1). A turn spent on a merger or the M&H records no first share (§7.1).
     multipleBuys: {
         allowsAnother(state, certificate, earlier) {
-            const president = getCompany(state, certificate.companyId).president
+            const president = presidentOf(state, certificate.companyId)
             const buyer = state.activePlayerIds[0]
             return (
                 earlier.length === 1 &&

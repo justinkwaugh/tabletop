@@ -1,4 +1,4 @@
-import { collectibleLogic } from './logic-factory.js'
+import { asciiOutput, collectibleLogic } from './logic-factory.js'
 import fs from 'node:fs'
 import { moduleWorkers } from './workers.js'
 import { publishCssAssets } from './css-assets.js'
@@ -275,7 +275,8 @@ export const createGameLogicRolldownConfig = ({ packageRootUrl }) => {
             file: path.join(outputDir, format === 'es' ? 'index.js' : 'index.cjs'),
             format,
             sourcemap: true,
-            codeSplitting: false
+            codeSplitting: false,
+            ...asciiOutput
         })),
         platform: 'node',
         tsconfig: false,

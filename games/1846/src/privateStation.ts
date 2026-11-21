@@ -69,7 +69,7 @@ export class PlaceCWIStationAction extends HydratableAction<typeof PlaceCWIStati
         const extra = state.stations.at(-1)
         assertExists(extra)
         const details = { ...choice, stationId: extra.id, cost: 0 }
-        applyStationPlacement(state, details)
+        applyStationPlacement(state, details, StationRules1846.map)
         recordPrivatePowerUse(state, 'C&WI')
         this.metadata = details
     }

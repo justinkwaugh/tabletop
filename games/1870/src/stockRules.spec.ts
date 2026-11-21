@@ -5,6 +5,7 @@ import {
     evaluateShareSale,
     getCompany,
     placeStockMarker,
+    presidentOf,
     sharesOwned,
     type Owner
 } from '@tabletop/18xx'
@@ -128,7 +129,7 @@ describe('price protection (p. 13)', () => {
             turnFor(state, 'p1')
         })
         sell(game, 'IC', 2)
-        expect(getCompany(game.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(presidentOf(game.state, 'IC')).toEqual({ kind: 'player', playerId: 'p2' })
         expect(game.state.priceProtection).toBeUndefined()
         expect(price(game, 'IC')).toBeLessThan(100)
     })

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeOutcome } from '$lib/utils/describe.js'
     import { stepDescription } from '$lib/utils/history.js'
@@ -11,9 +11,7 @@
     const gameSession = getGameSession()
 
     const LIVE_LINES = 6
-    const step = $derived(
-        stepDescription(gameSession.actions)
-    )
+    const step = $derived(stepDescription(gameSession.actions))
     const lines = $derived(gameSession.isViewingHistory ? step : step.slice(-LIVE_LINES))
     const waiting = $derived(gameSession.gameState.activePlayerIds)
     const label = $derived(roundLabel(gameSession.gameState.machineState))
@@ -53,7 +51,9 @@
             </div>
         {/if}
     {/if}
-    {#if yearEnd}
+    {#if gameSession.gameCall}
+        <CalledGameEnding class="called" />
+    {:else if yearEnd}
         <div class="year-end"><YearEndReport report={yearEnd} step={yearEndStep} /></div>
     {:else}
         {#each lines as line, index (index)}
@@ -89,6 +89,10 @@
 
     .sealed {
         color: #1b3c8c;
+        font-size: 16px;
+    }
+
+    .waiting :global(.called) {
         font-size: 16px;
     }
 

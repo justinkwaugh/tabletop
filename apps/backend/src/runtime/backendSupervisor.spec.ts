@@ -140,6 +140,11 @@ describe('supervised backend worker', () => {
         log.mockRestore()
     })
 
+    it('starts the worker with garbage collection exposed, for the compaction after title loads', async () => {
+        await start()
+        expect(await get('/garbage-collection')).toEqual({ exposed: true })
+    })
+
     it('stays ready while the worker is blocked by a title load it announced', async () => {
         await start()
         const load = fetch(origin + '/load-title?ms=1500')

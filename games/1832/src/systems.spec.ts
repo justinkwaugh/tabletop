@@ -7,7 +7,8 @@ import {
     companyShareCount,
     getCompany,
     sharesOwned,
-    stockMarkerStackIndex
+    stockMarkerStackIndex,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { laidTiles } from '@tabletop/18xx/testing'
@@ -60,7 +61,8 @@ describe('System formation', () => {
             exchangedCertificateIds: ['ACL:president', 'ACL:share:1', 'CG:share:2']
         })
         const amtk = getCompany(play.state, 'AMTK')
-        expect(amtk).toMatchObject({ president: player('alex'), operated: true })
+        expect(amtk).toMatchObject({ operated: true })
+        expect(presidentOf(play.state, 'AMTK')).toEqual(player('alex'))
         expect(companyShareCount(play.state, EighteenThirtyTwoCharters, 'AMTK')).toBe(20)
         expect(getCompany(play.state, 'ACL').closed).toBe(true)
         expect(getCompany(play.state, 'CG').closed).toBe(true)

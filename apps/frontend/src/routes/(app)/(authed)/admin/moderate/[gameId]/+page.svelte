@@ -4,9 +4,11 @@
     import {
         REDACTED_CHAT_MESSAGE_TEXT,
         conversationMessageAuthorName,
+        type Game,
         type GameChatMessage
     } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
+    import AdminSeatHandover from '$lib/components/admin/AdminSeatHandover.svelte'
     import type { PageProps } from './$types'
 
     let { data }: PageProps = $props()
@@ -29,6 +31,15 @@
             toast.error(error instanceof Error ? error.message : 'The game could not be renamed.')
         } finally {
             working = false
+        }
+    }
+
+    async function handedOver(updated: Game) {
+        game = updated
+        try {
+            messages = (await api.getGameChat(updated.id)).messages
+        } catch {
+            toast.error('The chat could not be reloaded.')
         }
     }
 
@@ -74,6 +85,7 @@
                 >
             </form>
         </section>
+        <AdminSeatHandover {game} onhandover={handedOver} />
         <section class="flex flex-col gap-1">
             <h2 class="text-lg font-semibold">Chat</h2>
             {#if messages.length === 0}

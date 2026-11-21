@@ -162,7 +162,7 @@ function reachablePorts(
             return rotateTileFace(tile.face, tile.rotation)
         },
         companyStationCenters(state, companyId),
-        (locationId, node) => cityIsBlocked(state, companyId, locationId, node),
+        (locationId, node) => cityIsBlocked(state, Map1856, companyId, locationId, node),
         {
             reached(locationId, endpoint) {
                 if (endpoint.kind === 'node') reached.add(`${locationId} ${endpoint.nodeId}`)

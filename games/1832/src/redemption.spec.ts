@@ -5,10 +5,12 @@ import {
     exceedsStockLimits,
     getCompany,
     placeStockMarker,
-    type Owner
+    type Owner,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
+    Definition,
     EighteenThirtyTwoStockRules,
     redemptionChoices,
     reissueChoices,
@@ -19,6 +21,7 @@ import {
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
 type Play = ExamplePlay<EighteenThirtyTwoState>
+const hydrated = (state: EighteenThirtyTwoState) => Definition.runtime.hydrator.hydrateState(state)
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 const acl = { kind: 'company' as const, companyId: 'ACL' }
 
@@ -50,7 +53,7 @@ const inOffering = (certificate: { poolId?: string }) => certificate.poolId === 
 const inMarket = (certificate: { poolId?: string }) => certificate.poolId === 'open-market'
 
 function choiceFrom(play: Play, holderId: string) {
-    const choice = redemptionChoices(play.state, 'alex').find(
+    const choice = redemptionChoices(hydrated(play.state), 'alex').find(
         (entry) => entry.holder.kind === 'player' && entry.holder.playerId === holderId
     )
     assertExists(choice, `Alex may redeem from ${holderId}`)
@@ -81,7 +84,7 @@ function trading(prepare: (state: EighteenThirtyTwoState) => void = () => {}) {
 describe('share redemption', () => {
     it('redeems an open-market share first, as the president’s only action', () => {
         const play = trading()
-        const choices = redemptionChoices(play.state, 'alex')
+        const choices = redemptionChoices(hydrated(play.state), 'alex')
         expect(choices).toEqual([
             expect.objectContaining({ companyId: 'ACL', holder: { kind: 'bank' }, price: 90 })
         ])
@@ -91,7 +94,7 @@ describe('share redemption', () => {
         expect(cashOwnedBy(play.state, acl)).toBe(510)
         // Acting for the company ends the president's turn.
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(play.state), 'alex')).toEqual([])
     })
 
     it('asks another holder, who may agree', () => {
@@ -120,7 +123,9 @@ describe('share redemption', () => {
         expect(play.state.machineState).toBe('StockRound')
         expect(play.state.activePlayerIds).toEqual(['alex'])
         expect(play.valid('alex')).toContain('BuyShares')
-        const holders = redemptionChoices(play.state, 'alex').map((choice) => choice.holder)
+        const holders = redemptionChoices(hydrated(play.state), 'alex').map(
+            (choice) => choice.holder
+        )
         expect(holders).not.toContainEqual(player('blair'))
         expect(holders).toContainEqual(player('casey'))
     })
@@ -128,7 +133,7 @@ describe('share redemption', () => {
     it('redeems the president’s own share only if they stay president', () => {
         const play = trading((state) => moveShares(state, inMarket, player('casey'), 1))
         expect(
-            redemptionChoices(play.state, 'alex').map((choice) => choice.holder)
+            redemptionChoices(hydrated(play.state), 'alex').map((choice) => choice.holder)
         ).not.toContainEqual(player('alex'))
         // With Blair and Casey down to two shares each, Alex keeps the presidency on two.
         const kept = trading((state) => {
@@ -140,27 +145,27 @@ describe('share redemption', () => {
         kept.act('RedeemShare', { companyId: 'ACL', certificateId: own.certificateId })
         expect(kept.state.machineState).toBe('StockRound')
         expect(cashOwnedBy(kept.state, player('alex'))).toBe(600 + 90)
-        expect(getCompany(kept.state, 'ACL').president).toEqual(player('alex'))
+        expect(presidentOf(kept.state, 'ACL')).toEqual(player('alex'))
     })
 
     it('keeps the company at most 40% and others at least 60%', () => {
         const atLimit = trading((state) => moveShares(state, inMarket, acl, 1))
-        expect(redemptionChoices(atLimit.state, 'alex')).not.toEqual([])
+        expect(redemptionChoices(hydrated(atLimit.state), 'alex')).not.toEqual([])
         const capped = trading((state) => {
             moveShares(state, inMarket, acl, 1)
             moveShares(state, (certificate) => certificate.owner.kind === 'player', acl, 3)
         })
-        expect(redemptionChoices(capped.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(capped.state), 'alex')).toEqual([])
         const withOffering = playExample(EighteenThirtyTwoScenarios, 'trading', 3)
-        expect(redemptionChoices(withOffering.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(withOffering.state), 'alex')).toEqual([])
     })
 
     it('redeems once per stock round', () => {
         const play = trading()
         play.state.redemptions = { ACL: 1 }
-        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(play.state), 'alex')).toEqual([])
         delete play.state.redemptions
-        expect(redemptionChoices(play.state, 'alex')).not.toEqual([])
+        expect(redemptionChoices(hydrated(play.state), 'alex')).not.toEqual([])
     })
 })
 
@@ -171,10 +176,10 @@ describe('share redemption limits', () => {
             assertExists(company, 'ACL is in play')
             company.funded = false
         })
-        expect(redemptionChoices(unfunded.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(unfunded.state), 'alex')).toEqual([])
         const play = trading()
         buyOffering(play, 'alex', 'CG', 100)
-        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(play.state), 'alex')).toEqual([])
         expect(play.valid('alex')).not.toContain('RedeemShare')
     })
 
@@ -193,7 +198,7 @@ describe('share redemption limits', () => {
         expect(exceedsStockLimits(play.state, player('alex'), EighteenThirtyTwoStockRules)).toBe(
             true
         )
-        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(redemptionChoices(hydrated(play.state), 'alex')).toEqual([])
         expect(play.valid('alex')).not.toContain('RedeemShare')
     })
 
@@ -233,14 +238,14 @@ describe('share reissue', () => {
 
     it('rounds 75% of the price to the nearest reissue par, a tie upward, never below par', () => {
         const play = holding()
-        expect(reissueParPrice(play.state, 'ACL')).toBe(160)
+        expect(reissueParPrice(hydrated(play.state), 'ACL')).toBe(160)
         placeStockMarker(play.state.stockMarket, 'ACL', '1:6')
-        expect(reissueParPrice(play.state, 'ACL')).toBe(90)
+        expect(reissueParPrice(hydrated(play.state), 'ACL')).toBe(90)
     })
 
     it('returns every redeemed share to the offering, whose sales pay the company later', () => {
         const play = holding()
-        expect(reissueChoices(play.state, 'alex')).toEqual([
+        expect(reissueChoices(hydrated(play.state), 'alex')).toEqual([
             expect.objectContaining({ companyId: 'ACL', parPrice: 160 })
         ])
         play.act('ReissueShares', { companyId: 'ACL' })
@@ -258,7 +263,7 @@ describe('share reissue', () => {
             'blair'
         )
         expect(cashOwnedBy(play.state, acl)).toBe(760)
-        expect(spendableCash(play.state, 'ACL')).toBe(600)
+        expect(spendableCash(hydrated(play.state), 'ACL')).toBe(600)
     })
 
     it('reissues once a stock round', () => {
@@ -267,7 +272,9 @@ describe('share reissue', () => {
         expect(play.state.reissues).toEqual({ ACL: play.state.stockRound.number })
         const again = structuredClone(play.state)
         moveShares(again, heldBy('casey'), acl, 1)
-        expect(reissueChoices({ ...again, activePlayerIds: ['alex'] }, 'alex')).toEqual([])
+        expect(reissueChoices(hydrated({ ...again, activePlayerIds: ['alex'] }), 'alex')).toEqual(
+            []
+        )
     })
 
     it('keeps reissue proceeds from paying for a redemption that stock round', () => {
@@ -283,27 +290,27 @@ describe('share reissue', () => {
         play.act('FinishStockTurn', {}, 'blair')
         play.act('FinishStockTurn', {}, 'casey')
         expect(cashOwnedBy(play.state, acl)).toBe(260)
-        expect(spendableCash(play.state, 'ACL')).toBe(100)
-        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(spendableCash(hydrated(play.state), 'ACL')).toBe(100)
+        expect(redemptionChoices(hydrated(play.state), 'alex')).toEqual([])
         // Casey passed, so Alex's and Blair's passes end the stock round.
         play.act('FinishStockTurn', {}, 'alex')
         play.act('FinishStockTurn', {}, 'blair')
         expect(play.state.stockRound.completed).toBe(true)
         expect(play.state.lockedProceeds).toBeUndefined()
         expect(play.state.redemptions).toBeUndefined()
-        expect(spendableCash(play.state, 'ACL')).toBe(260)
+        expect(spendableCash(hydrated(play.state), 'ACL')).toBe(260)
     })
 
     it('may reissue in the stock round it redeemed', () => {
         const play = trading()
         play.act('RedeemShare', {
             companyId: 'ACL',
-            certificateId: redemptionChoices(play.state, 'alex')[0].certificateId
+            certificateId: redemptionChoices(hydrated(play.state), 'alex')[0].certificateId
         })
         buyOffering(play, 'blair', 'CG', 100)
         play.act('FinishStockTurn', {}, 'blair')
         play.act('FinishStockTurn', {}, 'casey')
-        expect(reissueChoices(play.state, 'alex')).toEqual([
+        expect(reissueChoices(hydrated(play.state), 'alex')).toEqual([
             expect.objectContaining({ companyId: 'ACL' })
         ])
     })
@@ -312,6 +319,6 @@ describe('share reissue', () => {
         const unsold = playExample(EighteenThirtyTwoScenarios, 'trading', 3, (state) =>
             moveShares(state, inMarket, acl, 1)
         )
-        expect(reissueChoices(unsold.state, 'alex')).toEqual([])
+        expect(reissueChoices(hydrated(unsold.state), 'alex')).toEqual([])
     })
 })

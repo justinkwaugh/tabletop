@@ -51,6 +51,10 @@ A Reserved Player whose associated User declined. In a Public Game the position 
 **Banned Player**:
 A Player whose User Account an Administrator has Banned. The Ban stops them holding others up: they concede a two-Player Game, their seat in a Game yet to start returns to Open, in an Invite-Only Game too, and any such Game they own is deleted. A Game with more Players goes on and stops on their turn, so the others are emailed that they can call it, and a Tournament Game stays with the tournament's withdrawal tools. Their finished Games keep their results.
 
+**Seat Handover**:
+An Administrator moving a Player of an In Progress Hosted Game from its User to another User who is not in the Game. The Player keeps its place, history and hidden information; Game Owner passes with it; any open Player Vote is cancelled; both Users are notified and the Game Conversation is told. Hotseat Games have none, and a Tournament Game takes a Substitute instead.
+_Avoid_: Replacing a player, swapping players
+
 **Public Game**:
 A Game Instance with Open Players that eligible Users may claim. It is listed for public discovery unless it is an Unlisted Game.
 

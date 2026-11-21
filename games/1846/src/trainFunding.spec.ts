@@ -8,7 +8,8 @@ import {
     sameOwner,
     sharesOwned,
     trainsOwnedBy,
-    type Owner
+    type Owner,
+    presidentOf
 } from '@tabletop/18xx'
 import {
     emergencyBuyingGame as buyingGame,
@@ -61,7 +62,6 @@ function launchOther(table: Table, companyId = 'NYC', price = 40, presidentId = 
         floated: true,
         funded: true,
         operated: true,
-        president: { kind: 'player', playerId: presidentId },
         parPrice: price
     })
     const certificate = table.state.certificates.find(
@@ -367,7 +367,7 @@ describe('1846 personal share sales for a train', () => {
         giveShares(table, 'NYC', 'p2', 3)
         fundTrain(table)
         sell(table, 'NYC', 1)
-        expect(getCompany(table.state, 'NYC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(presidentOf(table.state, 'NYC')).toEqual({ kind: 'player', playerId: 'p2' })
         expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(30)
         expect(
             sales(table).map((sale) => [
@@ -411,7 +411,7 @@ describe('1846 personal share sales for a train', () => {
         const before = structuredClone(table.state)
         const result = sell(table, 'IC', 1)
         const sold = stateAfter(table, before, result.processedActions, 'SellFundingShares')
-        expect(getCompany(sold, 'IC').president).toEqual({ kind: 'player', playerId })
+        expect(presidentOf(sold, 'IC')).toEqual({ kind: 'player', playerId })
         expect(Market1846.companySpace(sold.stockMarket, 'IC').price).toBe(10)
         expect(sharesOwned(sold, 'IC', { kind: 'bank' })).toBe(1)
     })
@@ -430,7 +430,7 @@ describe('1846 personal share sales for a train', () => {
         table.state.operatingSet.number = 2
         fundTrain(table)
         sell(table, 'NYC', 1)
-        expect(getCompany(table.state, 'NYC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(presidentOf(table.state, 'NYC')).toEqual({ kind: 'player', playerId: 'p2' })
         expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(30)
         expect(table.state.operatingSet.companyOrder).toEqual(['MS', 'BIG4', 'IC', 'B&O', 'NYC'])
     })

@@ -81,8 +81,14 @@ function offersCharterPetition(family: CharterHandler): CharterHandler {
     }
 }
 
+// Shikoku sets neither of these; their types are tied to its own State, not this one.
+const {
+    actionObservers: _observers,
+    privateExchangeActions: _exchanges,
+    ...ShikokuRules
+} = Shikoku1889TitleRules
 const CharterRules: EighteenXXTitleRules<typeof CharterState, HydratedCharterState> = {
-    ...Shikoku1889TitleRules,
+    ...ShikokuRules,
     state: CharterStateDefinition,
     canonicalState: undefined,
     auctionRules: Shikoku1889AuctionRules,

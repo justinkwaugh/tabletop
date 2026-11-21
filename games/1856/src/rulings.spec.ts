@@ -5,6 +5,7 @@ import {
     finiteCashOwnedBy,
     getCompany,
     homeStationId,
+    presidentOf,
     type CompanyClosure
 } from '@tabletop/18xx'
 import { buy, edit, finishStockRound, opened, setCash, start, toBuyingTrains } from '../test/kit.js'
@@ -25,7 +26,7 @@ function operatingGt() {
 }
 
 function gtPresident(game: ReturnType<typeof opened>) {
-    const president = getCompany(game.state, 'GT').president
+    const president = presidentOf(game.state, 'GT')
     if (president?.kind !== 'player') throw new Error('GT has a player president')
     return president
 }
@@ -194,7 +195,10 @@ describe('1856 operating order after forced sales (Operating Rounds)', () => {
 })
 
 describe('1856 the bank breaking (Ending the Game; designer)', () => {
-    it('sets up a bank broken only by a payout it cannot make in full', () => {
-        expect(opened(4).state.bank.breaksOnShortfall).toBe(true)
+    it('has a bank broken only by a payout it cannot make in full, a rule its State does not hold', () => {
+        const game = opened(4)
+        expect(game.hydrated.bankRules).toEqual({ breaksOnShortfall: true })
+        expect(game.state.bank).toEqual({})
+        expect(game.hydrated.dehydrate()).not.toHaveProperty('bankRules')
     })
 })

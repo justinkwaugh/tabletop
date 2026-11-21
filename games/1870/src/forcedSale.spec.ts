@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { EmergencyTrainFunding, getCompany, placeStockMarker, type Owner } from '@tabletop/18xx'
+import {
+    EmergencyTrainFunding,
+    getCompany,
+    placeStockMarker,
+    presidentOf,
+    type Owner
+} from '@tabletop/18xx'
 import { operated, prepared, trackAlong, type Table } from '../test/kit.js'
 import type { State1870 } from './state.js'
 import { StockRules1870, TrainFundingRules1870 } from './stock.js'
@@ -138,7 +144,7 @@ describe('a forced sale (p. 25)', () => {
     it('raises $920 and goes bankrupt, the T&P’s president deciding before the game ends', () => {
         const game = imaSwindler()
         expect(sellAll(game)).toEqual([180, 160, 360, 220])
-        expect(getCompany(game.state, 'MP').president).toEqual(p('p2'))
+        expect(presidentOf(game.state, 'MP')).toEqual(p('p2'))
         expect(game.state.machineState).toBe('ProtectingPrice')
         expect(game.player).toBe('p2')
         game.act('DeclineProtection', { companyId: 'TP' })

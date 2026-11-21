@@ -22,7 +22,7 @@ import { GameService } from './gameService.svelte.js'
 import { stubLocalStorage } from '$lib/test/localStorageStub'
 
 vi.mock('$env/static/public', () => ({ PUBLIC_VAPID_KEY: '' }))
-vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidate: vi.fn(), invalidateAll: vi.fn() }))
 
 const user: User = { id: 'user', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 

@@ -2,6 +2,7 @@ import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     applyPresidencyChange,
+    CompanyStationsOnly,
     applyStationPlacement,
     closePrivate,
     evaluatePresidency,
@@ -105,16 +106,20 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             if (getCompany(state, companyId).role === 'shortline') {
                 const reservation = state.stationReservations.find((r) => r.companyId === companyId)
                 assertExists(reservation, 'Shortline requires its reserved home')
-                applyStationPlacement(state, {
-                    stationId: homeStationId(companyId),
-                    companyId,
-                    position: {
-                        locationId: reservation.locationId,
-                        nodeId: reservation.nodeId,
-                        slot: 0
+                applyStationPlacement(
+                    state,
+                    {
+                        stationId: homeStationId(companyId),
+                        companyId,
+                        position: {
+                            locationId: reservation.locationId,
+                            nodeId: reservation.nodeId,
+                            slot: 0
+                        },
+                        cost: 0
                     },
-                    cost: 0
-                })
+                    CompanyStationsOnly
+                )
             }
             return
         }

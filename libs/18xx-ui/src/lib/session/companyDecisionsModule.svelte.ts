@@ -245,6 +245,16 @@ export class CompanyDecisionsModule {
                 : []
         })
     })
+    /** The prices the chosen purchase may be offered at. */
+    purchasePriceRange = $derived.by(() =>
+        this.selection?.kind === 'purchase'
+            ? this.session.rules.transferRules.priceRange(
+                  this.session.state,
+                  this.selection.request.companyId,
+                  this.selection.request.asset
+              )
+            : undefined
+    )
     purchaseOfferEvaluation = $derived.by(() =>
         this.selection?.kind === 'purchase'
             ? evaluatePurchaseOffer(

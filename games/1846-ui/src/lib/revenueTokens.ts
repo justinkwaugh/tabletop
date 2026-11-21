@@ -19,7 +19,8 @@ type PlacedRevenueMarker = {
     companyId: string
     locationId: string
 }
-type RevenueIcon = TileSymbolName | 'skyline'
+// The icons 1846's revenue privates draw: two of the family's tile symbols and its own skyline.
+type RevenueIcon = Extract<TileSymbolName, 'port' | 'horns'> | 'skyline'
 
 const ArtRadius = 10.5
 const Ink = '#1d1b18'

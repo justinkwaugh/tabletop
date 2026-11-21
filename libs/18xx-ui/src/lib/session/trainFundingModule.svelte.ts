@@ -26,7 +26,10 @@ export type TrainFundingSession = ModuleSession<
 >
 
 export class TrainFundingModule {
-    constructor(private readonly session: TrainFundingSession) {}
+    constructor(
+        private readonly session: TrainFundingSession,
+        private readonly buysOutright: () => boolean
+    ) {}
 
     model = $derived.by(() =>
         this.session.rules.trainFundingRules
@@ -47,6 +50,10 @@ export class TrainFundingModule {
     /** A depot train may have no stored record yet: an unlimited supply records only bought trains. */
     depotPurchases = $derived.by(() =>
         this.purchases.filter((purchase) => !this.fromMarket(purchase))
+    )
+    /** Funding stands in for the train list only when the treasury can buy nothing (1833NE §6.87). */
+    fundingOnly = $derived.by(
+        () => this.purchases.length > 0 && !this.voluntary && !this.buysOutright()
     )
     /** Whether the help is optional, offered to a company that already owns a train. */
     voluntary = $derived.by(() => {
@@ -93,6 +100,14 @@ export class TrainFundingModule {
             : []
     })
     plan = $derived.by(() => (this.purchase ? this.model?.preview(this.purchase) : undefined))
+    /** The plan for one offered purchase before funding begins. */
+    planFor(purchase: TrainPurchaseDetails) {
+        return this.options.find(
+            (option) =>
+                option.purchase.trainId === purchase.trainId &&
+                option.purchase.definitionId === purchase.definitionId
+        )?.plan
+    }
     /** Sales are chosen once funding has begun, so each press records one Action. */
     sales = $derived.by(() =>
         this.session.state.trainFunding && this.plan?.choice.kind === 'sell'

@@ -22,7 +22,7 @@ import {
 } from '@tabletop/18xx'
 import * as Type from 'typebox'
 import { NwrId } from './companies.js'
-import { RebellionCities, RebellionLocations } from './map.js'
+import { Map1882, RebellionCities, RebellionLocations } from './map.js'
 import { placedNeutralStations, supplyNeutralStation } from './neutralStations.js'
 import type { HydratedState1882, State1882 } from './state.js'
 import { openCityPositions } from './stations.js'
@@ -91,7 +91,7 @@ export function movableStations(state: State1882, companyId: string): Station[] 
         if (
             station.status !== 'placed' ||
             station.companyId !== companyId ||
-            neutralStation(state, station.id)
+            neutralStation(Map1882, station.id)
         )
             return false
         const { locationId } = station.position

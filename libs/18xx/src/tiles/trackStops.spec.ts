@@ -15,7 +15,7 @@ const crossing = createTrackTileFace('green', [
 
 describe('track stops', () => {
     it('stand a town on the plain line between their edges', () => {
-        const face = withTrackStops(crossing, [{ edges: [4, 1], revenue: 20 }])
+        const face = withTrackStops(crossing, [{ edges: [4, 1] }], 20)
         const town = face.nodes.find((node) => node.id === trackStopNodeId([1, 4]))
         expect(town).toMatchObject({ kind: 'town', revenue: { kind: 'fixed', amount: 20 } })
         expect(face.paths).toHaveLength(3)
@@ -28,7 +28,7 @@ describe('track stops', () => {
 
     it('keep their place on the map when the tile is turned', () => {
         // The stop lies on map edges 2 and 5, which a tile turned by one shows as its 1 and 4.
-        const face = withTrackStops(crossing, [{ edges: [2, 5], revenue: 20 }], 1)
+        const face = withTrackStops(crossing, [{ edges: [2, 5] }], 20, 1)
         const turned = rotateTileFace(face, 1)
         const stop = trackStopNodeId([2, 5])
         const edges = turned.paths.flatMap((path) =>
@@ -40,12 +40,12 @@ describe('track stops', () => {
     })
 
     it('need plain track on their line', () => {
-        expect(() => withTrackStops(crossing, [{ edges: [0, 1], revenue: 20 }])).toThrow()
+        expect(() => withTrackStops(crossing, [{ edges: [0, 1] }], 20)).toThrow()
     })
 
     it('carry a lone town on a line onto the same plain line of the replacing tile', () => {
         const yellow = createTownTileFace('yellow', [[0, 3]], 20)
-        expect(carriedTrackStops(yellow, crossing)).toEqual([{ edges: [0, 3], revenue: 20 }])
+        expect(carriedTrackStops(yellow, crossing)).toEqual([{ edges: [0, 3] }])
         const elsewhere = createTrackTileFace('green', [
             [1, 3],
             [0, 4]
@@ -54,7 +54,7 @@ describe('track stops', () => {
     })
 
     it('leave only plain lines open, and none on a city tile', () => {
-        const face = withTrackStops(crossing, [{ edges: [0, 3], revenue: 20 }])
+        const face = withTrackStops(crossing, [{ edges: [0, 3] }], 20)
         expect(openTrackStopLines(face)).toEqual([[1, 4]])
     })
 })

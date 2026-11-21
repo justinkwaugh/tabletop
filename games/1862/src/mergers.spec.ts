@@ -1,6 +1,7 @@
 import {
     addCompanyStations,
     getCompany,
+    presidentOf,
     sharesOwned,
     trainsOwnedBy,
     type Owner
@@ -53,7 +54,7 @@ describe('1862 mergers, as the rules’ examples play them', () => {
         const after = ['p1', 'p2', 'p4'].map((id) => cash(game, player(id)))
         expect(after.map((amount, index) => amount - before[index])).toEqual([-67, -67, 67])
         expect(getCompany(game.state, wsti).started).toBeFalsy()
-        expect(getCompany(game.state, ne).president).toEqual(player('p1'))
+        expect(presidentOf(game.state, ne)).toEqual(player('p1'))
     })
 
     it('takes holders’ turns from the initiator clockwise, the companies as one last', () => {
@@ -131,7 +132,7 @@ describe('1862 mergers, as the rules’ examples play them', () => {
         expect(held({ kind: 'company', companyId: ne })).toBe(0)
         expect(priceOf(game, ne)).toBe(86)
         expect(cash(game, { kind: 'company', companyId: ne })).toBe(treasury + treasuryNe + 86)
-        expect(getCompany(game.state, ne).president).toEqual(player('p2'))
+        expect(presidentOf(game.state, ne)).toEqual(player('p2'))
     })
 })
 

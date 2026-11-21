@@ -21,7 +21,7 @@ import {
     type HydratedState1880,
     type State1880
 } from '@tabletop/1880'
-import { getCompany, playerLoan, privateOwner, sameOwner } from '@tabletop/18xx'
+import { getCompany, playerLoan, presidentOf, privateOwner, sameOwner } from '@tabletop/18xx'
 import {
     moneyFormat,
     type PhaseNotice,
@@ -59,7 +59,7 @@ const InvestorPowerIds: readonly string[] = [P2Id, P3Id, P4Id]
 
 /** The open privates of a company's director that give the company a power. */
 function directorPowers(state: HydratedState1880, companyId: string): string[] {
-    const director = getCompany(state, companyId).president
+    const director = presidentOf(state, companyId)
     if (!director) return []
     const powerIds = isInvestor(companyId) ? InvestorPowerIds : MajorPowerIds
     return powerIds.filter((privateId) => {

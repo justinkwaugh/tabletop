@@ -6,7 +6,8 @@ import {
     finiteCashOwnedBy,
     getCompany,
     type TrainRoute,
-    type RoutePath
+    type RoutePath,
+    presidentOf
 } from '@tabletop/18xx'
 import { stockGame } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
@@ -111,7 +112,7 @@ describe('1846 independent operations', () => {
             route
         ])
         expect(evaluation.result?.revenue).toBe(60)
-        const owner = getCompany(table.state, 'MS').president
+        const owner = presidentOf(table.state, 'MS')
         assertExists(owner)
         const playerCash = finiteCashOwnedBy(table.state, owner)
         const treasury = finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'MS' })

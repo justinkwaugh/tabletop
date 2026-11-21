@@ -4,10 +4,6 @@
     "version": "0.0.0",
     "exports": {
         ".": "./index.js",
-        "./logic-factory": {
-            "types": "./logic-factory.d.ts",
-            "default": "./logic-factory.js"
-        },
         "./postcss": "./postcss.js"
     },
     "scripts": {

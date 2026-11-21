@@ -70,7 +70,7 @@ export class HydratedPlaceStation
                     amount: result.details.cost
                 }
             ])
-        applyStationPlacement(state, result.details)
+        applyStationPlacement(state, result.details, this.#rules.map)
         state.stationStep!.placedStationIds.push(this.stationId)
         this.metadata = result.details
     }

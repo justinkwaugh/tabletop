@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { finiteCashOwnedBy, trainsOwnedBy } from '@tabletop/18xx'
+    import { finiteCashOwnedBy, presidentOf, trainsOwnedBy } from '@tabletop/18xx'
     import CompanyActionCard, { type CardAction } from '../stock/CompanyActionCard.svelte'
     import StockPanelHeading from '../stock/StockPanelHeading.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -25,7 +25,8 @@
     function minorFacts(companyId: string) {
         const trains = trainsOwnedBy(gameState, { kind: 'company', companyId })
         const company = gameState.companies.find((entry) => entry.id === companyId)
-        const owner = company?.president?.kind === 'player' ? company.president.playerId : undefined
+        const president = presidentOf(gameState, companyId)
+        const owner = president?.kind === 'player' ? president.playerId : undefined
         return [
             ...(owner
                 ? [

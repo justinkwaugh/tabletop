@@ -3,6 +3,7 @@ import {
     addShort,
     certificatesInPool,
     addCompanyStations,
+    CompanyStationsOnly,
     applyStationPlacement,
     getCompany,
     homeStationId,
@@ -105,7 +106,6 @@ function startCompany(
     Object.assign(getCompany(state, companyId), {
         shareCount: terms.shareCount,
         parPrice: terms.parPrice,
-        president,
         started: true,
         floated: true,
         funded: true,
@@ -114,17 +114,22 @@ function startCompany(
     const certificate = presidentCertificate(state, companyId)
     assertExists(certificate, 'An example company has its president’s certificate')
     certificate.owner = president
+    delete certificate.poolId
     const cash = state.cash.find(
         (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
     )
     assertExists(cash, 'An example company has a treasury')
     cash.amount = terms.treasury
-    applyStationPlacement(state, {
-        companyId,
-        stationId: homeStationId(companyId),
-        position: { locationId, nodeId: 'city', slot: 0 },
-        cost: 0
-    })
+    applyStationPlacement(
+        state,
+        {
+            companyId,
+            stationId: homeStationId(companyId),
+            position: { locationId, nodeId: 'city', slot: 0 },
+            cost: 0
+        },
+        CompanyStationsOnly
+    )
 }
 
 function givePrivate(state: CompanyState, privateId: string, owner: Owner): void {

@@ -5,6 +5,7 @@ import {
     finiteCashOwnedBy,
     getCompany,
     placeStockMarker,
+    presidentCertificate,
     purchaseChoices,
     trainsOwnedBy
 } from '@tabletop/18xx'
@@ -26,10 +27,13 @@ function tradingGame(sharedPresident = false) {
         'NYC',
         Market1846.companySpace(table.state.stockMarket, 'IC').id
     )
-    seller.president = {
+    const presidency = presidentCertificate(table.state, 'NYC')
+    assertExists(presidency)
+    presidency.owner = {
         kind: 'player',
         playerId: sharedPresident ? table.state.activePlayerIds[0] : 'p2'
     }
+    delete presidency.poolId
     const train = table.state.trainInventory.trains.find(
         (t) => t.status === 'depot' && t.definitionId === '2'
     )

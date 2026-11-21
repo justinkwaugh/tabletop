@@ -7,6 +7,7 @@ import {
     RouteEvaluation,
     fleetPaymentKey,
     fleetRoot,
+    meetsAt,
     type RevenueCenter,
     type RoutePath,
     type RouteRules,
@@ -18,7 +19,8 @@ import {
     type TrainRunningState,
     type TileEndpoint,
     oppositeTileEndpoint,
-    terminusNodeId
+    terminusNodeId,
+    isHalt
 } from '@tabletop/18xx'
 import type { SolverArc, SolverProblem, SolverSolution } from './solverProtocol.js'
 
@@ -178,6 +180,11 @@ export class EncodedRoutes {
             !passesStops || fleet.length === 1,
             'A train that passes stops is routed apart from the others'
         )
+        const blockedPasses = rules.blockedCityPasses?.(state, companyId) ?? 0
+        assert(
+            !blockedPasses || rules.fleet,
+            'Blocked-city passes are counted only across a declared fleet'
+        )
         const groupIds = new Map<string, number>()
         const stops = this.centers.map((center, index) => {
             const node = nodes[index]
@@ -196,7 +203,8 @@ export class EncodedRoutes {
                 blocked: evaluation.passageBlocked(companyId, center, node),
                 endpoint:
                     (rules.fleet?.routeShape?.endKinds.includes(node.kind) ?? true) &&
-                    (stopsAt[0]?.[index] ?? true),
+                    (stopsAt[0]?.[index] ?? true) &&
+                    !isHalt(node),
                 allowed: rules.stopAllowed?.(state, companyId, center) ?? true,
                 groups: [
                     ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
@@ -251,6 +259,27 @@ export class EncodedRoutes {
                     ? stopValue(state, rules, companyId, center, node, definition)
                     : 0
             })
+            const optional = this.centers.map(
+                (center, index) =>
+                    (stopping[index] ?? false) &&
+                    (rules.stopOptional?.(state, companyId, center, definition) ?? false)
+            )
+            const subsidies = this.centers.map((center, index) =>
+                stopping[index]
+                    ? (rules.stopSubsidy?.(state, companyId, center, definition) ?? 0)
+                    : 0
+            )
+            assert(
+                rules.fleet || subsidies.every((amount) => amount === 0),
+                'Stop subsidies are weighed only by a declared fleet'
+            )
+            assert(
+                this.centers.every(
+                    (center, index) =>
+                        !optional[index] || !rules.stopBonus?.(state, definition, companyId, center)
+                ),
+                'A stop the train may pass is chosen by its value without a stop bonus'
+            )
             const bestStopBonuses = (
                 rules.bestStopBonuses?.(state, companyId, definition) ?? []
             ).map(({ locationIds, ignoredLocationIds = [] }) => ({
@@ -270,6 +299,8 @@ export class EncodedRoutes {
                 allowed_stops: this.centers.map(
                     (center) => rules.stopAllowed?.(state, companyId, center, definition) ?? true
                 ),
+                optional,
+                subsidies,
                 ...(rules.fleet
                     ? {
                           fleet: {
@@ -346,7 +377,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 10,
+            version: 11,
             stops,
             arcs,
             trains,
@@ -358,6 +389,8 @@ export class EncodedRoutes {
             ),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
             minimum_cities_and_towns: rules.minimumCitiesAndTowns ?? 0,
+            no_reentry: rules.forbidsHexReentry?.(state) ?? false,
+            blocked_passes: blockedPasses,
             budget_ms: budget.timeLimitMs,
             memory_budget_bytes: budget.memoryBudgetBytes
         }
@@ -374,7 +407,11 @@ export class EncodedRoutes {
                 connectivity: fleet.connectivity
                     ? {
                           root: root ? (centerIds.get(this.centerKey(root)) ?? null) : null,
-                          stops: nodes.map((node) => node.kind === fleet.connectivity?.at)
+                          stops: this.centers.map((center, index) => {
+                              const node = nodes[index]
+                              assertExists(node, 'Revenue center requires a node')
+                              return meetsAt(fleet, { ...center, node })
+                          })
                       }
                     : null,
                 minimum_cities: fleet.routeShape?.minimumCities ?? 0,
@@ -476,7 +513,10 @@ export class EncodedRoutes {
                 if (reachedStops.has(next.stop)) continue
                 reachedStops.add(next.stop)
                 const stop = stops[next.stop]
-                if (!stop.allowed || (stop.blocked && !stop.token && !extendsPastBlocked)) continue
+                const passable =
+                    extendsPastBlocked ||
+                    (this.problem.blocked_passes > 0 && (stop.city || stop.town))
+                if (!stop.allowed || (stop.blocked && !stop.token && !passable)) continue
                 for (const arc of departures.get(next.stop) ?? []) pending.push({ arc })
                 continue
             }
@@ -522,6 +562,8 @@ export class EncodedRoutes {
                     crossing_costs: train.crossing_costs,
                     requires_city: train.requires_city,
                     allowed_stops: perStop(train.allowed_stops.map(Number)),
+                    optional: perStop(train.optional.map(Number)),
+                    subsidies: perStop(train.subsidies),
                     ...(train.fleet ? { fleet: train.fleet } : {}),
                     major_limit: train.major_limit,
                     paying_stop_limit: train.paying_stop_limit,
@@ -546,7 +588,9 @@ export class EncodedRoutes {
                 .sort((a, b) => a - b)
                 .map((hex) => [this.locationIds[hex], this.problem.hex_bonuses[hex]]),
             longest_route_bonus_per_stop: this.problem.longest_route_bonus_per_stop,
-            minimum_cities_and_towns: this.problem.minimum_cities_and_towns
+            minimum_cities_and_towns: this.problem.minimum_cities_and_towns,
+            no_reentry: this.problem.no_reentry,
+            blocked_passes: this.problem.blocked_passes
         })
     }
 

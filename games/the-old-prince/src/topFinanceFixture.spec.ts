@@ -1,5 +1,6 @@
 import {
     getCompany,
+    presidentOf,
     certificatesOwnedBy,
     getTreasury,
     privateOwner,
@@ -32,9 +33,9 @@ it('separates Union Bank ownership, Souris presidency and the controlling owner'
     expect(
         getTreasury(state, 'UB').portfolio.some((certificate) => certificate.id === 'So:president')
     ).toBe(true)
-    expect(getCompany(state, 'UB').president).toBeUndefined()
+    expect(presidentOf(state, 'UB')).toBeUndefined()
     expect(privateOwner(state, 'UB')).toEqual(alex)
-    expect(getCompany(state, 'So').president).toEqual({ kind: 'company', companyId: 'UB' })
+    expect(presidentOf(state, 'So')).toEqual({ kind: 'company', companyId: 'UB' })
     expect(controllingOwner(state, 'So')).toEqual(alex)
 })
 

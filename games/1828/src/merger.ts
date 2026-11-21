@@ -970,7 +970,6 @@ class HydratedFormSystem extends FormSystemAction.Base implements FormSystem {
         delete absorbed.president
         survivor.floated = bothFloated
         survivor.funded = bothFloated
-        survivor.president = player(director.directorId)
         const survivorTrainIds = trainsOwnedBy(state, { kind: 'company', companyId: survivorId })
             .map((train) => train.id)
             .filter((trainId) => !absorbedTrainIds.includes(trainId))

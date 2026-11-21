@@ -7,6 +7,7 @@ import {
     getCompany,
     marketSaleTerms,
     playersAfterPresident,
+    presidentOf,
     privateOwner,
     sameOwner,
     treasuryPoolId,
@@ -49,7 +50,7 @@ export const TheOldPrinceStockRules: StockRules = {
     saleTerms(state, companyId) {
         const company = getCompany(state, companyId)
         const shareCount = companyShareCount(state, TheOldPrinceCharters, companyId)
-        if (companyId === 'PEIR' || !shareCount || !company.president)
+        if (companyId === 'PEIR' || !shareCount || !presidentOf(state, companyId))
             return 'This company has no saleable shares.'
         if (!company.operated) return 'Shares cannot be sold until the company has operated.'
         return marketSaleTerms(TheOldPrinceMarket, state, companyId, {

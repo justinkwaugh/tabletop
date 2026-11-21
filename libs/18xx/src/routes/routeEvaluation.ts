@@ -19,7 +19,7 @@ import { cityIsBlocked, companyStationCenters, sameCenter, usesStationAt } from 
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
-import type { TileNode } from '../tiles/tile.js'
+import { isHalt, type TileNode } from '../tiles/tile.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
 import {
     RouteNetwork,
@@ -155,6 +155,40 @@ export interface RouteRules {
     ): readonly RevenueCenter[] | undefined
     /** A route may visit only one revenue center in each hex. */
     oneStopPerHex?: true
+    /**
+     * Whether the train may pass the stop without calling at it, as 1860's trains pass small
+     * stations and halts. A stop passed by neither counts toward the train's distance nor pays,
+     * and no route ends at one; a route calls at the optional stops worth most to it, revenue
+     * and subsidy together, while its distance allows.
+     */
+    stopOptional?(
+        state: TrainRunningState,
+        companyId: string,
+        center: RevenueCenter,
+        train: TrainDefinition
+    ): boolean
+    /**
+     * What calling at the stop pays the company's treasury beside the route's revenue, as an
+     * 1860 halt's £10 subsidy.
+     */
+    stopSubsidy?(
+        state: TrainRunningState,
+        companyId: string,
+        center: RevenueCenter,
+        train: TrainDefinition
+    ): number
+    /** Whether a route may not enter a hex again once it has left it, as in 1860. */
+    forbidsHexReentry?(state: TrainRunningState): boolean
+    /**
+     * How many tokened-out cities the company's trains may run through in one run, all its
+     * routes together, as 1860 lets one train pass one (Running Trains); none unless given.
+     */
+    blockedCityPasses?(state: TrainRunningState, companyId: string): number
+    /**
+     * A train the company runs without owning it, as an insolvent 1860 company leases the bank's
+     * smallest (Insolvency).
+     */
+    leasedTrain?(state: TrainRunningState, companyId: string): Train | undefined
     /** Cities and towns a complete route must visit; offboards do not count toward them. */
     minimumCitiesAndTowns?: number
     /**
@@ -224,6 +258,19 @@ export function routeDistance(train: TrainDefinition, trace: MeasuredTrace): num
             (train.distance.measure === 'revenue-centers' || visit.node.kind !== 'town')
     ).length
 }
+/** What the routes' stops pay the treasury beside their revenue. */
+function routeSubsidies(routes: readonly RouteResult[]): number {
+    return routes.reduce((sum, route) => sum + (route.subsidy ?? 0), 0)
+}
+
+/** Whether the route leaves a hex and later enters it again. */
+function reentersHex(route: TrainRoute): boolean {
+    const hexes = [route.start.locationId]
+    for (const { locationId } of route.paths)
+        if (hexes.at(-1) !== locationId) hexes.push(locationId)
+    return new Set(hexes).size !== hexes.length
+}
+
 export function exceedsRouteDistance(train: TrainDefinition, trace: MeasuredTrace): boolean {
     const { maximum, extraTowns = 0 } = train.distance
     if (maximum === 'unlimited') return false
@@ -237,8 +284,8 @@ export function exceedsRouteDistance(train: TrainDefinition, trace: MeasuredTrac
 export type RouteEvaluationResult =
     { result: RouteResult; reason?: never } | { result?: never; reason: string }
 export type FleetRouteEvaluation =
-    | { route: FleetRoute; resources: readonly string[]; reason?: never }
-    | { route?: never; resources?: never; reason: string }
+    | { route: FleetRoute; resources: readonly string[]; blockedPasses: number; reason?: never }
+    | { route?: never; resources?: never; blockedPasses?: never; reason: string }
 export type OperatingEvaluation =
     { result: OperatingResult; reason?: never } | { result?: never; reason: string }
 export class RouteEvaluation {
@@ -289,12 +336,16 @@ export class RouteEvaluation {
     passageBlocked(companyId: string, center: RevenueCenter, node: TileNode): boolean {
         return (
             node.kind === 'offboard' ||
-            (cityIsBlocked(this.state, companyId, center.locationId, node) &&
+            (cityIsBlocked(this.state, this.rules.map, companyId, center.locationId, node) &&
                 !this.rules.passesStations?.(this.state, companyId, center))
         )
     }
     runnableTrains(companyId: string): Train[] {
-        return trainsOwnedBy(this.state, { kind: 'company', companyId }).filter(
+        const leased = this.rules.leasedTrain?.(this.state, companyId)
+        return [
+            ...trainsOwnedBy(this.state, { kind: 'company', companyId }),
+            ...(leased ? [leased] : [])
+        ].filter(
             (train) =>
                 !this.rules.depot.trainDefinition(train.definitionId).attachment &&
                 (this.rules.canRunTrain?.(this.state, train) ?? true)
@@ -340,27 +391,45 @@ export class RouteEvaluation {
     evaluateFleetRoute(companyId: string, route: TrainRoute): FleetRouteEvaluation {
         const evaluated = this.evaluateTraced(companyId, route, true)
         if (!evaluated.result) return { reason: evaluated.reason }
-        const { result, trace, train } = evaluated
+        const { result, trace, train, stops, blockedPasses } = evaluated
         const resources = route.extension
             ? this.network.trace(route.start, [...route.paths, ...route.extension]).trace!.resources
             : trace.resources
         const locationIds = [route.start.locationId]
         for (const { locationId } of route.paths)
             if (locationIds.at(-1) !== locationId) locationIds.push(locationId)
-        return { route: { result, train, visits: trace.visits, locationIds }, resources }
+        return {
+            route: { result, train, visits: trace.visits, stops, locationIds },
+            resources,
+            blockedPasses
+        }
     }
     private evaluateTraced(
         companyId: string,
         route: TrainRoute,
         complete: boolean
     ):
-        | { result: RouteResult; trace: RouteTrace; train: TrainDefinition; reason?: never }
+        | {
+              result: RouteResult
+              trace: RouteTrace
+              train: TrainDefinition
+              /** The stops the train calls at, the optional stops it passes left out. */
+              stops: readonly RouteVisit[]
+              /** The tokened-out cities the route runs through. */
+              blockedPasses: number
+              reason?: never
+          }
         | { result?: never; reason: string } {
-        const train = this.state.trainInventory.trains.find((train) => train.id === route.trainId)
+        const leased = this.rules.leasedTrain?.(this.state, companyId)
+        const train =
+            leased?.id === route.trainId
+                ? leased
+                : this.state.trainInventory.trains.find((train) => train.id === route.trainId)
         if (
             !train ||
-            train.status !== 'owned' ||
-            !sameOwner(train.owner, { kind: 'company', companyId })
+            (train !== leased &&
+                (train.status !== 'owned' ||
+                    !sameOwner(train.owner, { kind: 'company', companyId })))
         )
             return { reason: 'The company does not own this train.' }
         if (this.rules.canRunTrain?.(this.state, train) === false)
@@ -378,6 +447,8 @@ export class RouteEvaluation {
             ? { ...trace, visits: trace.visits.filter(stopsAt) }
             : trace
         const seen = new Set<string>()
+        const passableBlocks = this.rules.blockedCityPasses?.(this.state, companyId) ?? 0
+        let blockedPasses = 0
         for (const [index, visit] of trace.visits.entries()) {
             const key = JSON.stringify([visit.locationId, visit.nodeId])
             if (seen.has(key)) return { reason: 'A train cannot revisit a revenue center.' }
@@ -388,9 +459,13 @@ export class RouteEvaluation {
                 trace.end.endpoint.kind === 'node' &&
                 trace.end.locationId === visit.locationId &&
                 trace.end.endpoint.nodeId === visit.nodeId
-            if (index > 0 && !isEnd && this.passageBlocked(companyId, visit, visit.node))
-                return { reason: 'The route cannot pass through a blocked city or offboard.' }
+            if (index > 0 && !isEnd && this.passageBlocked(companyId, visit, visit.node)) {
+                if (visit.node.kind === 'offboard' || ++blockedPasses > passableBlocks)
+                    return { reason: 'The route cannot pass through a blocked city or offboard.' }
+            }
         }
+        if (this.rules.forbidsHexReentry?.(this.state) && reentersHex(route))
+            return { reason: 'A route may not enter a hex again once it has left it.' }
         const repeatedGroup = this.repeatedStopGroup(trace)
         if (repeatedGroup) return { reason: `A route may visit ${repeatedGroup} only once.` }
         if (this.rules.oneStopPerHex) {
@@ -398,9 +473,10 @@ export class RouteEvaluation {
             if (new Set(locations).size !== locations.length)
                 return { reason: 'A route may stop only once in each hex.' }
         }
-        const distance = routeDistance(definition, stopped)
-        if (exceedsRouteDistance(definition, stopped))
+        const called = this.calledStops(companyId, definition, stopped)
+        if (!called)
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
+        const distance = routeDistance(definition, called)
         if (
             definition.distance.standardGaugeOnly &&
             trace.stretches.some((stretch) => stretch.gauge === 'narrow')
@@ -420,11 +496,13 @@ export class RouteEvaluation {
                     ))
             )
                 return { reason: 'End the route at a revenue center.' }
-            if (stopped.visits.length < (atStation ? 1 : 2))
+            if (called.visits.length < (atStation ? 1 : 2))
                 return { reason: 'A route needs at least two revenue centers.' }
             const [first, last] = [trace.visits[0], trace.visits[trace.visits.length - 1]]
             if (!stopsAt(first) || !stopsAt(last))
                 return { reason: `The ${definition.name} train starts and ends where it stops.` }
+            if (isHalt(first.node) || isHalt(last.node))
+                return { reason: 'A route neither begins nor ends at a halt.' }
             const minimumCitiesAndTowns = this.rules.minimumCitiesAndTowns ?? 0
             if (
                 !atStation &&
@@ -459,7 +537,7 @@ export class RouteEvaluation {
             )
             if (shapeReason) return { reason: shapeReason }
         }
-        const visits = stopped.visits.map((visit): RouteRevenueStop => {
+        const visits = called.visits.map((visit): RouteRevenueStop => {
             const bonusSourceIds =
                 this.rules.stopBonusSourceIds?.(this.state, definition, companyId, visit) ?? []
             return {
@@ -475,7 +553,7 @@ export class RouteEvaluation {
         const extension = route.extension ? this.extension(companyId, route, definition) : undefined
         if (extension?.reason) return { reason: extension.reason }
         const shape: RouteShape = {
-            ends: [stopped.visits[0], stopped.visits[stopped.visits.length - 1]],
+            ends: [called.visits[0], called.visits[called.visits.length - 1]],
             ...(extension?.locationId ? { extensionLocationId: extension.locationId } : {})
         }
         const paying = payingRouteStops(visits, policy, shape)
@@ -497,6 +575,10 @@ export class RouteEvaluation {
             return { reason: 'The extension earns no interconnection.' }
         const revenue = [...payments, ...bonuses].reduce((sum, item) => sum + item.amount, 0)
         if (revenue < 0) return { reason: 'The route’s charges exceed what it earns.' }
+        const subsidy = called.visits.reduce(
+            (sum, visit) => sum + this.subsidy(companyId, visit, definition),
+            0
+        )
         return {
             result: {
                 ...route,
@@ -505,11 +587,57 @@ export class RouteEvaluation {
                 payments,
                 ...(bonuses.length ? { bonuses } : {}),
                 distance,
-                revenue
+                revenue,
+                ...(subsidy > 0 ? { subsidy } : {})
             },
             trace,
-            train: definition
+            train: definition,
+            stops: called.visits,
+            blockedPasses
         }
+    }
+    private subsidy(companyId: string, visit: RevenueCenter, train: TrainDefinition): number {
+        return this.rules.stopSubsidy?.(this.state, companyId, visit, train) ?? 0
+    }
+    /**
+     * The stops the train calls at: every stop it may not pass, its two ends, and the optional
+     * stops worth most to it, revenue and subsidy together, while its distance allows; none if
+     * its required stops alone exceed it.
+     */
+    private calledStops(
+        companyId: string,
+        train: TrainDefinition,
+        trace: RouteTrace
+    ): RouteTrace | undefined {
+        const { visits } = trace
+        const optional = (visit: RouteVisit, index: number) =>
+            index > 0 &&
+            index < visits.length - 1 &&
+            !!this.rules.stopOptional?.(this.state, companyId, visit, train)
+        const required = visits.filter((visit, index) => !optional(visit, index))
+        if (exceedsRouteDistance(train, { ...trace, visits: required })) return undefined
+        if (required.length === visits.length) return trace
+        const worth = (visit: RouteVisit) => ({
+            revenue: this.revenue(companyId, visit, train),
+            total: this.revenue(companyId, visit, train) + this.subsidy(companyId, visit, train)
+        })
+        const candidates = visits
+            .filter(optional)
+            .map((visit) => ({ visit, ...worth(visit) }))
+            .filter((candidate) => candidate.total > 0)
+            .sort((a, b) => b.total - a.total || b.revenue - a.revenue)
+        const chosen = new Set<RouteVisit>(required)
+        for (const { visit } of candidates) {
+            chosen.add(visit)
+            if (
+                exceedsRouteDistance(train, {
+                    ...trace,
+                    visits: visits.filter((v) => chosen.has(v))
+                })
+            )
+                chosen.delete(visit)
+        }
+        return { ...trace, visits: visits.filter((visit) => chosen.has(visit)) }
     }
     evaluate(companyId: string, routes: readonly TrainRoute[]): OperatingEvaluation {
         const evaluation = this.evaluateRoutes(companyId, routes)
@@ -534,6 +662,7 @@ export class RouteEvaluation {
             stations = new Set<string>(),
             evaluated: FleetRoute[] = []
         const sharedTrack = this.rules.fleet?.sharedTrack
+        let blockedPasses = 0
         for (const route of routes) {
             for (const id of [route.trainId, ...(route.attachmentIds ?? [])]) {
                 if (trains.has(id)) return { reason: 'Each train may run only once.' }
@@ -541,6 +670,9 @@ export class RouteEvaluation {
             }
             const evaluation = this.evaluateFleetRoute(companyId, route)
             if (!evaluation.route) return { reason: evaluation.reason }
+            blockedPasses += evaluation.blockedPasses
+            if (blockedPasses > (this.rules.blockedCityPasses?.(this.state, companyId) ?? 0))
+                return { reason: 'The company’s trains have passed every blocked city they may.' }
             if (!sharedTrack && !evaluation.route.train.sharesTrack) {
                 if (evaluation.resources.some((key) => resources.has(key)))
                     return { reason: 'The submitted routes share track or a hex border.' }
@@ -597,7 +729,8 @@ export class RouteEvaluation {
                   }
                 : route
         })
-        const subsidy = this.rules.runSubsidy?.(this.state, companyId, scored) ?? 0
+        const subsidy =
+            (this.rules.runSubsidy?.(this.state, companyId, scored) ?? 0) + routeSubsidies(scored)
         assert(Number.isSafeInteger(subsidy) && subsidy >= 0, 'A run’s subsidy is a whole amount')
         return {
             result: {
@@ -656,7 +789,7 @@ export class RouteEvaluation {
         if (!routes.length) return { result: { companyId, routes: [], revenue: 0 } }
         const settled = settleFleetRoutes(this.state, this.rules, companyId, routes)
         if (settled.reason !== undefined) return { reason: settled.reason }
-        const subsidy = settled.subsidy ?? 0
+        const subsidy = (settled.subsidy ?? 0) + routeSubsidies(settled.routes)
         assert(
             settled.routes.length === routes.length &&
                 settled.routes.every(

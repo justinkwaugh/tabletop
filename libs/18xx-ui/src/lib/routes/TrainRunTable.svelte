@@ -73,7 +73,7 @@
                         class:chosen={chosenTrainId === train.id}
                         disabled={onChooseTrain ? false : !route || !onFocusRoute}
                         aria-pressed={onChooseTrain ? chosenTrainId === train.id : undefined}
-                        aria-label={`${onChooseTrain ? 'Draw' : 'Show'} ${trainName(train.definitionId)}${isObsoleteTrain(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
+                        aria-label={`${onChooseTrain ? 'Draw' : 'Show'} ${train.status === 'owned' ? '' : 'leased '}${trainName(train.definitionId)}${isObsoleteTrain(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
                         onclick={() => {
                             onChooseTrain?.(train.id)
                             if (route) onFocusRoute?.(train.id)
@@ -89,7 +89,10 @@
                                 name={trainName(train.definitionId)}
                                 color={trainColors[train.definitionId]}
                                 obsolete={isObsoleteTrain(train)}
-                            />{#each attached(route?.attachmentIds) as stock (stock.id)}<span
+                            />{#if train.status !== 'owned'}<span
+                                    class="leased"
+                                    title="Leased from the bank for this run">leased</span
+                                >{/if}{#each attached(route?.attachmentIds) as stock (stock.id)}<span
                                     class="attached"
                                     title={`${trainName(stock.definitionId)} attached`}
                                     >+<TrainBadge
@@ -165,6 +168,13 @@
         border-top: 1px solid var(--rail-border, #d6cbbc);
         padding-top: 3px;
         font-weight: 650;
+    }
+    .leased {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.75;
     }
     .attached {
         display: inline-flex;

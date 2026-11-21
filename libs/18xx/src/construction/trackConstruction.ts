@@ -736,13 +736,16 @@ export class TrackConstruction {
 
 /** A turned replacing face with the stops it carries from the turned face it replaces. */
 function replacingFace(
-    rules: Pick<TrackRules, 'carriesTrackStops'>,
+    rules: Pick<TrackRules, 'carriesTrackStops' | 'tileSet'>,
     before: TileFace,
     after: TileFace
 ): { face: TileFace; trackStops: TrackStop[] } {
     if (!rules.carriesTrackStops) return { face: after, trackStops: [] }
     const trackStops = carriedTrackStops(before, after)
-    return { face: withTrackStops(after, trackStops), trackStops }
+    return {
+        face: withTrackStops(after, trackStops, rules.tileSet.trackStopRevenue),
+        trackStops
+    }
 }
 
 /**
@@ -800,14 +803,8 @@ function stationsAfterReconfiguration(
         ),
         ...(state.hexReservations || claims.length
             ? { hexReservations: [...(state.hexReservations ?? []), ...claims] }
-            : {}),
-        ...neutralStationsOf(state)
+            : {})
     }
-}
-
-/** The state's neutral stations, which a lay never changes, carried into the stations after it. */
-function neutralStationsOf(state: StationState): Pick<StationState, 'neutralStations'> {
-    return state.neutralStations ? { neutralStations: state.neutralStations } : {}
 }
 
 export function stationsAfterLay(
@@ -826,8 +823,7 @@ export function stationsAfterLay(
             (station) => details.movedStations.find((moved) => moved.id === station.id) ?? station
         ),
         stationReservations: reservationsAfterLay(state, rules, details),
-        ...(state.hexReservations ? { hexReservations: state.hexReservations } : {}),
-        ...neutralStationsOf(state)
+        ...(state.hexReservations ? { hexReservations: state.hexReservations } : {})
     }
 }
 

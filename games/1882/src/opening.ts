@@ -78,7 +78,6 @@ export function createOpening1882({
     assert(players.length >= 2 && players.length <= 6, '1882 supports two through six players')
     const capital = startingCash1882({ playerCount: players.length, config })
     const ipo = { owner: { kind: 'bank' } as const, poolId: IpoPoolId1882 }
-    const neutral = createNeutralStations()
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
         bank: {},
@@ -127,9 +126,8 @@ export function createOpening1882({
             ...Majors1882.flatMap((company) =>
                 createCompanyStations(company.id, company.stationCosts.length)
             ),
-            ...neutral.stations
+            ...createNeutralStations()
         ],
-        neutralStations: neutral.neutralStations,
         stationReservations: Map1882.stationReservations(),
         hexReservations: [{ companyId: QlId, locationId: QLHome }],
         tileInventory: TileSet1882.createInventory(),

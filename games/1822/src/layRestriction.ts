@@ -1,4 +1,9 @@
-import { privateOwner, type ConstructionState, type TrackRequest } from '@tabletop/18xx'
+import {
+    privateOwner,
+    type ConstructionState,
+    type TrackRequest,
+    presidentOf
+} from '@tabletop/18xx'
 import {
     LondonLocationId,
     MetropolitanId,
@@ -25,9 +30,8 @@ const LondonStations: Readonly<Record<string, string>> = Object.fromEntries(
 
 function director(state: ConstructionState, companyId: string): string | undefined {
     const company = state.companies.find((entry) => entry.id === companyId)
-    return company && !company.closed && company.president?.kind === 'player'
-        ? company.president.playerId
-        : undefined
+    const president = company && !company.closed ? presidentOf(state, companyId) : undefined
+    return president?.kind === 'player' ? president.playerId : undefined
 }
 
 /**

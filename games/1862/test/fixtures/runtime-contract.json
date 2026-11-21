@@ -30,8 +30,8 @@
     "ForgiveFine": "4267fe6daa87dbd8726c7be65d0900357731454357c3c04e4666f02f4679a9bf",
     "FormLner": "df1c0668f98fed8dcb3f3550c0f971b3a912d52bbc1c5cb9186a33683bd2ffca",
     "GoBankrupt": "58cf0cc8a4dc791f17364fd2f0e93552cf2af8921a93d5dab315837c7cd5c0ca",
-    "LayPrivateTile": "060f5917fe0ebfa44a80c7f1e1c080f8c5cbc58ad3d1e22599953f4a44f7eba1",
-    "LayTile": "b76723a83d8af6883f22e941ee88e5e67e6888a6a021e38571fddccb71bd5165",
+    "LayPrivateTile": "211402caf2ebd81400106d9b2f43208ada7ea8717489b1468db11d1d75abf2f0",
+    "LayTile": "a85decb4c77850f7fffdddbe40b752e0636e3e0320140ae79691d08dd1aaf698",
     "ObtainCharter": "3eb58fb22d1de9e772c032dac5fba62467236699c074b2706f94e0efa42c782e",
     "OfferPurchase": "ada2ef3b1e215a94eee8ce5de40283d1dbe277e72a95c29469b2a1a8c19d6fd3",
     "OpenCharterAuction": "2542d65b4410e71f3df7e4d68f790e33a9d48d08d5002b8c49b189e6eb6efd41",
@@ -46,8 +46,8 @@
     "Refinance": "86d0e3c054fa818d97e452ec5b4ddd75546b902403ee7f8b3ca5725d80107054",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
-    "RespondToTrackConsent": "3980a4800eb1a7a88fb178937724a4bd6867edd019fd01233bde54eb9df414a1",
-    "RunTrains": "db62940db3573a3bfe182ac544b2c981be007a84d4ec1b84cd7a6373ad197884",
+    "RespondToTrackConsent": "ba4ab8b4f9266ce8a64f31905685b556a03e9d45aedaccab53bd0642cecf9ce6",
+    "RunTrains": "2fe2b2ead2f259153217cd6779773d1a823106ef8a08ba17cb1c77950d37c2e9",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "2f3dadebf2c64a055cd16d371337d9dfb90afc5f2c41f5aad20c5346275c9b8c",
     "SellForFine": "54a1a38dad148c0e8ba09bb8557a00f212a3b185334637d3724acf76526dd038",
@@ -2478,6 +2478,10 @@
                       ],
                       "type": "object"
                     },
+                    "subsidy": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
                     "trainId": {
                       "minLength": 1,
                       "type": "string"
@@ -4161,8 +4165,7 @@
                         }
                       },
                       "required": [
-                        "edges",
-                        "revenue"
+                        "edges"
                       ],
                       "type": "object"
                     },

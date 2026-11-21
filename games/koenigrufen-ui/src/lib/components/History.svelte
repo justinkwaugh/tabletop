@@ -1,33 +1,28 @@
 <script lang="ts">
-    import { isDealHand } from '@tabletop/koenigrufen'
+    import { CalledGameDescription } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { describeAction } from '$lib/utils/actionDescription.js'
+    import { historyEntries } from '$lib/utils/history.js'
 
     const gameSession = getGameSession()
     const names = { name: (playerId: string) => gameSession.getPlayerName(playerId) }
 
-    // Newest first, with a divider at each new deal.
-    const entries = $derived(
-        gameSession.actions
-            .map((action) => ({
-                id: action.id,
-                deal: isDealHand(action) ? action.metadata?.deal : undefined,
-                color: action.playerId
-                    ? gameSession.colors.getPlayerBgColorValue(action.playerId)
-                    : 'transparent',
-                text: describeAction(action, names, gameSession.cardStyle)
-            }))
-            .filter((entry) => entry.text !== undefined)
-            .reverse()
-    )
+    const entries = $derived(historyEntries(gameSession.actions, names, gameSession.cardStyle))
+
+    function seatColor(playerId: string | undefined): string {
+        return playerId ? gameSession.colors.getPlayerBgColorValue(playerId) : 'transparent'
+    }
 </script>
 
 <ol class="history">
-    {#each entries as entry (entry.id)}
-        {#if entry.deal !== undefined}
-            <li class="deal">Hand {entry.deal}</li>
+    {#each entries as entry (entry.key)}
+        {#if entry.kind === 'call'}
+            <li class="entry called"><CalledGameDescription action={entry.action} /></li>
+        {:else}
+            {#if entry.deal !== undefined}
+                <li class="deal">Hand {entry.deal}</li>
+            {/if}
+            <li class="entry" style:--seat={seatColor(entry.playerId)}>{entry.text}.</li>
         {/if}
-        <li class="entry" style:--seat={entry.color}>{entry.text}.</li>
     {/each}
     {#if gameSession.hasCompleteHistory}
         <li class="deal">Hand 1</li>
@@ -48,6 +43,12 @@
     .entry {
         padding-left: 8px;
         border-left: 3px solid var(--seat);
+    }
+
+    .called {
+        --seat: transparent;
+        font-weight: 600;
+        color: #f2c94c;
     }
 
     .deal {

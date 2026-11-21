@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { MachineState } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeStep, spokenKingName } from '$lib/utils/actionDescription.js'
@@ -41,6 +42,9 @@
     )
 
     const standingContract = $derived.by(() => {
+        if (state.result) {
+            return undefined
+        }
         if (state.machineState === MachineState.Bidding && state.auction.bid) {
             const { playerId, ...choice } = state.auction.bid
             return { label: 'Highest bid', playerId, choice, calledKing: undefined }
@@ -62,6 +66,8 @@
 <div class="action-area">
     {#if gameSession.isViewingHistory}
         <p>{stepDescription.length > 0 ? stepDescription.join('. ') : 'The deal'}</p>
+    {:else if gameSession.gameCall}
+        <CalledGameEnding class="called" />
     {:else if state.result}
         <p class="headline">
             {state.winningPlayerIds
@@ -204,6 +210,10 @@
         font-size: 1.1rem;
         font-weight: 700;
         color: #f2c94c;
+    }
+
+    .action-area :global(.called) {
+        font-size: 1.05rem;
     }
 
     .choices {

@@ -27,7 +27,8 @@ import {
     FinanceFields,
     OrdinaryCertificate,
     OrdinaryCompany,
-    validateFinances
+    validateFinances,
+    type BankRules
 } from '../finance/finance.js'
 import { CashCrisisFields } from '../funding/cashCrisis.js'
 import { CorporateFinanceFields } from '../finance/corporateFinance.js'
@@ -155,7 +156,11 @@ export type EighteenXXRuntimeSchema = Type.TObject<typeof GameState.properties &
 export type EighteenXXState<Schema extends TitleStateSchema = EighteenXXRuntimeSchema> =
     Type.Static<Schema>
 export type HydratedEighteenXXState<Schema extends TitleStateSchema = EighteenXXRuntimeSchema> =
-    HydratedGameState<Type.Static<Schema>> & Type.Static<Schema>
+    HydratedGameState<Type.Static<Schema>> &
+        Type.Static<Schema> & {
+            /** The title's bank rules, from its state definition rather than stored State. */
+            readonly bankRules?: BankRules
+        }
 
 export type ComposedStateSchema<
     Fields extends Type.TProperties,
@@ -204,9 +209,15 @@ export type EighteenXXStateDefinition<
 
 export function defineEighteenXXState<Schema extends TitleStateSchema>(
     schema: Schema,
-    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[]
+    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[],
+    { bank }: { bank?: BankRules } = {}
 ): EighteenXXStateDefinition<Schema> {
     const validator = Compile(schema)
+    class TitleStateHydrator extends StateHydrator<Schema> {
+        get bankRules(): BankRules | undefined {
+            return bank
+        }
+    }
     function read(data: unknown): unknown {
         return data instanceof StateHydrator ? data.dehydrate() : data
     }
@@ -216,7 +227,7 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
         hydrate(data, components) {
             const stored = read(data)
             if (!validator.Check(stored)) throw new Error(JSON.stringify(validator.Errors(stored)))
-            const state = new StateHydrator(stored, validator)
+            const state = new TitleStateHydrator(stored, validator)
             assert(state.carries(stored), 'The hydrated state carries every stored field')
             assert(
                 new Set(state.players.map((player) => player.playerId)).size ===
@@ -239,7 +250,7 @@ export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     const companyIds = state.companies.map((company) => company.id)
     const playerIds = state.players.map((player) => player.playerId)
     depot.validateInventory(state.trainInventory, companyIds, playerIds)
-    validateStations(state, companyIds)
+    validateStations(state, companyIds, map)
     market.validate(state.stockMarket, companyIds)
     validateFinances(state, playerIds)
 }

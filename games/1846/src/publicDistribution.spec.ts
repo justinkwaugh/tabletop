@@ -7,7 +7,8 @@ import {
     privateOwner,
     recordedRoundEnd,
     roundEnd,
-    trainsOwnedBy
+    trainsOwnedBy,
+    presidentOf
 } from '@tabletop/18xx'
 import { openingGame, installTile } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
@@ -162,10 +163,8 @@ describe('1846 two-player opening', () => {
         expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId })).toBe(460)
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'MS' })).toBe(60)
         expect(finiteCashOwnedBy(table.state, { kind: 'bank' })).toBe(5880)
-        expect(getCompany(table.state, 'MS')).toMatchObject({
-            started: true,
-            president: { kind: 'player', playerId }
-        })
+        expect(getCompany(table.state, 'MS').started).toBe(true)
+        expect(presidentOf(table.state, 'MS')).toEqual({ kind: 'player', playerId })
         expect(trainsOwnedBy(table.state, { kind: 'company', companyId: 'MS' })).toHaveLength(1)
         expect(table.state.stations.find((station) => station.companyId === 'MS')).toMatchObject({
             status: 'placed',

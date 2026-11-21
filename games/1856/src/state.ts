@@ -194,11 +194,15 @@ export type State1856 = Type.Static<typeof State1856>
 export type HydratedState1856 = HydratedEighteenXXState<typeof State1856>
 export type StateHandler1856 = EighteenXXStateHandler<HydratedState1856>
 
-export const StateDefinition1856 = defineEighteenXXState(State1856, [
-    railwayStateValidation({ operatingInterruptions: [NationalFormationState] }),
-    validateWaterfallAuction,
-    validateCashCrisis
-])
+export const StateDefinition1856 = defineEighteenXXState(
+    State1856,
+    [
+        railwayStateValidation({ operatingInterruptions: [NationalFormationState] }),
+        validateWaterfallAuction,
+        validateCashCrisis
+    ],
+    { bank: { breaksOnShortfall: true } }
+)
 
 function isState1856(state: object): state is HydratedState1856 {
     return 'funding' in state && 'variants' in state

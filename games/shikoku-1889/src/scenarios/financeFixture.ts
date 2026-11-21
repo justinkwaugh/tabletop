@@ -30,8 +30,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 started: true,
                 funded: true,
                 operated: true,
-                floated: true,
-                president: alex
+                floated: true
             },
             {
                 id: Shikoku1889Majors.IR.id,
@@ -40,8 +39,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 started: true,
                 funded: true,
                 operated: true,
-                floated: true,
-                president: blair
+                floated: true
             },
             ...Shikoku1889Privates.filter((company) => ['MF', 'ER'].includes(company.id)).map(
                 (company) => ({

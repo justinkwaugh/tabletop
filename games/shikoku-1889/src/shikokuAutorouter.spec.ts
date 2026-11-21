@@ -5,6 +5,7 @@ import { assertExists, Color, HexOrientation } from '@tabletop/common'
 import { Autorouter, routeProblemKey } from '@tabletop/18xx-autorouter'
 import {
     RouteEvaluation,
+    CompanyStationsOnly,
     applyStationPlacement,
     RailwayMap,
     TileSet,
@@ -173,12 +174,16 @@ it('keys only the track and stops the company can reach', () => {
     ])
     expect(routeProblemKey(turned, Shikoku1889RouteRules, 'IR')).not.toBe(key)
     const blocked = structuredClone(state)
-    applyStationPlacement(blocked, {
-        companyId: 'IR',
-        stationId: 'IR:station:1',
-        position: { locationId: 'F3', nodeId: 'city', slot: 0 },
-        cost: 0
-    })
+    applyStationPlacement(
+        blocked,
+        {
+            companyId: 'IR',
+            stationId: 'IR:station:1',
+            position: { locationId: 'F3', nodeId: 'city', slot: 0 },
+            cost: 0
+        },
+        CompanyStationsOnly
+    )
     expect(routeProblemKey(blocked, Shikoku1889RouteRules, 'AR')).not.toBe(
         routeProblemKey(state, Shikoku1889RouteRules, 'AR')
     )

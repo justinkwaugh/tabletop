@@ -27,7 +27,8 @@ import {
     type Owner,
     type RevenueCenter,
     type StationPosition,
-    type StepAction
+    type StepAction,
+    presidentOf
 } from '@tabletop/18xx'
 import { ActionSource, assert, assertExists, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -153,11 +154,11 @@ function directorAcquisition(
     minorId: string
 ): MinorAcquisition1822 | undefined {
     const minor = getCompany(state, minorId)
-    const director = getCompany(state, companyId).president
+    const director = presidentOf(state, companyId)
     const home = state.stations.find(
         (station) => station.companyId === minorId && station.status === 'placed'
     )
-    const seller = minor.president
+    const seller = presidentOf(state, minorId)
     if (
         minor.kind !== 'minor' ||
         !minor.floated ||
@@ -364,7 +365,7 @@ function acquireFromDirector(state: HydratedState1822, terms: DirectorTerms): De
     const { payment } = terms
     const major: Owner = { kind: 'company', companyId: terms.companyId }
     const minor: Owner = { kind: 'company', companyId: terms.minorId }
-    const director = getCompany(state, terms.minorId).president
+    const director = presidentOf(state, terms.minorId)
     assert(director?.kind === 'player', 'A minor company has a director')
     const home = state.stations.find(
         (station) => station.companyId === terms.minorId && station.status === 'placed'
@@ -615,7 +616,7 @@ export class HydratedAnswerAcquisition extends AnswerAcquisitionAction.Base {
         assert(this.isValid(state), 'No offer awaits this player')
         const offer = state.acquisitionOffer
         assertExists(offer, 'An answer needs an offer')
-        const director = getCompany(state, offer.companyId).president
+        const director = presidentOf(state, offer.companyId)
         assert(director?.kind === 'player', 'A major company has a director')
         const { companyId, minorId, token } = offer
         if (this.accept) {
@@ -630,7 +631,7 @@ export class HydratedAnswerAcquisition extends AnswerAcquisitionAction.Base {
             markTurn(state, declinedMark(minorId))
         }
         delete state.acquisitionOffer
-        const now = getCompany(state, offer.companyId).president
+        const now = presidentOf(state, offer.companyId)
         state.activePlayerIds = [now?.kind === 'player' ? now.playerId : director.playerId]
     }
 }

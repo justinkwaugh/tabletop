@@ -202,7 +202,7 @@ export class MapModule {
     displayedTokens = $derived.by(() => {
         if (this.landedLayStations)
             return stationMapTokens(
-                { ...this.landedLayStations, companies: this.companies },
+                { ...this.displayState(), ...this.landedLayStations },
                 this.view()
             )
         return this.stations.preview

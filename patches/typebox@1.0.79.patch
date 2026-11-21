@@ -1,3 +1,16 @@
+diff --git a/build/compile/validator.mjs b/build/compile/validator.mjs
+index d22b66ead8dcdec0f6c6bc735f260c5e9af04601..141c8787ff2f7fbfcbe54033fa9e46c427fa7f7c 100644
+--- a/build/compile/validator.mjs
++++ b/build/compile/validator.mjs
+@@ -31,7 +31,7 @@ export class Validator extends Base {
+             this.context = context;
+             this.type = type;
+             this.isEvaluated = result.IsEvaluated;
+-            this.code = result.Code;
++            this.code = '';
+             this.check = result.Check;
+         }
+     }
 diff --git a/build/schema/build.mjs b/build/schema/build.mjs
 index 86ee4a298d1fa32aa950436bc9ff04ce66f31148..38f42df1693afeff6c147b22c05252da34ca48b2 100644
 --- a/build/schema/build.mjs

@@ -6,6 +6,7 @@ import {
     marketSaleTerms,
     placeReservedHome,
     playersAfterPresident,
+    presides,
     priorityOrder,
     sameOwner,
     sharesOwned,
@@ -133,7 +134,7 @@ export const StockRulesRoyalGorge: StockRules = {
                 movement: 0
             })
         }
-        const president = !!company.president && sameOwner(company.president, seller)
+        const president = presides(state, companyId, seller)
         return marketSaleTerms(MarketRoyalGorge, state, companyId, {
             destinationPoolId: BankPoolIdRoyalGorge,
             marketLimit: 50,

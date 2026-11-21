@@ -1,6 +1,6 @@
 import { companyShareCount, type CompanyCharters } from '../company/companyCharters.js'
 import { assertExists } from '@tabletop/common'
-import { getCompany } from '../finance/finance.js'
+import { getCompany, presidentOf } from '../finance/finance.js'
 import type { StockMarketChart } from './stockMarket.js'
 import { marketSaleTerms, type StockRules } from './stockRules.js'
 
@@ -17,7 +17,7 @@ export function ipoMarketTrading(options: {
 } {
     const saleTerms: StockRules['saleTerms'] = (state, companyId, shares) => {
         const shareCount = companyShareCount(state, options.charters, companyId)
-        if (!shareCount || !getCompany(state, companyId).president)
+        if (!shareCount || !presidentOf(state, companyId))
             return 'This company has no saleable shares.'
         return marketSaleTerms(options.market, state, companyId, {
             destinationPoolId: options.marketPoolId,

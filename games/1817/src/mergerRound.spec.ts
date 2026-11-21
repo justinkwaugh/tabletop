@@ -11,7 +11,8 @@ import {
     trainsOwnedBy,
     treasuryPoolId,
     type EighteenXXState,
-    type Train
+    type Train,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
@@ -244,7 +245,7 @@ describe('mergers', () => {
         expect(getCompany(play.state, 'BA').shareCount).toBe(10)
         expect(price(play.state, 'BA')).toBe(80)
         expect(sharesOwned(play.state, 'BA', player('alex'))).toBe(6)
-        expect(getCompany(play.state, 'BA').president).toEqual(player('alex'))
+        expect(presidentOf(play.state, 'BA')).toEqual(player('alex'))
         expect(treasury(play.state, 'BA')).toBe(300)
         expect(trainsOwnedBy(play.state, { kind: 'company', companyId: 'BA' })).toHaveLength(2)
         expect(stations(play.state, 'BA')).toBe(3)
@@ -268,7 +269,7 @@ describe('mergers', () => {
         expect(sharesOwned(play.state, 'PLE', player('alex'))).toBe(2)
         expect(sharesOwned(play.state, 'BA', player('alex'))).toBe(1)
         play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
-        expect(getCompany(play.state, 'BA').president).toEqual(player('alex'))
+        expect(presidentOf(play.state, 'BA')).toEqual(player('alex'))
         expect(sharesOwned(play.state, 'BA', player('alex'))).toBe(3)
     })
 

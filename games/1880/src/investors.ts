@@ -1,6 +1,7 @@
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
     RailwayMapState,
+    CompanyStationsOnly,
     applyStationPlacement,
     companyStationCenters,
     controllingOwner,
@@ -148,13 +149,16 @@ export class HydratedChooseInvestor extends ChooseInvestorAction.Base {
         const investor = getCompany(state, this.investorId)
         investor.started = true
         investor.floated = true
-        investor.president = { kind: 'player', playerId: this.playerId }
-        applyStationPlacement(state, {
-            companyId: this.investorId,
-            stationId: homeStationId(this.investorId),
-            position: { locationId: investorHome(this.investorId), nodeId: 'city', slot: 0 },
-            cost: 0
-        })
+        applyStationPlacement(
+            state,
+            {
+                companyId: this.investorId,
+                stationId: homeStationId(this.investorId),
+                position: { locationId: investorHome(this.investorId), nodeId: 'city', slot: 0 },
+                cost: 0
+            },
+            CompanyStationsOnly
+        )
         for (const companyId of MajorIds1880)
             if (controllingOwner(state, companyId)?.playerId === this.playerId)
                 reserveInvestorShare(state, companyId)

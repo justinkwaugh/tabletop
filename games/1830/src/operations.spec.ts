@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { TrackConstruction, applyStationPlacement, cashOwnedBy, getCompany } from '@tabletop/18xx'
+import {
+    CompanyStationsOnly,
+    TrackConstruction,
+    applyStationPlacement,
+    cashOwnedBy,
+    getCompany
+} from '@tabletop/18xx'
 import { exampleGame, playExample } from '@tabletop/18xx/scenarios'
 import { EighteenThirtyScenarios, completeOpeningAuction } from './scenarios/index.js'
 import { EighteenThirtyTileSet, EighteenThirtyTrackRules } from './index.js'
@@ -63,12 +69,16 @@ describe('track construction', () => {
             tileInventory: EighteenThirtyTileSet.createInventory(placements)
         }
         if (stationLocationId)
-            applyStationPlacement(prepared, {
-                companyId: 'PRR',
-                stationId: 'PRR:station:1',
-                position: { locationId: stationLocationId, nodeId: 'city', slot: 0 },
-                cost: 0
-            })
+            applyStationPlacement(
+                prepared,
+                {
+                    companyId: 'PRR',
+                    stationId: 'PRR:station:1',
+                    position: { locationId: stationLocationId, nodeId: 'city', slot: 0 },
+                    cost: 0
+                },
+                CompanyStationsOnly
+            )
         return new TrackConstruction(prepared, EighteenThirtyTrackRules)
     }
     const BuiltTrack = [

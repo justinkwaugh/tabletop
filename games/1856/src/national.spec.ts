@@ -4,6 +4,7 @@ import {
     certificateLimitAllows,
     finiteCashOwnedBy,
     getCompany,
+    presidentOf,
     sharesOwned,
     stockCertificateCount,
     trainsOwnedBy
@@ -116,8 +117,9 @@ describe('1856 CGR formation (Canadian Government Railway)', () => {
         expect(getCompany(state, 'CPR').closed).toBe(true)
         // Two CPR shares for each CGR share; the most CGR shares take the presidency.
         const most = Math.max(...holders.map((entry) => Math.floor(entry.shares / 2)))
-        expect(cgr.president?.kind).toBe('player')
-        const presidentId = cgr.president?.kind === 'player' ? cgr.president.playerId : ''
+        const president = presidentOf(state, 'CGR')
+        expect(president?.kind).toBe('player')
+        const presidentId = president?.kind === 'player' ? president.playerId : ''
         expect(
             Math.floor((holders.find((entry) => entry.playerId === presidentId)?.shares ?? 0) / 2)
         ).toBe(most)
@@ -204,8 +206,8 @@ describe('1856 CGR presidency on one share (Determining the CGR President)', () 
     it('makes the president buy the second share first in the next stock round', () => {
         const game = sixTrainBought()
         game.act('SettleNationalLoans', { companyId: 'CPR', repay: false })
-        const cgr = getCompany(game.state, 'CGR')
-        const presidentId = cgr.president?.kind === 'player' ? cgr.president.playerId : ''
+        const president = presidentOf(game.state, 'CGR')
+        const presidentId = president?.kind === 'player' ? president.playerId : ''
         edit(game, (state) => {
             state.national = { ...state.national, presidencyOwedBy: presidentId }
             state.certificates = state.certificates.map((certificate) =>
@@ -278,7 +280,7 @@ const fourTrainIds = opened(4)
 
 /** The CPR president, as the formation is about to begin. */
 function cprPresident(state: State1856): string {
-    const president = getCompany(state, 'CPR').president
+    const president = presidentOf(state, 'CPR')
     if (president?.kind !== 'player') throw new Error('CPR has a player president')
     return president.playerId
 }
@@ -434,7 +436,7 @@ describe('1856 CGR stations and trains (Token Exchange, CGR Trains)', () => {
 })
 
 function cprPresidentOf(game: Table, companyId: string): string {
-    const president = getCompany(game.state, companyId).president
+    const president = presidentOf(game.state, companyId)
     if (president?.kind !== 'player') throw new Error(`${companyId} has a player president`)
     return president.playerId
 }

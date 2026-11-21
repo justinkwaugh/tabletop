@@ -1,4 +1,9 @@
-import { neutralStation, placeableStations, type StationState } from '@tabletop/18xx'
+import {
+    neutralStation,
+    placeableStations,
+    type NeutralStations,
+    type StationState
+} from '@tabletop/18xx'
 import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
 /**
@@ -7,13 +12,14 @@ import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.
  * a group's count matters only where some group has several.
  */
 export function remainingStationTokens(
-    state: Pick<StationState, 'stations' | 'neutralStations'>,
+    state: Pick<StationState, 'stations'>,
+    neutral: NeutralStations,
     companyId: string,
     placementCost: (stationId: string) => number
 ) {
-    const remaining = placeableStations(state, companyId).map((station) => ({
+    const remaining = placeableStations(state, neutral, companyId).map((station) => ({
         ...station,
-        neutral: !!neutralStation(state, station.id)
+        neutral: !!neutralStation(neutral, station.id)
     }))
     const groups: { cost: number; neutral: boolean; count: number }[] = []
     for (const station of remaining) {
@@ -30,7 +36,7 @@ export function remainingStationTokens(
 
 /** A company's station tokens not yet on the map, priced as the session shows them. */
 export function sessionStationTokens(session: EighteenXXSessionView, companyId: string) {
-    return remainingStationTokens(session.gameState, companyId, (stationId) =>
+    return remainingStationTokens(session.gameState, session.mapView.map, companyId, (stationId) =>
         session.stations.placementCost(stationId)
     )
 }

@@ -15,8 +15,7 @@
     },
     "dependencies": {
         "@tabletop/games-config": "workspace:*",
-        "@tabletop/common": "workspace:*",
-        "@tabletop/rolldown-config": "workspace:*"
+        "@tabletop/common": "workspace:*"
     },
     "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260707.2",

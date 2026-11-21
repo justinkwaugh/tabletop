@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { isCallGameAction, type CallGameAction, type GameAction } from '@tabletop/common'
 import {
     isBuildTrack,
     isChooseAction,
@@ -29,7 +29,13 @@ export type HistoryDividend = {
     action: GameAction
 }
 
-export type HistoryEntry = HistoryTurn | HistoryOffering | HistoryDividend
+export type HistoryCall = {
+    kind: 'call'
+    key: string
+    action: CallGameAction
+}
+
+export type HistoryEntry = HistoryTurn | HistoryOffering | HistoryDividend | HistoryCall
 
 // Groups actions oldest first: each chosen action opens a turn holding everything it caused,
 // the opening auctions group with their free builds, and every dividend stands alone.
@@ -40,6 +46,11 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     for (const action of actions) {
         if (isPayDividends(action)) {
             entries.push({ kind: 'dividend', key: action.id, action })
+            open = undefined
+            continue
+        }
+        if (isCallGameAction(action)) {
+            entries.push({ kind: 'call', key: action.id, action })
             open = undefined
             continue
         }
@@ -74,5 +85,5 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
 }
 
 export function entryActions(entry: HistoryEntry): GameAction[] {
-    return entry.kind === 'dividend' ? [entry.action] : entry.actions
+    return entry.kind === 'dividend' || entry.kind === 'call' ? [entry.action] : entry.actions
 }

@@ -32,14 +32,22 @@ they are not measurements of a complete production instance.
 
 ## Validator source retention
 
-The pinned patch in `patches/typebox@1.0.79.patch` changes only how TypeBox joins
-generated validator source. Its template literal retained a tree of concatenated
-strings through `Validator.code`. Joining the same pieces into one flat string
-lets V8 collect those construction trees. It does not disable validation, defer
-validation, change schemas, or change generated JavaScript.
+The pinned patch in `patches/typebox@1.0.79.patch` makes two changes to generated
+validator source, neither of which disables validation, defers it, changes schemas,
+or changes the generated JavaScript.
 
-The Old Prince's 63 eagerly compiled validators have identical source lengths
-and SHA-256 hashes before and after this change. Its actual logic bundle's steady
+The first, from September 2026, changes how TypeBox joins that source. Its template
+literal retained a tree of concatenated strings through `Validator.code`. Joining
+the same pieces into one flat string lets V8 collect those construction trees.
+
+The second, from November 2026, stops a compiled `Validator` keeping the source at
+all: `Validator.Code()` returns an empty string. Nothing in this repository reads
+it, and V8 keeps its own copy for the function it compiled. Across the 55 titles
+served on 2026-11-20 the retained copies came to about 47 MiB. The measurements
+below predate it.
+
+Under the first change, The Old Prince's 63 eagerly compiled validators have identical
+source lengths and SHA-256 hashes before and after. Its actual logic bundle's steady
 retained heap per additional artifact URL fell from **8.65 to 5.91 MiB (32%)** on
 Node 22.23.3 and from **6.62 to 3.86 MiB (42%)** on Node 24.21.0, production's Node
 major version. The patch is independent of title rules and applies to every title

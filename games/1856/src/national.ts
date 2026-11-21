@@ -17,6 +17,7 @@ import {
     getCompany,
     homeStationId,
     placeStockMarker,
+    presidentOf,
     removeLocationMarkers,
     removeStockMarker,
     repayLoan,
@@ -455,7 +456,6 @@ class HydratedFormNational extends FormNationalAction.Base implements FormNation
         cgr.floated = true
         cgr.funded = true
         cgr.parPrice = Market1856.space(marketSpaceId).price
-        cgr.president = { kind: 'player', playerId: exchange.presidentId }
         if (exchange.shareCount === 20) cgr.shareCount = 20
         placeStockMarker(state.stockMarket, CgrId, marketSpaceId)
         let cash = 0
@@ -549,7 +549,7 @@ class HydratedChooseNationalStations
     apply(state: HydratedState1856): void {
         assert(
             this.source === ActionSource.User &&
-                getCompany(state, CgrId).president?.kind === 'player' &&
+                presidentOf(state, CgrId)?.kind === 'player' &&
                 presidentId(state, CgrId) === this.playerId &&
                 !nationalStationsReason(state, this.stationIds),
             'The CGR’s president keeps a legal set of stations'

@@ -1,10 +1,10 @@
 # Shared client autorouter
 
-The current private wire protocol is **version 7**. All route search and fleet
-selection for 1862 run in Rust. TypeScript encodes declared policy and validates
-the returned operation, including exact revenue and subsidy agreement. The
-sections below retain the development history; the final section describes the
-current connected-fleet policy and algorithm.
+The current private wire protocol is **version 11**. All route search and fleet
+selection for 1862 and 1860 run in Rust. TypeScript encodes declared policy and
+validates the returned operation, including exact revenue and subsidy agreement.
+The sections below retain the development history; the last two sections describe
+the current connected-fleet policy and algorithm and the passing rules 1860 adds.
 
 ## Compact candidate storage
 
@@ -488,3 +488,75 @@ All 1,434 recorded ordinary-title problems (1817, 1830, 1832, 1846, 1889 and TOP
 completed exhaustively with identical route output and revenue before and after
 this change. The fixture corpus and timing scripts remain outside the repository
 at `/workspace/tmp/1862-autorouter/`; the WStI state is a checked-in regression.
+
+## Passed stops, halts, hex reentry and blocked passes
+
+1860 (Railways on the Isle of Wight) adds five route rules to the family, each a
+`RouteRules` hook or tile trait in `routes/routeEvaluation.ts`, and declares
+`fleet.connectivity.at` as a list of stop kinds. Wire version 11 encodes them;
+worker and WASM are rebuilt together.
+
+| Rule                | Canonical semantics                                                                                                                     | Encoding                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Halts               | A `halt` town never begins or ends a route.                                                                                             | The stop's `endpoint` flag is false.                      |
+| `stopOptional`      | A train may pass a middle stop without calling at it; ends are always called. Called stops alone count toward distance and pay.         | Per train, `optional[stop]`.                              |
+| `stopSubsidy`       | Each called stop pays the treasury beside revenue; the route's `subsidy` is their sum, added to the run's.                              | Per train, `subsidies[stop]`; only with a declared fleet. |
+| `forbidsHexReentry` | A route may not leave a hex and enter it again; consecutive paths in one hex are one stay.                                              | `no_reentry`.                                             |
+| `blockedCityPasses` | Routes may run through this many tokened-out cities (never offboards), all routes of the run together; ends at blocked cities are free. | `blocked_passes`; only with a declared fleet.             |
+
+A leased train (`leasedTrain`) needs no encoding of its own: it is one of
+`runnableTrains`, and its running definition and stop values come from the
+title's `extendedDefinition` and `stopRevenue`.
+
+**Called stops.** `RouteEvaluation.calledStops` starts from the required stops,
+the ones the train may not pass and both ends, rejecting the route when those
+alone exceed its distance. It then adds optional stops in order of revenue plus
+subsidy, descending, ties by revenue and then by visit order, skipping stops
+worth nothing, keeping each only while the distance still holds. Rust's
+`Train::called` makes the same choice over the same order: the route as the
+game will run it, reversed where the candidate is stored reversed. Each addition
+costs a fixed amount of the distance budget and of the N+s major budget, so
+the incremental check equals the canonical whole-set check. With unit-cost
+optional stops the greedy choice is also the best one for the route; where it is
+not (mixed costs), the solver still reproduces the game's choice, which is what
+the run will be paid.
+
+**Search.** While walking, an optional stop costs nothing and pays nothing; only
+required stops and the start count toward the distance pruning and the token
+distance bound, which therefore stay admissible. On recording a route its end
+is charged if optional and the route is dropped if over budget, then the called
+set is chosen, and revenue and subsidy are computed from it; connection bonuses
+and paying-stop limits see only called stops, as `payingRouteStops` does. The
+walk counts tokened-out cities and towns it runs through and stops at the
+limit; offboards are never passed. When reentry is forbidden, the compiler drops
+connections whose own hex sequence reenters a hex and keeps each connection's
+sequence of hexes beside it; the walk marks the hexes the route has been in,
+starting with the start's, and rejects a connection entering any of them. These
+apply to ordinary searches as well as fleets.
+
+**Objective and fleet selection.** As for 1862's Local hex subsidy, the fleet
+search maximises revenue plus subsidy, reported as two amounts. A route's stop
+subsidy is part of its choice's `add` and kept apart for the reported split. The
+run-wide blocked-pass budget is a side constraint like track: each choice
+carries its pass count, a choice that would exceed the budget is not taken,
+dominance requires no more passes, and idle branches are searched whenever
+passes or track can make one unit's choice exclude another's. Bounds ignore the
+budget, so they stay admissible. Among fleets of equal total value the first
+found is kept (strict improvement), as before. Connectivity uses every visited
+stop of the declared kinds, called or passed, and the root is any visit of the
+home station, matching `settleFleetRoutes`.
+
+**Limits.** Stop subsidies and blocked passes are rejected without a fleet
+policy: the ordinary selector weighs revenue alone and does not share a pass
+budget between trains. A passed stop may not carry a stop bonus, since the game
+chooses calls by value without it. Interconnection extensions ignore reentry, as
+the canonical rule reads only the route's own paths.
+
+**Verification.** A native oracle extends the fleet permutation oracle with
+optional stops (its own greedy), halts, subsidies, pass budgets and hex
+sequences; 240 generated fleets agree. TypeScript compares the WASM solver with
+exhaustive canonical enumeration on 48 generated maps with halts, halts joined to
+towns and tokened-out cities, without a fleet policy on 24 more, and for a leased
+train. 1860's `autorouter.spec.ts` checks played positions and prepared ones
+against a bounded exhaustive canonical search, which asserts that every fleet it
+evaluates earns the sum of its routes.

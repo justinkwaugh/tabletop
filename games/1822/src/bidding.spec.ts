@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { committedCash, evaluateBids, leadingBid, trainsOwnedBy } from '@tabletop/18xx'
+import { committedCash, evaluateBids, leadingBid, trainsOwnedBy, presidentOf } from '@tabletop/18xx'
 import { Random, botMove } from '../test/bot.js'
 import { boxLot, kit, type Table } from '../test/kit.js'
 import { cashOf, company, player } from '../test/positions.js'
@@ -166,7 +166,8 @@ describe('the end of a stock round (§4.10)', () => {
         const state = game.state
         // Phase 1: £50 with £100 whatever was bid (§3.3.5).
         const minor = state.companies.find((entry) => entry.id === FirstMinorId)
-        expect(minor).toMatchObject({ floated: true, parPrice: 50, president: player(second) })
+        expect(minor).toMatchObject({ floated: true, parPrice: 50 })
+        expect(presidentOf(state, FirstMinorId)).toEqual(player(second))
         expect(cashOf(state, company(FirstMinorId))).toBe(100)
         // The operating round has begun: P1 has paid £5 and the concession £10 (§3.1.1, §3.2.4).
         expect(cashOf(state, player(second))).toBe(525 - 130 + 5)

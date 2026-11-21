@@ -37,7 +37,9 @@ const Color = {
     Invited: 0xa855f7,
     Joined: 0x14b8a6,
     Declined: 0x6b7280,
-    Vote: 0xf59e0b
+    Vote: 0xf59e0b,
+    Seated: 0x0ea5e9,
+    Unseated: 0x6b7280
 } as const
 
 export function discordNotificationMessage(
@@ -139,6 +141,22 @@ function notificationCopy(notification: UserNotification): NotificationCopy {
                 color: Color.Vote,
                 path: gamePath,
                 buttonLabel: 'Vote'
+            }
+        case UserNotificationAction.TookOverSeat:
+            return {
+                summary: `You've taken over ${notification.data.formerHolder.name}'s seat in ${gameName}`,
+                heading: `An administrator gave you ${notification.data.formerHolder.name}'s seat`,
+                color: Color.Seated,
+                path: gamePath,
+                buttonLabel: 'Open game'
+            }
+        case UserNotificationAction.LostSeat:
+            return {
+                summary: `${notification.data.newHolder.name} has taken over your seat in ${gameName}`,
+                heading: `An administrator gave your seat to ${notification.data.newHolder.name}`,
+                color: Color.Unseated,
+                path: DASHBOARD_PATH,
+                buttonLabel: 'Open dashboard'
             }
     }
 }

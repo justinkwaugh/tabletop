@@ -85,14 +85,18 @@ export class TileSet {
     readonly definitions: readonly TileDefinition[]
     readonly pieces: readonly TilePiece[]
     private readonly piecesById: Map<string, TilePiece>
+    /** What a town standing on a laid tile's plain track is worth, such as 1862's small stations. */
+    readonly trackStopRevenue?: number
     private readonly variants: Readonly<Record<string, TileSetVariant>>
     private readonly variantRemovedPieceIds: ReadonlyMap<string, ReadonlySet<string>>
 
     constructor(
         manifest: TileManifest,
         catalogs: readonly TileCatalog[],
-        variants: Readonly<Record<string, TileSetVariant>> = {}
+        variants: Readonly<Record<string, TileSetVariant>> = {},
+        { trackStopRevenue }: { trackStopRevenue?: number } = {}
     ) {
+        if (trackStopRevenue !== undefined) this.trackStopRevenue = trackStopRevenue
         assert(ManifestValidator.Check(manifest), 'Invalid tile manifest')
         assert(
             new Set(manifest.entries.map((entry) => entry.id)).size === manifest.entries.length,

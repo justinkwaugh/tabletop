@@ -8,7 +8,8 @@ import {
     closeZeroPriceCorporations,
     reorderPendingOperatingCompanies,
     sellBankruptHoldings,
-    type EliminationRules
+    type EliminationRules,
+    presides
 } from '@tabletop/18xx'
 import { closeRailroad, RailroadClosure } from './closeCorporation.js'
 import { inReceivership } from '@tabletop/18xx'
@@ -36,20 +37,22 @@ export const Elimination1846: EliminationRules<typeof BankruptcyChanges1846> = {
     schema: BankruptcyChanges1846,
     eliminate(state: HydratedEighteenFortySixState, playerId): BankruptcyChanges1846 {
         const player = { kind: 'player' as const, playerId }
+        const presidedIndependentIds = state.companies
+            .filter(
+                (company) =>
+                    company.kind === 'minor' &&
+                    !company.closed &&
+                    presides(state, company.id, player)
+            )
+            .map((company) => company.id)
         const { forcedSales, payments } = sellBankruptHoldings(
             { market: Market1846, marketPoolId: 'open-market' },
             state,
             playerId
         )
-        const closedRailroads = state.companies
-            .filter(
-                (company) =>
-                    company.kind === 'minor' &&
-                    !company.closed &&
-                    company.president?.kind === 'player' &&
-                    company.president.playerId === playerId
-            )
-            .map((company) => closeRailroad(state, company.id))
+        const closedRailroads = presidedIndependentIds.map((companyId) =>
+            closeRailroad(state, companyId)
+        )
         const closedPrivateIds = certificatesOwnedBy(state, player)
             .filter((certificate) => certificate.kind === 'private')
             .map((certificate) => certificate.companyId)

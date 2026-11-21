@@ -138,7 +138,7 @@ class HydratedConvertCentral extends ConvertCentralAction.Base {
         assertExists(certificate, 'The SCR president’s certificate is in the IPO')
         certificate.owner = player
         delete certificate.poolId
-        startCompanyAtPar(state, Market1882, ScrId, this.marketSpaceId, player)
+        startCompanyAtPar(state, Market1882, ScrId, this.marketSpaceId)
         closePrivate(state, ScId)
         const replaced = placedNeutralStations(state).find((station) =>
             sameStationPosition(station.position, this.home)
@@ -149,12 +149,16 @@ class HydratedConvertCentral extends ConvertCentralAction.Base {
                     ? { id: station.id, companyId: station.companyId, status: 'removed' }
                     : station
             )
-        applyStationPlacement(state, {
-            companyId: ScrId,
-            stationId: homeStationId(ScrId),
-            position: { ...this.home },
-            cost: 0
-        })
+        applyStationPlacement(
+            state,
+            {
+                companyId: ScrId,
+                stationId: homeStationId(ScrId),
+                position: { ...this.home },
+                cost: 0
+            },
+            Map1882
+        )
         const extra = this.addExtraTrain(state)
         recordStockAction(state, this.playerId, StockRules1882.round)
         markTurnPurchase(state)

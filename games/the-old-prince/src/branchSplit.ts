@@ -13,6 +13,7 @@ import {
     recordStockAction,
     exceedsStockLimits,
     nextCompanyToFloat,
+    presides,
     allPlayersPassed,
     certificatesForShares,
     certificatesOwnedBy,
@@ -100,8 +101,7 @@ export class TheOldPrinceBranchSplit {
         const owner: Owner = { kind: 'player', playerId }
         if (exceedsStockLimits(state, owner, TheOldPrinceStockRules))
             return 'Sell down to the stock limits before starting a branch.'
-        if (!parent.president || !sameOwner(parent.president, owner))
-            return 'You must be the parent’s president.'
+        if (!presides(state, parentId, owner)) return 'You must be the parent’s president.'
         if (sharesOwned(state, parentId, owner) < 4)
             return 'You must own at least four parent shares.'
         if (this.stations(parentId).length < 2)
@@ -384,7 +384,6 @@ export class TheOldPrinceBranchSplit {
         child.funded = true
         child.floated = false
         child.operated = false
-        child.president = { kind: 'player', playerId: request.playerId }
         child.parPrice = TheOldPrinceMarket.space(request.marketSpaceId).price
         TheOldPrinceMarket.placeMarker(state.stockMarket, child.id, request.marketSpaceId)
         tranche.companyIds.push(child.id)

@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "25.1.0",
+    "version": "25.3.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
