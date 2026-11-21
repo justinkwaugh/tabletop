@@ -343,12 +343,18 @@ describe('the golden spike (corporate mats)', () => {
             {}
         )
         for (const company of state.companies)
-            if (company.id === 'StL&A' || company.id === 'A&StL') {
-                company.started = true
-                company.president = {
+            if (company.id === 'StL&A' || company.id === 'A&StL') company.started = true
+        for (const certificate of state.certificates)
+            if (
+                certificate.kind === 'share' &&
+                certificate.president &&
+                (certificate.companyId === 'StL&A' || certificate.companyId === 'A&StL')
+            ) {
+                certificate.owner = {
                     kind: 'player',
-                    playerId: company.id === 'StL&A' ? 'p1' : 'p2'
+                    playerId: certificate.companyId === 'StL&A' ? 'p1' : 'p2'
                 }
+                delete certificate.poolId
             }
         state.spikeLayers = ['StL&A']
         const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)

@@ -20,6 +20,7 @@ import {
 } from './trains.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { TrackRules1846 } from './track.js'
+import { EighteenFortySixMap } from './map.js'
 import { pendingBlockingStations } from './stations.js'
 import { corporateFinanceChoices } from '@tabletop/18xx'
 import { CorporateFinanceRules1846 } from './corporateFinance.js'
@@ -198,7 +199,8 @@ describe('1846 complete two-player rules', () => {
         ).toMatchObject({ position: { locationId: 'D20', slot: 1 } })
         validateStations(
             table.state,
-            table.state.companies.map((company) => company.id)
+            table.state.companies.map((company) => company.id),
+            EighteenFortySixMap
         )
     })
 
@@ -228,7 +230,8 @@ describe('1846 complete two-player rules', () => {
         ).toBe(false)
         validateStations(
             table.state,
-            table.state.companies.map((company) => company.id)
+            table.state.companies.map((company) => company.id),
+            EighteenFortySixMap
         )
         replayAndUndo(table, before, result.processedActions)
         table.state.phaseId = 'III'

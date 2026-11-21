@@ -7,6 +7,8 @@ import {
     closePrivate,
     finiteCashOwnedBy,
     getCompany,
+    presidentCertificate,
+    presidentOf,
     sharesOwned,
     type TrainRoute
 } from '@tabletop/18xx'
@@ -224,7 +226,7 @@ describe('18RoyalGorge stock rounds', () => {
             expectedPrice: 45
         })
         expect(sharesOwned(game.state, VgcId, { kind: 'player', playerId: buyer })).toBe(1)
-        expect(getCompany(game.state, VgcId).president).toBeUndefined()
+        expect(presidentOf(game.state, VgcId)).toBeUndefined()
     })
 
     it('gives William Palmer’s buyer a Rio Grande and a CF&I share, Rio Grande paid nothing (Y4, SC-8)', () => {
@@ -680,7 +682,11 @@ describe('18RoyalGorge private powers', () => {
 
         // After the payout the treasury or the president, as chosen, pays it whole.
         const president = { kind: 'player' as const, playerId: 'p2' }
-        Object.assign(getCompany(state, SfId), { started: true, president })
+        getCompany(state, SfId).started = true
+        const certificate = presidentCertificate(state, SfId)
+        assertExists(certificate, 'The Santa Fe has its president’s certificate')
+        certificate.owner = president
+        delete certificate.poolId
         const payers = () =>
             BridgeLeasePayers.filter((payer) => bridgeLeasePayments(state, SfId, payer))
         setCash(state, { kind: 'company', companyId: SfId }, 17)

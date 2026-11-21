@@ -17,7 +17,8 @@ import {
     evaluateShareSale,
     treasuryPoolId,
     type RoutePath,
-    type Owner
+    type Owner,
+    presidentOf
 } from '@tabletop/18xx'
 import { emergencyBuyingGame, fundTrain, fundingModel } from '../test/testSupport.js'
 import { ReceivershipRules1846 } from './receivership.js'
@@ -191,7 +192,7 @@ describe('1846 bankruptcy and receivership', () => {
         const { actions, declared } = goBankrupt(table)
         expect(declared.metadata).toMatchObject({ continuation: 'FundingTrain' })
         const handed = stateAfter(table, before, actions, 'DeclareBankruptcy')
-        expect(getCompany(handed, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(presidentOf(handed, 'IC')).toEqual({ kind: 'player', playerId: 'p2' })
         expect(handed.machineState).toBe('FundingTrain')
         expect(handed.activePlayerIds).toEqual(['p2'])
         expect(handed.trainFunding?.playerId).toBe('p2')
@@ -258,7 +259,7 @@ describe('1846 bankruptcy and receivership', () => {
         expect(trainsOwnedBy(table.state, treasury).map((train) => train.definitionId)).toEqual([
             '3/5'
         ])
-        expect(getCompany(table.state, 'IC').president).toBeUndefined()
+        expect(presidentOf(table.state, 'IC')).toBeUndefined()
         let replay = before
         for (const action of actions)
             replay = table.engine.applyProcessedAction({ game: table.game, state: replay, action })
@@ -389,7 +390,7 @@ describe('1846 bankruptcy and receivership', () => {
         const cash = finiteCashOwnedBy(table.state, { kind: 'player', playerId: 'p2' })
         const price = Market1846.companySpace(table.state.stockMarket, 'IC').price
         const result = table.buy('IC', 'bank')
-        expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(presidentOf(table.state, 'IC')).toEqual({ kind: 'player', playerId: 'p2' })
         expect(result.processedActions[0].metadata).toMatchObject({
             presidencyClaim: { companyId: 'IC' }
         })
@@ -409,7 +410,7 @@ describe('1846 bankruptcy and receivership', () => {
         }
         expect(stockCertificateCount(table.hydrated, owner, StockRules1846)).toBe(limit)
         table.buy('IC', 'bank')
-        expect(getCompany(table.state, 'IC').president).toEqual(owner)
+        expect(presidentOf(table.state, 'IC')).toEqual(owner)
         expect(stockCertificateCount(table.hydrated, owner, StockRules1846)).toBe(limit)
     })
     it('permits buying half the market president certificate only with a 10% exchange', () => {
@@ -433,7 +434,7 @@ describe('1846 bankruptcy and receivership', () => {
             companyId: 'IC',
             expectedPrice: offer.price
         })
-        expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(presidentOf(table.state, 'IC')).toEqual({ kind: 'player', playerId: 'p2' })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: 'p2' })).toBe(2)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
         expect(result.processedActions.map((action) => action.type)).toEqual([

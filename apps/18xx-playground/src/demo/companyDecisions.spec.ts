@@ -221,7 +221,6 @@ it.each(Titles)(
 it('TOP applies one explicit confirmation when the same player controls both companies through Union Bank', () => {
     const { game, engine, state } = example(Top, 'transfers')
     const controller = { kind: 'company', companyId: 'UB' } as const
-    getCompany(state, 'So').president = controller
     const certificate = state.certificates.find((item) => item.id === 'So:president')!
     certificate.owner = controller
     const request = purchaseChoices(

@@ -74,7 +74,7 @@ describe('a pool holding the president’s certificate of a company in receivers
     const state = (started: boolean, president?: { kind: 'player'; playerId: string }) =>
         ({
             bank: {},
-            companies: [{ id: 'A', kind: 'major', started, ...(president ? { president } : {}) }],
+            companies: [{ id: 'A', kind: 'major', started }],
             cash: [],
             certificatePools: [{ id: 'market', owner: bank }],
             certificates: [
@@ -84,8 +84,7 @@ describe('a pool holding the president’s certificate of a company in receivers
                     companyId: 'A',
                     shares: 2,
                     president: true,
-                    owner: bank,
-                    poolId: 'market'
+                    ...(president ? { owner: president } : { owner: bank, poolId: 'market' })
                 }
             ]
         }) satisfies FinancialState

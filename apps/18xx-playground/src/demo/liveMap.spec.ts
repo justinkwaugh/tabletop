@@ -71,8 +71,11 @@ it('projects TOP flotation, replay and Undo onto live stations and reservations'
     expect(reachesHome(result.updatedState, 'A')).toBe(true)
     expect(reachesHome(result.updatedState, 'PEIR')).toBe(false)
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'A' })).toBe(800)
-    const before = stationMapTokens(state, { stations: appearances })
-    const after = stationMapTokens(result.updatedState, { stations: appearances })
+    const before = stationMapTokens(state, { map: TheOldPrinceMap, stations: appearances })
+    const after = stationMapTokens(result.updatedState, {
+        map: TheOldPrinceMap,
+        stations: appearances
+    })
     expect(before.find((token) => token.id === 'PEIR:A')).toMatchObject({ locationId: 'D6' })
     expect(after.find((token) => token.id === 'PEIR:A')).toBeUndefined()
     expect(after.find((token) => token.id === 'A:home')).toMatchObject({
@@ -92,12 +95,14 @@ it('projects TOP flotation, replay and Undo onto live stations and reservations'
     let replay = state
     for (const action of result.processedActions)
         replay = engine.applyProcessedAction({ game, state: replay, action })
-    expect(stationMapTokens(replay, { stations: appearances })).toEqual(after)
+    expect(stationMapTokens(replay, { map: TheOldPrinceMap, stations: appearances })).toEqual(after)
     expect(reachesHome(replay, 'A')).toBe(true)
     for (const action of [...result.processedActions].reverse())
         replay = engine.undoProcessedAction({ state: replay, action })
     expect(replay).toEqual(state)
-    expect(stationMapTokens(replay, { stations: appearances })).toEqual(before)
+    expect(stationMapTokens(replay, { map: TheOldPrinceMap, stations: appearances })).toEqual(
+        before
+    )
     expect(reachesHome(replay, 'PEIR')).toBe(true)
     expect(reachesHome(replay, 'A')).toBe(false)
 })

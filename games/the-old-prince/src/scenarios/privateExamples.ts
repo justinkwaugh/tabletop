@@ -40,8 +40,7 @@ export function prepareTheOldPrincePrivates(
         floated: true,
         funded: true,
         operated: true,
-        parPrice: 80,
-        president: { kind: 'player', playerId: players[3].playerId }
+        parPrice: 80
     })
     const president = state.certificates.find((item) => item.id === 'A:president')
     assert(president, 'Private example requires a president')

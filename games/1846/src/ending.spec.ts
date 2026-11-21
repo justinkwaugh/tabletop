@@ -8,7 +8,8 @@ import {
     isEndGame,
     nextOperatingCompany,
     placeStockMarker,
-    trainsOwnedBy
+    trainsOwnedBy,
+    presidentOf
 } from '@tabletop/18xx'
 import { buyTrain, constructionGame, emergencyBuyingGame, stockGame } from '../test/testSupport.js'
 import { corporateFinanceChoices } from '@tabletop/18xx'
@@ -241,7 +242,7 @@ describe('1846 game endings', () => {
 
     it('values stock at the final price without adding corporate cash or assets', () => {
         const table = buyingGame()
-        const president = getCompany(table.state, 'IC').president
+        const president = presidentOf(table.state, 'IC')
         assert(president?.kind === 'player')
         const certificate = certificatesOwnedBy(table.state, president).find(
             (certificate) => certificate.companyId === 'IC'

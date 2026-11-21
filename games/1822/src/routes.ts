@@ -118,7 +118,7 @@ export const RouteRules1822: RouteRules = {
         if (center.locationId !== EnglishChannelLocationId) return true
         const node = stopNode(state, center)
         assertExists(node, 'The English Channel has no stop')
-        return !cityIsBlocked(state, companyId, center.locationId, node)
+        return !cityIsBlocked(state, Map1822, companyId, center.locationId, node)
     },
     // An E train stops only at its company's stations, and at France through a station of its
     // own in the English Channel; it passes every other stop (§5.5.8, §5.9.2).

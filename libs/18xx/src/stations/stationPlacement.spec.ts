@@ -3,7 +3,12 @@ import { HexOrientation } from '@tabletop/common'
 import { RailwayMap } from '../map/map.js'
 import { createCityTileFace } from '../tiles/faces.js'
 import { TileSet } from '../tiles/inventory.js'
-import { cityIsBlocked, placeableStations } from '../map/station.js'
+import {
+    CompanyStationsOnly,
+    cityIsBlocked,
+    placeableStations,
+    type NeutralStation
+} from '../map/station.js'
 import {
     StationPlacement,
     applyStationPlacement,
@@ -11,18 +16,21 @@ import {
     type StationRules
 } from './stationPlacement.js'
 const tileSet = new TileSet({ id: 'test', entries: [] }, [])
-function fixture(slots: number) {
-    const map = new RailwayMap({
-        id: 'test',
-        name: 'Test',
-        orientation: HexOrientation.Flat,
-        locations: [0, 1].map((r) => ({
-            id: String(r),
-            coordinates: { q: 0, r },
-            buildable: true,
-            preprintedTile: createCityTileFace('green', [0, 3], 30, r ? slots : 1)
-        }))
-    })
+function fixture(slots: number, neutralStations: readonly NeutralStation[] = []) {
+    const map = new RailwayMap(
+        {
+            id: 'test',
+            name: 'Test',
+            orientation: HexOrientation.Flat,
+            locations: [0, 1].map((r) => ({
+                id: String(r),
+                coordinates: { q: 0, r },
+                buildable: true,
+                preprintedTile: createCityTileFace('green', [0, 3], 30, r ? slots : 1)
+            }))
+        },
+        { neutralStations }
+    )
     const state: StationPlacementState = {
         phaseId: 'green',
         tranches: [],
@@ -60,7 +68,7 @@ it('protects reserved capacity while allowing another company to use surplus cap
     const placement = new StationPlacement(state, rules)
     expect(placement.openSlots('A', '1', 'city')).toEqual([0, 1])
     const details = placement.choices('A:extra')[0]
-    applyStationPlacement(state, details)
+    applyStationPlacement(state, details, CompanyStationsOnly)
     expect(new StationPlacement(state, rules).openSlots('C', '1', 'city')).toEqual([])
     expect(new StationPlacement(state, rules).openSlots('B', '1', 'city')).toEqual([1])
     expect(state.stationReservations).toHaveLength(1)
@@ -71,7 +79,7 @@ it('protects reserved capacity while allowing another company to use surplus cap
     const home = new StationPlacement(state, homeRules).homePlacements()[0]
     expect(home.cost).toBe(0)
     expect(home.position.slot).toBe(1)
-    applyStationPlacement(state, home)
+    applyStationPlacement(state, home, CompanyStationsOnly)
     expect(state.stationReservations).toEqual([])
 })
 it('does not double-count a reservation whose replacement station already occupies capacity', () => {
@@ -151,43 +159,49 @@ it('allows explicit remote placement while preserving cost, capacity and allowan
 })
 
 it('places a held neutral station beside its holder’s own, one to a hex, and lets every route through', () => {
-    const { state, rules } = fixture(2)
+    const { state, rules } = fixture(2, [
+        { stationId: 'N:A', heldBy: 'A' },
+        { stationId: 'N:B', heldBy: 'B' }
+    ])
     state.stationReservations = []
     state.companies.push({ id: 'N', kind: 'major', floated: true })
     state.stations.push(
         { id: 'N:A', companyId: 'N', status: 'available' },
         { id: 'N:B', companyId: 'N', status: 'available' }
     )
-    state.neutralStations = [
-        { stationId: 'N:A', heldBy: 'A' },
-        { stationId: 'N:B', heldBy: 'B' }
-    ]
-    expect(placeableStations(state, 'A').map((station) => station.id)).toEqual(['A:extra', 'N:A'])
-    expect(placeableStations(state, 'N')).toEqual([])
-    applyStationPlacement(state, {
-        companyId: 'A',
-        stationId: 'A:extra',
-        position: { locationId: '1', nodeId: 'city', slot: 0 },
-        cost: 40
-    })
+    expect(placeableStations(state, rules.map, 'A').map((station) => station.id)).toEqual([
+        'A:extra',
+        'N:A'
+    ])
+    expect(placeableStations(state, rules.map, 'N')).toEqual([])
+    applyStationPlacement(
+        state,
+        {
+            companyId: 'A',
+            stationId: 'A:extra',
+            position: { locationId: '1', nodeId: 'city', slot: 0 },
+            cost: 40
+        },
+        CompanyStationsOnly
+    )
     const city = {
         id: 'city',
         kind: 'city' as const,
         stationSlots: 2,
         revenue: { kind: 'fixed' as const, amount: 30 }
     }
-    expect(cityIsBlocked(state, 'C', '1', city)).toBe(false)
+    expect(cityIsBlocked(state, rules.map, 'C', '1', city)).toBe(false)
     // The holder places it where it already has a station.
     const [neutral, ...others] = new StationPlacement(state, rules).choices('N:A')
     expect(others).toEqual([])
     expect(neutral.position).toEqual({ locationId: '1', nodeId: 'city', slot: 1 })
-    applyStationPlacement(state, neutral)
+    applyStationPlacement(state, neutral, rules.map)
     expect(state.stations.find((station) => station.id === 'N:A')).toMatchObject({
         companyId: 'N',
         status: 'placed'
     })
     // A full city with a neutral station stays open to every route.
-    expect(cityIsBlocked(state, 'C', '1', city)).toBe(false)
+    expect(cityIsBlocked(state, rules.map, 'C', '1', city)).toBe(false)
     // One neutral station to a hex.
     expect(new StationPlacement(state, rules).openSlots('N', '1', 'city')).toEqual([])
 })

@@ -11,6 +11,7 @@ import {
     issueShareCertificates,
     marketSaleTerms,
     playersAfterPresident,
+    presidentOf,
     privateOwner,
     settleCashPayments,
     sharesOwned,
@@ -262,7 +263,7 @@ export function marketSale(
     const company = getCompany(state, companyId)
     if (
         !companyShareCount(state, EighteenSeventeenCharters, companyId) ||
-        !company.president ||
+        !presidentOf(state, companyId) ||
         company.closed
     )
         return 'This company has no saleable shares.'

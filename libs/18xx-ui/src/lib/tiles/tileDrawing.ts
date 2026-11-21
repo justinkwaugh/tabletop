@@ -15,7 +15,8 @@ import {
     type TileFace,
     type TileNode,
     type TilePath,
-    type TileRotation
+    type TileRotation,
+    isHalt
 } from '@tabletop/18xx'
 import {
     createArcTilePath,
@@ -96,6 +97,13 @@ export type TileLayout = {
      */
     printedShapes?: readonly TilePrintedShape[]
     hideRevenue?: true | readonly string[]
+    /**
+     * The sign a halt prints in place of a value, such as 1860's £ for the subsidy it pays; a
+     * halt prints no value otherwise.
+     */
+    haltSymbol?: string
+    /** The fill of a halt's stop, outlined in ink, such as 1860's grey; paper otherwise. */
+    haltFill?: string
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
     /** Centres the revenue, with any badge beneath it on a map, on the hex's middle line. */
@@ -177,6 +185,10 @@ export type TileDrawnNode = {
     /** Station circle radius: the style's size, reduced so neighbouring cities on the tile stay apart. */
     slotRadius: number
     townAngle?: number
+    /** The sign a halt prints where a stop's value would stand. */
+    haltSymbol?: string
+    /** The fill of a halt's stop. */
+    haltFill?: string
     /**
      * Radius of a node drawn as a dot: a town's is larger where three or more tracks meet, and a
      * city without station spaces fills a station circle, since it is still a city.
@@ -487,8 +499,12 @@ export function createTileDrawing(
     const drawnNodes = face.nodes.map((node): Omit<TileDrawnNode, 'slotRadius'> => {
         const center = centers.get(node.id)
         assertExists(center, `Unknown tile node ${node.id}`)
+        const halt = isHalt(node)
+        const haltSymbol = halt ? layout.haltSymbol : undefined
         const revenueHidden =
-            layout.hideRevenue === true || (layout.hideRevenue?.includes(node.id) ?? false)
+            layout.hideRevenue === true ||
+            (layout.hideRevenue?.includes(node.id) ?? false) ||
+            (halt && !haltSymbol)
         const hint =
             layout.revenuePositionsByOrientation?.[orientation]?.[node.id] ??
             layout.revenuePositionsByRotation?.[rotation]?.[node.id] ??
@@ -568,6 +584,8 @@ export function createTileDrawing(
             revenueCells,
             revenueHidden,
             townAngle,
+            ...(haltSymbol ? { haltSymbol } : {}),
+            ...(halt && layout.haltFill ? { haltFill: layout.haltFill } : {}),
             dotRadius
         }
     })

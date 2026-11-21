@@ -1,5 +1,5 @@
 import { Shikoku1889Market } from './stockMarket.js'
-import { ReserveBidAuction, cashOwnedBy } from '@tabletop/18xx'
+import { ReserveBidAuction, cashOwnedBy, presidentOf } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { expect, it } from 'vitest'
@@ -60,7 +60,7 @@ it.each([2, 3, 4, 5, 6])('creates the standard %i-player opening', (count) => {
     )
     const majors = state.companies.filter((c) => c.kind === 'major')
     expect(majors).toHaveLength(7)
-    expect(majors.every((c) => !c.started && !c.floated && !c.president)).toBe(true)
+    expect(majors.every((c) => !c.started && !c.floated && !presidentOf(state, c.id))).toBe(true)
     expect(
         state.certificates
             .filter((c) => c.kind === 'share')

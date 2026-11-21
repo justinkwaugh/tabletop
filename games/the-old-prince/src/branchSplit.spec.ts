@@ -25,6 +25,12 @@ function allocate(state: TheOldPrinceState, owners: { owner: Owner; poolId?: str
         if (allocation.poolId) certificate.poolId = allocation.poolId
     }
 }
+function movePresidency(state: TheOldPrinceState, owner: Owner) {
+    const certificate = state.certificates.find((c) => c.id === 'So:president')
+    if (!certificate) throw new Error('Missing parent president’s certificate')
+    certificate.owner = owner
+    delete certificate.poolId
+}
 it('previews the 50/30/20 split with exact certificate identities and no canonical changes', () => {
     const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     const before = structuredClone(state)
@@ -133,7 +139,7 @@ it('does not combine a player’s shares with Union Bank for split eligibility',
     expect(new TheOldPrinceBranchSplit(state).evaluate(request).reason).toMatch(
         /four parent shares/
     )
-    getCompany(state, 'So').president = union
+    movePresidency(state, union)
     expect(new TheOldPrinceBranchSplit(state).evaluate(request).reason).toMatch(/president/)
 })
 describe('split eligibility', () => {
@@ -153,7 +159,7 @@ describe('split eligibility', () => {
         [
             'wrong president',
             (state: TheOldPrinceState) => {
-                getCompany(state, 'So').president = blair
+                movePresidency(state, blair)
             }
         ],
         [

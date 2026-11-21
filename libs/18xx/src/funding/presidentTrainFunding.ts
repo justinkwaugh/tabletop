@@ -1,5 +1,5 @@
 import { assertExists } from '@tabletop/common'
-import { getCompany, sharesOwned } from '../finance/finance.js'
+import { getCompany, presidentOf, sharesOwned } from '../finance/finance.js'
 import { companyShareCount } from '../company/companyCharters.js'
 import { reorderPendingOperatingCompanies, type OperatingRules } from '../operating/operatingSet.js'
 import { purchaseOwnershipCeiling, type StockRules } from '../stock/stockRules.js'
@@ -25,7 +25,7 @@ export function presidentTrainFundingRules(options: {
         includeMarketTrains: true,
         repeatSales: options.repeatSales,
         contributors(state, companyId) {
-            const president = getCompany(state, companyId).president
+            const president = presidentOf(state, companyId)
             assertExists(president, 'A railway requires its president')
             return [president]
         },

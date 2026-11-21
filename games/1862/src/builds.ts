@@ -24,9 +24,6 @@ import { homeBuildLocation } from './homes.js'
 import type { HydratedState1862 } from './state.js'
 import { TileSet1862 } from './tiles.js'
 
-/** A small station is worth £20 to Local trains (§7.8.2). */
-export const SmallStationRevenue = 20
-
 /** Whether the operating company may still make its turn's one build of this kind (§7.6). */
 function buildOpen(state: HydratedState1862, playerId: string, companyId: string): boolean {
     const step = state.trackStep
@@ -87,10 +84,7 @@ export class HydratedPlaceSmallStation extends PlaceSmallStationAction.Base {
         assert(this.isValid(state), 'A small station goes on an open line of plain track')
         const placement = state.tileInventory.placements[this.locationId]
         assertExists(placement, 'A small station stands on a laid tile')
-        placement.trackStops = [
-            ...(placement.trackStops ?? []),
-            { edges: [...this.edges], revenue: SmallStationRevenue }
-        ]
+        placement.trackStops = [...(placement.trackStops ?? []), { edges: [...this.edges] }]
         state.build = 'small-station'
     }
 }
@@ -110,7 +104,7 @@ export function reachesLondon(state: HydratedState1862, companyId: string): bool
     const mapState = new RailwayMapState(Map1862, TileSet1862, state.tileInventory)
     const reach = new ConstructionReachability(mapState, state, companyId, (locationId, nodeId) => {
         const node = mapState.tile(locationId).face.nodes.find((entry) => entry.id === nodeId)
-        return !!node && cityIsBlocked(state, companyId, locationId, node)
+        return !!node && cityIsBlocked(state, Map1862, companyId, locationId, node)
     })
     return LondonLocationIds.some((locationId) => reach.canReach(locationId))
 }

@@ -2,6 +2,7 @@ import {
     assetOwner,
     evaluatePurchaseOffer,
     type PurchaseAsset,
+    type PriceRange,
     type PurchaseOfferRequest,
     type TransferRules
 } from './purchaseOffer.js'
@@ -13,7 +14,7 @@ export function purchaseChoices(
     playerId: string,
     rules: TransferRules,
     trains: TrainRules
-): { request: PurchaseOfferRequest; minimum: number; maximum?: number }[] {
+): ({ request: PurchaseOfferRequest } & PriceRange)[] {
     const companyId = rules.operatingCompany(state)
     if (
         !companyId ||

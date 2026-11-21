@@ -6,6 +6,7 @@ import {
     controllingOwner,
     floatedCompaniesInMarketOrder,
     getCompany,
+    presidentOf,
     isObsoleteTrain,
     marketDiscardOrder,
     payOrWithholdEarningsRules,
@@ -61,7 +62,7 @@ function majorOrder(state: Pick<StockState, 'companies' | 'stockMarket'>): strin
 export function companyOrderMex(state: Pick<StockState, 'companies' | 'stockMarket'>): string[] {
     const minors = MinorIdsMex.filter((id) => {
         const minor = getCompany(state, id)
-        return !!minor.president && !minor.closed
+        return !!minor.started && !minor.closed
     })
     return [...minors, ...majorOrder(state)]
 }
@@ -88,7 +89,7 @@ export const EarningsRulesMex: EarningsRules = {
     automaticChoice: (_state, companyId) => (isMinorMex(companyId) ? 'half-pay' : undefined),
     entitlements(state, companyId) {
         if (!isMinorMex(companyId)) return PayOrWithhold.entitlements(state, companyId)
-        const owner = getCompany(state, companyId).president
+        const owner = presidentOf(state, companyId)
         assertExists(owner, 'An operating minor has its owner')
         return [{ owner: { ...owner }, shares: 1 }]
     },
@@ -315,7 +316,7 @@ export const EndingRulesMex: EndingRules = {
             ]
         const minor = MinorsMex.find((entry) => entry.id === company.id)
         if (minor) return [certificateWealthItem(NamesMex, certificate, minor.faceValue)]
-        if (certificate.kind !== 'share' || !company.president)
+        if (certificate.kind !== 'share' || !company.started)
             return [certificateWealthItem(NamesMex, certificate, 0)]
         const price = MarketMex.companySpace(state.stockMarket, company.id).price
         const value =

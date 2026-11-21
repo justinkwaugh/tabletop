@@ -21,6 +21,7 @@
         signedShares,
         controllingOwner,
         getCompany,
+        presidentOf,
         sameOwner,
         playersWithBankruptLast,
         sharesOwned,
@@ -491,6 +492,16 @@
             ])
         )
     )
+    function presidentColumnId(companyId: string): string | undefined {
+        const drafter = session.drafterOf(companyId)
+        if (drafter) return `player:${drafter}`
+        const president = presidentOf(session.gameState, companyId)
+        if (president?.kind === 'player') return `player:${president.playerId}`
+        if (president?.kind === 'company') return `company:${president.companyId}`
+        return holdsReceiverPresidentCertificate(session.gameState, companyId, marketPoolId)
+            ? 'market'
+            : undefined
+    }
     const companyRows = $derived(
         companies.map((company) => ({
             company,
@@ -509,7 +520,7 @@
                     ? shownParPrice(pricePresentation, session.gameState, company)
                     : undefined,
             stations: session.gameState.stations.filter(
-                (station) => stationPlacer(session.gameState, station) === company.id
+                (station) => stationPlacer(session.mapView.map, station) === company.id
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
             loans:
@@ -517,15 +528,7 @@
                     ? session.loans.loans(company.id)
                     : undefined,
             lastRun: companyLastRun(session.actions, session.gameState.actionCount, company.id),
-            presidentId: session.drafterOf(company.id)
-                ? `player:${session.drafterOf(company.id)}`
-                : company.president?.kind === 'player'
-                  ? `player:${company.president.playerId}`
-                  : company.president?.kind === 'company'
-                    ? `company:${company.president.companyId}`
-                    : holdsReceiverPresidentCertificate(session.gameState, company.id, marketPoolId)
-                      ? 'market'
-                      : undefined,
+            presidentId: presidentColumnId(company.id),
             shares: owners.map((owner) => owner.count(company.id)),
             shareNumbers: owners.map((owner) => playerShareNumbers(owner.id, company.id))
         }))

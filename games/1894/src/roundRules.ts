@@ -5,7 +5,7 @@ import { privateIncome1894 } from './privateRules.js'
 import {
     allSharesHeld,
     floatedCompaniesInMarketOrder,
-    getCompany,
+    presidentOf,
     sharesOwned,
     type OperatingRules,
     type StockRoundRules
@@ -34,7 +34,7 @@ export const EighteenNinetyFourStockRoundRules: StockRoundRules = {
     // One space, another when the president and treasury hold eight shares, and another when
     // the price started in the gray area (§10.2).
     soldOutRises(state, companyId) {
-        const president = getCompany(state, companyId).president
+        const president = presidentOf(state, companyId)
         const held =
             sharesOwned(state, companyId, { kind: 'company', companyId }) +
             (president ? sharesOwned(state, companyId, president) : 0)

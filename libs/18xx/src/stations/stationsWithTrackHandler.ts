@@ -24,7 +24,7 @@ type State = HydratedGameState & OperatingState & StationPlacementState & Constr
 /** The stations a corporation may place now, beside its track. */
 export function stationChoicesWithTrack(state: StationPlacementState, rules: StationRules) {
     const companyId = state.stationStep?.companyId
-    const station = companyId ? placeableStations(state, companyId)[0] : undefined
+    const station = companyId ? placeableStations(state, rules.map, companyId)[0] : undefined
     return station ? new StationPlacement(state, rules).choices(station.id) : []
 }
 

@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 10, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 11, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -864,8 +864,67 @@ fn fleet_graph(nodes: usize, edges: &[(usize, usize)], distances: &[u32]) -> Val
 #[derive(Clone)]
 struct OracleRoute {
     stops: Vec<usize>,
+    /// The stops the train calls at, which pay.
+    called: Vec<usize>,
     edges: Vec<usize>,
     train: usize,
+    subsidy: i64,
+    passes: u64,
+}
+
+fn flag(list: &Value, index: usize) -> bool {
+    list.get(index) == Some(&json!(true))
+}
+
+/// The stops a train calls at on a route: its ends and every stop it may not pass, then the
+/// others worth most, revenue and subsidy together, ties by revenue then order, while it can;
+/// none when the stops it must call at are already too far.
+fn oracle_called(train: &Value, path: &[usize], crossings: u64) -> Option<Vec<usize>> {
+    let last = path.len() - 1;
+    let required =
+        |index: usize| index == 0 || index == last || !flag(&train["optional"], path[index]);
+    let cost = |stop: usize| train["visit_costs"][stop].as_u64().unwrap();
+    let revenue = |stop: usize| train["revenues"][stop].as_i64().unwrap();
+    let subsidy = |stop: usize| {
+        train["subsidies"]
+            .get(stop)
+            .map_or(0, |s| s.as_i64().unwrap())
+    };
+    let mut used = crossings
+        + (0..path.len())
+            .filter(|&index| required(index))
+            .map(|index| cost(path[index]))
+            .sum::<u64>();
+    let distance = train["distance"].as_u64().unwrap();
+    if used > distance {
+        return None;
+    }
+    let mut chosen: Vec<_> = (0..path.len()).map(required).collect();
+    let mut rest: Vec<_> = (0..path.len())
+        .filter(|&index| !chosen[index] && revenue(path[index]) + subsidy(path[index]) > 0)
+        .collect();
+    // A stable sort: earlier stops win ties.
+    rest.sort_by(|&a, &b| {
+        let worth = |index: usize| {
+            (
+                revenue(path[index]) + subsidy(path[index]),
+                revenue(path[index]),
+            )
+        };
+        worth(b).cmp(&worth(a))
+    });
+    for index in rest {
+        if used + cost(path[index]) <= distance {
+            used += cost(path[index]);
+            chosen[index] = true;
+        }
+    }
+    Some(
+        (0..path.len())
+            .filter(|&index| chosen[index])
+            .map(|index| path[index])
+            .collect(),
+    )
 }
 
 fn oracle_fleet(p: &Value, edges: &[(usize, usize)]) -> i64 {
@@ -884,9 +943,11 @@ fn oracle_fleet(p: &Value, edges: &[(usize, usize)]) -> i64 {
                 })
                 || stops[path[0]]["endpoint"] == false
                 || stops[*path.last().unwrap()]["endpoint"] == false
-                || path[1..path.len() - 1]
-                    .iter()
-                    .any(|&stop| stops[stop]["blocked"] == true)
+                || path[1..path.len() - 1].iter().any(|&stop| {
+                    stops[stop]["blocked"] == true
+                        && stops[stop]["city"] == false
+                        && stops[stop]["town"] == false
+                })
                 || path
                     .iter()
                     .filter(|&&stop| stops[stop]["city"] == true)
@@ -908,18 +969,37 @@ fn oracle_fleet(p: &Value, edges: &[(usize, usize)]) -> i64 {
             else {
                 continue;
             };
-            let costs: u64 = path
+            let passes = path[1..path.len() - 1]
                 .iter()
-                .map(|&stop| train["visit_costs"][stop].as_u64().unwrap())
-                .sum();
+                .filter(|&&stop| stops[stop]["blocked"] == true)
+                .count() as u64;
+            if passes > p["blocked_passes"].as_u64().unwrap_or(0) {
+                continue;
+            }
+            if p["no_reentry"] == true {
+                let mut hexes = vec![stops[path[0]]["hex"].as_u64().unwrap()];
+                for &edge in &route_edges {
+                    let hex = p["arcs"][edge * 2]["hex"].as_u64().unwrap();
+                    if hexes.last() != Some(&hex) {
+                        hexes.push(hex);
+                    }
+                }
+                if hexes
+                    .iter()
+                    .enumerate()
+                    .any(|(i, hex)| hexes[..i].contains(hex))
+                {
+                    continue;
+                }
+            }
             let crossing_cost = train["crossing_costs"][0].as_u64().unwrap();
             let crossings: u64 = route_edges
                 .iter()
                 .map(|&edge| p["arcs"][edge * 2]["crossings"].as_u64().unwrap() * crossing_cost)
                 .sum();
-            if costs + crossings > train["distance"].as_u64().unwrap() {
+            let Some(called) = oracle_called(train, path, crossings) else {
                 continue;
-            }
+            };
             let groups: Vec<_> = path
                 .iter()
                 .flat_map(|&stop| stops[stop]["groups"].as_array().unwrap().iter())
@@ -931,10 +1011,21 @@ fn oracle_fleet(p: &Value, edges: &[(usize, usize)]) -> i64 {
             {
                 continue;
             }
+            let subsidy = called
+                .iter()
+                .map(|&stop| {
+                    train["subsidies"]
+                        .get(stop)
+                        .map_or(0, |s| s.as_i64().unwrap())
+                })
+                .sum();
             routes.push(OracleRoute {
                 stops: path.clone(),
+                called,
                 edges: route_edges,
                 train: id,
+                subsidy,
+                passes,
             });
         }
         candidates.push(routes);
@@ -950,6 +1041,11 @@ fn oracle_fleet(p: &Value, edges: &[(usize, usize)]) -> i64 {
         }
         let mut best = product(p, candidates, position + 1, chosen);
         for route in &candidates[position] {
+            if chosen.iter().map(|other| other.passes).sum::<u64>() + route.passes
+                > p["blocked_passes"].as_u64().unwrap_or(0)
+            {
+                continue;
+            }
             if p["fleet"]["shared_track"] != true
                 && chosen
                     .iter()
@@ -1181,7 +1277,11 @@ fn oracle_settlement(p: &Value, chosen: &[OracleRoute]) -> Option<i64> {
         &mut vec![],
         &mut vec![],
     )
-    .map(|value| value + subsidies.values().sum::<i64>())
+    .map(|value| {
+        value
+            + subsidies.values().sum::<i64>()
+            + chosen.iter().map(|route| route.subsidy).sum::<i64>()
+    })
 }
 
 fn oracle_payments(p: &Value, chosen: &[OracleRoute], ends: &[(usize, usize)]) -> i64 {
@@ -1193,9 +1293,9 @@ fn oracle_payments(p: &Value, chosen: &[OracleRoute], ends: &[(usize, usize)]) -
             continue;
         }
         let mut choices = vec![];
-        for bits in 0u64..1 << route.stops.len() {
+        for bits in 0u64..1 << route.called.len() {
             let selected: Vec<_> = route
-                .stops
+                .called
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| bits & (1 << i) != 0)
@@ -1204,7 +1304,7 @@ fn oracle_payments(p: &Value, chosen: &[OracleRoute], ends: &[(usize, usize)]) -
             if selected.iter().any(|&stop| policy["paying"][stop] != true) {
                 continue;
             }
-            if route.stops.iter().any(|&stop| {
+            if route.called.iter().any(|&stop| {
                 policy["paying"][stop] == true
                     && policy["limited"][stop] != true
                     && !selected.contains(&stop)
@@ -1216,7 +1316,7 @@ fn oracle_payments(p: &Value, chosen: &[OracleRoute], ends: &[(usize, usize)]) -
                 .filter(|&&stop| policy["limited"][stop] == true)
                 .count();
             let payable = route
-                .stops
+                .called
                 .iter()
                 .filter(|&&stop| policy["paying"][stop] == true && policy["limited"][stop] == true)
                 .count();
@@ -1659,5 +1759,207 @@ fn routes_visit_the_cities_and_towns_a_problem_asks() {
     p["minimum_cities_and_towns"] = json!(3);
     assert_eq!(solve(&p)["revenue"], 0);
     p["stops"][2]["town"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 60);
+}
+
+/// 1860's rules on a fleet graph: towns the trains may pass, halts that pay a subsidy and end no
+/// route, cities tokened out that one route of the run may pass through, and hexes a route may
+/// not enter again.
+fn passing_fleet(
+    random: &mut impl FnMut() -> u64,
+    nodes: usize,
+    trains: usize,
+) -> (Value, Vec<(usize, usize)>) {
+    let mut edges = vec![];
+    for a in 0..nodes {
+        for b in a + 1..nodes {
+            if random() % 5 < 2 {
+                edges.push((a, b));
+            }
+        }
+    }
+    let distances: Vec<_> = (0..trains).map(|_| 2 + (random() % 2) as u32).collect();
+    let mut p = fleet_graph(nodes, &edges, &distances);
+    p["fleet"]["shared_track"] = json!(random().is_multiple_of(4));
+    p["fleet"]["pay_once"] = json!(false);
+    p["fleet"]["minimum_cities"] = json!(0);
+    p["no_reentry"] = json!(!random().is_multiple_of(3));
+    p["blocked_passes"] = json!(random() % 3);
+    let mut halts = vec![false; nodes];
+    let mut towns = vec![false; nodes];
+    for (id, stop) in p["stops"].as_array_mut().unwrap().iter_mut().enumerate() {
+        let kind = if id == 0 { 0 } else { random() % 6 };
+        towns[id] = kind >= 3;
+        halts[id] = kind == 5;
+        stop["city"] = json!(kind < 3 && kind != 2 || id == 0);
+        stop["town"] = json!(towns[id]);
+        stop["blocked"] = json!(kind == 1 || kind == 2);
+        stop["token"] = json!(id == 0 || kind == 0 && random().is_multiple_of(2));
+        stop["endpoint"] = json!(!halts[id]);
+    }
+    // Track between two stops lies in one of their hexes or in a hex of its own.
+    for (edge, &(a, b)) in edges.iter().enumerate() {
+        let hex = match random() % 3 {
+            0 => a,
+            1 => b,
+            _ => nodes + edge,
+        };
+        for arc in [2 * edge, 2 * edge + 1] {
+            p["arcs"][arc]["hex"] = json!(hex);
+        }
+    }
+    let hexes = nodes + edges.len();
+    p["hex_bonuses"] = json!(vec![0; hexes]);
+    p["fleet"]["coordinates"] = json!(
+        (0..hexes)
+            .map(|q| json!({"q": q, "r": 0}))
+            .collect::<Vec<_>>()
+    );
+    for train in p["trains"].as_array_mut().unwrap() {
+        let leased = random().is_multiple_of(4);
+        train["revenues"] = json!(
+            (0..nodes)
+                .map(|id| if halts[id] && !leased {
+                    0
+                } else {
+                    10 + (random() % 4) * 10
+                })
+                .collect::<Vec<_>>()
+        );
+        train["optional"] = json!(towns);
+        train["subsidies"] = json!(
+            (0..nodes)
+                .map(|id| if halts[id] && !leased { 10 } else { 0 })
+                .collect::<Vec<_>>()
+        );
+    }
+    (p, edges)
+}
+
+#[test]
+fn passed_stops_halts_blocked_passes_and_hex_reentry_match_an_independent_oracle() {
+    let mut seed = 1860u64;
+    let mut random = || {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        seed >> 32
+    };
+    let mut subsidized = 0;
+    let mut passing = 0;
+    for case in 0..240 {
+        let nodes = 5 + case % 2;
+        let (p, edges) = passing_fleet(&mut random, nodes, 2 + case % 2);
+        let result = solve(&p);
+        if result["subsidy"].as_i64().unwrap() > 0 {
+            subsidized += 1;
+        }
+        if p["blocked_passes"].as_u64().unwrap() > 0
+            && p["stops"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|stop| stop["blocked"] == true)
+        {
+            passing += 1;
+        }
+        let result = solve(&p);
+        assert_eq!(
+            result["revenue"].as_i64().unwrap() + result["subsidy"].as_i64().unwrap(),
+            oracle_fleet(&p, &edges),
+            "case {case}: {result} {p}"
+        );
+    }
+    assert!(subsidized > 5, "{subsidized}");
+    assert!(passing > 20, "{passing}");
+}
+
+#[test]
+fn a_train_calls_at_the_optional_stops_worth_most_while_its_distance_allows() {
+    // 0 - 1 - 2 - 3 - 4: the towns between the ends pay 20, 50 and 30.
+    let mut p = graph(5, &[(0, 1), (1, 2), (2, 3), (3, 4)], &[3]);
+    p["trains"][0]["revenues"] = json!([10, 20, 50, 30, 40]);
+    p["trains"][0]["optional"] = json!([false, true, true, true, false]);
+    for id in 1..4 {
+        p["stops"][id]["town"] = json!(true);
+        p["stops"][id]["city"] = json!(false);
+    }
+    assert_eq!(solve(&p)["revenue"], 100);
+    p["trains"][0]["distance"] = json!(4);
+    assert_eq!(solve(&p)["revenue"], 130);
+    // Its required stops alone may not exceed its distance: 0 - 1 - 2 beats the whole line.
+    p["trains"][0]["optional"] = json!([false, false, true, true, false]);
+    p["trains"][0]["distance"] = json!(3);
+    assert_eq!(solve(&p)["revenue"], 80);
+    p["trains"][0]["distance"] = json!(2);
+    assert_eq!(solve(&p)["revenue"], 30);
+}
+
+#[test]
+fn a_halt_ends_no_route_and_pays_its_subsidy_only_when_called_at() {
+    let edges = [(0, 1), (1, 2)];
+    let mut p = fleet_graph(3, &edges, &[2]);
+    p["fleet"]["pay_once"] = json!(false);
+    p["stops"][1]["endpoint"] = json!(false);
+    p["stops"][1]["town"] = json!(true);
+    p["stops"][1]["city"] = json!(false);
+    p["trains"][0]["optional"] = json!([false, true, false]);
+    p["trains"][0]["revenues"] = json!([10, 0, 30]);
+    p["trains"][0]["subsidies"] = json!([0, 10, 0]);
+    let result = solve(&p);
+    assert_eq!(
+        (result["revenue"].clone(), result["subsidy"].clone()),
+        (json!(40), json!(0))
+    );
+    p["trains"][0]["distance"] = json!(3);
+    let result = solve(&p);
+    assert_eq!(
+        (result["revenue"].clone(), result["subsidy"].clone()),
+        (json!(40), json!(10))
+    );
+    assert_fleet_oracle(&p, &edges);
+}
+
+#[test]
+fn one_route_of_the_run_passes_one_blocked_city() {
+    // Two trains each want to run through the blocked city 2: 0-2-1 and 3-2-4.
+    let edges = [(0, 2), (2, 1), (3, 2), (2, 4)];
+    let mut p = fleet_graph(5, &edges, &[3, 3]);
+    p["fleet"]["pay_once"] = json!(false);
+    p["fleet"]["shared_track"] = json!(false);
+    p["stops"][2]["blocked"] = json!(true);
+    p["stops"][2]["token"] = json!(false);
+    p["blocked_passes"] = json!(0);
+    assert_fleet_oracle(&p, &edges);
+    let alone = solve(&p)["revenue"].as_i64().unwrap();
+    p["blocked_passes"] = json!(1);
+    assert_fleet_oracle(&p, &edges);
+    let once = solve(&p)["revenue"].as_i64().unwrap();
+    assert!(once > alone);
+    p["blocked_passes"] = json!(2);
+    assert_fleet_oracle(&p, &edges);
+    assert!(solve(&p)["revenue"].as_i64().unwrap() > once);
+    // An offboard is never passed.
+    p["stops"][2]["city"] = json!(false);
+    assert_eq!(solve(&p)["revenue"].as_i64().unwrap(), alone);
+}
+
+#[test]
+fn a_route_does_not_enter_a_hex_it_has_left() {
+    // Stops 0 and 2 share a hex; the track to 1 lies in its hex and the track on to 2 in theirs.
+    let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
+    p["hex_bonuses"] = json!([0, 0]);
+    for (id, hex) in [0, 1, 0].into_iter().enumerate() {
+        p["stops"][id]["hex"] = json!(hex);
+        p["stops"][id]["token"] = json!(true);
+    }
+    for (arc, hex) in [1, 1, 0, 0].into_iter().enumerate() {
+        p["arcs"][arc]["hex"] = json!(hex);
+    }
+    assert_eq!(solve(&p)["revenue"], 60);
+    p["no_reentry"] = json!(true);
+    // 0 → 1 → 2 leaves hex 0 for hex 1 and runs back into hex 0.
+    assert_eq!(solve(&p)["revenue"], 50);
+    // Track that stays in hex 1 to reach a stop of hex 0 is no reentry until it leaves.
+    p["arcs"][2]["hex"] = json!(1);
+    p["arcs"][3]["hex"] = json!(1);
     assert_eq!(solve(&p)["revenue"], 60);
 }

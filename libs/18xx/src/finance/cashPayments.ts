@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
-import { Owner, sameOwner, type FinancialState } from './finance.js'
+import { Owner, sameOwner, type BankRules, type FinancialState } from './finance.js'
 
 export const CashPayment = Type.Object(
     { from: Owner, to: Owner, amount: Type.Integer({ minimum: 1 }) },
@@ -8,7 +8,8 @@ export const CashPayment = Type.Object(
 )
 export type CashPayment = Type.Static<typeof CashPayment>
 export function settleCashPayments(
-    state: Pick<FinancialState, 'cash'> & Partial<Pick<FinancialState, 'bank'>>,
+    state: Pick<FinancialState, 'cash'> &
+        Partial<Pick<FinancialState, 'bank'>> & { readonly bankRules?: BankRules },
     payments: readonly CashPayment[]
 ): void {
     const balances = new Map<FinancialState['cash'][number], number>()
@@ -26,7 +27,7 @@ export function settleCashPayments(
             assertExists(cash, 'Payment requires an existing cash owner')
             if (cash.amount !== 'unlimited' && cash !== brokenBank) {
                 const amount = (balances.get(cash) ?? cash.amount) + delta
-                const short = state.bank?.breaksOnShortfall ? amount < 0 : amount <= 0
+                const short = state.bankRules?.breaksOnShortfall ? amount < 0 : amount <= 0
                 if (owner.kind === 'bank' && state.bank && short) {
                     brokenBank = cash
                     balances.delete(cash)

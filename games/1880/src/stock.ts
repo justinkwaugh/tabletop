@@ -9,6 +9,8 @@ import {
     playerOrderAfterLastTurn,
     playersAfterPresident,
     presidentCertificate,
+    presidentOf,
+    presides,
     sameOwner,
     settleCashPayments,
     sharesOwned,
@@ -179,9 +181,9 @@ export function saleTerms1880(
     seller: Parameters<StockRules['saleTerms']>[3]
 ): ReturnType<StockRules['saleTerms']> {
     const company = getCompany(state, companyId)
-    if (!MajorIds1880.includes(companyId) || !company.president || company.closed)
+    if (!MajorIds1880.includes(companyId) || !company.started || company.closed)
         return 'This company has no saleable shares.'
-    if (communist(state) && company.president && sameOwner(company.president, seller))
+    if (communist(state) && presides(state, companyId, seller))
         return 'Under communism a director may not sell their own company’s shares.'
     const frozen = communist(state) || !company.floated
     return {
@@ -261,7 +263,7 @@ const slotChoice = (state: FormationState, marketSpaceId: string): StartChoice =
  * charter, reserved for them, from the shares on sale (§VII).
  */
 export function reserveInvestorShare(state: FormationState, companyId: string): void {
-    const president = getCompany(state, companyId).president
+    const president = presidentOf(state, companyId)
     if (president?.kind !== 'player') return
     const investor = ForeignInvestors1880.find((entry) => {
         const certificate = presidentCertificate(state, entry.id)
@@ -324,9 +326,9 @@ export const CompanyRules1880: CompanyRules = {
     floatsAtRoundEnd: true,
     sharesToFloat(state, companyId) {
         const company = getCompany(state, companyId)
-        if (!company.started || company.floated || !company.president) return undefined
-        const needed =
-            floatPercent(state.phaseId) / 10 - sharesOwned(state, companyId, company.president)
+        const president = presidentOf(state, companyId)
+        if (!company.started || company.floated || !president) return undefined
+        const needed = floatPercent(state.phaseId) / 10 - sharesOwned(state, companyId, president)
         return Math.max(0, Math.min(needed, onSale(state, companyId).length))
     },
     // The director holds the phase's share, or none remain on sale; the company then receives

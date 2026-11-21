@@ -1,4 +1,5 @@
 import {
+    CompanyStationsOnly,
     applyStationPlacement,
     createOrdinaryShareCertificates,
     getCompany,
@@ -55,7 +56,6 @@ export function createShikoku1889CompanyExample(
         const company = getCompany(state, 'SR')
         company.started = true
         company.parPrice = 65
-        company.president = { kind: 'player', playerId: players[0].playerId }
         for (const [id, index] of [
             ['SR:president', 0],
             ['SR:share:1', 1],
@@ -108,12 +108,16 @@ export function createShikoku1889CompanyExample(
         ])
     }
     if (position === 'stations' || position === 'routes' || position === 'operations') {
-        applyStationPlacement(state, {
-            companyId: 'AR',
-            stationId: 'AR:station:1',
-            position: { locationId: 'G4', nodeId: 'city', slot: 0 },
-            cost: 0
-        })
+        applyStationPlacement(
+            state,
+            {
+                companyId: 'AR',
+                stationId: 'AR:station:1',
+                position: { locationId: 'G4', nodeId: 'city', slot: 0 },
+                cost: 0
+            },
+            CompanyStationsOnly
+        )
         state.tileInventory = Shikoku1889TileSet.createInventory([
             { locationId: 'E2', definitionId: '18xx:5', rotation: 4 },
             { locationId: 'F3', definitionId: '18xx:57', rotation: 2 },

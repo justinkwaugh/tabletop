@@ -4,6 +4,7 @@ import {
     President,
     finiteCashOwnedBy,
     getCompany,
+    presidentOf,
     removeCertificates,
     type FinancialState
 } from '../finance/finance.js'
@@ -64,6 +65,7 @@ export function closeShareCompany(
     restart?: CompanyRestart
 ): CompanyClosure {
     const company = getCompany(state, companyId)
+    const president = presidentOf(state, companyId)
     const owner = { kind: 'company' as const, companyId }
     const amount = finiteCashOwnedBy(state, owner)
     const closedPrivateIds = state.companies
@@ -95,7 +97,7 @@ export function closeShareCompany(
     const removedTrainIds = removedTrains.map((train) => train.id)
     const details: CompanyClosure = {
         companyId,
-        ...(company.president ? { president: structuredClone(company.president) } : {}),
+        ...(president ? { president: structuredClone(president) } : {}),
         payments,
         closedPrivateIds,
         retiredCertificateIds,

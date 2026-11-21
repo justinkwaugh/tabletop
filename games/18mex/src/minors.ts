@@ -5,6 +5,7 @@ import {
     exchangeCertificate,
     finiteCashOwnedBy,
     getCompany,
+    presidentOf,
     releaseTrains,
     removeCompanyStations,
     settleCashPayments,
@@ -50,7 +51,7 @@ export function closeMinorsMex(state: ClosingState): MinorClosure[] {
     return MinorsMex.flatMap((minor): MinorClosure[] => {
         const company = getCompany(state, minor.id)
         if (company.closed) return []
-        const owner = company.president
+        const owner = presidentOf(state, minor.id)
         company.closed = true
         delete company.president
         releaseTrains(
@@ -75,8 +76,9 @@ export function closeMinorsMex(state: ClosingState): MinorClosure[] {
             return []
         }
         exchangeCertificate(state, `${minor.id}:charter`, minor.tradeInCertificateId)
-        const major = getCompany(state, minor.majorId)
-        const presidency = major.president ? reassessPresidencyMex(state, minor.majorId) : undefined
+        const presidency = presidentOf(state, minor.majorId)
+            ? reassessPresidencyMex(state, minor.majorId)
+            : undefined
         return [
             {
                 minorId: minor.id,

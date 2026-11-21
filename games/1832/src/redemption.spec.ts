@@ -5,7 +5,8 @@ import {
     exceedsStockLimits,
     getCompany,
     placeStockMarker,
-    type Owner
+    type Owner,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
@@ -140,7 +141,7 @@ describe('share redemption', () => {
         kept.act('RedeemShare', { companyId: 'ACL', certificateId: own.certificateId })
         expect(kept.state.machineState).toBe('StockRound')
         expect(cashOwnedBy(kept.state, player('alex'))).toBe(600 + 90)
-        expect(getCompany(kept.state, 'ACL').president).toEqual(player('alex'))
+        expect(presidentOf(kept.state, 'ACL')).toEqual(player('alex'))
     })
 
     it('keeps the company at most 40% and others at least 60%', () => {

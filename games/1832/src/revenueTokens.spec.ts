@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placeStockMarker } from '@tabletop/18xx'
+import { placeStockMarker, createOrdinaryShareCertificates } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoMajors,
@@ -147,6 +147,9 @@ function keyWestPlay(phaseId: string) {
             id: EighteenThirtyTwoMajors.FEC.id
         })
         state.cash.push({ owner: { kind: 'company', companyId: 'FEC' }, amount: 300 })
+        state.certificates.push(
+            ...createOrdinaryShareCertificates('FEC', [], { kind: 'player', playerId: 'blair' })
+        )
         placeStockMarker(state.stockMarket, 'FEC', '1:6')
         state.stations.push(
             {

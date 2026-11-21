@@ -147,7 +147,6 @@ export function purchaseOpeningCompany(
     state.purchases.push({ ...selection, playerId })
     if (company.kind === 'independent') {
         const independent = getCompany(state, company.id)
-        independent.president = certificate.owner
         independent.started = true
         independent.floated = true
         independent.funded = true

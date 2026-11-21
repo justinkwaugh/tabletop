@@ -8,7 +8,7 @@
         type RevenueStageColors
     } from '../colors/revenueStageColors.js'
     import { assert, assertExists, type Point } from '@tabletop/common'
-    import type { TileFace } from '@tabletop/18xx'
+    import { isHalt, type TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import { labelFontSize, TileRadius, type TileDrawing } from './tileDrawing.js'
     import { spikePoints } from './tileTrackGeometry.js'
@@ -94,6 +94,8 @@
     const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
     // A station space that is no stop of its own, as 1822's English Channel, has a broken ring.
     const UncountedStopDashes = '2.4 1.8'
+    // A halt prints as a stop outlined in ink, filled as its layout says.
+    const HaltOutline = 1.1
     const revenueCircle = $derived(
         appearance.revenueCircle ?? { radius: 8.7, ringWidth: 0.55, fontSize: 10 }
     )
@@ -307,7 +309,7 @@
         ></path>
     {/each}
     {@render trackOverlay?.(drawing)}
-    {#each drawing.nodes.filter((drawn) => !drawn.unmarked) as { node, center, slots, openBand, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
+    {#each drawing.nodes.filter((drawn) => !drawn.unmarked) as { node, center, slots, openBand, slotRadius: citySlotRadius, townAngle, dotRadius, haltFill } (node.id)}
         <g data-node-id={node.id} filter={nodeInkFilter}>
             {#if node.kind === 'city'}
                 {#if slots.length > 1}
@@ -358,23 +360,30 @@
                         fill={appearance.ink}
                     ></circle>{/if}
             {:else if node.kind === 'town'}
+                {@const halt = isHalt(node)}
                 {#if appearance.townMarker === 'bar' && townAngle !== undefined}
                     <rect
                         data-town-marker="bar"
+                        data-halt={halt || undefined}
                         x="-8.5"
                         y="-4"
                         width="17"
                         height="8"
                         transform={`translate(${center.x} ${center.y}) rotate(${townAngle})`}
-                        fill={appearance.ink}
+                        fill={halt ? (haltFill ?? appearance.paper) : appearance.ink}
+                        stroke={halt ? appearance.ink : undefined}
+                        stroke-width={halt ? HaltOutline : undefined}
                     ></rect>
                 {:else}
                     <circle
                         data-town-marker="dot"
+                        data-halt={halt || undefined}
                         cx={center.x}
                         cy={center.y}
                         r={dotRadius}
-                        fill={appearance.ink}
+                        fill={halt ? (haltFill ?? appearance.paper) : appearance.ink}
+                        stroke={halt ? appearance.ink : undefined}
+                        stroke-width={halt ? HaltOutline : undefined}
                     ></circle>
                 {/if}
             {:else if node.kind !== 'offboard'}
@@ -442,19 +451,22 @@
                 opacity={token.space ? 0.75 : 1}><title>{token.title}</title></image
             >
         {/each}
-        {#each drawing.nodes as { node, revenuePosition, revenueCells, revenueHidden } (node.id)}
-            {#if node.kind !== 'junction' && !revenueHidden && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
+        {#each drawing.nodes as { node, revenuePosition, revenueCells, revenueHidden, haltSymbol } (node.id)}
+            {#if node.kind !== 'junction' && !revenueHidden && (haltSymbol || showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
                 <g
                     data-revenue-for={node.id}
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}
                 >
                     {#if node.revenue.kind === 'fixed'}
                         {@const radius = revenueCircle.radius}
-                        {@const halfWidth = revenueBadgeHalfWidth(
-                            node.revenue.amount,
-                            radius,
-                            revenueCircle.fontSize
-                        )}
+                        {@const value = haltSymbol ?? node.revenue.amount}
+                        {@const halfWidth = haltSymbol
+                            ? radius
+                            : revenueBadgeHalfWidth(
+                                  node.revenue.amount,
+                                  radius,
+                                  revenueCircle.fontSize
+                              )}
                         {#if appearance.revenueBadge === 'plain'}
                             <rect
                                 x={-halfWidth}
@@ -469,7 +481,7 @@
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 800}
-                                fill="#000">{node.revenue.amount}</text
+                                fill="#000">{value}</text
                             >
                         {:else}
                             <rect
@@ -488,7 +500,7 @@
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 750}
-                                fill={appearance.ink}>{node.revenue.amount}</text
+                                fill={appearance.ink}>{value}</text
                             >
                         {/if}
                     {:else}

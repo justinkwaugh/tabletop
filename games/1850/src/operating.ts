@@ -4,10 +4,10 @@ import {
     closeCorporationSchema,
     closeShareCompany,
     finiteCashOwnedBy,
-    getCompany,
     marketDiscardOrder,
     marketDividendEarnings,
     marketValueEnding,
+    presidentOf,
     privateOwner,
     settleCashPayments,
     EighteenXXTransferTiming,
@@ -95,7 +95,7 @@ export const ZeroPriceClosure1850: ZeroPriceClosureRules<typeof ClosureFields> =
         schema: ClosureFields,
         close(state: HydratedEighteenXXState, companyId) {
             const title = requireState1850(state)
-            const president = getCompany(state, companyId).president
+            const president = presidentOf(state, companyId)
             const forfeit =
                 president && title.trainFunding?.purchase.companyId === companyId
                     ? {

@@ -4,6 +4,7 @@ import {
     LayingTrackHandler,
     evaluatePurchaseOffer,
     nextOperatingCompany,
+    presidentOf,
     type FinishTrack,
     type FinishStations,
     type CompanyDecisionState,
@@ -121,7 +122,7 @@ export function operatingTransitionTests(
         const { state } = fixture()
         const companyId = nextOperatingCompany(state)!
         const seller = state.companies.find(
-            (company) => company.id !== companyId && company.president
+            (company) => company.id !== companyId && presidentOf(state, company.id)
         )!
         const train = state.trainInventory.trains.find((item) => item.status === 'depot')!
         state.trainInventory.trains = state.trainInventory.trains.map((item) =>

@@ -6,6 +6,7 @@
         privateOwner,
         controllingOwner,
         currentPrivateRevenue,
+        presidentOf,
         type CompanyCharters,
         type TitleNames
     } from '@tabletop/18xx'
@@ -121,8 +122,9 @@
                     {#if company.kind === 'private'}
                         <p class="authority">Owner: {owner ? ownerName(owner) : 'None'}</p>
                     {:else}
+                        {@const president = presidentOf(gameState, company.id)}
                         <p class="authority">
-                            President: {company.president ? ownerName(company.president) : 'None'}
+                            President: {president ? ownerName(president) : 'None'}
                         </p>
                     {/if}
                     <p class="authority">

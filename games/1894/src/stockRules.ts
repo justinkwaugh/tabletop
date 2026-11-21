@@ -7,7 +7,7 @@ import {
     ipoMarketTrading,
     marketZoneHoldingLimits,
     playersAfterPresident,
-    sameOwner,
+    presides,
     sharesOwned,
     type StockRules,
     type StockState
@@ -70,14 +70,12 @@ export const EighteenNinetyFourStockRules: StockRules = {
     // the bank pool (§6.1, §6.4).
     multipleBuys: {
         allowsAnother(state, certificate, earlier) {
-            const president = getCompany(state, certificate.companyId).president
             const buyer = state.activePlayerIds[0]
             return (
                 earlier.length < 2 &&
                 inGrayZone(state, certificate.companyId) &&
-                !!president &&
                 !!buyer &&
-                sameOwner(president, { kind: 'player', playerId: buyer })
+                presides(state, certificate.companyId, { kind: 'player', playerId: buyer })
             )
         }
     }

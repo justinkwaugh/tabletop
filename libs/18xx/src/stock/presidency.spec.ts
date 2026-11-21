@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest'
 import { evaluatePresidency, applyPresidencyChange } from './presidency.js'
-import { sharesOwned, type FinancialState, type Certificate } from '../finance/finance.js'
+import {
+    presidentOf,
+    sharesOwned,
+    type FinancialState,
+    type Certificate
+} from '../finance/finance.js'
 
 const previous = { kind: 'player', playerId: 'previous' } as const
 const next = { kind: 'company', companyId: 'investor' } as const
@@ -25,7 +30,7 @@ function example(): FinancialState {
     return {
         bank: {},
         companies: [
-            { id: 'rail', kind: 'major', shareCount: 20, president: previous },
+            { id: 'rail', kind: 'major', shareCount: 20 },
             { id: 'investor', kind: 'major' }
         ],
         certificates,
@@ -48,7 +53,7 @@ it('exchanges unequal denominations for a four-unit presidency without changing 
     if (!result.change) throw new Error('Expected presidency change')
     applyPresidencyChange(state, result.change)
     expect([sharesOwned(state, 'rail', previous), sharesOwned(state, 'rail', next)]).toEqual(before)
-    expect(state.companies[0].president).toEqual(next)
+    expect(presidentOf(state, 'rail')).toEqual(next)
 })
 it('keeps an incumbent tied with a corporate investor', () => {
     const state = example()

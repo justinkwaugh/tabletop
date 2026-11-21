@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
+import { presidentOf } from '@tabletop/18xx'
 import { botMove, Random } from '../test/bot.js'
 import { kit, type Table } from '../test/kit.js'
 import { BsId, CocId, CpId } from './companies.js'
@@ -72,8 +73,8 @@ function poolRemovalOpen(game: Table): boolean {
     const playerId = game.player
     return game.state.certificates.some((certificate) => {
         if (certificate.poolId !== 'open-market') return false
-        const company = game.state.companies.find((entry) => entry.id === certificate.companyId)
-        return company?.president?.kind === 'player' && company.president.playerId !== playerId
+        const president = presidentOf(game.state, certificate.companyId)
+        return president?.kind === 'player' && president.playerId !== playerId
     })
 }
 

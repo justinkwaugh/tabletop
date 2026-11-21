@@ -42,6 +42,10 @@ export type SolverTrain = {
     connection_bonuses: { from: (number | null)[]; to: (number | null)[]; ends_only: boolean }[]
     interconnections: { from: number[]; to: number[]; amount: number }[]
     allowed_stops: boolean[]
+    /** The stops the train may pass without calling at them. */
+    optional: boolean[]
+    /** What calling at each stop pays the treasury beside the route's revenue. */
+    subsidies: number[]
     fleet?: {
         paying: boolean[]
         limited: boolean[]
@@ -72,6 +76,10 @@ export type SolverProblem = {
     hex_bonuses: number[]
     longest_route_bonus_per_stop: number
     minimum_cities_and_towns: number
+    /** A route may not leave a hex and enter it again. */
+    no_reentry: boolean
+    /** How many blocked cities or towns the company's routes may run through, all together. */
+    blocked_passes: number
     budget_ms: number
     memory_budget_bytes: number
     fleet?: SolverFleet

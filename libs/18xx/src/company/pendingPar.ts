@@ -121,10 +121,7 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
     }
     apply(state: HydratedGameState & ParState): void {
         assert(this.isValid(state), 'Invalid par')
-        startCompanyAtPar(state, this.#market, this.companyId, this.marketSpaceId, {
-            kind: 'player',
-            playerId: this.playerId
-        })
+        startCompanyAtPar(state, this.#market, this.companyId, this.marketSpaceId)
         delete state.pendingPar
         if (this.choices) this.#rules.applyStartChoices?.(state, this.companyId, this.choices)
     }

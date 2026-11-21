@@ -32,6 +32,12 @@ export const CompanyProperties = {
     closed: Type.Optional(Type.Boolean()),
     operated: Type.Optional(Type.Boolean()),
     floated: Type.Optional(Type.Boolean()),
+    /**
+     * Recorded only for a company without a president's certificate, whose title rules name its
+     * president: TOP's PEIR and 1828's C&P railway. Read it through `presidentOf`, never directly:
+     * a company with a president's certificate is presided over by its holder, and a stored game
+     * may still hold a stale copy here.
+     */
     president: Type.Optional(President),
     /** Set where play changes a private's income; otherwise its charter's. */
     privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
@@ -58,15 +64,20 @@ export type Company = Type.Static<typeof Company>
 export const Bank = Type.Object(
     {
         broken: Type.Optional(Type.Boolean()),
-        /**
-         * Broken only by a payout it cannot make in full, a bank left at exactly nothing still
-         * whole, as Dixon rules for 1856; otherwise reaching nothing breaks it.
-         */
-        breaksOnShortfall: Type.Optional(Type.Literal(true))
+        // Stored games from before this stopped being recorded may hold it; never read.
+        breaksOnShortfall: Type.Optional(Type.Unsafe<never>(Type.Literal(true)))
     },
     { additionalProperties: false }
 )
 export type Bank = Type.Static<typeof Bank>
+/** How a title's bank breaks, which its state definition declares. */
+export type BankRules = {
+    /**
+     * Broken only by a payout it cannot make in full, a bank left at exactly nothing still
+     * whole, as Dixon rules for 1856; otherwise reaching nothing breaks it.
+     */
+    breaksOnShortfall?: true
+}
 export const Cash = Type.Object(
     {
         owner: Owner,
@@ -196,7 +207,7 @@ export function validateFinances(state: FinancialState, playerIds: readonly stri
         )
     }
     for (const company of state.companies) {
-        if (company.president) {
+        if (company.president && !presidentCertificate(state, company.id)) {
             assert(company.kind !== 'private', 'A private is controlled through its owner')
             assertOwner(state, company.president, playerIds)
         }
@@ -292,6 +303,30 @@ export function presidentCertificate(
     return openShares(state, companyId).find((certificate) => certificate.president)
 }
 
+/**
+ * Who presides over a company: the holder of its president's certificate, none while that lies in
+ * a pool. A company without one, such as TOP's PEIR, records its president.
+ */
+export function presidentOf(
+    state: Pick<FinancialState, 'companies' | 'certificates'>,
+    companyId: string
+): President | undefined {
+    const certificate = presidentCertificate(state, companyId)
+    if (!certificate) return getCompany(state, companyId).president
+    const { owner } = certificate
+    return owner.kind === 'bank' || certificate.poolId !== undefined ? undefined : owner
+}
+
+/** Whether the owner presides over the company. */
+export function presides(
+    state: Pick<FinancialState, 'companies' | 'certificates'>,
+    companyId: string,
+    owner: Owner
+): boolean {
+    const president = presidentOf(state, companyId)
+    return !!president && sameOwner(president, owner)
+}
+
 export function sharesOwned(
     state: Pick<FinancialState, 'certificates'>,
     companyId: string,
@@ -331,7 +366,10 @@ export function controllingOwner(
         if (visited.has(current.companyId)) return undefined
         visited.add(current.companyId)
         const company: Company = getCompany(state, current.companyId)
-        current = company.kind === 'private' ? privateOwner(state, company.id) : company.president
+        current =
+            company.kind === 'private'
+                ? privateOwner(state, company.id)
+                : presidentOf(state, company.id)
     }
     return current?.kind === 'player' ? current : undefined
 }

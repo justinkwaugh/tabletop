@@ -61,7 +61,9 @@ export class StationsModule<State extends StationsState> {
     )
     available = $derived.by(() => {
         const companyId = this.session.state.stationStep?.companyId
-        return companyId ? placeableStations(this.session.state, companyId) : []
+        return companyId
+            ? placeableStations(this.session.state, this.session.rules.stationRules.map, companyId)
+            : []
     })
     /**
      * A neutral station the company holds and may place, offered beside its own stations, which
@@ -71,7 +73,7 @@ export class StationsModule<State extends StationsState> {
         this.canPlace && this.session.validActionTypes.includes('PlaceStation')
             ? this.available.find(
                   (station) =>
-                      !!neutralStation(this.session.state, station.id) &&
+                      !!neutralStation(this.session.rules.stationRules.map, station.id) &&
                       this.model.choices(station.id).length > 0
               )
             : undefined
@@ -90,7 +92,7 @@ export class StationsModule<State extends StationsState> {
         )
             return {}
         const own = this.available.filter(
-            (station) => !neutralStation(this.session.state, station.id)
+            (station) => !neutralStation(this.session.rules.stationRules.map, station.id)
         )
         const cheapestPlaceable = [...(own.length ? own : this.available)]
             .sort((left, right) => this.placementCost(left.id) - this.placementCost(right.id))
@@ -139,7 +141,7 @@ export class StationsModule<State extends StationsState> {
             stations: [...this.session.state.stations],
             stationReservations: [...this.session.state.stationReservations]
         }
-        applyStationPlacement(state, this.preview)
+        applyStationPlacement(state, this.preview, this.session.rules.stationRules.map)
         return state
     })
 

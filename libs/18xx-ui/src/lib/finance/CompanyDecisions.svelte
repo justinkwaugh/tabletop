@@ -246,8 +246,9 @@
                         >Offer price <input
                             aria-label="Offer price"
                             type="number"
-                            min="1"
-                            step="1"
+                            min={session.decisions.purchasePriceRange?.minimum ?? 1}
+                            max={session.decisions.purchasePriceRange?.maximum}
+                            step={session.decisions.purchasePriceRange?.multipleOf ?? 1}
                             value={selection.request.price}
                             oninput={(event) =>
                                 session.decisions.setPurchasePrice(

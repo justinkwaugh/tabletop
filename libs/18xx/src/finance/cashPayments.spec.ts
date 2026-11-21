@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { settleCashPayments } from './cashPayments.js'
-import type { FinancialState } from './finance.js'
+import type { BankRules, FinancialState } from './finance.js'
 
 const player = { kind: 'player', playerId: 'player' } as const
 const company = { kind: 'company', companyId: 'company' } as const
@@ -54,8 +54,9 @@ it.each([50, 51])('breaks an eligible bank at exhaustion and pays the full %s', 
     expect(state.cash[0].amount).toBe('unlimited')
 })
 it('leaves a bank that breaks on a shortfall whole at exactly nothing', () => {
-    const state: Pick<FinancialState, 'bank' | 'cash'> = {
-        bank: { breaksOnShortfall: true },
+    const state: Pick<FinancialState, 'bank' | 'cash'> & { bankRules: BankRules } = {
+        bank: {},
+        bankRules: { breaksOnShortfall: true },
         cash: [
             { owner: bank, amount: 50 },
             { owner: player, amount: 0 }

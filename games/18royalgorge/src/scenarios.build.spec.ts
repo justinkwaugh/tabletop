@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
 import { startingPositionFile } from '@tabletop/common/testing'
-import { TrackConstruction, getCompany, trainsOwnedBy } from '@tabletop/18xx'
+import { TrackConstruction, presidentOf, trainsOwnedBy } from '@tabletop/18xx'
 import { autorouter, botMove, Random } from '../test/bot.js'
 import { givePrivate, kit, type Table } from '../test/kit.js'
 import { bridgeLeaseOwed } from './bridgeLease.js'
@@ -466,7 +466,7 @@ describe.skipIf(!process.env.SCENARIOS)('18RoyalGorge private scenarios', () => 
                 game.valid().includes('PayDebt')
         )
         saveArranged('doc-holliday', game, (state) => {
-            const president = getCompany(state, SfId).president
+            const president = presidentOf(state, SfId)
             const [doc] = othersThan(
                 state,
                 president?.kind === 'player' ? president.playerId : undefined

@@ -44,7 +44,14 @@
     const actions = $derived(session.actions)
     // Stored form: the history is replayed from a copy, which the hydrated state's functions prevent.
     const gameState = $derived(session.gameState.dehydrate())
-    const states = $derived(historyStates(actions, gameState, session.endingRules))
+    const states = $derived(
+        historyStates(
+            actions,
+            gameState,
+            session.endingRules,
+            session.presentation.openingRound?.inProgress
+        )
+    )
     const orderChanges = $derived(historyOperatingOrder(actions, states))
     const cash = $derived(historyCash(states))
     const entryOrders = $derived(entryOrderChanges(actions, orderChanges))
@@ -61,7 +68,8 @@
                 )
                 return !!description && !description.routine
             },
-            rounds: session.presentation.titleRounds
+            rounds: session.presentation.titleRounds,
+            openingRound: session.presentation.openingRound
         })
     )
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)

@@ -9,14 +9,14 @@ import {
     closeShareCompany,
     endOperatingTurn,
     finiteCashOwnedBy,
-    getCompany,
     isOperatingStep,
     nextOperatingCompany,
     operatingRoundEnd,
     RoundEnd,
     settleCashPayments,
     SystemActionFirstHandler,
-    type ValuationRules
+    type ValuationRules,
+    presidentOf
 } from '@tabletop/18xx'
 import type {
     EighteenThirtyTwoState,
@@ -96,7 +96,7 @@ export class HydratedCloseCompany
             'Only a company in the black area closes'
         )
         const funding = state.trainFunding?.purchase.companyId === this.companyId
-        const president = getCompany(state, this.companyId).president
+        const president = presidentOf(state, this.companyId)
         const ownTurn =
             (isOperatingStep(state.machineState) || state.machineState === 'FundingTrain') &&
             nextOperatingCompany(state) === this.companyId

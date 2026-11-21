@@ -69,6 +69,16 @@ export class TrainBuyingModule {
             return [{ ...option, definitionId: train.definitionId, source }]
         })
     )
+    /** The prices the chosen company train may change hands at. */
+    companyPriceRange = $derived.by(() => {
+        const asset = this.selection.purchase?.value.asset
+        if (asset?.kind !== 'train') return undefined
+        return this.companyChoices.find(
+            (choice) =>
+                choice.request.asset.kind === 'train' &&
+                choice.request.asset.trainId === asset.trainId
+        )
+    })
     companyEvaluation = $derived.by(() => {
         const request = this.selection.purchase?.value
         return request ? this.evaluateOffer(request) : undefined

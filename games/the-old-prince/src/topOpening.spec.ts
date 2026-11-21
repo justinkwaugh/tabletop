@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { OfferAuction, cashOwnedBy, getCompany } from '@tabletop/18xx'
+import { OfferAuction, cashOwnedBy, getCompany, presidentOf } from '@tabletop/18xx'
 import { Definition, TheOldPrinceAuctionRules, theOldPrinceRole } from './index.js'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { TheOldPrinceScenarios } from './scenarios/index.js'
@@ -101,9 +101,9 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
         cashOwnedBy(run.state, { kind: 'player', playerId })
     )
     expect(cash).toEqual([...cash].sort((a, b) => Number(a) - Number(b)))
-    expect(getCompany(run.state, main).president).toBeDefined()
-    expect(getCompany(run.state, short).president).toBeDefined()
-    expect(getCompany(run.state, 'PEIR').president).toBeDefined()
+    expect(presidentOf(run.state, main)).toBeDefined()
+    expect(presidentOf(run.state, short)).toBeDefined()
+    expect(presidentOf(run.state, 'PEIR')).toBeDefined()
     let replay = run.initial
     for (const action of run.history)
         replay = run.engine.applyProcessedAction({ game: run.game, state: replay, action })

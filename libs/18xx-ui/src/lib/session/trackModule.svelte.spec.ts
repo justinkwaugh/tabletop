@@ -3,9 +3,12 @@ import {
     RailwayMap,
     StandardTileCatalog,
     TileSet,
+    TrackConstruction,
     createSeparateCitiesTileFace,
-    createTrackTileFace
+    createTrackTileFace,
+    type TrackLayDetails
 } from '@tabletop/18xx'
+import { assertExists } from '@tabletop/common'
 import {
     TestCompanyId,
     TestPlayerId,
@@ -111,7 +114,77 @@ function laying(
     return { ...harness, module, locationsChosen: () => locationsChosen }
 }
 
+/** A stock round in which the title asks for one lay at a single hex, such as 1860's home tile. */
+function titleLaying() {
+    const base = minimalPlayState()
+    const trackStep = { companyId: TestCompanyId, lays: [], completed: false }
+    const state: TrackSession['state'] = {
+        ...base,
+        machineState: 'StockRound',
+        companies: base.companies.map((company) => ({ ...company, floated: true })),
+        cash: [...base.cash, { owner: { kind: 'company', companyId: TestCompanyId }, amount: 100 }],
+        tileInventory: minimalTrackTileSet.createInventory(),
+        usedPrivatePowerIds: [],
+        stations: [
+            {
+                id: `${TestCompanyId}:home`,
+                companyId: TestCompanyId,
+                status: 'placed',
+                position: { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+            }
+        ]
+    }
+    const rules = {
+        trackRules: minimalTrackRules(minimalTrackTileSet),
+        privatePowerRules: noPrivateTrack
+    }
+    const construction = new TrackConstruction({ ...state, trackStep }, rules.trackRules)
+    const locationId = minimalTrackMap.definition.locations
+        .map((location) => location.id)
+        .find((id) => construction.choices(id).length > 0)
+    assertExists(locationId, 'The test map offers a lay')
+    const committed: TrackLayDetails[] = []
+    const harness = testSession(state, rules, ['SellShares'])
+    const module = new TrackModule(
+        harness.session,
+        () => ({ map: minimalTrackMap, tileSet: minimalTrackTileSet }),
+        noPrivateAction,
+        { selectPrivateTile: () => {}, confirm: async () => {} },
+        () => {},
+        () => true,
+        () => ({
+            construction: {
+                choices: (id) => (id === locationId ? construction.choices(id) : []),
+                canReach: (id) => id === locationId,
+                evaluate: (request) => construction.evaluate(request),
+                inventoryAfter: (details) => construction.inventoryAfter(details),
+                stationsAfter: (details) => construction.stationsAfter(details)
+            },
+            commit: async (details) => {
+                committed.push(details)
+            }
+        })
+    )
+    return { module, locationId, committed, applied: harness.applied }
+}
+
 describe('TrackModule', () => {
+    it('offers a lay the title asks for outside the track step, committed through the title', async () => {
+        const { module, locationId, committed, applied } = titleLaying()
+        expect(module.showChoices).toBe(true)
+        expect(module.canBuild).toBe(true)
+        expect(module.locationIds).toEqual([locationId])
+        expect(module.reachableLocationIds).toEqual([])
+        module.selectLocation(locationId)
+        module.previewTile(module.tiles[0].id)
+        expect(module.preview?.locationId).toBe(locationId)
+        expect(module.consentersToAsk).toEqual([])
+        await module.confirm()
+        expect(committed.map((details) => details.locationId)).toEqual([locationId])
+        expect(applied).toEqual([])
+        expect(module.selection).toEqual({})
+    })
+
     it('offers only locations with a legal lay and none outside the track step', () => {
         const { module } = laying()
         expect(module.locationIds.length).toBeGreaterThan(0)

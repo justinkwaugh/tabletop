@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getCompany, privateOwner } from '@tabletop/18xx'
+import { getCompany, presidentOf, privateOwner } from '@tabletop/18xx'
 import { startTable } from '../test/testSupport.js'
 import { startingFrenchCompanyId } from './privates.js'
 
@@ -70,11 +70,11 @@ describe('private auction (§5)', () => {
                     certificate.owner.playerId === buyer.playerId
             )
         ).toHaveLength(2)
-        expect(getCompany(table.hydrated, 'Nord').president).toBeUndefined()
+        expect(presidentOf(table.hydrated, 'Nord')).toBeUndefined()
         table.act('BuyAuctionLot', { lotId: 'NMS', expectedPrice: 180 })
         const major = privateOwner(table.hydrated, 'NMS')
         table.act('ParCompany', { companyId: 'Nord', marketSpaceId: '3:5' })
-        expect(getCompany(table.hydrated, 'Nord').president).toEqual(major)
+        expect(presidentOf(table.hydrated, 'Nord')).toEqual(major)
     })
 
     it('rejects a bid that is not a multiple of F5', () => {

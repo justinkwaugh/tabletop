@@ -60,7 +60,7 @@ export function createOpening1856({
     const ipo = { owner: { kind: 'bank' } as const, poolId: IpoPoolId1856 }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
-        bank: { breaksOnShortfall: true },
+        bank: {},
         companies: [
             ...[...Majors1856.map((company) => company.id), CgrId].map((id) => ({
                 id,

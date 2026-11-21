@@ -8,8 +8,6 @@ import { MarketPoolId } from './stock.js'
 
 function intoReceivership(game: Table, companyId: string) {
     const state = structuredClone(game.state)
-    const company = state.companies.find((company) => company.id === companyId)
-    delete company?.president
     for (const certificate of state.certificates)
         if (
             certificate.kind === 'share' &&

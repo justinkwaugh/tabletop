@@ -7,7 +7,8 @@ import {
     evaluateShareSale,
     getCompany,
     placeStockMarker,
-    sharesOwned
+    sharesOwned,
+    presidentOf
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
@@ -414,7 +415,7 @@ describe('black-area closure', () => {
         sell(play, 'ACL', 1)
         const acl = getCompany(play.state, 'ACL')
         expect(acl.closed).toBe(true)
-        expect(acl.president).toBeUndefined()
+        expect(presidentOf(play.state, 'ACL')).toBeUndefined()
         expect(sharesOwned(play.state, 'ACL', player('alex'))).toBe(0)
         expect(
             play.state.stockMarket.stacks.some((stack) => stack.companyIds.includes('ACL'))

@@ -26,6 +26,7 @@
             {newestFirst}
             {historyComplete}
             phaseColors={{ '2': '#ffffff' }}
+            phaseLabel={(phaseIds) => phaseIds.join(', ')}
             onJump={() => {}}
             onReturn={() => {}}
             onOrderChange={(first) => (newestFirst = first)}

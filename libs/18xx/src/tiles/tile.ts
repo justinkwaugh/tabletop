@@ -78,7 +78,21 @@ export const TileNode = Type.Union([
     Type.Object(
         {
             id: Identifier,
-            kind: Type.Union([Type.Literal('town'), Type.Literal('offboard')]),
+            kind: Type.Literal('town'),
+            revenue: TileRevenue,
+            uncounted: Uncounted,
+            /**
+             * A halt: a stop that earns a run nothing, its visit paid to the company's treasury
+             * as a subsidy instead, and where no run begins or ends, as 1860's halts.
+             */
+            halt: Type.Optional(Type.Literal(true))
+        },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        {
+            id: Identifier,
+            kind: Type.Literal('offboard'),
             revenue: TileRevenue,
             uncounted: Uncounted
         },
@@ -87,6 +101,11 @@ export const TileNode = Type.Union([
     Type.Object({ id: Identifier, kind: Type.Literal('junction') }, { additionalProperties: false })
 ])
 export type TileNode = ImmutableTileData<Type.Static<typeof TileNode>>
+
+/** Whether the node is a halt: a town whose visit pays the company a subsidy, not the run. */
+export function isHalt(node: TileNode): boolean {
+    return node.kind === 'town' && node.halt === true
+}
 
 /**
  * The gauge of a track path where a title has more than one: narrow track, or dual track that

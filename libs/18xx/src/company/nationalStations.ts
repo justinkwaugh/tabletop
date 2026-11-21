@@ -178,12 +178,16 @@ export class NationalStations {
         for (const nodeId of nodeIds) {
             const [slot] = placement.openSlots(nationalId, locationId, nodeId)
             if (slot === undefined) continue
-            applyStationPlacement(state, {
-                companyId: nationalId,
-                stationId,
-                position: { locationId, nodeId, slot },
-                cost: 0
-            })
+            applyStationPlacement(
+                state,
+                {
+                    companyId: nationalId,
+                    stationId,
+                    position: { locationId, nodeId, slot },
+                    cost: 0
+                },
+                this.rules.map
+            )
             this.releaseReservations(state)
             return true
         }

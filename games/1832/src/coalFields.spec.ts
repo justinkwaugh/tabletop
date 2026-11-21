@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { TrackConstruction, applyStationPlacement, cashOwnedBy } from '@tabletop/18xx'
+import {
+    CompanyStationsOnly,
+    TrackConstruction,
+    applyStationPlacement,
+    cashOwnedBy
+} from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { laidTiles } from '@tabletop/18xx/testing'
 import {
@@ -20,12 +25,16 @@ const ToCoalFields = [
 function coalFieldsPlay(coalFieldsOwner: 'ACL' | 'player') {
     return playExample(EighteenThirtyTwoScenarios, 'construction', 3, (state) => {
         state.tileInventory = EighteenThirtyTwoTileSet.createInventory(ToCoalFields)
-        applyStationPlacement(state, {
-            companyId: 'CG',
-            stationId: 'CG:station:1',
-            position: { locationId: 'P23', nodeId: 'city', slot: 0 },
-            cost: 0
-        })
+        applyStationPlacement(
+            state,
+            {
+                companyId: 'CG',
+                stationId: 'CG:station:1',
+                position: { locationId: 'P23', nodeId: 'city', slot: 0 },
+                cost: 0
+            },
+            CompanyStationsOnly
+        )
         const coalFields = state.certificates.find((item) => item.id === 'P5:charter')
         if (coalFields)
             coalFields.owner =

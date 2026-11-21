@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { President, sameOwner, type Company, type FinancialState } from '../finance/finance.js'
+import { President, presidentOf, sameOwner, type FinancialState } from '../finance/finance.js'
 
 export const CompanyChanges = Type.Object(
     {
@@ -20,26 +20,27 @@ export const CompanyChanges = Type.Object(
 export type CompanyChanges = Type.Static<typeof CompanyChanges>
 
 export class CompanyChangeRecorder {
-    private readonly before: Map<string, Pick<Company, 'president' | 'closed'>>
-    constructor(state: Pick<FinancialState, 'companies'>) {
+    private readonly before: Map<string, { president?: President; closed?: boolean }>
+    constructor(state: Pick<FinancialState, 'companies' | 'certificates'>) {
         this.before = new Map(
-            state.companies.map((company) => [
-                company.id,
-                {
-                    president: company.president ? { ...company.president } : undefined,
-                    closed: company.closed
-                }
-            ])
+            state.companies.map((company) => {
+                const president = presidentOf(state, company.id)
+                return [
+                    company.id,
+                    { president: president ? { ...president } : undefined, closed: company.closed }
+                ]
+            })
         )
     }
-    changes(state: Pick<FinancialState, 'companies'>): CompanyChanges {
+    changes(state: Pick<FinancialState, 'companies' | 'certificates'>): CompanyChanges {
         const changes: CompanyChanges = { presidents: [], closedCompanyIds: [] }
         for (const company of state.companies) {
             const before = this.before.get(company.id)
             if (company.closed && !before?.closed) changes.closedCompanyIds.push(company.id)
             if (company.closed) continue
             const previous = before?.president
-            const next = company.president ? { ...company.president } : undefined
+            const president = presidentOf(state, company.id)
+            const next = president ? { ...president } : undefined
             if (previous && next ? !sameOwner(previous, next) : previous !== next)
                 changes.presidents.push({ companyId: company.id, previous, next })
         }

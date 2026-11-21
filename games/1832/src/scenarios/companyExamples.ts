@@ -121,7 +121,6 @@ export function createEighteenThirtyTwoCompanyExample(
         const company = getCompany(state, 'SAL')
         company.started = true
         company.parPrice = 68
-        company.president = { kind: 'player', playerId: players[0].playerId }
         for (const [id, index] of [
             ['SAL:president', 0],
             ['SAL:share:1', 1],

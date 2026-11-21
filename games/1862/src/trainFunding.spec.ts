@@ -1,4 +1,10 @@
-import { evaluatePurchaseOffer, getCompany, sharesOwned, trainsOwnedBy } from '@tabletop/18xx'
+import {
+    evaluatePurchaseOffer,
+    getCompany,
+    presidentOf,
+    sharesOwned,
+    trainsOwnedBy
+} from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { buyTrain, type Table } from '../test/kit.js'
@@ -215,7 +221,7 @@ describe('1862 refinancing with a 50% director (§5.1.3, §5.2.4, §5.2.5)', () 
         expect(paid).toBe(option.redeemCost)
         while (game.state.machineState === 'MergingShares')
             game.act('DecideOption', { redeem: false }, game.player)
-        expect(getCompany(game.state, a).president).toEqual(player('p1'))
+        expect(presidentOf(game.state, a)).toEqual(player('p1'))
         expect(sharesOwned(game.state, a, player('p1'))).toBe(3)
     })
 
@@ -231,7 +237,7 @@ describe('1862 refinancing with a 50% director (§5.1.3, §5.2.4, §5.2.5)', () 
         expect(paid).toBe(option.redeemCost)
         while (game.state.machineState === 'MergingShares')
             game.act('DecideOption', { redeem: false }, game.player)
-        expect(getCompany(game.state, a).president).toEqual(player('p1'))
+        expect(presidentOf(game.state, a)).toEqual(player('p1'))
         expect(sharesOwned(game.state, a, player('p1'))).toBe(3)
     })
 
@@ -244,7 +250,7 @@ describe('1862 refinancing with a 50% director (§5.1.3, §5.2.4, §5.2.5)', () 
         decide(game, 'p1', false)
         while (game.state.machineState === 'MergingShares')
             game.act('DecideOption', { redeem: false }, game.player)
-        expect(getCompany(game.state, a).president).toBeUndefined()
+        expect(presidentOf(game.state, a)).toBeUndefined()
         expect(sharesOwned(game.state, a, player('p1'))).toBe(2)
     })
 })

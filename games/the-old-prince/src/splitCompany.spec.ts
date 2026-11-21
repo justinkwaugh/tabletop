@@ -13,6 +13,7 @@ import {
 import {
     cashOwnedBy,
     getCompany,
+    presidentOf,
     sameOwner,
     sharesOwned,
     type EighteenXXState,
@@ -131,9 +132,9 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
         funded: true,
         floated: false,
         operated: false,
-        president: alex,
         parPrice: 80
     })
+    expect(presidentOf(after, 'branch:BB')).toEqual(alex)
     expect(after.tranches[1].companyIds).toEqual(['branch:BB'])
     expect(TheOldPrinceMarket.companySpace(after.stockMarket, 'So')).toEqual(
         TheOldPrinceMarket.companySpace(state.stockMarket, 'So')

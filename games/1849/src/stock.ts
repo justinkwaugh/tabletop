@@ -4,6 +4,7 @@ import {
     isStartOperatingRound,
     isStartStockRound,
     placeReservedHome,
+    presidentOf,
     settleCashPayments,
     treasuryShareCompanyRules,
     treasuryShareStockRules,
@@ -90,7 +91,7 @@ export const StockRules1849: StockRules = {
     // price a row (§9.2).
     saleTerms(state, companyId, shares, _seller) {
         const company = getCompany(state, companyId)
-        if (company.kind !== 'major' || !company.started || !company.president)
+        if (company.kind !== 'major' || !company.started || !presidentOf(state, companyId))
             return 'This corporation has no saleable stock.'
         if (!company.operated) return 'Shares cannot be sold before the corporation operates.'
         return {
@@ -240,7 +241,7 @@ export const CompanyRules1849: CompanyRules = {
     // Reale Società d'Affari is funded by the bank with that certificate's value (§8.1, §9.4).
     flotationPayments(state, companyId) {
         const company = getCompany(state, companyId)
-        if (company.kind !== 'major' || !company.president) return undefined
+        if (company.kind !== 'major' || !presidentOf(state, companyId)) return undefined
         if (requireState1849(state).royalFunding !== companyId) return []
         assertExists(company.parPrice, 'A started corporation has a value')
         return [

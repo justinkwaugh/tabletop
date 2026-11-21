@@ -7,6 +7,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     copyFinances,
     getCompany,
+    presidentOf,
     privateOwner,
     sameOwner,
     sharesOwned
@@ -169,7 +170,7 @@ export function applyPrivateShareExchange(
     closePrivate(state, privateCompanyId)
     if (exemptOwnershipLimit)
         grantOwnershipLimitExemption(state, rules.charters, received.companyId, owner)
-    if (!getCompany(state, received.companyId).president) return undefined
+    if (!presidentOf(state, received.companyId)) return undefined
     const presidency = evaluatePresidency(
         state,
         received.companyId,

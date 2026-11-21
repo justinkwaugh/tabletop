@@ -3,7 +3,7 @@
     "AdvancePhase": "2f9ac94079d8c4318e27ae945a40b685d862a99ef06373818a16bb2154f56202",
     "AssignRevenueMarker": "127b13ebfb7e99a0cc6847c4b6925ef6f557f369dd903bbb608160f58f27d6b1",
     "AssignSteamboat": "ee1aa86a3ec152fc1d956d798b2701cab42af89dfc7e24057b7b4222eebed841",
-    "BuildPrivateTrack": "355ceac993cf745597e757d739e3357edce92deb49d6919d7ce97a900d98a53d",
+    "BuildPrivateTrack": "8d0471844e7af8865bb00be416bf1a580b73cdd383b7b657d4837adc3709c929",
     "BuyOpeningCompany": "037beb29789c4752646b76d22a226c413602bab29a5fb17e4b54fd5164eea860",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
     "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
@@ -28,8 +28,8 @@
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
-    "LayPrivateTile": "060f5917fe0ebfa44a80c7f1e1c080f8c5cbc58ad3d1e22599953f4a44f7eba1",
-    "LayTile": "b76723a83d8af6883f22e941ee88e5e67e6888a6a021e38571fddccb71bd5165",
+    "LayPrivateTile": "211402caf2ebd81400106d9b2f43208ada7ea8717489b1468db11d1d75abf2f0",
+    "LayTile": "a85decb4c77850f7fffdddbe40b752e0636e3e0320140ae79691d08dd1aaf698",
     "OfferPurchase": "cc9f7dd68e38b943fa907e5a6f284f2da89c11dd3ffe5cd3c3313c0a963cd9be",
     "PassFinalCompany": "6755635a7b9754ed7f369640a5bb9314aa10672e2dd7a8030514f6d3f0bab8c2",
     "PassOpeningPurchase": "a10e80c18e5c5dc2e594f731057e7213ad6990d505610de010f3ffa49320954c",
@@ -38,10 +38,10 @@
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "e798173d5818e1a80dd54089f9bcab2a3f3a34266a268f41001354b40ee46765",
-    "RespondToTrackConsent": "3980a4800eb1a7a88fb178937724a4bd6867edd019fd01233bde54eb9df414a1",
+    "RespondToTrackConsent": "ba4ab8b4f9266ce8a64f31905685b556a03e9d45aedaccab53bd0642cecf9ce6",
     "ResumeOpeningPurchases": "b34f78e0a18a485f85b0e63c4116e1ab110ea1993dbd9276375e6bba51728931",
     "RevealDraft": "c2b83e5b8b845a50157a61a13c0bc7c7e18b849e134b8c205ffbda7c59dda05e",
-    "RunTrains": "db62940db3573a3bfe182ac544b2c981be007a84d4ec1b84cd7a6373ad197884",
+    "RunTrains": "2fe2b2ead2f259153217cd6779773d1a823106ef8a08ba17cb1c77950d37c2e9",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "2f3dadebf2c64a055cd16d371337d9dfb90afc5f2c41f5aad20c5346275c9b8c",
     "SellFundingShares": "33e82acef995c8c92add06b895003343abd3acb8ff5b2aaf596f477cc83037ce",
@@ -2544,6 +2544,10 @@
                       ],
                       "type": "object"
                     },
+                    "subsidy": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
                     "trainId": {
                       "minLength": 1,
                       "type": "string"
@@ -3920,8 +3924,7 @@
                         }
                       },
                       "required": [
-                        "edges",
-                        "revenue"
+                        "edges"
                       ],
                       "type": "object"
                     },

@@ -55,7 +55,9 @@ export const RouteResult = Type.Object(
         payments: Type.Array(RoutePayment),
         bonuses: Type.Optional(Type.Array(RouteBonus, { minItems: 1 })),
         distance: Type.Integer({ minimum: 0 }),
-        revenue: Type.Integer({ minimum: 0 })
+        revenue: Type.Integer({ minimum: 0 }),
+        /** What the route's stops paid the treasury beside its revenue, as 1860's halts. */
+        subsidy: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )

@@ -10,7 +10,8 @@ import {
     trainRoutesOf,
     trainsCountingForLimit,
     trainsOwnedBy,
-    type TrainRoute
+    type TrainRoute,
+    presidentOf
 } from '@tabletop/18xx'
 import { Autorouter } from '@tabletop/18xx-autorouter'
 import { assertExists } from '@tabletop/common'
@@ -238,7 +239,7 @@ describe.skipIf(!process.env.SCENARIOS)('1822 harness scenarios', () => {
             playUntil(4, 4, (game) => {
                 const companyId = game.state.trainPurchaseStep?.companyId
                 if (!companyId || !game.valid().includes('FundTrain')) return false
-                const director = getCompany(game.state, companyId).president
+                const director = presidentOf(game.state, companyId)
                 if (director?.kind !== 'player') return false
                 const prices = TrainRules1822.availableDefinitions(game.hydrated).map(
                     (definitionId) => TrainDepot1822.trainDefinition(definitionId).price

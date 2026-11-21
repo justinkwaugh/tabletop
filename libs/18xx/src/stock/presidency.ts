@@ -1,10 +1,11 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
-    President,
     certificateShares,
     certificatesOwnedBy,
-    getCompany,
+    President,
+    presidentCertificate,
+    presidentOf,
     sameOwner,
     sharesOwned,
     type FinancialState,
@@ -129,15 +130,9 @@ export function evaluatePresidency(
     remaining?: { owner: Owner; shares: number },
     { largestFirst = false, choice = false }: PresidencyExchangeTerms = {}
 ): PresidencyResult {
-    const company = getCompany(state, companyId)
-    const previous = company.president
-    const president = state.certificates.find(
-        (certificate) =>
-            certificate.kind === 'share' &&
-            certificate.president &&
-            certificate.companyId === companyId
-    )
-    assert(president && president.kind === 'share', 'Missing president certificate')
+    const previous = presidentOf(state, companyId)
+    const president = presidentCertificate(state, companyId)
+    assert(president, 'Missing president certificate')
     const owned = (owner: Owner) =>
         remaining && sameOwner(owner, remaining.owner)
             ? remaining.shares
@@ -192,7 +187,6 @@ export function applyPresidencyChange(
         certificate.owner = id === change.presidentCertificateId ? change.next : change.previous
         delete certificate.poolId
     }
-    getCompany(state, change.companyId).president = change.next
     if (change.alternatives?.length)
         state.presidencyExchanges = [...(state.presidencyExchanges ?? []), change]
 }
@@ -201,7 +195,7 @@ export function playersAfterPresident(
     companyId: string,
     turnOrder: readonly string[]
 ): President[] {
-    const president = getCompany(state, companyId).president
+    const president = presidentOf(state, companyId)
     const index = president?.kind === 'player' ? turnOrder.indexOf(president.playerId) : -1
     return [...turnOrder.slice(index + 1), ...turnOrder.slice(0, index + 1)].map((playerId) => ({
         kind: 'player',
@@ -223,5 +217,4 @@ export function applyPresidencyClaim(state: FinancialState, claim: PresidencyCla
             certificate.poolId = pool.id
         }
     }
-    getCompany(state, claim.companyId).president = claim.next
 }

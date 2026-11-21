@@ -77,7 +77,9 @@ same-number variants, varying token capacity, labels and staged revenue, longer
 color sequences, lanes/gauges/terminals, paired supply, and map-owned rights.
 The renderer supports T1's single-lane face vocabulary. Unsupported logical
 mechanisms must first be modeled explicitly; a drawing style cannot invent them.
-Halts, lane markings, partitions, and future labels remain later extensions.
+Lane markings, partitions, and future labels remain later extensions. A halt prints as a grey
+stop with the sign its layout's `haltSymbol` gives in place of a value (1860's £), and no value
+without one.
 
 Colors are presentation data keyed by semantic color names, not a four-color
 upgrade algorithm. Caller-supplied layout handles different city arrangements;

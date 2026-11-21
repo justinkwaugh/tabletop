@@ -5,7 +5,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import type { GameAction } from '@tabletop/common'
 import type { CashCrisisState } from '@tabletop/18xx'
-import { StockMarketMove, getCompany, goBankruptSchema, type CashCrisisRules } from '@tabletop/18xx'
+import { StockMarketMove, goBankruptSchema, presides, type CashCrisisRules } from '@tabletop/18xx'
 import { isLiquidated, liquidate } from './liquidation.js'
 import { EighteenSeventeenStockRules, marketSale } from './stockRules.js'
 import { closeMarketShortsAgainstPool, marketPool } from './shorts.js'
@@ -49,6 +49,10 @@ export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
             playerId
         ): EighteenSeventeenBankruptcyRecord {
             const market = marketPool(state)
+            const player = { kind: 'player' as const, playerId }
+            const presided = state.companies
+                .filter((company) => presides(state, company.id, player))
+                .map((company) => company.id)
             for (const certificate of state.certificates)
                 if (
                     certificate.kind !== 'private' &&
@@ -63,15 +67,12 @@ export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
             const marketMoves: StockMarketMove[] = []
             // In operating order, which orders their arrival in the liquidation space.
             for (const companyId of EighteenSeventeenMarket.order(state.stockMarket)) {
-                const company = getCompany(state, companyId)
-                if (company.president?.kind !== 'player' || company.president.playerId !== playerId)
-                    continue
-                if (!isLiquidated(state.stockMarket, company.id)) {
-                    marketMoves.push(liquidate(state, company.id))
-                    liquidatedCompanyIds.push(company.id)
+                if (!presided.includes(companyId)) continue
+                if (!isLiquidated(state.stockMarket, companyId)) {
+                    marketMoves.push(liquidate(state, companyId))
+                    liquidatedCompanyIds.push(companyId)
                 }
-                recordFormerPresident(state, company.id, playerId)
-                delete company.president
+                recordFormerPresident(state, companyId, playerId)
             }
             const set = state.operatingSet
             if (set && !set.completed)

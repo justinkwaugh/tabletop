@@ -8,6 +8,7 @@ import {
 } from '@tabletop/common'
 import { getCompany, presidentCertificate, type Company } from '../finance/finance.js'
 import {
+    CompanyStationsOnly,
     StationPosition,
     homeStationId,
     stationReservation,
@@ -271,17 +272,21 @@ export class CompanyAuctionModel {
         }
         const president = { kind: 'player' as const, playerId }
         const marketSpaceId = this.terms.startSpace(this.state, formation.price)
-        startCompanyAtPar(this.state, this.rules.market, companyId, marketSpaceId, president)
+        startCompanyAtPar(this.state, this.rules.market, companyId, marketSpaceId)
         const certificate = presidentCertificate(this.state, companyId)
         assertExists(certificate, 'A company auction awards the president’s certificate')
         certificate.owner = president
         delete certificate.poolId
-        applyStationPlacement(this.state, {
-            companyId,
-            stationId: homeStationId(companyId),
-            position: formation.home,
-            cost: 0
-        })
+        applyStationPlacement(
+            this.state,
+            {
+                companyId,
+                stationId: homeStationId(companyId),
+                position: formation.home,
+                cost: 0
+            },
+            CompanyStationsOnly
+        )
         this.terms.form(this.state, formation)
         if (this.terms.nextTurnFollowsWinner?.(this.state))
             this.state.stockRound.turn.auctionWinnerId = playerId

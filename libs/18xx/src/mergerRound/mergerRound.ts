@@ -19,6 +19,7 @@ import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import {
     finiteCashOwnedBy,
     getCompany,
+    presidentOf,
     treasuryPoolId,
     type OpenShare
 } from '../finance/finance.js'
@@ -339,7 +340,7 @@ export class MergerRounds {
         )
         return placed.some((hub) => {
             const track = new ConnectedTrack(mapState, [hub.position], (locationId, node) =>
-                cityBlockedForCompanies(state, minorIds, locationId, node)
+                cityBlockedForCompanies(state, this.rules.map, minorIds, locationId, node)
             )
             return placed.every(
                 (other) =>
@@ -714,7 +715,7 @@ export class MergerRounds {
     }
 
     private ownerOf(state: State, companyId: string): string {
-        const owner = getCompany(state, companyId).president
+        const owner = presidentOf(state, companyId)
         assert(owner?.kind === 'player', 'A minor company has a player for its owner')
         return owner.playerId
     }
@@ -882,10 +883,7 @@ export class MergerRounds {
         const { rules } = this
         const { majorId, directorId } = proposal
         const space = rules.market.space(proposal.marketSpaceId)
-        startCompanyAtPar(state, rules.market, majorId, proposal.marketSpaceId, {
-            kind: 'player',
-            playerId: directorId
-        })
+        startCompanyAtPar(state, rules.market, majorId, proposal.marketSpaceId)
         const major = getCompany(state, majorId)
         major.floated = true
         major.funded = true
@@ -1026,7 +1024,7 @@ export class MergerRounds {
             this.rules.stockRules.presidencyCandidates(state, proposal.majorId)
         ).change
         if (change) applyPresidencyChange(state, change)
-        const director = getCompany(state, proposal.majorId).president
+        const director = presidentOf(state, proposal.majorId)
         if (director?.kind === 'player') proposal.directorId = director.playerId
         return payment
     }

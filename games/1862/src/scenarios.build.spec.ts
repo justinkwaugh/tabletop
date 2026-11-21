@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
+import { presidentOf } from '@tabletop/18xx'
 import { botMove, Random } from '../test/bot.js'
 import { table, type Table } from '../test/kit.js'
 import { canBuildToLondon, smallStationLines } from './builds.js'
@@ -87,9 +88,7 @@ describe.skipIf(!process.env.SCENARIOS)('1862 harness scenarios', () => {
                 (game) =>
                     game.state.machineState === 'LayingTrack' &&
                     !!game.state.trackStep &&
-                    !!game.state.companies.find(
-                        (company) => company.id === game.state.trackStep?.companyId
-                    )?.president &&
+                    !!presidentOf(game.state, game.state.trackStep.companyId) &&
                     canBuildToLondon(game.hydrated, game.player, game.state.trackStep.companyId)
             )
         )

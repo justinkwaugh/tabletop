@@ -93,7 +93,11 @@ export class TileUpgrades {
             keeps = TileEdges.some((rotation) => {
                 const turned = rotateTileFace(after.face, rotation)
                 const rotated = this.rules.carriesTrackStops
-                    ? withTrackStops(turned, carriedTrackStops(before.face, turned))
+                    ? withTrackStops(
+                          turned,
+                          carriedTrackStops(before.face, turned),
+                          this.rules.tileSet.trackStopRevenue
+                      )
                     : turned
                 return (
                     replacementMappings(

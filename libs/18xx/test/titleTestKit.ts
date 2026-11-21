@@ -400,8 +400,7 @@ export function titleTestKit<
             floated: true,
             funded: true,
             operated: true,
-            parPrice: price,
-            president: { kind: 'player', playerId }
+            parPrice: price
         })
         const space = market.spaces.find(
             (entry) => entry.price === price && entry.color === parColor
@@ -413,7 +412,7 @@ export function titleTestKit<
         )
         let left = shares
         for (const certificate of owned) {
-            if (left <= 0 || certificate.kind !== 'share') break
+            if (certificate.kind !== 'share' || (left <= 0 && !certificate.president)) continue
             certificate.owner = { kind: 'player', playerId }
             delete certificate.poolId
             left -= certificate.shares

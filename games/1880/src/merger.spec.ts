@@ -47,9 +47,6 @@ function directedByAnother(position: Position): { game: Table; owner: string; di
         const certificate = presidentCertificate(state, merger.companyId)
         assertExists(certificate, 'The company has its director’s certificate')
         certificate.owner = { kind: 'player', playerId: director }
-        const company = state.companies.find((entry) => entry.id === merger.companyId)
-        assertExists(company, 'The company is in the game')
-        company.president = { kind: 'player', playerId: director }
     })
     return { game: copy, owner, director }
 }

@@ -102,3 +102,42 @@ describe('track gauges', () => {
         expect(crossings.map(([, over]) => over)).toContain('narrow')
     })
 })
+
+describe('halts', () => {
+    const face: TileFace = {
+        color: 'yellow',
+        labels: [],
+        nodes: [{ id: 'halt', kind: 'town', revenue: { kind: 'fixed', amount: 0 }, halt: true }],
+        paths: [
+            {
+                id: 'halt-0',
+                endpoints: [
+                    { kind: 'edge', edge: 0 },
+                    { kind: 'node', nodeId: 'halt' }
+                ]
+            },
+            {
+                id: 'halt-3',
+                endpoints: [
+                    { kind: 'edge', edge: 3 },
+                    { kind: 'node', nodeId: 'halt' }
+                ]
+            }
+        ]
+    }
+    const artwork = (layout = {}) =>
+        render(TileArtwork, {
+            props: { face, drawing: createTileDrawing(face, undefined, 0, layout) }
+        }).body
+
+    it('prints a halt as a stop filled as its layout says, with its sign in place of a value', () => {
+        const body = artwork({ haltSymbol: '£', haltFill: '#a3a39b' })
+        expect(body).toMatch(/data-town-marker="bar"[^>]*data-halt="true"[^>]*fill="#a3a39b"/)
+        expect(body).toMatch(/data-revenue-for="halt"[\s\S]*>£<\/text/)
+        expect(body).not.toMatch(/>0<\/text/)
+    })
+
+    it('prints no value for a halt without a sign', () => {
+        expect(artwork()).not.toContain('data-revenue-for="halt"')
+    })
+})

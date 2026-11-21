@@ -7,6 +7,7 @@ import { Autorouter } from '@tabletop/18xx-autorouter'
 import {
     RouteEvaluation,
     TrackConstruction,
+    CompanyStationsOnly,
     applyStationPlacement,
     placeStockMarker,
     type TileRotation,
@@ -69,12 +70,16 @@ describe('track construction', () => {
                 state.tileInventory = EighteenSeventeenTileSet.createInventory([
                     { locationId: 'E22', definitionId, rotation: 0 }
                 ])
-                applyStationPlacement(state, {
-                    companyId: 'BA',
-                    stationId: 'BA:station:1',
-                    position: { locationId: 'E22', nodeId: 'city-0', slot: 0 },
-                    cost: 0
-                })
+                applyStationPlacement(
+                    state,
+                    {
+                        companyId: 'BA',
+                        stationId: 'BA:station:1',
+                        position: { locationId: 'E22', nodeId: 'city-0', slot: 0 },
+                        cost: 0
+                    },
+                    CompanyStationsOnly
+                )
             }).track()
         expect(
             new Set(
@@ -103,12 +108,16 @@ describe('track construction', () => {
                 state.tileInventory = EighteenSeventeenTileSet.createInventory([
                     { locationId, definitionId, rotation }
                 ])
-                applyStationPlacement(state, {
-                    companyId: 'BA',
-                    stationId: 'BA:station:1',
-                    position: { locationId, nodeId: 'city', slot: 0 },
-                    cost: 0
-                })
+                applyStationPlacement(
+                    state,
+                    {
+                        companyId: 'BA',
+                        stationId: 'BA:station:1',
+                        position: { locationId, nodeId: 'city', slot: 0 },
+                        cost: 0
+                    },
+                    CompanyStationsOnly
+                )
             })
             return new Set(
                 new TrackConstruction(state, rules)
@@ -137,12 +146,16 @@ describe('routes', () => {
             { locationId: 'E20', definitionId: '18xx:7', rotation: 3 },
             { locationId: 'D21', definitionId: '18xx:7', rotation: 5 }
         ])
-        applyStationPlacement(state, {
-            companyId: 'BA',
-            stationId: 'BA:station:1',
-            position: { locationId: 'E22', nodeId: 'city-0', slot: 0 },
-            cost: 0
-        })
+        applyStationPlacement(
+            state,
+            {
+                companyId: 'BA',
+                stationId: 'BA:station:1',
+                position: { locationId: 'E22', nodeId: 'city-0', slot: 0 },
+                cost: 0
+            },
+            CompanyStationsOnly
+        )
         const running: TrainRunningState = { ...state, routeStep: { companyId: 'BA' } }
         const train = running.trainInventory.trains.find(
             (train) =>
