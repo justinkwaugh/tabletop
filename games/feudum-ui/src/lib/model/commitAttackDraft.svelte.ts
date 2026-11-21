@@ -5,6 +5,7 @@ import {
     commitAttackOffer,
     commitAttackPreview,
     goodsShort,
+    priceOfGoods,
     type CommitAttackOffer,
     type Good,
     type TileId,
@@ -26,8 +27,6 @@ import { withLoneChoice } from './stagedDraft.svelte.js'
 import { coverNeeds, coverSpends, loneCover } from './tileCover.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 import { weaponLabel } from './writLabels.js'
-
-type GoodPrice = Partial<Record<Good, number>>
 
 export type CommitAdd =
     | { readonly kind: 'saltpeter' }
@@ -71,7 +70,9 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
     private needsOf(adds: readonly CommitAdd[], { state, playerId }: TurnContext) {
         const offer = commitAttackOffer(state, playerId)
         return offer
-            ? coverNeeds(goodsShort(state, playerId, CommitAttackDraft.priceOf(adds, offer)))
+            ? coverNeeds(
+                  goodsShort(state, playerId, priceOfGoods(CommitAttackDraft.turnedIn(adds, offer)))
+              )
             : []
     }
 
@@ -122,7 +123,11 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         offer: CommitAttackOffer,
         { state, playerId }: TurnContext
     ): boolean {
-        return canCoverWithWildTiles(state, playerId, CommitAttackDraft.priceOf(adds, offer))
+        return canCoverWithWildTiles(
+            state,
+            playerId,
+            priceOfGoods(CommitAttackDraft.turnedIn(adds, offer))
+        )
     }
 
     /** R-4.8.2 "+" not drawn with no saltpeter to pay; dimmed at the most, or while adds hold it. */
@@ -211,26 +216,16 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         }
     })
 
-    private static addGood(price: GoodPrice, good: Good): GoodPrice {
-        return { ...price, [good]: (price[good] ?? 0) + 1 }
-    }
-
     /** R-4.8.2 What these adds turn in. */
-    private static priceOf(adds: readonly CommitAdd[], offer: CommitAttackOffer): GoodPrice {
-        let price: GoodPrice = {}
-        for (const add of adds) {
-            const goods =
-                add.kind === 'saltpeter'
-                    ? (['saltpeter'] satisfies Good[])
-                    : (offer.weapons.find(
-                          ({ writId, alternative }) =>
-                              writId === add.writId && alternative === add.alternative
-                      )?.turnedIn ?? [])
-            for (const good of goods) {
-                price = CommitAttackDraft.addGood(price, good)
-            }
-        }
-        return price
+    private static turnedIn(adds: readonly CommitAdd[], offer: CommitAttackOffer): Good[] {
+        return adds.flatMap((add) =>
+            add.kind === 'saltpeter'
+                ? (['saltpeter'] satisfies Good[])
+                : (offer.weapons.find(
+                      ({ writId, alternative }) =>
+                          writId === add.writId && alternative === add.alternative
+                  )?.turnedIn ?? [])
+        )
     }
 
     private static isWeapon({ writId }: WeaponOffer) {
