@@ -12,6 +12,7 @@
         includesCoords,
         PIECE_RADIUS,
         RESERVE_DOT_RADIUS,
+        MAX_FIT_SCALE,
         RESERVE_LINE_WIDTH,
         SPACING
     } from '$lib/board/geometry.js'
@@ -145,8 +146,8 @@
 
     const tableArea = $derived(tableAreaOf(frame))
 
-    // How far past each side of the frame the board's box shows the table, in board units, measured
-    // when the box resizes. Never negative: zoomed in, the box cuts the board itself, which needs no fade.
+    // How far past each side of the frame the board's box shows the table at the board's fitted view,
+    // in board units. Like a printed board, it holds still as you zoom and pan. Never negative.
     let boxReach = $state<Box>({ left: 0, top: 0, right: 0, bottom: 0 })
     // Where the box has more room, the grid still ends this near the frame, like a cut edge: closer on
     // a phone, where the cut edges sit close all round, than on the desktop layout (Tailwind's sm).
@@ -166,32 +167,54 @@
 
     function watchBox(svg: SVGSVGElement) {
         const box = svg.closest('.scaling-surface')
-        if (!box) return
+        const viewport = box?.firstElementChild
+        const content = viewport?.firstElementChild
+        if (!box || !viewport) return
         let frameId = 0
-        // Two frames on, so the scaling wrapper has fitted the board to the new size.
+        // Measured only at the fitted view, so a resize made while zoomed in is taken up once the
+        // view returns to fit. Two frames on, so the wrapper has fitted the board to a new size.
         const measure = () => {
             cancelAnimationFrame(frameId)
             frameId = requestAnimationFrame(() => {
                 frameId = requestAnimationFrame(() => {
                     const own = svg.getBoundingClientRect()
-                    const shown = box.getBoundingClientRect()
+                    const room = viewport.getBoundingClientRect()
                     if (own.width === 0 || own.height === 0) return
+                    const inside =
+                        own.left >= room.left - 1 &&
+                        own.top >= room.top - 1 &&
+                        own.right <= room.right + 1 &&
+                        own.bottom <= room.bottom + 1
+                    const fills =
+                        Math.abs(own.width - room.width) <= 1 ||
+                        Math.abs(own.height - room.height) <= 1 ||
+                        Math.abs(own.width / frame.width - MAX_FIT_SCALE) < 0.01
+                    if (!inside || !fills) return
+                    const shown = box.getBoundingClientRect()
                     const perPixel = svg.viewBox.baseVal.width / own.width
                     const reach = (pixels: number) => Math.max(0, pixels * perPixel)
-                    desktop = window.matchMedia('(min-width: 640px)').matches
-                    boxReach = {
+                    const next = {
                         left: reach(own.left - shown.left),
                         top: reach(own.top - shown.top),
                         right: reach(shown.right - own.right),
                         bottom: reach(shown.bottom - own.bottom)
                     }
+                    desktop = window.matchMedia('(min-width: 640px)').matches
+                    const sides = ['left', 'top', 'right', 'bottom'] as const
+                    if (sides.some((side) => Math.abs(next[side] - boxReach[side]) > 0.5)) {
+                        boxReach = next
+                    }
                 })
             })
         }
-        const observer = new ResizeObserver(measure)
-        observer.observe(box)
+        const resized = new ResizeObserver(measure)
+        resized.observe(box)
+        // The wrapper zooms and pans by the content's inline transform.
+        const viewed = new MutationObserver(measure)
+        if (content) viewed.observe(content, { attributes: true, attributeFilter: ['style'] })
         return () => {
-            observer.disconnect()
+            resized.disconnect()
+            viewed.disconnect()
             cancelAnimationFrame(frameId)
         }
     }
