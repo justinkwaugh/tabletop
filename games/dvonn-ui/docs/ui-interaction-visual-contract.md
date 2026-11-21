@@ -2,11 +2,12 @@
 
 ## 1. Visual Intents
 
-| Intent        | Trigger               | What should be emphasized                                                                                                | What should be dimmed                | What must remain unaffected |
-| ------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------- |
-| place_piece   | The viewer is placing | Nothing: every empty space takes a piece, so none is marked                                                              | Nothing                              | Pieces on the board         |
-| choose_stack  | The viewer may move   | Every stack with a legal move (its moulded rim recoloured cyan on the top face)                                          | Nothing                              | Other stacks                |
-| choose_target | A stack is chosen     | The chosen stack (thicker rim), a dashed cyan rim, each dash outlined in black, on the top of every stack it can land on | Other movable stacks' marks (hidden) | Other stacks                |
+| Intent        | Trigger                                       | What should be emphasized                                                                                                               | What should be dimmed                | What must remain unaffected |
+| ------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------- |
+| place_piece   | The viewer is placing                         | Nothing: every empty space takes a piece, so none is marked; setting an I set, you choose board, the banner names the colour going down | Nothing                              | Pieces on the board         |
+| choose_color  | The viewer takes a colour (I set, you choose) | White and Black buttons in the action panel; White moves first                                                                          | Nothing                              | The board                   |
+| choose_stack  | The viewer may move                           | Every stack with a legal move (its moulded rim recoloured cyan on the top face)                                                         | Nothing                              | Other stacks                |
+| choose_target | A stack is chosen                             | The chosen stack (thicker rim), a dashed cyan rim, each dash outlined in black, on the top of every stack it can land on                | Other movable stacks' marks (hidden) | Other stacks                |
 
 ## 2. Visual Primitives
 
@@ -24,7 +25,7 @@
 
 | Layer                                                 | Owns                                                                                                                                                                                                | Allowed Inputs                                   | Must Not Own                |
 | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------- |
-| `DvonnGameSession`                                    | `placeable`, `movable`, `chosenFrom`, `destinations`, staged selection, `piecesInHand`; a tap commits a placement or a move                                                                         | Game state, valid action types, staged selection | Styling                     |
+| `DvonnGameSession`                                    | `placeable`, `placingColor`, `movable`, `chosenFrom`, `destinations`, staged selection, `piecesInHand`; a tap commits a placement or a move; `chooseColor()`                                        | Game state, valid action types, staged selection | Styling                     |
 | `Board.svelte`                                        | Mark roles per space (destination over chosen over movable); hit targets above everything, sized to each stack                                                                                      | Session lists, animator's drawn stacks           | Deciding legality           |
 | `BoardAnimator` (`animators/boardAnimator.svelte.ts`) | Motion for committed actions: a placed piece dropping in; the moving stack hopping in an arc onto the stack it lands on; stacks cut off lifting away after it lands; each mark fading with the move | Transition kind, `from`/`to` states, the action  | Interaction state, legality |
 | `ActionPanel.svelte`                                  | One-line prompt on your turn (including when the opponent could not move), the last move otherwise                                                                                                  | Session state, history entries                   | Board marks                 |

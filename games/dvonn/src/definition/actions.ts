@@ -1,4 +1,5 @@
 export enum ActionType {
     PlacePiece = 'placePiece',
-    MoveStack = 'moveStack'
+    MoveStack = 'moveStack',
+    ChooseColor = 'chooseColor'
 }

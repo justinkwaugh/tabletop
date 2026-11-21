@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assert, Color, GameResult, sameCoordinates, type GameAction } from '@tabletop/common'
 import { DvonnRuntime } from './runtime.js'
-import { DvonnVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
+import { DvonnVersion, versionFromConfig, FirstPlayer, firstPlayerFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { HydratedDvonnGameState, type DvonnGameState } from '../model/gameState.js'
@@ -133,6 +133,7 @@ describe('placing pieces', () => {
             state = execute(game, state, placeAction(game, playerId, spaceName(coords)))
             const piece = isPlacePiece(action) ? action.metadata?.piece : undefined
             kinds.push(piece === undefined ? '?' : isDvonnPiece(piece) ? 'd' : piece.playerId)
+            expect(isPlacePiece(action) && action.metadata?.color).toBeFalsy()
         })
         expect(kinds.slice(0, 5)).toEqual(['d', 'd', 'd', B, W])
         expect(kinds.filter((kind) => kind === W)).toHaveLength(23)
@@ -148,6 +149,92 @@ describe('placing pieces', () => {
         expect(() => execute(game, state, placeAction(game, B, 'E3'))).toThrow()
         state = execute(game, state, placeAction(game, W, 'E3'))
         expect(() => execute(game, state, placeAction(game, B, 'E3'))).toThrow()
+    })
+})
+
+describe('I set, you choose', () => {
+    const game = createGame({ version: DvonnVersion.ISetYouChoose })
+
+    function setBoard(): { state: DvonnGameState; placed: PlacePiece[] } {
+        let state = start(game)
+        const placed: PlacePiece[] = []
+        for (const coords of SPACES) {
+            expect(state.machineState).toBe(MachineState.PlacingPieces)
+            expect(state.activePlayerIds).toEqual([W])
+            const action = placeAction(game, W, spaceName(coords))
+            const processed = lastAction(game, state, action)
+            assert(isPlacePiece(processed), 'The placement is processed')
+            placed.push(processed)
+            state = execute(game, state, action)
+        }
+        return { state, placed }
+    }
+
+    const chooseAction = (color: Color.White | Color.Black) => ({
+        ...base(game, B),
+        type: ActionType.ChooseColor,
+        color
+    })
+
+    const colorOf = (state: DvonnGameState, playerId: string) =>
+        state.players.find((player) => player.playerId === playerId)?.color
+
+    it('has the first player place every piece in the usual order of colours', () => {
+        const { state, placed } = setBoard()
+        const colors = placed.map((action) => action.metadata?.color ?? 'd')
+        expect(colors.slice(0, 5)).toEqual(['d', 'd', 'd', Color.Black, Color.White])
+        expect(colors.filter((color) => color === Color.White)).toHaveLength(23)
+        expect(colors.filter((color) => color === Color.Black)).toHaveLength(23)
+        expect(colors.at(-1)).toBe(Color.White)
+        const owners = placed.map((action) => {
+            const piece = action.metadata?.piece
+            return piece === undefined || isDvonnPiece(piece) ? 'd' : piece.playerId
+        })
+        expect(owners.slice(3, 5)).toEqual([B, W])
+        expect(() => execute(game, start(game), placeAction(game, B, 'E3'))).toThrow()
+        expect(state.machineState).toBe(MachineState.ChoosingColor)
+        expect(state.activePlayerIds).toEqual([B])
+        expect(engine.getValidActionTypesForPlayer(game, state, B)).toEqual([
+            ActionType.ChooseColor
+        ])
+    })
+
+    it('keeps everything as set when the other player takes Black, and White moves first', () => {
+        const { state: set } = setBoard()
+        const state = execute(game, set, chooseAction(Color.Black))
+        expect(state.board).toEqual(set.board)
+        expect(colorOf(state, B)).toBe(Color.Black)
+        expect(state.machineState).toBe(MachineState.MovingStacks)
+        expect(state.activePlayerIds).toEqual([W])
+    })
+
+    it('hands over the white pieces when the other player takes White, who moves first', () => {
+        const { state: set } = setBoard()
+        const state = execute(game, set, chooseAction(Color.White))
+        expect(colorOf(state, B)).toBe(Color.White)
+        expect(colorOf(state, W)).toBe(Color.Black)
+        const ownerAt = (board: DvonnGameState, name: string) => stackOwner(stackAt(board, name))
+        for (const coords of SPACES) {
+            const before = ownerAt(set, spaceName(coords))
+            const after = ownerAt(state, spaceName(coords))
+            expect(after).toBe(before === undefined ? undefined : before === W ? B : W)
+        }
+        expect(state.activePlayerIds).toEqual([B])
+        const hydrated = new HydratedDvonnGameState(state)
+        expect(hydrated.movableStacks(B).length).toBeGreaterThan(0)
+        for (const from of hydrated.movableStacks(B)) {
+            expect(colorOf(state, stackOwner(stackAt(state, spaceName(from))) ?? '')).toBe(
+                Color.White
+            )
+        }
+    })
+
+    it('lets only the other player choose, and only once the board is set', () => {
+        const { state: set } = setBoard()
+        expect(() => execute(game, set, { ...chooseAction(Color.White), playerId: W })).toThrow()
+        expect(() => execute(game, start(game), chooseAction(Color.White))).toThrow()
+        const chosen = execute(game, set, chooseAction(Color.White))
+        expect(() => execute(game, chosen, chooseAction(Color.Black))).toThrow()
     })
 })
 
@@ -333,14 +420,14 @@ describe('setup options', () => {
     it('gives White to the game creator or the opponent when chosen', () => {
         const owner = { ownerId: 'u-black', userIds: { [W]: 'u-white', [B]: 'u-black' } }
         const creatorWhite = startUnassigned(
-            createGame({ whitePlayer: WhitePlayer.Creator }, owner)
+            createGame({ whitePlayer: FirstPlayer.Creator }, owner)
         )
         const whiteOf = (state: DvonnGameState) =>
             state.players.find((player) => player.color === Color.White)?.playerId
         expect(whiteOf(creatorWhite)).toBe(B)
         expect(creatorWhite.activePlayerIds).toEqual([B])
         const opponentWhite = startUnassigned(
-            createGame({ whitePlayer: WhitePlayer.Opponent }, owner)
+            createGame({ whitePlayer: FirstPlayer.Opponent }, owner)
         )
         expect(whiteOf(opponentWhite)).toBe(W)
     })
@@ -351,9 +438,9 @@ describe('setup options', () => {
             state.players.find((player) => player.color === Color.White)?.playerId
         const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
         for (const [config, owner] of [
-            [{ whitePlayer: WhitePlayer.Random }, undefined],
-            [{ whitePlayer: WhitePlayer.Creator }, outsider],
-            [{ whitePlayer: WhitePlayer.Opponent }, outsider]
+            [{ whitePlayer: FirstPlayer.Random }, undefined],
+            [{ whitePlayer: FirstPlayer.Creator }, outsider],
+            [{ whitePlayer: FirstPlayer.Opponent }, outsider]
         ] as const) {
             const whites = new Set(
                 [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
@@ -368,9 +455,9 @@ describe('setup options', () => {
 
     it('reads a missing option as its default and rejects an unknown one', () => {
         expect(versionFromConfig({})).toBe(DvonnVersion.Standard)
-        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+        expect(firstPlayerFromConfig({})).toBe(FirstPlayer.Random)
         expect(() => versionFromConfig({ version: 'Bogus' })).toThrow()
-        expect(() => whitePlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
+        expect(() => firstPlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
     })
 
     it('fills the board at random and starts with White stacking', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assert, Color, validateGameResult } from '@tabletop/common'
-import { DvonnVersion, WhitePlayer } from './config.js'
+import { DvonnVersion, FirstPlayer } from './config.js'
 import { DvonnRuntime } from './runtime.js'
 import { DvonnGameStateValidator, type DvonnGameState } from '../model/gameState.js'
 import { createGame, engine, execute, legalActions, playToEnd } from './tests/playthrough.js'
@@ -24,13 +24,15 @@ function swapPlayers(state: DvonnGameState): DvonnGameState {
 }
 
 const setups = Object.values(DvonnVersion).flatMap((version) =>
-    Object.values(WhitePlayer).map((whitePlayer) => [version, whitePlayer] as const)
+    Object.values(FirstPlayer).map((whitePlayer) => [version, whitePlayer] as const)
 )
 
 describe.each(setups)('DVONN %s tournaments, White %s', (version, whitePlayer) => {
     const config = { version, whitePlayer }
 
     it('starts the player in seat one, playing White, and then seat two', () => {
+        // The first player sets an I set, you choose board alone.
+        const secondActor = version === DvonnVersion.ISetYouChoose ? 0 : 1
         const game = createGame(config, [P1, P2], owner)
         for (const order of orders) {
             const { initialState } = engine.startGame(game, {
@@ -45,7 +47,7 @@ describe.each(setups)('DVONN %s tournaments, White %s', (version, whitePlayer) =
             expect(colorOf(order[1])).toBe(Color.Black)
 
             const afterFirst = execute(game, initialState, legalActions(game, initialState)[0])
-            expect(afterFirst.activePlayerIds).toEqual([order[1]])
+            expect(afterFirst.activePlayerIds).toEqual([order[secondActor]])
         }
     })
 

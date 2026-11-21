@@ -1,5 +1,6 @@
-import type { AxialCoordinates } from '@tabletop/common'
-import type { MoveEntry, PlayerEntry } from './historyEntries.js'
+import { Color, type AxialCoordinates } from '@tabletop/common'
+import type { PieceColor } from '@tabletop/dvonn'
+import type { MoveEntry, PlaceEntry, PlayerEntry } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -15,11 +16,9 @@ export function entrySegments(entry: PlayerEntry, brief = false): Segment[] {
     const passed = brief ? [] : passSegments(entry.passedPlayerId)
     switch (entry.kind) {
         case 'place':
-            return [
-                text(entry.dvonn ? ' placed a DVONN piece on ' : ' placed a piece on '),
-                space(entry.coords),
-                ...passed
-            ]
+            return [text(` placed ${pieceOf(entry)} on `), space(entry.coords), ...passed]
+        case 'choose':
+            return [text(` took ${COLOR_NAMES[entry.color]}`), ...passed]
         case 'move':
             return [...moveSegments(entry, brief), ...passed]
     }
@@ -51,6 +50,18 @@ function moveSegments(entry: MoveEntry, brief: boolean): Segment[] {
               ]
             : [])
     ]
+}
+
+const COLOR_NAMES: Record<PieceColor, string> = {
+    [Color.White]: 'White',
+    [Color.Black]: 'Black'
+}
+
+function pieceOf(entry: PlaceEntry): string {
+    if (entry.dvonn) return 'a DVONN piece'
+    return entry.color === undefined
+        ? 'a piece'
+        : `a ${COLOR_NAMES[entry.color].toLowerCase()} piece`
 }
 
 function passSegments(playerId: string | undefined): Segment[] {

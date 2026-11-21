@@ -12,7 +12,13 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { DvonnPlayerState, HydratedDvonnPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
-import { DvonnBoard, HydratedDvonnBoard, type Piece, type RemovedStack } from './board.js'
+import {
+    DvonnBoard,
+    HydratedDvonnBoard,
+    type Piece,
+    type PieceColor,
+    type RemovedStack
+} from './board.js'
 
 export const DVONN_PIECES = 3
 export const PIECES_PER_PLAYER = 23
@@ -66,10 +72,17 @@ export class HydratedDvonnGameState
         return opponent.playerId
     }
 
-    whitePlayerId(): string {
-        const white = this.players.find((player) => player.color === Color.White)
-        assertExists(white, 'No player has White')
-        return white.playerId
+    playerWith(color: Color): string {
+        const player = this.players.find((candidate) => candidate.color === color)
+        assertExists(player, `No player has ${color}`)
+        return player.playerId
+    }
+
+    // The player who places the first piece, who sets the board in I set, you choose.
+    firstPlayerId(): string {
+        const first = this.turnManager.turnOrder[0]
+        assertExists(first, 'The game has a first player')
+        return first
     }
 
     // Each player starts with PIECES_PER_PLAYER; those not yet placed are in hand.
@@ -84,8 +97,25 @@ export class HydratedDvonnGameState
         return this.board.dvonnCount() < DVONN_PIECES
     }
 
-    pieceToPlace(playerId: string, placedAt: AxialCoordinates): Piece {
-        return this.placesDvonnNext() ? { dvonn: true, placedAt } : { playerId, placedAt }
+    // Rule D1: White places first and the players take turns, so White's pieces go down at the
+    // even counts and Black's at the odd ones, whoever puts them down.
+    colorToPlace(): PieceColor {
+        return this.board.stacks.length % 2 === 0 ? Color.White : Color.Black
+    }
+
+    pieceToPlace(placedAt: AxialCoordinates): Piece {
+        return this.placesDvonnNext()
+            ? { dvonn: true, placedAt }
+            : { playerId: this.playerWith(this.colorToPlace()), placedAt }
+    }
+
+    // I set, you choose: taking the other colour takes its pieces too.
+    takeColor(playerId: string, color: PieceColor) {
+        if (this.getPlayerState(playerId).color === color) return
+        for (const player of this.players) {
+            player.color = player.color === Color.White ? Color.Black : Color.White
+        }
+        this.board.trade(playerId, this.opponentOf(playerId))
     }
 
     movableStacks(playerId: string): AxialCoordinates[] {

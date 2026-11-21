@@ -1,15 +1,24 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext
+} from '@tabletop/common'
 import { HydratedDvonnGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isSpace } from '../model/geometry.js'
-import { Piece } from '../model/board.js'
+import { isPlayerPiece, Piece, PieceColor } from '../model/board.js'
+import { DvonnVersion, versionFromConfig } from '../definition/config.js'
 
 export type PlacePieceMetadata = Type.Static<typeof PlacePieceMetadata>
-// `passedPlayerId` names White when the last placement leaves them no first move.
+// `passedPlayerId` names White when the last placement leaves them no first move. `color` is the
+// placed piece's when the setter of an I set, you choose board places for both.
 export const PlacePieceMetadata = Type.Object({
     piece: Piece,
+    color: Type.Optional(PieceColor),
     passedPlayerId: Type.Optional(Type.String())
 })
 
@@ -42,13 +51,20 @@ export class HydratedPlacePiece extends HydratableAction<typeof PlacePiece> impl
         super(data, PlacePieceValidator)
     }
 
-    apply(state: HydratedDvonnGameState, _context?: MachineContext) {
+    apply(state: HydratedDvonnGameState, context?: MachineContext) {
+        assertExists(context, 'A placement is applied by the engine')
         if (!this.isValid(state)) {
             throw Error('Invalid PlacePiece action')
         }
-        const piece = state.pieceToPlace(this.playerId, this.coords)
+        const color = state.colorToPlace()
+        const piece = state.pieceToPlace(this.coords)
         state.board.place(this.coords, piece)
-        this.metadata = { piece: structuredClone(piece) }
+        const placedForEither =
+            isPlayerPiece(piece) &&
+            versionFromConfig(context.gameConfig) === DvonnVersion.ISetYouChoose
+        this.metadata = placedForEither
+            ? { piece: structuredClone(piece), color }
+            : { piece: structuredClone(piece) }
     }
 
     isValid(state: HydratedDvonnGameState): boolean {

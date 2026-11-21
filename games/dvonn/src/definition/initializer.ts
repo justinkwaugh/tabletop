@@ -13,7 +13,7 @@ import {
 import { HydratedDvonnGameState, DvonnGameState, DVONN_PIECES } from '../model/gameState.js'
 import { HydratedDvonnPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
-import { DvonnVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
+import { DvonnVersion, versionFromConfig, FirstPlayer, firstPlayerFromConfig } from './config.js'
 import { emptyBoard, type DvonnBoard, type Piece } from '../model/board.js'
 import { SPACES } from '../model/geometry.js'
 import { beginMovingStacks } from '../stateHandlers/movingStacks.js'
@@ -33,7 +33,7 @@ export class DvonnGameInitializer
         const turnManager = HydratedTurnManager.generate(
             game.players.map((player) => ({ playerId: player.id, color: Color.White })),
             prng.random,
-            assignment ?? this.chosenWhite(game)
+            assignment ?? this.chosenFirstPlayer(game)
         )
         turnManager.seriesKeeps = 'latest'
 
@@ -68,18 +68,18 @@ export class DvonnGameInitializer
 
     // The game creator is the player whose user created the game; in a local game every seat
     // belongs to that user, so the first listed seat counts as the creator's. A creator who does
-    // not play leaves White to the draw.
-    private chosenWhite(game: Game): StartingPositionAssignment | undefined {
-        const choice = whitePlayerFromConfig(game.config)
+    // not play leaves the first player to the draw.
+    private chosenFirstPlayer(game: Game): StartingPositionAssignment | undefined {
+        const choice = firstPlayerFromConfig(game.config)
         const creator = game.players.find((player) => player.userId === game.ownerId)
-        if (choice === WhitePlayer.Random || creator === undefined) {
+        if (choice === FirstPlayer.Random || creator === undefined) {
             return undefined
         }
         const opponent = game.players.find((player) => player.id !== creator.id)
         assertExists(opponent, 'DVONN needs two players')
-        const white = choice === WhitePlayer.Creator ? creator : opponent
-        const black = white === creator ? opponent : creator
-        return { playerIds: [white.id, black.id] }
+        const first = choice === FirstPlayer.Creator ? creator : opponent
+        const second = first === creator ? opponent : creator
+        return { playerIds: [first.id, second.id] }
     }
 
     private randomBoard(playerIds: string[], prng: Prng): DvonnBoard {

@@ -12,6 +12,7 @@ import {
     HydratedDvonnGameState,
     MachineState,
     SPACES,
+    spaceFromName,
     spaceName
 } from '@tabletop/dvonn'
 
@@ -321,3 +322,57 @@ write(
         C1: 'w'
     })
 )
+
+// I set, you choose: the first player places every piece, the DVONN pieces first and then Black
+// and White in turn, and `left` spaces stay empty.
+function setBoard(playerIds, left) {
+    const game = DvonnRuntime.initializer.initializeGame(
+        {
+            id: 'scenario',
+            typeId: 'dvonn',
+            ownerId: 'owner',
+            config: {
+                ...defaultGameConfig(DvonnInfo.configurator?.options ?? []),
+                version: 'ISetYouChoose'
+            },
+            players: [FIRST, SECOND].map((id, index) => ({
+                id,
+                name: index === 0 ? 'Alice' : 'Bob',
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        Definition
+    )
+    const { startedGame, initialState } = engine.startGame(game, {
+        startingPositions: { playerIds }
+    })
+    // The DVONN pieces go inside the board, where they are not cut off at once.
+    const order = [
+        ...['E3', 'H2', 'C4'].map(spaceFromName),
+        ...SPACES.filter((coords) => !['E3', 'H2', 'C4'].includes(spaceName(coords)))
+    ]
+    let state = initialState
+    for (const coords of order.slice(0, order.length - left)) {
+        state = engine.executeCanonicalAction({
+            game: startedGame,
+            state,
+            action: {
+                id: `a${state.actionCount}`,
+                gameId: startedGame.id,
+                source: 'user',
+                type: 'placePiece',
+                playerId: playerIds[0],
+                coords
+            }
+        }).updatedState
+    }
+    return { game: startedGame, state }
+}
+
+// Alice sets the board with two spaces left: a black piece goes down, then a white one, and Bob
+// then takes a colour.
+write('setting-the-board', 'Setting the board', setBoard([FIRST, SECOND], 2))
+
+// Bob has set the board; Alice takes a colour and moves second.
+write('choosing-a-colour', 'Choosing a colour', setBoard([SECOND, FIRST], 0))
