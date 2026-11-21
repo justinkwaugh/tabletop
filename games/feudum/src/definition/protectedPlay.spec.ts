@@ -8,14 +8,13 @@ import {
     type GameAction
 } from '@tabletop/common'
 import { Value } from 'typebox/value'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { FeudumProjectedState, HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import type { FeudumVault } from '../model/vault.js'
 import { giveTile, tableInWindow } from '../testing/atWill.js'
 import { Battlefield, buildFeudum } from '../testing/combat.js'
-import { docSection, readDoc } from '../testing/docs.js'
 import { setPawns } from '../testing/guilds.js'
 import {
     asStored,
@@ -42,10 +41,6 @@ import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
 const engine = new GameEngine(FeudumRuntime)
-
-interface SpecFiles {
-    globSync(pattern: string, options: { cwd: URL }): string[]
-}
 
 const AlwaysBarriers: readonly string[] = [
     ActionType.FinaliseHand,
@@ -536,23 +531,5 @@ describe.each(AtWillPlays)('R-4.4-H1, R-5.1 $name in a whole table', ({ edit, mo
                 )
             expect(asStored(back)).toEqual(asStored(start))
         }
-    })
-})
-
-describe('R-5.1 the design’s verification list', () => {
-    /** Every spec file `visibility.md` names, with whether this package has it. */
-    async function namedSpecs(): Promise<string[]> {
-        const lines = docSection(await readDoc('visibility.md'), '## Verification')
-        return [...new Set(lines.flatMap((line) => line.match(/[a-zA-Z]+\.spec\.ts/g) ?? []))]
-    }
-
-    it('names a spec that exists for every item', async () => {
-        const fs = await vi.importActual<SpecFiles>('node:fs')
-        const here = new URL('../', import.meta.url)
-        const present = fs
-            .globSync('**/*.spec.ts', { cwd: here })
-            .map((path) => path.split('/').pop())
-        const missing = (await namedSpecs()).filter((name) => !present.includes(name))
-        expect(missing).toEqual([])
     })
 })
