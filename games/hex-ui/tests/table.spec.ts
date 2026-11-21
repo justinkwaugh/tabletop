@@ -75,8 +75,35 @@ test('joining your edges wins at once and draws a line along the winning chain',
     expect(await page.evaluate(() => window.hexSession.gameState.winningPlayerIds)).toHaveLength(1)
     await expect(page.locator('svg.hex-board .win-line .over')).toHaveCount(1)
     await expect(page.locator('svg.hex-board .mark.last')).toHaveCount(0)
-    await expect(page.getByText('joins both red edges')).toBeVisible()
+    await expect(page.getByText(/^(You win|.+ wins)$/)).toBeVisible()
 })
+
+// The harness's own turn bar leaves when the game ends, moving the whole table, so the board is
+// measured from the action card above it.
+function cardAndBoard(page: import('@playwright/test').Page) {
+    return page.evaluate(() => {
+        const card = document.querySelector('.action-card')?.getBoundingClientRect()
+        const board = document.querySelector('svg.hex-board')?.getBoundingClientRect()
+        if (!card || !board) throw Error('The table has an action card and a board')
+        return { card: Math.round(card.height), gap: Math.round(board.top - card.bottom) }
+    })
+}
+
+for (const [width, height] of [
+    [1280, 900],
+    [390, 844],
+    [320, 568]
+] as const) {
+    test(`the board stays put when the game ends, ${width} wide`, async ({ page }) => {
+        await page.setViewportSize({ width, height })
+        await openScenario(page, 'Red one from a win')
+        const before = await cardAndBoard(page)
+        await press(page, 'place on D6')
+        await settle(page)
+        await expect(page.getByText(/^(You win|.+ wins)$/)).toBeVisible()
+        expect(await cardAndBoard(page)).toEqual(before)
+    })
+}
 
 for (const [board, cells] of [
     ['9 × 9', 81],

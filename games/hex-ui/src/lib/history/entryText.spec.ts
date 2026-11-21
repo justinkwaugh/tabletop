@@ -31,7 +31,7 @@ describe('entrySegments', () => {
 
     it('tells a swap', () => {
         const swap: SwapEntry = { ...span, kind: 'swap' }
-        expect(read(entrySegments(swap, true))).toBe(' swapped and now plays Red')
+        expect(read(entrySegments(swap, true))).toBe(' swapped to Red')
     })
 
     it('calls the sides black and white when the board shows them so', () => {
@@ -48,7 +48,7 @@ describe('entrySegments', () => {
         )
         const swap: SwapEntry = { ...span, kind: 'swap' }
         expect(read(entrySegments(swap, false, blackWhite))).toBe(
-            " swapped, taking Black's first stone, and now plays Black"
+            " swapped to Black, taking Black's first stone"
         )
     })
 })
