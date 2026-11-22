@@ -94,7 +94,7 @@ fn network(random: &mut Random, stops: usize, links: usize) -> Value {
         .map(|_| random.pick(&[0, 0, 0, 10, 20, 20, -10]))
         .collect();
     json!({
-        "version": 11, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 12, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": stops * EXITS + MIDDLES, "group_count": 2,
         "no_reentry_hexes": (0..hexes)
             .map(|hex| if random.one_in(4) { random.one_in(2) } else { bonuses[hex] > 0 })
@@ -194,11 +194,13 @@ fn generated(random: &mut Random, trains: usize) -> Value {
     problem
 }
 
-/// A route as the unpruned search lists it: what it is worth, its stops and its track.
+/// A route as the unpruned search lists it: what it is worth, its stops, its track, and the
+/// groups of its stops.
 struct Listed {
     revenue: i32,
     visits: usize,
     track: Vec<u64>,
+    groups: Vec<usize>,
 }
 
 /// Every route of the train, none dropped for what it is worth: listed in one go, or with a
@@ -237,10 +239,17 @@ fn listed_in(problem: &Problem, train: usize, slice: Option<u64>) -> Vec<Listed>
         .map(|candidate| {
             let mut track = vec![0; problem.resource_count.div_ceil(64)];
             candidates.resource_bits(candidate, network, &mut track);
+            let links = || candidates.connection_ids(candidate);
+            let first = links().next().map(|id| compiled.connections[id].from);
             Listed {
                 revenue: candidate.revenue,
                 visits: candidate.visits,
                 track,
+                groups: first
+                    .into_iter()
+                    .chain(links().map(|id| compiled.connections[id].to))
+                    .flat_map(|stop| problem.stops[stop].groups.iter().copied())
+                    .collect(),
             }
         })
         .collect()
@@ -250,37 +259,62 @@ fn listed(problem: &Problem, train: usize) -> Vec<Listed> {
     listed_in(problem, train, None)
 }
 
-/// The most the trains earn on routes clear of each other, any of them idle, by trying every
-/// choice of listed routes.
+/// The most the trains earn on routes clear of each other, any of them idle, with no more of
+/// them stopping in a group than its limit, by trying every choice of listed routes. The problem
+/// is one whose limited groups have no pieces, so that the routes' track is only track.
 fn most(problem: &Problem) -> i32 {
+    assert!(problem.quotas.is_empty());
     let lists: Vec<Vec<Listed>> = (0..problem.trains.len())
         .map(|train| listed(problem, train))
         .collect();
-    fn choose(lists: &[Vec<Listed>], used: &[u64], longest: usize, bonus: i32) -> i32 {
+    struct Limits<'a> {
+        most: &'a [GroupRouteLimit],
+        stopping: Vec<usize>,
+        bonus: i32,
+    }
+    fn choose(lists: &[Vec<Listed>], used: &[u64], longest: usize, limits: &mut Limits) -> i32 {
         let Some((routes, others)) = lists.split_first() else {
-            return longest as i32 * bonus;
+            return longest as i32 * limits.bonus;
         };
-        routes
-            .iter()
-            .filter(|route| route.track.iter().zip(used).all(|(a, b)| a & b == 0))
-            .map(|route| {
-                let used: Vec<u64> = route.track.iter().zip(used).map(|(a, b)| a | b).collect();
-                route.revenue + choose(others, &used, longest.max(route.visits), bonus)
-            })
-            .chain([choose(others, used, longest, bonus)])
-            .max()
-            .unwrap()
+        let mut best = choose(others, used, longest, limits);
+        for route in routes {
+            let stops_in: Vec<bool> = limits
+                .most
+                .iter()
+                .map(|limit| route.groups.contains(&limit.group))
+                .collect();
+            let full = (0..stops_in.len())
+                .any(|at| stops_in[at] && limits.stopping[at] == limits.most[at].routes);
+            if full || !route.track.iter().zip(used).all(|(a, b)| a & b == 0) {
+                continue;
+            }
+            for (stopping, &stops_in) in limits.stopping.iter_mut().zip(&stops_in) {
+                *stopping += usize::from(stops_in);
+            }
+            let used: Vec<u64> = route.track.iter().zip(used).map(|(a, b)| a | b).collect();
+            best =
+                best.max(route.revenue + choose(others, &used, longest.max(route.visits), limits));
+            for (stopping, &stops_in) in limits.stopping.iter_mut().zip(&stops_in) {
+                *stopping -= usize::from(stops_in);
+            }
+        }
+        best
     }
     choose(
         &lists,
         &vec![0; problem.resource_count.div_ceil(64)],
         0,
-        problem.longest_route_bonus_per_stop,
+        &mut Limits {
+            most: &problem.group_route_limits,
+            stopping: vec![0; problem.group_route_limits.len()],
+            bonus: problem.longest_route_bonus_per_stop,
+        },
     )
 }
 
 fn solved(problem: &Problem) -> i32 {
-    let solution = solve(problem).unwrap();
+    validate(problem).unwrap();
+    let solution = routed(problem);
     assert!(solution.exhaustive);
     solution.revenue
 }
@@ -305,7 +339,7 @@ fn outlined(problem: &Problem, slices: pair::Slices) -> i32 {
 fn cramped(generated: &Value, bytes: usize) -> Solution {
     let mut cramped = generated.clone();
     cramped["memory_budget_bytes"] = json!(bytes);
-    let problem: Problem = serde_json::from_value(cramped).unwrap();
+    let problem = with_quotas(&cramped);
     let compiled = Compiled::new(&problem, f64::INFINITY);
     let clock = Clock {
         started: milliseconds(),
@@ -481,6 +515,7 @@ fn through_leading(problem: &Problem, leading: usize, slice: u64) -> Option<(i32
                 revenue: candidate.revenue,
                 visits: candidate.visits,
                 track,
+                groups: vec![],
             }
         })
         .collect();
@@ -616,4 +651,114 @@ fn keeping_two_trains_apart_settles_what_listing_every_route_finds() {
         4 * settled > cases,
         "{settled} of the cases have two trains that run"
     );
+}
+
+/// A generated problem with stop groups on more of its stops, and for most groups a limit on
+/// the routes that may stop in one: from none to as many as the trains, which bounds nothing.
+fn limited(random: &mut Random, trains: usize) -> Value {
+    let mut problem = generated(random, trains);
+    for stop in problem["stops"].as_array_mut().unwrap() {
+        if random.one_in(2) {
+            stop["groups"] = json!([random.below(2)]);
+        }
+    }
+    let mut limits = vec![];
+    for group in 0..2 {
+        if !random.one_in(4) {
+            limits.push(json!({"group": group, "routes": random.below(trains + 1)}));
+        }
+    }
+    problem["group_route_limits"] = json!(limits);
+    problem
+}
+
+/// The problem as the solver takes it, its limited groups given their pieces.
+fn with_quotas(generated: &Value) -> Problem {
+    let mut problem: Problem = serde_json::from_value(generated.clone()).unwrap();
+    problem.limit_groups();
+    problem
+}
+
+/// What three trains or more earn by their outline, as a fleet that listing its routes outright
+/// did not settle.
+fn outlined_fleet(problem: &Problem) -> i32 {
+    let compiled = Compiled::new(problem, f64::INFINITY);
+    let clock = Clock {
+        started: milliseconds(),
+        compile_ms: 0.0,
+        budget_ms: problem.budget_ms,
+        pace_ms: problem.budget_ms,
+    };
+    let (operation, _) = operate(problem, &compiled, clock, clock.whole(), Some((0, vec![])));
+    assert!(operation.exhaustive);
+    operation.revenue
+}
+
+#[test]
+fn trains_earn_what_listing_every_route_finds_within_limits_on_stop_groups() {
+    let mut random = Random(23 + setting("PRUNING_SEED", 0) as u64);
+    let cases = setting("PRUNING_CASES", 400);
+    let mut bound = [0; 5];
+    for case in 0..cases {
+        let trains = 1 + case % 4;
+        let mut generated = limited(&mut random, trains);
+        if trains > 1 && case % 3 == 0 {
+            generated["trains"][1] = generated["trains"][0].clone();
+            generated["trains"][1]["id"] = json!("1");
+        }
+        let plain: Problem = serde_json::from_value(generated.clone()).unwrap();
+        let within = most(&plain);
+        let problem = with_quotas(&generated);
+        assert_eq!(solved(&problem), within, "case {case}: {generated}");
+        let mut longest = generated.clone();
+        longest["longest_route_bonus_per_stop"] = json!(10);
+        let plain_longest: Problem = serde_json::from_value(longest.clone()).unwrap();
+        let within_longest = most(&plain_longest);
+        let longest = with_quotas(&longest);
+        if trains == 2 {
+            for (slices, name) in [(WHOLE, "outlined"), (SHORT, "in short slices")] {
+                assert_eq!(
+                    outlined(&problem, slices),
+                    within,
+                    "{name}, case {case}: {generated}"
+                );
+            }
+            for (slices, name) in [(WHOLE, "outlined"), (SHORT, "in short slices")] {
+                assert_eq!(
+                    outlined(&longest, slices),
+                    within_longest,
+                    "{name} with a longest-route bonus, case {case}: {generated}"
+                );
+            }
+            for bytes in [6_000, 12_000] {
+                let cut = cramped(&generated, bytes);
+                assert!(
+                    cut.revenue <= within && (!cut.exhaustive || cut.revenue == within),
+                    "with {bytes} bytes, case {case}: {generated}"
+                );
+            }
+        }
+        if trains > 2 {
+            assert_eq!(
+                outlined_fleet(&problem),
+                within,
+                "outlined, case {case}: {generated}"
+            );
+            assert_eq!(
+                outlined_fleet(&longest),
+                within_longest,
+                "outlined with a longest-route bonus, case {case}: {generated}"
+            );
+        }
+        let mut unlimited = generated.clone();
+        unlimited["group_route_limits"] = json!([]);
+        let unlimited: Problem = serde_json::from_value(unlimited).unwrap();
+        bound[trains] += usize::from(within < most(&unlimited));
+    }
+    for (trains, bound) in bound.iter().enumerate().skip(1) {
+        assert!(
+            40 * bound > cases,
+            "a limit bound {bound} of the cases of {trains} trains"
+        );
+    }
 }

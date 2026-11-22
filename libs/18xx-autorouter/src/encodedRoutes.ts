@@ -227,6 +227,16 @@ export class EncodedRoutes {
                 ]
             }
         })
+        const groupRouteLimits = Object.entries(rules.stopGroupRouteLimits ?? {}).flatMap(
+            ([group, routes]) => {
+                const id = groupIds.get(group)
+                return id === undefined ? [] : [{ group: id, routes }]
+            }
+        )
+        assert(
+            !groupRouteLimits.length || !rules.fleet,
+            'Stop group route limits are not counted across a declared fleet'
+        )
         this.unlimitedTrainIds = new Set(
             fleet
                 .filter(({ definition }) => definition.distance.maximum === 'unlimited')
@@ -405,7 +415,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 11,
+            version: 12,
             stops,
             arcs,
             trains,
@@ -419,6 +429,7 @@ export class EncodedRoutes {
             minimum_cities_and_towns: rules.minimumCitiesAndTowns ?? 0,
             ...reentryRules(state, rules, locations),
             blocked_passes: blockedPasses,
+            ...(groupRouteLimits.length ? { group_route_limits: groupRouteLimits } : {}),
             budget_ms: budget.timeLimitMs,
             memory_budget_bytes: budget.memoryBudgetBytes
         }
@@ -652,7 +663,14 @@ export class EncodedRoutes {
                       )
                   }
                 : {}),
-            blocked_passes: this.problem.blocked_passes
+            blocked_passes: this.problem.blocked_passes,
+            ...(this.problem.group_route_limits
+                ? {
+                      group_route_limits: this.problem.group_route_limits.map(
+                          ({ group, routes }) => [this.groupKeys[group], routes]
+                      )
+                  }
+                : {})
         })
     }
 

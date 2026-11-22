@@ -21,7 +21,7 @@ fn line(links: &[(usize, usize, &[usize], usize)], stops: usize, hexes: usize) -
         .max()
         .map_or(0, |most| most + 1);
     json!({
-        "version": 11, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 12, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": resources, "group_count": 1, "hex_bonuses": vec![0; hexes],
         "stops": (0..stops).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,

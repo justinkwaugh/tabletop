@@ -1,11 +1,12 @@
 # Shared client autorouter
 
-The current private wire protocol is **version 11**. All route search and fleet
+The current private wire protocol is **version 12**. All route search and fleet
 selection for 1862 and 1860 run in Rust. TypeScript encodes declared policy and
 validates the returned operation, including exact revenue and subsidy agreement.
-The sections below retain the development history; the last three sections describe
-the current connected-fleet policy and algorithm, the passing rules 1860 adds, and
-the route bound, fleet outline and pair search that 18USA's last phase needed.
+The sections below retain the development history; the last sections describe
+the current connected-fleet policy and algorithm, the passing rules 1860 adds,
+the route bound, fleet outline and pair search that 18USA's last phase needed,
+and the limits on routes into a stop group that its Mexico needs.
 
 ## Compact candidate storage
 
@@ -152,13 +153,13 @@ held to earning at least the best run found: the most-earnings rule (18USA §12.
 and the titles that require it) cannot be enforced past what the search proved. A
 drawn run that beats the best found shows that the search stopped short. This covers
 companies run for the most by rule, such as those in receivership. A proved best
-leaves nothing to draw. A search held to a stop group's limit (18USA's two
-routes to Mexico) is proved only where every run behind it was.
+leaves nothing to draw. A stop group's limit on routes (18USA's two routes to
+Mexico) is held inside the one search, so its proof is the search's own.
 
 Verification: `routesModule.svelte.spec.ts` (no drawing after a proved search; drawing
 after an unproved one, refused below and accepted at the best found; title rules kept
-when the search stopped short), `autorouter.spec.ts` (a stop-group limit proved only
-when every run was), and the 18USA harness's Phase 8 run (two 8-trains not proved in
+when the search stopped short), `autorouter.spec.ts` (a stop-group limit held and
+proved in one search), and the 18USA harness's Phase 8 run (two 8-trains not proved in
 5 s) beside its Pullman run (proved at once).
 
 Verification includes real browser workers for both titles, map/panel revenue
@@ -988,3 +989,218 @@ fleets of a diesel and a 5- or 6-train take 35 to 71 ms at 1 s, against 29 to
 57 ms at first and 120 to 200 ms with the outline. 1862's 5,232 runs, solved
 through the title's own bench again, are proved with the same revenue and
 subsidy by all three solvers, in 7.7 s, 7.8 s and 7.9 s.
+
+## Stop-group route limits in the search
+
+18USA lets no more than two of a company's routes in one run stop in Mexico
+(§12.4.1). The family declares it as `RouteRules.stopGroupRouteLimits`, a limit
+on routes for a `stopGroup`, and `RouteEvaluation` refuses a run that breaks it.
+The solver did not know the limit. The interface searched without it in half
+the time and, where that run broke it, searched again for every set of no more
+trains than the limit allowed into the group, the others kept out through a
+suffix on their definition ids: eleven sets for four trains, in even slices of
+the other half. The answer was proved only where every search was, and a second
+limited group was not supported. Wire version 12 gives the solver the limits as
+`group_route_limits`, a list of `{ group, routes }` over the stops' existing
+group indexes, and one search holds the run to them.
+
+### Problem class
+
+Choosing a route for each train on track no two share is maximum-weight set
+packing, as "Exact fleet selection" says: a piece of track is a resource that
+one route may use. A group that at most N routes may stop in is the same kind
+of resource with room for N, which makes the selection a packing with
+capacities. It needs no outer loop over the trains let in: branch and bound
+over one route for each train already carries what each resource has left, and
+a resource that is full takes its routes out of the later trains' choices.
+
+### A quota is a piece of track
+
+`Problem::limit_groups` gives each limited group a piece of its own after the
+track's pieces: a quota (`Quota` in `rust/src/lib.rs`). A limit of at least as
+many routes as the problem has trains cannot bind and gets none, so 18USA's
+fleets of one or two trains are searched exactly as before. A connection runs
+on the quotas of the stop it reaches, and a route also on those of the stop it
+was walked from, so a route's pieces say which limited groups it stops in.
+Every stop a route runs through counts, called at or not, as the evaluation
+counts a route's visits; an interconnection's extension does not.
+
+- **No route.** The group's stops are closed to every search.
+- **One route.** Two routes that share the piece conflict as two that share
+  track do. The selection's compatibility rows, a stream through stored routes,
+  the routes kept clear of some track and the search that keeps two trains apart
+  all read pieces, and need nothing more: keeping two trains apart closes the
+  quota to each in turn where both want it.
+- **More routes.** Routes may share the piece, so it is left out of the
+  compatibility rows and counted. The selection keeps, for each such quota, the
+  routes that run on it as one row of bits over every train's routes and how
+  many of the routes chosen do. When a choice fills the quota, its row is
+  taken out of what the later trains may choose, so no descendant looks at
+  those routes. The bound sums the best routes still available and stays
+  admissible. Such a quota only binds a fleet of three trains or more, which the
+  selection and the outline route; the pair search never meets one.
+
+A search for one train's route with some pieces closed, as the outline runs
+them, closes a group's stops when its quota's piece is closed. The stops then
+count for nothing in the bound on what the rest of a route can earn.
+
+### The outline under a quota
+
+A fleet of three trains or more that listing does not settle is outlined: each
+train's best route alone, a first operation, and then only the routes that a
+better operation needs. Routing a train beside the others closes a quota's
+piece to it when the others already fill the quota, and leaves it open when
+they do not.
+
+The first operation routes the trains in an order, the most valuable first.
+Under a quota the order also decides which trains take its places, and a train
+routed late may find them gone. Where a quota binds, each train is therefore
+also tried before the others, the rest in the same order, each order in an even
+part of the steps the first operation has. The best of the orders is the
+operation the listing starts from.
+
+The outline's bounds leave the quotas out. The sum of the trains' best routes
+alone still bounds every fleet, and the floor it gives each train's listing is
+still one no better operation can go under: a quota only takes routes away.
+A tighter bound was built and measured: each train's best route clear of a
+quota's piece, so that a quota of N routes lets only N trains earn more than
+that, and a route on the piece has a higher floor. On the synthetic fleets
+below it changed no proof, and three capped answers of 384 by a little either
+way. The trains' best routes clear of Mexico are worth $0 to $30 less than
+their best routes, so the limit takes little from the bound; and with Mexico
+made to pay every train $150 more it still proved nothing more. A fleet that
+listing does not settle falls short of the sum of its best routes by the track
+they share, $200 to $600 on the late boards, which no bound on the quota
+recovers. It was dropped.
+
+### What the interface keeps
+
+`Autorouter.solve` no longer branches on the limits. The encoder passes them
+with the group indexes it already gave the stops, and the route problem's key
+names them. The run that comes back is evaluated by `RouteEvaluation` under the
+title's rules as every run is, so the logic still decides what is legal.
+
+The solver counts a quota among the trains of one search. Three ways of
+splitting a fleet over searches are therefore refused beside a limit: a fleet
+policy, whose selection (`fleet.rs`) weighs payments and chains and counts no
+quota; a required route; and station-run or track-sharing trains, which are
+routed apart. No researched title pairs any of them with a limit.
+
+### Verification
+
+`rust/tests/correctness.rs`: the permutation oracle counts the routes that stop
+in each limited group. "only so many routes stop in a limited group" has a hub
+with six spokes, two of them in a group limited to one route and three in a
+group limited to two, for fleets of four and five trains: the unlimited best
+breaks both limits, and the limited best is the oracle's, with and without the
+longest-route bonus. A limit of no routes closes its stops, and a limit on a
+group that does not exist is refused. "limited groups agree with the
+permutation oracle on generated graphs" runs 150 graphs of two to four trains
+with two groups and limits from none to all but one of the trains.
+
+`rust/src/pruning.rs`, "trains earn what listing every route finds within
+limits on stop groups": generated networks of one to four trains with a stop
+group on half the stops and limits from none to as many routes as trains,
+against every choice of the listed routes with the groups counted from their
+stops. Pairs are also outlined whole and in slices of five steps, with a
+longest-route bonus and with 6,000 and 12,000 bytes; fleets of three and four
+are also outlined as fleets that listing did not settle. 80,000 cases over four
+seeds agree.
+
+`rust/src/lib.rs`: a stream pairs no route with a stored one that begins under
+the same quota, among the indexed routes and beyond them.
+
+`autorouter.spec.ts`: four trains under limits of one and two routes are held
+and proved in one solver call that carries `group_route_limits`; fleets of two
+to four trains match the exhaustive enumeration; a search cut short proves
+nothing and keeps the limits; the route problem's key names the limits.
+
+### Recorded play
+
+Both 18USA sets in WebAssembly, eight games at a time: the 10,835 runs of the
+100 games and the 5,441 runs of the 50 held-out games, against the same commit
+with the interface's split (da703856e, the solver of "Two trains in slices of
+steps").
+
+|                                   | 100 games, 5 s   | 100 games, 1 s   | Held-out, 5 s    | Held-out, 1 s    |
+| --------------------------------- | ---------------- | ---------------- | ---------------- | ---------------- |
+| Runs at the cap                   | 16 → 16          | 42 → 42          | 39 → 40          | 62 → 62          |
+| Revenue lower / higher            | 0 / 0            | 0 / 0            | 0 / 0            | 0 / 0            |
+| Proofs lost / gained              | 0 / 0            | 0 / 0            | 1 / 0            | 0 / 0            |
+| Runs over the limit               | 0                | 0                | 0                | 0                |
+| Longest                           | 5,022 → 5,018 ms | 1,019 → 1,019 ms | 5,033 → 5,029 ms | 1,034 → 1,031 ms |
+| Proved in under 1 s before, total | 129.1 → 127.9 s  | 129.2 → 127.9 s  | 75.8 → 75.2 s    | 75.4 → 74.9 s    |
+| The same, 95th percentile         | 24.4 → 24.3 ms   | 24.6 → 24.5 ms   | 30.4 → 30.5 ms   | 30.8 → 30.4 ms   |
+| Three trains or more, total       | 5.00 → 3.99 s    | 5.09 → 4.03 s    | 2.88 → 2.23 s    | 2.98 → 2.28 s    |
+| The same, longest                 | 64 → 33 ms       | 65 → 66 ms       | 93 → 29 ms       | 91 → 22 ms       |
+
+The answers are the same run for run. Recorded play holds no fleet that the
+limit makes hard: the train limit is two from phase 6, so the 1,600 runs of
+three trains or more are small trains on early maps, proved in milliseconds
+either way and a fifth sooner in one search.
+
+The proof lost is 253728 run 108, a switched 5-train and an 8-train, whose
+proof takes the whole 5 s: the split has no part in it, as two trains cannot
+break the limit. The earlier checkout proved it with 1 ms to spare in the run
+tabled here, and in none of five later runs. With the two checkouts run turn
+about three times on each set at 5 s, neither proves it, every run of both
+sets has the same revenue and the same proof, and the runs that take 1 to 5 s
+take the same time to within 0.6%. On a processor slowed 2.8 and 5.1 times the
+capped two-train runs move both ways by as much as between two runs of one
+build, since the slowdown is a shared processor and not a count of steps.
+
+### Synthetic fleets
+
+The limit only bites a fleet of three trains or more, and 18USA allows those
+only up to phase 5. Its cost was therefore measured on fleets set on recorded
+boards, through the interface in WebAssembly at full speed and on a processor
+shared four ways (2.8 times slower):
+
+- **Late boards**: 16 boards of phase 8 on which the recorded company ran two
+  routes to Mexico, each with six fleets (4+5+6, 6+7+8, three 8-trains,
+  5+6+7+8, two 7s and two 8s, and 6+7+8 with a Pullman): 96 problems. No rule
+  allows these fleets there; they stand for what another title could ask.
+- **Mid-game boards**: 16 boards of recorded fleets of three trains or more
+  that ran two routes to Mexico, phases 4 to 6, each with twelve fleets from
+  three 5-trains to two 7s and two 8s: 192 problems.
+
+|                            | 5 s              | 1 s              | 2.8× slower, 5 s | 2.8× slower, 1 s |
+| -------------------------- | ---------------- | ---------------- | ---------------- | ---------------- |
+| Late boards: proved        | 18 → 21          | 13 → 17          | 14 → 18          | 10 → 13          |
+| Revenue, of the best known | 98.5% → 99.3%    | 97.2% → 99.3%    | 98.2% → 99.0%    | 93.8% → 98.9%    |
+| Runs lower / higher        | 4 / 27           | 3 / 31           | 3 / 29           | 3 / 41           |
+| Runs with no routes        | 0 → 0            | 1 → 0            | 0 → 0            | 2 → 0            |
+| Longest                    | 5,482 → 5,071 ms | 1,275 → 1,072 ms | 5,631 → 5,150 ms | 1,645 → 1,140 ms |
+| Mid-game boards: proved    | 187 → 189        | 180 → 187        | 184 → 187        | 174 → 183        |
+| Runs lower / higher        | 0 / 1            | 0 / 4            | 0 / 3            | 0 / 5            |
+| Time of those both prove   | 24.8 → 14.9 s    | 17.7 → 9.5 s     | 34.2 → 17.1 s    | 21.0 → 11.0 s    |
+
+No proof is lost in either set. The unlimited best breaks the limit in about a
+quarter of the late-board problems; in the rest the split returned its first
+search at half the time, proved or not.
+
+On the mid-game boards both ways prove nearly every fleet, and the one search
+takes 40 to 50% less time on those both prove. It proves seven more at 1 s and
+nine more on the slowed processor, where the split's slices were too thin.
+
+On the late boards most fleets stay unproved either way: three or four long
+trains share so much track that the first operation is $200 to $600 below the
+sum of the trains' best routes, the floors that sum gives are too low to list
+above, and the lists overflow memory. That holds with the limit taken out of
+the problem, and is the fleet search's own limit, not the quota's. What the one
+search gains there is the whole time and the orders of the first operation:
+without the orders 15 of the 96 earn less at 5 s and 17 at 1 s. At 1 s the
+split returned no routes at all for one fleet with a Pullman, and for two on
+the slowed processor, each of its slices ending before a first operation; and
+it ran up to 0.6 s past the limit, each of its searches a little over its
+share.
+
+The runs that earn less, 13 over the four columns, are capped both ways, and
+in each the split had answered from its first, half-time search. Ten are on
+one board, 254449 run 98, whose own two-train run is capped: there even one
+train's best route is not found within the outline's steps, the first
+operation is built from where those searches stopped, and at half the pace
+they stopped on routes that leave the other trains more track (1,260 against
+1,040 with 6+7+8). The same build with the limit removed gives 1,260 at 1 s
+and 2.5 s, 1,030 at 5 s and 1,050 at 30 s, so the fault is the outline's for
+three long trains, not the limit's.

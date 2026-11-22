@@ -92,6 +92,8 @@ export type SolverProblem = {
     no_reentry_hexes?: boolean[]
     /** How many blocked cities or towns the company's routes may run through, all together. */
     blocked_passes: number
+    /** The most of the company's routes that may stop in each of these stop groups. */
+    group_route_limits?: { group: number; routes: number }[]
     budget_ms: number
     /**
      * The time the search's stages are paced for, where the time left to it is not the time it

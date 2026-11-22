@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 11, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 12, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -266,7 +266,7 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
     permutations(&mut (0..stops.len()).collect(), &mut vec![], &mut paths);
     let mut candidates = vec![];
     for train in p["trains"].as_array().unwrap() {
-        let mut choices = vec![(0, 0u64, 0usize)];
+        let mut choices = vec![(0, 0u64, 0usize, 0u64)];
         for path in &paths {
             if !path.iter().any(|&n| stops[n]["token"] == true)
                 || path.iter().any(|&n| stops[n]["allowed"] == false)
@@ -384,29 +384,204 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
                 revenue,
                 route_edges.iter().fold(0u64, |bits, &e| bits | (1 << e)),
                 path.len(),
+                all_groups.iter().fold(0u64, |bits, &g| bits | (1 << g)),
             ));
         }
         candidates.push(choices);
     }
-    fn product(lists: &[Vec<(i64, u64, usize)>], used: u64, longest: usize, bonus: i64) -> i64 {
-        if lists.is_empty() {
-            return longest as i64 * bonus;
-        }
-        lists[0]
-            .iter()
-            .filter(|(_, bits, _)| bits & used == 0)
-            .map(|&(value, bits, visits)| {
-                value + product(&lists[1..], used | bits, longest.max(visits), bonus)
-            })
-            .max()
-            .unwrap()
+    // The stop groups that only so many routes may stop in, and how many of the routes chosen do.
+    struct Limits {
+        most: Vec<(u64, usize)>,
+        held: Vec<usize>,
+        bonus: i64,
     }
+    fn product(
+        lists: &[Vec<(i64, u64, usize, u64)>],
+        used: u64,
+        longest: usize,
+        limits: &mut Limits,
+    ) -> i64 {
+        if lists.is_empty() {
+            return longest as i64 * limits.bonus;
+        }
+        let mut best = i64::MIN;
+        for &(value, bits, visits, groups) in &lists[0] {
+            let stops_in: Vec<bool> = limits
+                .most
+                .iter()
+                .map(|&(group, _)| groups >> group & 1 == 1)
+                .collect();
+            let full = (0..stops_in.len())
+                .any(|limit| stops_in[limit] && limits.held[limit] == limits.most[limit].1);
+            if bits & used != 0 || full {
+                continue;
+            }
+            for (held, &stops_in) in limits.held.iter_mut().zip(&stops_in) {
+                *held += usize::from(stops_in);
+            }
+            best = best.max(value + product(&lists[1..], used | bits, longest.max(visits), limits));
+            for (held, &stops_in) in limits.held.iter_mut().zip(&stops_in) {
+                *held -= usize::from(stops_in);
+            }
+        }
+        best
+    }
+    let most: Vec<(u64, usize)> = p["group_route_limits"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|limit| {
+            (
+                limit["group"].as_u64().unwrap(),
+                limit["routes"].as_u64().unwrap() as usize,
+            )
+        })
+        .collect();
     product(
         &candidates,
         0,
         0,
-        p["longest_route_bonus_per_stop"].as_i64().unwrap_or(0),
+        &mut Limits {
+            held: vec![0; most.len()],
+            most,
+            bonus: p["longest_route_bonus_per_stop"].as_i64().unwrap_or(0),
+        },
     )
+}
+
+/// How many of the solution's routes stop in the group.
+fn routes_stopping_in(p: &Value, solution: &Value, group: u64) -> usize {
+    solution["routes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|route| {
+            route["connections"].as_array().unwrap().iter().any(|link| {
+                [&link["from"], &link["to"]].iter().any(|stop| {
+                    p["stops"][stop.as_u64().unwrap() as usize]["groups"]
+                        .as_array()
+                        .unwrap()
+                        .contains(&json!(group))
+                })
+            })
+        })
+        .count()
+}
+
+#[test]
+fn only_so_many_routes_stop_in_a_limited_group() {
+    let spokes: Vec<_> = (1..7).map(|stop| (0, stop)).collect();
+    for trains in [&[2, 2, 2, 2][..], &[2, 3, 2, 3], &[3, 2, 2, 2, 2]] {
+        let mut p = graph(7, &spokes, trains);
+        p["group_count"] = json!(2);
+        for stop in [5, 6] {
+            p["stops"][stop]["groups"] = json!([0]);
+        }
+        for stop in [2, 3, 4] {
+            p["stops"][stop]["groups"] = json!([1]);
+        }
+        let unlimited = solve(&p);
+        assert_eq!(routes_stopping_in(&p, &unlimited, 0), 2, "{trains:?}");
+        assert!(routes_stopping_in(&p, &unlimited, 1) > 0, "{trains:?}");
+        p["group_route_limits"] = json!([{"group": 0, "routes": 1}, {"group": 1, "routes": 2}]);
+        let limited = solve(&p);
+        assert!(routes_stopping_in(&p, &limited, 0) <= 1, "{trains:?}");
+        assert!(routes_stopping_in(&p, &limited, 1) <= 2, "{trains:?}");
+        assert!(limited["revenue"].as_i64() < unlimited["revenue"].as_i64());
+        assert_eq!(
+            limited["revenue"].as_i64().unwrap(),
+            exhaustive_oracle(&p, &spokes),
+            "{trains:?}"
+        );
+        for bonus in [10, 100] {
+            p["longest_route_bonus_per_stop"] = json!(bonus);
+            assert_eq!(
+                solve(&p)["revenue"].as_i64().unwrap(),
+                exhaustive_oracle(&p, &spokes),
+                "{trains:?} with a longest-route bonus of {bonus}"
+            );
+        }
+    }
+    let mut p = graph(7, &spokes, &[2, 2]);
+    p["stops"][6]["groups"] = json!([0]);
+    p["group_route_limits"] = json!([{"group": 0, "routes": 0}]);
+    assert_eq!(solve(&p)["revenue"], 130);
+    p["group_route_limits"] = json!([{"group": 1, "routes": 1}]);
+    let result: Value =
+        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+    assert_eq!(result["error"], "Invalid stop group limit");
+}
+
+#[test]
+fn limited_groups_agree_with_the_permutation_oracle_on_generated_graphs() {
+    let mut seed = 57u64;
+    let mut random = || {
+        seed = seed
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        seed >> 32
+    };
+    let mut bound = 0;
+    let cases = 150;
+    for case in 0..cases {
+        let mut edges = vec![];
+        for a in 0..5 {
+            for b in a + 1..5 {
+                if random() % 4 != 0 {
+                    edges.push((a, b));
+                }
+            }
+        }
+        let trains: Vec<u32> = (0..2 + case % 3)
+            .map(|_| 2 + (random() % 3) as u32)
+            .collect();
+        let mut p = graph(5, &edges, &trains);
+        p["group_count"] = json!(2);
+        for stop in p["stops"].as_array_mut().unwrap() {
+            stop["blocked"] = json!(random() % 6 == 0);
+            stop["endpoint"] = json!(random() % 6 != 0);
+            stop["token"] = json!(stop["token"] == true || random() % 3 == 0);
+            if random() % 3 != 0 {
+                stop["groups"] = json!([random() % 2]);
+            }
+        }
+        for train in p["trains"].as_array_mut().unwrap() {
+            for revenue in train["revenues"].as_array_mut().unwrap() {
+                *revenue = json!(10 + random() % 10 * 10);
+            }
+        }
+        if case % 4 == 0 {
+            p["trains"][1] = p["trains"][0].clone();
+            p["trains"][1]["id"] = json!("1");
+        }
+        let unlimited = exhaustive_oracle(&p, &edges);
+        let mut limits = vec![];
+        for group in 0..2 {
+            if random() % 5 != 0 {
+                limits.push(json!({"group": group, "routes": random() % trains.len() as u64}));
+            }
+        }
+        p["group_route_limits"] = json!(limits);
+        for bonus in [0, (case % 3) * 10] {
+            p["longest_route_bonus_per_stop"] = json!(bonus);
+            let most = exhaustive_oracle(&p, &edges);
+            let solution = solve(&p);
+            assert_eq!(
+                solution["revenue"].as_i64().unwrap(),
+                most,
+                "case {case}: {p}"
+            );
+            for limit in p["group_route_limits"].as_array().unwrap() {
+                assert!(
+                    routes_stopping_in(&p, &solution, limit["group"].as_u64().unwrap())
+                        <= limit["routes"].as_u64().unwrap() as usize,
+                    "case {case}: {p}"
+                );
+            }
+            bound += usize::from(bonus == 0 && most < unlimited);
+        }
+    }
+    assert!(3 * bound > cases, "a limit bound {bound} of the cases");
 }
 
 #[test]

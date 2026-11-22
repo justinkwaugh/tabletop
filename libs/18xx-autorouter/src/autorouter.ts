@@ -142,12 +142,14 @@ export class Autorouter {
             'Routing time limit must be positive'
         )
         assert(!rules.routeAllowed, 'Native route shapes must be declared as policy')
-        if (rules.stopGroupRouteLimits)
-            return this.solveGroupLimited(state, rules, companyId, timeLimitMs)
         const requiredEnds = rules.requiredRouteEnds?.(state, companyId)
         assert(
             !(rules.fleet && requiredEnds),
             'Fleet policy cannot combine with required-route enumeration'
+        )
+        assert(
+            !(rules.stopGroupRouteLimits && requiredEnds),
+            'Stop group route limits cannot combine with required-route enumeration'
         )
         if (requiredEnds)
             return this.solveRequired(state, rules, companyId, requiredEnds, timeLimitMs)
@@ -206,54 +208,6 @@ export class Autorouter {
                 connections: solution.connections
             }
         }
-    }
-
-    /**
-     * The best run within the title's limits on routes to a stop group: the best run without them
-     * when it keeps them, else the best of the runs that keep the trains beyond each limit out of
-     * the group, trying every choice of the trains allowed in.
-     */
-    private solveGroupLimited(
-        state: TrainRunningState,
-        rules: RouteRules,
-        companyId: string,
-        timeLimitMs: number
-    ): AutoroutingResult {
-        const { stopGroupRouteLimits: limits = {}, ...unlimited } = rules
-        const evaluation = new RouteEvaluation(state, rules)
-        // A fleet no larger than every limit cannot break one, so its search has all the time.
-        const trainCount = evaluation.runnableTrains(companyId).length
-        if (Object.values(limits).every((limit) => trainCount <= limit))
-            return this.solve(state, unlimited, companyId, { timeLimitMs })
-        const best = this.solve(state, unlimited, companyId, { timeLimitMs: timeLimitMs / 2 })
-        const group = evaluation.overStopGroupLimit(best.result.routes)
-        if (!group) return this.revalidated(evaluation, companyId, best)
-        const trainIds = evaluation.runnableTrains(companyId).map((train) => train.id)
-        const allowed = subsetsUpTo(trainIds, limits[group])
-        const share = timeLimitMs / 2 / Math.max(1, allowed.length)
-        const runs = allowed.map((allowedIds) =>
-            this.solve(state, keptOutOf(unlimited, group, allowedIds), companyId, {
-                timeLimitMs: share
-            })
-        )
-        const legal = runs.filter((run) => !evaluation.overStopGroupLimit(run.result.routes))
-        const found = legal.reduce((top, run) =>
-            routeRevenue(run.result) > routeRevenue(top.result) ? run : top
-        )
-        return this.revalidated(evaluation, companyId, {
-            ...found,
-            exhaustive: runs.every((run) => run.exhaustive)
-        })
-    }
-
-    private revalidated(
-        evaluation: RouteEvaluation,
-        companyId: string,
-        run: AutoroutingResult
-    ): AutoroutingResult {
-        const checked = evaluation.evaluate(companyId, trainRoutesOf(run.result))
-        assertExists(checked.result, checked.reason ?? 'Solver returned an invalid operation')
-        return { ...run, result: checked.result }
     }
 
     /**
@@ -522,6 +476,10 @@ export class Autorouter {
         const others = fleet.filter(
             ({ definition }) => !definition.sharesTrack && !definition.distance.stationRun
         )
+        assert(
+            !search.rules.stopGroupRouteLimits || others.length === fleet.length,
+            'Stop group route limits are counted only among trains routed together'
+        )
         for (const train of sharing) {
             const encoded = encode([train])
             const solution = run(encoded.problem)
@@ -758,39 +716,4 @@ export class Autorouter {
 /** What the routes earned: the run's revenue without the bonus the solver does not search. */
 function routeRevenue(result: OperatingResult): number {
     return result.revenue - (result.bonus ?? 0)
-}
-
-const KeptOutSuffix = '#kept-out'
-
-/** Every choice of at most ``limit`` of the items, the largest first. */
-function subsetsUpTo<T>(items: readonly T[], limit: number): T[][] {
-    const all = items.reduce<T[][]>(
-        (sets, item) => [...sets, ...sets.map((set) => [...set, item])],
-        [[]]
-    )
-    return all.filter((set) => set.length <= limit).sort((a, b) => b.length - a.length)
-}
-
-/** The rules with every train but the allowed ones kept from the stop group's stops. */
-function keptOutOf(rules: RouteRules, group: string, allowedIds: readonly string[]): RouteRules {
-    return {
-        ...rules,
-        extendedDefinition(state, companyId, train, definition) {
-            const extended =
-                rules.extendedDefinition?.(state, companyId, train, definition) ?? definition
-            return allowedIds.includes(train.id)
-                ? extended
-                : { ...extended, id: `${extended.id}${KeptOutSuffix}` }
-        },
-        stopAllowed(state, companyId, center, train) {
-            const allowed = rules.stopAllowed?.(state, companyId, center, train) ?? true
-            return (
-                allowed &&
-                !(
-                    train?.id.includes(KeptOutSuffix) &&
-                    rules.map.location(center.locationId).stopGroup === group
-                )
-            )
-        }
-    }
 }

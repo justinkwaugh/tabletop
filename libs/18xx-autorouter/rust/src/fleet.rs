@@ -579,9 +579,9 @@ impl<'a> Fleet<'a> {
                 problem.resource_count
             });
             if !policy.shared_track {
-                for resource in source.resources(candidate, network) {
-                    mark(&mut resources, resource);
-                }
+                source
+                    .resources(candidate, network)
+                    .for_each(|resource| mark(&mut resources, resource));
             }
             let mut cover = vec![];
             if fleet.hex_subsidy > 0 {
@@ -1713,7 +1713,7 @@ mod tests {
         trains
             .extend((1..=lone).map(|route| train(&[(2 * route, 100), (2 * route + 1, 100)], None)));
         let problem: Problem = serde_json::from_value(serde_json::json!({
-            "version": 11, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
+            "version": 12, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
             "hex_bonuses": vec![0; lone + 1], "budget_ms": 1, "memory_budget_bytes": 1,
             "stops": (0..stops).map(|stop| serde_json::json!({
                 "token": true, "blocked": false, "endpoint": true, "allowed": true,
@@ -1756,6 +1756,7 @@ mod tests {
             stays: &[],
             adjacency: &[],
             departures: &[],
+            quotas: &[],
             taken: &taken,
         };
         let candidates: Vec<_> = (0..lone + 2)

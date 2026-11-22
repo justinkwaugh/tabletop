@@ -174,11 +174,16 @@ discarded immediately by streaming.
 These mechanisms come from `RouteRules`, `TrainDefinition`, `RouteNetwork` and
 station state. The encoder does not maintain a second title configuration.
 Map locations that share a `stopGroup` (1830's Canada) are encoded as the native
-core's exclusive stop groups, so a route visits one of them. The core's additive
+core's exclusive stop groups, so a route visits one of them. A title's limit on
+how many of a run's routes may stop in a group (`RouteRules.stopGroupRouteLimits`,
+18USA's two routes to Mexico) goes to the core as `group_route_limits`, and the
+one search holds the run to it: `exhaustive` is proved under the limits. They
+are counted among trains routed together, so they are rejected beside a fleet
+policy, a required route, or station-run or track-sharing trains. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 11; workers and WASM must be rebuilt together. It is private to this package; callers use
+The internal wire format is version 12; workers and WASM must be rebuilt together. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 Fleet policies are optional family data, not settlement callbacks. The native

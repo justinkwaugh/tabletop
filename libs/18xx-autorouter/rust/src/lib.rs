@@ -40,6 +40,26 @@ pub struct Problem {
     #[serde(default)]
     pace_ms: Option<f64>,
     memory_budget_bytes: usize,
+    /// The stop groups that only so many of the run's routes may stop in.
+    #[serde(default)]
+    group_route_limits: Vec<GroupRouteLimit>,
+    /// The limits that fewer routes may reach than there are trains, once each has its piece.
+    #[serde(skip)]
+    quotas: Vec<Quota>,
+}
+
+#[derive(Deserialize)]
+struct GroupRouteLimit {
+    group: usize,
+    routes: usize,
+}
+
+/// A stop group's limit as a piece of track: a route runs on the piece by running through a stop
+/// of the group, and no more routes run on it than may stop in the group.
+struct Quota {
+    group: usize,
+    piece: usize,
+    routes: usize,
 }
 
 impl Problem {
@@ -90,6 +110,53 @@ impl Problem {
             arc.resources = resources;
         }
         self.resource_count = pieces.len();
+    }
+
+    /// Gives each stop group that fewer routes may stop in than the problem has trains a piece of
+    /// track of its own, after the track: first those of the groups one route or none may stop
+    /// in, which two routes cannot share as they cannot share track, and then those that more
+    /// routes may run on, which are counted.
+    fn limit_groups(&mut self) {
+        let mut limits: Vec<(usize, usize)> = self
+            .group_route_limits
+            .iter()
+            .filter(|limit| limit.routes < self.trains.len())
+            .map(|limit| (limit.routes, limit.group))
+            .collect();
+        limits.sort_unstable();
+        for (routes, group) in limits {
+            self.quotas.push(Quota {
+                group,
+                piece: self.resource_count,
+                routes,
+            });
+            self.resource_count += 1;
+        }
+    }
+
+    /// The first piece that more than one route may run on, where there is one.
+    fn shared_from(&self) -> usize {
+        self.quotas
+            .iter()
+            .find(|quota| quota.routes > 1)
+            .map_or(usize::MAX, |quota| quota.piece)
+    }
+
+    /// By stop, the pieces of the quotas its groups are under; no stops where there are none.
+    fn stop_quotas(&self) -> Vec<Vec<usize>> {
+        if self.quotas.is_empty() {
+            return vec![];
+        }
+        self.stops
+            .iter()
+            .map(|stop| {
+                self.quotas
+                    .iter()
+                    .filter(|quota| stop.groups.contains(&quota.group))
+                    .map(|quota| quota.piece)
+                    .collect()
+            })
+            .collect()
     }
 }
 
@@ -629,24 +696,56 @@ impl Candidates {
         self.arena.ids(start..start + candidate.extension_len)
     }
 
+    /// The pieces the route runs on: its track, and the quotas of its stops. A connection runs
+    /// on the quotas of the stop it reaches, which leaves those of the route's first stop.
     fn resources<'a>(
         &'a self,
         candidate: &Candidate,
         network: Network<'a>,
     ) -> impl Iterator<Item = usize> + use<'a> {
-        self.connection_ids(candidate)
-            .flat_map(move |id| network.connections[id].resources.iter().copied())
+        self.first_quotas(candidate, network)
+            .iter()
+            .copied()
+            .chain(
+                self.connection_ids(candidate)
+                    .flat_map(move |id| network.connections[id].resources.iter().copied()),
+            )
             .chain(
                 self.extension_ids(candidate)
                     .flat_map(move |id| network.problem.arcs[id].resources.iter().copied()),
             )
     }
 
+    /// The quotas of the stop the route was walked from.
+    fn first_quotas<'a>(&self, candidate: &Candidate, network: Network<'a>) -> &'a [usize] {
+        if network.quotas.is_empty() {
+            return &[];
+        }
+        self.connection_ids(candidate)
+            .next()
+            .map_or(&[], |id| network.quotas_at(network.connections[id].from))
+    }
+
+    /// The quotas of the route's stops.
+    fn quotas<'a>(
+        &'a self,
+        candidate: &Candidate,
+        network: Network<'a>,
+    ) -> impl Iterator<Item = usize> + use<'a> {
+        self.first_quotas(candidate, network).iter().copied().chain(
+            self.connection_ids(candidate).flat_map(move |id| {
+                network
+                    .quotas_at(network.connections[id].to)
+                    .iter()
+                    .copied()
+            }),
+        )
+    }
+
     fn resource_bits(&self, candidate: &Candidate, network: Network<'_>, bits: &mut [u64]) {
         bits.fill(0);
-        for resource in self.resources(candidate, network) {
-            bits[resource / 64] |= 1 << (resource % 64);
-        }
+        self.resources(candidate, network)
+            .for_each(|resource| bits[resource / 64] |= 1 << (resource % 64));
     }
 
     fn route(&self, id: usize, train: usize, network: Network<'_>) -> Route {
@@ -914,7 +1013,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 11
+    if problem.version != 12
         || !problem.budget_ms.is_finite()
         || problem.budget_ms <= 0.0
         || problem
@@ -1009,6 +1108,17 @@ fn validate(problem: &Problem) -> Result<(), String> {
     if problem.longest_route_bonus_per_stop < 0 {
         return Err("Negative longest-route bonus".into());
     }
+    if problem
+        .group_route_limits
+        .iter()
+        .any(|limit| limit.group >= problem.group_count)
+    {
+        return Err("Invalid stop group limit".into());
+    }
+    // A fleet's selection counts no routes into a stop group.
+    if problem.fleet.is_some() && !problem.group_route_limits.is_empty() {
+        return Err("Stop group limits are not supported with a fleet policy".into());
+    }
     // Only a fleet's selection weighs subsidies and counts blocked passes across its routes.
     if problem.fleet.is_none()
         && (problem.trains.iter().any(Train::subsidizes)
@@ -1080,6 +1190,7 @@ struct Resume {
 
 struct Compiler<'a> {
     problem: &'a Problem,
+    quotas: &'a [Vec<usize>],
     used: Vec<bool>,
     junction_segments: Vec<u8>,
     walking: Vec<usize>,
@@ -1159,6 +1270,9 @@ impl Compiler<'_> {
                         .collect();
                     resources.sort_unstable();
                     resources.dedup();
+                    if let Some(quotas) = self.quotas.get(to) {
+                        resources.extend(quotas);
+                    }
                     let mut hexes: Vec<_> = self
                         .walking
                         .iter()
@@ -1252,6 +1366,7 @@ struct Search<'a> {
     stays: &'a [Vec<usize>],
     adjacency: &'a [Vec<usize>],
     departures: &'a [Vec<usize>],
+    quotas: &'a [Vec<usize>],
     train: &'a Train,
     profile: Rc<Profile>,
     origins: Vec<bool>,
@@ -1739,6 +1854,7 @@ impl<'a> Search<'a> {
                 stays: self.stays,
                 adjacency: self.adjacency,
                 departures: self.departures,
+                quotas: self.quotas,
                 taken: self.taken,
             },
             &self.walking,
@@ -2000,6 +2116,7 @@ impl<'a> Search<'a> {
             stays: self.stays,
             adjacency: self.adjacency,
             departures: self.departures,
+            quotas: self.quotas,
             taken: self.taken,
         });
         let payload: usize = self
@@ -2503,22 +2620,31 @@ impl<'a> StreamingSelection<'a> {
                         cached = true;
                     }
                     let extension_start = stored.offset + stored.visits - 1;
-                    if self.stored.arena.any(stored.offset..extension_start, |id| {
-                        resource_conflict(
-                            &mut self.connection_conflicts[id],
-                            &self.network.connections[id].resources,
-                            candidate.resources,
-                        )
-                    }) || self.stored.arena.any(
-                        extension_start..extension_start + stored.extension_len,
-                        |id| {
+                    let holds =
+                        |piece: &usize| candidate.resources[piece / 64] >> (piece % 64) & 1 == 1;
+                    if self
+                        .stored
+                        .first_quotas(&stored, self.network)
+                        .iter()
+                        .any(holds)
+                        || self.stored.arena.any(stored.offset..extension_start, |id| {
                             resource_conflict(
-                                &mut self.extension_conflicts[id],
-                                &self.network.problem.arcs[id].resources,
+                                &mut self.connection_conflicts[id],
+                                &self.network.connections[id].resources,
                                 candidate.resources,
                             )
-                        },
-                    ) {
+                        })
+                        || self.stored.arena.any(
+                            extension_start..extension_start + stored.extension_len,
+                            |id| {
+                                resource_conflict(
+                                    &mut self.extension_conflicts[id],
+                                    &self.network.problem.arcs[id].resources,
+                                    candidate.resources,
+                                )
+                            },
+                        )
+                    {
                         continue;
                     }
                 }
@@ -2594,9 +2720,7 @@ impl ResourceCandidates {
     }
 
     fn insert(&mut self, id: usize, resources: impl Iterator<Item = usize>) {
-        for resource in resources {
-            self.rows[resource][id / 64] |= 1 << (id % 64);
-        }
+        resources.for_each(|resource| self.rows[resource][id / 64] |= 1 << (id % 64));
     }
 
     fn compatible_word(&self, word: usize, used: &[u64]) -> u64 {
@@ -2660,6 +2784,8 @@ impl Compatibility {
         }
         let mut resource_candidates =
             ResourceCandidates::new(network.problem.resource_count, words - base);
+        // Routes may share the pieces that more than one route may run on: those are counted.
+        let shared_from = network.problem.shared_from();
         for group in groups.iter().filter(|group| group.words.end > base) {
             for (index, candidate) in group.candidates.iter().enumerate() {
                 let word = group.words.start + index / 64;
@@ -2668,7 +2794,10 @@ impl Compatibility {
                 }
                 resource_candidates.insert(
                     (word - base) * 64 + index % 64,
-                    group.candidates.resources(candidate, network),
+                    group
+                        .candidates
+                        .resources(candidate, network)
+                        .filter(|&piece| piece < shared_from),
                 );
             }
         }
@@ -2695,14 +2824,14 @@ impl Compatibility {
             if compatible.is_empty() {
                 return;
             }
-            for resource in resources {
+            resources.for_each(|resource| {
                 for (bits, conflicts) in compatible
                     .iter_mut()
                     .zip(&resource_candidates.rows[resource][start - self.base..])
                 {
                     *bits &= !conflicts;
                 }
-            }
+            });
         };
         if self.rows.is_empty() {
             fill(&mut self.scratch, &self.resource_candidates);
@@ -2742,6 +2871,22 @@ struct Selection<'a> {
     // The first descent picks each train's best compatible candidate and ends at the first leaf or
     // bound; it always finishes, so an interrupted selection still returns a legal operation.
     descended: bool,
+    // The quotas of more than one route.
+    quotas: Vec<Counted>,
+}
+
+/// A quota of more than one route in a selection: the routes that run on its piece, as bits
+/// over every train's routes, and how many of the routes chosen do.
+struct Counted {
+    routes: usize,
+    holders: Vec<u64>,
+    held: usize,
+}
+
+impl Counted {
+    fn holds(&self, word: usize, bit: usize) -> bool {
+        self.holders[word] >> bit & 1 == 1
+    }
 }
 
 impl<'a> Selection<'a> {
@@ -2789,6 +2934,31 @@ impl<'a> Selection<'a> {
             });
         }
         let compatibility = Compatibility::new(&groups, network, initial.len(), row_budget);
+        let quotas = network
+            .problem
+            .quotas
+            .iter()
+            .filter(|quota| quota.routes > 1)
+            .map(|quota| {
+                let mut holders = vec![0; initial.len()];
+                for group in &groups {
+                    for (index, candidate) in group.candidates.iter().enumerate() {
+                        if group
+                            .candidates
+                            .quotas(candidate, network)
+                            .any(|piece| piece == quota.piece)
+                        {
+                            holders[group.words.start + index / 64] |= 1 << (index % 64);
+                        }
+                    }
+                }
+                Counted {
+                    routes: quota.routes,
+                    holders,
+                    held: 0,
+                }
+            })
+            .collect();
         let mut available = vec![vec![0; initial.len()]; order.len() + 1];
         available[0] = initial;
         let first_words =
@@ -2809,6 +2979,7 @@ impl<'a> Selection<'a> {
             steps: limit.steps.saturating_sub(network.taken.get()),
             exhausted: false,
             descended: false,
+            quotas,
         }
     }
 
@@ -2918,6 +3089,9 @@ impl<'a> Selection<'a> {
                     return;
                 }
                 self.current.push((train, index));
+                for quota in &mut self.quotas {
+                    quota.held += usize::from(quota.holds(word, bit));
+                }
                 if depth + 1 < self.order.len() {
                     let suffix_start = if self.groups[group].trains.len() > 1 {
                         start
@@ -2940,8 +3114,14 @@ impl<'a> Selection<'a> {
                             self.first_words[depth][next_group]
                         };
                         for next_word in from..end {
-                            let bits =
+                            let mut bits =
                                 parents[depth][next_word] & compatible[next_word - suffix_start];
+                            // A quota that holds all its routes holds no further one.
+                            for quota in &self.quotas {
+                                if quota.held == quota.routes {
+                                    bits &= !quota.holders[next_word];
+                                }
+                            }
                             children[0][next_word] = bits;
                             if bits != 0 && first == end {
                                 first = next_word;
@@ -2951,6 +3131,9 @@ impl<'a> Selection<'a> {
                     }
                 }
                 self.walk(depth + 1, next_revenue, next_longest);
+                for quota in &mut self.quotas {
+                    quota.held -= usize::from(quota.holds(word, bit));
+                }
                 self.current.pop();
             }
         }
@@ -2969,6 +3152,7 @@ struct Compiled {
     stays: Vec<Vec<usize>>,
     adjacency: Vec<Vec<usize>>,
     departures: Vec<Vec<usize>>,
+    quotas: Vec<Vec<usize>>,
     taken: std::cell::Cell<u64>,
     bytes: usize,
     // Compilation stopped early, and whether for memory.
@@ -2978,8 +3162,10 @@ struct Compiled {
 
 impl Compiled {
     fn new(problem: &Problem, deadline: f64) -> Self {
+        let quotas = problem.stop_quotas();
         let mut compiler = Compiler {
             problem,
+            quotas: &quotas,
             used: vec![false; problem.resource_count],
             junction_segments: vec![0; problem.junction_count],
             walking: vec![],
@@ -3020,6 +3206,7 @@ impl Compiled {
             bytes: compiler.stored_bytes,
             exhausted: compiler.exhausted,
             limited: compiler.limited,
+            quotas,
         }
     }
 
@@ -3030,14 +3217,17 @@ impl Compiled {
             stays: &self.stays,
             adjacency: &self.adjacency,
             departures: &self.departures,
+            quotas: &self.quotas,
             taken: &self.taken,
         }
     }
 }
 
-pub fn solve(problem: &Problem) -> Result<Solution, String> {
-    validate(problem)?;
-    Ok(routed(problem))
+pub fn solve(mut problem: Problem) -> Result<Solution, String> {
+    validate(&problem)?;
+    problem.merge_track();
+    problem.limit_groups();
+    Ok(routed(&problem))
 }
 
 /// The best operation found for a problem that is valid.
@@ -3318,11 +3508,12 @@ fn operate(
     (solution, routes)
 }
 
-/// What each listed route takes of the tables that select among several trains' routes.
+/// What each listed route takes of the tables that select among several trains' routes; a quota
+/// takes a bit as a piece and another where its routes are counted.
 fn selection_bytes(problem: &Problem) -> usize {
     std::mem::size_of::<Option<Vec<u64>>>()
         + std::mem::size_of::<usize>()
-        + problem.resource_count.div_ceil(8)
+        + (problem.resource_count + problem.quotas.len()).div_ceil(8)
         + (problem.trains.len() + 1).div_ceil(8)
 }
 
@@ -3515,6 +3706,8 @@ struct Network<'a> {
     stays: &'a [Vec<usize>],
     adjacency: &'a [Vec<usize>],
     departures: &'a [Vec<usize>],
+    /// By stop, the pieces of the quotas its groups are under; no stops where there are none.
+    quotas: &'a [Vec<usize>],
     /// The steps the solve's searches have taken so far.
     taken: &'a std::cell::Cell<u64>,
 }
@@ -3558,6 +3751,10 @@ enum WhenFull {
 }
 
 impl<'a> Network<'a> {
+    fn quotas_at(&self, stop: usize) -> &'a [usize] {
+        self.quotas.get(stop).map_or(&[], Vec::as_slice)
+    }
+
     fn streaming_scratch_bytes(&self) -> usize {
         self.connections.len()
             + if self
@@ -3716,7 +3913,8 @@ impl<'a> Network<'a> {
     /// Routes one train after another beside those before it, the most valuable first, and two
     /// trains that differ in either order, each order in an even part of what the limit leaves;
     /// the operation is the outline's if it earns more than the one it has. Each train in turn
-    /// then betters it.
+    /// then betters it. Under a quota the order also chooses which trains run on its piece, so
+    /// three trains or more are tried with each in turn before the others.
     fn first_operation(
         &self,
         outline: &mut Outline,
@@ -3730,6 +3928,14 @@ impl<'a> Network<'a> {
         if trains == 2 && !Rc::ptr_eq(&profiles[0], &profiles[1]) {
             order.reverse();
             orders.push(order);
+        } else if trains > 2 && self.problem.quotas.iter().any(|quota| quota.routes > 0) {
+            let leads = order[1..].iter().filter(|&&lead| {
+                !(0..lead).any(|earlier| Rc::ptr_eq(&profiles[earlier], &profiles[lead]))
+            });
+            for &lead in leads {
+                let others = order.iter().copied().filter(|&train| train != lead);
+                orders.push(std::iter::once(lead).chain(others).collect());
+            }
         }
         for (tried, order) in orders.iter().enumerate() {
             let share = limits.0.part(self.taken.get(), orders.len() - tried);
@@ -3763,9 +3969,21 @@ impl<'a> Network<'a> {
             .iter()
             .enumerate()
             .filter(|&(other, _)| other != train);
-        for track in others.flat_map(|(_, lone)| lone).map(|lone| &lone.track) {
-            for (closed, track) in closed.iter_mut().zip(track) {
+        let others: Vec<&Lone> = others.flat_map(|(_, lone)| lone).collect();
+        for lone in &others {
+            for (closed, track) in closed.iter_mut().zip(&lone.track) {
                 *closed |= track;
+            }
+        }
+        // A quota of more routes than the others take of it is open to this one.
+        for quota in &self.problem.quotas {
+            let (word, bit) = (quota.piece / 64, quota.piece % 64);
+            let held = others
+                .iter()
+                .filter(|lone| lone.track[word] >> bit & 1 == 1)
+                .count();
+            if held < quota.routes {
+                closed[word] &= !(1 << bit);
             }
         }
         match &outline.bests[train] {
@@ -4035,6 +4253,7 @@ impl<'a> Network<'a> {
             stays: self.stays,
             adjacency: self.adjacency,
             departures: self.departures,
+            quotas: self.quotas,
             train,
             profile: plan.profile,
             origins: hex_flags(problem, train.interconnections.iter().flat_map(|i| &i.from)),
@@ -4092,15 +4311,25 @@ impl<'a> Network<'a> {
             shut: vec![vec![]; problem.stops.len() + 1],
             plain: !train.scores_payments() && !train.calls_selectively() && !train.subsidizes(),
         };
+        // A quota that holds no route, or whose piece is closed, closes its group's stops.
+        for quota in &problem.quotas {
+            if quota.routes == 0 || search.used[quota.piece / 64] >> (quota.piece % 64) & 1 == 1 {
+                search.groups[quota.group] = true;
+            }
+        }
         let mut starts: Vec<usize> = (0..problem.stops.len()).collect();
         if plan.best_only {
             starts.sort_by_key(|&id| std::cmp::Reverse(train.revenues[id]));
         }
         for (place, id) in starts.into_iter().enumerate().skip(resume.start) {
             let stop = &problem.stops[id];
-            if stop.allowed && stop.endpoint {
+            if stop.allowed && stop.endpoint && !stop.groups.iter().any(|&g| search.groups[g]) {
                 if let Some(alike) = &mut search.alike {
                     alike.start(stop.hex);
+                }
+                // The route runs on its first stop's quotas from the start.
+                for &piece in self.quotas_at(id) {
+                    search.used[piece / 64] |= 1 << (piece % 64);
                 }
                 search.been[stop.hex] = problem.tracks_reentry();
                 search.walk(
@@ -4122,6 +4351,9 @@ impl<'a> Network<'a> {
                     },
                 );
                 search.been[stop.hex] = false;
+                for &piece in self.quotas_at(id) {
+                    search.used[piece / 64] &= !(1 << (piece % 64));
+                }
             }
             if search.exhausted {
                 // What the walk had not come back to of an earlier listing's route lies beyond
@@ -4195,11 +4427,7 @@ fn hex_flags<'a>(problem: &Problem, hexes: impl Iterator<Item = &'a usize>) -> V
 pub fn solve_json(input: &[u8]) -> Vec<u8> {
     let result = serde_json::from_slice::<Problem>(input)
         .map_err(|e| e.to_string())
-        .and_then(|mut problem| {
-            validate(&problem)?;
-            problem.merge_track();
-            Ok(routed(&problem))
-        });
+        .and_then(solve);
     match result {
         Ok(solution) => serde_json::to_vec(&solution).unwrap(),
         Err(error) => serde_json::to_vec(&serde_json::json!({"error": error})).unwrap(),
@@ -4226,7 +4454,7 @@ mod tests {
         fn new() -> Self {
             Self {
                 problem: serde_json::from_value(serde_json::json!({
-                    "version": 11, "stops": [], "arcs": [], "trains": [],
+                    "version": 12, "stops": [], "arcs": [], "trains": [],
                     "resource_count": 130, "junction_count": 0, "group_count": 0,
                     "hex_bonuses": [], "budget_ms": 30000, "memory_budget_bytes": 65536,
                 }))
@@ -4256,6 +4484,7 @@ mod tests {
                 stays: &[],
                 adjacency: &[],
                 departures: &[],
+                quotas: &[],
                 taken: &self.taken,
             }
         }
@@ -4354,6 +4583,57 @@ mod tests {
             assert_eq!(selection.revenue, 2500);
             assert_eq!(selection.best_stored, Some(1));
             assert!(!selection.wanted(900, 2, 0, i32::MAX));
+        }
+    }
+
+    #[test]
+    fn streaming_pairs_no_route_with_a_stored_one_that_begins_under_the_same_quota() {
+        let tracks = Tracks::new();
+        let quota = 129;
+        let quotas: Vec<Vec<usize>> = (0..131)
+            .map(|stop| if stop == 0 { vec![quota] } else { vec![] })
+            .collect();
+        let network = Network {
+            quotas: &quotas,
+            ..tracks.network()
+        };
+        let mut stored = Candidates::new(network);
+        add(&mut stored, 100, &[0], &[]);
+        add(&mut stored, 40, &[5], &[]);
+        let stored = Rc::new(stored);
+        let mut resources = [0; 3];
+        for piece in [10, quota] {
+            resources[piece / 64] |= 1 << (piece % 64);
+        }
+        for budget in [0, usize::MAX] {
+            let mut selection =
+                StreamingSelection::new(Rc::clone(&stored), network, f64::INFINITY, budget);
+            assert_eq!(selection.resource_candidates.words, usize::from(budget > 0));
+            selection.offer(
+                CandidateView {
+                    revenue: 50,
+                    visits: 2,
+                    connections: &[10],
+                    resources: &resources,
+                    reversed: false,
+                    extension: &[],
+                },
+                0,
+            );
+            assert_eq!(selection.revenue, 100);
+            selection.offer(
+                CandidateView {
+                    revenue: 70,
+                    visits: 2,
+                    connections: &[10],
+                    resources: &resources,
+                    reversed: false,
+                    extension: &[],
+                },
+                0,
+            );
+            assert_eq!(selection.revenue, 110);
+            assert_eq!(selection.best_stored, Some(1));
         }
     }
 

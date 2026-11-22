@@ -7,6 +7,7 @@ import {
     createTrackTileFace as track,
     createOffboardTileFace as offboard,
     createStagedTileRevenue as staged,
+    type RouteRules,
     type TileEdge,
     type TileFace,
     type TrackGauge,
@@ -333,33 +334,103 @@ it.each([false, true])(
     }
 )
 
-it('proves a run held to a stop group limit only where every search behind it was proved', () => {
+/**
+ * Seven cities in a line with the company's stations in every other one, so that each pair of
+ * neighbours is a route for a 2-train; the ends are in one stop group and two cities between
+ * them in another.
+ */
+function groupedLine(trainCount: number, stopGroupRouteLimits: Record<string, number>) {
     const { state, rules } = position(
-        [city('yellow', [0], 50, 1), city('yellow', [3, 0], 20, 1), city('yellow', [3], 50, 1)],
         [
-            { measure: 'revenue-centers', maximum: 2 },
-            { measure: 'revenue-centers', maximum: 2 }
+            city('yellow', [0], 60, 1),
+            city('yellow', [3, 0], 20, 1),
+            city('yellow', [3, 0], 50, 1),
+            city('yellow', [3, 0], 20, 1),
+            city('yellow', [3, 0], 50, 1),
+            city('yellow', [3, 0], 20, 1),
+            city('yellow', [3], 60, 1)
         ],
-        { 0: 'south', 2: 'south' },
-        { stopGroupRouteLimits: { south: 1 } }
+        Array.from({ length: trainCount }, () => ({
+            measure: 'revenue-centers' as const,
+            maximum: 2
+        })),
+        { 0: 'ends', 6: 'ends', 2: 'between', 4: 'between' },
+        { stopGroupRouteLimits }
     )
-    state.stations[0].position = { locationId: '1', nodeId: 'city', slot: 0 }
-    const proved = router.solve(state, rules, 'A')
-    expect(proved.result.revenue).toBe(70)
-    expect(proved.exhaustive).toBe(true)
+    state.stations = ['1', '3', '5'].map((locationId, index) => ({
+        id: `station-${index}`,
+        companyId: 'A',
+        status: 'placed' as const,
+        position: { locationId, nodeId: 'city', slot: 0 }
+    }))
+    return { state, rules }
+}
 
-    const solve = router.solve.bind(router)
-    const spy = vi.spyOn(router, 'solve').mockImplementation((...args) => {
-        const found = solve(...args)
-        return found.result.revenue === 0 ? { ...found, exhaustive: false } : found
-    })
+function routesStoppingIn(
+    rules: RouteRules,
+    routes: readonly { visits: readonly { locationId: string }[] }[],
+    group: string
+): number {
+    return routes.filter((route) =>
+        route.visits.some((visit) => rules.map.location(visit.locationId).stopGroup === group)
+    ).length
+}
+
+it('holds a run to its stop group limits in one search, which proves it', () => {
+    const { state, rules } = groupedLine(4, { ends: 1, between: 2 })
+    const unlimited = router.solve(state, { ...rules, stopGroupRouteLimits: undefined }, 'A')
+    expect(unlimited.result.revenue).toBe(300)
+    expect(routesStoppingIn(rules, unlimited.result.routes, 'ends')).toBe(2)
+
+    const encoded = vi.spyOn(TextEncoder.prototype, 'encode')
     try {
-        const cut = router.solve(state, rules, 'A')
-        expect(cut.result.revenue).toBe(70)
-        expect(cut.exhaustive).toBe(false)
+        const held = router.solve(state, rules, 'A')
+        expect(held.exhaustive).toBe(true)
+        expect(held.result.revenue).toBe(220)
+        expect(held.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+        expect(routesStoppingIn(rules, held.result.routes, 'ends')).toBe(1)
+        expect(routesStoppingIn(rules, held.result.routes, 'between')).toBe(2)
+        expect(encoded).toHaveBeenCalledTimes(1)
+        const [problem] = encoded.mock.calls[0]
+        assert(typeof problem === 'string', 'The solver is given its problem as text')
+        expect(JSON.parse(problem)).toMatchObject({
+            group_route_limits: [
+                { group: 0, routes: 1 },
+                { group: 1, routes: 2 }
+            ]
+        })
     } finally {
-        spy.mockRestore()
+        encoded.mockRestore()
     }
+})
+
+it.each([
+    [2, { ends: 1 }, 150],
+    [3, { ends: 0, between: 1 }, 70],
+    [3, { between: 2 }, 230],
+    [4, { ends: 2, between: 1 }, 230]
+])('proves the best run of %s trains within the limits %o', (trainCount, limits, expected) => {
+    const { state, rules } = groupedLine(trainCount, limits)
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(expected)
+    expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+})
+
+it('does not prove a run within stop group limits that its search was cut short of', () => {
+    const { state, rules } = groupedLine(4, { ends: 1, between: 2 })
+    const cut = router.solve(state, rules, 'A', { timeLimitMs: 0.000001 })
+    expect(cut.exhaustive).toBe(false)
+    expect(routesStoppingIn(rules, cut.result.routes, 'ends')).toBeLessThanOrEqual(1)
+    expect(routesStoppingIn(rules, cut.result.routes, 'between')).toBeLessThanOrEqual(2)
+})
+
+it('keys the problem by its stop group limits', () => {
+    const one = groupedLine(4, { ends: 1, between: 2 })
+    const other = groupedLine(4, { ends: 2, between: 2 })
+    expect(routeProblemKey(one.state, one.rules, 'A')).not.toBe(
+        routeProblemKey(other.state, other.rules, 'A')
+    )
 })
 
 it.each([10, 40])('streams mixed profiles with a longest-route bonus of %s', (bonus) => {

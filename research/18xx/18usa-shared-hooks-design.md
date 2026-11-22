@@ -119,9 +119,10 @@ A title that deals revenue onto buildable hexes would need the value to survive 
 **Hooks.**
 
 - `stopGroupRouteLimits: Record<group, number>` caps how many of a run's routes may stop in a
-  stop group. `RouteEvaluation.overStopGroupLimit` checks it per run. The autorouter first
-  solves without the cap. When that best run breaks a cap, it solves once for every set of
-  trains allowed into the group, keeping the other trains out of it, and keeps the best result.
+  stop group. `RouteEvaluation.overStopGroupLimit` checks it per run. The autorouter encodes
+  the caps as the solver's `group_route_limits`, and the solver holds the run to them in its
+  one search, for any number of groups; see "Stop-group route limits in the search" in
+  [the autorouter design](autorouter-design.md).
 - `endsRoutes(state, companyId, center)` returns false where a route may pass a stop but may
   not begin or end there. It drives the evaluation and the solver's `endpoint` flag.
 - `forbidsHexReentry(state, locationId)` now takes the hex. The evaluation checks only the
@@ -152,17 +153,20 @@ exits it has (§13, BGG ruling RT-5).
 
 **Limits.**
 
-- The autorouter enforces one capped group per search. It fixes the first group the
-  uncapped run breaks, then drops runs that break another group's cap. With two capped
-  groups and no legal run, `legal.reduce` would throw. 18USA has one group.
+- The solver counts a cap among the trains of one search. A title that pairs a cap with a
+  fleet policy, a required route, or station-run or track-sharing trains, which are routed
+  in searches of their own, is rejected until the count is carried across those searches.
+  No researched title pairs them.
 - Halts could become an `endsRoutes` default, but they stay a fixed check for now.
 
 **Verified by.**
 
 - `games/18usa/src/routes.spec.ts`: "allows no more than two of a company's routes to Mexico
   in a run" and "lets a train pass a resource tile only once, however many exits it has".
-- `libs/18xx-autorouter/src/autorouter.spec.ts`: "proves a run held to a stop group limit only
-  where every search behind it was proved".
+- `libs/18xx-autorouter/src/autorouter.spec.ts`: "holds a run to its stop group limits in one
+  search, which proves it" and "proves the best run of %s trains within the limits %o".
+- `libs/18xx-autorouter/rust/tests/correctness.rs`: "only so many routes stop in a limited
+  group" and "limited groups agree with the permutation oracle on generated graphs".
 - `libs/18xx/src/routes/routeEvaluation.spec.ts`: "forbids re-entering only the hexes the rules
   name".
 - `libs/18xx-autorouter/src/passingStops.spec.ts`: "keeps routes out of only the hexes that
