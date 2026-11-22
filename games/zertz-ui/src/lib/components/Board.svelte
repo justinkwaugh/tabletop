@@ -300,7 +300,7 @@
                 >
                     {@render marble(
                         ring.marble,
-                        marbleSeed(ring, animator.seeds),
+                        marbleSeed(ring),
                         animator.marble(coordinatesToNumber(ring.coords)),
                         animator.marbleShadow(coordinatesToNumber(ring.coords))
                     )}
