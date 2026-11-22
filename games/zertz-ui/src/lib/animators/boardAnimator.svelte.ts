@@ -240,10 +240,11 @@ export class BoardAnimator implements MoveInterrupter {
         let returned: Staged | undefined
         if (action === undefined) {
             const undone = kind === 'undo' ? this.session.restagedMove(to) : undefined
-            // Staged before its state lands, so it keeps the specks it had.
+            // Staged before its state lands, so it keeps the seed it was placed with: its ring may
+            // have been claimed, so it is not read from the board being left.
             if (undone !== undefined) {
                 const { color, coords } = undone
-                returned = { color, coords, seed: this.seedOn(from, coords) }
+                returned = { color, coords, seed: placementSeed(coords, to.actionCount) }
             }
             const returning = to.board.rings.filter((ring) => !from.board.hasRing(ring.coords))
             const jump = inferJump(from.board.rings, to.board.rings)
