@@ -29,6 +29,7 @@ export type RoutesSession<State extends RoutesState = RoutesState> = Pick<
     | 'applyAction'
 >
 export type RouteOverlay = MapRoute
+export const RunStepTimeLimitMs = 5000
 type SolvedRoutes<State> = { state: State; result: OperatingResult; exhaustive: boolean }
 
 export class RoutesModule<State extends RoutesState> implements LocalSelection {
@@ -62,15 +63,20 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         }
         return this.#solved?.state === state ? this.#solved : undefined
     })
-    editable = $derived.by(() => {
+    private titleDraws = $derived.by(() => {
         const companyId = this.session.state.routeStep?.companyId
-        return this.canRun && !!this.solved && !!companyId && this.mayDrawRoutes(companyId)
+        return !!companyId && this.mayDrawRoutes(companyId)
     })
+    proven = $derived.by(() => this.solved?.exhaustive ?? false)
+    editable = $derived.by(() => this.canRun && !!this.solved && (this.titleDraws || !this.proven))
+    private drawnRunStandard = $derived.by((): DrawnRunStandard | undefined =>
+        this.titleDraws ? this.drawnRunsEarnMost() : 'always'
+    )
     shown = $derived.by(() => (this.editor.draft ? this.editor.result : this.solved?.result))
     drawnReason = $derived.by(() => this.editor.evaluated?.reason)
     /** The best run found, which a drawn run is held to where the title holds it so. */
     private standard = $derived.by(() =>
-        this.editable && this.drawnRunsEarnMost() ? this.solved?.result : undefined
+        this.editable && this.drawnRunStandard ? this.solved?.result : undefined
     )
     /** The revenue a drawn run has to reach, where the title holds drawn runs to the best found. */
     revenueToReach = $derived.by(() => this.standard?.revenue)
@@ -82,7 +88,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         const drawn = this.editor.evaluated?.result
         const best = this.standard
         if (!drawn || !best || drawn.revenue >= best.revenue) return undefined
-        const subsidyCounts = this.drawnRunsEarnMost() === 'unless-subsidy-rises'
+        const subsidyCounts = this.drawnRunStandard === 'unless-subsidy-rises'
         const subsidy = drawn.subsidy ?? 0
         const subsidyToBeat = best.subsidy ?? 0
         return {

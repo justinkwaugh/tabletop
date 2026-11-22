@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { beforeAll, expect, it } from 'vitest'
+import { beforeAll, expect, it, vi } from 'vitest'
 import { assert } from '@tabletop/common'
 import {
     createCityTileFace as city,
@@ -332,6 +332,35 @@ it.each([false, true])(
         expect(result.result.routes).toEqual([])
     }
 )
+
+it('proves a run held to a stop group limit only where every search behind it was proved', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 50, 1), city('yellow', [3, 0], 20, 1), city('yellow', [3], 50, 1)],
+        [
+            { measure: 'revenue-centers', maximum: 2 },
+            { measure: 'revenue-centers', maximum: 2 }
+        ],
+        { 0: 'south', 2: 'south' },
+        { stopGroupRouteLimits: { south: 1 } }
+    )
+    state.stations[0].position = { locationId: '1', nodeId: 'city', slot: 0 }
+    const proved = router.solve(state, rules, 'A')
+    expect(proved.result.revenue).toBe(70)
+    expect(proved.exhaustive).toBe(true)
+
+    const solve = router.solve.bind(router)
+    const spy = vi.spyOn(router, 'solve').mockImplementation((...args) => {
+        const found = solve(...args)
+        return found.result.revenue === 0 ? { ...found, exhaustive: false } : found
+    })
+    try {
+        const cut = router.solve(state, rules, 'A')
+        expect(cut.result.revenue).toBe(70)
+        expect(cut.exhaustive).toBe(false)
+    } finally {
+        spy.mockRestore()
+    }
+})
 
 it.each([10, 40])('streams mixed profiles with a longest-route bonus of %s', (bonus) => {
     for (const capacities of [

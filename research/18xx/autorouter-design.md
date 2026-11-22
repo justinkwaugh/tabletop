@@ -139,8 +139,27 @@ An in-flight response must still belong to the same state before the session
 revalidates it through RouteEvaluation and exposes the preview. Only the session's
 Run trains method submits the ordinary RunTrains Action. Automatic calculation
 never adds an action or consumes an Undo step. A title that turns on drawn routes
-(`TitlePresentation.manualRoutes`, 1862 only) lets the director start from this
-run and change it on the map; the drawn run is validated the same way.
+(`TitlePresentation.manualRoutes`) lets the director start from this run and change
+it on the map; the drawn run is validated the same way. Those titles draw for rule
+reasons of their own: 1822 chooses among its best runs, or runs for less where
+mail income rises (§5.13.6); an 1860 or 1862 director need not run for the most,
+though a receiver (and 1860 under nationalisation) must. Their `drawnRunsEarnMost`
+keeps deciding what a drawn run must reach.
+
+The run step searches for 5 s (`RunStepTimeLimitMs`). Where that search ends without
+proving its best run, as in some 18USA phase-8 fleets, any title's director may draw,
+held to earning at least the best run found: the most-earnings rule (18USA §12.4,
+and the titles that require it) cannot be enforced past what the search proved. A
+drawn run that beats the best found shows that the search stopped short. This covers
+companies run for the most by rule, such as those in receivership. A proved best
+leaves nothing to draw. A search held to a stop group's limit (18USA's two
+routes to Mexico) is proved only where every run behind it was.
+
+Verification: `routesModule.svelte.spec.ts` (no drawing after a proved search; drawing
+after an unproved one, refused below and accepted at the best found; title rules kept
+when the search stopped short), `autorouter.spec.ts` (a stop-group limit proved only
+when every run was), and the 18USA harness's Phase 8 run (two 8-trains not proved in
+5 s) beside its Pullman run (proved at once).
 
 Verification includes real browser workers for both titles, map/panel revenue
 agreement, commit and Undo, abandoning an in-flight calculation, and execution of

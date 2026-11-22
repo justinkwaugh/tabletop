@@ -240,7 +240,10 @@ export class Autorouter {
         const found = legal.reduce((top, run) =>
             routeRevenue(run.result) > routeRevenue(top.result) ? run : top
         )
-        return this.revalidated(evaluation, companyId, found)
+        return this.revalidated(evaluation, companyId, {
+            ...found,
+            exhaustive: runs.every((run) => run.exhaustive)
+        })
     }
 
     private revalidated(

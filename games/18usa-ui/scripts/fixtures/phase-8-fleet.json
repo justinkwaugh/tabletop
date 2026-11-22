@@ -1,0 +1,385 @@
+{
+    "companyId": "IC",
+    "trains": ["8", "8"],
+    "metropolisIds": ["G3"],
+    "placements": {
+        "B20": { "pieceId": "18usa:standard/9/1", "definitionId": "18xx:9", "rotation": 1 },
+        "B26": { "pieceId": "18usa:standard/545/1", "definitionId": "18xx:545", "rotation": 3 },
+        "C5": { "pieceId": "18usa:standard/60/1", "definitionId": "18usa:60", "rotation": 0 },
+        "C11": { "pieceId": "18usa:standard/9/2", "definitionId": "18xx:9", "rotation": 0 },
+        "C13": { "pieceId": "18usa:standard/9/3", "definitionId": "18xx:9", "rotation": 0 },
+        "C15": { "pieceId": "18usa:standard/60/2", "definitionId": "18usa:60", "rotation": 0 },
+        "D2": { "pieceId": "18usa:standard/9/4", "definitionId": "18xx:9", "rotation": 0 },
+        "D4": { "pieceId": "18usa:standard/60/3", "definitionId": "18usa:60", "rotation": 0 },
+        "D12": { "pieceId": "18usa:standard/546/1", "definitionId": "18xx:546", "rotation": 3 },
+        "D22": { "pieceId": "18usa:standard/546/2", "definitionId": "18xx:546", "rotation": 1 },
+        "E13": { "pieceId": "18usa:standard/60/4", "definitionId": "18usa:60", "rotation": 0 },
+        "F2": { "pieceId": "18usa:standard/9/5", "definitionId": "18xx:9", "rotation": 2 },
+        "F6": { "pieceId": "18usa:standard/8/1", "definitionId": "18xx:8", "rotation": 1 },
+        "F14": { "pieceId": "18usa:standard/546/3", "definitionId": "18xx:546", "rotation": 0 },
+        "G9": { "pieceId": "18usa:standard/8/2", "definitionId": "18xx:8", "rotation": 3 },
+        "G13": { "pieceId": "18usa:standard/8/3", "definitionId": "18xx:8", "rotation": 3 },
+        "G25": { "pieceId": "18usa:standard/60/5", "definitionId": "18usa:60", "rotation": 0 },
+        "H10": { "pieceId": "18usa:standard/9/6", "definitionId": "18xx:9", "rotation": 2 },
+        "H12": { "pieceId": "18usa:standard/8/4", "definitionId": "18xx:8", "rotation": 4 },
+        "H24": { "pieceId": "18usa:standard/9/7", "definitionId": "18xx:9", "rotation": 0 },
+        "H26": { "pieceId": "18usa:standard/8/5", "definitionId": "18xx:8", "rotation": 0 },
+        "E27": { "pieceId": "18usa:standard/545/2", "definitionId": "18xx:545", "rotation": 0 },
+        "E11": { "pieceId": "18usa:standard/597/1", "definitionId": "18xx:597", "rotation": 0 },
+        "G3": { "pieceId": "18usa:standard/X19/1", "definitionId": "18usa:X19", "rotation": 5 },
+        "H14": { "pieceId": "18usa:standard/63/1", "definitionId": "18xx:63", "rotation": 0 },
+        "I15": { "pieceId": "18usa:standard/15/1", "definitionId": "18xx:15", "rotation": 0 },
+        "F26": { "pieceId": "18usa:standard/X08/1", "definitionId": "18usa:X08", "rotation": 1 },
+        "C29": { "pieceId": "18usa:standard/448/1", "definitionId": "18xx:448", "rotation": 0 },
+        "D24": { "pieceId": "18usa:standard/X07/1", "definitionId": "18usa:X07", "rotation": 3 },
+        "D6": { "pieceId": "18usa:standard/63/2", "definitionId": "18xx:63", "rotation": 0 },
+        "E3": { "pieceId": "18usa:standard/63/3", "definitionId": "18xx:63", "rotation": 0 },
+        "E7": { "pieceId": "18usa:standard/63/4", "definitionId": "18xx:63", "rotation": 0 },
+        "I13": { "pieceId": "18usa:standard/63/5", "definitionId": "18xx:63", "rotation": 0 },
+        "I25": { "pieceId": "18usa:standard/15/2", "definitionId": "18xx:15", "rotation": 0 },
+        "G27": { "pieceId": "18usa:standard/448/2", "definitionId": "18xx:448", "rotation": 0 },
+        "E23": { "pieceId": "18usa:standard/63/6", "definitionId": "18xx:63", "rotation": 0 },
+        "C17": { "pieceId": "18usa:standard/63/7", "definitionId": "18xx:63", "rotation": 0 },
+        "E15": { "pieceId": "18usa:standard/63/8", "definitionId": "18xx:63", "rotation": 0 },
+        "C3": { "pieceId": "18usa:standard/611/1", "definitionId": "18xx:611", "rotation": 2 },
+        "D14": { "pieceId": "18usa:standard/63/9", "definitionId": "18xx:63", "rotation": 0 },
+        "B28": { "pieceId": "18usa:standard/8/6", "definitionId": "18xx:8", "rotation": 2 },
+        "C27": { "pieceId": "18usa:standard/9/8", "definitionId": "18xx:9", "rotation": 2 },
+        "F4": { "pieceId": "18usa:standard/60/6", "definitionId": "18usa:60", "rotation": 0 },
+        "G5": { "pieceId": "18usa:standard/8/7", "definitionId": "18xx:8", "rotation": 5 },
+        "D18": { "pieceId": "18usa:standard/8/8", "definitionId": "18xx:8", "rotation": 2 },
+        "E21": { "pieceId": "18usa:standard/9/9", "definitionId": "18xx:9", "rotation": 1 },
+        "B22": { "pieceId": "18usa:standard/8/9", "definitionId": "18xx:8", "rotation": 5 },
+        "C7": { "pieceId": "18usa:standard/8/10", "definitionId": "18xx:8", "rotation": 1 },
+        "E9": { "pieceId": "18usa:standard/8/11", "definitionId": "18xx:8", "rotation": 1 },
+        "G21": { "pieceId": "18usa:standard/7/1", "definitionId": "18xx:7", "rotation": 2 },
+        "D16": { "pieceId": "18usa:standard/545/3", "definitionId": "18xx:545", "rotation": 0 },
+        "E5": { "pieceId": "18usa:standard/60/7", "definitionId": "18usa:60", "rotation": 0 },
+        "H6": { "pieceId": "18usa:standard/9/10", "definitionId": "18xx:9", "rotation": 2 },
+        "H4": { "pieceId": "18usa:standard/9/11", "definitionId": "18xx:9", "rotation": 2 },
+        "I23": { "pieceId": "18usa:standard/X17/1", "definitionId": "18usa:X17", "rotation": 1 },
+        "E19": { "pieceId": "18usa:standard/7/2", "definitionId": "18xx:7", "rotation": 3 },
+        "C9": { "pieceId": "18usa:standard/82/1", "definitionId": "18xx:82", "rotation": 5 },
+        "D8": { "pieceId": "18usa:standard/544/1", "definitionId": "18xx:544", "rotation": 0 },
+        "D10": { "pieceId": "18usa:standard/60/8", "definitionId": "18usa:60", "rotation": 0 },
+        "E25": { "pieceId": "18usa:standard/60/9", "definitionId": "18usa:60", "rotation": 0 },
+        "F10": { "pieceId": "18usa:standard/9/12", "definitionId": "18xx:9", "rotation": 0 },
+        "F22": { "pieceId": "18usa:standard/9/13", "definitionId": "18xx:9", "rotation": 0 },
+        "F24": { "pieceId": "18usa:standard/83/1", "definitionId": "18xx:83", "rotation": 2 },
+        "D26": { "pieceId": "18usa:standard/546/4", "definitionId": "18xx:546", "rotation": 4 },
+        "B16": { "pieceId": "18usa:standard/X17/2", "definitionId": "18usa:X17", "rotation": 4 },
+        "B18": { "pieceId": "18usa:standard/545/4", "definitionId": "18xx:545", "rotation": 4 },
+        "C19": { "pieceId": "18usa:standard/9/14", "definitionId": "18xx:9", "rotation": 2 },
+        "B10": { "pieceId": "18usa:standard/9/15", "definitionId": "18xx:9", "rotation": 1 },
+        "B12": { "pieceId": "18usa:standard/83/2", "definitionId": "18xx:83", "rotation": 1 },
+        "D20": { "pieceId": "18usa:standard/597/2", "definitionId": "18xx:597", "rotation": 4 },
+        "B8": { "pieceId": "18usa:standard/448/3", "definitionId": "18xx:448", "rotation": 4 },
+        "B14": { "pieceId": "18usa:standard/X09/1", "definitionId": "18usa:X09", "rotation": 2 },
+        "B6": { "pieceId": "18usa:standard/9/16", "definitionId": "18xx:9", "rotation": 1 },
+        "B4": { "pieceId": "18usa:standard/545/5", "definitionId": "18xx:545", "rotation": 4 },
+        "D28": { "pieceId": "18usa:standard/X30/1", "definitionId": "18usa:X30", "rotation": 4 }
+    },
+    "dealtRevenues": {
+        "A15": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 40 },
+                { "stage": "gray", "amount": 50 }
+            ]
+        },
+        "A27": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 20 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "B2": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 50 },
+                { "stage": "brown", "amount": 60 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "E1": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 40 },
+                { "stage": "green", "amount": 50 },
+                { "stage": "brown", "amount": 40 },
+                { "stage": "gray", "amount": 40 }
+            ]
+        },
+        "I5": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "I7": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "I9": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "I11": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "J12": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "J20": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 20 },
+                { "stage": "green", "amount": 30 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 60 }
+            ]
+        },
+        "J24": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 50 },
+                { "stage": "brown", "amount": 60 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        },
+        "K13": {
+            "kind": "staged",
+            "values": [
+                { "stage": "yellow", "amount": 30 },
+                { "stage": "green", "amount": 40 },
+                { "stage": "brown", "amount": 50 },
+                { "stage": "gray", "amount": 80 }
+            ]
+        }
+    },
+    "stations": [
+        {
+            "id": "DRG:home",
+            "companyId": "DRG",
+            "status": "placed",
+            "position": { "locationId": "E11", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "PRR:home",
+            "companyId": "PRR",
+            "status": "placed",
+            "position": { "locationId": "E11", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "BO:home",
+            "companyId": "BO",
+            "status": "placed",
+            "position": { "locationId": "E11", "nodeId": "city", "slot": 2 }
+        },
+        {
+            "id": "DRG:station:1",
+            "companyId": "DRG",
+            "status": "placed",
+            "position": { "locationId": "G3", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "SR:home",
+            "companyId": "SR",
+            "status": "placed",
+            "position": { "locationId": "G3", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "ATSF:home",
+            "companyId": "ATSF",
+            "status": "placed",
+            "position": { "locationId": "G3", "nodeId": "city", "slot": 2 }
+        },
+        {
+            "id": "CO:home",
+            "companyId": "CO",
+            "status": "placed",
+            "position": { "locationId": "D6", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "IC:home",
+            "companyId": "IC",
+            "status": "placed",
+            "position": { "locationId": "D6", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "ATSF:station:1",
+            "companyId": "ATSF",
+            "status": "placed",
+            "position": { "locationId": "E7", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "SR:station:1",
+            "companyId": "SR",
+            "status": "placed",
+            "position": { "locationId": "E7", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "DRG:station:2",
+            "companyId": "DRG",
+            "status": "placed",
+            "position": { "locationId": "I13", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "CO:station:1",
+            "companyId": "CO",
+            "status": "placed",
+            "position": { "locationId": "I13", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "NP:home",
+            "companyId": "NP",
+            "status": "placed",
+            "position": { "locationId": "I25", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "KCS:home",
+            "companyId": "KCS",
+            "status": "placed",
+            "position": { "locationId": "I25", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "PRR:station:1",
+            "companyId": "PRR",
+            "status": "placed",
+            "position": { "locationId": "E23", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "NP:station:1",
+            "companyId": "NP",
+            "status": "placed",
+            "position": { "locationId": "E23", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "IC:station:1",
+            "companyId": "IC",
+            "status": "placed",
+            "position": { "locationId": "E15", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "KCS:station:1",
+            "companyId": "KCS",
+            "status": "placed",
+            "position": { "locationId": "E15", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "SR:station:2",
+            "companyId": "SR",
+            "status": "placed",
+            "position": { "locationId": "C3", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "ATSF:station:2",
+            "companyId": "ATSF",
+            "status": "placed",
+            "position": { "locationId": "C3", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "CO:station:2",
+            "companyId": "CO",
+            "status": "placed",
+            "position": { "locationId": "D14", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "NP:station:2",
+            "companyId": "NP",
+            "status": "placed",
+            "position": { "locationId": "D20", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "BO:station:1",
+            "companyId": "BO",
+            "status": "placed",
+            "position": { "locationId": "D20", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "PRR:station:2",
+            "companyId": "PRR",
+            "status": "placed",
+            "position": { "locationId": "D20", "nodeId": "city", "slot": 2 }
+        },
+        {
+            "id": "NP:station:3",
+            "companyId": "NP",
+            "status": "placed",
+            "position": { "locationId": "B8", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "DRG:station:3",
+            "companyId": "DRG",
+            "status": "placed",
+            "position": { "locationId": "B8", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "ATSF:station:3",
+            "companyId": "ATSF",
+            "status": "placed",
+            "position": { "locationId": "D28", "nodeId": "city", "slot": 0 }
+        },
+        {
+            "id": "PRR:station:3",
+            "companyId": "PRR",
+            "status": "placed",
+            "position": { "locationId": "D28", "nodeId": "city", "slot": 1 }
+        },
+        {
+            "id": "NP:station:4",
+            "companyId": "NP",
+            "status": "placed",
+            "position": { "locationId": "D28", "nodeId": "city", "slot": 2 }
+        },
+        {
+            "id": "KCS:station:2",
+            "companyId": "KCS",
+            "status": "placed",
+            "position": { "locationId": "D28", "nodeId": "city", "slot": 3 }
+        }
+    ],
+    "locationMarkers": [
+        { "locationId": "C3", "kind": "bridge-token", "privateCompanyId": "P2" },
+        { "locationId": "G21", "kind": "ore-token", "privateCompanyId": "P4" },
+        { "locationId": "E19", "kind": "coal-token", "privateCompanyId": "P1" },
+        { "locationId": "D8", "kind": "coal-token", "privateCompanyId": "P1" },
+        { "locationId": "D10", "kind": "coal-token", "privateCompanyId": "P1" },
+        { "locationId": "E25", "kind": "coal-token", "privateCompanyId": "P1" },
+        { "locationId": "F22", "kind": "coal-token", "privateCompanyId": "P1" },
+        { "locationId": "D26", "kind": "coal-token", "privateCompanyId": "P1" }
+    ],
+    "cityBonuses": { "C3": "plus-10" }
+}

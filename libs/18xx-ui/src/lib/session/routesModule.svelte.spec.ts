@@ -16,6 +16,7 @@ import {
     minimalTileSet
 } from '@tabletop/18xx/testing'
 import { RoutesModule, type RouteOverlay } from './routesModule.svelte.js'
+import type { DrawnRunStandard } from './titlePresentation.js'
 import { routeColor } from '../routes/routePresentation.js'
 import { companyTrain, testSession } from './moduleTestSession.js'
 
@@ -229,7 +230,18 @@ describe('RoutesModule', () => {
     })
 
     describe('drawn routes', () => {
-        function drawing(manual: boolean) {
+        type Drawing = {
+            titleDraws?: boolean
+            standard?: DrawnRunStandard
+            proved?: boolean
+            bestRuns?: boolean
+        }
+        function drawing({
+            titleDraws = false,
+            standard,
+            proved = true,
+            bestRuns = false
+        }: Drawing = {}) {
             const state = {
                 ...minimalPlayState(),
                 machineState: 'RunningTrains' as const,
@@ -248,20 +260,72 @@ describe('RoutesModule', () => {
             const module = new RoutesModule(
                 harness.session,
                 () => [],
-                () => manual
+                () => titleDraws,
+                () => standard
             )
-            module.setSolved(state, { companyId: TestCompanyId, routes: [], revenue: 0 }, true)
+            const best = new RouteEvaluation(state, minimalRouteRules).evaluate(
+                TestCompanyId,
+                bestRuns
+                    ? [
+                          {
+                              trainId,
+                              start: { locationId: TestHomeLocationId, nodeId: 'city' },
+                              paths: [
+                                  { locationId: TestHomeLocationId, pathId: 'edge-0' },
+                                  { locationId: TestOpenLocationId, pathId: 'edge-3' }
+                              ]
+                          }
+                      ]
+                    : []
+            )
+            assertExists(best.result)
+            module.setSolved(state, best.result, proved)
             return { ...harness, module, trainId }
         }
 
         it('lets a director draw only where the title allows it', () => {
-            expect(drawing(false).module.editable).toBe(false)
-            expect(drawing(true).module.editable).toBe(true)
-            expect(() => drawing(false).module.selectTrain('t1')).toThrow('Routes cannot be drawn')
+            expect(drawing().module.editable).toBe(false)
+            expect(drawing({ titleDraws: true }).module.editable).toBe(true)
+            expect(() => drawing().module.selectTrain('t1')).toThrow('Routes cannot be drawn')
+        })
+
+        it('lets any director draw where the search stopped short, to earn at least the best found', () => {
+            expect(drawing({ bestRuns: true }).module.editable).toBe(false)
+            const { module, trainId } = drawing({ proved: false, bestRuns: true })
+            expect(module.editable).toBe(true)
+            expect(module.revenueToReach).toBe(60)
+            module.selectTrain(trainId)
+            module.clearTrain()
+            expect(module.shown?.revenue).toBe(0)
+            expect(module.reducedRun).toEqual({ revenue: 0, subsidy: 0, allowed: false })
+            expect(module.submission).toBeUndefined()
+            module.tap({ kind: 'node', locationId: TestHomeLocationId, nodeId: 'city' })
+            module.tap({ kind: 'node', locationId: TestOpenLocationId, nodeId: 'city' })
+            expect(module.reducedRun).toBeUndefined()
+            expect(module.submission).toHaveLength(1)
+        })
+
+        it('keeps a title’s own rules for drawn runs where the search stopped short', () => {
+            const forLess = drawing({ titleDraws: true, proved: false, bestRuns: true })
+            expect(forLess.module.revenueToReach).toBeUndefined()
+            forLess.module.selectTrain(forLess.trainId)
+            forLess.module.clearTrain()
+            expect(forLess.module.submission).toEqual([])
+
+            const held = drawing({
+                titleDraws: true,
+                standard: 'unless-subsidy-rises',
+                proved: false,
+                bestRuns: true
+            })
+            expect(held.module.revenueToReach).toBe(60)
+            held.module.selectTrain(held.trainId)
+            held.module.clearTrain()
+            expect(held.module.reducedRun).toEqual({ revenue: 0, subsidy: 0, allowed: false })
         })
 
         it('goes back to the best run found when asked, dropping the drawing', () => {
-            const { module, trainId } = drawing(true)
+            const { module, trainId } = drawing({ titleDraws: true })
             module.selectTrain(trainId)
             module.tap({ kind: 'node', locationId: TestHomeLocationId, nodeId: 'city' })
             module.tap({ kind: 'node', locationId: TestOpenLocationId, nodeId: 'city' })
@@ -273,7 +337,7 @@ describe('RoutesModule', () => {
         })
 
         it('runs the routes as drawn, in place of the best run found', async () => {
-            const { module, applied, trainId } = drawing(true)
+            const { module, applied, trainId } = drawing({ titleDraws: true })
             module.selectTrain(trainId)
             expect(
                 module.tap({ kind: 'node', locationId: TestHomeLocationId, nodeId: 'city' })
