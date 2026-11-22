@@ -32,6 +32,8 @@ export const LayPrivateTile = Type.Object(
         ...TrackRequest.properties,
         type: Type.Literal('LayPrivateTile'),
         privateCompanyId: Type.String(),
+        /** The power's option the lay takes, where its terms offer options. */
+        option: Type.Optional(Type.String()),
         expectedCost: Type.Integer({ minimum: 0 }),
         metadata: Type.Optional(TrackLayDetails)
     },
@@ -39,7 +41,10 @@ export const LayPrivateTile = Type.Object(
 )
 export type LayPrivateTile = Type.Static<typeof LayPrivateTile>
 const Validator = Compile(LayPrivateTile)
-type PrivateLay = Pick<LayPrivateTile, 'privateCompanyId' | 'playerId' | 'expectedCost'> &
+type PrivateLay = Pick<
+    LayPrivateTile,
+    'privateCompanyId' | 'playerId' | 'expectedCost' | 'option'
+> &
     TrackRequest
 
 type PrivateLayRules = { powers: PrivatePowerRules; track: TrackRules; stations: StationRules }
@@ -55,7 +60,8 @@ function applyPrivateLay(
         lay.playerId,
         lay,
         powers,
-        track
+        track,
+        lay.option
     ).details!
     const terms = powers.trackTerms(state, lay.privateCompanyId, lay.playerId)!
     const applied = applyTrackLay(
@@ -67,7 +73,7 @@ function applyPrivateLay(
         terms.recordsLay ? lay.privateCompanyId : undefined
     )
     if (!terms.reusable) recordPrivatePowerUse(state, lay.privateCompanyId)
-    const powerEffects = powers.afterTrackLay?.(state, lay.privateCompanyId, details)
+    const powerEffects = powers.afterTrackLay?.(state, lay.privateCompanyId, details, lay.option)
     if (powerEffects) {
         settleCashPayments(state, powerEffects.payments)
         for (const privateId of powerEffects.closedPrivateIds) closePrivate(state, privateId)
@@ -117,8 +123,15 @@ function costMatches(
     track: TrackRules
 ): boolean {
     return (
-        evaluatePrivateTrack(state, lay.privateCompanyId, lay.playerId, lay, powers, track).details
-            ?.cost === lay.expectedCost
+        evaluatePrivateTrack(
+            state,
+            lay.privateCompanyId,
+            lay.playerId,
+            lay,
+            powers,
+            track,
+            lay.option
+        ).details?.cost === lay.expectedCost
     )
 }
 
@@ -134,6 +147,7 @@ export class HydratedLayPrivateTile
     declare definitionId: string
     declare rotation: TrackRequest['rotation']
     declare nodeMapping: TrackRequest['nodeMapping']
+    declare option?: string
     declare expectedCost: number
     declare metadata?: TrackLayDetails
     readonly #rules: PrivateLayRules
@@ -194,6 +208,7 @@ export class HydratedLayPrivateTileOutOfTurn
     declare definitionId: string
     declare rotation: TrackRequest['rotation']
     declare nodeMapping: TrackRequest['nodeMapping']
+    declare option?: string
     declare expectedCost: number
     declare outOfTurn: true
     declare sequenced: true

@@ -106,10 +106,9 @@ type RecordedRun = {
 }
 
 /**
- * The board and fleet of a recorded phase-8 run (18xx.games game 273905, run 90) laid over a
- * seeded game at its run step: trains rusted by phase 8 leave, and the companies holding stations
- * on that board start at $100 under the players in turn, the running company's president being
- * the player whose turn it is.
+ * The board and fleet of a recorded phase-8 run laid over a seeded game at its run step: trains
+ * rusted by phase 8 leave, and the companies holding stations on that board start at $100 under
+ * the players in turn, the running company's president being the player whose turn it is.
  */
 function recordedPhase8Run(game: Table): Table {
     const run: RecordedRun = JSON.parse(

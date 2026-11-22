@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { RouteEvaluation, routeConnectionBonuses, type RevenueCenter } from '@tabletop/18xx'
+import {
+    RouteEvaluation,
+    payingRouteStops,
+    routeConnectionBonuses,
+    type RevenueCenter
+} from '@tabletop/18xx'
 import { edit } from '../test/kit.js'
 import { givePrivate, operatingCompany, setPhase } from '../test/positions.js'
 import {
     CoalMarker,
     EighteenUSARouteRules,
+    EighteenUSAStationRules,
     EighteenUSATileSet,
     EighteenUSATrackRules,
     EighteenUSATrainDepot,
     ExpressFreightMarker,
     MexicoLocationIds,
     OilMarker,
-    RichOreMarker
+    RichOreMarker,
+    RuralJunctionTileIds,
+    SwitcherSuffix
 } from './index.js'
 
 const KansasCity = 'E15'
@@ -48,7 +56,7 @@ describe('resources (§13)', () => {
 })
 
 describe('Company Town (P27)', () => {
-    it('never blocks another company’s routes or track', () => {
+    it('never blocks another company’s routes, track or station placements', () => {
         const game = operatingCompany(KansasCity, (state) => {
             const [piece] = EighteenUSATileSet.availablePieces(state.tileInventory, '18usa:X20')
             state.tileInventory = EighteenUSATileSet.replace(state.tileInventory, {
@@ -60,6 +68,7 @@ describe('Company Town (P27)', () => {
         const town = stop('G15')
         expect(EighteenUSARouteRules.passesStations?.(game.hydrated, 'BO', town)).toBe(true)
         expect(EighteenUSATrackRules.passesStations?.(game.hydrated, 'BO', town)).toBe(true)
+        expect(EighteenUSAStationRules.passesStations?.(game.hydrated, 'BO', town)).toBe(true)
         expect(EighteenUSATrackRules.passesStations?.(game.hydrated, 'BO', stop(KansasCity))).toBe(
             false
         )
@@ -150,5 +159,42 @@ describe('Express Freight (P8)', () => {
             )
         expect(bonus('ATSF')).toBe(10)
         expect(bonus('BO')).toBe(0)
+    })
+})
+
+describe('Switching (P19)', () => {
+    it('never treats the train’s only station city as the plain track it passes', () => {
+        const game = operatingCompany(KansasCity)
+        const switched = { ...train('3'), id: `3${SwitcherSuffix}` }
+        const policy = EighteenUSARouteRules.revenuePolicy?.(switched, game.hydrated, 'ATSF') ?? {}
+        const visit = (locationId: string, amount: number, companyStation = false) => ({
+            locationId,
+            nodeId: 'city',
+            amount,
+            bonus: 0,
+            companyStation
+        })
+        const paid = payingRouteStops(
+            [visit(KansasCity, 20, true), visit('E17', 40), visit('D14', 30)],
+            policy
+        ).map((entry) => entry.locationId)
+        expect(paid).toEqual([KansasCity, 'E17'])
+    })
+})
+
+describe('Rural Junction (P26)', () => {
+    it('lets no route begin or end at a rural junction', () => {
+        const [junction] = RuralJunctionTileIds
+        const game = operatingCompany(KansasCity, (state) => {
+            const [piece] = EighteenUSATileSet.availablePieces(state.tileInventory, junction)
+            state.tileInventory = EighteenUSATileSet.replace(state.tileInventory, {
+                locationId: 'G15',
+                placement: { pieceId: piece.id, definitionId: junction, rotation: 0 },
+                returnPrevious: true
+            })
+        })
+        const ends = (locationId: string) =>
+            EighteenUSARouteRules.endsRoutes?.(game.hydrated, 'ATSF', stop(locationId))
+        expect([ends('G15'), ends(KansasCity)]).toEqual([false, true])
     })
 })

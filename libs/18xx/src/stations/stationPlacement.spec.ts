@@ -205,3 +205,46 @@ it('places a held neutral station beside its holder’s own, one to a hex, and l
     // One neutral station to a hex.
     expect(new StationPlacement(state, rules).openSlots('N', '1', 'city')).toEqual([])
 })
+
+it('reaches past a full city the title lets the company pass through', () => {
+    const map = new RailwayMap({
+        id: 'line',
+        name: 'Line',
+        orientation: HexOrientation.Flat,
+        locations: [0, 1, 2].map((r) => ({
+            id: String(r),
+            coordinates: { q: 0, r },
+            buildable: true,
+            preprintedTile: createCityTileFace('green', [0, 3], 30, 1)
+        }))
+    })
+    const { state } = fixture(1)
+    state.stationReservations = []
+    state.stations = [
+        ...state.stations.filter((station) => station.id !== 'B:home'),
+        {
+            id: 'B:home',
+            companyId: 'B',
+            status: 'placed',
+            position: { locationId: '1', nodeId: 'city', slot: 0 }
+        }
+    ]
+    const rules: StationRules = {
+        map,
+        tileSet,
+        placementCost: () => 40,
+        placementLimit: () => 1,
+        pendingHomes: () => []
+    }
+    const reached = (stationRules: StationRules) =>
+        new StationPlacement(state, stationRules)
+            .choices('A:extra')
+            .map((choice) => choice.position.locationId)
+    expect(reached(rules)).toEqual([])
+    expect(
+        reached({
+            ...rules,
+            passesStations: (_state, _companyId, center) => center.locationId === '1'
+        })
+    ).toEqual(['2'])
+})

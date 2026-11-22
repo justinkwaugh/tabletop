@@ -595,9 +595,15 @@
                                                 ><PrivateExchangeButton {session} {option} /></span
                                             >{/each}{#each session.privateActions
                                             .powersFor(entry.company.id)
-                                            .filter((power) => power.playerId === player.playerId) as power (power.privateCompanyId)}<span
+                                            .filter((power) => power.playerId === player.playerId) as power (`${power.privateCompanyId}:${'label' in power ? power.label : (power.option?.id ?? '')}`)}<span
                                                 class="private-power"
-                                                ><PrivateTrackPowerButton {session} {power} /></span
+                                                ><PrivateTrackPowerButton
+                                                    {session}
+                                                    {power}
+                                                    label={'label' in power
+                                                        ? undefined
+                                                        : power.option?.label}
+                                                /></span
                                             >{/each}{@render holdings(
                                             session.presentation.privateHoldings?.(
                                                 session.gameState,

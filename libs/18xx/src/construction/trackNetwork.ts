@@ -11,7 +11,8 @@ export class TrackNetwork extends ConnectedTrack {
         companyId: string,
         replacement?: { locationId: string; face: TileFace },
         origin?: RevenueCenter,
-        closedStop: (locationId: string, nodeId: string) => boolean = () => false
+        closedStop: (locationId: string, nodeId: string) => boolean = () => false,
+        passesStations: (locationId: string, nodeId: string) => boolean = () => false
     ) {
         const origins = companyStationCenters(state, companyId).filter(
             (center) =>
@@ -22,7 +23,8 @@ export class TrackNetwork extends ConnectedTrack {
             mapState,
             origins,
             (locationId, node) =>
-                cityIsBlocked(state, mapState.map, companyId, locationId, node) ||
+                (cityIsBlocked(state, mapState.map, companyId, locationId, node) &&
+                    !passesStations(locationId, node.id)) ||
                 closedStop(locationId, node.id),
             replacement
         )

@@ -9,6 +9,7 @@ import {
     minimalTrainRules,
     minimalTransferRules
 } from '@tabletop/18xx/testing'
+import type { PrivateTrackOption } from '@tabletop/18xx'
 import {
     CompanyDecisionsModule,
     type CompanyDecisionsSession
@@ -18,7 +19,12 @@ import { testSession } from './moduleTestSession.js'
 const PrivateId = 'tramway'
 type State = CompanyDecisionsSession['state']
 
-function deciding(valid: string[], pending: Partial<State> = {}, availability = {}) {
+function deciding(
+    valid: string[],
+    pending: Partial<State> = {},
+    availability = {},
+    options?: PrivateTrackOption[]
+) {
     const base = minimalPlayState()
     const state: State = {
         ...base,
@@ -55,7 +61,8 @@ function deciding(valid: string[], pending: Partial<State> = {}, availability = 
                           locationIds: ['0,-1'],
                           definitionIds: ['18xx:9'],
                           payer: { kind: 'company', companyId: TestCompanyId },
-                          connected: true
+                          connected: true,
+                          ...(options ? { options } : {})
                       }
                     : undefined,
             earlyTrainCompany: () => undefined
@@ -102,6 +109,18 @@ describe('CompanyDecisionsModule', () => {
             companyId: TestCompanyId,
             expectedCost: 0
         })
+    })
+
+    it('offers a lay under each option the power takes, and names the option it lays', async () => {
+        const { module, applied } = deciding(['LayPrivateTile'], {}, {}, [
+            { id: 'coal', label: 'Coal', locationIds: ['0,-1'] },
+            { id: 'ore', label: 'Ore', locationIds: [] }
+        ])
+        expect(module.privateTileOptions.length).toBeGreaterThan(0)
+        expect(module.privateTileOptions.every((option) => option.option?.id === 'coal')).toBe(true)
+        module.selectPrivateTile(module.privateTileOptions[0])
+        await module.confirm()
+        expect(applied[0]).toMatchObject({ type: 'LayPrivateTile', option: 'coal' })
     })
 
     it('refuses a private tile lay for a player who may not act', () => {

@@ -76,8 +76,9 @@ export function giveTrain(
 
 /** Gives a private to the company, as if contributed when it started. */
 export function givePrivate(state: EighteenUSAState, privateId: string, companyId: string): void {
-    if (!state.companies.some((company) => company.id === privateId))
-        state.companies.push({ id: privateId, kind: 'private' })
+    const company = state.companies.find((entry) => entry.id === privateId)
+    if (!company) state.companies.push({ id: privateId, kind: 'private' })
+    else delete company.closed
     const certificate = state.certificates.find(
         (entry) => entry.kind === 'private' && entry.companyId === privateId
     )

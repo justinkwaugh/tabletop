@@ -8,7 +8,9 @@ import {
     homeStationId,
     type ConstructionState,
     type TileFace,
-    type TrackRules
+    type TrackRequest,
+    type TrackRules,
+    type TrackStep
 } from '@tabletop/18xx'
 import { EighteenUSAMap } from './map.js'
 import {
@@ -55,6 +57,10 @@ export function homeBrownLay(state: ConstructionState, locationId: string, color
         home?.status === 'placed' &&
         home.position.locationId === locationId
     )
+}
+
+function countsAsUpgrade(state: ConstructionState, lay: TrackStep['lays'][number]): boolean {
+    return lay.upgrade ?? laidTileFace(state, EighteenUSATrackRules, lay).color !== 'yellow'
 }
 
 function laysCounted(state: ConstructionState) {
@@ -105,7 +111,7 @@ export const EighteenUSATrackRules: TrackRules = {
         const lays = laysCounted(state)
         if (lays.length >= (engineers ? 3 : 2))
             return { reason: 'No tile actions are left this turn' }
-        const upgrades = lays.filter((lay) => lay.upgrade === true)
+        const upgrades = lays.filter((lay) => countsAsUpgrade(state, lay))
         if (upgrade && upgrades.length >= (pettibone ? 2 : 1))
             return { reason: 'No more upgrades are allowed this turn' }
         return { cost: lays.length === 1 ? SecondLayCost : 0 }
@@ -150,58 +156,84 @@ export const EighteenUSATrackRules: TrackRules = {
         return cost
     },
     restriction(state, request) {
-        const definition = EighteenUSATileSet.definitions.find(
-            (tile) => tile.id === request.definitionId
-        )
+        const definition = tileDefinition(request.definitionId)
         if (!definition) return 'Unknown tile'
         if (CompanyTownTileIds.includes(request.definitionId))
             return 'Only P27 Company Town lays a Company Town.'
         if (request.definitionId === RegionalHeadquartersTileId)
             return 'Only P16 Regional Headquarters lays its tile.'
-        const board = EighteenUSATileSet.parseInventory(state.tileInventory).placements[
-            request.locationId
-        ]
-        const current = board
-            ? EighteenUSATileSet.definitions.find((tile) => tile.id === board.definitionId)?.face
-            : EighteenUSAMap.location(request.locationId).preprintedTile
         if (
             BTileIds.includes(request.definitionId) &&
-            !current?.labels.some((label) => MetropolisBLabels.includes(label))
-        )
-            return 'B tiles upgrade only the Atlanta, Chicago, Denver and New Orleans metropolises.'
-        if (
-            EighteenUSAPhases.isAtLeast(state.phaseId, BrownPhaseId) &&
-            current?.color === 'white' &&
-            current.nodes.some((node) => node.kind === 'city') &&
-            definition.face.color === 'yellow'
-        )
-            return 'From phase 5 an empty city hex takes a green city tile (§12.2.4).'
-        const unupgradable = locationMarkers(state, { locationId: request.locationId }).find(
-            (marker) => UnupgradableResourceKinds.includes(marker.kind)
-        )
-        if (unupgradable && board) return 'A tile with an ore token may not be upgraded (§13.3).'
-        if (!phaseColors(state).includes(definition.face.color) && hasCity(definition.face))
-            return 'Only plain track may be a colour beyond the phase (P11).'
-        if (
-            board &&
-            hasCity(definition.face) &&
-            laysCounted(state).some(
-                (lay) =>
-                    lay.upgrade === true && hasCity(laidTileFace(state, EighteenUSATrackRules, lay))
+            !currentFace(state, request.locationId)?.labels.some((label) =>
+                MetropolisBLabels.includes(label)
             )
         )
-            return 'Only one city may be upgraded a turn (P11).'
-        if (state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
-            return 'The second lay must be on a different hex'
-        const stub = RequiredTileEdges[request.locationId]
-        if (
-            stub !== undefined &&
-            definition.face.color === 'yellow' &&
-            !tileExits(rotateTileFace(definition.face, request.rotation)).has(stub)
-        )
-            return 'The tile must connect to the printed track toward New York.'
-        if (request.locationId === NewYorkId && definition.face.color === 'yellow')
-            return 'New York is already yellow.'
-        return undefined
+            return 'B tiles upgrade only the Atlanta, Chicago, Denver and New Orleans metropolises.'
+        if (!phaseColors(state).includes(definition.face.color) && hasCity(definition.face))
+            return 'Only plain track may be a colour beyond the phase (P11).'
+        return layRestriction(state, request, true)
     }
+}
+
+function tileDefinition(definitionId: string) {
+    return EighteenUSATileSet.definitions.find((tile) => tile.id === definitionId)
+}
+
+function placedFace(state: ConstructionState, locationId: string): TileFace | undefined {
+    const placement = EighteenUSATileSet.parseInventory(state.tileInventory).placements[locationId]
+    return placement ? tileDefinition(placement.definitionId)?.face : undefined
+}
+
+function currentFace(state: ConstructionState, locationId: string): TileFace | undefined {
+    return placedFace(state, locationId) ?? EighteenUSAMap.location(locationId).preprintedTile
+}
+
+/**
+ * What limits every lay, a private's too: green cities on empty city hexes from phase 5, ore
+ * tokens, the stubs toward New York and its printed tile; and, for a lay that is one of the
+ * turn's tile actions, one city upgrade and one lay a hex (§12.2, §13.3, P11).
+ */
+export function layRestriction(
+    state: ConstructionState,
+    request: TrackRequest,
+    tileAction: boolean
+): string | undefined {
+    const definition = tileDefinition(request.definitionId)
+    if (!definition) return 'Unknown tile'
+    const board = placedFace(state, request.locationId)
+    const current = currentFace(state, request.locationId)
+    if (
+        EighteenUSAPhases.isAtLeast(state.phaseId, BrownPhaseId) &&
+        current?.color === 'white' &&
+        current.nodes.some((node) => node.kind === 'city') &&
+        definition.face.color === 'yellow'
+    )
+        return 'From phase 5 an empty city hex takes a green city tile (§12.2.4).'
+    const unupgradable = locationMarkers(state, { locationId: request.locationId }).find((marker) =>
+        UnupgradableResourceKinds.includes(marker.kind)
+    )
+    if (unupgradable && board) return 'A tile with an ore token may not be upgraded (§13.3).'
+    if (
+        tileAction &&
+        board &&
+        hasCity(definition.face) &&
+        laysCounted(state).some(
+            (lay) =>
+                countsAsUpgrade(state, lay) &&
+                hasCity(laidTileFace(state, EighteenUSATrackRules, lay))
+        )
+    )
+        return 'Only one city may be upgraded a turn (P11).'
+    if (tileAction && state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
+        return 'The second lay must be on a different hex'
+    const stub = RequiredTileEdges[request.locationId]
+    if (
+        stub !== undefined &&
+        definition.face.color === 'yellow' &&
+        !tileExits(rotateTileFace(definition.face, request.rotation)).has(stub)
+    )
+        return 'The tile must connect to the printed track toward New York.'
+    if (request.locationId === NewYorkId && definition.face.color === 'yellow')
+        return 'New York is already yellow.'
+    return undefined
 }

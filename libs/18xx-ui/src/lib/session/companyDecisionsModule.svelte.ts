@@ -18,6 +18,7 @@ import {
     evaluatePurchaseOffer,
     pendingCompanyDecision,
     privateTrackConstruction,
+    privateTrackTermsFor,
     privateTrainPurchase,
     purchaseChoices,
     type EighteenXXState,
@@ -33,6 +34,7 @@ import { isCompanyAsset } from '../finance/purchaseAssets.js'
 export type PrivateTileOption = {
     privateCompanyId: string
     playerId: string
+    option?: { id: string; label: string }
     details: TrackLayDetails
 }
 export type PrivateTrainOption = { privateCompanyId: string; details: TrainPurchaseDetails }
@@ -159,12 +161,27 @@ export class CompanyDecisionsModule {
                 .flatMap((company) => {
                     const terms = rules.privatePowerRules.trackTerms(state, company.id, playerId)
                     if (!terms) return []
-                    const construction = privateTrackConstruction(state, terms, rules.trackRules)
-                    return terms.locationIds.flatMap((locationId) =>
-                        construction
-                            .choices(locationId)
-                            .map((details) => ({ privateCompanyId: company.id, playerId, details }))
-                    )
+                    const options = terms.options ?? [undefined]
+                    return options.flatMap((option) => {
+                        const optionTerms = privateTrackTermsFor(terms, option?.id)
+                        if (!optionTerms) return []
+                        const construction = privateTrackConstruction(
+                            state,
+                            optionTerms,
+                            rules.trackRules
+                        )
+                        const chosen = option
+                            ? { option: { id: option.id, label: option.label } }
+                            : {}
+                        return optionTerms.locationIds.flatMap((locationId) =>
+                            construction.choices(locationId).map((details) => ({
+                                privateCompanyId: company.id,
+                                playerId,
+                                ...chosen,
+                                details
+                            }))
+                        )
+                    })
                 })
         )
     })
@@ -309,7 +326,8 @@ export class CompanyDecisionsModule {
                     option.playerId,
                     option.details,
                     rules.privatePowerRules,
-                    rules.trackRules
+                    rules.trackRules,
+                    option.option?.id
                 ).details,
             'Choose an available private tile lay'
         )
@@ -353,6 +371,7 @@ export class CompanyDecisionsModule {
             )
             const lay = {
                 privateCompanyId: decision.privateCompanyId,
+                ...(decision.option ? { option: decision.option.id } : {}),
                 companyId,
                 locationId,
                 definitionId,

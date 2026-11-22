@@ -9,6 +9,7 @@ import {
     evaluateShareSale,
     finiteCashOwnedBy,
     privateTrackConstruction,
+    privateTrackTermsFor,
     trainRoutesOf,
     trainsOverLimit,
     trainsOwnedBy,
@@ -350,7 +351,13 @@ function powerMove(game: Table, random: Random, companyId: string): Move | undef
         .map((entry) => entry.id)
     if (valid.includes('LayPrivateTile'))
         for (const privateCompanyId of held) {
-            const terms = EighteenUSAPrivatePowerRules.trackTerms(state, privateCompanyId, playerId)
+            const offered = EighteenUSAPrivatePowerRules.trackTerms(
+                state,
+                privateCompanyId,
+                playerId
+            )
+            const option = offered?.options && pick(offered.options).id
+            const terms = offered && privateTrackTermsFor(offered, option)
             if (!terms) continue
             const construction = privateTrackConstruction(state, terms, EighteenUSATrackRules)
             for (const locationId of terms.locationIds.slice(0, 12)) {
@@ -359,6 +366,7 @@ function powerMove(game: Table, random: Random, companyId: string): Move | undef
                 const choice = pick(choices)
                 return move('LayPrivateTile', {
                     privateCompanyId,
+                    ...(option ? { option } : {}),
                     companyId: terms.companyId,
                     locationId,
                     definitionId: choice.definitionId,

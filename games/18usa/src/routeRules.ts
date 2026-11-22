@@ -21,8 +21,10 @@ import {
     ExpressFreightMarker,
     OilMarker,
     OreMarker,
-    RichOreMarker
+    RichOreMarker,
+    ResourceMarkerKinds
 } from './resourceMarkers.js'
+import { BridgeTokenValue, ResourceTokens } from './resources.js'
 import { ExpressFreightId, GreatNorthernId, companyHolding } from './privateHolders.js'
 import { redAreaOf } from './redAreas.js'
 import { subsidy } from './subsidyRules.js'
@@ -30,28 +32,36 @@ import { assignedDefinition, switcherPayingStops } from './trainAssignments.js'
 
 type RouteState = TrainRunningState & Pick<EighteenUSAState, 'cityBonuses'>
 
-const BridgeBonus = 10
 const RaisedPhaseId = '5'
 const PullmanSuffix = `+${PullmanTrainId}`
 
-const ResourceKinds = [CoalMarker, OilMarker, OreMarker, RichOreMarker]
+const MarkerValues: Readonly<Record<string, (state: TrainRunningState) => number>> = {
+    [CoalMarker]: () => ResourceTokens.coal.value,
+    [OreMarker]: () => ResourceTokens.ore.value,
+    [RichOreMarker]: () => ResourceTokens.ore.raised?.value ?? ResourceTokens.ore.value,
+    [OilMarker]: (state) => {
+        const { value, raised } = ResourceTokens.oil
+        return raised &&
+            'phaseId' in raised.when &&
+            EighteenUSAPhases.isAtLeast(state.phaseId, raised.when.phaseId)
+            ? raised.value
+            : value
+    }
+}
 
 /** Whether a coal, oil or ore token lies in the hex, which a train passes only once (§13). */
 function holdsResource(state: TrainRunningState, locationId: string): boolean {
     return locationMarkers(state, { locationId }).some((marker) =>
-        ResourceKinds.includes(marker.kind)
+        ResourceMarkerKinds.includes(marker.kind)
     )
 }
 
 /** Each resource token pays every route passing its hex once: oil $20 from phase 5 (§13). */
 function resourceBonus(state: TrainRunningState, locationId: string): number {
-    const raised = EighteenUSAPhases.isAtLeast(state.phaseId, RaisedPhaseId)
-    return locationMarkers(state, { locationId }).reduce((sum, marker) => {
-        if (marker.kind === CoalMarker || marker.kind === OreMarker) return sum + 10
-        if (marker.kind === RichOreMarker) return sum + 20
-        if (marker.kind === OilMarker) return sum + (raised ? 20 : 10)
-        return sum
-    }, 0)
+    return locationMarkers(state, { locationId }).reduce(
+        (sum, marker) => sum + (MarkerValues[marker.kind]?.(state) ?? 0),
+        0
+    )
 }
 
 /** A city's +10 or +10/+20 subsidy token (§11.6.1). */
@@ -137,7 +147,7 @@ export const EighteenUSARouteRules: RouteRules = {
             locationId: center.locationId,
             kind: BridgeMarker
         }).length
-            ? BridgeBonus
+            ? BridgeTokenValue
             : 0
         return (
             bridge +
@@ -159,8 +169,15 @@ export const EighteenUSARouteRules: RouteRules = {
         const payingStopLimit = switcherPayingStops(train)
         return {
             ...greatNorthernPolicy(state, companyId),
-            // P19 treats one city as plain track, which may be a tokened-out one (PR-19a).
-            ...(payingStopLimit === undefined ? {} : { payingStopLimit, passesBlockedCity: true })
+            // P19 treats one city as plain track, which may be a tokened-out one but never the
+            // train's only station city (PR-19a).
+            ...(payingStopLimit === undefined
+                ? {}
+                : {
+                      payingStopLimit,
+                      passesBlockedCity: true,
+                      requirePayingStation: true as const
+                  })
         }
     },
     extendedDefinition: (state: RouteState & EighteenUSAState, companyId, train, definition) =>

@@ -3,8 +3,7 @@ import { EighteenUSAPrivateCatalog, SubsidyPrivateIds } from './privates.js'
 
 export const EighteenUSAPrivateRules: PrivateRules = {
     exchangeTerms: () => undefined,
-    // P25 American Locomotive closes as phase 6 begins (P25).
-    phaseEffects: (state) => EighteenUSAPrivateCatalog.closureEffects(state),
+    phaseEffects: () => [],
     // The Boomtown subsidy is for the company's first operating round only (Subsidy Tiles).
     operationEffects: (state, companyId) =>
         state.companies.some(

@@ -29,8 +29,8 @@
     "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
     "GoBankrupt": "420eae55898342d6eeb7320e5e768a7717524b670e2cd77846c82ec9280f00f7",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
-    "LayPrivateTile": "3645574a76b08ec83a0a3de8944fe4a1e2867a4aead1d5d7562f91e1e2370dd5",
-    "LayTile": "9086c58f0b6c10eea662766df10184dc0d72c5ce662c03385c04e945a1215454",
+    "LayPrivateTile": "b17297889685f24f12928c528fc1f7d8aa7d6ec5f7e68998a0fa1a541861d1cf",
+    "LayTile": "70f08eac3b9a63b4861faeaba7022f49d04016e49849fc8537dc948b5df33ff9",
     "OfferPurchase": "ada2ef3b1e215a94eee8ce5de40283d1dbe277e72a95c29469b2a1a8c19d6fd3",
     "ParCompany": "b824785f275fc6282d36c7fcc92a747d81e10600f75bab252d8f0ce08a2a56ee",
     "PassAuction": "c7cb2411d885af5399264c923cf2621915712cccacfaaaf19697dc5d0990fc56",
@@ -45,7 +45,7 @@
     "ReserveBid": "06260fa2484e9ffb2bb5880cb8d5dc8978ee8fc00cfa25aec4cf79fb84b63b57",
     "ResolveAuction": "2c4630c0ec9edb2e14a6c59a95b8d31a875b29cbd631b50c73310ef22eb068f8",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
-    "RespondToTrackConsent": "d7dd542d8c35bf2f0b20990e2ef8f95562155fb15207eaa8d712752d283e01df",
+    "RespondToTrackConsent": "14453a30455515eaa5ca7240c9bf6cd2e247204ad71f89ff497aacc714fa6c76",
     "RunTrains": "2fe2b2ead2f259153217cd6779773d1a823106ef8a08ba17cb1c77950d37c2e9",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "2f3dadebf2c64a055cd16d371337d9dfb90afc5f2c41f5aad20c5346275c9b8c",
@@ -4300,7 +4300,6 @@
                   "type": "string"
                 },
                 "upgrade": {
-                  "const": true,
                   "type": "boolean"
                 }
               },

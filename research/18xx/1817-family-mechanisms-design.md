@@ -146,34 +146,37 @@ Seven titles subclass 1817's game; no other researched title uses these procedur
 200 }`, `capital: (_, start) => 2 * start`, and `homeEquity` for the subsidy: it counts in
    the bidding power, the contribution range and the winner's payment. `formed` can close the
    subsidy tile.
-6. **Pullman scrapping.** An `ActingCompanyAction` in the conversion and acquisition rounds,
-   and a `CorporateStockAction` passed to `corporateActionsHandler` in the stock round. Neither
-   replaces a family Action.
-7. **P8's marker.** Not modelled; see the limits.
+6. **Pullman scrapping.** An `ActingCompanyAction` in the conversion and acquisition rounds
+   and in the operating turn's steps before and after the run, and a `CorporateStockAction`
+   passed to `corporateActionsHandler` in the stock round. Neither replaces a family Action.
+7. **P8's marker.** `SizedCompanyStationRules.limitMarkers` names the markers that count toward
+   a company's station limit. `limitedStations` counts them with its stations. Over the limit
+   after a merger or an acquisition, the president may remove the marker with
+   `RemoveStationMarker` in place of a station, and `giveUp` then discards P8.
 8. **Dividend steps.** These are each title's `EarningsRules.marketEffect`; 1817's one or two
    steps stay in 1817 and nothing lifted assumes them.
 
 ## Intentional limits
 
-- **A title-counted station** (18USA's P8 marker counting toward eight, and removable in place
-  of a station) is left out: the reduction's choices are placed stations, and a marker choice
-  needs its own Action and record. `SizedCompanyStations.heldStations` and
-  `removableStations` are where it would go.
 - **Shorts before operating** (1877, 18Hiawatha) and **certificate limits raised by shorts**
   (18FR) are not options yet; `ShortSelling.shortReason` and the title's `certificateLimit`
   are where they would go. 18DE passes no short handler.
-- **The opener's own opening bid** does not count a home's equity, which is only known to the
-  family once the auction is open; 18USA's opening bid is the $100 minimum.
-- **Pullman scrapping in operating steps** is the operating turn's affair, through the
-  existing decision handlers, not these rounds.
 - **The president's certificate counts the charter's two shares**: `charterShareCount` sizes
   both a reset charter and the shares a formation leaves in the treasury, as in every surveyed
   title.
 
 ## Compatibility and verification
 
-- 1817's runtime contract (`games/1817/test/fixtures/runtime-contract.json`) is unchanged:
-  every Action schema digest, the canonical state and the handled machine states.
+- 1817's runtime contract (`games/1817/test/fixtures/runtime-contract.json`) changes in
+  three ways, all additive:
+    - 1817 accepts `RemoveStationMarker`, though no 1817 marker counts toward its limit;
+    - its liquidation reasons gain `'unsold-shares'`;
+    - and the shared lay and map schemas gain optional fields that 1817 never writes:
+      `upgrade` on a lay (18USA's colour skips) and `dealtRevenues` (18USA's red areas).
+
+    Its stored games read as before. An older 1817 UI build cannot read a liquidation for unsold
+    shares, which only 18USA's $300 variant makes, so 1817 needs no paired release.
+
 - The playground's five recorded 1817 games (15528 to game over, the Volatility bankruptcy,
   16281, 16852 and 20758) replay to identical final states and identical processed Actions,
   metadata included, under the previous and the new code: 7,157 Actions compared.

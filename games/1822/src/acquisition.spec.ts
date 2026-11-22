@@ -318,11 +318,7 @@ describe('P5 with the English Channel full (§3.1.17, §5.12.10)', () => {
             )
         ).toHaveLength(2)
         expect(state.trackStep?.lays).toEqual([
-            {
-                locationId: EnglishChannelLocationId,
-                definitionId: EnglishChannelTileIds1822[1],
-                upgrade: true
-            }
+            { locationId: EnglishChannelLocationId, definitionId: EnglishChannelTileIds1822[1] }
         ])
         expect(getCompany(state, 'P5').closed).toBe(true)
     })

@@ -8,7 +8,6 @@ export type ResourceToken = {
     raised?: { value: number; when: { phaseId: string } | { upgradeFromPhaseId: string } }
     /** The terrain cost a yellow lay with the token ignores. */
     waivedTerrainCost?: number
-    /** Whether the tile under the token may be upgraded. */
     tileUpgradable: boolean
 }
 

@@ -85,6 +85,9 @@ describe('phase 5 track (§12.2.4)', () => {
             nodeMapping: home.nodeMapping,
             expectedCost: home.cost
         })
+        expect(game.hydrated.trackStep?.lays).toEqual([
+            { locationId: KansasCity, definitionId: home.definitionId, upgrade: false }
+        ])
         const construction = new TrackConstruction(game.hydrated, EighteenUSATrackRules)
         const plain = TileEdges.flatMap((edge) => {
             const neighbour = EighteenUSAMap.neighbor(KansasCity, edge)

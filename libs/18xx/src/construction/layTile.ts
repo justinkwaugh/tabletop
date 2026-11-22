@@ -110,7 +110,7 @@ export function applyTrackLay(
         state.trackStep.lays.push({
             locationId: details.locationId,
             definitionId: details.definitionId,
-            ...(details.upgrade || details.previous ? { upgrade: true } : {})
+            ...(details.upgrade === undefined ? {} : { upgrade: details.upgrade })
         })
     } else if (privateCompanyId && state.trackStep?.companyId === details.companyId)
         (state.trackStep.extraLays ??= []).push({

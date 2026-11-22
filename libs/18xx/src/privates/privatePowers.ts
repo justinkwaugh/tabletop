@@ -46,6 +46,31 @@ export interface PrivateTrackTerms {
     colors?: readonly string[]
     /** Stops the power's tile removes, as 1822's P2 turns a small station into plain track. */
     removedStops?: TrackRules['removedStops']
+    /**
+     * The choices the lay must name, each laying only at its own places, as 18USA's Keystone
+     * Bridge chooses its coal or ore token as it is placed (P21).
+     */
+    options?: readonly PrivateTrackOption[]
+}
+export interface PrivateTrackOption {
+    id: string
+    label: string
+    locationIds: readonly string[]
+}
+
+/** The power's terms under the option a lay names, if the terms take that option. */
+export function privateTrackTermsFor(
+    terms: PrivateTrackTerms,
+    option: string | undefined
+): PrivateTrackTerms | undefined {
+    if (!terms.options) return option === undefined ? terms : undefined
+    const chosen = terms.options.find((entry) => entry.id === option)
+    return chosen
+        ? {
+              ...terms,
+              locationIds: terms.locationIds.filter((id) => chosen.locationIds.includes(id))
+          }
+        : undefined
 }
 export interface PrivatePowerRules {
     trackTerms(
@@ -67,7 +92,8 @@ export interface PrivatePowerRules {
     afterTrackLay?(
         state: CompanyDecisionState,
         privateCompanyId: string,
-        details: TrackLayDetails
+        details: TrackLayDetails,
+        option?: string
     ): TrackLayEffects
     markerTerms?(
         state: CompanyDecisionState,
@@ -98,6 +124,8 @@ export interface PrivatePowerRules {
 export interface PrivateTokenTerms {
     companyId: string
     positions: readonly StationPosition[]
+    /** The power places an extra station from the supply, as 18USA's Free Station subsidy does. */
+    fromSupply?: true
 }
 
 export interface PrivateMarkerTerms {
@@ -161,9 +189,11 @@ export function evaluatePrivateTrack(
     playerId: string,
     request: TrackRequest,
     powers: PrivatePowerRules,
-    track: TrackRules
+    track: TrackRules,
+    option?: string
 ): TrackEvaluation {
-    const terms = powers.trackTerms(state, privateCompanyId, playerId)
+    const offered = powers.trackTerms(state, privateCompanyId, playerId)
+    const terms = offered && privateTrackTermsFor(offered, option)
     if (
         !terms ||
         terms.companyId !== request.companyId ||

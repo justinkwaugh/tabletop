@@ -16,6 +16,7 @@ import { AmericanLocomotiveId, companyHolding } from './privateHolders.js'
 import type { EighteenUSAState } from './state.js'
 
 const LocomotiveDiscount = 0.1
+const LocomotiveClosingTrainId = '6'
 
 export const ownsPullman = (state: TrainPurchaseState, companyId: string): boolean =>
     trainsOwnedBy(state, { kind: 'company', companyId }).some(
@@ -64,6 +65,17 @@ export const EighteenUSATrainRules: TrainRules = {
             ? 'A company may own only one Pullman.'
             : undefined,
     purchaseLimit: () => 'unlimited',
+    // American Locomotive is discarded as the first 6-train is bought, not exported (P25).
+    privatesClosedByPurchase: (state) =>
+        state.companies.some((company) => company.id === AmericanLocomotiveId && !company.closed) &&
+        state.trainInventory.trains.some(
+            (train) =>
+                train.status === 'owned' &&
+                train.owner.kind === 'company' &&
+                train.definitionId === LocomotiveClosingTrainId
+        )
+            ? [AmericanLocomotiveId]
+            : [],
     // American Locomotive's company pays 10% less for the bank's trains (P25).
     bankPrice: (state, companyId, _definitionId, printed) =>
         companyHolding(state, AmericanLocomotiveId) === companyId

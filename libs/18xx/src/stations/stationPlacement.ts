@@ -76,6 +76,11 @@ export interface StationRules {
     placementLimit(state: StationPlacementState, companyId: string): number
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: StationPlacementState, companyId: string, center: RevenueCenter): boolean
+    /**
+     * Whether the company's network may continue through this city though other companies'
+     * stations fill it, as it may for track, such as 18USA's Company Town (P27).
+     */
+    passesStations?(state: StationPlacementState, companyId: string, center: RevenueCenter): boolean
     /** Whether a title placement, such as a private's token, keeps the station step open. */
     holdsStationStep?(state: StationPlacementState, companyId: string): boolean
     pendingHomes(state: OperatingStationState): HomeStation[]
@@ -166,7 +171,9 @@ export class StationPlacement {
             undefined,
             undefined,
             (locationId, nodeId) =>
-                this.rules.stopAllowed?.(this.state, companyId, { locationId, nodeId }) === false
+                this.rules.stopAllowed?.(this.state, companyId, { locationId, nodeId }) === false,
+            (locationId, nodeId) =>
+                this.rules.passesStations?.(this.state, companyId, { locationId, nodeId }) ?? false
         )
         const connected = network.reaches(position.locationId, {
             kind: 'node',

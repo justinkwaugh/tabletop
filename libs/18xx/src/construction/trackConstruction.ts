@@ -59,10 +59,11 @@ export const TrackStep = Type.Object(
                     /** The tile laid; stored games from before it was recorded lack it. */
                     definitionId: Type.Optional(Type.String()),
                     /**
-                     * The lay counted as an upgrade: it replaced a tile, or skipped colours onto
-                     * an empty hex (18USA §12.2.4). Stored games' lays may lack it.
+                     * Whether the lay counted as an upgrade, where its colour does not say: it
+                     * skipped colours, as 18USA's plain track does as an upgrade and its green
+                     * cities on empty hexes do as a lay (§12.2.4).
                      */
-                    upgrade: Type.Optional(Type.Literal(true)),
+                    upgrade: Type.Optional(Type.Boolean()),
                     // Stored games from before these stopped being recorded may hold them; never read.
                     color: Type.Optional(Type.Unsafe<never>(Type.String())),
                     cost: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 0 })))
@@ -141,8 +142,8 @@ export const TrackLayDetails = Type.Object(
         consentPlayerId: Type.Optional(Type.String()),
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
-        /** The lay skipped colours onto an empty hex and counts as an upgrade (18USA §12.2.4). */
-        upgrade: Type.Optional(Type.Literal(true)),
+        /** The lay skipped colours, and whether that counts as an upgrade (18USA §12.2.4). */
+        upgrade: Type.Optional(Type.Boolean()),
         /** Who the allowance's cost is paid to, where not the bank. */
         allowanceRecipient: Type.Optional(Owner),
         movedStations: Type.Array(PlacedStation),
@@ -486,8 +487,8 @@ export class TrackConstruction {
         const terrainCost =
             this.rules.terrainCost?.(this.state, request, printedTerrainCost) ?? printedTerrainCost
         const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
-        const cost =
-            terrainCost + allowance.cost + (this.colorSkip(locationId, definition)?.cost ?? 0)
+        const skip = this.colorSkip(locationId, definition)
+        const cost = terrainCost + allowance.cost + (skip?.cost ?? 0)
         const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
         const borrowable = this.payer
             ? 0
@@ -560,9 +561,7 @@ export class TrackConstruction {
                 ...(previous.placement ? { previous: previous.placement } : {}),
                 cost,
                 terrainCost,
-                ...(!previous.placement && this.colorSkip(locationId, definition)?.upgrade
-                    ? { upgrade: true as const }
-                    : {}),
+                ...(skip ? { upgrade: skip.upgrade } : {}),
                 ...(consentPlayerId ? { consentPlayerId } : {}),
                 allowanceCost: allowance.cost,
                 ...(allowance.recipient ? { allowanceRecipient: allowance.recipient } : {}),

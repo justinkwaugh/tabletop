@@ -21,6 +21,7 @@
         return (
             chosen?.privateCompanyId === power.privateCompanyId &&
             chosen.playerId === power.playerId &&
+            chosen.option?.id === power.option?.id &&
             (!('label' in chosen) || !('label' in power) || chosen.label === power.label)
         )
     })
@@ -35,7 +36,7 @@
     data-description-exclude
     aria-label={'label' in power
         ? power.label
-        : `Use ${session.companyName(power.privateCompanyId)}`}
+        : `Use ${session.companyName(power.privateCompanyId)}${power.option ? `: ${power.option.label}` : ''}`}
     aria-pressed={selected}
     disabled={session.busy}
     onclick={start}>{label}</button

@@ -318,10 +318,18 @@ export function createCompanyStations(companyId: string, count: number): Station
     return Array.from({ length: count }, (_, index) => companyStation(companyId, index))
 }
 
-export function addCompanyStations(state: StationState, companyId: string, count: number): void {
+/** Adds stations from the supply to the company's charter, returning their ids. */
+export function addCompanyStations(
+    state: StationState,
+    companyId: string,
+    count: number
+): string[] {
     const existing = state.stations.filter((station) => station.companyId === companyId).length
-    for (let index = 0; index < count; index++)
-        state.stations.push(companyStation(companyId, existing + index))
+    const added = Array.from({ length: count }, (_, index) =>
+        companyStation(companyId, existing + index)
+    )
+    state.stations.push(...added)
+    return added.map((station) => station.id)
 }
 
 function companyStation(companyId: string, index: number): Station {

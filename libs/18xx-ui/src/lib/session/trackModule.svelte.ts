@@ -8,6 +8,7 @@ import {
     isLayTile,
     isRespondToTrackConsent,
     privateTrackConstruction,
+    privateTrackTermsFor,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type StationState,
@@ -87,11 +88,12 @@ export class TrackModule {
         const { state, rules } = this.session
         const power = this.privateActions.trackPowerSelection?.value
         if (!power) return new TrackConstruction(state, rules.trackRules)
-        const terms = rules.privatePowerRules.trackTerms(
+        const offered = rules.privatePowerRules.trackTerms(
             state,
             power.privateCompanyId,
             power.playerId
         )
+        const terms = offered && privateTrackTermsFor(offered, power.option?.id)
         assertExists(terms, 'Selected private tile power requires construction terms')
         return privateTrackConstruction(state, terms, rules.trackRules)
     })

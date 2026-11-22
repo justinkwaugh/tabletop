@@ -60,7 +60,7 @@
                 <PrivateExchangeButton {session} {option} />
             </span>
         {/each}
-        {#each trackPowers as power (`${power.playerId}:${power.privateCompanyId}`)}
+        {#each trackPowers as power (`${power.playerId}:${power.privateCompanyId}:${power.option?.id ?? ''}`)}
             <span class="power">
                 <span class="name"
                     >{owner(power.playerId)}{session.actionCompanyName(
@@ -70,7 +70,7 @@
                 <PrivateTrackPowerButton
                     {session}
                     {power}
-                    label={prompts[power.privateCompanyId] ?? 'Lay a tile'}
+                    label={power.option?.label ?? prompts[power.privateCompanyId] ?? 'Lay a tile'}
                 />
             </span>
         {/each}

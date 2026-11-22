@@ -17,7 +17,7 @@ const PhaseNotes: Readonly<Record<string, string>> = {
     '3': 'Companies start with 2 or 5 shares. Begins after the second operating round at the latest.',
     '4': 'Companies start with 5 shares.',
     '5': 'Companies start with 5 or 10 shares. Pullmans for sale; oil tokens and +10/+20 bonuses pay $20; new city hexes take green tiles, and plain track may skip colours for $10 a level.',
-    '6': 'Companies start with 10 shares. American Locomotive (P25) closes.',
+    '6': 'Companies start with 10 shares. American Locomotive (P25) closes when a company buys the first 6-train.',
     '7': 'Companies start with 10 shares.',
     '8': 'Companies start with 10 shares. No new shorts. The game ends three operating rounds later.'
 }

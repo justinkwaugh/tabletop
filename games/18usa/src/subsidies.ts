@@ -93,3 +93,19 @@ export function resourceSubsidyKinds(privateIdsInPlay: readonly string[]): Resou
         ResourcePrivates[kind].some((privateId) => !privateIdsInPlay.includes(privateId))
     )
 }
+
+/**
+ * The cities whose subsidy counts as none: a No subsidy tile, or the Resource tile when every
+ * resource's privates are in play (Subsidy Tiles).
+ */
+export function noSubsidyCityIds(
+    assignment: SubsidyAssignment,
+    privateIdsInPlay: readonly string[]
+): string[] {
+    const none = resourceSubsidyKinds(privateIdsInPlay).length ? ['none'] : ['none', 'resource']
+    return Object.entries(assignment)
+        .filter(([, subsidyId]) =>
+            Subsidies.some((entry) => entry.id === subsidyId && none.includes(entry.effect.kind))
+        )
+        .map(([locationId]) => locationId)
+}

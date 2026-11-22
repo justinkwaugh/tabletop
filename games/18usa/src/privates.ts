@@ -249,7 +249,7 @@ export const EighteenUSAPrivateCatalog = new PrivateCatalog(
         privates: [...privates, ...subsidyPrivates].map((item) => ({
             ...item,
             revenue: 0,
-            closure: item.id === 'P25' ? { closurePhaseId: '6' } : ('never' as const)
+            closure: 'never' as const
         }))
     },
     EighteenUSAPhases

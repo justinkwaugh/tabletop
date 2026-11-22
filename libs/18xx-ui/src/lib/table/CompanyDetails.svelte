@@ -555,9 +555,10 @@
                         ><PrivateTrackPowerButton
                             {session}
                             {power}
-                            label={session.privateActions.powersFor(item.id).length > 1 &&
-                            'label' in power
-                                ? power.label
+                            label={session.privateActions.powersFor(item.id).length > 1
+                                ? 'label' in power
+                                    ? power.label
+                                    : power.option?.label
                                 : undefined}
                         /></span
                     >{/each}{#if !item.closed}{@const held = session.presentation.privateHoldings?.(

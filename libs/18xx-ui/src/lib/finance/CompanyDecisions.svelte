@@ -163,7 +163,7 @@
                             <header class="private-track-prompt">
                                 <span
                                     >{privateTilePrompts[power.privateCompanyId] ??
-                                        `Place a tile using ${session.actionCompanyName(power.privateCompanyId)}`}</span
+                                        `Place a tile using ${session.actionCompanyName(power.privateCompanyId)}${power.option ? `: ${power.option.label}` : ''}`}</span
                                 >
                                 {#if gameState.privateTrackLay && !gameState.privateTrackLay.required}
                                     <span>or</span>
@@ -182,7 +182,9 @@
                             {#each session.privateActions.sharedTrackPowers as power, index (index)}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
-                                    >{session.actionCompanyName(power.privateCompanyId)}</button
+                                    >{session.actionCompanyName(
+                                        power.privateCompanyId
+                                    )}{power.option ? `: ${power.option.label}` : ''}</button
                                 >
                             {/each}
                             {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}:${power.label}`)}
@@ -319,6 +321,7 @@
     .private-track {
         width: 100%;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: center;
         gap: 8px;

@@ -22,7 +22,7 @@ import { PyramidSchemeId, CarnegieSteelId } from './privateHolders.js'
 import { createEighteenUSAPosition } from './position.js'
 import { MaximumPlayers, MinimumPlayers, startingCash } from './setup.js'
 import { selectMetropolises } from './metropolis.js'
-import { assignSubsidies, Subsidies } from './subsidies.js'
+import { assignSubsidies, noSubsidyCityIds } from './subsidies.js'
 import { assignRedAreaTokens } from './redAreas.js'
 import { dealtRedAreaRevenues } from './map.js'
 import { EighteenUSATileSet } from './tiles.js'
@@ -109,11 +109,7 @@ export function createEighteenUSAOpening({
         metropolisIds: [...metropolises.metropolisIds],
         carnegieIds: privateIds.includes(CarnegieSteelId) ? [...metropolises.remainingIds] : [],
         citySubsidies,
-        noSubsidyCityIds: Object.entries(citySubsidies)
-            .filter(([, subsidyId]) =>
-                Subsidies.some((entry) => entry.id === subsidyId && entry.effect.kind === 'none')
-            )
-            .map(([locationId]) => locationId),
+        noSubsidyCityIds: noSubsidyCityIds(citySubsidies, privateIds),
         ...(options.seventeenTrains ? { seventeenTrains: true as const } : {}),
         ...(options.highStartPrices ? { highStartPrices: true as const } : {}),
         ...(options.noPresidentLimit ? { noPresidentLimit: true as const } : {})

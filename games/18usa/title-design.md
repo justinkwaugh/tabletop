@@ -127,7 +127,8 @@ Toronto), 1 yellow (New York), 3 blue (B24, C21 lakes; F28, below) and 12 red he
 
 - **Privates**: P1–P30 at RB's face values, the power text condensed from RB's appendix, place
   references for Fargo, Helena, Seattle, Chicago and the border hexes. All pay nothing and never
-  close by phase, except P25, discarded by the first 6-train (`closurePhaseId: '6'`).
+  close by phase. P25 is discarded as a company buys the first 6-train, not as one is exported
+  (`privatesClosedByPurchase`).
 - **Selection** (§2.3): P1–P4 always, P10 too from five players, then 1/2/3/2/2/1 of the others at
   $30/40/60/80/90/120; 15 privates below five players, 16 from five. The reference's procedure is
   the same.
@@ -200,40 +201,41 @@ the private draw and the metropolis, subsidy and red-area deals with fixed seeds
 
 The rules compose the family's sized-company modules (`libs/18xx/src/sizedCompanies`, lifted from
 1817 for this title; `research/18xx/1817-family-mechanisms-design.md`) with 18USA's data and
-hooks. What differs from 1817, and where it lives:
+hooks. The shared hooks it added are covered in `research/18xx/18usa-shared-hooks-design.md`.
+What differs from 1817, and where it lives:
 
-| Rule                                                                                                                                                              | Rules            | Where                                                                    |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------ |
-| Random privates, metropolises, subsidies and red-area tokens at setup                                                                                             | §2               | `openingAuction.ts`; red values dealt into `tileInventory.dealtRevenues` |
-| Private auction from half face value ($5 for P14), $5 steps, no seed money; bids above face value                                                                 | §10, AU rulings  | `EighteenUSAAuctionRules`                                                |
-| Company auction from $100 by $1, no cap; start price half the bid within $50–$200; treasury twice the start price less privates                                   | §11.6            | `EighteenUSACompanyAuction` (`capital`, `startPrices`)                   |
-| A city's cash subsidy counts as the winner's equity, the opener's opening bid included                                                                            | §11.6.1          | `homeEquity`; family `maximumBid(home)`                                  |
-| Subsidies claimed at formation, the rest removed after the first stock round; Boomtown, Free Station and Resource held as privates of no value                    | §11.6.1          | `subsidyRules.ts`, `S-*` privates, `afterRound`                          |
-| P10 lays a candidate's metropolis tile; P14 closes; P29's 2-train in a No-subsidy city before 2s rust                                                             | P10, P14, PR-29b | `stockRules.ts`, `bankruptRailroad.ts`                                   |
-| Each pool share drops the price two spaces at the stock round's end                                                                                               | §11.8            | `EighteenUSAStockRoundRules.poolDrop`                                    |
-| Loans move the price two spaces; no repayment in a turn with a loan; P15's extra loan at $5                                                                       | §9, §12.9, P15   | `EighteenUSALoanRules`                                                   |
-| Dividends move 1–4 spaces at 50/100/150/200% of the price ($40 in the acquisition zone)                                                                           | §12.5            | `EighteenUSAEarningsRules`                                               |
-| Exports: all 2s, all 2+s, none, all 3s, then the next train; phase 3 after the second round                                                                       | §12.10, §8       | `EighteenUSAOperatingRules` (`phaseAtRoundEnd`, a family hook)           |
-| 2+/3+/4+ obsolete (run once more, outside the limit, not tradeable)                                                                                               | §8, §6.3         | `EighteenUSAPhaseRules`, `trainRules.ts`, `transferRules.ts`             |
-| Pullmans from phase 5, one a company, before the run or with the trains, +$20 a stop (not rural junctions), $50 scrap wherever the company acts                   | §12.7            | `pullmans.ts`, `routeRules.ts`, family `ActingCompanyActionsHandler`     |
-| Phase 5+: a green city on an empty city hex as a lay; a brown home city free before the company operates; plain track skips colours at $10 each, as an upgrade    | §12.2.4          | `trackRules.ts` (family `colorSkip`)                                     |
-| Metropolis upgrades by label; New Orleans with the B tiles; Cleveland's X13; Denver turned by its first company                                                   | §12.2.3          | `trackRules.ts`, `trackActions.ts` (`TurnDenver`)                        |
-| Resource tokens with the hex's first yellow tile, pointing into a city; coal/ore waive $15; ore to $20 by an upgrade action from phase 3; ore tiles never upgrade | §13              | `privatePowerRules.ts`, `trackActions.ts` (`UpgradeOre`)                 |
-| A train passes a resource tile once, however many exits it has                                                                                                    | §13, RT-5        | `routeRules.ts` (family per-hex `forbidsHexReentry`, solver too)         |
-| Bridges: +$10 to the city, a route needed, one a city, not New Orleans as a metropolis                                                                            | §13.4            | `privatePowerRules.ts`, `routeRules.ts`                                  |
-| Red small cities pass-through; Montreal, Mexico, Port of New Orleans route ends; at most two routes to Mexico                                                     | §12.4.1          | map; family `stopGroupRouteLimits` (evaluation and autorouter)           |
-| Rural junctions: uncounted $10, never a route end                                                                                                                 | P26              | tiles; family `RouteRules.endsRoutes` (autorouter endpoint flag)         |
-| Company Town: a bonus station on it, −$10 to others, never blocks routes or track, no other station ever                                                          | P27, PR-27       | `routeRules.ts`, `trackRules.ts` (family `TrackRules.passesStations`)    |
-| P7 three lays for $20; P11 two upgrades (one city), plain track a colour ahead                                                                                    | P7, P11          | `trackRules.ts`                                                          |
-| P9, P16, P17, P26 lays; P20 and the Free Station into full cities                                                                                                 | privates         | `privatePowerRules.ts`; `sharesFullCities`                               |
-| P13 saves a train from a rust until its next run (still counting for the limit, RB)                                                                               | P13              | `boneyard.ts` (phase-change decision)                                    |
-| P19 one train passes one city uncounted and unpaid; P30 one non-permanent train one more city                                                                     | P19, P30         | `trainAssignments.ts` (`AssignTrainPower`)                               |
-| P25 10% off bank trains (Pullmans too, RB "all trains"), early purchase before the run; closes in phase 6                                                         | P25              | family `TrainRules.bankPrice`, `earlyTrainCompany`                       |
-| P6 lays its 30/40/50/80 token over a reachable red area; P8 marks one, +$10 a train there, counting as one of the eight stations; over eight, it may go with P8   | P6, P8, PR-8     | `owedStations.ts` (family `limitMarkers`, `RemoveStationMarker`)         |
-| P17's $30 for Fargo and Helena, $30 more on the train that also runs Seattle and Chicago                                                                          | P17              | family `PaidConnectionBonus.requires` (evaluation and solver)            |
-| $300 variant: companies less than half held as their stock round ends are liquidated                                                                              | §17              | `unsoldCompanies.ts` (family reason `unsold-shares`)                     |
-| No 60% variant: a president may pass 60% in stock rounds; others buy from a president past 60% at 110%, rounded up, while no other share is for sale              | §17, VA-2, MA-4  | `stockRules.ts` (`ownershipLimit`, `purchaseTerms`, `sellsFromPlayers`)  |
-| Game end after the first 8-train: two or three more operating rounds; privates count nothing                                                                      | §16              | `endingRules.ts`                                                         |
+| Rule                                                                                                                                                              | Rules            | Where                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------- |
+| Random privates, metropolises, subsidies and red-area tokens at setup                                                                                             | §2               | `openingAuction.ts`; red values dealt into `tileInventory.dealtRevenues`   |
+| Private auction from half face value ($5 for P14), $5 steps, no seed money; bids above face value                                                                 | §10, AU rulings  | `EighteenUSAAuctionRules`                                                  |
+| Company auction from $100 by $1, no cap; start price half the bid within $50–$200; treasury twice the start price less privates                                   | §11.6            | `EighteenUSACompanyAuction` (`capital`, `startPrices`)                     |
+| A city's cash subsidy counts as the winner's equity, the opener's opening bid included                                                                            | §11.6.1          | `homeEquity`; family `maximumBid(home)`                                    |
+| Subsidies claimed at formation, the rest removed after the first stock round; Boomtown, Free Station and Resource held as privates of no value                    | §11.6.1          | `subsidyRules.ts`, `S-*` privates, `afterRound`                            |
+| P10 lays a candidate's metropolis tile; P14 closes; P29's 2-train in a No-subsidy city before 2s rust                                                             | P10, P14, PR-29b | `stockRules.ts`, `bankruptRailroad.ts`                                     |
+| Each pool share drops the price two spaces at the stock round's end                                                                                               | §11.8            | `EighteenUSAStockRoundRules.poolDrop`                                      |
+| Loans move the price two spaces; no repayment in a turn with a loan; P15's extra loan at $5                                                                       | §9, §12.9, P15   | `EighteenUSALoanRules`                                                     |
+| Dividends move 1–4 spaces at 50/100/150/200% of the price ($40 in the acquisition zone)                                                                           | §12.5            | `EighteenUSAEarningsRules`                                                 |
+| Exports: all 2s, all 2+s, none, all 3s, then the next train; phase 3 after the second round                                                                       | §12.10, §8       | `EighteenUSAOperatingRules` (`phaseAtRoundEnd`, a family hook)             |
+| 2+/3+/4+ obsolete (run once more, outside the limit, not tradeable)                                                                                               | §8, §6.3         | `EighteenUSAPhaseRules`, `trainRules.ts`, `transferRules.ts`               |
+| Pullmans from phase 5, one a company, before the run or with the trains, +$20 a stop (not rural junctions), $50 scrap wherever the company acts                   | §12.7            | `pullmans.ts`, `routeRules.ts`, family `ActingCompanyActionsHandler`       |
+| Phase 5+: a green city on an empty city hex as a lay; a brown home city free before the company operates; plain track skips colours at $10 each, as an upgrade    | §12.2.4          | `trackRules.ts` (family `colorSkip`)                                       |
+| Metropolis upgrades by label; New Orleans with the B tiles; Cleveland's X13; Denver turned by its first company                                                   | §12.2.3          | `trackRules.ts`, `trackActions.ts` (`TurnDenver`)                          |
+| Resource tokens with the hex's first yellow tile, pointing into a city; coal/ore waive $15; ore to $20 by an upgrade action from phase 3; ore tiles never upgrade | §13              | `privatePowerRules.ts`, `trackActions.ts` (`UpgradeOre`)                   |
+| A train passes a resource tile once, however many exits it has                                                                                                    | §13, RT-5        | `routeRules.ts` (family per-hex `forbidsHexReentry`, solver too)           |
+| Bridges: +$10 to the city, a route needed, one a city, not New Orleans as a metropolis                                                                            | §13.4            | `privatePowerRules.ts`, `routeRules.ts`                                    |
+| Red small cities pass-through; Montreal, Mexico, Port of New Orleans route ends; at most two routes to Mexico                                                     | §12.4.1          | map; family `stopGroupRouteLimits` (evaluation and autorouter)             |
+| Rural junctions: uncounted $10, never a route end                                                                                                                 | P26              | tiles; family `RouteRules.endsRoutes` (autorouter endpoint flag)           |
+| Company Town: a bonus station on it, −$10 to others, never blocks routes or track, no other station ever                                                          | P27, PR-27       | `routeRules.ts`, `trackRules.ts` (family `TrackRules.passesStations`)      |
+| P7 three lays for $20; P11 two upgrades (one city), plain track a colour ahead                                                                                    | P7, P11          | `trackRules.ts`                                                            |
+| P9, P16, P17, P26 lays, keeping the turn's track rules; P20 into full cities; the Free Station's extra station from the supply into any reachable city            | privates         | `privatePowerRules.ts`; `sharesFullCities`, `PrivateTokenTerms.fromSupply` |
+| P13 saves a train from a rust until its next run (still counting for the limit, RB)                                                                               | P13              | `boneyard.ts` (phase-change decision)                                      |
+| P19 one train passes one city uncounted and unpaid; P30 one non-permanent train one more city                                                                     | P19, P30         | `trainAssignments.ts` (`AssignTrainPower`)                                 |
+| P25 10% off bank trains (Pullmans too, RB "all trains"), early purchase before the run; closes as the first 6-train is bought                                     | P25              | family `TrainRules.bankPrice`, `earlyTrainCompany`                         |
+| P6 lays its 30/40/50/80 token over a reachable red area; P8 marks one, +$10 a train there, counting as one of the eight stations; over eight, it may go with P8   | P6, P8, PR-8     | `owedStations.ts` (family `limitMarkers`, `RemoveStationMarker`)           |
+| P17's $30 for Fargo and Helena, $30 more on the train that also runs Seattle and Chicago                                                                          | P17              | family `PaidConnectionBonus.requires` (evaluation and solver)              |
+| $300 variant: companies less than half held as their stock round ends are liquidated                                                                              | §17              | `unsoldCompanies.ts` (family reason `unsold-shares`)                       |
+| No 60% variant: a president may pass 60% in stock rounds; others buy from a president past 60% at 110%, rounded up, while no other share is for sale              | §17, VA-2, MA-4  | `stockRules.ts` (`ownershipLimit`, `purchaseTerms`, `sellsFromPlayers`)    |
+| Game end after the first 8-train: two or three more operating rounds; privates count nothing                                                                      | §16              | `endingRules.ts`                                                           |
 
 ### Readings
 
@@ -242,10 +244,15 @@ hooks. What differs from 1817, and where it lives:
 - **P13's saved train counts for the limit**, as RB says; 18xx.games treats it as obsolete.
 - **P25's discount includes Pullmans** (RB "all trains"); open question OQ-4 in the digest.
 - **P19** is modelled as one more stop for the train, its lowest-paying stop unpaid (the city it
-  treats as plain track), the reference's reading.
+  treats as plain track). That city may be one other companies' stations fill, which the
+  train then passes through (PR-19a), but never the train's only station city, as in the
+  reference.
 - **Denver** is turned by a company homed there or one that laid track into the hex this turn,
   in its track step, before the tile is first upgraded; the first to use it fixes it.
-- **Dual-resource hexes** (B10, B12) take one token per lay: the first kind the private offers.
+- **Dual-resource hexes** (B10, B12): a lay names its token as an option of the private's power
+  (`PrivateTrackTerms.options`, `LayPrivateTile.option`). The options are one of its kinds, or
+  both of the hex's kinds at once when another of the company's resource powers supplies the
+  other. One lay places both tokens and uses both privates (§13: "either or both").
 
 ### Limits
 
