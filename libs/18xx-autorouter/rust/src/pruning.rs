@@ -201,33 +201,42 @@ struct Listed {
     track: Vec<u64>,
 }
 
-/// Every route of the train, none dropped for what it is worth.
-fn listed(problem: &Problem, train: usize) -> Vec<Listed> {
+/// Every route of the train, none dropped for what it is worth: listed in one go, or with a
+/// number of steps given, in slices of so many, each taken up where the last stopped.
+fn listed_in(problem: &Problem, train: usize, slice: Option<u64>) -> Vec<Listed> {
     let compiled = Compiled::new(problem, f64::INFINITY);
     let network = compiled.network(problem);
     let train = &problem.trains[train];
-    let search = network.search(
-        train,
-        SearchPlan {
-            profile: Rc::new(network.profile(train)),
-            closed: None,
-            deadline: f64::INFINITY,
-            memory_budget: usize::MAX,
-            selection_bytes_per_candidate: 0,
-            best_only: false,
-            floor: None,
-            streaming: None,
-        },
-    );
-    assert!(!search.exhausted && !search.limited);
-    search
-        .candidates
+    let profile = Rc::new(network.profile(train));
+    let whole = Limit::until(f64::INFINITY);
+    let mut carried = None;
+    let candidates = loop {
+        let search = network.search(
+            train,
+            SearchPlan {
+                profile: Rc::clone(&profile),
+                closed: None,
+                limit: slice.map_or(whole, |steps| whole.steps_on(network.taken.get(), steps)),
+                memory_budget: usize::MAX,
+                selection_bytes_per_candidate: 0,
+                best_only: false,
+                floor: None,
+                streaming: None,
+                listed: carried.take(),
+                when_full: WhenFull::Halve,
+            },
+        );
+        assert!(!search.limited);
+        if !search.exhausted {
+            break search.candidates;
+        }
+        carried = Some((search.candidates, search.cut));
+    };
+    candidates
         .iter()
         .map(|candidate| {
             let mut track = vec![0; problem.resource_count.div_ceil(64)];
-            search
-                .candidates
-                .resource_bits(candidate, network, &mut track);
+            candidates.resource_bits(candidate, network, &mut track);
             Listed {
                 revenue: candidate.revenue,
                 visits: candidate.visits,
@@ -235,6 +244,10 @@ fn listed(problem: &Problem, train: usize) -> Vec<Listed> {
             }
         })
         .collect()
+}
+
+fn listed(problem: &Problem, train: usize) -> Vec<Listed> {
+    listed_in(problem, train, None)
 }
 
 /// The most the trains earn on routes clear of each other, any of them idle, by trying every
@@ -272,24 +285,45 @@ fn solved(problem: &Problem) -> i32 {
     solution.revenue
 }
 
-/// What the fleet earns by its outline, as one that listing its routes outright did not settle.
-fn outlined(problem: &Problem) -> i32 {
+/// What two trains earn by their outline, as a pair that listing its routes outright did not
+/// settle, and what they earn where every stage stops after a few steps and is taken up again.
+fn outlined(problem: &Problem, slices: pair::Slices) -> i32 {
     let started = milliseconds();
     let compiled = Compiled::new(problem, f64::INFINITY);
     let clock = Clock {
         started,
         compile_ms: 0.0,
+        budget_ms: problem.budget_ms,
+        pace_ms: problem.budget_ms,
     };
-    let (operation, _) = operate(
-        problem,
-        &compiled,
-        clock,
-        started + problem.budget_ms,
-        Some((0, vec![])),
-    );
+    let operation = pair::sliced(problem, &compiled, clock, slices);
     assert!(operation.exhaustive);
     operation.revenue
 }
+
+/// The operation of two trains whose lists have so little memory, in short slices.
+fn cramped(generated: &Value, bytes: usize) -> Solution {
+    let mut cramped = generated.clone();
+    cramped["memory_budget_bytes"] = json!(bytes);
+    let problem: Problem = serde_json::from_value(cramped).unwrap();
+    let compiled = Compiled::new(&problem, f64::INFINITY);
+    let clock = Clock {
+        started: milliseconds(),
+        compile_ms: 0.0,
+        budget_ms: problem.budget_ms,
+        pace_ms: problem.budget_ms,
+    };
+    pair::sliced(&problem, &compiled, clock, SHORT)
+}
+
+const WHOLE: pair::Slices = pair::Slices {
+    first: None,
+    slice: 200_000,
+};
+const SHORT: pair::Slices = pair::Slices {
+    first: Some(7),
+    slice: 5,
+};
 
 #[test]
 fn one_train_earns_what_listing_every_route_finds() {
@@ -307,10 +341,43 @@ fn one_train_earns_what_listing_every_route_finds() {
 }
 
 #[test]
+fn a_listing_taken_up_in_slices_lists_what_one_run_lists() {
+    let mut random = Random(17 + setting("PRUNING_SEED", 0) as u64);
+    let cases = setting("PRUNING_CASES", 300);
+    let mut listed_any = 0;
+    for case in 0..cases {
+        let generated = generated(&mut random, 1);
+        let problem: Problem = serde_json::from_value(generated.clone()).unwrap();
+        let routes = |slice| {
+            let mut routes: Vec<_> = listed_in(&problem, 0, slice)
+                .into_iter()
+                .map(|route| (route.revenue, route.visits, route.track))
+                .collect();
+            routes.sort_unstable();
+            routes
+        };
+        let whole = routes(None);
+        for slice in [1, 3, 8] {
+            assert_eq!(
+                routes(Some(slice)),
+                whole,
+                "in slices of {slice}, case {case}: {generated}"
+            );
+        }
+        listed_any += usize::from(!whole.is_empty());
+    }
+    assert!(
+        2 * listed_any > cases,
+        "{listed_any} of the cases list a route"
+    );
+}
+
+#[test]
 fn two_trains_earn_what_listing_every_route_finds() {
     let mut random = Random(11 + setting("PRUNING_SEED", 0) as u64);
     let cases = setting("PRUNING_CASES", 500);
     let mut apart = 0;
+    let mut cut = 0;
     for case in 0..cases {
         let mut generated = generated(&mut random, 2);
         if case % 3 == 0 {
@@ -321,19 +388,39 @@ fn two_trains_earn_what_listing_every_route_finds() {
         let found = solved(&problem);
         assert_eq!(found, most(&problem), "case {case}: {generated}");
         assert_eq!(
-            outlined(&problem),
+            outlined(&problem, WHOLE),
             found,
             "outlined, case {case}: {generated}"
         );
+        assert_eq!(
+            outlined(&problem, SHORT),
+            found,
+            "in short slices, case {case}: {generated}"
+        );
+        // Lists that memory cuts short prove nothing they should not, and earn no more than
+        // there is.
+        for bytes in [6_000, 12_000] {
+            let cramped = cramped(&generated, bytes);
+            assert!(
+                cramped.revenue <= found && (!cramped.exhaustive || cramped.revenue == found),
+                "with {bytes} bytes, case {case}: {generated}"
+            );
+            cut += usize::from(cramped.memory_limited);
+        }
         // The longest route's bonus is no sum of two routes' worth, so the trains are not kept
         // apart: their routes are listed above what the outline leaves worth listing.
         let mut longest = generated.clone();
         longest["longest_route_bonus_per_stop"] = json!(10);
         let longest: Problem = serde_json::from_value(longest).unwrap();
         assert_eq!(
-            outlined(&longest),
+            outlined(&longest, WHOLE),
             most(&longest),
             "outlined with a longest-route bonus, case {case}: {generated}"
+        );
+        assert_eq!(
+            outlined(&longest, SHORT),
+            most(&longest),
+            "in short slices with a longest-route bonus, case {case}: {generated}"
         );
         let alone: i32 = (0..2)
             .map(|train| {
@@ -352,6 +439,127 @@ fn two_trains_earn_what_listing_every_route_finds() {
     assert!(
         8 * apart > cases,
         "{apart} of the cases have routes in each other's way"
+    );
+    assert!(20 * cut > cases, "{cut} lists were cut for memory");
+}
+
+/// What the second train's routes earn streamed through the most valuable so many of the first
+/// train's, in slices of so many steps, and what trying every such pair finds: the best of a
+/// leading route alone, a streamed route alone, and the two of them clear of each other.
+fn through_leading(problem: &Problem, leading: usize, slice: u64) -> Option<(i32, i32, bool)> {
+    let compiled = Compiled::new(problem, f64::INFINITY);
+    let network = compiled.network(problem);
+    let whole = Limit::until(f64::INFINITY);
+    let plan = |train: usize, limit, streaming, listed| SearchPlan {
+        profile: Rc::new(network.profile(&problem.trains[train])),
+        closed: None,
+        limit,
+        memory_budget: usize::MAX,
+        selection_bytes_per_candidate: 0,
+        best_only: false,
+        floor: None,
+        streaming,
+        listed,
+        when_full: WhenFull::Halve,
+    };
+    let mut routes = network
+        .search(&problem.trains[0], plan(0, whole, None, None))
+        .candidates;
+    if routes.is_empty() {
+        return None;
+    }
+    let leading = 1 + leading % routes.len();
+    routes.rank_leading(leading);
+    let routes = Rc::new(routes);
+    let bonus = problem.longest_route_bonus_per_stop;
+    let stored: Vec<Listed> = routes[..leading]
+        .iter()
+        .map(|candidate| {
+            let mut track = vec![0; problem.resource_count.div_ceil(64)];
+            routes.resource_bits(candidate, network, &mut track);
+            Listed {
+                revenue: candidate.revenue,
+                visits: candidate.visits,
+                track,
+            }
+        })
+        .collect();
+    let streamed = listed(problem, 1);
+    let alone = |route: &Listed| route.revenue + route.visits as i32 * bonus;
+    let pairs = stored.iter().flat_map(|kept| {
+        streamed
+            .iter()
+            .filter(|route| route.track.iter().zip(&kept.track).all(|(a, b)| a & b == 0))
+            .map(|route| {
+                kept.revenue + route.revenue + kept.visits.max(route.visits) as i32 * bonus
+            })
+    });
+    let most = stored
+        .iter()
+        .map(alone)
+        .chain(streamed.iter().map(alone))
+        .chain(pairs)
+        .max()
+        .unwrap_or(0)
+        .max(0);
+    let mut selection = StreamingSelection::leading(
+        Rc::clone(&routes),
+        leading,
+        network,
+        f64::INFINITY,
+        usize::MAX,
+    );
+    let every_stop = selection.few();
+    let mut resume = Resume::default();
+    loop {
+        selection.go_on(f64::INFINITY);
+        let search = network.search(
+            &problem.trains[1],
+            plan(
+                1,
+                whole.steps_on(network.taken.get(), slice),
+                Some(selection),
+                Some((Candidates::new(network), std::mem::take(&mut resume))),
+            ),
+        );
+        selection = search
+            .streaming
+            .expect("a streamed search keeps its selection");
+        if !search.exhausted {
+            break;
+        }
+        resume = search.cut;
+    }
+    Some((selection.revenue, most, every_stop))
+}
+
+#[test]
+fn a_stream_through_the_leading_routes_of_a_list_finds_their_best_pair() {
+    let mut random = Random(19 + setting("PRUNING_SEED", 0) as u64);
+    let cases = setting("PRUNING_CASES", 500);
+    let mut searched_at_every_stop = 0;
+    for case in 0..cases {
+        let mut generated = generated(&mut random, 2);
+        if case % 3 == 0 {
+            generated["trains"][1] = generated["trains"][0].clone();
+            generated["trains"][1]["id"] = json!("1");
+        }
+        let problem: Problem = serde_json::from_value(generated.clone()).unwrap();
+        let leading = random.below(1 << 16);
+        for slice in [u64::MAX / 2, 4] {
+            let Some((found, most, every_stop)) = through_leading(&problem, leading, slice) else {
+                continue;
+            };
+            assert_eq!(
+                found, most,
+                "in slices of {slice}, case {case}: {generated}"
+            );
+            searched_at_every_stop += usize::from(every_stop);
+        }
+    }
+    assert!(
+        searched_at_every_stop > cases,
+        "{searched_at_every_stop} streams had their partners sought at every stop"
     );
 }
 
@@ -377,8 +585,8 @@ fn keeping_two_trains_apart_settles_what_listing_every_route_finds() {
             None => Rc::new(network.profile(&problem.trains[1])),
         };
         let profiles = [first, second];
-        let limits = (f64::INFINITY, usize::MAX);
-        let mut outline = network.outline(&profiles, &previous, f64::INFINITY, limits);
+        let limits = (Limit::until(f64::INFINITY), usize::MAX);
+        let mut outline = network.outline(&profiles, &previous, limits.0, limits);
         let Some(mut settling) = Settling::new(&problem, &profiles, &outline) else {
             continue;
         };

@@ -770,3 +770,202 @@ to 200 ms at a 1 s limit where they took 29 to 57 ms. At 30 s the first listing
 has 600 ms, which is longer than all but about ten of these took. The games,
 tools and results are outside the repository at
 `/workspace/tmp/autorouter-bench/`.
+
+## Two trains in slices of steps
+
+The outline and the pair search left three faults in two-train fleets. Answers
+at the cap moved by $10 to $30 between identical runs. A few capped runs earned
+less than before, and one proof was lost. Fleets the earlier solver proved in 50
+to 850 ms took a third longer. Wire version 11 gains one optional field,
+`pace_ms`; the other changes are in the search.
+
+### Why the answers moved
+
+Every stage ended on the clock: the first listing after a fiftieth of the time,
+the outline after three tenths, the pair search after 35%, and a listing was
+skipped when the trains' best routes had taken more than a fifth of the time
+left. A stage that ends a few milliseconds earlier or later hands the next one a
+different list and a different operation to improve. Nothing else varied: the
+searches are deterministic.
+
+Stages now end on a count of steps (`Limit` in `rust/src/lib.rs`). A step is one
+stop walked to; trying the connections on from a stop counts one more for every
+16 of them, and looking for a partner counts one for every eight words of the
+stored routes' index, or eight routes beyond it. The weights keep a step about
+as long on a map with sixty connections at a stop as on one with six. A solve is
+paced at 5,000 steps for each millisecond of its time, about what the slowest
+searches take in WebAssembly, and a stage's share is a share of those steps. The
+clock still ends the solve, and on a machine too slow for the pace it ends a
+stage at twice its share of the time. Two runs of the same problem therefore
+take the same course until the time limit cuts the last stage.
+
+The interface gives each way of attaching rolling stock its own search and
+shares the time left between those still to run. `pace_ms` carries what each was
+planned with, the whole limit divided by the number of ways, so a search's
+stages do not depend on what the searches before it used.
+
+### The slices
+
+`rust/src/pair.rs` runs two trains without a fleet policy:
+
+1. The stored train's routes are listed outright for 500,000 steps, or a quarter
+   of the time on a machine too slow for them. Two alike trains keep the earlier
+   first step: one list and a selection, for a fiftieth of the time.
+2. The outline finds each train's best route alone and a first operation, as
+   before, in shares of the steps.
+3. The trains are kept apart while that finds better operations: until four
+   routings pass without one, to 35% of the steps, and only where six routings
+   fit.
+4. Slices follow, the first of 200,000 steps and each twice the last. A slice
+   lists on; once the list is whole it streams the other train's routes through
+   it, and a stream that comes through proves the answer. Beside it two searches
+   take a quarter of the slice each: a stream through the 4,096 most valuable
+   routes of the list as far as it has come, and keeping the trains apart, once
+   it is owed the steps of one routing. Either takes half as much after each
+   slice in which it found nothing better, down to a sixteenth of its part. A
+   list of 100,000 routes that is not yet whole, or one that memory has cut, is
+   far from proving anything: beside it the stream begins from as many steps as
+   the listing, and keeping the trains apart, the one search that can still
+   prove the answer, takes as many whatever it found.
+
+Every search is taken up where its last slice stopped. A search that runs out of
+steps records the connection it had come to at each stop of its route, and the
+next slice walks that route again, which counts no steps, and goes on from
+there. A listing keeps its routes and a stream its best pair, so nothing is
+searched twice. A better operation raises the floor of a listing under way: the
+routes already listed below it are dropped and the listing goes on above it.
+
+A stream through part of a list proves nothing, but its pairs are operations,
+and few stored routes leave few of the other train's routes worth walking. One
+that comes through begins again with four times as many routes. Through no more
+than 16,384 routes its partner search runs at every stop of a streamed route,
+not only where a route could end: a route with no stored route clear of its
+track goes no further. Through a whole list that search costs more than it
+drops.
+
+A list that fills its memory first waits for a higher floor, which the outline
+or a better operation gives. With none to come it drops the routes that run on
+the same track as a better one, a quarter to a half of an 18USA list, and goes
+on whole if that freed a quarter. Otherwise it keeps the more valuable half each
+time it fills. Dropping takes about a tenth of a second for 450,000 routes. It
+is left out, and the list cut at once, when the solve's pace leaves fewer than
+six times the steps that stands for: such a list would not be finished and
+streamed through in what is left.
+
+### What a search skips
+
+Four changes make each search shorter.
+
+- The next stop is checked before it is walked to. A connection whose stop the
+  route could only end at is taken only where the route would be recorded there
+  and, for a train that every stop pays, be kept at its exact worth. One it
+  could go on from is taken only if the bound at the present stop would still be
+  kept once reduced by what the next stop is short of the least stop that bound
+  counted.
+- Pieces of track that the same arcs run on count as one piece. Routes share one
+  of them exactly when they share the others, so conflicts are unchanged, and
+  the 500 to 640 pieces of a late 18USA map become about half as many.
+- A streamed route looks for partners from where its earlier stops' searches
+  came to. Stored routes are in order of worth, so the first word of the index
+  with a route clear of a route's first stops bounds every route that goes on
+  from them.
+- For each connection the index gives the most a stored route clear of its
+  track is worth, among the 65,536 most valuable. The least of those over a
+  streamed route's connections bounds its partner before any search.
+
+Keeping the trains apart looks a train's best route clear of some track up in
+the list once that is whole, instead of searching for it.
+
+### Measured and dropped
+
+- Prices on shared track (a Lagrangian bound for the pair): the bound stalls
+  far above the best operation, 980 against 880 on one fleet, because the two
+  routes must cross and no price says where.
+- Two half lists. Any two floors that add up to the operation prove it: each
+  train's routes above its floor, and the other train streamed through them. On
+  the fleet tried, the two halves together took as many steps as the one list.
+- A table of positions already searched. Different connections through a
+  junction reach the same stop with the same track used. Skipping them saved 15
+  to 28% of the steps with an unbounded table, before the table's own cost.
+- Keeping each stop's clear routes as a bitmap carried along the route. The
+  partner search is 1 to 5% of a solve.
+- Streams through 65,536 routes or through all of an unfinished list: no better
+  than through 4,096, and worse on two fleets.
+- A second stream, through the other train's most valuable routes kept in a
+  sixteenth of the memory. With the trains' parts exchanged outright, three
+  capped fleets earn $20 to $70 more, since their better pairs have the longer
+  train near its best route. The small list covers too little of that train's
+  search in the steps a slice can spare: nothing gained, and three fleets lost
+  $30 to $50 at 1 s.
+
+### Verification
+
+The pair cases of `rust/src/pruning.rs` also run in slices of five steps after
+an outright listing of seven, with a longest-route bonus, and with 6,000 and
+12,000 bytes of memory, where a list that memory cuts must prove nothing it
+should not. A listing taken up in slices of one, three and eight steps lists
+what one run lists. A stream through the leading routes of a list, whole and in
+slices of four steps, finds the best pair of any of them with a route of the
+other train. 20,000 cases of each kind over two seeds agree.
+
+### Recorded play
+
+The same 10,835 runs in WebAssembly, eight games at a time: the solver as 18USA
+first used it, the outline and pair search of the section above, and the slices.
+
+|                               | 5 s first | 5 s outline | 5 s slices | 1 s first | 1 s outline | 1 s slices |
+| ----------------------------- | --------- | ----------- | ---------- | --------- | ----------- | ---------- |
+| Runs at the cap               | 66        | 25          | 16         | 175       | 50          | 42         |
+| At the cap below the recorded | 28        | 1           | 1          | 82        | 4           | 1          |
+| Above the recorded run        | 1,354     | 1,376       | 1,377      | 1,311     | 1,374       | 1,377      |
+| 99th percentile               | 2,348 ms  | 392 ms      | 249 ms     | 1,007 ms  | 324 ms      | 235 ms     |
+| Longest                       | 5,020 ms  | 5,020 ms    | 5,017 ms   | 1,047 ms  | 1,017 ms    | 1,023 ms   |
+| Solver time in total          | 766 s     | 326 s       | 275 s      | 376 s     | 196 s       | 172 s      |
+| Memory-limited                | 24        | 6           | 6          | 32        | 1           | 7          |
+
+A second run of all 10,835 at each limit returned the same revenue and the same
+proof for every run, the capped ones included.
+
+At 5 s no run earns less than under either earlier solver and none loses its
+proof; seven earn more than with the outline and nine more are proved, among
+them 273905 run 77, in 3.1 s. The 16 left at the cap are pairs: 6+8 six times,
+and 7+8, 5+8, 5+7, 5+7 with a Pullman and 8+8 twice each. One is below the
+recorded run, as before: 267388 run 97, two 8-trains, at 1,070 against 1,080.
+More than 300,000 of an 8-train's routes there are worth over half the
+operation, so the list is not whole in 5 s, and the pair search comes on 1,080
+only after about 7 s. A 30 s limit proves it at 1,090 in 14 s.
+
+At 1 s no proof is lost and 133 more runs are proved than at first. Four capped
+pairs earn less than under one of the earlier solvers: 261796 run 108 (6+8,
+1,090 to 1,080) and 270150 run 102 (6+5, 930 to 920) against both, and 258492
+run 126 (6+8, 1,090 to 1,050) and 273905 run 82 (8+8, 990 to 980) against the
+outline alone. In each the earlier stream ran through a list the clock had cut
+and came on the pair there; those answers were among the ones that moved from
+run to run. The list is not whole in a second, and the stream through its
+leading routes and the pair search reach $10 to $40 less. Three of the four are
+proved at 5 s. More lists count as memory-limited at 1 s because a full list is
+now cut at once where it used to be put in order first; all seven are runs the
+time caps.
+
+The 120 fleets the first solver proved in 50 to 850 ms take 26.5 s in total at
+5 s and 26.1 s at 1 s, against 28.5 s at first and 39.3 s and 35.0 s with the
+outline; all are proved at both limits. 23 of them are still more than a fifth
+slower than at first, the worst from 359 to 586 ms: the outline and the first
+pair search come before a list that would have been whole without them.
+
+With 30 s, six of the 175 runs that the first solver capped at 1 s stay at the
+cap, against nine with the outline. One of them earns less than with the
+outline: 257272 run 104, a 5-train and a 7-train with a Pullman, earns 960
+where the outline had 990. The outline had begun its exchange of routes from a
+pair that its first stream came on. The slices begin from the outline's own
+first operation, and their streams and the pair search reach 960, at 5 s as at
+30 s; at 5 s the outline had 900.
+
+The other sets keep every revenue and every proof. 1817 (2,745 runs) takes
+10.2 s in total at 30 s, against 23.3 s at first and 14.3 s with the outline,
+and proves all its runs at 1 s; 270394 run 106 takes 421 ms, against 746 ms and
+1,226 ms. 1870 (2,020 runs) takes 1.75 s at 30 s and 1.76 s at 1 s; its four
+fleets of a diesel and a 5- or 6-train take 35 to 71 ms at 1 s, against 29 to
+57 ms at first and 120 to 200 ms with the outline. 1862's 5,232 runs, solved
+through the title's own bench again, are proved with the same revenue and
+subsidy by all three solvers, in 7.7 s, 7.8 s and 7.9 s.

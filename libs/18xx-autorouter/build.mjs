@@ -32,6 +32,7 @@ for (const path of [
     'rust/src/alike.rs',
     'rust/src/fleet.rs',
     'rust/src/outlook.rs',
+    'rust/src/pair.rs',
     'rust/src/main.rs',
     'rust/src/wasm.rs'
 ]) {

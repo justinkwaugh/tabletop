@@ -1749,12 +1749,14 @@ mod tests {
                 gauge: crate::Stretch::Standard,
             })
             .collect();
+        let taken = std::cell::Cell::new(0);
         let network = Network {
             problem: &problem,
             connections: &connections,
             stays: &[],
             adjacency: &[],
             departures: &[],
+            taken: &taken,
         };
         let candidates: Vec<_> = (0..lone + 2)
             .map(|train| {

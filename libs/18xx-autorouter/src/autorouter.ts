@@ -42,6 +42,8 @@ type FleetSearch = {
     companyId: string
     evaluation: RouteEvaluation
     deadline: number
+    /** The time each of its searches is paced for, whatever the ones before left of the deadline. */
+    paceMs: number
 }
 type FleetAnswer = {
     routes: TrainRoute[]
@@ -155,7 +157,11 @@ export class Autorouter {
         assertExists(available.result, available.reason ?? 'Company cannot run trains')
         const fleet = { state, rules, companyId, evaluation }
         if (this.routesApart(fleet))
-            return this.solveApart({ ...fleet, deadline: started + timeLimitMs })
+            return this.solveApart({
+                ...fleet,
+                deadline: started + timeLimitMs,
+                paceMs: timeLimitMs
+            })
         const encoded = new EncodedRoutes(state, rules, companyId, evaluation.network, {
             timeLimitMs,
             memoryBudgetBytes: SolverMemoryBudgetBytes
@@ -298,7 +304,7 @@ export class Autorouter {
         rules,
         companyId,
         evaluation
-    }: Omit<FleetSearch, 'deadline'>): boolean {
+    }: Omit<FleetSearch, 'deadline' | 'paceMs'>): boolean {
         if (evaluation.attachments(companyId).length) return true
         return evaluation.runnableTrains(companyId).some((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
@@ -350,7 +356,8 @@ export class Autorouter {
             const now = performance.now()
             const share = {
                 ...search,
-                deadline: now + (search.deadline - now) / (fleets.length - index)
+                deadline: now + (search.deadline - now) / (fleets.length - index),
+                paceMs: search.paceMs / fleets.length
             }
             const answer = this.solveFleet(share, trains, metrics, together)
             if (routeRevenue(consider(answer)) === answer.searched) continue
@@ -486,7 +493,8 @@ export class Autorouter {
             try {
                 solution = this.solveEncoded({
                     ...problem,
-                    budget_ms: Math.max(1, deadline - performance.now())
+                    budget_ms: Math.max(1, deadline - performance.now()),
+                    pace_ms: search.paceMs
                 })
             } catch (error) {
                 this.instantiate()
@@ -676,7 +684,8 @@ export class Autorouter {
                 if (rest.problem.trains.length) {
                     const solution = this.solveEncoded({
                         ...rest.problem,
-                        budget_ms: Math.max(1, deadline - performance.now())
+                        budget_ms: Math.max(1, deadline - performance.now()),
+                        pace_ms: timeLimitMs
                     })
                     solves++
                     exhaustive &&= solution.exhaustive

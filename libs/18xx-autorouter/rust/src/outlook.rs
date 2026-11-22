@@ -156,14 +156,31 @@ impl Outlook {
     }
 }
 
+/// How far the bound at a stop lets routes run on from it.
+#[derive(Clone, Copy)]
+pub(super) enum Onward {
+    /// No route on from the stop would be kept.
+    Ended,
+    /// The routes on from the stop are not bounded.
+    Unbounded,
+    /// The most a route on from the stop is worth and the stops it may count. Where the further
+    /// stops counted use all the distance left, `least` is what the least of them is worth: a
+    /// next stop worth less takes the place of one of them, and lowers the most by the difference.
+    Within {
+        revenue: i32,
+        visits: usize,
+        least: i32,
+    },
+}
+
 impl Search<'_> {
     /// Whether some route that runs on from the stop could be kept, by the most its further
     /// stops, hexes and bonuses could add. The bound relaxes the track and the order of stops: a
     /// further stop is any the train's remaining distance reaches, no more of them than the
     /// distance, the blocked ends and the major stops left allow.
-    pub(super) fn continues(&mut self, start: usize, node: usize, value: RouteValue) -> bool {
+    pub(super) fn continues(&mut self, start: usize, node: usize, value: RouteValue) -> Onward {
         let Some(outlook) = &self.profile.outlook else {
-            return true;
+            return Onward::Unbounded;
         };
         // The bound is not worth its sums where it drops few routes: a listing above a low floor
         // keeps most of them, and so does a train whose distance reaches every stop. It is tried
@@ -177,7 +194,7 @@ impl Search<'_> {
         }
         let few = BOUND_TRIAL / if self.best_only { 64 } else { 8 };
         if self.expansions % BOUND_STRETCH >= BOUND_TRIAL && self.cuts < few {
-            return true;
+            return Onward::Unbounded;
         }
         let (problem, train) = (self.problem, self.train);
         let remaining = train.distance - value.cost;
@@ -211,6 +228,7 @@ impl Search<'_> {
         // among, each kind as if the distance were all its own.
         let best = |by_majors: bool, counted: Option<&mut Vec<i32>>| {
             let mut sum = 0;
+            let mut last = 0;
             let mut left = [slots; 2];
             let mut ends_left = [blocked_ends; 2];
             let mut majors = majors_left.unwrap_or(usize::MAX);
@@ -243,14 +261,20 @@ impl Search<'_> {
                 left[apart] -= 1;
                 match counted.as_deref_mut() {
                     Some(amounts) if apart == 0 => amounts.push(outlook.worth[id]),
-                    _ => sum += outlook.worth[id],
+                    _ => {
+                        sum += outlook.worth[id];
+                        last = outlook.worth[id];
+                    }
                 }
             }
-            sum
+            (sum, if left[0] == 0 { last } else { 0 })
         };
-        let mut further = best(false, limit.map(|_| &mut *counted));
+        let (mut further, mut least) = best(false, limit.map(|_| &mut *counted));
         if majors_left.is_some() && limit.is_none() {
-            further = further.min(best(true, None));
+            further = further.min(best(true, None).0);
+        }
+        if majors_left.is_some() || limit.is_some() {
+            least = 0;
         }
         let mut ends_left = blocked_ends;
         for &id in &outlook.free {
@@ -318,9 +342,89 @@ impl Search<'_> {
         } else {
             self.walking.len() + 1 + visited.iter().filter(|&&visited| !visited).count()
         };
-        let wanted = self.would_want(revenue, visits);
-        self.cuts += u64::from(!wanted);
-        wanted
+        if self.would_want(revenue, visits) {
+            Onward::Within {
+                revenue,
+                visits,
+                least,
+            }
+        } else {
+            self.cuts += 1;
+            Onward::Ended
+        }
+    }
+
+    /// Whether the connection on from the route's last stop could be part of a route that is
+    /// kept. Where the route can go no further than the connection's stop, it must be one that
+    /// is recorded there, and for a train whose stops all pay, one that is wanted. Where it can,
+    /// the bound at the last stop holds for it, less what the stop is short of the least stop
+    /// the bound counted.
+    pub(super) fn worth_taking(
+        &mut self,
+        start: usize,
+        connection: usize,
+        cost: u32,
+        value: RouteValue,
+        further: Onward,
+    ) -> bool {
+        let (problem, train) = (self.problem, self.train);
+        let edge = &self.connections[connection];
+        let next = &problem.stops[edge.to];
+        let leaving = !self.walking.is_empty();
+        let passable = (next.city || next.town)
+            && value.passes < problem.blocked_passes + train.blocked_passes;
+        let ends = next.blocked && !passable
+            || edge.last_terminal && (leaving || edge.paths.len() != 1)
+            || cost == train.distance && self.every_stop_costs;
+        if !ends {
+            let Onward::Within {
+                revenue,
+                visits,
+                least,
+            } = further
+            else {
+                return true;
+            };
+            let Some(outlook) = &self.profile.outlook else {
+                return true;
+            };
+            let short = least - outlook.worth[edge.to];
+            if short <= 0 || cost == value.cost || self.would_want(revenue - short, visits) {
+                return true;
+            }
+            self.cuts += 1;
+            return false;
+        }
+        let across_link = leaving && edge.last_terminal && edge.departs_terminal;
+        if !(edge.to > start || across_link)
+            || !(value.token || next.token)
+            || !next.endpoint
+            || train.requires_city && !(value.city || next.city)
+            || value.places + u32::from(next.city || next.town) < problem.minimum_cities_and_towns
+            || train.allowed_stops.get(edge.to) == Some(&false)
+        {
+            return false;
+        }
+        if !self.plain {
+            return true;
+        }
+        let collected: i32 = edge
+            .hexes
+            .iter()
+            .filter(|&&hex| self.hexes[hex] == 0)
+            .map(|&hex| problem.hex_bonuses[hex])
+            .sum();
+        let bonus = train.first_bonus[edge.to];
+        let first = if value.first_bonus != 0 {
+            value.first_bonus
+        } else {
+            bonus
+        };
+        let last = if bonus != 0 { bonus } else { value.last_bonus };
+        self.would_want(
+            value.revenue + collected + train.revenues[edge.to] + first.max(last),
+            self.walking.len() + 2,
+        )
     }
 }
 

@@ -39,10 +39,10 @@ shorter-distance train's routes, sorted by revenue, then streams the other's
 routes through a partner search. A tighter major-stop limit breaks distance ties;
 input order breaks remaining ties. This is a candidate-count heuristic, including
 when the trains use different distance measures; the choice does not affect
-exactness. The stored profile gets half the remaining time, and streaming gets
-the rest, including time the first train did not use. Only an improving streamed
-route is copied. Either train may run alone. Resource conflicts include extension
-track, and bounds account for the longest-route bonus once for the fleet.
+exactness. The listing and the stream take turns in slices of search steps, as
+described below. Only an improving streamed route is copied. Either train may
+run alone. Resource conflicts include extension track, and bounds account for
+the longest-route bonus once for the fleet.
 
 Identical-profile pairs and fleets of three or more keep candidate enumeration
 followed by branch-and-bound selection: enumeration may use three quarters of
@@ -87,6 +87,23 @@ only above what a better operation needs of each train, and two trains are also
 settled without lists, by closing a piece of track both run on to each in turn.
 The [design review](../../research/18xx/autorouter-design.md#route-bound-alike-connections-and-two-trains-kept-apart)
 gives the bounds and the order of these steps.
+
+Two trains without a fleet policy run these stages in slices (`rust/src/pair.rs`).
+The listing, the stream through the whole list, a stream through the most
+valuable routes of a list not yet whole, and keeping the trains apart take
+turns; each slice is twice the last, and every search goes on from where its
+last slice stopped. A stage ends on a count of search steps, not on the clock.
+The same problem under the same time limit therefore takes the same course on
+any machine and returns the same operation, until the limit itself cuts the
+last stage short. `pace_ms` is the time the step counts are sized for: the
+`Autorouter` passes each search its part of the request's whole limit, so one
+way of attaching rolling stock is searched the same way whatever time the ways
+before it left. A list that fills its memory waits for a better operation to
+raise its floor; with none to come it discards duplicates and then keeps its
+more valuable half, or cuts at once when too little time is left for the list
+to be finished. The
+[design review](../../research/18xx/autorouter-design.md#two-trains-in-slices-of-steps)
+describes the slices.
 
 A two-train fleet cut for memory, with time left, is solved again exactly above
 what its first answer proves. A better pair needs a route worth more than half

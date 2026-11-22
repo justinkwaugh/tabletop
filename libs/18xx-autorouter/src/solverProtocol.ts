@@ -93,6 +93,12 @@ export type SolverProblem = {
     /** How many blocked cities or towns the company's routes may run through, all together. */
     blocked_passes: number
     budget_ms: number
+    /**
+     * The time the search's stages are paced for, where the time left to it is not the time it
+     * was planned with: one of several searches under one limit takes the same course whatever
+     * the others left it.
+     */
+    pace_ms?: number
     memory_budget_bytes: number
     fleet?: SolverFleet
 }

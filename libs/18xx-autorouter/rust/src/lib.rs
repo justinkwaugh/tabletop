@@ -5,6 +5,7 @@ use std::rc::Rc;
 mod alike;
 mod fleet;
 mod outlook;
+mod pair;
 
 #[derive(Deserialize)]
 pub struct Problem {
@@ -33,6 +34,11 @@ pub struct Problem {
     #[serde(default)]
     blocked_passes: u32,
     budget_ms: f64,
+    /// The time the stages of the search are paced for, where the time left to it is not the
+    /// time it was planned with: one of several searches that share a limit has what the
+    /// others left, and takes the same course as if it had its even part.
+    #[serde(default)]
+    pace_ms: Option<f64>,
     memory_budget_bytes: usize,
 }
 
@@ -52,6 +58,38 @@ impl Problem {
         } else {
             3
         }
+    }
+
+    /// Counts pieces of track that the same arcs run on as one piece: routes share one of them
+    /// exactly when they share the others.
+    fn merge_track(&mut self) {
+        let mut arcs_on = vec![vec![]; self.resource_count];
+        for (id, arc) in self.arcs.iter().enumerate() {
+            for &resource in &arc.resources {
+                arcs_on[resource].push(id);
+            }
+        }
+        let mut pieces = std::collections::HashMap::new();
+        let merged: Vec<Option<usize>> = arcs_on
+            .into_iter()
+            .map(|arcs| {
+                (!arcs.is_empty()).then(|| {
+                    let next = pieces.len();
+                    *pieces.entry(arcs).or_insert(next)
+                })
+            })
+            .collect();
+        for arc in &mut self.arcs {
+            let mut resources: Vec<usize> = arc
+                .resources
+                .iter()
+                .filter_map(|&resource| merged[resource])
+                .collect();
+            resources.sort_unstable();
+            resources.dedup();
+            arc.resources = resources;
+        }
+        self.resource_count = pieces.len();
     }
 }
 
@@ -634,6 +672,50 @@ impl Candidates {
         }
     }
 
+    /// The first stored route clear of the closed track and worth more than the floor, of routes
+    /// stored the most valuable first.
+    fn clear_of(
+        &self,
+        closed: &[u64],
+        floor: i32,
+        train: usize,
+        network: Network<'_>,
+    ) -> Option<Lone> {
+        let shut = |resource: usize| {
+            closed
+                .get(resource / 64)
+                .is_some_and(|word| word >> (resource % 64) & 1 == 1)
+        };
+        let id = self
+            .iter()
+            .take_while(|candidate| candidate.revenue > floor)
+            .position(|candidate| !self.resources(candidate, network).any(shut))?;
+        Some(self.lone(id, train, network))
+    }
+
+    /// Puts the routes in the order they are paired in, the most valuable first.
+    fn rank(&mut self) {
+        self.entries
+            .sort_unstable_by_key(|candidate| std::cmp::Reverse(candidate.revenue));
+    }
+
+    /// Puts the most valuable so many of the routes first, in that order.
+    fn rank_leading(&mut self, leading: usize) {
+        let worth = |candidate: &Candidate| std::cmp::Reverse(candidate.revenue);
+        if leading < self.len() {
+            self.entries.select_nth_unstable_by_key(leading, worth);
+        }
+        let leading = leading.min(self.len());
+        self.entries[..leading].sort_unstable_by_key(worth);
+    }
+
+    /// Keeps only the routes worth more than the floor.
+    fn keep_above(&mut self, floor: i32, longest_bonus: i32) {
+        self.entries
+            .retain(|candidate| candidate.value(longest_bonus) > floor);
+        self.compact();
+    }
+
     fn bytes(&self, selection_bytes: usize) -> usize {
         std::mem::size_of::<Self>()
             + 2 * std::mem::size_of::<usize>()
@@ -835,6 +917,9 @@ fn validate(problem: &Problem) -> Result<(), String> {
     if problem.version != 11
         || !problem.budget_ms.is_finite()
         || problem.budget_ms <= 0.0
+        || problem
+            .pace_ms
+            .is_some_and(|pace| !pace.is_finite() || pace <= 0.0)
         || problem.memory_budget_bytes == 0
     {
         return Err("Unsupported problem version or budget".into());
@@ -932,6 +1017,65 @@ fn validate(problem: &Problem) -> Result<(), String> {
         return Err("Stop subsidies and shared blocked passes require a fleet policy".into());
     }
     fleet::validate(problem)
+}
+
+/// How far a search may go: to a time, and to a count of the steps the solve's searches have
+/// taken together. Stages limited by steps end at the same place on any machine fast enough to
+/// reach it in time, so the solve takes the same course there.
+#[derive(Clone, Copy)]
+struct Limit {
+    deadline: f64,
+    steps: u64,
+}
+
+impl Limit {
+    fn until(deadline: f64) -> Self {
+        Self {
+            deadline,
+            steps: u64::MAX,
+        }
+    }
+
+    fn reached(self, taken: u64) -> bool {
+        taken >= self.steps || milliseconds() >= self.deadline
+    }
+
+    /// An even part of what is left to the limit, of so many parts.
+    fn part(self, taken: u64, parts: usize) -> Self {
+        let now = milliseconds();
+        Self {
+            deadline: now + (self.deadline - now).max(0.0) / parts as f64,
+            steps: taken.saturating_add(self.steps.saturating_sub(taken) / parts as u64),
+        }
+    }
+
+    /// The limit at this share of the way to it from the start.
+    fn shortened(self, started: f64, share: f64) -> Self {
+        Self {
+            deadline: started + (self.deadline - started) * share,
+            steps: if self.steps == u64::MAX {
+                u64::MAX
+            } else {
+                (self.steps as f64 * share) as u64
+            },
+        }
+    }
+
+    /// So many steps on from those taken, and no later than the limit.
+    fn steps_on(self, taken: u64, steps: u64) -> Self {
+        Self {
+            deadline: self.deadline,
+            steps: self.steps.min(taken.saturating_add(steps)),
+        }
+    }
+}
+
+/// Where a listing of a train's routes stopped: the start it was walking from, and the place of
+/// the connection taken at each stop of the route it had reached, the last stop first.
+#[derive(Default)]
+struct Resume {
+    start: usize,
+    path: Vec<usize>,
 }
 
 struct Compiler<'a> {
@@ -1130,7 +1274,32 @@ struct Search<'a> {
     expansions: u64,
     best_only: bool,
     deadline: f64,
+    // The steps the search may take, and the steps the solve's searches took before it. A stop
+    // with many connections on takes more than a step to walk on from, and pairing a streamed
+    // route takes steps too: the stream had looked at so many stored routes before.
+    steps: u64,
+    taken: &'a std::cell::Cell<u64>,
+    stepped: u64,
+    weighed: u64,
+    scanned: u64,
     exhausted: bool,
+    // A listing taken up where an earlier one stopped follows that one's route first; one that
+    // stops keeps where, the same way.
+    resume: Vec<usize>,
+    cut: Resume,
+    // What the listing does when its routes fill the memory, and whether it stopped for that.
+    when_full: WhenFull,
+    full: bool,
+    // By place in a streamed route, where among the stored routes the partner search of the
+    // route as far as that place came to: every stored route before shares track with it, and
+    // so with any route on from it. The places up to `sought` have had their search; the track
+    // of the route as far as each place is kept for the search of those that have not.
+    partners: Vec<usize>,
+    sought: usize,
+    tracks: Vec<u64>,
+    // By place in a streamed route, the most a stored route clear of the route so far is worth,
+    // by the pieces of track taken one at a time.
+    caps: Vec<i32>,
     // Bytes the stored candidates may take, counting their share of the selection's tables.
     memory_budget: usize,
     selection_bytes_per_candidate: usize,
@@ -1148,6 +1317,8 @@ struct Search<'a> {
     cuts: u64,
     // By place in the route, the moves on from its stop that run on track already in use.
     shut: Vec<Vec<u64>>,
+    // Every stop the train calls at pays it, and nothing but its stops and hexes does.
+    plain: bool,
 }
 
 const UNREACHED: usize = usize::MAX;
@@ -1169,13 +1340,23 @@ impl<'a> Search<'a> {
             ..
         } = value;
         self.expansions += 1;
+        // The way back to where an earlier listing stopped takes none of the steps: a listing
+        // given fewer than that way is long still goes on from there.
+        let returning = !self.resume.is_empty();
+        self.stepped += u64::from(!returning);
         if self.exhausted
+            || !returning && self.steps_taken() > self.steps
             || (self.expansions == 1 || self.expansions.is_multiple_of(4096))
                 && milliseconds() > self.deadline
         {
             self.exhausted = true;
             return;
         }
+        let depth = self.walking.len();
+        self.partners[depth] = depth
+            .checked_sub(1)
+            .map_or(0, |before| self.partners[before]);
+        self.sought = self.sought.min(depth);
         let stop = &self.problem.stops[node];
         if self.train.allowed_stops.get(node) == Some(&false)
             || cost > self.train.distance
@@ -1188,6 +1369,19 @@ impl<'a> Search<'a> {
         let places = places + u32::from(stop.city || stop.town);
         if !token && self.profile.token_distance[node] > self.train.distance - cost {
             return;
+        }
+        // Through the few leading routes of an unfinished list, a streamed route's partner
+        // search is run for every stop it comes to: one with no stored route clear of it goes
+        // no further.
+        if depth > 0
+            && self.sought == depth
+            && let Some(streaming) = &mut self.streaming
+            && streaming.few()
+        {
+            let words = self.used.len();
+            let track = &self.tracks[depth * words..(depth + 1) * words];
+            self.partners[depth] = streaming.first_clear(self.partners[depth], track, i32::MAX, 0);
+            self.sought = depth + 1;
         }
         // An optional stop pays only once the route is known to call there.
         let revenue = if node == start || !self.train.optional(node) {
@@ -1253,12 +1447,13 @@ impl<'a> Search<'a> {
             self.groups[g] = true;
         }
         // A full train goes no further unless some stop is free to visit.
-        if !(cost == self.train.distance && self.every_stop_costs)
-            && self.continues(start, node, onward)
-        {
-            match order {
-                Some(order) => self.branch(order, start, node, onward),
-                None => self.list(start, node, onward),
+        if !(cost == self.train.distance && self.every_stop_costs) {
+            let further = self.continues(start, node, onward);
+            if !matches!(further, outlook::Onward::Ended) {
+                match order {
+                    Some(order) => self.branch(order, start, node, onward, further),
+                    None => self.list(start, node, onward, further),
+                }
             }
         }
         for &g in &stop.groups {
@@ -1267,11 +1462,29 @@ impl<'a> Search<'a> {
         self.visited[node] = false;
     }
 
+    /// The steps the search has taken: the stops walked to, and for a stream the stored routes
+    /// looked at for partners.
+    fn steps_taken(&self) -> u64 {
+        let scans = self
+            .streaming
+            .as_ref()
+            .map_or(0, |stream| stream.scans - self.scanned);
+        self.stepped + self.weighed + scans / SCANS_PER_STEP
+    }
+
     /// Runs on from the stop along every connection, to list every route.
-    fn list(&mut self, start: usize, node: usize, value: RouteValue) {
+    fn list(&mut self, start: usize, node: usize, value: RouteValue, further: outlook::Onward) {
         let (problem, train, adjacency) = (self.problem, self.train, self.adjacency);
         let leaving = !self.walking.is_empty();
-        for &connection in &adjacency[node] {
+        let from = self.resume.pop();
+        if from.is_none() {
+            self.weighed += adjacency[node].len() as u64 / MOVES_PER_STEP;
+        }
+        for (place, &connection) in adjacency[node].iter().enumerate().skip(from.unwrap_or(0)) {
+            // What an earlier listing left of its route lay beyond its connection here.
+            if from.is_some_and(|from| place > from) {
+                self.resume.clear();
+            }
             let edge = &self.connections[connection];
             let next = &problem.stops[edge.to];
             // The step the next call would reject at once, checked first and before touching any
@@ -1289,6 +1502,7 @@ impl<'a> Search<'a> {
                 || next.groups.iter().any(|&g| self.groups[g])
                 || edge.first_terminal && leaving && edge.paths.len() > 1
                 || edge.departs_terminal && leaving && !value.token
+                || !self.worth_taking(start, connection, next_cost, value, further)
                 || edge
                     .resources
                     .iter()
@@ -1312,6 +1526,7 @@ impl<'a> Search<'a> {
                 value,
             );
             if self.exhausted {
+                self.cut.path.push(place);
                 break;
             }
         }
@@ -1346,6 +1561,16 @@ impl<'a> Search<'a> {
             self.hexes[h] += 1;
         }
         self.walking.push(connection);
+        if let Some(streaming) = &self.streaming {
+            let depth = self.walking.len();
+            let words = self.used.len();
+            let at = depth * words;
+            if self.tracks.len() < at + words {
+                self.tracks.resize(at + words, 0);
+            }
+            self.tracks[at..at + words].copy_from_slice(&self.used);
+            self.caps[depth] = self.caps[depth - 1].min(streaming.clear_of(connection));
+        }
         self.walk(
             order,
             start,
@@ -1373,9 +1598,17 @@ impl<'a> Search<'a> {
 
     /// Runs on from the stop for the one best route: along the connections that pay most first,
     /// and not along one that differs from one already walked only in track nothing needed.
-    fn branch(&mut self, order: &alike::Order, start: usize, node: usize, value: RouteValue) {
+    fn branch(
+        &mut self,
+        order: &alike::Order,
+        start: usize,
+        node: usize,
+        value: RouteValue,
+        further: outlook::Onward,
+    ) {
         let (problem, train, connections) = (self.problem, self.train, self.connections);
         let depth = self.walking.len();
+        self.weighed += order.moves[node].len() as u64 / MOVES_PER_STEP;
         if let Some(alike) = &mut self.alike {
             alike.arrive(depth);
         }
@@ -1408,6 +1641,7 @@ impl<'a> Search<'a> {
                     && self.profile.token_distance[edge.to] > train.distance - next_cost
                 || edge.first_terminal && depth > 0 && edge.paths.len() > 1
                 || edge.departs_terminal && depth > 0 && !value.token
+                || !self.worth_taking(start, step.connection, next_cost, value, further)
                 || self
                     .alike
                     .as_mut()
@@ -1505,6 +1739,7 @@ impl<'a> Search<'a> {
                 stays: self.stays,
                 adjacency: self.adjacency,
                 departures: self.departures,
+                taken: self.taken,
             },
             &self.walking,
             start,
@@ -1615,7 +1850,8 @@ impl<'a> Search<'a> {
     // Never less so for more revenue or more stops.
     fn would_want(&self, revenue: i32, visits: usize) -> bool {
         if let Some(streaming) = &self.streaming {
-            return streaming.wanted(revenue, visits);
+            let depth = self.walking.len();
+            return streaming.wanted(revenue, visits, self.partners[depth], self.caps[depth]);
         }
         let fleet_bonus = self.problem.longest_route_bonus_per_stop;
         // A bound may count more stops than any route has.
@@ -1648,8 +1884,27 @@ impl<'a> Search<'a> {
             extension: &extension,
         };
         if let Some(streaming) = &mut self.streaming {
-            streaming.offer(candidate);
+            // The route's stops so far first have their own partner search, each on from the
+            // one before: the routes that follow from any of them begin where it came to.
+            let depth = self.walking.len();
+            let words = self.used.len();
+            let mut from = self
+                .sought
+                .checked_sub(1)
+                .map_or(0, |place| self.partners[place]);
+            for place in self.sought.max(1)..depth {
+                let track = &self.tracks[place * words..(place + 1) * words];
+                from = streaming.first_clear(from, track, revenue, visits);
+                self.partners[place] = from;
+            }
+            self.sought = self.sought.max(depth);
+            let reached = streaming.offer(candidate, from);
             self.exhausted |= streaming.exhausted;
+            // An extension's track is no part of the routes on from this one.
+            if extension.is_empty() {
+                self.partners[depth] = reached;
+                self.sought = depth + 1;
+            }
         } else {
             self.offer_stored(revenue, reversed, &extension);
         }
@@ -1670,17 +1925,26 @@ impl<'a> Search<'a> {
             self.problem.resource_count,
         ) > self.memory_budget
         {
-            if !self.best_only {
-                self.reclaim(false);
-                // Halved whatever the payload when growing would still overflow, so the floor rises
-                // and the next routes are not trimmed for nothing over and over.
-                if self.candidates.growth_peak(
-                    ids,
-                    self.selection_bytes_per_candidate,
-                    self.problem.resource_count,
-                ) > self.memory_budget
-                {
-                    self.reclaim(true);
+            match self.when_full {
+                WhenFull::Pause => {
+                    self.full = true;
+                    self.exhausted = true;
+                    return;
+                }
+                WhenFull::Raise => self.raise_floor(),
+                WhenFull::Halve if self.best_only => {}
+                WhenFull::Halve => {
+                    self.reclaim(false);
+                    // Halved whatever the payload when growing would still overflow, so the
+                    // floor rises and the next routes are not trimmed for nothing over and over.
+                    if self.candidates.growth_peak(
+                        ids,
+                        self.selection_bytes_per_candidate,
+                        self.problem.resource_count,
+                    ) > self.memory_budget
+                    {
+                        self.reclaim(true);
+                    }
                 }
             }
             if !self.wanted(revenue, visits) {
@@ -1710,6 +1974,25 @@ impl<'a> Search<'a> {
         });
     }
 
+    /// Keeps the stored routes worth more than the middle one of them. They are neither put in
+    /// order nor compared, which a list filled again and again has no time for.
+    fn raise_floor(&mut self) {
+        let bonus = self.problem.longest_route_bonus_per_stop;
+        let mut values: Vec<i32> = self
+            .candidates
+            .iter()
+            .map(|candidate| candidate.value(bonus))
+            .collect();
+        if values.is_empty() {
+            return;
+        }
+        let middle = values.len() / 2;
+        let floor = *values.select_nth_unstable(middle).1;
+        self.candidates.keep_above(floor, bonus);
+        self.floor = Some(self.floor.map_or(floor, |kept| kept.max(floor)));
+        self.limited = true;
+    }
+
     fn reclaim(&mut self, halve: bool) {
         self.candidates.dedup(Network {
             problem: self.problem,
@@ -1717,6 +2000,7 @@ impl<'a> Search<'a> {
             stays: self.stays,
             adjacency: self.adjacency,
             departures: self.departures,
+            taken: self.taken,
         });
         let payload: usize = self
             .candidates
@@ -1891,11 +2175,18 @@ fn longest_suffix(candidates: &[Candidate], longest_bonus: i32) -> Vec<usize> {
 }
 
 struct StreamingSelection<'a> {
-    stored: &'a Candidates,
+    stored: Rc<Candidates>,
+    // How many of the stored routes, from the first, are paired with.
+    leading: usize,
+    // They are the leading part of a list that is not whole.
+    part: bool,
     network: Network<'a>,
     connection_conflicts: Vec<u8>,
     extension_conflicts: Vec<u8>,
     resource_candidates: ResourceCandidates,
+    // By connection, the most a stored route clear of its track is worth; none where the
+    // longest route's bonus makes a pair worth more than its routes.
+    clear: Vec<i32>,
     longest_suffix: Vec<usize>,
     longest_bonus: i32,
     revenue: i32,
@@ -1904,17 +2195,55 @@ struct StreamingSelection<'a> {
     deadline: f64,
     checks: u64,
     next_clock_check: u64,
+    // The words of indexed routes and the routes beyond them looked at for partners.
+    scans: u64,
     descended: bool,
     exhausted: bool,
 }
 
+// What putting a list in order takes for each of its routes, in milliseconds, on a slow machine.
+const ORDERING_MS: f64 = 0.000_3;
+
+// How many of the most valuable stored routes are looked at for one clear of each piece of track.
+const CLEAR_ROUTES: usize = 65_536;
+// So many words of stored routes are few.
+const FEW_WORDS: usize = 256;
+
+// Looking at so many words of stored routes for a partner takes about a step of the search, as
+// does trying so many connections on from a stop.
+const SCANS_PER_STEP: u64 = 8;
+const MOVES_PER_STEP: u64 = 16;
+
 impl<'a> StreamingSelection<'a> {
     fn new(
-        stored: &'a Candidates,
+        stored: Rc<Candidates>,
         network: Network<'a>,
         deadline: f64,
         memory_budget: usize,
     ) -> Self {
+        Self::through(stored, usize::MAX, false, network, deadline, memory_budget)
+    }
+
+    /// A selection that pairs with no more than so many of the stored routes, from the first.
+    fn leading(
+        stored: Rc<Candidates>,
+        leading: usize,
+        network: Network<'a>,
+        deadline: f64,
+        memory_budget: usize,
+    ) -> Self {
+        Self::through(stored, leading, true, network, deadline, memory_budget)
+    }
+
+    fn through(
+        stored: Rc<Candidates>,
+        leading: usize,
+        part: bool,
+        network: Network<'a>,
+        deadline: f64,
+        memory_budget: usize,
+    ) -> Self {
+        let leading = leading.min(stored.len());
         let longest_bonus = network.problem.longest_route_bonus_per_stop;
         let suffix_bytes = if longest_bonus > 0 {
             std::mem::size_of::<usize>()
@@ -1928,23 +2257,29 @@ impl<'a> StreamingSelection<'a> {
             .min(network.problem.memory_budget_bytes / 4);
         let words =
             ResourceCandidates::words_for_budget(network.problem.resource_count, index_budget)
-                .min(stored.len().div_ceil(64));
+                .min(leading.div_ceil(64));
         let mut resource_candidates =
             ResourceCandidates::new(network.problem.resource_count, words);
-        for (id, candidate) in stored.iter().take(words * 64).enumerate() {
+        for (id, candidate) in stored.iter().take(leading.min(words * 64)).enumerate() {
             resource_candidates.insert(id, stored.resources(candidate, network));
         }
         let mut best_stored = None;
         let mut revenue = 0;
-        for (id, candidate) in stored.iter().enumerate() {
+        for (id, candidate) in stored.iter().take(leading).enumerate() {
             if candidate.value(longest_bonus) > revenue {
                 revenue = candidate.value(longest_bonus);
                 best_stored = Some(id);
             }
         }
         Self {
-            stored,
             network,
+            clear: if longest_bonus == 0 {
+                Self::clear(&stored[..leading], &stored, network)
+            } else {
+                vec![]
+            },
+            leading,
+            part,
             resource_candidates,
             connection_conflicts: vec![0; network.connections.len()],
             extension_conflicts: if stored.iter().any(|candidate| candidate.extension_len > 0) {
@@ -1952,7 +2287,8 @@ impl<'a> StreamingSelection<'a> {
             } else {
                 vec![]
             },
-            longest_suffix: longest_suffix(stored, longest_bonus),
+            longest_suffix: longest_suffix(&stored, longest_bonus),
+            stored,
             longest_bonus,
             revenue,
             best_stored,
@@ -1960,30 +2296,105 @@ impl<'a> StreamingSelection<'a> {
             deadline,
             checks: 0,
             next_clock_check: 1024,
+            scans: 0,
             descended: false,
             exhausted: false,
         }
     }
 
+    /// By connection, the most a stored route clear of its track is worth: the first of them,
+    /// the most valuable first, that is clear of each piece of track bounds every route clear
+    /// of it. Looking no further than so many routes, the last looked at bounds the rest.
+    fn clear(leading: &[Candidate], stored: &Candidates, network: Network<'_>) -> Vec<i32> {
+        let pieces = network.problem.resource_count;
+        let mut without = vec![0; pieces];
+        let mut unsettled: Vec<u64> = (0..pieces.div_ceil(64))
+            .map(|word| {
+                let left = pieces - word * 64;
+                if left >= 64 {
+                    u64::MAX
+                } else {
+                    (1 << left) - 1
+                }
+            })
+            .collect();
+        let mut track = vec![0; unsettled.len()];
+        for candidate in leading.iter().take(CLEAR_ROUTES) {
+            if unsettled.iter().all(|&word| word == 0) {
+                break;
+            }
+            stored.resource_bits(candidate, network, &mut track);
+            for (word, (unsettled, track)) in unsettled.iter_mut().zip(&track).enumerate() {
+                let mut clear = *unsettled & !track;
+                while clear != 0 {
+                    without[word * 64 + clear.trailing_zeros() as usize] = candidate.revenue.max(0);
+                    clear &= clear - 1;
+                }
+                *unsettled &= track;
+            }
+        }
+        // No route looked at is clear of the track left: one further on is worth no more than it.
+        let rest = leading
+            .get(CLEAR_ROUTES)
+            .map_or(0, |next| next.revenue.max(0));
+        for (word, &unsettled) in unsettled.iter().enumerate() {
+            let mut left = unsettled;
+            while left != 0 {
+                without[word * 64 + left.trailing_zeros() as usize] = rest;
+                left &= left - 1;
+            }
+        }
+        network
+            .connections
+            .iter()
+            .map(|edge| {
+                edge.resources
+                    .iter()
+                    .map(|&piece| without[piece])
+                    .min()
+                    .unwrap_or(i32::MAX)
+            })
+            .collect()
+    }
+
+    /// Whether the stored routes are the few leading ones of an unfinished list, all indexed:
+    /// the partner search is then run for every stop a streamed route comes to. Through a whole
+    /// list it drops too few routes for the stored routes it looks at.
+    fn few(&self) -> bool {
+        self.part
+            && self.resource_candidates.words <= FEW_WORDS
+            && self.resource_candidates.words == self.leading.div_ceil(64)
+    }
+
+    /// The most a stored route clear of the connection's track is worth.
+    fn clear_of(&self, connection: usize) -> i32 {
+        self.clear.get(connection).copied().unwrap_or(i32::MAX)
+    }
+
     // A route may run alone rather than beside a stored one that loses money.
     fn upper(&self, revenue: i32, visits: usize, index: usize) -> i32 {
         let longest = visits.max(self.longest_suffix.get(index).copied().unwrap_or(0)) as i32;
+        let stored = self.stored[..self.leading].get(index);
         revenue
-            .saturating_add(self.stored.get(index).map_or(0, |c| c.revenue.max(0)))
+            .saturating_add(stored.map_or(0, |c| c.revenue.max(0)))
             .saturating_add(longest.saturating_mul(self.longest_bonus))
     }
 
-    fn wanted(&self, revenue: i32, visits: usize) -> bool {
-        !self.exhausted && self.upper(revenue, visits, 0) > self.revenue
+    /// Whether a route worth this much could better the operation, beside a stored route from
+    /// this word of them on that is worth no more than the cap.
+    fn wanted(&self, revenue: i32, visits: usize, from: usize, cap: i32) -> bool {
+        !self.exhausted
+            && self.upper(revenue, visits, from * 64) > self.revenue
+            && revenue.saturating_add(cap) > self.revenue
     }
 
     /// The best pair found, as the two trains' routes; none where it was seeded with a better one.
-    fn operation(self, stored: usize, streamed: usize) -> Vec<Lone> {
+    fn operation(&self, stored: usize, streamed: usize) -> Vec<Lone> {
         let mut routes = vec![];
         if let Some(id) = self.best_stored {
             routes.push(self.stored.lone(id, stored, self.network));
         }
-        if let Some(lone) = self.best_streamed {
+        if let Some(lone) = self.best_streamed.clone() {
             routes.push(Lone {
                 route: Route {
                     train: streamed,
@@ -2015,12 +2426,45 @@ impl<'a> StreamingSelection<'a> {
         self.exhausted
     }
 
-    fn offer(&mut self, candidate: CandidateView<'_>) {
-        self.connection_conflicts.fill(0);
-        self.extension_conflicts.fill(0);
+    /// Goes on with a stream that stopped at its time, until another.
+    fn go_on(&mut self, deadline: f64) {
+        self.deadline = deadline;
+        self.exhausted = false;
+    }
+
+    /// The first word of indexed stored routes, from this one on, with a route clear of the
+    /// track: where a partner search of a route with that track and more may begin. It stops
+    /// short where no stored route further on could make a better pair of a route worth this
+    /// much, and at the routes that are not indexed.
+    fn first_clear(&mut self, from: usize, track: &[u64], revenue: i32, visits: usize) -> usize {
+        let mut word = from;
+        while word < self.resource_candidates.words
+            && self.upper(revenue, visits, word * 64) > self.revenue
+        {
+            self.checks += 64;
+            self.scans += 1;
+            if self.timed_out() || self.resource_candidates.compatible_word(word, track) != 0 {
+                break;
+            }
+            word += 1;
+        }
+        word
+    }
+
+    /// Pairs the route with the best stored route clear of it, looking from this word of the
+    /// stored routes on. Returns the word the search came to: the first with a route clear of
+    /// this one, or where no stored route further on could make a better pair.
+    fn offer(&mut self, candidate: CandidateView<'_>, from: usize) -> usize {
+        // Each stored connection's conflict with the route is found once, for the stored routes
+        // beyond the indexed ones.
+        let mut cached = false;
         let mut revenue = candidate.revenue + candidate.visits as i32 * self.longest_bonus;
         let mut partner = None;
-        'partners: for word in 0..self.stored.len().div_ceil(64) {
+        let words = self.leading.div_ceil(64);
+        let mut reached = words;
+        let mut clear = None;
+        'partners: for word in from..words {
+            reached = word;
             let start = word * 64;
             if self.upper(candidate.revenue, candidate.visits, start) <= self.revenue.max(revenue) {
                 break;
@@ -2028,6 +2472,7 @@ impl<'a> StreamingSelection<'a> {
             let indexed = word < self.resource_candidates.words;
             let mut available = if indexed {
                 self.checks += 64;
+                self.scans += 1;
                 if self.timed_out() {
                     break;
                 }
@@ -2039,17 +2484,23 @@ impl<'a> StreamingSelection<'a> {
             while available != 0 {
                 let id = start + available.trailing_zeros() as usize;
                 available &= available - 1;
-                if id >= self.stored.len()
+                if id >= self.leading
                     || self.upper(candidate.revenue, candidate.visits, id)
                         <= self.revenue.max(revenue)
                 {
                     break 'partners;
                 }
-                let stored = &self.stored[id];
+                let stored = self.stored[id];
                 if !indexed {
                     self.checks += 1;
+                    self.scans += 1;
                     if self.timed_out() {
                         break 'partners;
+                    }
+                    if !cached {
+                        self.connection_conflicts.fill(0);
+                        self.extension_conflicts.fill(0);
+                        cached = true;
                     }
                     let extension_start = stored.offset + stored.visits - 1;
                     if self.stored.arena.any(stored.offset..extension_start, |id| {
@@ -2071,6 +2522,7 @@ impl<'a> StreamingSelection<'a> {
                         continue;
                     }
                 }
+                clear = clear.or(Some(word));
                 let total = candidate.revenue
                     + stored.revenue
                     + candidate.visits.max(stored.visits) as i32 * self.longest_bonus;
@@ -2082,6 +2534,7 @@ impl<'a> StreamingSelection<'a> {
                     break 'partners;
                 }
             }
+            reached = word + 1;
         }
         if revenue > self.revenue {
             self.revenue = revenue;
@@ -2099,6 +2552,7 @@ impl<'a> StreamingSelection<'a> {
             });
         }
         self.descended = true;
+        clear.unwrap_or(reached)
     }
 }
 
@@ -2282,6 +2736,8 @@ struct Selection<'a> {
     revenue: i32,
     expansions: u64,
     deadline: f64,
+    // The steps the selection may take.
+    steps: u64,
     exhausted: bool,
     // The first descent picks each train's best compatible candidate and ends at the first leaf or
     // bound; it always finishes, so an interrupted selection still returns a legal operation.
@@ -2292,7 +2748,7 @@ impl<'a> Selection<'a> {
     fn new(
         candidates: &'a [Rc<Candidates>],
         network: Network<'a>,
-        deadline: f64,
+        limit: Limit,
         row_budget: usize,
     ) -> Self {
         let longest_bonus = network.problem.longest_route_bonus_per_stop;
@@ -2349,7 +2805,8 @@ impl<'a> Selection<'a> {
             best: vec![],
             revenue: 0,
             expansions: 0,
-            deadline,
+            deadline: limit.deadline,
+            steps: limit.steps.saturating_sub(network.taken.get()),
             exhausted: false,
             descended: false,
         }
@@ -2384,12 +2841,29 @@ impl<'a> Selection<'a> {
     fn timed_out(&mut self) -> bool {
         self.expansions += 1;
         if self.descended
-            && (self.expansions == 1 || self.expansions.is_multiple_of(1024))
-            && milliseconds() > self.deadline
+            && (self.expansions > self.steps
+                || (self.expansions == 1 || self.expansions.is_multiple_of(1024))
+                    && milliseconds() > self.deadline)
         {
             self.exhausted = true;
         }
         self.exhausted
+    }
+
+    /// The best operation of the listed routes worth more than the revenue given, as the trains'
+    /// routes, and whether the selection finished; its steps count towards the solve's.
+    fn operation(mut self, revenue: i32, candidates: &[Rc<Candidates>]) -> (i32, Vec<Lone>, bool) {
+        self.revenue = revenue;
+        self.walk(0, 0, 0);
+        let taken = self.network.taken;
+        taken.set(taken.get() + self.expansions);
+        self.best.sort_unstable_by_key(|&(train, _)| train);
+        let routes = self
+            .best
+            .iter()
+            .map(|&(train, id)| candidates[train].lone(id, train, self.network))
+            .collect();
+        (self.revenue, routes, !self.exhausted)
     }
 
     fn walk(&mut self, depth: usize, revenue: i32, longest: usize) {
@@ -2495,6 +2969,7 @@ struct Compiled {
     stays: Vec<Vec<usize>>,
     adjacency: Vec<Vec<usize>>,
     departures: Vec<Vec<usize>>,
+    taken: std::cell::Cell<u64>,
     bytes: usize,
     // Compilation stopped early, and whether for memory.
     exhausted: bool,
@@ -2541,6 +3016,7 @@ impl Compiled {
             stays: compiler.stays,
             adjacency,
             departures,
+            taken: std::cell::Cell::new(0),
             bytes: compiler.stored_bytes,
             exhausted: compiler.exhausted,
             limited: compiler.limited,
@@ -2554,67 +3030,113 @@ impl Compiled {
             stays: &self.stays,
             adjacency: &self.adjacency,
             departures: &self.departures,
+            taken: &self.taken,
         }
     }
 }
 
 pub fn solve(problem: &Problem) -> Result<Solution, String> {
     validate(problem)?;
+    Ok(routed(problem))
+}
+
+/// The best operation found for a problem that is valid.
+fn routed(problem: &Problem) -> Solution {
     let started = milliseconds();
-    let whole = started + problem.budget_ms;
-    let compiled = Compiled::new(problem, whole);
+    let compiled = Compiled::new(problem, started + problem.budget_ms);
     let clock = Clock {
         started,
         compile_ms: milliseconds() - started,
+        budget_ms: problem.budget_ms,
+        pace_ms: problem.pace_ms.unwrap_or(problem.budget_ms),
     };
+    if problem.fleet.is_some() || problem.trains.len() < 2 {
+        return operate(problem, &compiled, clock, clock.whole(), None).0;
+    }
+    if problem.trains.len() == 2 {
+        return pair::solve(problem, &compiled, clock);
+    }
     // Listing every train's routes settles most fleets soonest, and an outline costs an easy
     // fleet about as much again: the listing alone is tried first, for a small part of the time.
-    let outlined = problem.fleet.is_none() && problem.trains.len() > 1;
     let mut listed = 0;
-    let mut first = outlined.then_some((0, vec![]));
-    if outlined && !compiled.exhausted && !compiled.limited {
+    let mut first = (0, vec![]);
+    if !compiled.exhausted && !compiled.limited {
         let (listing, routes) = operate(
             problem,
             &compiled,
             clock,
-            started + problem.budget_ms * LISTING_FIRST_SHARE,
+            clock.share(0, LISTING_FIRST_SHARE),
             None,
         );
         if listing.exhaustive {
-            return Ok(listing);
+            return listing;
         }
         listed = listing.expansions;
-        first = Some((listing.revenue, routes));
+        first = (listing.revenue, routes);
     }
-    let (operation, _) = operate(problem, &compiled, clock, whole, first);
-    Ok(Solution {
+    let (operation, _) = operate(problem, &compiled, clock, clock.whole(), Some(first));
+    Solution {
         expansions: operation.expansions + listed,
         ..operation
-    })
+    }
 }
 
 #[derive(Clone, Copy)]
 struct Clock {
     started: f64,
     compile_ms: f64,
+    budget_ms: f64,
+    pace_ms: f64,
 }
 
-/// The best operation found by the deadline, and its routes with their track where the fleet was
-/// not outlined. A fleet without a fleet policy is outlined when given an operation already
-/// found, which may be none: the outline's first operation is the better of the two, and the
-/// trains' routes are then listed above it.
+// The steps a millisecond of a solve is paced at, about what its slowest searches take in
+// WebAssembly, so that a stage limited to a share of the steps ends within that share of the time.
+const STEPS_PER_MS: f64 = 5000.0;
+
+impl Clock {
+    fn whole(&self) -> Limit {
+        Limit::until(self.started + self.budget_ms)
+    }
+
+    /// The limit of a stage that takes this share of the solve from the steps taken so far: its
+    /// share of the steps the solve is paced at, and on a machine too slow for that pace twice
+    /// the share of the time from now.
+    fn share(&self, taken: u64, share: f64) -> Limit {
+        Limit {
+            deadline: (milliseconds() + self.budget_ms * 2.0 * share)
+                .min(self.started + self.budget_ms),
+            steps: taken.saturating_add((self.pace_ms * STEPS_PER_MS * share) as u64),
+        }
+    }
+
+    /// The steps the solve is paced at that are left after those taken.
+    fn steps_left(&self, taken: u64) -> u64 {
+        ((self.pace_ms * STEPS_PER_MS) as u64).saturating_sub(taken)
+    }
+
+    /// The steps that putting so many routes in order stands for at the solve's pace.
+    fn ordering_steps(routes: usize) -> u64 {
+        (routes as f64 * ORDERING_MS * STEPS_PER_MS) as u64
+    }
+}
+
+/// The best operation found within the limit, and its routes with their track where the fleet
+/// was not outlined: of one train, of a fleet with a fleet policy, or of three trains or more
+/// without one. The last is outlined when given an operation already found, which may be none:
+/// the outline's first operation is the better of the two, and the trains' routes are then
+/// listed above it.
 fn operate(
     problem: &Problem,
     compiled: &Compiled,
     clock: Clock,
-    whole: f64,
+    limit: Limit,
     found: Option<(i32, Vec<Lone>)>,
 ) -> (Solution, Vec<Lone>) {
     let Clock {
         started,
         compile_ms,
+        ..
     } = clock;
-    let budget_ms = whole - started;
     let (connections, compiled_bytes, compiler_limited) =
         (&compiled.connections, compiled.bytes, compiled.limited);
     let network = compiled.network(problem);
@@ -2627,9 +3149,6 @@ fn operate(
     let mut expansions = 0;
     let mut path_exhaustive = !compiled.exhausted;
     let mut memory_limited = compiler_limited;
-    // Whether some stage ran out of time, as opposed to memory.
-    let mut timed_out = compiled.exhausted && !compiler_limited;
-    let mut streamed_max = None;
     let previous_profile: Vec<Option<usize>> = (0..problem.trains.len())
         .map(|train_id| same_profile(problem, train_id))
         .collect();
@@ -2641,49 +3160,22 @@ fn operate(
         });
     }
     let mut profiles_left = previous_profile.iter().filter(|p| p.is_none()).count();
-    let streaming = problem.fleet.is_none() && problem.trains.len() == 2 && profiles_left == 2;
-    let mut train_order: Vec<_> = (0..problem.trains.len()).collect();
-    if streaming {
-        train_order.sort_by_key(|&id| {
-            let train = &problem.trains[id];
-            (train.distance, train.major_limit.unwrap_or(u32::MAX))
-        });
-    }
-    let mut streamed_result = None;
-    let mut best_single = 0;
     let fleet = problem.trains.len() > 1 || problem.fleet.is_some();
-    let row_budget = if streaming {
-        0
-    } else {
-        problem.memory_budget_bytes / 4
-    };
+    let row_budget = problem.memory_budget_bytes / 4;
     // A fleet's selection accounts for its own memory, from what the candidates leave.
     let selection_bytes_per_candidate = if problem.fleet.is_some() {
         0
-    } else if streaming {
-        if problem.longest_route_bonus_per_stop == 0 {
-            0
-        } else {
-            std::mem::size_of::<usize>()
-        }
     } else {
-        std::mem::size_of::<Option<Vec<u64>>>()
-            + std::mem::size_of::<usize>()
-            + problem.resource_count.div_ceil(8)
-            + (problem.trains.len() + 1).div_ceil(8)
+        selection_bytes(problem)
     };
-    let mut candidate_budget = (problem.memory_budget_bytes - row_budget - compiled_bytes)
-        .saturating_sub(if streaming {
-            network.streaming_scratch_bytes()
-        } else {
-            0
-        });
+    let mut candidate_budget = problem.memory_budget_bytes - row_budget - compiled_bytes;
     let mut outline = found.map(|(revenue, routes)| {
-        let operation = (started + budget_ms * OPERATION_SHARE, candidate_budget);
+        let taken = network.taken.get();
+        let operation = (clock.share(taken, OPERATION_SHARE), candidate_budget);
         let mut outline = network.outline(
             &profiles,
             &previous_profile,
-            started + budget_ms * OUTLINE_SHARE,
+            clock.share(taken, OUTLINE_SHARE),
             operation,
         );
         if revenue > outline.revenue {
@@ -2692,122 +3184,56 @@ fn operate(
         }
         outline
     });
-    // Two trains whose best routes are both known are settled by keeping them apart; the
-    // longest-route bonus is no sum of two routes' worth. That search runs first while it keeps
-    // finding better operations, where the time has room for enough routings to find any, and
-    // again in the time listing the routes leaves.
-    let mut settling = outline
-        .as_ref()
-        .filter(|_| problem.trains.len() == 2 && problem.longest_route_bonus_per_stop == 0)
-        .and_then(|outline| Settling::new(problem, &profiles, outline));
-    let settling_room = (problem.memory_budget_bytes - compiled_bytes) / 4;
-    if let Some(outline) = &mut outline {
-        let most = outline.most();
-        let settled = most.is_some_and(|most| i64::from(outline.revenue) < most)
-            && settling.as_mut().is_some_and(|settling| {
-                let early = started + budget_ms * EARLY_SETTLING_SHARE;
-                outline.alone_ms * SETTLING_ROUTINGS <= early - milliseconds()
-                    && network.settle(
-                        &profiles,
-                        outline,
-                        settling,
-                        (early, settling_room),
-                        Some(PATIENCE),
-                    )
-            });
-        // Every train runs its best route, or the trains were settled: nothing earns more.
-        if settled || most.is_some_and(|most| i64::from(outline.revenue) >= most) {
-            let path_ms = milliseconds() - started - compile_ms;
-            let solution = Solution {
-                revenue: outline.revenue,
-                subsidy: 0,
-                routes: outline.operation(),
-                exhaustive: path_exhaustive,
-                path_exhaustive,
-                combination_exhaustive: true,
-                candidates: outline.counts.clone(),
-                memory_limited,
-                expansions: expansions + outline.expansions,
-                connections: connections.len(),
-                compile_ms,
-                path_ms,
-                combination_ms: 0.0,
-            };
-            return (solution, vec![]);
-        }
+    // Every train runs its best route: nothing earns more.
+    if let Some(outline) = &outline
+        && outline
+            .most()
+            .is_some_and(|most| i64::from(outline.revenue) >= most)
+    {
+        let solution = Solution {
+            revenue: outline.revenue,
+            subsidy: 0,
+            routes: outline.operation(),
+            exhaustive: path_exhaustive,
+            path_exhaustive,
+            combination_exhaustive: true,
+            candidates: outline.counts.clone(),
+            memory_limited,
+            expansions: outline.expansions,
+            connections: connections.len(),
+            compile_ms,
+            path_ms: milliseconds() - started - compile_ms,
+            combination_ms: 0.0,
+        };
+        return (solution, vec![]);
     }
-    // Where two trains are kept apart, listing their routes leaves that search some time. A
-    // listing takes several times as long as finding each train's best route did: where it
-    // could not finish, the time goes to keeping the trains apart instead, unless that search
-    // would get too few routings to be worth more than what the listing comes across.
-    let deadline = match (&settling, &outline) {
-        (Some(_), Some(outline)) => {
-            let now = milliseconds();
-            let left = (whole - now).max(0.0);
-            if outline.alone_ms * LISTING_FACTOR <= left * LISTING_SHARE {
-                now + left * LISTING_SHARE
-            } else if outline.alone_ms * SETTLING_ROUTINGS <= left {
-                now
-            } else {
-                whole
-            }
-        }
-        _ => whole,
-    };
-    let path_deadline = if fleet && !streaming {
-        started + (deadline - started) * 0.75
+    let path_limit = if fleet {
+        limit.shortened(started, 0.75)
     } else {
-        deadline
+        limit
     };
-    let alike = problem.trains.len() == 2 && previous_profile[1] == Some(0);
-    // Two alike trains with a first operation are not listed whole, which overflows memory long
-    // before the routes that matter are paired: they go straight to the pass below, which stores
-    // only the routes worth more than half the operation and streams every route through them.
-    let halving = alike && outline.is_some() && !compiled.exhausted && !compiler_limited;
-    let listed: &[usize] = if halving { &[] } else { &train_order };
-    for &train_id in listed {
-        let train = &problem.trains[train_id];
+    for (train_id, train) in problem.trains.iter().enumerate() {
         if let Some(previous) = previous_profile[train_id] {
             candidates[train_id] = Rc::clone(&candidates[previous]);
             counts[train_id] = counts[previous];
             continue;
         }
-        let share = 1.0 / profiles_left as f64;
-        let train_deadline = {
-            let now = milliseconds();
-            now + (path_deadline - now).max(0.0) * share
-        };
-        let train_memory = if streaming {
-            candidate_budget
-        } else {
-            candidate_budget / profiles_left
-        };
+        let train_limit = path_limit.part(network.taken.get(), profiles_left);
+        let train_memory = candidate_budget / profiles_left;
         profiles_left -= 1;
-        let stored = (streaming && train_id == train_order[1])
-            .then(|| Rc::clone(&candidates[train_order[0]]));
         let search = network.search(
             train,
             SearchPlan {
                 profile: Rc::clone(&profiles[train_id]),
                 closed: None,
-                deadline: train_deadline,
+                limit: train_limit,
                 memory_budget: train_memory,
                 selection_bytes_per_candidate,
                 best_only: !fleet,
-                floor: match &outline {
-                    Some(outline) if stored.is_none() => outline.floor(train_id),
-                    _ => None,
-                },
-                streaming: stored.as_ref().map(|routes| {
-                    let mut selection = StreamingSelection::new(
-                        routes,
-                        network,
-                        deadline,
-                        problem.memory_budget_bytes - compiled_bytes,
-                    );
-                    selection.seed(outline.as_ref().map_or(0, |outline| outline.revenue));
-                    selection
-                }),
+                floor: outline.as_ref().and_then(|outline| outline.floor(train_id)),
+                streaming: None,
+                listed: None,
+                when_full: WhenFull::Halve,
             },
         );
         candidate_budget -= search
@@ -2815,19 +3241,9 @@ fn operate(
             .bytes(selection_bytes_per_candidate)
             .min(candidate_budget);
         counts[train_id] = search.count;
-        best_single = best_single.max(search.max_value);
         expansions += search.expansions;
         path_exhaustive &= !search.exhausted && !search.limited;
         memory_limited |= search.limited;
-        timed_out |= search.exhausted;
-        if let Some(selection) = search.streaming {
-            // The streamed search skips routes that cannot pair, so only the outline knows the
-            // train's best.
-            streamed_max = outline.as_ref().and_then(|outline| outline.alone[train_id]);
-            let (revenue, finished) = (selection.revenue, !selection.exhausted);
-            let routes = selection.operation(train_order[0], train_id);
-            streamed_result = Some((revenue, routes, finished));
-        }
         candidates[train_id] = Rc::new(search.candidates);
     }
     let path_finished = milliseconds();
@@ -2836,7 +3252,7 @@ fn operate(
             fleet::solve(
                 network,
                 &candidates,
-                deadline,
+                limit.deadline,
                 row_budget + candidate_budget,
             );
         memory_limited |= limited;
@@ -2858,165 +3274,25 @@ fn operate(
         return (solution, vec![]);
     }
     if let Some(outline) = &outline {
-        best_single = outline
-            .alone
-            .iter()
-            .flatten()
-            .fold(best_single, |best, &alone| best.max(alone));
         for (count, listed) in counts.iter_mut().zip(&outline.counts) {
             *count += listed;
         }
     }
-    let (mut revenue, mut routes, mut combination_exhaustive) = match (&outline, streamed_result) {
-        (Some(outline), _) if halving => (outline.revenue, vec![], false),
-        (_, Some(result)) => result,
-        _ => {
-            let mut selection = Selection::new(&candidates, network, deadline, row_budget);
-            selection.revenue = outline.as_ref().map_or(0, |outline| outline.revenue);
-            selection.walk(0, 0, 0);
-            selection.best.sort_unstable_by_key(|&(train, _)| train);
-            let routes = selection
-                .best
-                .iter()
-                .map(|&(train, id)| candidates[train].lone(id, train, network))
-                .collect();
-            (selection.revenue, routes, !selection.exhausted)
-        }
-    };
-    path_exhaustive &= !halving;
+    let (mut revenue, mut routes, combination_exhaustive) =
+        Selection::new(&candidates, network, limit, row_budget).operation(
+            outline.as_ref().map_or(0, |outline| outline.revenue),
+            &candidates,
+        );
     // The routes found are kept apart from the lists, which make room for what follows.
     drop(candidates);
-    // A two-train fleet cut for memory is solved again, exactly, above what the first answer proves:
-    // a better pair needs a route worth more than half its revenue when the trains are alike, or a
-    // stored route worth more than the revenue less the other train's best route. Alike trains
-    // with an outline are solved so from the start, above its operation.
-    timed_out |= !combination_exhaustive;
-    let threshold = match streamed_max {
-        _ if halving => Some(revenue / 2),
-        _ if !memory_limited || compiler_limited || timed_out => None,
-        _ if alike => Some(revenue / 2),
-        Some(best) if streaming => Some(revenue - best),
-        _ => None,
-    };
-    if let Some(threshold) = threshold {
-        let (stored_id, streamed_id) = if alike {
-            (0, 1)
-        } else {
-            (train_order[0], train_order[1])
-        };
-        // Alike trains listed whole first store only routes well above the floor that proves the
-        // answer, as the best single routes often crowd one stretch of track and cannot pair: a
-        // better pair then raises the proving floor. The floor rises while the stored routes
-        // overflow memory and falls to half the revenue once an answer is found, which is exact
-        // there. An outline's operation is near enough the answer to start from half of it.
-        let mut floor = if alike && !halving {
-            threshold.max((threshold + best_single) / 2)
-        } else {
-            threshold
-        };
-        // The highest floor whose routes overflowed memory: no floor at or below it can be tried.
-        let mut overflowed: Option<i32> = None;
-        loop {
-            let now = milliseconds();
-            if now >= deadline {
-                break;
-            }
-            let stored = network.search(
-                &problem.trains[stored_id],
-                SearchPlan {
-                    profile: Rc::clone(&profiles[stored_id]),
-                    closed: None,
-                    deadline: now + (deadline - now).max(0.0) / 2.0,
-                    memory_budget: (problem.memory_budget_bytes - compiled_bytes)
-                        .saturating_sub(network.streaming_scratch_bytes()),
-                    selection_bytes_per_candidate: if problem.longest_route_bonus_per_stop == 0 {
-                        0
-                    } else {
-                        std::mem::size_of::<usize>()
-                    },
-                    best_only: false,
-                    floor: Some(floor),
-                    streaming: None,
-                },
-            );
-            expansions += stored.expansions;
-            memory_limited |= stored.limited;
-            if halving {
-                counts[stored_id] += stored.count;
-            }
-            // A list cut short by the time proves nothing, but its routes pair all the same.
-            let complete = !stored.exhausted;
-            if stored.limited && complete {
-                overflowed = Some(overflowed.map_or(floor, |highest| highest.max(floor)));
-                if !alike || floor >= best_single {
-                    break;
-                }
-                floor = (floor + best_single + 1) / 2;
-                continue;
-            }
-            let mut selection = StreamingSelection::new(
-                &stored.candidates,
-                network,
-                deadline,
-                problem.memory_budget_bytes - compiled_bytes,
-            );
-            selection.seed(revenue);
-            let streamed = network.search(
-                &problem.trains[streamed_id],
-                SearchPlan {
-                    profile: Rc::clone(&profiles[streamed_id]),
-                    closed: None,
-                    deadline,
-                    memory_budget: 0,
-                    selection_bytes_per_candidate: 0,
-                    best_only: false,
-                    floor: None,
-                    streaming: Some(selection),
-                },
-            );
-            expansions += streamed.expansions;
-            if halving {
-                counts[streamed_id] += streamed.count;
-            }
-            // A stream cut short proves nothing, but its best pair is an operation all the same.
-            let finished = complete && !streamed.exhausted;
-            let Some(selection) = streamed.streaming else {
-                break;
-            };
-            if selection.revenue > revenue {
-                revenue = selection.revenue;
-                routes = selection.operation(stored_id, streamed_id);
-            }
-            if !finished {
-                break;
-            }
-            if !alike || floor <= revenue / 2 {
-                path_exhaustive = true;
-                combination_exhaustive = true;
-                memory_limited = false;
-                break;
-            }
-            if overflowed.is_some_and(|highest| revenue / 2 <= highest) {
-                break;
-            }
-            floor = revenue / 2;
-        }
-    }
     if let Some(outline) = &mut outline {
         if revenue > outline.revenue {
             outline.adopt(revenue, std::mem::take(&mut routes));
         }
+        // A listing cut short may leave an operation that one train alone betters.
         if !(path_exhaustive && combination_exhaustive) {
-            // A listing cut short may leave an operation that one train alone betters. Two
-            // trains not yet settled are then kept apart in the time left.
-            network.improve(&profiles, outline, (whole, settling_room));
-            if let Some(settling) = &mut settling
-                && network.settle(&profiles, outline, settling, (whole, settling_room), None)
-            {
-                path_exhaustive = !compiled.exhausted;
-                combination_exhaustive = true;
-                memory_limited = compiler_limited;
-            }
+            let room = (problem.memory_budget_bytes - compiled_bytes) / 4;
+            network.improve(&profiles, outline, (clock.whole(), room));
         }
         expansions += outline.expansions;
         revenue = outline.revenue;
@@ -3040,6 +3316,14 @@ fn operate(
         combination_ms: milliseconds() - path_finished,
     };
     (solution, routes)
+}
+
+/// What each listed route takes of the tables that select among several trains' routes.
+fn selection_bytes(problem: &Problem) -> usize {
+    std::mem::size_of::<Option<Vec<u64>>>()
+        + std::mem::size_of::<usize>()
+        + problem.resource_count.div_ceil(8)
+        + (problem.trains.len() + 1).div_ceil(8)
 }
 
 /// A train's best route clear of some track.
@@ -3131,21 +3415,16 @@ impl Settling {
     }
 }
 
-// How much of a fleet's time listing its routes outright may take before the fleet is outlined,
-// and how far into the time the outline may look for the trains' best routes alone and for its
-// first operation. Where two trains are kept apart: how far into the time that search goes
-// before their routes are listed, after how many routings without a better operation it stops
-// for the listing, and how much of the time then left the listing may take.
+// How far into a fleet's solve listing its routes outright goes before the fleet is outlined, and
+// how far the outline's search for the trains' best routes alone and for its first operation.
+// Where two trains are kept apart: how far into the solve that search first goes, after how many
+// routings without a better operation it stops, and how many routings it needs room for.
 const LISTING_FIRST_SHARE: f64 = 0.02;
 const OUTLINE_SHARE: f64 = 0.3;
 const OPERATION_SHARE: f64 = 0.4;
 const EARLY_SETTLING_SHARE: f64 = 0.35;
 const PATIENCE: usize = 4;
-const LISTING_SHARE: f64 = 0.85;
-// The fewest times as long as finding two trains' best routes alone that listing their routes
-// was seen to take, and how many routings keeping two trains apart needs time for.
-const LISTING_FACTOR: f64 = 5.0;
-const SETTLING_ROUTINGS: f64 = 6.0;
+const SETTLING_ROUTINGS: u64 = 6;
 
 /// A first operation for a fleet without a fleet policy, found by routing one train at a time
 /// clear of the others, and what each train's best route alone is worth. A better operation
@@ -3160,11 +3439,34 @@ struct Outline {
     revenue: i32,
     expansions: u64,
     counts: Vec<usize>,
-    // How long the searches for the trains' best routes alone took.
-    alone_ms: f64,
+    // The steps the searches for the trains' best routes alone took.
+    alone_steps: u64,
+    // By train, its routes where they are listed whole; none for a train whose are not.
+    listed: Vec<Option<Listed>>,
+}
+
+/// A train's routes worth more than a floor listed whole, the most valuable first. Its best
+/// route clear of some track is then looked up in place of a search.
+struct Listed {
+    routes: Rc<Candidates>,
+    floor: Option<i32>,
 }
 
 impl Outline {
+    /// Nothing yet known of the trains' routes.
+    fn new(trains: usize) -> Self {
+        Self {
+            alone: vec![None; trains],
+            bests: vec![None; trains],
+            routes: vec![None; trains],
+            revenue: 0,
+            expansions: 0,
+            counts: vec![0; trains],
+            alone_steps: 0,
+            listed: (0..trains).map(|_| None).collect(),
+        }
+    }
+
     fn value(routes: &[Option<Lone>], longest_bonus: i32) -> i32 {
         let running = || routes.iter().flatten();
         running().map(|lone| lone.revenue).sum::<i32>()
@@ -3213,6 +3515,8 @@ struct Network<'a> {
     stays: &'a [Vec<usize>],
     adjacency: &'a [Vec<usize>],
     departures: &'a [Vec<usize>],
+    /// The steps the solve's searches have taken so far.
+    taken: &'a std::cell::Cell<u64>,
 }
 
 /// What every search for one train shares: the order it tries connections in, their classes,
@@ -3230,12 +3534,27 @@ struct SearchPlan<'a> {
     profile: Rc<Profile>,
     // Track other trains' routes run on.
     closed: Option<Vec<u64>>,
-    deadline: f64,
+    limit: Limit,
     memory_budget: usize,
     selection_bytes_per_candidate: usize,
     best_only: bool,
     floor: Option<i32>,
     streaming: Option<StreamingSelection<'a>>,
+    // An earlier listing's routes and where it stopped, for a listing that goes on from there.
+    listed: Option<(Candidates, Resume)>,
+    when_full: WhenFull,
+}
+
+/// What a listing does when its routes fill the memory.
+#[derive(Clone, Copy)]
+enum WhenFull {
+    /// Drops routes on the same track as better ones, and keeps the most valuable half of the
+    /// rest if they still take half the memory.
+    Halve,
+    /// Stops, for a higher floor to make room.
+    Pause,
+    /// Keeps the routes worth more than the middle one of them, as they stand.
+    Raise,
 }
 
 impl<'a> Network<'a> {
@@ -3293,21 +3612,32 @@ impl<'a> Network<'a> {
         profile: &Rc<Profile>,
         closed: Option<&[u64]>,
         floor: Option<i32>,
-        limits: (f64, usize),
+        limits: (Limit, usize),
         outline: &mut Outline,
     ) -> (Option<Lone>, bool) {
+        // A train stays idle rather than run for nothing or at a loss.
+        let floor = floor.unwrap_or(0).max(0);
+        if let Some(Some(listed)) = outline.listed.get(train)
+            && listed.floor.is_none_or(|kept| kept <= floor)
+        {
+            let lone = listed
+                .routes
+                .clear_of(closed.unwrap_or(&[]), floor, train, *self);
+            return (lone, true);
+        }
         let search = self.search(
             &self.problem.trains[train],
             SearchPlan {
                 profile: Rc::clone(profile),
                 closed: closed.map(<[u64]>::to_vec),
-                deadline: limits.0,
+                limit: limits.0,
                 memory_budget: limits.1,
                 selection_bytes_per_candidate: 0,
                 best_only: true,
-                // A train stays idle rather than run for nothing or at a loss.
-                floor: Some(floor.unwrap_or(0).max(0)),
+                floor: Some(floor),
                 streaming: None,
+                listed: None,
+                when_full: WhenFull::Halve,
             },
         );
         outline.expansions += search.expansions;
@@ -3319,32 +3649,31 @@ impl<'a> Network<'a> {
         (lone, !search.exhausted && !search.limited)
     }
 
-    /// The trains' best routes alone, found by the first deadline, and a first operation, found
-    /// by the limits' later one.
+    /// The trains' best routes alone, found within the first limit, and a first operation, found
+    /// within the limits' later one.
     fn outline(
         &self,
         profiles: &[Rc<Profile>],
         previous_profile: &[Option<usize>],
-        deadline: f64,
-        limits: (f64, usize),
+        alone: Limit,
+        limits: (Limit, usize),
     ) -> Outline {
-        let memory = limits.1;
+        let mut outline = Outline::new(self.problem.trains.len());
+        self.seek_bests(&mut outline, profiles, previous_profile, (alone, limits.1));
+        self.first_operation(&mut outline, profiles, limits);
+        outline
+    }
+
+    /// Each train's best route alone, a train like an earlier one taking that one's.
+    fn seek_bests(
+        &self,
+        outline: &mut Outline,
+        profiles: &[Rc<Profile>],
+        previous_profile: &[Option<usize>],
+        limits: (Limit, usize),
+    ) {
         let trains = self.problem.trains.len();
-        let longest_bonus = self.problem.longest_route_bonus_per_stop;
-        let mut outline = Outline {
-            alone: vec![None; trains],
-            bests: vec![],
-            routes: vec![None; trains],
-            revenue: 0,
-            expansions: 0,
-            counts: vec![0; trains],
-            alone_ms: 0.0,
-        };
-        let began = milliseconds();
-        let worth = |lone: &Option<Lone>| {
-            lone.as_ref()
-                .map_or(0, |lone| lone.revenue + lone.visits as i32 * longest_bonus)
-        };
+        let began = self.taken.get();
         let mut bests: Vec<Option<Lone>> = vec![None; trains];
         let mut left = previous_profile.iter().filter(|p| p.is_none()).count();
         for train in 0..trains {
@@ -3359,55 +3688,63 @@ impl<'a> Network<'a> {
                 });
                 continue;
             }
-            let now = milliseconds();
-            let share = now + (deadline - now).max(0.0) / left as f64;
+            let share = limits.0.part(self.taken.get(), left);
             left -= 1;
             let (best, finished) = self.lone(
                 train,
                 &profiles[train],
                 None,
                 None,
-                (share, memory),
-                &mut outline,
+                (share, limits.1),
+                outline,
             );
             if finished {
-                outline.alone[train] = Some(worth(&best));
+                outline.alone[train] = Some(self.worth(&best));
             }
             bests[train] = best;
         }
-        outline.alone_ms = milliseconds() - began;
-        // One train after another, the most valuable first; two trains that differ in either
-        // order, each order in an even share of the time left.
+        outline.alone_steps = self.taken.get() - began;
+        outline.bests = bests;
+    }
+
+    fn worth(&self, lone: &Option<Lone>) -> i32 {
+        lone.as_ref().map_or(0, |lone| {
+            lone.revenue + lone.visits as i32 * self.problem.longest_route_bonus_per_stop
+        })
+    }
+
+    /// Routes one train after another beside those before it, the most valuable first, and two
+    /// trains that differ in either order, each order in an even part of what the limit leaves;
+    /// the operation is the outline's if it earns more than the one it has. Each train in turn
+    /// then betters it.
+    fn first_operation(
+        &self,
+        outline: &mut Outline,
+        profiles: &[Rc<Profile>],
+        limits: (Limit, usize),
+    ) {
+        let trains = self.problem.trains.len();
         let mut order: Vec<usize> = (0..trains).collect();
-        order.sort_by_key(|&train| std::cmp::Reverse(worth(&bests[train])));
+        order.sort_by_key(|&train| std::cmp::Reverse(self.worth(&outline.bests[train])));
         let mut orders = vec![order.clone()];
         if trains == 2 && !Rc::ptr_eq(&profiles[0], &profiles[1]) {
             order.reverse();
             orders.push(order);
         }
-        outline.bests = bests;
         for (tried, order) in orders.iter().enumerate() {
-            let now = milliseconds();
-            let share = now + (limits.0 - now).max(0.0) / (orders.len() - tried) as f64;
+            let share = limits.0.part(self.taken.get(), orders.len() - tried);
             let mut routes: Vec<Option<Lone>> = vec![None; trains];
             for &train in order {
-                routes[train] = self.beside(
-                    train,
-                    profiles,
-                    &routes,
-                    None,
-                    (share, memory),
-                    &mut outline,
-                );
+                routes[train] =
+                    self.beside(train, profiles, &routes, None, (share, limits.1), outline);
             }
-            let revenue = Outline::value(&routes, longest_bonus);
+            let revenue = Outline::value(&routes, self.problem.longest_route_bonus_per_stop);
             if revenue > outline.revenue {
                 outline.revenue = revenue;
                 outline.routes = routes;
             }
         }
-        self.improve(profiles, &mut outline, limits);
-        outline
+        self.improve(profiles, outline, limits);
     }
 
     /// The train's best route beside the other trains' routes and worth more than the floor: its
@@ -3418,7 +3755,7 @@ impl<'a> Network<'a> {
         profiles: &[Rc<Profile>],
         routes: &[Option<Lone>],
         floor: Option<i32>,
-        limits: (f64, usize),
+        limits: (Limit, usize),
         outline: &mut Outline,
     ) -> Option<Lone> {
         let mut closed = vec![0; self.problem.resource_count.div_ceil(64)];
@@ -3435,7 +3772,7 @@ impl<'a> Network<'a> {
             Some(best) if best.track.iter().zip(&closed).all(|(a, b)| a & b == 0) => {
                 Some(best.clone())
             }
-            Some(_) if milliseconds() < limits.0 => {
+            Some(_) if !limits.0.reached(self.taken.get()) => {
                 self.lone(
                     train,
                     &profiles[train],
@@ -3451,7 +3788,7 @@ impl<'a> Network<'a> {
     }
 
     /// Each train in turn takes its best route beside the others' while that earns more.
-    fn improve(&self, profiles: &[Rc<Profile>], outline: &mut Outline, limits: (f64, usize)) {
+    fn improve(&self, profiles: &[Rc<Profile>], outline: &mut Outline, limits: (Limit, usize)) {
         let longest_bonus = self.problem.longest_route_bonus_per_stop;
         let most = outline.most();
         let mut improved = true;
@@ -3495,13 +3832,13 @@ impl<'a> Network<'a> {
         profiles: &[Rc<Profile>],
         outline: &mut Outline,
         settling: &mut Settling,
-        limits: (f64, usize),
+        limits: (Limit, usize),
         patience: Option<usize>,
     ) -> bool {
         let spent = |settling: &Settling| {
             patience.is_some_and(|patience| settling.idle >= patience)
                 || settling.bytes > limits.1
-                || milliseconds() >= limits.0
+                || limits.0.reached(self.taken.get())
         };
         loop {
             if spent(settling) {
@@ -3547,7 +3884,7 @@ impl<'a> Network<'a> {
         profiles: &[Rc<Profile>],
         outline: &mut Outline,
         settling: &mut Settling,
-        limits: (f64, usize),
+        limits: (Limit, usize),
         split: &Split,
     ) -> Option<Vec<Split>> {
         let Some(piece) = split.routes[0]
@@ -3687,6 +4024,11 @@ impl<'a> Network<'a> {
             });
             (Rc::clone(order), Rc::clone(rules))
         });
+        let goes_on = plan.listed.is_some();
+        let scanned = plan.streaming.as_ref().map_or(0, |stream| stream.scans);
+        let (candidates, resume) = plan
+            .listed
+            .unwrap_or_else(|| (Candidates::new(*self), Resume::default()));
         let mut search = Search {
             problem,
             connections: self.connections,
@@ -3712,13 +4054,26 @@ impl<'a> Network<'a> {
             been: vec![false; problem.hex_bonuses.len()],
             walking: vec![],
             every_stop_costs: (0..problem.stops.len()).all(|id| train.passing_cost(id) > 0),
-            candidates: Candidates::new(*self),
+            candidates,
             streaming: plan.streaming,
             count: 0,
             expansions: 0,
             best_only: plan.best_only,
-            deadline: plan.deadline,
+            deadline: plan.limit.deadline,
+            steps: plan.limit.steps.saturating_sub(self.taken.get()),
+            taken: self.taken,
+            stepped: 0,
+            weighed: 0,
+            scanned,
             exhausted: false,
+            resume: resume.path,
+            cut: Resume::default(),
+            when_full: plan.when_full,
+            full: false,
+            partners: vec![0; problem.stops.len() + 2],
+            sought: 0,
+            tracks: vec![],
+            caps: vec![i32::MAX; problem.stops.len() + 2],
             memory_budget: plan.memory_budget,
             selection_bytes_per_candidate: plan.selection_bytes_per_candidate,
             floor: plan.floor,
@@ -3735,12 +4090,13 @@ impl<'a> Network<'a> {
             stretch: 0,
             cuts: 0,
             shut: vec![vec![]; problem.stops.len() + 1],
+            plain: !train.scores_payments() && !train.calls_selectively() && !train.subsidizes(),
         };
         let mut starts: Vec<usize> = (0..problem.stops.len()).collect();
         if plan.best_only {
             starts.sort_by_key(|&id| std::cmp::Reverse(train.revenues[id]));
         }
-        for id in starts {
+        for (place, id) in starts.into_iter().enumerate().skip(resume.start) {
             let stop = &problem.stops[id];
             if stop.allowed && stop.endpoint {
                 if let Some(alike) = &mut search.alike {
@@ -3768,17 +4124,37 @@ impl<'a> Network<'a> {
                 search.been[stop.hex] = false;
             }
             if search.exhausted {
+                // What the walk had not come back to of an earlier listing's route lies beyond
+                // where this one stopped.
+                search.cut.start = place;
+                let reached = std::mem::take(&mut search.cut.path);
+                search.cut.path = std::mem::take(&mut search.resume);
+                search.cut.path.extend(reached);
                 break;
             }
+            search.resume.clear();
+        }
+        self.taken.set(self.taken.get() + search.steps_taken());
+        // A listing that goes on is put in order when it is through, if the time allows: that
+        // cannot be cut short. With too little left it stands as one that stopped at its end.
+        if goes_on
+            && !search.exhausted
+            && milliseconds() + search.candidates.len() as f64 * ORDERING_MS > plan.limit.deadline
+        {
+            search.exhausted = true;
+            search.cut.start = usize::MAX;
+        }
+        if goes_on && search.exhausted {
+            return search;
         }
         search.candidates.dedup(*self);
-        search
-            .candidates
-            .entries
-            .sort_unstable_by_key(|a| std::cmp::Reverse(a.revenue));
-        search
-            .candidates
-            .shrink(plan.selection_bytes_per_candidate, plan.memory_budget);
+        search.candidates.rank();
+        // A listing that will go on keeps its room: see `reclaim`.
+        if !search.exhausted {
+            search
+                .candidates
+                .shrink(plan.selection_bytes_per_candidate, plan.memory_budget);
+        }
         search
     }
 }
@@ -3819,7 +4195,11 @@ fn hex_flags<'a>(problem: &Problem, hexes: impl Iterator<Item = &'a usize>) -> V
 pub fn solve_json(input: &[u8]) -> Vec<u8> {
     let result = serde_json::from_slice::<Problem>(input)
         .map_err(|e| e.to_string())
-        .and_then(|p| solve(&p));
+        .and_then(|mut problem| {
+            validate(&problem)?;
+            problem.merge_track();
+            Ok(routed(&problem))
+        });
     match result {
         Ok(solution) => serde_json::to_vec(&solution).unwrap(),
         Err(error) => serde_json::to_vec(&serde_json::json!({"error": error})).unwrap(),
@@ -3839,6 +4219,7 @@ mod tests {
     struct Tracks {
         problem: Problem,
         connections: Vec<Connection>,
+        taken: std::cell::Cell<u64>,
     }
 
     impl Tracks {
@@ -3864,6 +4245,7 @@ mod tests {
                         gauge: Stretch::Standard,
                     })
                     .collect(),
+                taken: std::cell::Cell::new(0),
             }
         }
 
@@ -3874,6 +4256,7 @@ mod tests {
                 stays: &[],
                 adjacency: &[],
                 departures: &[],
+                taken: &self.taken,
             }
         }
     }
@@ -3898,33 +4281,40 @@ mod tests {
         for index in 0..4096 {
             add(&mut stored, 100, &[usize::from(index == 4095)], &[]);
         }
+        let stored = Rc::new(stored);
         let partial = stored.bytes(0) + network.streaming_scratch_bytes() + 20_000;
         for budget in [0, partial, usize::MAX] {
-            let mut selection = StreamingSelection::new(&stored, network, -1.0, budget);
+            let mut selection = StreamingSelection::new(Rc::clone(&stored), network, -1.0, budget);
             if budget == partial {
                 assert!(selection.resource_candidates.words > 0);
                 assert!(selection.resource_candidates.words < stored.len() / 64);
             }
-            selection.offer(CandidateView {
-                revenue: 100,
-                visits: 2,
-                connections: &[0],
-                resources: &[1, 0, 0],
-                reversed: false,
-                extension: &[],
-            });
+            selection.offer(
+                CandidateView {
+                    revenue: 100,
+                    visits: 2,
+                    connections: &[0],
+                    resources: &[1, 0, 0],
+                    reversed: false,
+                    extension: &[],
+                },
+                0,
+            );
             assert!(!selection.exhausted);
             assert_eq!(selection.checks, 4096);
             assert_eq!(selection.revenue, 200);
             assert_eq!(selection.best_stored, Some(4095));
-            selection.offer(CandidateView {
-                revenue: 101,
-                visits: 3,
-                connections: &[0, 1],
-                resources: &[3, 0, 0],
-                reversed: false,
-                extension: &[],
-            });
+            selection.offer(
+                CandidateView {
+                    revenue: 101,
+                    visits: 3,
+                    connections: &[0, 1],
+                    resources: &[3, 0, 0],
+                    reversed: false,
+                    extension: &[],
+                },
+                0,
+            );
             assert!(selection.exhausted);
             assert_eq!(selection.checks, 5120);
             assert_eq!(selection.revenue, 200);
@@ -3945,20 +4335,25 @@ mod tests {
         let mut stored = Candidates::new(network);
         add(&mut stored, 100, &[0], &[]);
         add(&mut stored, 0, &[1, 1, 1, 1], &[]);
+        let stored = Rc::new(stored);
         for budget in [0, usize::MAX] {
-            let mut selection = StreamingSelection::new(&stored, network, f64::INFINITY, budget);
-            assert!(selection.wanted(1000, 2));
-            selection.offer(CandidateView {
-                revenue: 1000,
-                visits: 2,
-                connections: &[2],
-                resources: &[4, 0, 0],
-                reversed: false,
-                extension: &[],
-            });
+            let mut selection =
+                StreamingSelection::new(Rc::clone(&stored), network, f64::INFINITY, budget);
+            assert!(selection.wanted(1000, 2, 0, i32::MAX));
+            selection.offer(
+                CandidateView {
+                    revenue: 1000,
+                    visits: 2,
+                    connections: &[2],
+                    resources: &[4, 0, 0],
+                    reversed: false,
+                    extension: &[],
+                },
+                0,
+            );
             assert_eq!(selection.revenue, 2500);
             assert_eq!(selection.best_stored, Some(1));
-            assert!(!selection.wanted(900, 2));
+            assert!(!selection.wanted(900, 2, 0, i32::MAX));
         }
     }
 
@@ -3972,7 +4367,7 @@ mod tests {
         }
         let shared = Rc::new(routes);
         let candidates = [Rc::clone(&shared), shared];
-        let mut selection = Selection::new(&candidates, network, -1.0, usize::MAX);
+        let mut selection = Selection::new(&candidates, network, Limit::until(-1.0), usize::MAX);
         selection.walk(0, 0, 0);
         assert!(selection.exhausted);
         assert_eq!(selection.revenue, 10_000);
