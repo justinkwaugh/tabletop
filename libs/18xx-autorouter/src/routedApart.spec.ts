@@ -211,6 +211,23 @@ it('attaches rolling stock to a train for the run it improves', () => {
     expect(result.routes).toEqual([expect.objectContaining({ trainId: '0', attachmentIds: ['1'] })])
 })
 
+it('searches only the way of attaching that pays more at every stop', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), city('yellow', [3, 0], 30, 1), city('yellow', [3], 40, 1)],
+        [stops(3), { distance: stops(1), attachment: true }],
+        {},
+        {
+            attachedDefinition: (_state, train) => ({ ...train, id: `${train.id}+car` }),
+            stopBonus: (_state, train) => (train.id.endsWith('+car') ? 10 : 0)
+        }
+    )
+    const { result, exhaustive, metrics } = router.solve(state, rules, 'A')
+    expect(exhaustive).toBe(true)
+    expect(result.revenue).toBe(120)
+    expect(result.routes).toEqual([expect.objectContaining({ trainId: '0', attachmentIds: ['1'] })])
+    expect(metrics.candidates).toHaveLength(1)
+})
+
 it('gives a once-a-run bonus to one route though two earn it', () => {
     const lanes = (edge: TileEdge, revenue: number): TileFace => ({
         ...city('yellow', [], revenue, 1),

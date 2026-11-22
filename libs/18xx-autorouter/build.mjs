@@ -29,7 +29,9 @@ for (const path of [
     'rust/Cargo.lock',
     'rust/rust-toolchain.toml',
     'rust/src/lib.rs',
+    'rust/src/alike.rs',
     'rust/src/fleet.rs',
+    'rust/src/outlook.rs',
     'rust/src/main.rs',
     'rust/src/wasm.rs'
 ]) {

@@ -466,6 +466,26 @@ export class EncodedRoutes {
         return this.decodeRoutes(this.problem.trains, solution)
     }
 
+    /**
+     * Whether this search, of the same position and trains as the other, pays every train at
+     * least as much at every stop and is otherwise the same, so that its best run earns no less.
+     */
+    outearns(other: EncodedRoutes): boolean {
+        const besidesRevenues = ({ arcs: _arcs, budget_ms: _budget, ...problem }: SolverProblem) =>
+            JSON.stringify({
+                ...problem,
+                trains: problem.trains.map(({ revenues: _revenues, ...train }) => train)
+            })
+        return (
+            besidesRevenues(this.problem) === besidesRevenues(other.problem) &&
+            this.problem.trains.every((train, index) =>
+                train.revenues.every(
+                    (revenue, stop) => revenue >= other.problem.trains[index].revenues[stop]
+                )
+            )
+        )
+    }
+
     private decodeRoutes(trains: SolverProblem['trains'], solution: SolverSolution): TrainRoute[] {
         return solution.routes.map((route) => {
             const train = trains[route.train]

@@ -3,8 +3,9 @@
 The current private wire protocol is **version 11**. All route search and fleet
 selection for 1862 and 1860 run in Rust. TypeScript encodes declared policy and
 validates the returned operation, including exact revenue and subsidy agreement.
-The sections below retain the development history; the last two sections describe
-the current connected-fleet policy and algorithm and the passing rules 1860 adds.
+The sections below retain the development history; the last three sections describe
+the current connected-fleet policy and algorithm, the passing rules 1860 adds, and
+the route bound, fleet outline and pair search that 18USA's last phase needed.
 
 ## Compact candidate storage
 
@@ -560,3 +561,212 @@ towns and tokened-out cities, without a fleet policy on 24 more, and for a lease
 train. 1860's `autorouter.spec.ts` checks played positions and prepared ones
 against a bounded exhaustive canonical search, which asserts that every fleet it
 evaluates earns the sum of its routes.
+
+## Route bound, alike connections and two trains kept apart
+
+18USA's last phase runs trains of seven and eight stops, with a Pullman's
+uncounted stops or the P19's pass through a tokened-out city, over a map where a
+company reaches thirty to forty stops. Recorded play is the evidence: 100
+finished games from 18xx.games give 10,835 runs. The solver as 18USA first used
+it left 66 of them at a 5 s cap and 175 at 1 s, single trains for the most part,
+and paid less than the players' own run in about 30 of the capped ones. Wire
+version 11 is unchanged; the changes are in the search.
+
+### Problem class
+
+One train's best route is a maximum-weight simple path under a budget of visits,
+in a multigraph whose nodes are stops and whose parallel edges are the compiled
+connections, each using track. This is the orienteering problem, which is
+NP-hard; see [the survey by Vansteenwegen, Souffriau and Van Oudheusden](https://doi.org/10.1016/j.ejor.2010.03.045).
+Depth-first branch and bound stays the exact method. The search had no bound on
+what the rest of a route can earn: it kept every route a train could run and so
+listed millions of them to find one. Two trains' best pair adds the track they
+may not share, the setting of
+[conflict-based search](https://doi.org/10.1016/j.artint.2014.11.006) for
+several agents' paths, whose branching the pair search below borrows.
+
+### What the rest of a route can earn
+
+`rust/src/outlook.rs` bounds a partial route by relaxing the track and the order
+of its further stops: any stop not yet visited, not in a group already used and
+within the train's remaining distance may follow, the distance between two stops
+being the least any chain of connections uses (all pairs, computed once for the
+train). The search drops a partial route when this bound would not be kept:
+below the best route so far, a floor, or what a streamed pair needs. Each rule
+keeps the bound admissible as follows.
+
+| Rule                                  | Bound                                                                                                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Distance                              | The best further stops, no more than the remaining distance divided by the least any stop uses.                                                         |
+| Stops that use no distance            | Every one in reach counts; they are never part of the distance limit.                                                                                   |
+| Blocked stops                         | A route ends at one, so one further blocked stop counts, and one more for each pass of the run's allowance left.                                        |
+| A train's own pass (P19)              | The stop passed pays nothing, so those passes add no blocked stop, and what the stops passed would have paid is taken off the route so far.             |
+| Major-stop limit                      | The best stops within the distance and the blocked ends, or within the distance and the major stops left: either alone bounds both, so the lesser.      |
+| Paying-stop limit                     | The best of the stops so far and the further ones together, as many as the limit; stops outside the limit are chosen apart, on a distance of their own. |
+| Hex bonuses                           | What the route has collected, and every positive bonus of a hex it has not yet run through.                                                             |
+| Connection bonuses                    | A bonus whose every list of stops has one visited or in reach. Where lists name single stops, an even share of it for each of them visited or in reach. |
+| First-stop bonus and interconnections | The greatest of each.                                                                                                                                   |
+| Longest-route bonus                   | As many visits as there are stops not yet visited.                                                                                                      |
+
+There is no bound where the game chooses which stops a train calls at (optional
+stops), where stops pay a subsidy, or under a declared fleet policy, whose
+selection weighs more than each route's revenue: those searches run as before.
+
+The bound's sums are wasted where it drops few routes: a listing above a low
+floor keeps most of them, and so does a diesel, whose distance reaches every
+stop. The bound is tried over the first 4,096 stops of each 65,536 a search
+walks and left out for the rest of them when it dropped fewer than one route in
+eight of a listing, or one in 64 of a search for one best route, which each drop
+shortens more.
+
+### Alike connections
+
+Between two stops the compiled track often gives dozens of connections, which
+differ in what follows only by the track they use and the hexes they close.
+`rust/src/alike.rs` groups a stop's connections on to another stop into classes
+of equal distance, terminus track and bonus hexes. Within a class, after
+everything that follows one connection has been walked, another is walked only
+for what the first kept out. Each connection the search cannot take notes one
+piece of track or one hex in its way, against the connection that holds it. A
+later connection of the class is then skipped when it holds all the noted track
+and hexes of one walked before it; when the only noted track it frees belongs to
+the stop it reaches, only the connections that leave that stop on that track are
+walked.
+
+One note for each rejected connection is enough. Take the best route through the
+later connection and replace that connection by the earlier one. If the result
+is no route, something after it needs track or a hex of the earlier connection
+that the later one leaves free; the walk after the earlier connection rejected
+that connection for exactly such an obstacle, or for another that the later one
+holds as well, and noted it. A class pays the same, so with nothing noted the
+replaced route is as good. Classes apply to a search for one best route without
+interconnections, whose extensions use track of their own.
+
+The search for one best route also orders its work: the stops that pay most
+first, as starts and as next stops, the classes of a stop by what they add, and
+the connections that leave on the same track together, so that one piece of
+track in use rules a whole run of them out. A listing keeps the compiled order
+and the earlier loop, which costs less at each stop.
+
+### A fleet's outline
+
+A fleet without a fleet policy was selected from every train's listed routes.
+That stays the first step, for a fiftieth of the time: it settles nearly every
+fleet, and for an easy fleet the outline costs about as much again. A fleet it
+does not settle is outlined (`Outline` in `rust/src/lib.rs`):
+
+1. Each train's best route alone is found with the bound, within three tenths
+   of the time. Their sum is the most any operation earns.
+2. A first operation routes one train after another, each beside the track of
+   those before it, the most valuable first; two trains that differ are tried in
+   both orders. Each train in turn then takes its best route beside the others'
+   while that earns more. This may run to four tenths of the time, so that a
+   train whose best route took all of step 1 still leaves the others routed. The
+   operation the first step's listing had found is taken instead where it earns
+   more, and improved the same way.
+3. If the first operation earns the sum, it is the answer. Otherwise a better
+   one needs of each train a route worth more than the first operation less the
+   other trains' best routes. Only those routes are listed, with the first
+   operation as the selection's incumbent.
+
+Two alike trains are not listed whole, which overflowed memory for two 8-trains
+long before the routes that matter were paired. One route of a better pair is
+worth more than half the first operation: only those are stored, and every route
+is streamed through them. This is the second pass that a fleet cut for memory
+already had, run from the start and from the outline's operation. A stored list
+that the time cuts short still pairs, without proving anything.
+
+### Two trains kept apart
+
+For exactly two trains and no longest-route bonus, `Network::settle` proves the
+pair without lists. A split holds the track closed to each train and each
+train's best route clear of its closed track; the two routes' sum bounds every
+operation that keeps to the closed track, and when they share no track they are
+the best such operation. Otherwise the first piece both run on is closed to each
+train in turn, since in any operation one of them keeps off it, and that train is
+routed again above what a better operation needs of it. Each new route also
+makes an operation with the other train's best route clear of all of it. Alike
+trains are told apart only by the first piece closed.
+
+Splits are taken up best bound first, which proves the answer soonest: the
+search ends when no split left could earn more than the best operation. To find
+better operations it follows each split down instead, the better of its two
+parts at once. It runs twice: before the listing, until four routings pass
+without a better operation or 35% of the time is up, and only where that leaves
+time for six routings; and after the listing, in the time left. A listing takes
+85% of the time left to it. Where finding the trains' best routes took more than
+a fifth of that, a listing would not finish: it is skipped if the pair search
+then has time for six routings, and takes all the time if not. An operation a
+listing leaves when it is cut short is first improved one train at a time, as in
+step 2.
+
+### Faults found
+
+Generated two-train cases showed two bounds in the earlier selection assuming
+that a train's best stored route earns something. With every stored route of one
+train at a loss, the streamed partner bound and the selection's bound for the
+trains left both went below what leaving that train idle earns, and cut the
+best operation. Both bounds now count an idle train as nothing.
+
+A stream cut short by the deadline in the second pass discarded the best pair it
+had found, and a stored list cut short ended the pass. Either leaves legal
+operations, which are now kept; the result stays non-exhaustive.
+
+The interface runs each way of attaching rolling stock as a search of its own.
+A way whose trains are routed together is now skipped when another such way is
+the same search but for paying every train at least as much at every stop, and
+the remaining ways share the time left evenly instead of the first taking all of
+it.
+
+### Verification
+
+`rust/src/pruning.rs` generates networks of four to seven stops (nine on
+request) with shared track, hex bonuses and closures, groups, terminus track,
+blocked stops and passes, paying limits with and without uncounted stops,
+connection bonuses, major limits, optional stops and the longest-route bonus. It
+compares the solver with a listing of every route that drops none for its worth:
+1,500 single trains; 500 pairs, a third of them alike, each through `solve`,
+through the outline alone, and through the outline with a longest-route bonus so
+that the trains' routes are listed above the floors; and 500 pairs settled by
+the pair search alone. `PRUNING_CASES`, `PRUNING_SEED` and `PRUNING_STOPS` run
+more: 80,000 cases of each kind over four seeds, and 4,000 on larger networks,
+agree. `rust/tests/pruning.rs` holds the cases a class must not lose: a second
+way into a stop that the way out needs, a lesser connection where the better one
+closes a hex the route needs, a connection bonus that outweighs better stops, and
+a pass through a blocked city.
+
+### Recorded play
+
+The 100 games' 10,835 runs were solved in WebAssembly through the `Autorouter`,
+eight games at a time, before and after:
+
+|                               | 5 s before | 5 s after | 1 s before | 1 s after |
+| ----------------------------- | ---------- | --------- | ---------- | --------- |
+| Runs at the cap               | 66         | 25        | 175        | 50        |
+| At the cap below the recorded | 28         | 1         | 82         | 4         |
+| Above the recorded run        | 1,354      | 1,376     | 1,311      | 1,374     |
+| 99th percentile               | 2,348 ms   | 392 ms    | 1,007 ms   | 324 ms    |
+| Solver time in total          | 766 s      | 326 s     | 376 s      | 196 s     |
+| Memory-limited                | 24         | 6         | 32         | 1         |
+
+No single train is left at the cap at 5 s, and one 7-train with a Pullman at
+1 s. The rest are pairs of long trains: 6+8, 5+8, 8+8 and 7+8 for the most part.
+At 5 s 45 runs earn more and one earns less: 273905 run 77, a 5-train and an
+8-train, was proved in 4.3 s of listing, which the outline and the pair search's
+share of the time now cut short, $10 under. At 1 s 119 runs earn more and four
+pairs at the cap earn $10 to $30 less. Results at the cap depend on what a
+search reaches first and move by such amounts from run to run.
+
+The other sets keep every revenue and every proof: 1817 (2,745 runs) and 1870
+(2,020) at 30 s and 1 s, and 1862's 5,232 dumped problems at 5 s. 1817's solver
+time falls from 23.3 s to 14.3 s at 30 s.
+
+A fleet that the first listing does not settle in its fiftieth of the time, and
+that a longer listing would have, pays for that listing again and for the
+outline. The 120 18USA fleets proved in 50 to 850 ms before take 39% longer in
+total at 5 s and 23% at 1 s; all are still proved at 5 s and one is cut at 1 s
+with the same revenue. Four 1870 fleets of a diesel and a 5- or 6-train take 120
+to 200 ms at a 1 s limit where they took 29 to 57 ms. At 30 s the first listing
+has 600 ms, which is longer than all but about ten of these took. The games,
+tools and results are outside the repository at
+`/workspace/tmp/autorouter-bench/`.

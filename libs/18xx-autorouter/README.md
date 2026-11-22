@@ -77,14 +77,27 @@ reported with
 `metrics.memoryLimited` and `exhaustive: false`. Streaming alone does not make a
 completed enumeration non-exhaustive.
 
+One train's best route is searched with a bound on what the rest of a route can
+still earn, and without connections that differ from one already walked only in
+track nothing after it needed. A fleet without a fleet policy is first listed
+outright as above, for a fiftieth of the time, which settles nearly every fleet.
+One it does not settle is outlined: each train's best route alone, and a first
+operation found by routing one train after another. Its routes are then listed
+only above what a better operation needs of each train, and two trains are also
+settled without lists, by closing a piece of track both run on to each in turn.
+The [design review](../../research/18xx/autorouter-design.md#route-bound-alike-connections-and-two-trains-kept-apart)
+gives the bounds and the order of these steps.
+
 A two-train fleet cut for memory, with time left, is solved again exactly above
 what its first answer proves. A better pair needs a route worth more than half
 the first answer when the trains are alike, or a stored route worth more than the
 first answer less the other train's best route (known once its streaming pass
 finished). Only those routes are stored, and every route of the other train is
 streamed through them; route values include the longest-route bonus, so the
-bound holds with it. When that pass completes, the result is exhaustive and not
-memory-limited; if it is cut or interrupted, the first answer stands.
+bound holds with it. Two alike trains with an outline are solved this way from
+the start. When that pass completes, the result is exhaustive and not
+memory-limited; if it is cut or interrupted, the best operation either pass
+found stands.
 The WebAssembly instance is built with a 64 MiB memory maximum, so an
 allocation beyond it traps instead of growing the tab. WebAssembly memory never
 shrinks, so after a solve that left the instance above 32 MiB, or one that
@@ -148,7 +161,7 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 9; workers and WASM must be rebuilt together. It is private to this package; callers use
+The internal wire format is version 11; workers and WASM must be rebuilt together. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 Fleet policies are optional family data, not settlement callbacks. The native
@@ -183,5 +196,8 @@ executable and `CARGO_TARGET_DIR` selects a build-output directory.
 
 Tests exercise the public interface, compare with exhaustive enumeration on
 small maps, and use both titles' actual maps and every train definition. The
-native suite includes a separate unpruned permutation oracle. Build the package
-before running title tests so they use the current WASM artifact.
+native suite includes a separate unpruned permutation oracle, and generated
+networks that hold the pruned searches to a listing of every route
+(`PRUNING_CASES=20000 cargo test --locked --lib pruning` runs more of them).
+Build the package before running title tests so they use the current WASM
+artifact.
