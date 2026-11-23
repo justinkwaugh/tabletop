@@ -20,6 +20,7 @@ One line for each entry of the provisional registry (`src/data/provisional.ts`),
 - **`guild.farmer.chicken.*` The chicken spaces:** 4, the setup bead on the first. Settled by the printed board or a designer ruling. Governs: R-1.4-H3.
 - **`guild.*` Each guild's charity:** Farmer, Merchant and Alchemist pay the church coffer; Knight, Noble and Monk the farmer's purse. Settled by the designer's ruling. Governs: R-4.6-H3.
 - **`writ.charter.northern-kingdom` Two dots on the Northern Kingdom:** read as badlands-2 and mountain-1. Settled by the physical card beside the board.
+- **`writ.charter.*-kingdom` A kingdom charter past its printed values:** 5 or more locations ruled score 9, the top printed value. Settled by the designer's ruling. Governs: R-6.2-H1.
 
 ## Reached in play
 

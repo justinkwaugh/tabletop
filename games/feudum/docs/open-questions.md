@@ -16,6 +16,15 @@ Every place the digest is silent, ambiguous or self-contradictory, and every pla
     - _Sources:_ the rulebook lets mandates and wild tiles be used at any time, and says nothing of nourishing for a seat with no pawn on the board.
     - _Recommendation:_ (b), as R-4.4-H1's "during nourishing" reads; it needs its own press for the seat to say it is done, and R-4.10-H4 reworded. Until the designer rules, the engine follows (a).
 
+- **Q31 A kingdom charter past its printed values** (R-4.4.3, R-6.2): a kingdom charter prints 3/5/7/9 vp for 1 to 4 locations ruled on its spaces; what do 5 or more score?
+    - _Readings:_ (a) 9, the top printed value; (b) more, continuing the printed steps of 2.
+    - _Sources:_ the card and the rulebook print the four values and say nothing past them.
+    - _Recommendation:_ provisional (a), as R-6.2-H1 records and the provisional registry holds; only the designer can settle it.
+- **Q32 A score past 149** (R-6, R-1.2.5): the scoring track runs 0 to 149; how does a score past it count?
+    - _Readings:_ (a) uncapped: the marker laps the track and the score keeps counting; (b) capped at 149.
+    - _Sources:_ the rulebook prints the track and says nothing of a score that passes its end.
+    - _Recommendation:_ (a), which the engine follows; the track's wrap is presentation. Until the designer rules, it stays open.
+
 ## Settled
 
 Q1–Q25 (setup, turn structure, actions, guilds, combat, information, game end, map) were answered on 2026-11-01 by accepting every recommendation; each is now a ruling in `rulings.md`, citing its question number.

@@ -1,3 +1,4 @@
+import { ProvisionalCards } from '../data/provisional.cards.js'
 import { Charters, type Charter, type KingdomCharter } from '../data/writs.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import type { CharterRegistration } from './writRegistry.js'
@@ -9,7 +10,12 @@ function kingdomScore(
     playerId: string
 ): number {
     const ruled = state.ruledSpaceIds(playerId).filter((spaceId) => spaces.includes(spaceId)).length
-    return ruled === 0 ? 0 : vpByLocationsRuled[Math.min(ruled, vpByLocationsRuled.length) - 1]
+    if (ruled === 0) {
+        return 0
+    }
+    return ruled > vpByLocationsRuled.length
+        ? ProvisionalCards.kingdomPastPrinted.placeholder
+        : vpByLocationsRuled[ruled - 1]
 }
 
 /** R-4.4.3, R-6.2, R-6.2-H1, R-6.2-H2 What the charter pays, read from its own row. */

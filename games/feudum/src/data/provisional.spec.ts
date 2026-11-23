@@ -102,6 +102,15 @@ describe('R-1.2-H1 the routes', () => {
     })
 })
 
+describe('R-6.2-H1 a kingdom charter past its printed values', () => {
+    it('5 or more locations score the top value, 9, until the designer rules', () => {
+        const kingdoms = ProvisionalCards.kingdomPastPrinted
+        expect(kingdoms.componentId).toBe('writ.charter.*-kingdom')
+        expect(kingdoms.ruling).toBe('R-6.2-H1')
+        expect(kingdoms.placeholder).toBe(9)
+    })
+})
+
 describe('the unread marks on writs', () => {
     it('R-3.15 the Repeat card is read, so it has no entry', () => {
         const ids = ProvisionalRegistry.map((entry) => entry.componentId)
