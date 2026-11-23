@@ -450,7 +450,8 @@ async function writTurn() {
     const everyone = [session, ...Object.values(watchers)]
     await host.send(seat, { type: ActionType.Explore, revealsInfo: true, secondCard: true })
     const drawn =
-        new HydratedFeudumGameState(structuredClone(host.state)).flow.writDraw?.drawn ?? []
+        new HydratedFeudumGameState(structuredClone(host.state)).getPlayerState(seat).writsDrawn ??
+        []
     expect(drawn.length).toBeGreaterThan(1)
     await host.send(seat, { type: ActionType.KeepWrits, keep: drawn.slice(0, 1) })
     const { pawns } = new HydratedFeudumGameState(structuredClone(host.state)).getPlayerState(seat)

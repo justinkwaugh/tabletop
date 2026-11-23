@@ -40,7 +40,7 @@ import {
 } from '../testing/guilds.js'
 import { giveGood, giveSeal, setUp, spaceOfKind, tableImproving } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { tableAtPlayingCards, type Table, drawnWrits } from '../testing/table.js'
 import { placeVesselOffers } from './placeVessel.js'
 import { reasonDiscardWritRefused } from './discardWrit.js'
 import { spendRegionTileOffers } from './spendRegionTile.js'
@@ -500,7 +500,7 @@ describe('R-4.3-H3 Shovels & Swords, asked with no window, takes its own tile', 
         })
         const [tileId] = table.seat(playerId).regionTiles
         table.send(playerId, { type: ActionType.Explore, revealsInfo: true })
-        const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+        const drawn = drawnWrits(table.hydrated()) ?? []
         return { table, playerId, tileId, drawn }
     }
 

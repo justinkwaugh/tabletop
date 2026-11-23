@@ -1,4 +1,9 @@
-import { answerAttackOffer, type HydratedFeudumGameState, type PieceRef } from '@tabletop/feudum'
+import {
+    answerAttackOffer,
+    followUpSeat,
+    type HydratedFeudumGameState,
+    type PieceRef
+} from '@tabletop/feudum'
 import { spaceLabel } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import { primaryLabel } from './confirmingSend.js'
@@ -40,7 +45,7 @@ export function answerAttackPanelOf({
     const place = spaceLabel(combat.spaceId)
     const gain = offer.defenceIfFlipped - offer.defence
     return {
-        line: `${nameOf(combat.attackerId)} conquers your ${name} at ${place}: ${offer.attack} vs ${offer.defence}`,
+        line: `${nameOf(followUpSeat(state))} conquers your ${name} at ${place}: ${offer.attack} vs ${offer.defence}`,
         ...(offer.holdsDefend
             ? {
                   flip: {

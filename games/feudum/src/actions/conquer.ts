@@ -187,8 +187,8 @@ export function conquerOffers(
                     revealsInfo: defenderAsked(state, defenderId),
                     strength: strengthOf(
                         state,
+                        playerId,
                         {
-                            attackerId: playerId,
                             defenderId,
                             spaceId,
                             target,
@@ -232,7 +232,6 @@ export class HydratedConquer extends HydratableAction<typeof Conquer> implements
                 : undefined
         playCard(state, this.playerId, 'conquer', 'regular', this)
         state.flow.combat = {
-            attackerId: this.playerId,
             defenderId,
             spaceId: this.spaceId,
             target: this.target,

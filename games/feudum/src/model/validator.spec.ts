@@ -104,7 +104,6 @@ describe('R-1.1 goods, 170 in all', () => {
             (state) => (state.guilds.alchemist.carts['guild.alchemist.cart.food-2'] = true),
             (state) =>
                 (state.flow.harvest = {
-                    playerId: 'p1',
                     spaceId: 'space.sea.1',
                     drawn: { saltpeter: 0, sulfur: 0, iron: 1, wood: 0, food: 0 },
                     favours: 0

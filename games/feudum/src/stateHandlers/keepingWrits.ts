@@ -7,6 +7,7 @@ import {
 import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { followUpSeat } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterCardStep } from './cardTurns.js'
 
@@ -26,13 +27,14 @@ export class KeepingWritsStateHandler implements MachineStateHandler<
         playerId: string,
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return context.gameState.flow.writDraw?.playerId === playerId ? [ActionType.KeepWrits] : []
+        const state = context.gameState
+        return state.flow.writDraw && followUpSeat(state) === playerId ? [ActionType.KeepWrits] : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
         const state = context.gameState
         assertExists(state.flow.writDraw, 'R-4.4.1 Writs have been drawn')
-        state.activePlayerIds = [state.flow.writDraw.playerId]
+        state.activePlayerIds = [followUpSeat(state)]
     }
 
     onAction(

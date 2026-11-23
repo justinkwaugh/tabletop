@@ -117,7 +117,6 @@ export class HydratedExplore extends HydratableAction<typeof Explore> implements
         playCard(state, this.playerId, 'explore', 'regular', this)
         const drawnCount = drawWritsToKeep(
             state,
-            this.playerId,
             { draw: exploreDrawCount(state, this.playerId), keep: ExploreKeep },
             'explore'
         )
@@ -125,7 +124,7 @@ export class HydratedExplore extends HydratableAction<typeof Explore> implements
         let drawnWritIds: WritId[] = []
         if (writDraw) {
             writDraw.shovelsOffered = true
-            drawnWritIds = [...requireDrawnWrits(writDraw)]
+            drawnWritIds = [...requireDrawnWrits(state)]
         }
         this.metadata = { drawnCount, keep: writDraw?.keep ?? 0, drawnWritIds }
     }

@@ -481,7 +481,7 @@ describe('Inspect the Harvest: R-3.11.3', () => {
         expect(table.asked).toBe(playerId)
         expect(table.offered(playerId)).toEqual([ActionType.ChooseFavours])
         const { flow, spaces } = table.hydrated()
-        expect(flow.harvest).toMatchObject({ playerId, spaceId: Farm, favours: 2 })
+        expect(flow.harvest).toMatchObject({ spaceId: Farm, favours: 2 })
         expect(sum(flow.harvest?.drawn ?? goodCounts())).toBe(7)
         expect(sum(spaces[Farm].goods)).toBe(0)
         expect(sum(table.state.supply.haversack)).toBe(before - 7)

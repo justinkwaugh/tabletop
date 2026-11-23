@@ -129,7 +129,7 @@ describe('R-4.4.1 The keep', () => {
         expect(watcher.keepWritsPanel).toBeUndefined()
         expect(watcher.watchingPanel?.waitingOn).toEqual([seat])
         expect(watcher.watchingPanel?.backs).toBe(3)
-        expect(watcher.gameState.flow.writDraw?.drawn).toBeUndefined()
+        expect(watcher.gameState.getPlayerState(seat).writsDrawn).toBeUndefined()
         expect(session.undoableAction).toBeUndefined()
 
         await press(session, panel?.writs[0])

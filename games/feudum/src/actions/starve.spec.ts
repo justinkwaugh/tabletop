@@ -133,7 +133,6 @@ describe('R-3.13.2, R-3.14-H1 StarveThePeople that asks', () => {
         expect(table.offered(defenderId)).toEqual([ActionType.AnswerStarve])
         expect(table.offered(attackerId)).toEqual([])
         expect(table.state.flow.starve).toEqual({
-            actorId: attackerId,
             targetPlayerId: defenderId,
             spaceId: Battlefield,
             role: 'serf'

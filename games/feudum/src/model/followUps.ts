@@ -59,33 +59,31 @@ export function nextOpenFollowUp(state: HydratedFeudumGameState): FollowUp | und
     return followUp
 }
 
-/** R-4.4.1, R-4.4-H2 The draw is the barrier; the keep comes next. Returns how many. */
+/** R-4.4.1, R-4.4-H2 The turn seat draws; the draw is the barrier and the keep comes next. Returns how many. */
 export function drawWritsToKeep(
     state: HydratedFeudumGameState,
-    playerId: string,
     { draw, keep }: { readonly draw: number; readonly keep: number },
     source: WritDrawSource
 ): number {
-    assertExists(state.flow.turn, 'R-3.2 A writ draw belongs to the card being played')
     const drawn = drawWrits(state, draw)
     if (drawn.length > 0) {
         state.flow.writDraw = {
-            playerId,
             drawnCount: drawn.length,
             keep: Math.min(keep, drawn.length),
             source,
-            shovelsOffered: false,
-            drawn
+            shovelsOffered: false
         }
+        state.getPlayerState(followUpSeat(state)).writsDrawn = drawn
         queueFollowUp(state, { kind: 'keep-writs' })
     }
     return drawn.length
 }
 
 /** R-4.4.1 Owner-known: only the drawer's state and the host's carry the writs. */
-export function requireDrawnWrits(writDraw: { readonly drawn?: WritId[] }): WritId[] {
-    assertExists(writDraw.drawn, 'R-4.4.1 The writs drawn are owner-known')
-    return writDraw.drawn
+export function requireDrawnWrits(state: HydratedFeudumGameState): WritId[] {
+    const { writsDrawn } = state.getPlayerState(followUpSeat(state))
+    assertExists(writsDrawn, 'R-4.4.1 The writs drawn are owner-known')
+    return writsDrawn
 }
 
 const NoFreeDisc = 'You have no free disc.'

@@ -1,4 +1,4 @@
-import { MachineState, type HydratedFeudumGameState } from '@tabletop/feudum'
+import { followUpSeat, MachineState, type HydratedFeudumGameState } from '@tabletop/feudum'
 
 /** Contract, Watching (waiting view): what they are deciding is the History's to say once they send. */
 export interface WatchingPanel {
@@ -40,7 +40,7 @@ export function watchingPanelOf({ state, viewerId }: WatchingInput): WatchingPan
     }
     switch (state.machineState) {
         case MachineState.KeepingWrits:
-            return writDraw ? on([writDraw.playerId], { backs: writDraw.drawnCount }) : undefined
+            return writDraw ? on([followUpSeat(state)], { backs: writDraw.drawnCount }) : undefined
         case MachineState.AwaitingDefence:
             return combat?.defenderId !== undefined ? on([combat.defenderId]) : undefined
         case MachineState.AwaitingImmunity:

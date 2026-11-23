@@ -90,6 +90,8 @@ export const FeudumPlayerState = Type.Object({
     sealedCharters: Visibility.protect(Type.Array(WritIdSchema), OwnerKnown),
     /** R-4.4.1 Owner-known: writs this player put under the deck unseen. */
     deckKnowledge: Visibility.protect(Type.Array(KnownDeckWrit), OwnerKnown),
+    /** R-4.4.1 Owner-known: the writs of the turn's draw, till the keep. */
+    writsDrawn: Visibility.protect(Type.Optional(Type.Array(WritIdSchema)), OwnerKnown),
     handCount: ComponentCount,
     /** R-3.1, R-5.1 Owner-known: chosen cards not yet played. */
     hand: Visibility.protect(Type.Array(ActionCardKindSchema), OwnerKnown),
@@ -141,6 +143,7 @@ export class HydratedFeudumPlayerState
     declare sealedCharterCount: number
     declare sealedCharters?: WritId[]
     declare deckKnowledge?: KnownDeckWrit[]
+    declare writsDrawn?: WritId[]
     declare handCount: number
     declare hand?: ActionCardKind[]
     declare played: PlayedCard[]

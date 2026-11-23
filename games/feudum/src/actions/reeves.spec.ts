@@ -16,6 +16,7 @@ import {
 } from '../testing/guilds.js'
 import type { Table } from '../testing/table.js'
 import { guildActionPreview } from './guildAction.js'
+import { drawnWrits } from '../testing/table.js'
 
 const FarmerPush = { type: ActionType.GuildAction, guildId: 'farmer', fn: 'push' } as const
 const ScoringPush = { ...FarmerPush, params: { goods: ['wood'] } }
@@ -266,7 +267,7 @@ describe('R-3.2-H3 a threshold pull keeps its writ before its reeve', () => {
     }
 
     function keepOne(table: Table, playerId: string) {
-        const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
+        const [kept] = drawnWrits(table.hydrated()) ?? []
         return table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
     }
 

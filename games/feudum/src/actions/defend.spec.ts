@@ -512,7 +512,6 @@ describe('R-3.14.2, R-3.14-H2 ReclaimImmunitySeal', () => {
         })
         table.moveTo((state) => {
             state.flow.starve = {
-                actorId: combat.attackerId,
                 targetPlayerId: defenderId,
                 spaceId: Battlefield,
                 role: 'serf'

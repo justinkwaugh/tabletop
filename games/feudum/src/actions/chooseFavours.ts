@@ -6,6 +6,7 @@ import { Goods } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
 import { finishFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { cardTurnSeat } from '../model/turns.js'
 import {
     ComponentCount,
     GoodCounts,
@@ -49,6 +50,11 @@ export function isChooseFavours(action?: GameAction): action is ChooseFavours {
     return action?.type === ActionType.ChooseFavours
 }
 
+/** R-3.11.3 The harvest waiting on this seat, if any: the turn seat's. */
+function harvestOf(state: HydratedFeudumGameState, playerId: string) {
+    return cardTurnSeat(state) === playerId ? state.flow.harvest : undefined
+}
+
 /** R-3.11.3, R-4.10.2 The harvester takes the chart's count from what was drawn, or none. */
 export function reasonChooseFavoursRefused(
     state: HydratedFeudumGameState,
@@ -56,8 +62,8 @@ export function reasonChooseFavoursRefused(
     favours: Readonly<GoodCounts> | null,
     sulfurToBarrel?: number
 ): string | undefined {
-    const { harvest } = state.flow
-    if (harvest?.playerId !== playerId) {
+    const harvest = harvestOf(state, playerId)
+    if (!harvest) {
         return "You aren't choosing favours."
     }
     if (favours === null) {
@@ -89,8 +95,8 @@ export function chooseFavoursOffer(
     state: HydratedFeudumGameState,
     playerId: string
 ): ChooseFavoursOffer | undefined {
-    const { harvest } = state.flow
-    return harvest?.playerId === playerId
+    const harvest = harvestOf(state, playerId)
+    return harvest
         ? {
               spaceId: harvest.spaceId,
               drawn: harvest.drawn,

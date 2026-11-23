@@ -836,7 +836,6 @@
         "op": "add",
         "path": "/flow/combat",
         "value": {
-          "attackerId": "1xR9m1pAy_W5irFjMM2pw",
           "defenderId": "xVxV1Xn5UQq54-oz_yKWU",
           "spaceId": "space.desert.3",
           "target": {
@@ -2160,6 +2159,10 @@
         "path": "/players/1/played/1"
       },
       {
+        "op": "remove",
+        "path": "/players/1/writsDrawn"
+      },
+      {
         "op": "replace",
         "path": "/machineState",
         "value": "PlayingCards"
@@ -2262,6 +2265,14 @@
       },
       {
         "op": "replace",
+        "path": "/players/1/writsDrawn",
+        "value": [
+          "writ.charter.southern-kingdom",
+          "writ.mandate.3"
+        ]
+      },
+      {
+        "op": "replace",
         "path": "/supply/haversack/iron",
         "value": 18
       },
@@ -2297,15 +2308,10 @@
         "op": "replace",
         "path": "/flow/writDraw",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "drawnCount": 2,
           "keep": 1,
           "source": "explore",
-          "shovelsOffered": true,
-          "drawn": [
-            "writ.charter.southern-kingdom",
-            "writ.mandate.3"
-          ]
+          "shovelsOffered": true
         }
       }
     ]
@@ -2361,6 +2367,14 @@
         "path": "/players/1/deckKnowledge/1"
       },
       {
+        "op": "add",
+        "path": "/players/1/writsDrawn",
+        "value": [
+          "writ.mandate.2",
+          "writ.charter.eastern-kingdom"
+        ]
+      },
+      {
         "op": "replace",
         "path": "/machineState",
         "value": "KeepingWrits"
@@ -2385,15 +2399,10 @@
         "op": "add",
         "path": "/flow/writDraw",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "drawnCount": 2,
           "keep": 1,
           "source": "shovels",
-          "shovelsOffered": false,
-          "drawn": [
-            "writ.mandate.2",
-            "writ.charter.eastern-kingdom"
-          ]
+          "shovelsOffered": false
         }
       }
     ]
@@ -3649,7 +3658,6 @@
         "op": "add",
         "path": "/flow/starve",
         "value": {
-          "actorId": "1xR9m1pAy_W5irFjMM2pw",
           "targetPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
           "spaceId": "space.desert.3",
           "role": "subject"

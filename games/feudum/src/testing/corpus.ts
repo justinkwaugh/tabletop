@@ -27,7 +27,7 @@ import { ruleFarm, setBarn, setCarts, setMarket, setMaster, setPawns } from './g
 import { giveGood, setUp, spaceOfKind } from './improving.js'
 import { writKey } from './corpusWalk.js'
 import { canonicalOf } from './state.js'
-import { tableAtPlayingCards, type Table } from './table.js'
+import { tableAtPlayingCards, type Table, drawnWrits } from './table.js'
 import { cardTurnSeat } from '../model/turns.js'
 import { locationKindOf } from '../model/locationDiscs.js'
 
@@ -171,7 +171,7 @@ export function serfOnOutpost(state: HydratedFeudumGameState, seat: string, riva
 }
 
 export function keepFirst(table: Table, seat: string, extra: Record<string, unknown> = {}): void {
-    const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+    const drawn = drawnWrits(table.hydrated()) ?? []
     table.send(seat, { type: ActionType.KeepWrits, keep: drawn.slice(0, 1), ...extra })
 }
 

@@ -191,7 +191,6 @@ describe('R-4.10.2 favours chosen from a harvest', () => {
             state.supply.haversack.sulfur -= 2
             state.supply.haversack.iron -= 1
             state.flow.harvest = {
-                playerId,
                 spaceId: spaceOfKind(state, 'farm'),
                 drawn,
                 favours: 2

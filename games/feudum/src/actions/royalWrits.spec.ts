@@ -26,7 +26,7 @@ import { holdWrit } from '../testing/combat.js'
 import { setPawns, setSealPile } from '../testing/guilds.js'
 import { giveGood, giveSeal, showLocation } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { tableAtPlayingCards, type Table, drawnWrits } from '../testing/table.js'
 import { discardWritOffers, reasonDiscardWritRefused } from './discardWrit.js'
 import { keepWritsOffer, reasonKeepWritsRefused } from './keepWrits.js'
 import { playMandateOffers, reasonPlayMandateRefused } from './playMandate.js'
@@ -65,7 +65,7 @@ function afterDraw(
         return MachineState.PlayingCards
     })
     table.send(playerId, { type: ActionType.Explore, revealsInfo: true })
-    const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+    const drawn = drawnWrits(table.hydrated()) ?? []
     expect(drawn.length).toBeGreaterThan(0)
     return { table, playerId, drawn }
 }
@@ -228,7 +228,7 @@ describe('KeepWrits', () => {
             return MachineState.PlayingCards
         })
         table.send(playerId, { type: ActionType.Explore, revealsInfo: true, secondCard: true })
-        const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+        const drawn = drawnWrits(table.hydrated()) ?? []
 
         table.send(playerId, { type: ActionType.KeepWrits, keep: [drawn[0]] })
 
@@ -248,7 +248,7 @@ describe('KeepWrits', () => {
             return MachineState.PlacingDisc
         })
         table.send(playerId, { type: ActionType.PlaceDisc, place: true })
-        const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+        const drawn = drawnWrits(table.hydrated()) ?? []
         expect(table.hydrated().flow.writDraw).toMatchObject({ source: 'voyage', keep: 1 })
         expect(keepWritsOffer(table.hydrated(), playerId)?.shovelsAndSwords).toBeUndefined()
 

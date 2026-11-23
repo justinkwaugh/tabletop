@@ -830,7 +830,7 @@ async function realExplore() {
     await table.host.send(seat, { type: ActionType.Explore, revealsInfo: true })
     await settled(session)
     await settled(otherSession)
-    const drawn = hydrated(table.host.state).flow.writDraw?.drawn ?? []
+    const drawn = hydrated(table.host.state).getPlayerState(seat).writsDrawn ?? []
     return { ...table, otherSession, before, drawer, onlooker, drawn }
 }
 
@@ -907,13 +907,12 @@ describe('R-5.3 what a flying copy shows, seat by seat', () => {
         const writId: WritId = RoyalWrits[0].id
         const change = changeFrom(table, (to) => {
             to.flow.writDraw = {
-                playerId: seat,
                 drawnCount: 1,
                 keep: 1,
                 source: 'explore',
-                shovelsOffered: false,
-                drawn: []
+                shovelsOffered: false
             }
+            to.getPlayerState(seat).writsDrawn = []
         })
         const action = actionOf(seat, ActionType.Explore, {
             metadata: { drawnCount: 1, keep: 1, drawnWritIds: [writId] }
@@ -1059,13 +1058,12 @@ describe('R-5.3 what a flying copy shows, seat by seat', () => {
                 to.getPlayerState(seat).sealCount += 1
                 to.supply.sealPileCount -= 1
                 to.flow.writDraw = {
-                    playerId: seat,
                     drawnCount: 2,
                     keep: 1,
                     source: 'explore',
-                    shovelsOffered: false,
-                    drawn: []
+                    shovelsOffered: false
                 }
+                to.getPlayerState(seat).writsDrawn = []
                 to.getPlayerState(seat).writCount += 1
             },
             actionOf(seat, ActionType.Explore, {
@@ -1473,7 +1471,8 @@ describe('no Action, and nothing at all', () => {
         game.sendUnheard(seat, { type: ActionType.Explore, revealsInfo: true })
         await game.reconcile(seat)
         await settled(session)
-        expect(session.gameState.flow.writDraw?.playerId).toBe(seat)
+        expect(session.gameState.flow.writDraw).toBeDefined()
+        expect(session.gameState.activePlayerIds).toEqual([seat])
         expect(plans).not.toHaveBeenCalled()
         expect(animator.flights).toEqual([])
     })
@@ -1526,7 +1525,8 @@ describe('no Action, and nothing at all', () => {
             expect(seconds).toBeGreaterThan(0.3)
             expect(shown[0].draw).toBeUndefined()
             expect(shown[0].at).toBeGreaterThanOrEqual(seconds * 1000 * 0.8)
-            expect(session.gameState.flow.writDraw?.playerId).toBe(seat)
+            expect(session.gameState.flow.writDraw).toBeDefined()
+            expect(session.gameState.activePlayerIds).toEqual([seat])
         } finally {
             clock?.timeScale(40)
         }
@@ -1538,7 +1538,7 @@ describe('no Action, and nothing at all', () => {
         const first = game.send(seat, { type: ActionType.Explore, revealsInfo: true })
         await flying
         expect(animator.flights.length).toBeGreaterThan(0)
-        const drawn = hydrated(game.state).flow.writDraw?.drawn ?? []
+        const drawn = hydrated(game.state).getPlayerState(seat).writsDrawn ?? []
         const second = game.send(seat, { type: ActionType.KeepWrits, keep: drawn.slice(0, 1) })
         await Promise.all([first, second])
         await settled(session)

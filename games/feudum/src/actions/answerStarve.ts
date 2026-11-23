@@ -4,6 +4,7 @@ import { Compile } from 'typebox/compile'
 import type { SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
 import { StarveRole } from '../model/flow.js'
+import { followUpSeat } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { canPayGoods, goodsShort, payGoods, WildTileSpend } from '../model/payments.js'
 import { moveConcealedSeal } from '../model/seals.js'
@@ -97,7 +98,7 @@ export function answerStarveOffer(
         return undefined
     }
     return {
-        actorId: starve.actorId,
+        actorId: followUpSeat(state),
         spaceId: starve.spaceId,
         role: starve.role,
         holdsDefend: state.getPlayerState(playerId).hand?.includes('defend') ?? false,
@@ -133,7 +134,8 @@ export class HydratedAnswerStarve
         }
         const starve = state.flow.starve
         assertExists(starve, 'R-3.14-H1 A Starve is waiting')
-        const { actorId, spaceId, role } = starve
+        const actorId = followUpSeat(state)
+        const { spaceId, role } = starve
         state.flow.starve = undefined
         if (!this.royalImmunity) {
             this.metadata = {

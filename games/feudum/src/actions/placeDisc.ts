@@ -226,12 +226,12 @@ export class HydratedPlaceDisc extends HydratableAction<typeof PlaceDisc> implem
         if (!row.writDraw) {
             return { space: row.id }
         }
-        const drawnCount = drawWritsToKeep(state, this.playerId, row.writDraw, 'voyage')
+        const drawnCount = drawWritsToKeep(state, row.writDraw, 'voyage')
         const { writDraw } = state.flow
         if (!writDraw) {
             return { space: row.id, drawnCount }
         }
         markRevealsInfo(this, true)
-        return { space: row.id, drawnCount, drawnWritIds: [...requireDrawnWrits(writDraw)] }
+        return { space: row.id, drawnCount, drawnWritIds: [...requireDrawnWrits(state)] }
     }
 }

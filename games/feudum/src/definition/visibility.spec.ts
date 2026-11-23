@@ -53,14 +53,8 @@ function tableInPlay(numPlayers = 4): FeudumGameState {
         player.writCount = 2
         player.deckKnowledge = [{ slot: index, writId: known }]
     })
-    state.flow.writDraw = {
-        playerId: DRAWER,
-        drawnCount: 2,
-        keep: 1,
-        source: 'explore',
-        shovelsOffered: false,
-        drawn: writIds.slice(-2)
-    }
+    state.flow.writDraw = { drawnCount: 2, keep: 1, source: 'explore', shovelsOffered: false }
+    seat(state, DRAWER).writsDrawn = writIds.slice(-2)
     return state
 }
 
@@ -151,10 +145,15 @@ describe('the projection of a player and a spectator', () => {
         const state = tableInPlay()
         const pending = state.flow.writDraw
         expect(project(state, asPlayer(DRAWER)).flow.writDraw).toEqual(pending)
+        const drawer = project(state, asPlayer(DRAWER)).players.find(
+            (row) => row.playerId === DRAWER
+        )
+        expect(drawer?.writsDrawn).toEqual(seat(state, DRAWER).writsDrawn)
         for (const perspective of [asPlayer('p1'), spectator]) {
             const { writDraw } = project(state, perspective).flow
-            expect(writDraw).not.toHaveProperty('drawn')
-            expect(writDraw).toMatchObject({ playerId: DRAWER, drawnCount: 2, keep: 1 })
+            const seen = project(state, perspective).players.find((row) => row.playerId === DRAWER)
+            expect(seen).not.toHaveProperty('writsDrawn')
+            expect(writDraw).toMatchObject({ drawnCount: 2, keep: 1 })
         }
     })
 
@@ -195,7 +194,7 @@ describe('the projection of a player and a spectator', () => {
         const writs: string[] = [
             ...state.vault.writDeck.map(({ writId }) => writId),
             ...state.players.flatMap(writsOf),
-            ...(state.flow.writDraw?.drawn ?? [])
+            ...(seat(state, DRAWER).writsDrawn ?? [])
         ]
         const concealed = [
             ...writs.filter((writId) => !known.includes(writId)),
@@ -252,7 +251,7 @@ describe('hydrating a projection', () => {
         expect(hydrated.vault).toBeUndefined()
         expect(hydrated.masterSeed).toBeUndefined()
         expect(hydrated.getPlayerState('p2').hand).toBeUndefined()
-        expect(hydrated.flow.writDraw?.drawn).toBeUndefined()
+        expect(hydrated.getPlayerState(DRAWER).writsDrawn).toBeUndefined()
     })
 
     it('R-5-H1 a concealed read fails, so guarded execution defers to the host', () => {

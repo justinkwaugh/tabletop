@@ -41,13 +41,12 @@ async function drawScene(writId: WritId) {
     const from = new HydratedFeudumGameState(structuredClone(table.host.state))
     const to = new HydratedFeudumGameState(structuredClone(table.host.state))
     to.flow.writDraw = {
-        playerId: table.seat,
         drawnCount: 1,
         keep: 1,
         source: 'explore',
-        shovelsOffered: false,
-        drawn: []
+        shovelsOffered: false
     }
+    to.getPlayerState(table.seat).writsDrawn = []
     const action = {
         id: 'action',
         gameId: 'game',
@@ -85,10 +84,9 @@ describe('R-5.3 the markup of a flying copy', () => {
         const before = table.host.projected({ kind: 'spectator' })
         await table.host.send(table.seat, { type: ActionType.Explore, revealsInfo: true })
         const after = table.host.projected({ kind: 'spectator' })
-        const { drawn } = new HydratedFeudumGameState(structuredClone(table.host.state)).flow
-            .writDraw ?? {
-            drawn: []
-        }
+        const drawn = new HydratedFeudumGameState(structuredClone(table.host.state)).getPlayerState(
+            table.seat
+        ).writsDrawn
         expect(drawn?.length).toBeGreaterThan(0)
         const received = JSON.stringify({ state: after.currentState, actions: after.actions })
         const markup = markupOf(

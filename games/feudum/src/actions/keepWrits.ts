@@ -24,6 +24,7 @@ import {
 } from '../model/payments.js'
 import { KnownDeckWrit } from '../model/playerState.js'
 import { ComponentCount, WritIdSchema } from '../model/stateSchemas.js'
+import { cardTurnSeat } from '../model/turns.js'
 import { putWritsUnderUnseen, writDeckCount } from '../model/writDeck.js'
 import { reasonSpecialRefused } from './cardPlay.js'
 
@@ -77,10 +78,9 @@ export function isKeepWrits(action?: GameAction): action is KeepWrits {
 /** R-3.10.2 */
 const ShovelsPrice = { iron: 1 }
 
-/** R-4.4.1 The draw waiting on this seat, if any. */
+/** R-4.4.1 The draw waiting on this seat, if any: the turn seat's. */
 function drawOf(state: HydratedFeudumGameState, playerId: string) {
-    const { writDraw } = state.flow
-    return writDraw?.playerId === playerId ? writDraw : undefined
+    return cardTurnSeat(state) === playerId ? state.flow.writDraw : undefined
 }
 
 /** R-3.10.2, R-3.10-H2, R-3.10-H3 The unkept go under first, so they count as there to draw. */
@@ -125,7 +125,7 @@ export function reasonKeepWritsRefused(
     if (keep.length !== writDraw.keep) {
         return `Keep ${writDraw.keep} writ${writDraw.keep === 1 ? '' : 's'}, not ${keep.length}.`
     }
-    const drawn = requireDrawnWrits(writDraw)
+    const drawn = requireDrawnWrits(state)
     if (new Set(keep).size !== keep.length || keep.some((writId) => !drawn.includes(writId))) {
         return 'Keep only writs you drew.'
     }
@@ -175,7 +175,7 @@ export function keepWritsOffer(
         wildTileNeeded
     }
     return {
-        drawn: requireDrawnWrits(writDraw),
+        drawn: requireDrawnWrits(state),
         keep: writDraw.keep,
         source: writDraw.source,
         ...(reasonShovelsRefused(state, playerId, wildTileNeeded ? anyTile : [])
@@ -209,8 +209,6 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
 
     /** R-4.4.1, R-4.4-H3 The keep ends this draw; the rest go under in the order drawn. */
     private keepFromDraw(state: HydratedFeudumGameState): KnownDeckWrit[] {
-        const { writDraw } = state.flow
-        assertExists(writDraw, 'R-4.4.1 The reason has found the draw')
         const player = state.getPlayerState(this.playerId)
         const writs = player.requireWrits()
         writs.push(...this.keep)
@@ -220,8 +218,9 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
         putWritsUnderUnseen(
             state,
             this.playerId,
-            requireDrawnWrits(writDraw).filter((writId) => !this.keep.includes(writId))
+            requireDrawnWrits(state).filter((writId) => !this.keep.includes(writId))
         )
+        delete player.writsDrawn
         state.flow.writDraw = undefined
         finishFollowUp(state)
         return player.requireDeckKnowledge().slice(known)
@@ -242,7 +241,6 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
 
         const drawnCount = drawWritsToKeep(
             state,
-            this.playerId,
             { draw: ShovelsDraw, keep: ShovelsKeep },
             'shovels'
         )
@@ -252,7 +250,7 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
         return {
             drawnCount,
             keepNext: writDraw.keep,
-            drawnWritIds: [...requireDrawnWrits(writDraw)]
+            drawnWritIds: [...requireDrawnWrits(state)]
         }
     }
 }

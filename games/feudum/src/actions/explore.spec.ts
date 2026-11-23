@@ -10,7 +10,7 @@ import { MachineState } from '../definition/states.js'
 import { FeudumGameState, type HydratedFeudumGameState } from '../model/gameState.js'
 import { writDeckCount } from '../model/writDeck.js'
 import { canonicalOf } from '../testing/state.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { tableAtPlayingCards, type Table, drawnWrits } from '../testing/table.js'
 import { exploreDrawCount, exploreOffer, reasonExploreRefused } from './explore.js'
 import { keepWritsOffer, reasonKeepWritsRefused } from './keepWrits.js'
 
@@ -71,7 +71,7 @@ function explore(table: Table, playerId: string) {
 }
 
 function drawnOf(table: Table): WritId[] {
-    const drawn = table.hydrated().flow.writDraw?.drawn
+    const drawn = drawnWrits(table.hydrated())
     expect(drawn).toBeDefined()
     return drawn ?? []
 }
@@ -133,8 +133,7 @@ describe('Explore', () => {
         expect(player.hand).toEqual(['migrate', 'guild'])
         expect(player.played).toEqual([{ kind: 'explore', use: 'regular' }])
         expect(player.writCount).toBe(0)
-        expect(state.flow.writDraw).toMatchObject({
-            playerId,
+        expect(state.flow.writDraw).toEqual({
             drawnCount: 2,
             keep: 1,
             source: 'explore',
@@ -250,9 +249,7 @@ describe('Explore', () => {
         const mine = { kind: 'player', playerId } as const
         const theirs = { kind: 'player', playerId: table.order[1] } as const
 
-        expect(
-            stateProjector.project(canonical, mine, { config: {} }).flow.writDraw?.drawn
-        ).toEqual(drawn)
+        expect(drawnWrits(stateProjector.project(canonical, mine, { config: {} }))).toEqual(drawn)
         expect(actionProjector.project(action, mine, { config: {} })).toMatchObject({
             metadata: { drawnWritIds: drawn }
         })
@@ -305,8 +302,7 @@ describe('Shovels & Swords', () => {
         ])
         expect(state.machineState).toBe(MachineState.KeepingWrits)
         expect(table.asked).toBe(playerId)
-        expect(state.flow.writDraw).toMatchObject({
-            playerId,
+        expect(state.flow.writDraw).toEqual({
             drawnCount: 2,
             keep: 1,
             source: 'shovels',

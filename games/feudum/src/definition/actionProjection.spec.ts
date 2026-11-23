@@ -290,12 +290,11 @@ function heldBy({ after }: Transition, playerId?: string): string[] {
     if (!row) {
         return []
     }
-    const { writDraw } = after.flow
     return [
         ...row.writs,
         ...row.sealedCharters,
         ...row.deckKnowledge.map(({ writId }) => writId),
-        ...(writDraw && writDraw.playerId === playerId ? (writDraw.drawn ?? []) : [])
+        ...(row.writsDrawn ?? [])
     ]
 }
 

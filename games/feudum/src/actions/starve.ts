@@ -1,10 +1,9 @@
 import { assert, assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
-import type { SpaceId } from '../data/board.js'
 import { ChickenSpaces } from '../data/guilds.js'
 import type { SealId } from '../data/seals.js'
-import type { StarveRole } from '../model/flow.js'
-import { queueFollowUp } from '../model/followUps.js'
+import type { FlowState, StarveRole } from '../model/flow.js'
+import { followUpSeat, queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
 import type { SpaceState } from '../model/mapState.js'
@@ -67,14 +66,9 @@ function chickenBeadsToPile(state: HydratedFeudumGameState): SealId[] {
 /** R-3.13.2, R-4.9-H1 */
 export function resolveStarve(
     state: HydratedFeudumGameState,
-    target: {
-        readonly actorId: string
-        readonly targetPlayerId: string
-        readonly spaceId: SpaceId
-        readonly role: StarveRole
-    }
+    target: Readonly<NonNullable<FlowState['starve']>>
 ): StarveRecord {
-    const { actorId, targetPlayerId, spaceId, role } = target
+    const { targetPlayerId, spaceId, role } = target
     const space = state.spaces[spaceId]
     assert(
         markerPlayerId(space, role) === targetPlayerId,
@@ -88,7 +82,7 @@ export function resolveStarve(
     }
     state.getPlayerState(targetPlayerId).influenceSupply += 1
     const beads = chickenBeadsToPile(state)
-    const rankChanges = state.recomputeRanks(actorId)
+    const rankChanges = state.recomputeRanks(followUpSeat(state))
     queueFollowUp(state, { kind: 'military' })
     return { beads, rankChanges }
 }

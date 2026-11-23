@@ -2,8 +2,8 @@ import { assert, assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import type { SpaceId } from '../data/board.js'
 import { discChoices, replaceLocationDisc } from '../model/locationDiscs.js'
-import { CombatTarget } from '../model/flow.js'
-import { queueFollowUp } from '../model/followUps.js'
+import { CombatTarget, type FlowState } from '../model/flow.js'
+import { followUpSeat, queueFollowUp } from '../model/followUps.js'
 import { combatStrength, type CombatStrength } from '../model/combatStrength.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
@@ -105,18 +105,19 @@ export function conquerVp(target: CombatTarget): number {
 /** R-4.8.2 The tally as things stand, with what the attacker would add. */
 export function strengthOf(
     state: HydratedFeudumGameState,
-    combat: {
-        readonly attackerId: string
-        readonly defenderId: string
-        readonly spaceId: SpaceId
-        readonly target: CombatTarget
-        readonly defendFlipped: boolean
-    },
+    attackerId: string,
+    combat: Readonly<NonNullable<FlowState['combat']>>,
     saltpeter: number,
     weapons: number
 ): CombatStrength {
     const { target, ...sides } = combat
-    return combatStrength(state, { ...sides, target: target.kind, saltpeter, weapons })
+    return combatStrength(state, {
+        ...sides,
+        attackerId,
+        target: target.kind,
+        saltpeter,
+        weapons
+    })
 }
 
 /** R-4.8.3 A monster goes back to the Knight Guild; its player's marker comes home (R-4.2.4). */
@@ -218,8 +219,15 @@ export function resolveCombat(
 ): CombatRecord {
     const combat = state.flow.combat
     assertExists(combat, 'R-4.8 A combat is under way')
-    const { attackerId, defenderId, spaceId, target, defendFlipped } = combat
-    const { attack, defence, attackerWins } = strengthOf(state, combat, saltpeter, weapons)
+    const attackerId = followUpSeat(state)
+    const { defenderId, spaceId, target, defendFlipped } = combat
+    const { attack, defence, attackerWins } = strengthOf(
+        state,
+        attackerId,
+        combat,
+        saltpeter,
+        weapons
+    )
     state.flow.combat = undefined
     const fought = {
         defenderId,

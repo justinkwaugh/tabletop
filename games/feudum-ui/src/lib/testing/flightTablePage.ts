@@ -200,9 +200,10 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
             return `pawn:${seat}:${pawn?.n}`
         },
         drawnWrits() {
-            const { drawn } =
-                new HydratedFeudumGameState(structuredClone(host.state)).flow.writDraw ?? {}
-            return (drawn ?? []).flatMap((writId) => [writId, writName(writId)])
+            const { writsDrawn } = new HydratedFeudumGameState(
+                structuredClone(host.state)
+            ).getPlayerState(seat)
+            return (writsDrawn ?? []).flatMap((writId) => [writId, writName(writId)])
         },
         pawnHome: () => stage(pawnHome),
         pawnHomeOpeningFullScreen: () =>
@@ -229,12 +230,10 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
             const from = hydrated(session)
             const to = hydrated(session)
             to.flow.writDraw = {
-                playerId: seat,
                 drawnCount: 3,
                 keep: 1,
                 source: 'explore',
-                shovelsOffered: false,
-                drawn: []
+                shovelsOffered: false
             }
             const animationContext = new AnimationContext()
             const drawnWritIds = RoyalWrits.slice(0, 3).map(({ id }) => id)
@@ -264,8 +263,8 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
                 const sent = host.send(seat, { type: ActionType.Explore, revealsInfo: true })
                 await new Promise((done) => setTimeout(done, 120))
                 const drawn =
-                    new HydratedFeudumGameState(structuredClone(host.state)).flow.writDraw?.drawn ??
-                    []
+                    new HydratedFeudumGameState(structuredClone(host.state)).getPlayerState(seat)
+                        .writsDrawn ?? []
                 await Promise.all([
                     sent,
                     host.send(seat, { type: ActionType.KeepWrits, keep: drawn.slice(0, 1) })

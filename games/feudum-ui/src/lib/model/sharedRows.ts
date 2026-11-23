@@ -1,4 +1,4 @@
-import { serfAsked, strengthOf, type HydratedFeudumGameState } from '@tabletop/feudum'
+import { followUpSeat, serfAsked, strengthOf, type HydratedFeudumGameState } from '@tabletop/feudum'
 import { tallyLines, type TallyLine } from './cardFlows.js'
 
 /** Contract, Render ownership: read from `flow`, not a seat's own, so every seat draws the same. */
@@ -57,5 +57,5 @@ export function combatTallyOf(state: HydratedFeudumGameState): CombatTallyRow | 
     if (!combat) {
         return undefined
     }
-    return { lines: tallyLines(strengthOf(state, combat, 0, 0)) }
+    return { lines: tallyLines(strengthOf(state, followUpSeat(state), combat, 0, 0)) }
 }

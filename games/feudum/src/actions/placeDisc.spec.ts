@@ -10,7 +10,7 @@ import { FeudumGameState, type HydratedFeudumGameState } from '../model/gameStat
 import { writDeckCount } from '../model/writDeck.js'
 import { stateAfterCardStep } from '../stateHandlers/cardTurns.js'
 import { canonicalOf } from '../testing/state.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { tableAtPlayingCards, type Table, drawnWrits } from '../testing/table.js'
 import {
     HydratedPlaceDisc,
     PlaceDisc,
@@ -256,17 +256,16 @@ describe('PlaceDisc: the epic voyage', () => {
             const state = table.hydrated()
             expect(state.voyageTrack[playerId]).toBe(`track.voyage.${space}`)
             expect(writDeckCount(state)).toBe(deck - 2)
-            expect(state.flow.writDraw).toMatchObject({
-                playerId,
+            expect(state.flow.writDraw).toEqual({
                 drawnCount: 2,
                 keep: 1,
                 source: 'voyage',
                 shovelsOffered: false
             })
-            expect(state.flow.writDraw?.drawn).toHaveLength(2)
+            expect(drawnWrits(state)).toHaveLength(2)
             // R-3.7.5 The drawer's log names the writs; the state's record is the same two.
             expect(action).toMatchObject({
-                metadata: { drawnWritIds: state.flow.writDraw?.drawn }
+                metadata: { drawnWritIds: drawnWrits(state) }
             })
             // The keep comes next, asked of the drawer.
             expect(state.flow.turn?.followUps).toEqual([{ kind: 'keep-writs' }])
@@ -301,13 +300,13 @@ describe('PlaceDisc: the epic voyage', () => {
             { config: {} }
         )
         expect(other.flow.writDraw?.drawnCount).toBe(2)
-        expect(other.flow.writDraw?.drawn).toBeUndefined()
+        expect(drawnWrits(other)).toBeUndefined()
         const own = projector.project(
             canonicalOf(table.hydrated()),
             { kind: 'player', playerId },
             { config: {} }
         )
-        expect(own.flow.writDraw?.drawn).toHaveLength(2)
+        expect(drawnWrits(own)).toHaveLength(2)
     })
 
     it('R-4.4-H2 a deck of one draws it and keeps it; the count says so', () => {
@@ -360,7 +359,7 @@ describe('PlaceDisc: the epic voyage', () => {
         expect(table.hydrated().flow.turn?.followUps).toEqual(
             expect.arrayContaining([{ kind: 'keep-writs' }, { kind: 'military' }])
         )
-        expect(canonicalOf(table.hydrated()).flow.writDraw?.drawn).toHaveLength(2)
+        expect(drawnWrits(canonicalOf(table.hydrated()))).toHaveLength(2)
     })
 })
 

@@ -177,18 +177,22 @@ export function writsNamedIn(value: unknown): string[] {
     return JSON.stringify(value).match(WritId) ?? []
 }
 
-const OwnerKnown = ['hand', 'committedPouch', 'writs', 'sealedCharters', 'deckKnowledge']
+const OwnerKnown = [
+    'hand',
+    'committedPouch',
+    'writs',
+    'sealedCharters',
+    'deckKnowledge',
+    'writsDrawn'
+]
 
-/** R-5.1 A view with no seat's owner-known field and no pending draw's writs, as a spectator's has. */
+/** R-5.1 A view with no seat's owner-known field, as a spectator's has. */
 export function withoutOwnerKnown(view: FeudumProjectedState): FeudumProjectedState {
     const bare: FeudumProjectedState = structuredClone(view)
     for (const player of bare.players) {
         for (const field of OwnerKnown) {
             Reflect.deleteProperty(player, field)
         }
-    }
-    if (bare.flow.writDraw) {
-        Reflect.deleteProperty(bare.flow.writDraw, 'drawn')
     }
     return bare
 }
@@ -209,9 +213,6 @@ export function withoutConcealed(
                 Reflect.deleteProperty(player, field)
             }
         }
-    }
-    if (seen !== expected.flow.writDraw?.playerId && expected.flow.writDraw) {
-        Reflect.deleteProperty(expected.flow.writDraw, 'drawn')
     }
     return expected
 }

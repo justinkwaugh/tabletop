@@ -12,6 +12,7 @@ import { isRollProgressDie } from '../actions/rollProgressDie.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import { isTendLandscape } from '../actions/tendLandscape.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
+import { openTurnSeat } from '../model/turns.js'
 import {
     completeGame,
     persistedReplay,
@@ -197,6 +198,19 @@ describe.each(Games)(
                 expect(engine.getValidActionTypesForPlayer(game, before, input.playerId)).toContain(
                     input.type
                 )
+            }
+        })
+
+        it('R-4.4.1 only the turn seat holds drawn writs, as many as the draw counts', () => {
+            for (const state of walk().steps.flatMap(({ after }) => after)) {
+                const seat = openTurnSeat(state)
+                const holders = state.players.filter((row) => row.writsDrawn !== undefined)
+                if (state.flow.writDraw) {
+                    expect(holders.map((row) => row.playerId)).toEqual([seat])
+                    expect(holders[0].writsDrawn).toHaveLength(state.flow.writDraw.drawnCount)
+                } else {
+                    expect(holders).toEqual([])
+                }
             }
         })
 

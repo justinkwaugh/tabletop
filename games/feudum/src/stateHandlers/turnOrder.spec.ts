@@ -30,7 +30,8 @@ import {
     giveCardTurn,
     type Table,
     tableAtHandSelection,
-    tableAtPlayingCards
+    tableAtPlayingCards,
+    drawnWrits
 } from '../testing/table.js'
 import { stateAfterCardStep } from './cardTurns.js'
 import { cardTurnSeat } from '../model/turns.js'
@@ -321,7 +322,7 @@ describe('R-3.3-H1 a declared second card (S12)', () => {
         ruleOutpost(table, playerId)
 
         table.send(playerId, { type: ActionType.Explore, revealsInfo: true, secondCard: true })
-        const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
+        const [kept] = drawnWrits(table.hydrated()) ?? []
         table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
 
         expect(table.seat(playerId).writCount).toBe(4)
@@ -478,7 +479,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
             queueFollowUp(state, { kind: 'military' })
             return stateAfterCardStep(context)
         })
-        const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
+        const [kept] = drawnWrits(table.hydrated()) ?? []
 
         table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
         expect(table.seat(playerId).writCount).toBe(4)

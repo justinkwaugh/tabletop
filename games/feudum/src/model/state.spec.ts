@@ -89,7 +89,8 @@ describe('player rows', () => {
             'writCount',
             'sealedCharters',
             'sealedCharterCount',
-            'deckKnowledge'
+            'deckKnowledge',
+            'writsDrawn'
         ]) {
             expect(keys).toContain(key)
         }
@@ -160,33 +161,19 @@ describe('flow', () => {
     const pending = {
         selection: { finalised: ['p1'] },
         turn,
-        writDraw: {
-            playerId: 'p1',
-            drawnCount: 3,
-            keep: 1,
-            source: 'explore',
-            shovelsOffered: false,
-            drawn: ['writ.mandate.1']
-        },
+        writDraw: { drawnCount: 3, keep: 1, source: 'explore', shovelsOffered: false },
         harvest: {
-            playerId: 'p1',
             spaceId: 'space.sea.1',
             drawn: { saltpeter: 0, sulfur: 0, iron: 0, wood: 0, food: 0 },
             favours: 0
         },
         combat: {
-            attackerId: 'p1',
             defenderId: 'p2',
             spaceId: 'space.sea.1',
             target: { kind: 'feudum' },
             defendFlipped: false
         },
-        starve: {
-            actorId: 'p1',
-            targetPlayerId: 'p2',
-            spaceId: 'space.sea.1',
-            role: 'serf'
-        },
+        starve: { targetPlayerId: 'p2', spaceId: 'space.sea.1', role: 'serf' },
         nourish: { pending: ['p1'] },
         landscapes: { pending: ['p1'] }
     }
@@ -206,18 +193,23 @@ describe('flow', () => {
     })
 
     it.each([
-        ['writDraw', 'playerId'],
-        ['harvest', 'playerId'],
-        ['combat', 'attackerId'],
         ['combat', 'defenderId'],
-        ['starve', 'actorId'],
         ['starve', 'targetPlayerId'],
         ['nourish', 'pending'],
         ['landscapes', 'pending']
-    ] as const)('R-X.1 %s names its deciding seat in %s', (entry, seat) => {
+    ] as const)('R-X.1 %s names the seat it waits on in %s', (entry, seat) => {
         const named: Record<string, unknown> = { ...pending[entry] }
         delete named[seat]
         expect(accepts({ [entry]: named })).toBe(false)
+    })
+
+    it.each([
+        ['writDraw', 'playerId'],
+        ['harvest', 'playerId'],
+        ['combat', 'attackerId'],
+        ['starve', 'actorId']
+    ] as const)('R-3.2 %s stores no copy of the turn seat in %s', (entry, seat) => {
+        expect(accepts({ [entry]: { ...pending[entry], [seat]: 'p1' } })).toBe(false)
     })
 
     it('R-4.7, R-4.9.1 follow-ups keep their order and name no seat', () => {

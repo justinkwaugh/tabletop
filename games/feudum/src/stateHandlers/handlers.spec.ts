@@ -32,7 +32,7 @@ import { setMaster, setPawns } from '../testing/guilds.js'
 import { setUp } from '../testing/improving.js'
 import { playOutCards, typesOf } from '../testing/roundEnd.js'
 import { giveFood, starve, tableAtStarve } from '../testing/starve.js'
-import { Table, tableAtPlayingCards } from '../testing/table.js'
+import { Table, tableAtPlayingCards, drawnWrits } from '../testing/table.js'
 import { stateAfterCardStep } from './cardTurns.js'
 import { cardTurnSeat } from '../model/turns.js'
 
@@ -330,7 +330,7 @@ describe('R-3.2 follow-ups run in order', () => {
         expect(table.state.flow.turn?.followUps).toEqual(
             expect.arrayContaining([{ kind: 'keep-writs' }, { kind: 'military' }])
         )
-        const [kept] = table.hydrated().flow.writDraw?.drawn ?? []
+        const [kept] = drawnWrits(table.hydrated()) ?? []
         const keep = table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
         expect(keep.map((action) => action.type)).toEqual([ActionType.KeepWrits])
 
@@ -363,7 +363,6 @@ describe('R-3.2 follow-ups run in order', () => {
         const playerId = table.asked
         table.moveTo((state, context) => {
             state.flow.harvest = {
-                playerId,
                 spaceId: 'space.desert.3',
                 drawn: goodCounts(),
                 favours: 0

@@ -7,6 +7,7 @@ import { setBeads, setJourneyman, tableAtGuild } from '../testing/guilds.js'
 import { readDoc } from '../testing/docs.js'
 import { guildActionPreview } from '../actions/guildAction.js'
 import { beadValue, chickenBeadSum, hiddenBeadCandidates, hiddenBeadDraw } from './beads.js'
+import { drawnWrits } from '../testing/table.js'
 
 const FarmerPull = {
     type: ActionType.GuildAction,
@@ -128,11 +129,11 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
                 points: 3,
                 drawnCount: 2,
                 keep: 1,
-                drawnWritIds: table.hydrated().flow.writDraw?.drawn
+                drawnWritIds: drawnWrits(table.hydrated())
             }
         })
-        expect(table.hydrated().flow.writDraw).toMatchObject({
-            playerId,
+        expect(table.hydrated().flow.writDraw).toEqual({
+            shovelsOffered: false,
             drawnCount: 2,
             keep: 1,
             source: 'pull'
@@ -146,7 +147,7 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
             setBeads(state, { rosary: [2, 3], chickens: [3] })
         })
         const [action] = table.send(playerId, FarmerPull)
-        const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+        const drawn = drawnWrits(table.hydrated()) ?? []
         expect(drawn.length).toBe(2)
         const projector = Visibility.createActionProjector(FeudumApiActions)
         const mine = projector.project(action, { kind: 'player', playerId }, { config: {} })

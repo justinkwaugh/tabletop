@@ -1,4 +1,3 @@
-import { Visibility } from '@tabletop/common'
 import * as Type from 'typebox'
 import {
     ComponentCount,
@@ -7,8 +6,7 @@ import {
     MonsterIdSchema,
     PawnNumberSchema,
     SpaceIdSchema,
-    VesselTypeSchema,
-    WritIdSchema
+    VesselTypeSchema
 } from './stateSchemas.js'
 
 /** A decision the current card leaves, pending in no order (R-3.2-H3); no follow-up opens another card. */
@@ -52,7 +50,6 @@ export const WritDrawSource = Type.Union([
 export type StarveRole = Type.Static<typeof StarveRole>
 export const StarveRole = Type.Union([Type.Literal('subject'), Type.Literal('serf')])
 
-/** What is pending and who decides it. Every entry names its seats in public state. */
 /** R-3.13.1 What a Conquer aims at. */
 export type CombatTarget = Type.Static<typeof CombatTarget>
 export const CombatTarget = Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })])
@@ -81,46 +78,43 @@ export const FlowState = Type.Object({
             )
         })
     ),
-    /** R-3.10, R-4.4.1 `drawn` is owner-known; the count is public. */
+    /** R-3.10, R-4.4.1 The turn seat's draw; the writs are on its row, owner-known. */
     writDraw: Type.Optional(
-        Type.Object({
-            playerId: Type.String(),
-            drawnCount: ComponentCount,
-            keep: ComponentCount,
-            source: WritDrawSource,
-            shovelsOffered: Type.Boolean(),
-            drawn: Visibility.protect(Type.Array(WritIdSchema), {
-                policy: Visibility.Policy.Owner
-            })
-        })
+        Type.Object(
+            {
+                drawnCount: ComponentCount,
+                keep: ComponentCount,
+                source: WritDrawSource,
+                shovelsOffered: Type.Boolean()
+            },
+            { additionalProperties: false }
+        )
     ),
     /** R-3.11.3 The goods wait here, drawn from the haversack, until the favours are chosen. */
     harvest: Type.Optional(
-        Type.Object({
-            playerId: Type.String(),
-            spaceId: SpaceIdSchema,
-            drawn: GoodCounts,
-            favours: ComponentCount
-        })
+        Type.Object(
+            { spaceId: SpaceIdSchema, drawn: GoodCounts, favours: ComponentCount },
+            { additionalProperties: false }
+        )
     ),
-    /** R-4.8.1 The attacker names a target; the defender answers. */
+    /** R-4.8.1 The turn seat attacks; the defender answers. */
     combat: Type.Optional(
-        Type.Object({
-            attackerId: Type.String(),
-            defenderId: Type.String(),
-            spaceId: SpaceIdSchema,
-            target: CombatTarget,
-            defendFlipped: Type.Boolean()
-        })
+        Type.Object(
+            {
+                defenderId: Type.String(),
+                spaceId: SpaceIdSchema,
+                target: CombatTarget,
+                defendFlipped: Type.Boolean()
+            },
+            { additionalProperties: false }
+        )
     ),
-    /** R-3.13, R-3.14.2 */
+    /** R-3.13, R-3.14.2 The turn seat starves; the target answers. */
     starve: Type.Optional(
-        Type.Object({
-            actorId: Type.String(),
-            targetPlayerId: Type.String(),
-            spaceId: SpaceIdSchema,
-            role: StarveRole
-        })
+        Type.Object(
+            { targetPlayerId: Type.String(), spaceId: SpaceIdSchema, role: StarveRole },
+            { additionalProperties: false }
+        )
     ),
     /** R-4.10, R-4.10-H4 In no order: the turn manager orders the seats asked. */
     nourish: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),

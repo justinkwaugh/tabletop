@@ -59,7 +59,7 @@ import { setJourneyman, setRowMarkers, setScrolls, tableAtGuild } from '../testi
 import { giveGood, giveSeal, setUp, spaceOfKind } from '../testing/improving.js'
 import { giveFood, starve, tableAtStarve } from '../testing/starve.js'
 import { canonicalOf, epochAt } from '../testing/state.js'
-import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { tableAtPlayingCards, type Table, drawnWrits } from '../testing/table.js'
 import { writRegistry } from '../writs/writRegistry.js'
 import { playMandateOffers } from './playMandate.js'
 import { commitAttackOffer } from './commitAttack.js'
@@ -258,7 +258,7 @@ const DrawRoutes: Readonly<
     explore: (writId) => afterExplore(writId, 0),
     shovels: (writId) => {
         const { table, playerId } = afterExplore(writId, 2)
-        const [first] = table.hydrated().flow.writDraw?.drawn ?? []
+        const [first] = drawnWrits(table.hydrated()) ?? []
         table.send(playerId, {
             type: ActionType.KeepWrits,
             revealsInfo: true,
@@ -330,9 +330,9 @@ describe('corpus reach: the charters', () => {
             'R-4.4.3, R-6.2 $writId is kept, then sealed and scored at game end',
             ({ writId, vp }) => {
                 const { table, playerId } = DrawRoutes[source](writId)
-                const { writDraw } = table.hydrated().flow
-                expect(writDraw).toMatchObject({ playerId, source })
-                expect(writDraw?.drawn).toContain(writId)
+                expect(table.hydrated().flow.writDraw).toMatchObject({ source })
+                expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(playerId)
+                expect(drawnWrits(table.hydrated())).toContain(writId)
 
                 table.send(playerId, { type: ActionType.KeepWrits, keep: [writId] })
                 expect(table.seat(playerId).requireWrits()).toContain(writId)

@@ -43,12 +43,12 @@ describe('R-3.13.1 what Conquer may target', () => {
         expect(seat.handCount).toBe(2)
         expect(action).toMatchObject({ metadata: { defenderId, asked: true } })
         expect(table.state.flow.combat).toEqual({
-            attackerId,
             defenderId,
             spaceId: Battlefield,
             target: PawnOf(defenderId),
             defendFlipped: false
         })
+        expect(table.hydrated().turnManager.currentTurn()?.playerId).toBe(attackerId)
     })
 
     it('R-3.13.1 is accepted with a monster alone on the space', () => {

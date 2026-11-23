@@ -14,6 +14,8 @@ import { FeudumRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
 import type { HydratedFeudumPlayerState } from '../model/playerState.js'
+import { openTurnSeat } from '../model/turns.js'
+import type { WritId } from '../data/writs.js'
 import { testGame } from './state.js'
 
 const engine = new GameEngine(FeudumRuntime)
@@ -212,4 +214,10 @@ function endOpenTurn(state: HydratedFeudumGameState): void {
     if (state.turnManager.currentTurn()) {
         state.turnManager.endTurn(state.actionCount)
     }
+}
+
+/** R-4.4.1 The writs of the turn's draw, on the drawer's row where the view shows them. */
+export function drawnWrits(state: FeudumProjectedState): WritId[] | undefined {
+    const seat = openTurnSeat(state)
+    return state.players.find((player) => player.playerId === seat)?.writsDrawn
 }

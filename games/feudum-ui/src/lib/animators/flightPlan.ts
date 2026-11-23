@@ -1,6 +1,7 @@
 import type { GameAction, Point } from '@tabletop/common'
 import {
     beadValue,
+    followUpSeat,
     ChickenSpaces,
     FarmerPurse,
     Goods,
@@ -758,14 +759,15 @@ function flyWrits(plan: FlightBuilder, change: FlightChange, at: number): number
     const drawing = to.flow.writDraw
     const redrew = action !== undefined && isKeepWrits(action) && action.metadata?.drawnCount
     if (drawing && (!from.flow.writDraw || redrew)) {
-        const shown = writFaceShown(viewerId, drawing.playerId) ? drawnWritIdsOf(action) : []
+        const drawer = followUpSeat(to)
+        const shown = writFaceShown(viewerId, drawer) ? drawnWritIdsOf(action) : []
         for (let index = 0; index < drawing.drawnCount; index += 1) {
             const writId = shown.at(index)
             ends = plan.fly(
                 'writs',
                 writId ? { kind: 'writ', faceShown: true, writId } : WritBack,
                 Deck,
-                seatOf(drawing.playerId, { part: 'writs' }),
+                seatOf(drawer, { part: 'writs' }),
                 launch
             )
             launch += GoodGap

@@ -2,6 +2,7 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
+import { followUpSeat } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { ComponentCount } from '../model/stateSchemas.js'
 import { playOutOfTurn, reasonNotInHandRefused } from './cardPlay.js'
@@ -58,8 +59,9 @@ export function answerAttackOffer(
     if (combat?.defenderId !== playerId) {
         return undefined
     }
-    const asIs = strengthOf(state, { ...combat, defendFlipped: false }, 0, 0)
-    const flipped = strengthOf(state, { ...combat, defendFlipped: true }, 0, 0)
+    const attackerId = followUpSeat(state)
+    const asIs = strengthOf(state, attackerId, { ...combat, defendFlipped: false }, 0, 0)
+    const flipped = strengthOf(state, attackerId, { ...combat, defendFlipped: true }, 0, 0)
     return {
         holdsDefend: state.getPlayerState(playerId).hand?.includes('defend') ?? false,
         attack: asIs.attack.total,
@@ -101,10 +103,8 @@ export class HydratedAnswerAttack
         if (refused) {
             throw Error(refused)
         }
-        const combat = state.flow.combat
-        assertExists(combat, 'R-3.14-H1 An attack is waiting')
         const vp = this.flipDefend ? flipDefend(state, this.playerId) : 0
-        this.metadata = attackerMayAdd(state, combat.attackerId)
+        this.metadata = attackerMayAdd(state, followUpSeat(state))
             ? { vp }
             : { vp, combat: resolveCombat(state, 0, 0) }
     }

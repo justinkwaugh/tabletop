@@ -223,7 +223,7 @@ export function scoreFunction(
     if (fn !== 'pull' || points === 0) {
         return { points, reevePoints, reeveOffered, drawnWritIds: [] }
     }
-    const drawnCount = drawWritsToKeep(state, actor.playerId, PullReward.writs, 'pull')
+    const drawnCount = drawWritsToKeep(state, PullReward.writs, 'pull')
     const { writDraw } = state.flow
     return {
         points,
@@ -231,7 +231,7 @@ export function scoreFunction(
         reeveOffered,
         drawnCount,
         keep: drawnCount > 0 && writDraw ? writDraw.keep : 0,
-        drawnWritIds: drawnCount > 0 && writDraw ? [...requireDrawnWrits(writDraw)] : []
+        drawnWritIds: drawnCount > 0 && writDraw ? [...requireDrawnWrits(state)] : []
     }
 }
 

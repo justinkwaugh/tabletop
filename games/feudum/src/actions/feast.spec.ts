@@ -28,6 +28,7 @@ import { canonicalOf } from '../testing/state.js'
 import { specialShortOfGood } from './cardPlay.js'
 import { Feast, feastOffers, feastPreview, reasonFeastRefused, type FeastInput } from './feast.js'
 import { cardTurnSeat } from '../model/turns.js'
+import { drawnWrits } from '../testing/table.js'
 
 const actionProjector = Visibility.createActionProjector(FeudumApiActions)
 const R1C1 = 'guild.noble.scroll.r1c1'
@@ -255,11 +256,12 @@ describe('Feast: R-3.16-H1, R-3.16-H2 what a threshold changes', () => {
         const [action] = table.send(playerId, monkPull(others[0]))
 
         const state = table.hydrated()
-        const drawn = state.flow.writDraw?.drawn
+        const drawn = drawnWrits(state)
         expect(state.getPlayerState(playerId).score).toBe(score + 3 + 3)
         expect(writDeckCount(state)).toBe(deck - 2)
         expect(state.machineState).toBe(MachineState.KeepingWrits)
-        expect(state.flow.writDraw).toMatchObject({ playerId, keep: 1 })
+        expect(state.flow.writDraw).toMatchObject({ keep: 1 })
+        expect(state.turnManager.currentTurn()?.playerId).toBe(playerId)
         expect(drawn).toHaveLength(2)
         expect(action).toMatchObject({
             revealsInfo: true,
@@ -279,7 +281,7 @@ describe('Feast: R-3.16-H1, R-3.16-H2 what a threshold changes', () => {
     it('R-3.16-H1 after the keep the turn passes, with no reeve asked', () => {
         const { table, playerId, others } = pullTable([4, 4], 3)
         table.send(playerId, monkPull(others[0]))
-        const drawn = table.hydrated().flow.writDraw?.drawn ?? []
+        const drawn = drawnWrits(table.hydrated()) ?? []
         table.send(playerId, { type: ActionType.KeepWrits, keep: [drawn[0]] })
         const state = table.hydrated()
         expect(state.machineState).toBe(MachineState.PlayingCards)
@@ -621,7 +623,7 @@ describe('Feast: R-X.2 what the table sees', () => {
             guildId: 'monk',
             params: { scrollSpaces: [R1C1] }
         })
-        const drawn = table.hydrated().flow.writDraw?.drawn
+        const drawn = drawnWrits(table.hydrated())
         expect(
             actionProjector.project(action, { kind: 'player', playerId }, { config: {} })
         ).toMatchObject({ metadata: { drawnWritIds: drawn } })

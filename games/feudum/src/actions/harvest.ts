@@ -220,7 +220,6 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
         if (this.mode === 'inspect' && owed > 0) {
             // R-3.11.3 The goods wait in the open for the choice.
             state.flow.harvest = {
-                playerId: this.playerId,
                 spaceId: this.spaceId,
                 drawn: { ...drawnCounts },
                 favours: owed

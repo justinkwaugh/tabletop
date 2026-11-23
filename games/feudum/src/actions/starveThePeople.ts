@@ -158,7 +158,6 @@ export class HydratedStarveThePeople
         }
         playCard(state, this.playerId, 'conquer', 'special', this)
         const target = {
-            actorId: this.playerId,
             targetPlayerId: this.targetPlayerId,
             spaceId: this.spaceId,
             role: this.role
