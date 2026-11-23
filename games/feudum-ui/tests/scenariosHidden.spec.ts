@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test'
+import { ActionType, DiscardAnyTime } from '@tabletop/feudum'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
 
 /** The contract's Hidden information scenarios, on the real table at both widths. */
@@ -82,10 +83,10 @@ scenario(
 )
 
 scenario(
-    'S78 R-4.4.1, R-4.4.4 The writ reference is the same for every seat',
-    'writs-charter-held',
+    'S78 R-4.4.1, R-4.4.4 The writ reference is the same for every seat, and after a mandate goes under',
+    'writs-charter-and-mandate',
     async (table) => {
-        // p1 holds the charter and knows two writs under the deck; p2 knows neither.
+        // p1 holds the charter and mandate 5 and knows two writs under the deck; p2 knows neither.
         const own = await table.writReference()
         expect(own.writs).toHaveLength(16)
         expect(new Set(own.writs).size).toBe(16)
@@ -93,7 +94,19 @@ scenario(
         const supply = table.page.getByRole('group', { name: 'Writ deck' })
         await table.press(table.page.getByRole('button', { name: 'Supply', exact: true }))
         await expect(supply).not.toContainText('know')
+        const deck = await supply.innerText()
         await table.page.keyboard.press('Escape')
+
+        await table.another('p1', {
+            type: ActionType.DiscardWrit,
+            writId: 'writ.mandate.5',
+            ...DiscardAnyTime
+        })
+        await table.press(table.page.getByRole('button', { name: 'Supply', exact: true }))
+        await expect(supply).not.toHaveText(deck)
+        await expect(supply).not.toContainText('know')
+        await table.page.keyboard.press('Escape')
+        expect(await table.writReference()).toEqual(own)
 
         await table.showSeat('p2')
         expect(await table.writReference()).toEqual(own)

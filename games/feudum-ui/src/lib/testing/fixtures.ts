@@ -464,6 +464,22 @@ async function exploring(hand: readonly ActionCardKind[]) {
     return { host, seat }
 }
 
+/** R-4.4.1, R-4.4.4 The first seat keeps a charter from an Explore and knows the two writs under the deck. */
+async function charterKept() {
+    const { host, seat } = await exploring(['influence', 'explore', 'guild', 'tax'])
+    await host.send(seat, { type: ActionType.Explore, revealsInfo: true })
+    await host.send(seat, {
+        type: ActionType.KeepWrits,
+        keep: ['writ.charter.central-kingdom']
+    })
+    await othersForfeitUntil(host, seat)
+    await guildAction(host, seat, 'noble', 'trade', {
+        scrollSpaces: ['guild.noble.scroll.r1c1']
+    })
+    await othersForfeitUntil(host, seat)
+    return { host, seat }
+}
+
 /** R-3.2 Every card but the last of the round is played out by forfeit. */
 async function forfeitAllButOne(host: FeudumHost) {
     const left = () =>
@@ -1337,18 +1353,14 @@ export const Fixtures = {
         }
     },
     'writs-charter-held': {
+        build: charterKept
+    },
+    'writs-charter-and-mandate': {
+        arranged:
+            'R-4.4.4 As writs-charter-held, the seat also holding mandate 5 to send under the deck.',
         build: async () => {
-            const { host, seat } = await exploring(['influence', 'explore', 'guild', 'tax'])
-            await host.send(seat, { type: ActionType.Explore, revealsInfo: true })
-            await host.send(seat, {
-                type: ActionType.KeepWrits,
-                keep: ['writ.charter.central-kingdom']
-            })
-            await othersForfeitUntil(host, seat)
-            await guildAction(host, seat, 'noble', 'trade', {
-                scrollSpaces: ['guild.noble.scroll.r1c1']
-            })
-            await othersForfeitUntil(host, seat)
+            const { host, seat } = await charterKept()
+            host.edit((state) => holdWrit(state, seat, 'writ.mandate.5'))
             return { host, seat }
         }
     },

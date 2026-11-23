@@ -503,7 +503,7 @@ test.describe('a 1440 px desk', () => {
         expect(focus).toEqual({ visible: true, outline: 'solid', width: '2px' })
     })
 
-    test('Contract, Desk layout: a guild button opens its three areas upright over the map; again, Escape or the scrim closes it', async ({
+    test('S82 Contract, Desk layout: a guild button opens its three areas upright over the map; again, Escape or the scrim closes it', async ({
         page
     }) => {
         await openFixture(page, 'seats-four-mid-game')
@@ -583,7 +583,7 @@ test.describe('a 1440 px desk', () => {
         await expect(westView).toBeVisible()
     })
 
-    test('Contract, Pick framing: a pick wholly in the West guilds opens them, lit; closing leaves the dot', async ({
+    test('S82 Contract, Pick framing: a pick wholly in the West guilds opens them, lit; closing leaves the dot', async ({
         page
     }) => {
         await openFixture(page, 'guild-pick-west')
@@ -720,7 +720,7 @@ test.describe('a 1440 px desk', () => {
         await expect(page.locator('[data-guild-view="east"] [data-pick-role="lit"]')).toHaveCount(3)
     })
 
-    test('Contract, Supply and Seat panel: the scores in the zoom row and the seat panels, the leader marked, a score flying to its panel', async ({
+    test('S84 Contract, Supply and Seat panel: the scores in the zoom row and the seat panels, the leader marked, a score flying to its panel', async ({
         page
     }) => {
         await openFixture(page, 'cards-defend')
