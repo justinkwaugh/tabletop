@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { assert, GameResult, type AxialCoordinates, type GameAction } from '@tabletop/common'
-import { LyngkSetup, LyngkVariant, setupFromConfig, variantFromConfig } from './config.js'
+import {
+    FirstPlayer,
+    firstPlayerFromConfig,
+    LyngkSetup,
+    LyngkVariant,
+    setupFromConfig,
+    variantFromConfig
+} from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { EndReason, HydratedLyngkGameState, type LyngkGameState } from '../model/gameState.js'
@@ -650,6 +657,65 @@ describe('setting the board', () => {
     })
 })
 
+describe('choice of first player', () => {
+    const owner = { ownerId: 'u-bob', userIds: { [A]: 'u-alice', [B]: 'u-bob' } }
+    const startUnassigned = (game: LyngkGame) =>
+        engine.startGame(game, { masterSeed: MASTER_SEED }).initialState
+    const firstOf = (state: LyngkGameState) => state.turnManager.turnOrder[0]
+
+    it('gives the first move to the game creator or the opponent when chosen', () => {
+        const creatorFirst = startUnassigned(
+            createGame(LyngkVariant.Standard, [A, B], LyngkSetup.Random, {
+                ...owner,
+                firstPlayer: FirstPlayer.Creator
+            })
+        )
+        expect(creatorFirst.activePlayerIds).toEqual([B])
+        const opponentFirst = startUnassigned(
+            createGame(LyngkVariant.Standard, [A, B], LyngkSetup.Random, {
+                ...owner,
+                firstPlayer: FirstPlayer.Opponent
+            })
+        )
+        expect(opponentFirst.activePlayerIds).toEqual([A])
+    })
+
+    it('has the chosen first player place the first piece when the players set the board', () => {
+        for (const setup of [LyngkSetup.TakeTurns, LyngkSetup.ISetYouStart]) {
+            const state = startUnassigned(
+                createGame(LyngkVariant.Standard, [A, B], setup, {
+                    ...owner,
+                    firstPlayer: FirstPlayer.Creator
+                })
+            )
+            expect(state.machineState).toBe(MachineState.PlacingPieces)
+            expect(state.activePlayerIds).toEqual([B])
+        }
+    })
+
+    it('draws the first player by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [A]: 'u-alice', [B]: 'u-bob' } }
+        for (const options of [
+            { firstPlayer: FirstPlayer.Random },
+            { ...outsider, firstPlayer: FirstPlayer.Creator },
+            { ...outsider, firstPlayer: FirstPlayer.Opponent }
+        ]) {
+            const firsts = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const game = {
+                        ...createGame(LyngkVariant.Standard, [A, B], LyngkSetup.Random, options),
+                        seed
+                    }
+                    const state = engine.startGame(game).initialState
+                    expect(state.activePlayerIds).toEqual([firstOf(state)])
+                    return firstOf(state)
+                })
+            )
+            expect(firsts).toEqual(new Set([A, B]))
+        }
+    })
+})
+
 describe('configuration', () => {
     it('reads a missing variant as Standard and rejects an unknown one', () => {
         expect(variantFromConfig({})).toBe(LyngkVariant.Standard)
@@ -661,6 +727,12 @@ describe('configuration', () => {
         expect(setupFromConfig({})).toBe(LyngkSetup.Random)
         expect(setupFromConfig({ setup: 'TakeTurns' })).toBe(LyngkSetup.TakeTurns)
         expect(() => setupFromConfig({ setup: 'NoSuchSetup' })).toThrow()
+    })
+
+    it('reads a missing first player as Random and rejects an unknown one', () => {
+        expect(firstPlayerFromConfig({})).toBe(FirstPlayer.Random)
+        expect(firstPlayerFromConfig({ firstPlayer: 'Opponent' })).toBe(FirstPlayer.Opponent)
+        expect(() => firstPlayerFromConfig({ firstPlayer: 'NoSuchPlayer' })).toThrow()
     })
 })
 

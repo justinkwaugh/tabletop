@@ -8,7 +8,7 @@ import {
 import { Definition } from '../definition.js'
 import { LyngkRuntime } from '../runtime.js'
 import { LyngkInfo } from '../info.js'
-import { LyngkSetup, LyngkVariant } from '../config.js'
+import { LyngkSetup, LyngkVariant, type FirstPlayer } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedLyngkGameState, type LyngkGameState } from '../../model/gameState.js'
@@ -21,18 +21,29 @@ export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 export function createGame(
     variant: LyngkVariant = LyngkVariant.Standard,
     playerIds: string[] = ['alice', 'bob'],
-    setup: LyngkSetup = LyngkSetup.Random
+    setup: LyngkSetup = LyngkSetup.Random,
+    options: {
+        firstPlayer?: FirstPlayer
+        ownerId?: string
+        userIds?: Record<string, string>
+    } = {}
 ) {
     return LyngkRuntime.initializer.initializeGame(
         {
             id: 'lyngk-test',
             typeId: 'lyngk',
-            ownerId: 'owner',
+            ownerId: options.ownerId ?? 'owner',
             seed: 5,
-            config: { ...defaultGameConfig(LyngkInfo.configurator?.options ?? []), variant, setup },
+            config: {
+                ...defaultGameConfig(LyngkInfo.configurator?.options ?? []),
+                variant,
+                setup,
+                ...(options.firstPlayer === undefined ? {} : { firstPlayer: options.firstPlayer })
+            },
             players: playerIds.map((id) => ({
                 id,
                 name: id,
+                userId: options.userIds?.[id],
                 isHuman: true,
                 status: PlayerStatus.Joined
             }))
