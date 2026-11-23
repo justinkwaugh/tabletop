@@ -209,7 +209,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const shownActionCount = this.gameState.actionCount
         const action = this.currentAction
         if (action?.index === shownActionCount - 1) return gameCallOf(action)
-        return shownActionCount === this.gameContext.state.actionCount ? this.game.call : undefined
+        return shownActionCount === this.gameContext.state.actionCount
+            ? this.primaryGame.call
+            : undefined
     })
 
     currentActionIndex = $derived.by(() => {
