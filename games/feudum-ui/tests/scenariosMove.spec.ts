@@ -175,8 +175,14 @@ scenario('S29 R-3.7.3 R-3.7.4 Godspeed and pilfer', 'move-godspeed', async (tabl
     expect(await table.litChips()).toMatchObject({ [Forest3]: 'Godspeed' })
     await table.pressPick(Forest3)
     await expect(trailOf(table, 3)).toHaveText('3')
-    await expect(trailOf(table, 3)).toHaveAttribute('opacity', '0.6')
-    await expect(trailOf(table, 2)).not.toHaveAttribute('opacity', '0.6')
+    await expect(trailOf(table, 3).locator('circle')).toHaveAttribute(
+        'fill',
+        'var(--feudum-accent-light)'
+    )
+    await expect(trailOf(table, 2).locator('circle')).toHaveAttribute(
+        'fill',
+        'var(--feudum-accent)'
+    )
 
     await expect(table.pick('pilfer:space.desert.1:space:iron')).toHaveCount(1)
     expect(await table.litChips()).toEqual({

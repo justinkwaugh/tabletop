@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { createGame, playToCards, playToHands, settled } from './helpers.js'
 import { ActionType, MachineState } from '@tabletop/feudum'
 import { realGames } from '@tabletop/feudum/testing'
-import { openFixture } from './scenarioTable.js'
+import { openFixture, ScenarioTable } from './scenarioTable.js'
 
 /**
  * How the table draws, by the platform's phone-rendering rules: what WebKit pays for on a phone
@@ -251,6 +251,30 @@ test.describe('the dims of a pick, on a phone that draws the whole board', () =>
             ).toBeGreaterThan(0)
         })
     }
+
+    test('move-godspeed: a staged Godspeed step is drawn lighter with no fade on its route', async ({
+        page
+    }) => {
+        test.setTimeout(120_000)
+        await openFixture(page, 'move-godspeed')
+        const table = new ScenarioTable(page, true)
+        await table.press(table.card('Move'))
+        await table.pressPick('pawn:p1:1')
+        await table.pressPick('pawn:p1:2')
+        await table.pressPick('space:space.desert.1')
+        await table.pressPick('pawn:p1:3')
+        await table.pressPick('space:space.forest.1')
+        await table.press(table.row('Stop moving'))
+        await table.pressPick('space:space.forest.3')
+        const godspeed = page.locator('[data-board-surface] [data-trail="3"]')
+        await expect(godspeed).toHaveText('3')
+        await settled(page)
+        expect(largerThanAPiece(await translucent(page))).toEqual([])
+        await expect(godspeed).toHaveAttribute('data-godspeed')
+        await expect(page.locator('[data-board-surface] [data-trail="2"]')).not.toHaveAttribute(
+            'data-godspeed'
+        )
+    })
 
     test('a late five-seat Move: each piece on a space dims as itself', async ({ page }) => {
         test.setTimeout(180_000)

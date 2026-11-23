@@ -56,7 +56,8 @@
     <DimVeil x={MapArea.x} y={MapArea.y} width={MapArea.width} height={MapArea.height} />
 {/if}
 {#each trail as { step, path, middle } (step.n)}
-    <g data-trail={step.n} opacity={step.godspeed ? 0.6 : undefined}>
+    {@const ink = step.godspeed ? 'var(--feudum-accent-light)' : 'var(--feudum-accent)'}
+    <g data-trail={step.n} data-godspeed={step.godspeed ? '' : undefined}>
         <path
             d={routeD(path)}
             fill="none"
@@ -64,18 +65,13 @@
             stroke-width="13"
             stroke-linecap="round"
         ></path>
-        <path
-            d={routeD(path)}
-            fill="none"
-            stroke="var(--feudum-accent)"
-            stroke-width="8"
-            stroke-linecap="round"
+        <path d={routeD(path)} fill="none" stroke={ink} stroke-width="8" stroke-linecap="round"
         ></path>
         <circle
             cx={middle.x}
             cy={middle.y}
             r="17"
-            fill="var(--feudum-accent)"
+            fill={ink}
             stroke="var(--feudum-halo)"
             stroke-width="4"
         ></circle>
