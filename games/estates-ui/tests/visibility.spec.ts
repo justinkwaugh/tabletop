@@ -211,7 +211,7 @@ test('public-money games can explore their projected roof bag', async ({ page })
     await expect
         .poll(() => page.evaluate(() => window.estatesSession.gameState.roofs.items.length))
         .toBe(12)
-    await explore.click()
+    await page.getByRole('button', { name: 'stop exploring', exact: true }).click()
     await expect.poll(() => page.evaluate(() => window.estatesSession.isExploring)).toBe(false)
     await expect
         .poll(() => page.evaluate(() => window.estatesSession.gameState.roofs.items.length))

@@ -19,7 +19,7 @@ test('the side panel folds to a rail of history controls and tabs, and opens aga
 
     await page.getByRole('button', { name: 'Hide side panel' }).click()
     await expect(
-        page.locator('.nt-rail').getByRole('button', { name: 'goto my last turn' })
+        page.locator('.nt-rail').getByRole('button', { name: 'go to beginning' })
     ).toBeVisible()
     await expect.poll(() => widthOf(board)).toBeGreaterThan(openWidth + 200)
 

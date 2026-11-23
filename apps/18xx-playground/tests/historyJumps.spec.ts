@@ -15,7 +15,7 @@ test('keeps history descriptions aligned when jumping from the beginning to the 
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const history = page.getByRole('list', { name: 'Action history', exact: true })
     await expect(history).toContainText('Ran', { timeout: 30000 })
-    await page.getByRole('button', { name: 'goto my last turn', exact: true }).click()
+    await page.getByRole('button', { name: 'go to beginning', exact: true }).click()
     await expect(history).not.toContainText('Ran')
     await expect(page.getByRole('region', { name: 'Current action', exact: true })).toContainText(
         'Auction offerings',

@@ -52,6 +52,18 @@
 
     let forkRequested = $state(false)
     const explorationDisabled = $derived(!gameSession.isExploring && !gameSession.canExplore)
+    const forkTitle = $derived(
+        gameSession.isExploring
+            ? 'Fork is unavailable while exploring'
+            : 'Fork: start a new game with the same players from this point in the history'
+    )
+    const explorationTitle = $derived(
+        gameSession.isExploring
+            ? 'Stop exploring and return to the game'
+            : explorationDisabled
+              ? 'Exploration is unavailable for this view'
+              : 'Explore: try out moves from this point without affecting the real game'
+    )
 
     function requestFork() {
         if (gameSession.isExploring) {
@@ -123,7 +135,12 @@
         {/if}
     {:else}
         <div class="w-full flex {layout.controls}">
-            <button aria-label="fork game" class={layout.iconCell} onclick={requestFork}>
+            <button
+                aria-label="fork game"
+                title={forkTitle}
+                class={layout.iconCell}
+                onclick={requestFork}
+            >
                 <svg
                     class="w-[22px] h-[22px] {!gameSession.isExploring
                         ? enabledColor
@@ -145,6 +162,8 @@
                 </svg>
             </button>
             <button
+                aria-label="go to my previous turn"
+                title="Go back to your previous turn"
                 onclick={async () => await goToMyPreviousTurn()}
                 class="{layout.cell} {layout.priorTurnShift} flex flex-row justify-center items-center {hasPriorPlayerAction &&
                 !gameSession.history.isDisabled()
@@ -173,7 +192,8 @@
 
             <div class={layout.stepControls}>
                 <button
-                    aria-label="goto my last turn"
+                    aria-label="go to beginning"
+                    title="Go back to the earliest point in the history"
                     class={layout.iconCell}
                     onclick={async () => await gameSession.history.goToBeginning()}
                     ><svg
@@ -197,6 +217,7 @@
                 </button>
                 <button
                     aria-label="step backwards"
+                    title="Step back one action"
                     class={layout.iconCell}
                     onclick={async () => await gameSession.history.goToPreviousAction()}
                     ><svg
@@ -222,6 +243,7 @@
                 </button>
                 <button
                     aria-label="play history"
+                    title="Play back the game history"
                     onclick={async () => await gameSession.history.playHistory()}
                     class="{layout.iconCell} {gameSession.history.playing ? 'hidden' : ''}"
                     ><svg
@@ -245,6 +267,7 @@
                 </button>
                 <button
                     aria-label="stop history playback"
+                    title="Stop playing the history"
                     onclick={() => gameSession.history.stopHistoryPlayback()}
                     class="{layout.iconCell} {!gameSession.history.playing ? 'hidden' : ''}"
                 >
@@ -266,6 +289,7 @@
                 </button>
                 <button
                     aria-label="step forwards"
+                    title="Step forward one action (Shift-click to animate it)"
                     class={layout.iconCell}
                     onclick={async (event: MouseEvent) =>
                         await gameSession.history.goToNextAction(event.shiftKey)}
@@ -292,6 +316,7 @@
                 </button>
                 <button
                     aria-label="go to current"
+                    title="Return to the current position"
                     class={layout.iconCell}
                     onclick={async () => await gameSession.history.goToEnd()}
                 >
@@ -316,6 +341,8 @@
                 </button>
             </div>
             <button
+                aria-label="go to my next turn"
+                title="Go forward to your next turn"
                 onclick={async () => goToMyNextTurn()}
                 class="{layout.cell} {layout.futureTurnShift} flex flex-row justify-center items-center {hasFuturePlayerAction &&
                 !gameSession.history.isDisabled()
@@ -340,10 +367,10 @@
                 </svg>
             </button>
             <button
-                aria-label="start exploring"
+                aria-label={gameSession.isExploring ? 'stop exploring' : 'start exploring'}
                 class={layout.iconCell}
                 disabled={explorationDisabled}
-                title={explorationDisabled ? 'Exploration is unavailable for this view' : undefined}
+                title={explorationTitle}
                 onclick={async () =>
                     gameSession.isExploring
                         ? gameSession.explorations.endExploring()

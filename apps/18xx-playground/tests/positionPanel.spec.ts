@@ -17,7 +17,7 @@ test('history shows recorded auction details without action controls', async ({ 
         timeout: 30000
     })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
-    await page.getByRole('button', { name: 'goto my last turn', exact: true }).click()
+    await page.getByRole('button', { name: 'go to beginning', exact: true }).click()
     const panel = page.getByRole('region', { name: 'Current action', exact: true })
     await expect(panel.getByLabel('Position summary')).toBeVisible()
     await page.getByRole('button', { name: 'step forwards', exact: true }).click()
