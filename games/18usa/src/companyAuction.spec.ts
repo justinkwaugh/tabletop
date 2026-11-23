@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { cashOwnedBy, getCompany } from '@tabletop/18xx'
+import { CompanyAuctionModel, cashOwnedBy, getCompany } from '@tabletop/18xx'
 import { edit, kit } from '../test/kit.js'
-import { emptyTreasury, passOpening, presidentHoldingFive, setCash } from '../test/positions.js'
+import {
+    emptyTreasury,
+    givePrivate,
+    passOpening,
+    presidentHoldingFive,
+    setCash
+} from '../test/positions.js'
 import { EighteenUSAMarket, EighteenUSAStockRules } from './index.js'
 
 const Portland = { locationId: 'C3', nodeId: 'city' }
@@ -72,6 +78,17 @@ describe('company auctions (§11.6)', () => {
         expect(treasury(game, 'ATSF')).toBe(106)
         expect(cash(game, opener)).toBe(0)
         expect(game.state.citySubsidies.C3).toBeUndefined()
+    })
+
+    it('takes a city’s cash subsidy off what the winner pays to form the company', () => {
+        const game = started('cash-30-1')
+        const opener = game.player
+        edit(game, (state) => givePrivate(state, 'P1', { kind: 'player', playerId: opener }))
+        game.act('AuctionCompany', { companyId: 'ATSF', amount: 106, home: Portland })
+        while (!game.valid(game.player).includes('FormCompany'))
+            game.act('PassCompanyAuction', { companyId: 'ATSF' })
+        const auction = new CompanyAuctionModel(game.state, EighteenUSAStockRules)
+        expect(auction.formationPayment([])).toEqual({ privatesValue: 0, subsidy: 30, cash: 76 })
     })
 
     it('puts a city bonus subsidy on the city and removes unclaimed subsidies after the round', () => {

@@ -5,6 +5,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import AuctionPlayers from '../auctions/AuctionPlayers.svelte'
     import { auctionSummaryPlayers } from '../auctions/auctionSummary.js'
+    import SlidingToggle from '../table/SlidingToggle.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -18,9 +19,18 @@
         return module.model.terms
     })
     const company = $derived(getCompany(session.gameState, pending.companyId))
+    const companyName = $derived(session.actionCompanyName(company.id))
     const choice = $derived(module.formationChoice)
     const payment = $derived(module.formationPayment)
     const reason = $derived(module.formationProblem)
+    const paymentSplit = $derived.by(() => {
+        if (!payment) return undefined
+        const parts = [
+            ...(payment.subsidy ? [`${money(payment.subsidy)} subsidy`] : []),
+            ...(module.contributions.length ? [`${money(payment.privatesValue)} privates`] : [])
+        ]
+        return parts.length ? [`${money(pending.price)} bid`, ...parts].join(' − ') : undefined
+    })
     const startPrice = $derived(
         session.stockMarketChart.space(terms.startSpace(session.gameState, pending.price)).price
     )
@@ -31,7 +41,7 @@
         <div class="company">
             <CompanyToken appearance={session.mapView.stations[company.id]} size={48} />
             <div>
-                <strong>{session.actionCompanyName(company.id)}</strong>
+                <strong>{companyName}</strong>
                 <span
                     ><AuctionPlayers
                         players={auctionSummaryPlayers(session, [pending.playerId])}
@@ -40,36 +50,53 @@
                 >
             </div>
         </div>
-        <div class="choices" role="group" aria-label="Company size">
-            {#each module.shareCounts as shareCount (shareCount)}
-                <button
-                    aria-pressed={choice?.shareCount === shareCount}
-                    disabled={!module.canForm}
-                    onclick={() => module.setShareCount(shareCount)}>{shareCount} shares</button
-                >
-            {/each}
+        <div class="size" role="group" aria-label="Company size">
+            <span class="label">Size</span>
+            <SlidingToggle
+                count={module.shareCounts.length}
+                selectedIndex={choice ? module.shareCounts.indexOf(choice.shareCount) : -1}
+            >
+                {#each module.shareCounts as shareCount (shareCount)}<button
+                        aria-pressed={choice?.shareCount === shareCount}
+                        disabled={!module.canForm}
+                        onclick={() => module.setShareCount(shareCount)}>{shareCount} shares</button
+                    >{/each}
+            </SlidingToggle>
         </div>
         {#if module.contributions.length}
-            <div class="choices" role="group" aria-label="Privates contributed">
-                {#each module.contributions as privateId (privateId)}
-                    <button
-                        aria-pressed={choice?.privateIds.includes(privateId)}
-                        disabled={!module.canForm}
-                        onclick={() => module.toggleContribution(privateId)}
-                        >{session.actionCompanyName(privateId)}</button
-                    >
-                {/each}
-            </div>
+            <section class="contributions" aria-labelledby="formation-contributions">
+                <h3 id="formation-contributions">Contribute privates</h3>
+                <p>
+                    A private you contribute goes to {companyName} and pays its face value toward the
+                    {money(pending.price)} bid, so you pay less cash.
+                </p>
+                <div class="choices">
+                    {#each module.contributions as privateId (privateId)}
+                        {@const chosen = !!choice?.privateIds.includes(privateId)}
+                        <button
+                            class="private"
+                            aria-pressed={chosen}
+                            disabled={!module.canForm}
+                            onclick={() => module.toggleContribution(privateId)}
+                            ><span class="check" aria-hidden="true">{chosen ? '✓' : ''}</span
+                            >{session.actionCompanyName(privateId)}
+                            <b>{money(module.contributionValue(privateId))}</b></button
+                        >
+                    {/each}
+                </div>
+            </section>
         {/if}
-        {#if payment}<p role="status">
-                Cash <strong>{money(payment.cash)}</strong> · Privates
-                <strong>{money(payment.privatesValue)}</strong>
-            </p>{/if}
+        {#if payment}
+            <p class="payment" role="status">
+                You pay <strong>{money(payment.cash)}</strong> in cash
+                {#if paymentSplit}<span class="split">({paymentSplit})</span>{/if}
+            </p>
+        {/if}
         {#if reason}<p role="status">{reason}</p>{/if}
         <button
             class="action-button"
             disabled={!module.canForm || !!reason}
-            onclick={() => module.form()}>Form {session.actionCompanyName(company.id)}</button
+            onclick={() => module.form()}>Form {companyName}</button
         >
     </div>
 </article>
@@ -97,13 +124,50 @@
         font-size: 12px;
         color: var(--rail-text, #786550);
     }
+    .size {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .label,
+    h3 {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--rail-muted, #887664);
+    }
+    .size button {
+        padding: 4px 14px;
+        font-size: 12px;
+        line-height: 16px;
+    }
+    .size button:disabled {
+        cursor: default;
+    }
+    .contributions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        max-width: 420px;
+        text-align: center;
+    }
     .choices {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 6px;
     }
-    button {
+    .payment strong {
+        font-size: 14px;
+    }
+    .split {
+        color: var(--rail-muted, #887664);
+    }
+    .private,
+    .action-button {
         font: inherit;
         padding: 6px 12px;
         border: 1px solid var(--rail-border, #c7b8a6);
@@ -112,11 +176,33 @@
         color: inherit;
         cursor: pointer;
     }
-    button[aria-pressed='true'] {
+    .private {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .private b {
+        font-variant-numeric: tabular-nums;
+    }
+    .check {
+        display: inline-grid;
+        place-items: center;
+        width: 14px;
+        height: 14px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 3px;
+        font-size: 11px;
+        line-height: 1;
+    }
+    .private[aria-pressed='true'] {
         border-color: var(--rail-focus, #796047);
         background: var(--rail-surface-selected, #e6dccd);
     }
-    button:disabled {
+    .private[aria-pressed='true'] .check {
+        border-color: currentColor;
+    }
+    .private:disabled,
+    .action-button:disabled {
         opacity: 0.4;
         cursor: default;
     }

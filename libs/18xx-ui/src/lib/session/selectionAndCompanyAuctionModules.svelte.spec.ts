@@ -138,13 +138,13 @@ describe('CompanyAuctionModule', () => {
 
     it('splits the winning bid between cash and the privates chosen so far', () => {
         const { module } = wonAuction(['FormCompany'])
-        expect(module.formationPayment).toEqual({ privatesValue: 0, cash: 120 })
+        expect(module.formationPayment).toEqual({ privatesValue: 0, subsidy: 0, cash: 120 })
         module.toggleContribution('P')
-        expect(module.formationPayment).toEqual({ privatesValue: 40, cash: 80 })
+        expect(module.formationPayment).toEqual({ privatesValue: 40, subsidy: 0, cash: 80 })
         module.toggleContribution('Q')
-        expect(module.formationPayment).toEqual({ privatesValue: 80, cash: 40 })
+        expect(module.formationPayment).toEqual({ privatesValue: 80, subsidy: 0, cash: 40 })
         module.toggleContribution('P')
-        expect(module.formationPayment).toEqual({ privatesValue: 40, cash: 80 })
+        expect(module.formationPayment).toEqual({ privatesValue: 40, subsidy: 0, cash: 80 })
     })
 
     it('names a payment problem before asking for a size', () => {
@@ -156,6 +156,27 @@ describe('CompanyAuctionModule', () => {
         expect(module.formationProblem).toBe('Choose a size.')
         module.setShareCount(2)
         expect(module.formationProblem).toBeUndefined()
+    })
+
+    it('takes the home’s subsidy off the cash with no privates to contribute', () => {
+        const { module } = companyAuction(
+            ['FormCompany'],
+            { ...auctionTerms, contributions: () => [], subsidy: () => 30 },
+            {
+                companyId: TestCompanyId,
+                openerId: TestPlayerId,
+                home,
+                auction: {
+                    id: 'auction',
+                    type: AuctionType.Simple,
+                    auctioneerId: TestPlayerId,
+                    highBid: 120,
+                    participants: [{ playerId: TestPlayerId, passed: false, bid: 120 }]
+                }
+            }
+        )
+        expect(module.formationPayment).toEqual({ privatesValue: 0, subsidy: 30, cash: 90 })
+        expect(module.contributionValue('P')).toBe(40)
     })
 
     it('leaves the split to the winner forming the company', () => {

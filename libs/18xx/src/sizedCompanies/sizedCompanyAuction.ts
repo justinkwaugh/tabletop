@@ -79,9 +79,13 @@ export class SizedCompanyAuction implements CompanyAuctionRules {
         return privateIds.reduce((sum, id) => sum + this.rules.privateFaceValue(id), 0)
     }
 
+    subsidy(state: CompanyAuctionState, home: StationPosition): number {
+        return this.rules.homeEquity?.(state, home) ?? 0
+    }
+
     private homeEquity(state: CompanyAuctionState, offered?: StationPosition): number {
         const home = offered ?? state.companyAuction?.home
-        return home ? (this.rules.homeEquity?.(state, home) ?? 0) : 0
+        return home ? this.subsidy(state, home) : 0
     }
 
     biddingPower(state: CompanyAuctionState, playerId: string, home?: StationPosition): number {

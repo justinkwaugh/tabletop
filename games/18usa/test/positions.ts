@@ -1,4 +1,5 @@
 import { expect } from 'vitest'
+import type { Owner } from '@tabletop/18xx'
 import type { EighteenUSAState } from '../src/state.js'
 import { EighteenUSATrainDepot } from '../src/trains.js'
 import { edit, kit, type Table } from './kit.js'
@@ -75,7 +76,8 @@ export function giveTrain(
 }
 
 /** Gives a private to the company, as if contributed when it started. */
-export function givePrivate(state: EighteenUSAState, privateId: string, companyId: string): void {
+export function givePrivate(state: EighteenUSAState, privateId: string, to: string | Owner): void {
+    const owner: Owner = typeof to === 'string' ? { kind: 'company', companyId: to } : to
     const company = state.companies.find((entry) => entry.id === privateId)
     if (!company) state.companies.push({ id: privateId, kind: 'private' })
     else delete company.closed
@@ -83,14 +85,14 @@ export function givePrivate(state: EighteenUSAState, privateId: string, companyI
         (entry) => entry.kind === 'private' && entry.companyId === privateId
     )
     if (certificate) {
-        certificate.owner = { kind: 'company', companyId }
+        certificate.owner = owner
         delete certificate.poolId
     } else
         state.certificates.push({
             id: `${privateId}:charter`,
             companyId: privateId,
             kind: 'private',
-            owner: { kind: 'company', companyId }
+            owner
         })
 }
 
