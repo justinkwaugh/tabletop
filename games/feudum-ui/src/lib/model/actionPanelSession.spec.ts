@@ -480,7 +480,7 @@ describe('Hand selection', () => {
         expect(pouch).not.toHaveProperty('hint')
     })
 
-    it('R-3.1 the plan: a press fills the next slot and numbers the card; the slot or the card takes it back', async () => {
+    it('R-3.1 the plan: a press fills the next slot and numbers the card; only its re-press in the grid, or Undo, takes it back', async () => {
         const table = await atHands()
         const [first] = table.order
         table.edit((state) => {
@@ -502,12 +502,19 @@ describe('Hand selection', () => {
         await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
         expect(slots()?.slots.map(({ at }) => at)).toEqual([1, 2, 3, 4, 5])
 
-        await slots()?.slots[0]?.card?.press()
-        flushSync()
+        // docs/user-interactions.md: a slot is display only; nothing there takes a card back.
+        expect(slots()?.slots[0]?.card).not.toHaveProperty('press')
+
+        await pressCard(session.actionPanel, 'tax')
         expect(filled()).toEqual(['move', undefined, undefined, undefined, undefined])
         expect(slotOf('move')).toBe(1)
 
+        await session.undo()
+        flushSync()
+        expect(filled()).toEqual(['tax', 'move', undefined, undefined, undefined])
+
         await pressCard(session.actionPanel, 'move')
+        await pressCard(session.actionPanel, 'tax')
         expect(filled()?.every((kind) => kind === undefined)).toBe(true)
     })
 

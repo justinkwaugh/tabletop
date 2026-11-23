@@ -224,7 +224,9 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     await expect(choices.locator('[data-pouch-caption]')).toHaveCount(0)
     await shot(page, 'draft-two-picked')
 
-    await slots.nth(0).locator('button').click()
+    // docs/user-interactions.md: the slots are display only; the card's re-press takes it back.
+    await expect(panel(page).locator('[data-plan] button')).toHaveCount(0)
+    await faces.nth(2).locator('button').first().click()
     await expect(faces.nth(0).locator('[data-slot-badge]')).toHaveText('1')
     await expect(faces.nth(2).locator('[data-slot-badge]')).toHaveCount(0)
     await faces.nth(0).locator('button').first().click()

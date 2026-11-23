@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import {
     type ActionCardKind,
     ActionCardKinds,
@@ -81,9 +82,10 @@ export interface CardRow {
     readonly press: () => void | Promise<void>
 }
 
+/** docs/user-interactions.md: a slot is display only; the card's re-press in the grid takes it back. */
 export interface PlanSlot {
     readonly at: number
-    readonly card?: CardRow
+    readonly card?: Pick<CardRow, 'kind' | 'label' | 'number'>
 }
 
 export interface WritRow {
@@ -486,8 +488,12 @@ function handBlocks(
             kind: 'slots',
             paint,
             slots: drafting.slots.map((kind, at) => {
+                if (kind === undefined) {
+                    return { at: at + 1 }
+                }
                 const card = cards.find((row) => row.kind === kind)
-                return { at: at + 1, ...(card ? { card } : {}) }
+                assertExists(card, `The drafted ${kind} is in the hand`)
+                return { at: at + 1, card: { kind, label: card.label, number: card.number } }
             }),
             caption: 'play in any order'
         },

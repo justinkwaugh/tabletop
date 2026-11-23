@@ -14,13 +14,7 @@
             <div class="slot relative" role="listitem" data-slot={slot.at}>
                 {#if slot.card}
                     {@const card = slot.card}
-                    <button
-                        type="button"
-                        class="block w-full rounded-md outline-offset-1 hover:outline-1 hover:outline-feudum-frame"
-                        aria-label="{card.label}, slot {slot.at}: take back"
-                        data-slot-card={card.label}
-                        onclick={() => void card.press()}
-                    >
+                    <span class="block w-full" data-slot-card={card.label}>
                         <ActionCardFace
                             faceShown
                             kind={card.kind}
@@ -28,7 +22,7 @@
                             paint={block.paint}
                             width={FaceWidth}
                         />
-                    </button>
+                    </span>
                 {:else}
                     <span
                         class="empty block rounded-md border border-feudum-frame bg-feudum-surface"
