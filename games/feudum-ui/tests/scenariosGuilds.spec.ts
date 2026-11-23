@@ -1,5 +1,6 @@
 import { expect, type Locator } from '@playwright/test'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
+import { expectReplayLands, replayLast } from './replayWatch.js'
 
 /** The contract's Guild scenarios, on the real table at both widths. */
 
@@ -273,3 +274,72 @@ scenario('S49 R-4.7 Reeve offer: Keep the disc', 'reeve-offer', async (table) =>
     expect(await reeveOf(table)).toBe(0)
     expect(await scoreOf(table, 'p1')).toBe(before)
 })
+
+/** Contract, Desk layout; Phone layout: the replay is watched with the side's areas in view. */
+async function watchingSide(table: ScenarioTable, side: 'west' | 'east') {
+    // R-4.7 The reeve offer's lit area would set the side again as the replay takes the pick away.
+    const keep = table.row('Keep the disc')
+    if ((await keep.count()) > 0) {
+        await table.press(keep)
+    }
+    if (table.phone) {
+        await table.press(table.page.locator(`[data-focus-chip="${side}"]`))
+    } else {
+        await table.openGuildSide(side)
+    }
+}
+
+scenario(
+    "S64 R-4.6.5 Replay a Noble pull: each seal lands where its scroll's seal is drawn",
+    'guild-noble-pull',
+    async (table) => {
+        await openFunction(table, 'noble', 'Pull')
+        await pressBench(
+            table,
+            'row:knight-row-1',
+            'row:knight-row-2',
+            'scroll:guild.noble.scroll.r1c2',
+            'scroll:guild.noble.scroll.r2c1'
+        )
+        await table.press(benchPrimary(table))
+        await watchingSide(table, 'east')
+        expectReplayLands(await replayLast(table, '[data-world^="seal:guild.noble.scroll"]'))
+    }
+)
+
+scenario(
+    'S64 R-4.6.6 Replay a krud barrel: the Knight rows fill where their markers are drawn',
+    'guild-alchemist-push',
+    async (table) => {
+        await openFunction(table, 'alchemist', 'Push')
+        await pressBench(table, 'invention:ship', 'invention:krud-barrel')
+        await table.press(benchPrimary(table))
+        await watchingSide(table, 'east')
+        expectReplayLands(await replayLast(table, '[data-world^="knight:"]'))
+    }
+)
+
+scenario(
+    'S64 R-4.7 Replay a reeve placed: it fades in where the track draws it',
+    'reeve-offer',
+    async (table) => {
+        await scoringPush(table)
+        await table.press(table.row('Place'))
+        await watchingSide(table, 'west')
+        expectReplayLands(await replayLast(table, '[data-world^="reeve:"]'))
+    }
+)
+
+scenario(
+    "S64 R-4.6.3 Replay a Knight trade: each marker bought lands where the seat's row draws it",
+    'guild-knight-trade',
+    async (table) => {
+        await openFunction(table, 'knight', 'Trade')
+        await table.press(table.page.locator('[data-trade-buy="row:seat"] button'))
+        await table.press(table.popupRowStarting('Tame the behemoth'))
+        const [deploy] = Object.keys(await table.litChips())
+        await table.pressPick(deploy ?? '')
+        await watchingSide(table, 'east')
+        expectReplayLands(await replayLast(table, '[data-world^="knight:"]'))
+    }
+)

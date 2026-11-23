@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test'
 import { ActionType, DiscardAnyTime } from '@tabletop/feudum'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
+import { expectReplayLands, replayLast } from './replayWatch.js'
 
 /** The contract's Hidden information scenarios, on the real table at both widths. */
 
@@ -217,3 +218,29 @@ scenario('S58 R-5-H1, R-4.6.5 Seals for everyone', 'seals-noble-push', async (ta
         expect(await pushLine()).toBe(seen.line)
     }
 })
+
+scenario(
+    'S64 R-4.6.5 Replay a Noble push: each bead lands where the rosary draws it',
+    'seals-noble-push',
+    async (table) => {
+        await table.press(table.card('Guild'))
+        await table.pressPick('guild:noble')
+        await table.press(table.popupRowStarting('Push'))
+        for (const scroll of ['r1c3', 'r2c2']) {
+            await table.press(
+                table.page.locator(
+                    `[data-bench-place="scroll:guild.noble.scroll.${scroll}"] button`
+                )
+            )
+        }
+        await table.press(table.page.locator('[data-primary]'))
+        // R-4.7 The reeve offer's lit area would set the side again as the replay takes the pick away.
+        await table.press(table.row('Keep the disc'))
+        if (table.phone) {
+            await table.press(table.page.locator('[data-focus-chip="east"]'))
+        } else {
+            await table.openGuildSide('east')
+        }
+        expectReplayLands(await replayLast(table, '[data-world^="bead:"]'))
+    }
+)

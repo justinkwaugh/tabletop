@@ -1,5 +1,6 @@
 import { expect, type Locator } from '@playwright/test'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
+import { expectReplayLands, replayLast } from './replayWatch.js'
 
 /** The contract's Board, panels and history scenarios S59 to S62, on the real table at both widths. */
 
@@ -183,5 +184,20 @@ scenario(
         await expect(table.turnLine()).toHaveText('Card 1 of 4')
         // Before it, the round's barrier: the hands were finalised, so Undo is gone.
         await expect(table.undo()).toHaveCount(0)
+    }
+)
+
+scenario(
+    'S64 R-3.6, R-4.5.3 Replay a Migrate: the pawn and its rank land where they are drawn',
+    'undo-two-cards',
+    async (table) => {
+        await table.press(table.card('Migrate'))
+        await table.press(table.row('Play two cards this turn'))
+        await table.pressPick(Forest2)
+        await table.press(table.popupRowStarting('Farmer, '))
+        if (!table.phone) {
+            await table.openGuildSide('west')
+        }
+        expectReplayLands(await replayLast(table, '[data-world^="pawn:p1"], [data-world^="rank:"]'))
     }
 )

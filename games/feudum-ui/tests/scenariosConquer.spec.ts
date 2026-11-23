@@ -1,5 +1,6 @@
 import { expect, type Locator } from '@playwright/test'
 import { openFixture, scenario, type ScenarioTable } from './scenarioTable.js'
+import { expectReplayLands, replayLast } from './replayWatch.js'
 
 /** The contract's Conquer and Starve scenarios, on the real table at both widths. */
 
@@ -293,3 +294,33 @@ scenario('S39 R-3.14.2 Reclaim the seal', 'starve-reclaim', async (table) => {
     await expect(table.row('Immunity 1')).toHaveCount(0)
     expect(await sealsHeld(table)).toBe(1)
 })
+
+scenario(
+    "S64 R-3.14.2 Replay a Royal Immunity answer: the seal slides in where the serf's is drawn",
+    'starve-asks',
+    async (table) => {
+        await table.press(table.card('Conquer'))
+        await table.press(table.row('Starve the People'))
+        await table.pressPick(BramSerf)
+        await table.press(table.primary())
+        await table.showSeat('p2')
+        await table.press(answer(table, RoyalImmunity))
+        expectReplayLands(await replayLast(table, `${SerfWorld} [data-immune]`))
+    }
+)
+
+scenario(
+    'S64 R-4.8.3 Replay a feudum conquest: the serf’s marker leaves from where its space drew it',
+    'conquer-feudum',
+    async (table) => {
+        await table.press(table.card('Conquer'))
+        await table.pressPick(AnaFeudum)
+        await table.press(table.primary())
+        await table.showSeat('p1')
+        await table.press(answer(table, LetStand))
+        await table.showSeat('p2')
+        await table.press(addSaltpeter(table))
+        await table.press(table.primary())
+        expectReplayLands(await replayLast(table, '[data-world^="marker:space.forest.2"]'))
+    }
+)

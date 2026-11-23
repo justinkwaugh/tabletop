@@ -22,6 +22,7 @@ import {
     MachineState,
     MarketSpaces,
     MonsterIds,
+    RegionIds,
     type Move,
     returnGoodToHaversack,
     type RollProgressDie,
@@ -65,6 +66,7 @@ import {
     type BoardMotion,
     type BoardPlan,
     type MotionTarget,
+    type MotionToken,
     type PlanRow
 } from './boardPlan.js'
 import { laneOfRow } from '$lib/model/knightLanes.js'
@@ -80,7 +82,7 @@ class FakeElement implements MotionElement {
     constructor(
         readonly selector: string,
         private readonly world: Point | undefined,
-        private readonly surface: FakeSurface
+        private readonly surface: BoardSurface
     ) {}
 
     get parentElement() {
@@ -120,47 +122,79 @@ class FakeElement implements MotionElement {
     }
 }
 
-class FakeSurface implements MotionSurface {
+/**
+ * The board's svg as a step finds it: a phone's, with its score ring; the pieces its state draws,
+ * each by its key; and the tokens the animator has mounted on its motion layer. A lookup of anything
+ * else finds nothing.
+ */
+class BoardSurface implements MotionSurface {
     readonly elements = new Map<string, FakeElement>()
     readonly log: string[] = []
     onWrite: () => void = () => {}
+    private readonly worlds: ReadonlyMap<string, Point | undefined>
+    private mounted: () => readonly MotionToken[] = () => []
 
-    constructor(private readonly worlds: ReadonlyMap<string, Point> = new Map()) {}
+    /** A piece's key, or its key and where the group the board draws it in is placed. */
+    constructor(pieces: Iterable<string | readonly [string, Point]> = []) {
+        this.worlds = new Map(
+            [...pieces].map((piece) =>
+                typeof piece === 'string' ? ([piece, undefined] as const) : piece
+            )
+        )
+    }
 
-    querySelector(selector: string): FakeElement {
+    /** As the board's motion layer draws the animator's tokens. */
+    mount(animator: BoardAnimator): BoardAnimator {
+        this.mounted = () => animator.tokens
+        animator.attach(this)
+        return animator
+    }
+
+    querySelector(selector: string): FakeElement | null {
         const known = this.elements.get(selector)
         if (known) {
             return known
         }
-        const key = selector.match(/data-motion="([^"]+)"/)?.[1] ?? ''
-        const element = new FakeElement(selector, this.worlds.get(key), this)
+        if (!this.draws(selector)) {
+            return null
+        }
+        const key = selector.match(/data-motion="([^"]+)"/)?.[1]
+        const element = new FakeElement(
+            selector,
+            key === undefined ? undefined : this.worlds.get(key),
+            this
+        )
         this.elements.set(selector, element)
         return element
     }
 
     of(target: MotionTarget): FakeElement {
-        return this.querySelector(
+        const selector =
             'token' in target
                 ? `[data-transient="${target.token}"]`
                 : target.part === 'rides'
                   ? `[data-motion="${target.piece}"] [data-rides]`
                   : `[data-motion="${target.piece}"]`
-        )
+        const element = this.querySelector(selector)
+        assertExists(element, `The board draws ${selector}`)
+        return element
     }
 
     piece(key: string): FakeElement {
-        return this.querySelector(`[data-motion="${key}"]`)
+        return this.of({ piece: key })
     }
-}
 
-/** An open side's upright area: it holds only what it draws, and finds nothing else. */
-class KnownSurface implements MotionSurface {
-    readonly inner = new FakeSurface()
-
-    constructor(private readonly known: readonly string[]) {}
-
-    querySelector(selector: string): FakeElement | null {
-        return this.known.includes(selector) ? this.inner.querySelector(selector) : null
+    private draws(selector: string): boolean {
+        if (selector === '[data-score-ring]') {
+            return true
+        }
+        const token = selector.match(/^\[data-transient="([^"]+)"\]$/)?.[1]
+        if (token !== undefined) {
+            return this.mounted().some(({ id }) => id === token)
+        }
+        // The pawns these specs draw ride no vessel of their own: none draws a ride.
+        const key = selector.match(/^\[data-motion="([^"]+)"\]$/)?.[1]
+        return key !== undefined && this.worlds.has(key)
     }
 }
 
@@ -242,8 +276,29 @@ interface Scene extends BoardChange {
     readonly action: GameAction
 }
 
+/** A scene with the keyed pieces its first state's board draws. */
+interface DrawnScene extends Scene {
+    readonly drawn: readonly string[]
+}
+
+/** What a phone's board draws whatever the turn: the die, the epoch marker, the score discs, each stack with a tile. */
+function fixedPieces(state: HydratedFeudumGameState): readonly string[] {
+    return [
+        'progress-die',
+        'epoch-marker',
+        ...state.players.map(({ playerId }) => `score:${playerId}`),
+        ...RegionIds.filter((region) => state.regionStacks[region].length > 0).map(
+            (region) => `stack:${region}`
+        )
+    ]
+}
+
+function withFixed(scene: Scene): DrawnScene {
+    return { ...scene, drawn: fixedPieces(scene.from) }
+}
+
 /** A pawn walks a road: from one end to the other, in the real states. */
-interface WalkScene extends Scene {
+interface WalkScene extends DrawnScene {
     readonly action: Move
     readonly seat: string
     readonly route: (typeof Routes)[number]
@@ -270,6 +325,7 @@ async function walkScene(): Promise<WalkScene> {
         ...change,
         seat,
         route,
+        drawn: [`pawn:${seat}:${n}`],
         action: moved(seat, {
             steps: [{ piece: { kind: 'pawn', playerId: seat, n }, to: route.b, medium: 'road' }],
             metadata: { steps: [{ routeId: route.id, from: route.a }] }
@@ -326,7 +382,7 @@ async function systemScenes() {
     return { heard, die, dawn }
 }
 
-const Scenes: Readonly<Record<PlanRow, () => Promise<Scene>>> = {
+const Scenes: Readonly<Record<PlanRow, () => Promise<DrawnScene>>> = {
     pieces: walkScene,
     markers: async () => {
         const table = await emptyTable()
@@ -341,6 +397,7 @@ const Scenes: Readonly<Record<PlanRow, () => Promise<Scene>>> = {
                 to.spaces[id].ruler = { playerId: other, subject: false }
                 to.spaces[id].serf = { playerId: seat }
             }),
+            drawn: [`marker:${id}:ruler`, `marker:${id}:serf`],
             action: anAction(seat)
         }
     },
@@ -356,12 +413,13 @@ const Scenes: Readonly<Record<PlanRow, () => Promise<Scene>>> = {
                 to.guilds.farmer.barn[market.good] = 1
                 to.guilds.merchant.market[market.id] = true
             }),
+            drawn: [0, 1].map((index) => `good:${FarmerBarn.id}:${market.good}:${index}`),
             action: anAction(table.seat)
         }
     },
     tiles: async () => {
         const { die } = await systemScenes()
-        return withRemovedTile(die)
+        return withFixed(withRemovedTile(die))
     },
     discs: async () => {
         const table = await emptyTable()
@@ -374,18 +432,20 @@ const Scenes: Readonly<Record<PlanRow, () => Promise<Scene>>> = {
                     locationKindOf(to.spaces[id].location) === 'farm' ? 'outpost' : 'farm'
                 )
             }),
+            drawn: [`disc:${id}`],
             action: anAction(table.seat)
         }
     },
-    die: async () => (await systemScenes()).die,
-    dawn: async () => (await systemScenes()).dawn,
-    combat: async () => (await conquerAnswered(['defend', 'tax'], true)).heard,
+    die: async () => withFixed((await systemScenes()).die),
+    dawn: async () => withFixed((await systemScenes()).dawn),
+    combat: async () => withFixed((await conquerAnswered(['defend', 'tax'], true)).heard),
     score: async () => {
         const table = await emptyTable()
         return {
             ...changeFrom(table, (to) => {
                 to.getPlayerState(table.seat).score += 12
             }),
+            drawn: [`score:${table.seat}`],
             action: anAction(table.seat)
         }
     }
@@ -438,17 +498,15 @@ function play(context: AnimationContext) {
     timeline.progress(1)
 }
 
+/** One step played on a board that draws the scene's pieces, or on the surface a spec mounted. */
 async function animate(
-    scene: BoardChange & { readonly action?: GameAction },
+    scene: BoardChange & { readonly action?: GameAction; readonly drawn?: readonly string[] },
     {
         reduced = false,
-        surface = new FakeSurface(),
-        animator = new BoardAnimator(() => reduced)
-    }: { reduced?: boolean; surface?: FakeSurface; animator?: BoardAnimator } = {}
+        surface = new BoardSurface(scene.drawn),
+        animator = surface.mount(new BoardAnimator(() => reduced))
+    }: { reduced?: boolean; surface?: BoardSurface; animator?: BoardAnimator } = {}
 ) {
-    if (!animator.tokens.length) {
-        animator.attach(surface)
-    }
     const context = new AnimationContext()
     await animator.onGameStateChange({ ...scene, animationContext: context })
     return { animator, surface, context, duration: context.actionTimeline.duration() }
@@ -505,7 +563,7 @@ describe('Contract, Replay: a piece an earlier Action brought on, not on the boa
             }
         )
         // As the board's svg does before the state shows the piece: nothing for its key.
-        animator.attach(new KnownSurface([]))
+        new BoardSurface().mount(animator)
         const context = new AnimationContext()
         await animator.onGameStateChange({ ...scene, animationContext: context })
         play(context)
@@ -524,7 +582,7 @@ describe('Contract, Replay: a piece an earlier Action brought on, not on the boa
             () => true,
             () => resting
         )
-        animator.attach(new KnownSurface([]))
+        new BoardSurface().mount(animator)
         const context = new AnimationContext()
         await animator.onGameStateChange({ ...scene, animationContext: context })
         play(context)
@@ -652,7 +710,7 @@ describe('Contract, Replay: every kind a flight lands on the board rests as the 
                 return resting
             }
         )
-        animator.attach(new KnownSurface([]))
+        new BoardSurface().mount(animator)
         const context = new AnimationContext()
         await animator.onGameStateChange({ ...scene, animationContext: context })
         play(context)
@@ -675,16 +733,15 @@ describe('Contract, Replay: every kind a flight lands on the board rests as the 
             action: first.action
         }
         const tokens = ['[data-transient="1-token-0"]', '[data-transient="2-token-0"]']
-        const surface = new KnownSurface(tokens)
-        const animator = new BoardAnimator(() => false)
-        animator.attach(surface)
+        const surface = new BoardSurface()
+        const animator = surface.mount(new BoardAnimator(() => false))
         for (const scene of [first, second]) {
             const context = new AnimationContext()
             await animator.onGameStateChange({ ...scene, animationContext: context })
             play(context)
         }
-        const left = surface.inner.elements.get(tokens[0])
-        const taken = surface.inner.elements.get(tokens[1])
+        const left = surface.elements.get(tokens[0])
+        const taken = surface.elements.get(tokens[1])
         expect(left?.opacity).toBe(0)
         expect(taken?.opacity).toBe(1)
     })
@@ -766,15 +823,14 @@ describe('Contract, Replay: every piece a replay step puts on the board rests as
             ({ target }) => 'part' in target && target.part === 'rides'
         )
         const token = '[data-transient="1-token-0"]'
-        const surface = new KnownSurface([token])
-        const animator = new BoardAnimator(() => false)
-        animator.attach(surface)
+        const surface = new BoardSurface()
+        const animator = surface.mount(new BoardAnimator(() => false))
         await replay(animator, [boarding])
-        const boarded = surface.inner.elements.get(token)?.point
+        const boarded = surface.elements.get(token)?.point
         await replay(animator, [back])
         const end = ride?.path?.at(-1)
         expect(end).toBeDefined()
-        expect(surface.inner.elements.get(token)?.point).toEqual(end)
+        expect(surface.elements.get(token)?.point).toEqual(end)
         expect(end).not.toEqual(boarded)
     })
 
@@ -809,13 +865,12 @@ describe('Contract, Replay: every piece a replay step puts on the board rests as
             action: anAction(table.seat)
         }
         const token = '[data-transient="1-token-1"]'
-        const surface = new KnownSurface([token])
-        const animator = new BoardAnimator(() => false)
-        animator.attach(surface)
+        const surface = new BoardSurface()
+        const animator = surface.mount(new BoardAnimator(() => false))
         await replay(animator, [{ ...fill, action: anAction(table.seat) }, control])
         // Drawn to the hundredth of a unit, in the board's frame the token stands in.
         const onIcon = guildPoint('knight', monsterIconMarker(icon.id))
-        const landed = surface.inner.elements.get(token)?.point
+        const landed = surface.elements.get(token)?.point
         expect(landed?.x).toBeCloseTo(onIcon.x, 1)
         expect(landed?.y).toBeCloseTo(onIcon.y, 1)
     })
@@ -902,7 +957,7 @@ describe('each row of the animation plan inside the board', () => {
 
         it(`R-1.2 ${row}: without an Action takes at most ${ContractFastSeconds} s, straight`, async () => {
             const scene = await Scenes[row]()
-            const { duration } = await animate({ from: scene.from, to: scene.to })
+            const { duration } = await animate({ ...scene, action: undefined })
             expect(duration).toBeLessThanOrEqual(ContractFastSeconds)
             const direct = planDirect(scene)
             for (const motion of direct.motions) {
@@ -988,7 +1043,7 @@ describe('R-3.7.1 pawns and monsters on a Move', () => {
         const scene = await walkScene()
         const key = `pawn:${scene.seat}:1`
         const slot = spaceGeometry(scene.route.a).pieceSlots[0]
-        const surface = new FakeSurface(new Map([[key, slot]]))
+        const surface = new BoardSurface([[key, slot]])
         const { context } = await animate(scene, { surface })
         play(context)
         const end = spaceGeometry(scene.route.b).pieceSlots[0]
@@ -1300,22 +1355,25 @@ describe('R-4.1.2 markers inside the board', () => {
             }),
             action: anAction(table.seat)
         }
-        const marker = `[data-motion="knight:${rowId}:3"]`
-        const board = new FakeSurface()
-        const area = new KnownSurface([marker])
-        const animator = new BoardAnimator(() => false)
-        animator.attach(board)
+        const key = `knight:${rowId}:3`
+        const marker = `[data-motion="${key}"]`
+        // With the side open the board's svg draws no guild area; the upright one draws it.
+        const board = new BoardSurface()
+        const area = new BoardSurface([key])
+        const animator = board.mount(new BoardAnimator(() => false))
         const open = animator.attachArea(area, 'knight')
         const { context } = await animate(scene, { animator, surface: board })
         play(context)
-        expect(area.inner.elements.get(marker)?.writes.length).toBeGreaterThan(0)
+        expect(area.elements.get(marker)?.writes.length).toBeGreaterThan(0)
         expect(board.elements.get(marker)).toBeUndefined()
-        // Closed again, the motion is the board's, as on a phone's board.
+        // Closed again, the board draws the area, and the motion is the board's, as on a phone's.
         open.destroy()
         animator.settle()
-        const again = await animate(scene, { animator, surface: board })
+        const closed = new BoardSurface([key])
+        closed.mount(animator)
+        const again = await animate(scene, { animator, surface: closed })
         play(again.context)
-        expect(board.elements.get(marker)?.writes.length).toBeGreaterThan(0)
+        expect(closed.elements.get(marker)?.writes.length).toBeGreaterThan(0)
     })
 
     it('Contract, Desk layout: a side closed mid-motion drops its area’s pieces, and the tween writes to them no more', async () => {
@@ -1338,17 +1396,17 @@ describe('R-4.1.2 markers inside the board', () => {
             action: anAction(table.seat)
         }
         const rowId = seatKnightRow(hydrated(table.host.state), table.seat)?.rowId
-        const marker = `[data-motion="knight:${rowId}:3"]`
-        const board = new FakeSurface()
-        const area = new KnownSurface([marker])
-        const animator = new BoardAnimator(() => false)
-        animator.attach(board)
+        const key = `knight:${rowId}:3`
+        const marker = `[data-motion="${key}"]`
+        const board = new BoardSurface()
+        const area = new BoardSurface([key])
+        const animator = board.mount(new BoardAnimator(() => false))
         const open = animator.attachArea(area, 'knight')
         const { context, duration } = await animate(scene, { animator, surface: board })
         const timeline = context.actionTimeline
         timeline.pause()
         timeline.time(duration / 2)
-        const drawn = area.inner.elements.get(marker)
+        const drawn = area.elements.get(marker)
         const written = drawn?.writes.length ?? 0
         expect(written).toBeGreaterThan(0)
         open.destroy()
@@ -1677,8 +1735,8 @@ describe('System Actions after one user Action, and the gate', () => {
 
     it('R-4.11.1 R-4.12 they play in sequence, from where the last left off, gated all the while', async () => {
         const { game, session } = await roundEndScene()
-        const surface = new FakeSurface()
-        session.boardAnimator.attach(surface)
+        const surface = new BoardSurface(fixedPieces(session.gameState))
+        surface.mount(session.boardAnimator)
         const heard = listen(session)
         const shownBefore = session.gameState
         const gate: {
@@ -1716,8 +1774,8 @@ describe('System Actions after one user Action, and the gate', () => {
         const first = changeFrom(table, (to) => {
             to.getPlayerState(seat).score += 12
         })
-        const animator = new BoardAnimator(() => false)
-        const surface = new FakeSurface()
+        const surface = new BoardSurface([`score:${seat}`])
+        const animator = surface.mount(new BoardAnimator(() => false))
         const earlier = await animate({ ...first, action: anAction(seat) }, { animator, surface })
         play(earlier.context)
         const key = `score:${seat}`
@@ -1751,8 +1809,10 @@ describe('System Actions after one user Action, and the gate', () => {
         game.edit((state) => addPawn(state, seat, 'knight', 'space.desert.3'))
         const session = await game.openSeat(seat)
         await settled(session)
-        const surface = new FakeSurface()
-        session.boardAnimator.attach(surface)
+        const walker = session.gameState.getPlayerState(seat).pawns.find(({ spaceId }) => spaceId)
+        assertExists(walker, 'R-3.6 The seat has a pawn on the board')
+        const surface = new BoardSurface([`pawn:${seat}:${walker.n}`])
+        surface.mount(session.boardAnimator)
         session.pressTurnCard('move')
         flushSync()
         await session.pressTurnTarget(spaceTarget('space.desert.1'))

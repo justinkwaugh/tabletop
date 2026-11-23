@@ -1,6 +1,7 @@
 import { expect, type Locator } from '@playwright/test'
 import { ActionType } from '@tabletop/feudum'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
+import { expectReplayLands, replayLast } from './replayWatch.js'
 
 /** The contract's card play scenarios, on the real table at both widths. */
 
@@ -491,3 +492,27 @@ scenario('S24 R-3.14.1 PlayDefend in turn', 'cards-defend', async (table) => {
     await table.closeSeatPanel()
     expect(await table.scoreShown('p1')).not.toBe(before)
 })
+
+scenario(
+    'S64 R-3.9.3 Replay TendLandscape: the tile lands where its landscape is drawn',
+    'cards-tend-landscape',
+    async (table) => {
+        await table.press(table.card('Improve'))
+        await table.press(table.rowIn('flow', 'Orchard tile'))
+        await table.pressPick(Forest2)
+        await table.press(table.popupRow('Collect 3 food · 1 to the ruler'))
+        expectReplayLands(await replayLast(table, '[data-world^="landscape:"]'))
+    }
+)
+
+scenario(
+    "S64 R-3.9 Replay Improve: the disc's new face is drawn where it turned",
+    'cards-improve-town',
+    async (table) => {
+        await table.press(table.card('Improve'))
+        await table.pressPick(Forest3)
+        await table.press(table.popupRow('Noble'))
+        await table.press(table.primary())
+        expectReplayLands(await replayLast(table, '[data-world^="disc:"] [aria-label$=" feudum"]'))
+    }
+)

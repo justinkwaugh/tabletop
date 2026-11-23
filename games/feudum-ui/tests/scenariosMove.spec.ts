@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import { scenario, type ScenarioTable } from './scenarioTable.js'
+import { expectReplayLands, replayLast } from './replayWatch.js'
 
 /** The contract's Move scenarios, on the real table at both widths. */
 
@@ -279,5 +280,28 @@ scenario(
         await table.showSeat('p2')
         await expect(table.panel()).not.toContainText('Keep 1 of 2')
         await expect(table.panel().locator('[data-writs]')).toHaveCount(0)
+    }
+)
+
+scenario(
+    'S64 R-4.2.2 Replay a ship placed: its token rides where the pawn draws its vessel',
+    'move-port',
+    async (table) => {
+        await table.press(table.card('Move'))
+        await table.pressPick(Badlands3)
+        await table.press(table.primary())
+        expectReplayLands(await replayLast(table, '[data-world^="pawn:"] [data-rides]'))
+    }
+)
+
+scenario(
+    'S64 R-3.7.5 Replay a voyage disc placed: it fades in where the track draws it',
+    'voyage-repeat',
+    async (table) => {
+        await table.press(table.card('Repeat'))
+        await table.pressPick(Forest2)
+        await table.press(table.primary())
+        await table.press(table.row('Place'))
+        expectReplayLands(await replayLast(table, '[data-world^="voyage:"]'))
     }
 )
