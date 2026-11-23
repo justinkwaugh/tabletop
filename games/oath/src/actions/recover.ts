@@ -11,7 +11,7 @@ import {
 } from '../util/persistent.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, assertExists, range } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { siteRecoverCost, type RecoverCost } from '../data/cardRegistry.js'
@@ -23,7 +23,7 @@ import {
     payModifierCosts,
     resolveModifiers,
     runAfter,
-    usableModifiers,
+    singleCardDeclarations,
     type ActiveModifier,
     type ModifierUse
 } from '../util/modifiers.js'
@@ -356,20 +356,29 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
         )
         if (relicTargets) return true
 
-        // R-7.4 — a modifier may win a banner the player's own tokens cannot (Magician's Code adds
-        // two secrets to any paid, "even none"), so each usable card is tried alone, at every bid.
-        const declarations: ModifierUse[][] = [
-            [],
-            ...usableModifiers(state, playerId, ActionType.Recover).map((power) => [
-                { cardId: power.cardId, powerIndex: power.powerIndex }
-            ])
-        ]
-        const player = state.getPlayerState(playerId)
-        return Object.values(Banner).some((banner) => {
-            const held =
-                banner === Banner.PeoplesFavor ? usableFavor(state, playerId) : player.secrets
-            return declarations.some((modifiers) =>
-                Array.from({ length: held + 1 }, (_, amountPaid) => amountPaid).some(
+        return HydratedRecover.canOutbidAnyBanner(state, playerId)
+    }
+
+    /** R-5.4.2 — every bid a Recover of this banner may try: none up to all the player holds. */
+    static bannerBidsToTry(
+        state: HydratedOathGameState,
+        playerId: string,
+        banner: Banner
+    ): number[] {
+        const held =
+            banner === Banner.PeoplesFavor
+                ? usableFavor(state, playerId)
+                : state.getPlayerState(playerId).secrets
+        // R-7.4 — from none: Magician's Code wins the Darkest Secret "even" with none paid.
+        return range(0, held + 1)
+    }
+
+    // R-7.4 — a card may win a banner the player's own tokens cannot (Magician's Code).
+    private static canOutbidAnyBanner(state: HydratedOathGameState, playerId: string): boolean {
+        const declarations = singleCardDeclarations(state, playerId, ActionType.Recover)
+        return Object.values(Banner).some((banner) =>
+            declarations.some((modifiers) =>
+                HydratedRecover.bannerBidsToTry(state, playerId, banner).some(
                     (amountPaid) =>
                         HydratedRecover.reasonCannotRecover(state, playerId, {
                             target: { kind: RecoverTargetKind.Banner, banner },
@@ -379,7 +388,7 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
                         }) === undefined
                 )
             )
-        })
+        )
     }
 
     /** R-5.4.4 */

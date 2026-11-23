@@ -1,4 +1,3 @@
-import { range } from '@tabletop/common'
 import {
     Banner,
     HydratedRecover,
@@ -8,7 +7,6 @@ import {
     Suit,
     defaultTolls,
     tollsFor,
-    usableFavor,
     type HydratedOathGameState,
     type ModifierUse,
     type Toll,
@@ -212,13 +210,9 @@ export function recoverableBanners(
     playerId: string,
     modifiers: ModifierUse[]
 ): BannerBid[] {
-    const player = state.getPlayerState(playerId)
     return Object.values(Banner)
         .map((banner) => {
-            const held =
-                banner === Banner.PeoplesFavor ? usableFavor(state, playerId) : player.secrets
-            // R-7.4 — from none: Magician's Code wins the Darkest Secret "even" with none paid.
-            const amounts = range(0, held + 1).filter(
+            const amounts = HydratedRecover.bannerBidsToTry(state, playerId, banner).filter(
                 (amountPaid) =>
                     reasonCannotRecoverBanner(
                         state,

@@ -60,4 +60,16 @@ describe('the relics and banners a Recover can take (R-5.4)', () => {
         // R-7.4 — the Code's two secrets beat a value of 1 "even" with none paid.
         expect(bid).toEqual({ banner: Banner.DarkestSecret, amounts: [0], modifiers: inUse })
     })
+
+    it("bids from none up to the secrets held with Magician's Code in use", () => {
+        const code = 'denizen.arcane.magicians-code'
+        const s = atAncientCity({ secrets: 2, advisers: [{ cardId: code, faceUp: true }] })
+        s.banners[Banner.DarkestSecret].value = 1
+        const inUse = [{ cardId: code, powerIndex: powerIndexOf(code, PowerTiming.Modifier) }]
+        const ofDarkest = (declared: typeof inUse) =>
+            recoverRows(s, 'p1', declared).banners.find((b) => b.banner === Banner.DarkestSecret)
+        expect(ofDarkest(inUse)?.amounts).toEqual([0, 1, 2])
+        // Without the Code the least bid is still one over the value.
+        expect(ofDarkest([])?.amounts).toEqual([2])
+    })
 })

@@ -204,6 +204,21 @@ export function isFreeGain(power: CardPower): boolean {
 }
 
 /**
+ * The declarations an availability check tries: none, then each usable card alone. Enough while
+ * no action's legality needs two cards together (R-11.7-H2 Wood Travel, Magician's Code).
+ */
+export function singleCardDeclarations(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType
+): ModifierUse[][] {
+    const cards = usableModifiers(state, playerId, action).map((power) => [
+        { cardId: power.cardId, powerIndex: power.powerIndex }
+    ])
+    return [[], ...cards]
+}
+
+/**
  * A printed condition depends on the action's particulars, so it is checked at declaration.
  * `uses`: the cards already declared, where they change what is in reach (Small Friends' site).
  */

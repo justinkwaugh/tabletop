@@ -23,8 +23,10 @@
     // R-5.4.2 — "any amount … greater than its current value": the tokens held, those under the
     // least bid paid with it and never tappable alone.
     let least = $derived(amounts[0] ?? 0)
-    let held = $derived(amounts[amounts.length - 1] ?? 0)
+    let highestBid = $derived(amounts[amounts.length - 1] ?? 0)
     let picked = $derived(gameSession.bannerAmount ?? least)
+    // R-7.4 — a bid of none, won by Magician's Code alone, leaves no token to tap.
+    let noneToPay = $derived(highestBid === 0)
 </script>
 
 {#if banner}
@@ -40,19 +42,18 @@
                 <Magnifier {preview} label={preview.label} />
             </span>
             <div class="flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-start">
-                {#if held === 0}
-                    <!-- R-7.4 — a bid of none, won by Magician's Code alone: nothing to tap. -->
-                    <span class="text-sm font-semibold"
-                        ><TokenText text="{bannerName(banner)}: pay no {token}" /></span
-                    >
-                {:else}
-                    <span class="text-sm font-semibold"
-                        ><TokenText text="{bannerName(banner)}: pay how many {token}?" /></span
-                    >
+                <span class="text-sm font-semibold"
+                    ><TokenText
+                        text={noneToPay
+                            ? `${bannerName(banner)}: pay no ${token}`
+                            : `${bannerName(banner)}: pay how many ${token}?`}
+                    /></span
+                >
+                {#if !noneToPay}
                     <TokenRow
                         image={secret ? secretToken() : favorToken()}
-                        {held}
-                        addable={held}
+                        held={highestBid}
+                        addable={highestBid}
                         {picked}
                         floor={least}
                         label={(amount) => `pay ${amount} ${token}`}
