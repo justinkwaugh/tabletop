@@ -422,4 +422,17 @@ describe('Taking a row', () => {
         expect(session.gameState.board.pieceAt(e(6))).toEqual({ playerId: BLACK, gipf: true })
         expect(session.gameState.board.pieceAt(e(5))).toBeUndefined()
     })
+
+    it('names the take as the step between the states either side of it', async () => {
+        const session = await whiteTakingRow()
+        const before = { actionCount: session.gameState.actionCount }
+        session.chooseRowAt(e(3))
+        await settled(session.removeChosenRow())
+        const after = { actionCount: session.gameState.actionCount }
+        expect(session.steppedAction(after, before)).toMatchObject({ type: ActionType.RemoveRow })
+        expect(session.steppedAction(before, after)).toMatchObject({ type: ActionType.RemoveRow })
+        expect(
+            session.steppedAction({ actionCount: before.actionCount - 1 }, after)
+        ).toBeUndefined()
+    })
 })

@@ -245,6 +245,16 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return isPushPiece(action) ? action : undefined
     }
 
+    // The one action taken between two states a step apart, when the session holds it.
+    steppedAction(
+        from: Pick<GipfGameState, 'actionCount'>,
+        to: Pick<GipfGameState, 'actionCount'>
+    ): GameAction | undefined {
+        if (Math.abs(from.actionCount - to.actionCount) !== 1) return undefined
+        const index = Math.min(from.actionCount, to.actionCount)
+        return this.actions.find((candidate) => candidate.index === index)
+    }
+
     // None when the view passes to the other player as the Undo lands, as the harness's
     // Non-active view does.
     restagedPush(to: Pick<GipfGameState, 'actionCount'>): PushPiece | undefined {
