@@ -22,7 +22,7 @@
     const roundNumber = $derived(review ? review.round : state.round())
     const phases = $derived([
         { name: PhaseName.Development, label: 'Development' },
-        gameSession.lucasOrder
+        gameSession.buyAndShip
             ? { name: PhaseName.CapacityAndFirstShipment, label: 'Capacity & First Shipment' }
             : { name: PhaseName.ProductionCapacity, label: 'Production Capacity' },
         { name: PhaseName.Production, label: 'Production' },

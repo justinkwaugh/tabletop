@@ -430,8 +430,8 @@ describe('Automatic shipping', () => {
         expect(state.players.every((player) => player.autoShip === undefined)).toBe(true)
     })
 
-    it('ships straight after buying under Lucas Order', () => {
-        let table = start(3, { lucasOrder: true })
+    it('ships straight after buying under Buy and Ship', () => {
+        let table = start(3, { buyAndShip: true })
         table = passUntil(table, MachineState.ExpandingCapacity)
         const [first] = table.state.activePlayerIds
         table = run(table, { type: ActionType.ExpandCapacity, purchases: [], autoShip: true })
@@ -446,9 +446,17 @@ describe('Automatic shipping', () => {
     })
 })
 
-describe('Lucas Order', () => {
-    it('lets each player buy capacity and then ship before the next player', () => {
+describe('Buy and Ship', () => {
+    it("still applies on games stored with the option's former name", () => {
         let table = start(3, { lucasOrder: true })
+        table = passUntil(table, MachineState.ExpandingCapacity)
+        expect(hydrate(table).phaseManager.currentPhase?.name).toBe(
+            PhaseName.CapacityAndFirstShipment
+        )
+    })
+
+    it('lets each player buy capacity and then ship before the next player', () => {
+        let table = start(3, { buyAndShip: true })
         table = passUntil(table, MachineState.ExpandingCapacity)
         const state = hydrate(table)
         expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.CapacityAndFirstShipment)
@@ -462,7 +470,7 @@ describe('Lucas Order', () => {
     })
 
     it('sends a player who can buy nothing straight to shipping', () => {
-        let table = edit(start(3, { lucasOrder: true }), (state) => {
+        let table = edit(start(3, { buyAndShip: true }), (state) => {
             state.getPlayerState('p0').cash = 1
         })
         table = passUntil(run(table, {}), MachineState.Shipping)

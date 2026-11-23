@@ -33,6 +33,6 @@ export class AdjustingMarketStateHandler implements MachineStateHandler<
         _action: HydratedAdjustMarket,
         context: MachineContext<HydratedLwGameState>
     ): MachineState {
-        return afterMarket(context.gameState, readLwSetup(context.gameConfig).lucasOrder)
+        return afterMarket(context.gameState, readLwSetup(context.gameConfig).buyAndShip)
     }
 }

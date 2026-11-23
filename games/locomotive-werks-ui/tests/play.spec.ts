@@ -116,8 +116,8 @@ test('plays two rounds of the Queen rules through the table', async ({ page }) =
     await expect(page.getByText(/^Player Order:/).first()).toBeVisible()
 })
 
-test('Lucas Order ships straight after buying capacity', async ({ page }) => {
-    await createGame(page, ['Lucas Order'])
+test('Buy and Ship ships straight after buying capacity', async ({ page }) => {
+    await createGame(page, ['Buy and Ship'])
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
         await settle(page)
@@ -140,7 +140,7 @@ test('Lucas Order ships straight after buying capacity', async ({ page }) => {
 })
 
 test('a player who ticks automatic shipping ships without being asked', async ({ page }) => {
-    await createGame(page, ['Lucas Order'])
+    await createGame(page, ['Buy and Ship'])
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
         await settle(page)

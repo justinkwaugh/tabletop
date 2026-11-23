@@ -29,6 +29,6 @@ The default rules are the Queen Games rulebook. Where it is silent or ambiguous,
 
 - **With four or more generations of a kind, every generation older than the newest two is obsolete.** The rulebook covers up to three; several developments of one kind in a single round can bring a fourth into play.
 
-## Lucas Order
+## Buy and Ship
 
-- **Lucas Order merges Production Capacity with the first selling round.** Locomotive Development is unchanged. Then each player in Player Order buys and upgrades production units and immediately takes their first selling turn, before the next player buys. A player who can buy nothing goes straight to shipping; one who can ship nothing ends their turn after buying. Later selling rounds run as usual.
+- **Buy and Ship merges Production Capacity with the first selling round.** Locomotive Development is unchanged. Then each player in Player Order buys and upgrades production units and immediately takes their first selling turn, before the next player buys. A player who can buy nothing goes straight to shipping; one who can ship nothing ends their turn after buying. Later selling rounds run as usual.

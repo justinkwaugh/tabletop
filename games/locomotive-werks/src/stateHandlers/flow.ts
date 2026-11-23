@@ -32,46 +32,46 @@ export function endTurn(state: HydratedLwGameState) {
 export function startRound(
     state: HydratedLwGameState,
     at: number,
-    lucasOrder: boolean
+    buyAndShip: boolean
 ): MachineState {
     state.roundManager.startRound(at)
     changePhase(state, PhaseName.Development, at)
-    return nextDeveloper(state, at, lucasOrder)
+    return nextDeveloper(state, at, buyAndShip)
 }
 
 // Players who cannot afford any development are passed over.
 export function nextDeveloper(
     state: HydratedLwGameState,
     at: number,
-    lucasOrder: boolean,
+    buyAndShip: boolean,
     after?: string
 ): MachineState {
     const playerId = playersAfter(state, after).find(
         (candidate) => state.developable(candidate).length > 0
     )
     if (playerId === undefined) {
-        return startCapacity(state, at, lucasOrder)
+        return startCapacity(state, at, buyAndShip)
     }
     state.turnManager.startTurn(playerId, at)
     return MachineState.Developing
 }
 
-function startCapacity(state: HydratedLwGameState, at: number, lucasOrder: boolean): MachineState {
-    if (lucasOrder) {
+function startCapacity(state: HydratedLwGameState, at: number, buyAndShip: boolean): MachineState {
+    if (buyAndShip) {
         changePhase(state, PhaseName.CapacityAndFirstShipment, at)
         state.startSellingRound(1)
     } else {
         changePhase(state, PhaseName.ProductionCapacity, at)
     }
-    return nextExpander(state, at, lucasOrder)
+    return nextExpander(state, at, buyAndShip)
 }
 
-// Under Lucas Order every player takes a turn, buying capacity if they can and then taking their
+// Under Buy and Ship every player takes a turn, buying capacity if they can and then taking their
 // first selling turn; otherwise players with nothing to spend are passed over.
 export function nextExpander(
     state: HydratedLwGameState,
     at: number,
-    lucasOrder: boolean,
+    buyAndShip: boolean,
     after?: string
 ): MachineState {
     for (const playerId of playersAfter(state, after)) {
@@ -79,41 +79,41 @@ export function nextExpander(
             state.turnManager.startTurn(playerId, at)
             return MachineState.ExpandingCapacity
         }
-        if (lucasOrder && state.canShip(playerId)) {
+        if (buyAndShip && state.canShip(playerId)) {
             state.turnManager.startTurn(playerId, at)
             return MachineState.Shipping
         }
-        if (lucasOrder) {
+        if (buyAndShip) {
             state.leaveSellingRound(playerId)
         }
     }
-    return startProduction(state, at, lucasOrder)
+    return startProduction(state, at, buyAndShip)
 }
 
-// Ends a capacity turn: under Lucas Order the player ships straight away if they can.
+// Ends a capacity turn: under Buy and Ship the player ships straight away if they can.
 export function afterExpanding(
     state: HydratedLwGameState,
     playerId: string,
-    lucasOrder: boolean
+    buyAndShip: boolean
 ): MachineState {
     const at = state.actionCount + 1
-    if (lucasOrder) {
+    if (buyAndShip) {
         if (state.canShip(playerId)) {
             return MachineState.Shipping
         }
         state.leaveSellingRound(playerId)
     }
     endTurn(state)
-    return nextExpander(state, at, lucasOrder, playerId)
+    return nextExpander(state, at, buyAndShip, playerId)
 }
 
 function startProduction(
     state: HydratedLwGameState,
     at: number,
-    lucasOrder: boolean
+    buyAndShip: boolean
 ): MachineState {
     changePhase(state, PhaseName.Production, at)
-    if (lucasOrder) {
+    if (buyAndShip) {
         return finishSellingRound(state, at)
     }
     state.startSellingRound(1)
@@ -123,13 +123,13 @@ function startProduction(
 export function afterShipping(
     state: HydratedLwGameState,
     playerId: string,
-    lucasOrder: boolean
+    buyAndShip: boolean
 ): MachineState {
     const at = state.actionCount + 1
     endTurn(state)
     const round = state.requireSellingRound()
-    if (lucasOrder && round.number === 1) {
-        return nextExpander(state, at, lucasOrder, playerId)
+    if (buyAndShip && round.number === 1) {
+        return nextExpander(state, at, buyAndShip, playerId)
     }
     return nextShipper(state, at)
 }
@@ -177,9 +177,9 @@ export function afterTaxes(state: HydratedLwGameState, gameOver: boolean): Machi
     return MachineState.AdjustingMarket
 }
 
-export function afterMarket(state: HydratedLwGameState, lucasOrder: boolean): MachineState {
+export function afterMarket(state: HydratedLwGameState, buyAndShip: boolean): MachineState {
     const at = state.actionCount + 1
     state.phaseManager.endPhase(state.actionCount)
     state.roundManager.endRound(state.actionCount)
-    return startRound(state, at, lucasOrder)
+    return startRound(state, at, buyAndShip)
 }

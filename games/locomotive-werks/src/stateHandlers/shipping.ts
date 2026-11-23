@@ -41,7 +41,7 @@ export class ShippingStateHandler implements MachineStateHandler<
         return afterShipping(
             context.gameState,
             action.playerId,
-            readLwSetup(context.gameConfig).lucasOrder
+            readLwSetup(context.gameConfig).buyAndShip
         )
     }
 }

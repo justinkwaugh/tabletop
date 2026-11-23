@@ -22,7 +22,7 @@ const CONFIGS: GameConfig[] = [
     {},
     { startingCash: StartingCash.Queen },
     { startingCash: StartingCash.Winsome },
-    { lucasOrder: true }
+    { buyAndShip: true }
 ]
 
 function rotations(playerIds: string[]): string[][] {

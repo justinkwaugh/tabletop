@@ -39,7 +39,7 @@ export class DevelopingStateHandler implements MachineStateHandler<
         return nextDeveloper(
             state,
             state.actionCount + 1,
-            readLwSetup(context.gameConfig).lucasOrder,
+            readLwSetup(context.gameConfig).buyAndShip,
             action.playerId
         )
     }

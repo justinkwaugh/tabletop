@@ -47,7 +47,7 @@ const CONFIGS: { name: string; config: GameConfig }[] = [
     { name: 'standard rules', config: {} },
     { name: 'Queen Start Money', config: { startingCash: StartingCash.Queen } },
     { name: 'Winsome Starting Cash', config: { startingCash: StartingCash.Winsome } },
-    { name: 'Lucas Order', config: { lucasOrder: true } }
+    { name: 'Buy and Ship', config: { buyAndShip: true } }
 ]
 
 describe.each(

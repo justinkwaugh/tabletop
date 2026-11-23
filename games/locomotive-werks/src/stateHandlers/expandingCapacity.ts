@@ -36,7 +36,7 @@ export class ExpandingCapacityStateHandler implements MachineStateHandler<
         return afterExpanding(
             context.gameState,
             action.playerId,
-            readLwSetup(context.gameConfig).lucasOrder
+            readLwSetup(context.gameConfig).buyAndShip
         )
     }
 }

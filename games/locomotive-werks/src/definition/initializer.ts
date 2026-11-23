@@ -84,7 +84,7 @@ export class LwGameInitializer
             spaces
         })
         const hydrated = new HydratedLwGameState(lwState)
-        hydrated.machineState = startRound(hydrated, 0, setup.lucasOrder)
+        hydrated.machineState = startRound(hydrated, 0, setup.buyAndShip)
         return hydrated
     }
 }

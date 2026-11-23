@@ -12,7 +12,7 @@
     const plannedIncome = $derived(
         gameSession.plannedShipments.reduce((sum, shipment) => sum + shipment.income, 0)
     )
-    const firstShipment = $derived(gameSession.lucasOrder && state.sellingRound?.number === 1)
+    const firstShipment = $derived(gameSession.buyAndShip && state.sellingRound?.number === 1)
     const doneLabel = $derived(
         `${firstShipment ? 'Done, on to shipping' : 'Done buying'}${
             gameSession.plannedSpend > 0 ? ` · $${gameSession.plannedSpend}` : ''

@@ -4,7 +4,7 @@ import { LwGameConfig, StartingCash } from './gameConfig.js'
 
 export const LwGameConfigValidator = Compile(LwGameConfig)
 
-export type LwSetup = { startingCash: StartingCash; lucasOrder: boolean }
+export type LwSetup = { startingCash: StartingCash; buyAndShip: boolean }
 
 export function readLwSetup(config: GameConfig): LwSetup {
     assert(
@@ -13,7 +13,7 @@ export function readLwSetup(config: GameConfig): LwSetup {
     )
     return {
         startingCash: config.startingCash ?? StartingCash.Standard,
-        lucasOrder: config.lucasOrder ?? false
+        buyAndShip: config.buyAndShip ?? config.lucasOrder ?? false
     }
 }
 

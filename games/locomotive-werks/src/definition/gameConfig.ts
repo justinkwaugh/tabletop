@@ -10,6 +10,8 @@ export enum StartingCash {
 export type LwGameConfig = Type.Static<typeof LwGameConfig>
 export const LwGameConfig = Type.Object({
     startingCash: Type.Optional(Type.Enum(StartingCash)),
+    buyAndShip: Type.Optional(Type.Boolean()),
+    // The option's former stored name, still set on games created before the rename.
     lucasOrder: Type.Optional(Type.Boolean())
 })
 
@@ -39,9 +41,9 @@ export const LwGameConfigOptions: GameConfigOptions = [
         ]
     },
     {
-        id: 'lucasOrder',
+        id: 'buyAndShip',
         type: ConfigOptionType.Boolean,
-        name: 'Lucas Order',
+        name: 'Buy and Ship',
         description:
             'Each player buys their production capacity and then ships their first train in the same turn',
         default: false

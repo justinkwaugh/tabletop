@@ -9,7 +9,7 @@ The default rules are the Queen Games edition (2012), with starting cash of $10 
 Two options change the setup or the round:
 
 - **Starting Cash** can instead be **Queen Start Money** ($12 for three or four players, $14 for five) or **Winsome Starting Cash** ($10 for three or four players, $14 for five).
-- **Lucas Order** merges Production Capacity with the first selling round: each player in turn buys and upgrades production units, then ships straight away before the next player buys. Further selling rounds follow as usual.
+- **Buy and Ship** merges Production Capacity with the first selling round: each player in turn buys and upgrades production units, then ships straight away before the next player buys. Further selling rounds follow as usual.
 
 A player's whole Production Capacity turn is one action, which can also ask to ship automatically. That player's selling turns are then taken for them, shipping everything they can, until that Production phase ends. Shipping everything never loses a sale, since each shipment's size follows from the units and the order dice; holding back only matters for tactics such as taxes, Player Order or keeping an order die high for the next round.
 

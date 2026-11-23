@@ -130,7 +130,7 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
         this.boardStep = state
     }
 
-    lucasOrder: boolean = $derived(readLwSetup(this.game.config).lucasOrder)
+    buyAndShip: boolean = $derived(readLwSetup(this.game.config).buyAndShip)
 
     myPlayerId = $derived(this.myPlayer?.id)
 
