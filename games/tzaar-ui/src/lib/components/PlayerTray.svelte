@@ -54,7 +54,7 @@
     {#if note}
         <p class="note">{note}</p>
     {:else}
-        {#each owners as ownerId, row (ownerId)}
+        {#each owners as ownerId (ownerId)}
             {@const tone = session.toneOfPlayer(ownerId)}
             <div class="body">
                 {#each PIECE_KINDS as kind (kind)}
@@ -64,9 +64,6 @@
                         <PieceIcon {tone} {kind} size={34} />
                     </div>
                 {/each}
-                {#if placing}
-                    <span class="caption" class:unseen={row > 0}>left</span>
-                {/if}
             </div>
         {/each}
     {/if}
@@ -113,17 +110,6 @@
 
     .kind.out strong {
         color: #b3261e;
-    }
-
-    .caption.unseen {
-        visibility: hidden;
-    }
-
-    .caption {
-        margin-inline-start: auto;
-        font-size: 13px;
-        letter-spacing: 0.08em;
-        color: var(--tzaar-ink-quiet);
     }
 
     .note {
