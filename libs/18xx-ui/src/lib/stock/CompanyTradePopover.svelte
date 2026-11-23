@@ -7,6 +7,8 @@
     } from '@tabletop/18xx'
     import type { BoundingBox } from '@tabletop/common'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import OwnerChoice from './OwnerChoice.svelte'
+    import { ownerShortLabel } from './ownerLabels.js'
     import { popoverBeside } from '../presentation/popoverPlacement.js'
     import { playerPurchaseContribution } from './purchaseContribution.js'
     import { marketSourcesFirst, shareSourceName } from './purchaseSources.js'
@@ -65,9 +67,6 @@
     function purchaseFor(offer: CompanyShareOffer) {
         return offer.purchases.find((purchase) => buyer && sameOwner(purchase.request.buyer, buyer))
     }
-    function ownerLabel(owner: Owner) {
-        return owner.kind === 'company' ? session.companyInitials(owner.companyId) : 'Me'
-    }
     function sourceName(offer: CompanyShareOffer) {
         return shareSourceName(offer.certificate, session)
     }
@@ -108,18 +107,13 @@
         <div class="trade-line">
             <span class="line-label">Buy</span>
             <div class="line-body">
-                {#if trades.buyers.length > 1}
-                    <div class="buyer-choice" role="group" aria-label="Buy as">
-                        {#each trades.buyers as candidate (ownerLabel(candidate))}
-                            <button
-                                aria-pressed={!!buyer && sameOwner(candidate, buyer)}
-                                title={session.ownerName(candidate)}
-                                onclick={() => (chosenBuyer = candidate)}
-                                >{ownerLabel(candidate)}</button
-                            >
-                        {/each}
-                    </div>
-                {/if}
+                {#if trades.buyers.length > 1}<OwnerChoice
+                        {session}
+                        owners={trades.buyers}
+                        selected={buyer}
+                        label="Buy as"
+                        onChoose={(candidate) => (chosenBuyer = candidate)}
+                    />{/if}
                 <div class="chips">
                     {#each offers as offer (offer.certificate.id)}
                         {@const purchase = purchaseFor(offer)}
@@ -149,10 +143,13 @@
             </div>
         </div>
     {/if}
-    {#each trades.sales as group (ownerLabel(group.seller))}
+    {#each trades.sales as group (ownerShortLabel(session, group.seller))}
         <div class="trade-line">
             <span class="line-label"
-                >Sell{#if group.seller.kind === 'company'}{' '}{ownerLabel(group.seller)}{/if}</span
+                >Sell{#if group.seller.kind === 'company'}{' '}{ownerShortLabel(
+                        session,
+                        group.seller
+                    )}{/if}</span
             >
             <div class="chips">
                 {#each group.sales as sale (sale.shares)}
@@ -237,27 +234,7 @@
     .chip:hover:not(:disabled) {
         filter: brightness(1.12);
     }
-    .buyer-choice {
-        display: flex;
-        gap: 4px;
-    }
-    .buyer-choice button {
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 4px;
-        padding: 1px 8px;
-        background: transparent;
-        color: var(--rail-muted, #95816a);
-        font: inherit;
-        font-size: 12px;
-        cursor: pointer;
-    }
-    .buyer-choice button[aria-pressed='true'] {
-        border-color: var(--rail-focus, #a87948);
-        background: var(--rail-surface-raised, #efe7db);
-        color: inherit;
-    }
-    .chip:focus-visible,
-    .buyer-choice button:focus-visible {
+    .chip:focus-visible {
         outline: 2px solid var(--rail-focus, #a87948);
         outline-offset: 1px;
     }

@@ -85,6 +85,8 @@
     import type { NumberedShareNames } from './companyPresentation.js'
     import { companiesOnOffer, spreadsheetCompanies } from './spreadsheetCompanies.js'
     import UnstartedCompanyCard from './UnstartedCompanyCard.svelte'
+    import CompanyStartPopover from '../stock/CompanyStartPopover.svelte'
+    import CompanyStartContent from '../stock/CompanyStartContent.svelte'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
@@ -789,6 +791,52 @@
               )
             : []
     )
+    type CardStartOpening = { number: number; companyId: string } & (
+        | {
+              place: 'popover'
+              card: HTMLElement
+              anchor: BoundingBox
+              pointerY: number
+              boardInView: boolean
+          }
+        | { place: 'action-area' }
+    )
+    let cardStartOpenings = 0
+    // Held here rather than on the card, as choosing a home may bring the map forward over it.
+    let cardStartOpening = $derived.by((): CardStartOpening | undefined => {
+        session.updatingVisibleState
+        session.cardStarts.stagedCompanyId
+        return undefined
+    })
+    const shownCardStart = $derived(
+        cardStartOpening && session.cardStarts.selected(cardStartOpening.companyId)
+            ? cardStartOpening
+            : undefined
+    )
+    function toggleCardStart(companyId: string, card: HTMLElement, pointerY: number) {
+        const reopening = shownCardStart?.companyId !== companyId
+        closeCardStart()
+        if (!reopening) return
+        session.cardStarts.open(companyId)
+        cardStartOpenings += 1
+        const boardInView = mapViewers().some(({ wrapper }) => wrapper.isVisible())
+        cardStartOpening =
+            session.cardStarts.awaitingHome && !boardInView
+                ? { number: cardStartOpenings, companyId, place: 'action-area' }
+                : {
+                      number: cardStartOpenings,
+                      companyId,
+                      place: 'popover',
+                      card,
+                      anchor: card.getBoundingClientRect(),
+                      pointerY,
+                      boardInView
+                  }
+    }
+    function closeCardStart() {
+        if (shownCardStart) session.cardStarts.close(shownCardStart.companyId)
+        cardStartOpening = undefined
+    }
     setGameSession(untrack(() => session))
     const layoutPreference = new DebouncedLayout(
         () => ({
@@ -1195,7 +1243,9 @@
         preview: routePreview,
         titleRoutes: session.titleMapRoutes
     }}
-    use:frameStartCompany={session.stock.selectedStartCompany}
+    use:frameStartCompany={shownCardStart?.place === 'popover' && !shownCardStart.boardInView
+        ? undefined
+        : session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
     use:projectRuns={session.projectedRun.request}
     use:framePresentation={publishedArtwork}
@@ -1360,7 +1410,16 @@
                                         playerId={session.myPlayer.id}
                                         describeAction={historyDescription}
                                     />{/if}
-                                {@render actions(focusLocation, focusRoute)}
+                                {#if shownCardStart?.place === 'action-area'}<section
+                                        class="card-start"
+                                        aria-label={`Start ${session.companyName(shownCardStart.companyId)}`}
+                                    >
+                                        <CompanyStartContent
+                                            {session}
+                                            companyId={shownCardStart.companyId}
+                                        />
+                                    </section>
+                                {:else}{@render actions(focusLocation, focusRoute)}{/if}
                             {/if}
                             {#if !session.isViewingHistory}<InstructionBar {session} />{/if}
                         </section>
@@ -1596,6 +1655,9 @@
                                             {company}
                                             home={unstartedPresentation.home(gameState, company.id)}
                                             wide={companyCardsWide}
+                                            starting={shownCardStart?.companyId === company.id}
+                                            onToggleStart={(card, pointerY) =>
+                                                toggleCardStart(company.id, card, pointerY)}
                                         />{/each}{/if}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
@@ -1679,6 +1741,20 @@
             </Lightbox>
         {/if}
 
+        {#if shownCardStart?.place === 'popover'}
+            {#key shownCardStart.number}
+                <CompanyStartPopover
+                    {session}
+                    companyId={shownCardStart.companyId}
+                    opener={shownCardStart.card}
+                    anchor={shownCardStart.anchor}
+                    pointerY={shownCardStart.pointerY}
+                    withinMap={(node) => node instanceof Element && !!node.closest('.map-area')}
+                    onclose={closeCardStart}
+                />
+            {/key}
+        {/if}
+
         {#if session.historicalMap}
             <HistoricalMapViewer
                 {money}
@@ -1694,6 +1770,12 @@
 </div>
 
 <style>
+    .card-start {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 12px;
+    }
     .layout-save {
         align-self: flex-end;
         flex: none;

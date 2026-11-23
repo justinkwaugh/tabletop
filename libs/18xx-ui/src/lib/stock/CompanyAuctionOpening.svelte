@@ -1,18 +1,12 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import PlaceLink from '../places/PlaceLink.svelte'
+    import CompanyAuctionBid from './CompanyAuctionBid.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
-    const money = $derived(session.presentation.money)
     const auction = $derived(session.companyAuction)
-    const terms = $derived(auction.model?.terms)
     const companyId = $derived(auction.selectedCompanyId)
-    const home = $derived(auction.selectedHome)
-    const amount = $derived(auction.openingAmount)
-    const allowed = (value: number) => auction.canOpen && !auction.openingReason(value)
 </script>
 
 <div class="opening" aria-label="Auction a company">
@@ -30,27 +24,7 @@
             </button>
         {/each}
     </div>
-    {#if companyId && terms}
-        <div class="turn">
-            <p>
-                <strong>{session.actionCompanyName(companyId)}</strong>
-                {#if home}· Home <PlaceLink locationId={home.locationId} />{:else}· Choose a
-                    highlighted city on the map for its home{/if}
-            </p>
-            {#if home && amount !== undefined}
-                <AuctionBidControl
-                    {money}
-                    {amount}
-                    increment={terms.increment}
-                    canBid={allowed(amount)}
-                    canDecrease={allowed(amount - terms.increment)}
-                    canIncrease={allowed(amount + terms.increment)}
-                    onChange={(value) => auction.setOpeningBid(value)}
-                    onBid={() => auction.open()}
-                />
-            {/if}
-        </div>
-    {/if}
+    <CompanyAuctionBid {session} />
 </div>
 
 <style>
@@ -80,16 +54,5 @@
     .company-choice:disabled {
         opacity: 0.4;
         cursor: default;
-    }
-    .turn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-    }
-    p {
-        margin: 0;
-        font-size: 13px;
-        color: var(--rail-text, #514536);
     }
 </style>

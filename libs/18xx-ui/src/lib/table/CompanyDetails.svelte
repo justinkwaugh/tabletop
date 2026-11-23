@@ -41,6 +41,8 @@
     import CertificateBadge from '../finance/CertificateBadge.svelte'
     import { multiShareMark } from '../finance/multiShareCertificates.js'
     import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
+    import './cardOpener.css'
+    import { controlMiddleY, pressesCardItself } from './cardPress.js'
     import RemainingStationTokens from './RemainingStationTokens.svelte'
     import { sessionStationTokens } from './stationTokens.js'
     import { shareSourceName } from '../stock/purchaseSources.js'
@@ -196,10 +198,7 @@
         tradeOpening = { number: openings, anchor: card.getBoundingClientRect(), pointerY }
     }
     function toggleTradesFromCard(event: MouseEvent) {
-        if (
-            !tradeLabel ||
-            (event.target instanceof Element && event.target.closest('button, a, input, select'))
-        ) {
+        if (!tradeLabel || !pressesCardItself(event)) {
             pressedWhileOpen = false
             return
         }
@@ -320,12 +319,10 @@
                         >{/if}
                     {#if tradeLabel}<button
                             type="button"
-                            class="trade-opener"
+                            class="card-opener"
                             aria-label={`Trade ${session.companyName(company.id)} shares`}
-                            onclick={(event) => {
-                                const bounds = event.currentTarget.getBoundingClientRect()
-                                toggleTrades(bounds.y + bounds.height / 2)
-                            }}>{tradeLabel}</button
+                            onclick={(event) => toggleTrades(controlMiddleY(event.currentTarget))}
+                            >{tradeLabel}</button
                         >{/if}
                 </span>
             </div>
@@ -1058,20 +1055,6 @@
     .company-detail.tradable:hover,
     .company-detail.trading {
         border-color: var(--rail-focus, #a87948);
-    }
-    .trade-opener {
-        border: 0;
-        padding: 0;
-        background: transparent;
-        color: var(--rail-focus, #a87948);
-        font: inherit;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .trade-opener:focus-visible {
-        outline: 2px solid var(--rail-focus, #a87948);
-        outline-offset: 2px;
     }
     .ownership-heading h3 {
         margin-bottom: 0;

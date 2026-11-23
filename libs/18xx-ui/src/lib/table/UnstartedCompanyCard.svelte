@@ -1,8 +1,11 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import type { Company } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PlaceLink from '../places/PlaceLink.svelte'
     import RemainingStationTokens from './RemainingStationTokens.svelte'
+    import './cardOpener.css'
+    import { controlMiddleY, pressesCardItself } from './cardPress.js'
     import { sessionStationTokens } from './stationTokens.js'
     import type { UnstartedCompanyHome } from '../session/titlePresentation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -10,22 +13,42 @@
         session,
         company,
         home,
-        wide = false
+        wide = false,
+        starting,
+        onToggleStart
     }: {
         session: EighteenXXSessionView
         company: Company
         home: UnstartedCompanyHome
         wide?: boolean
+        starting: boolean
+        onToggleStart: (card: HTMLElement, pointerY: number) => void
     } = $props()
     // Two or more token groups beside the name leave no room for "Not started" beside them too.
     const crowded = $derived(!wide && sessionStationTokens(session, company.id).groups.length > 1)
+    const startKind = $derived(session.cardStarts.kind(company.id))
+    const startLabel = $derived(startKind === 'auction' ? 'Auction' : 'Start')
+    let card = $state<HTMLElement>()
+    function toggleStart(pointerY: number) {
+        assertExists(card, 'An unstarted company card opens its start')
+        onToggleStart(card, pointerY)
+    }
+    function toggleStartFromCard(event: MouseEvent) {
+        if (startKind && pressesCardItself(event)) toggleStart(event.clientY)
+    }
 </script>
 
+<!-- The Start button is the keyboard path; a click anywhere else on the card is a shortcut. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <article
+    bind:this={card}
     class="unstarted"
     class:wide
     class:crowded
+    class:startable={!!startKind}
+    class:selected={starting}
     aria-label={`${session.companyFullName(company.id)}, not started`}
+    onclick={toggleStartFromCard}
 >
     <span class="logo"
         ><CompanyToken
@@ -38,12 +61,23 @@
         <RemainingStationTokens {session} companyId={company.id} vertical={!wide} />
     </div>
     <p class="status">Not started</p>
-    {#if home === 'chosen'}<p class="home">Home chosen at start</p>
-    {:else if home.locationIds.length}<p class="home">
-            Home {#each home.locationIds as locationId, index (locationId)}{#if index}{' and '}{/if}<PlaceLink
-                    {locationId}
-                />{/each}
-        </p>{/if}
+    <div class="home-line">
+        {#if home === 'chosen'}<p class="home">Home chosen at start</p>
+        {:else if home.locationIds.length}<p class="home">
+                Home {#each home.locationIds as locationId, index (locationId)}{#if index}{' and '}{/if}<PlaceLink
+                        {locationId}
+                    />{/each}
+            </p>{/if}
+        {#if startKind}<button
+                type="button"
+                class="card-opener start-opener"
+                aria-haspopup="dialog"
+                aria-expanded={starting}
+                aria-label={`${startLabel} ${session.companyName(company.id)}`}
+                onclick={(event) => toggleStart(controlMiddleY(event.currentTarget))}
+                >{startLabel}</button
+            >{/if}
+    </div>
 </article>
 
 <style>
@@ -109,9 +143,24 @@
     .crowded .status {
         grid-column: 2 / -1;
     }
-    .home {
+    .home-line {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
         grid-row: 3;
         grid-column: 2 / -1;
+    }
+    .home {
         font-size: 12px;
+    }
+    .startable {
+        cursor: pointer;
+    }
+    .startable:hover,
+    .selected {
+        border-color: var(--rail-focus, #a87948);
+    }
+    .start-opener {
+        margin-left: auto;
     }
 </style>

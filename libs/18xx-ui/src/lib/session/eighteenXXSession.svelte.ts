@@ -103,6 +103,7 @@ import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { StockModule } from './stockModule.svelte.js'
+import { CompanyCardStarts } from './companyCardStarts.js'
 import type { MapRoute } from '../maps/mapDrawing.js'
 import { TableNotices } from './tableNotices.svelte.js'
 import type {
@@ -406,6 +407,7 @@ export class EighteenXXSession<
         },
         () => this.privates.exchangeOffers.length > 0
     )
+    readonly cardStarts = new CompanyCardStarts(this.stock, this.companyAuction)
     readonly map: MapModule = new MapModule(
         this.moduleSession,
         () => this.mapView,
