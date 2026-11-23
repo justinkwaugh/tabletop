@@ -110,3 +110,16 @@ test("takes back a defender's announcement choice before any action", async ({ p
     ).toHaveAttribute('aria-pressed', 'false')
     await expect(page.locator('.action-area')).not.toContainText('Lay away')
 })
+
+test('centres the trick and the middle talon on a phone’s table', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createGame(page)
+    const centreOf = async (selector: string) => {
+        const box = await page.locator(selector).boundingBox()
+        expect(box).not.toBeNull()
+        return box ? box.x + box.width / 2 : 0
+    }
+    const table = await centreOf('.table[data-drop-zone]')
+    expect(Math.abs((await centreOf('.center')) - table)).toBeLessThan(1)
+    expect(Math.abs((await centreOf('.middle-talon')) - table)).toBeLessThan(1)
+})

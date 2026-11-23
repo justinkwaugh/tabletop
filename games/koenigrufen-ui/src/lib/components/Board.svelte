@@ -168,9 +168,11 @@
         transform: translateX(-50%);
     }
 
+    /* Scaled within the transform, after the centring: the separate `scale` property would apply
+       after `transform` and scale the centring with it, pulling the trick to the left. */
     .portrait .center {
         top: calc(var(--middle) - 150px * var(--trick-scale));
-        scale: var(--trick-scale);
+        transform: translateX(-50%) scale(var(--trick-scale));
         transform-origin: top center;
     }
 
@@ -186,7 +188,7 @@
     /* Low enough to clear the side seats on a short table. */
     .portrait .middle-talon {
         top: max(var(--middle), 375px);
-        scale: var(--talon-scale);
+        transform: translate(-50%, -50%) scale(var(--talon-scale));
     }
 
     .hand-summary {
