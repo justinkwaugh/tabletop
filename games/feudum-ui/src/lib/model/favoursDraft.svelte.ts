@@ -48,8 +48,8 @@ export interface FavoursPanel {
 
 /** R-3.11.3 The inspector's favours among the goods in the open. */
 export class FavoursDraft extends DeciderDraft<FavoursValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(FavoursStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(FavoursStageOrder, contextOf, decisionOf)
     }
 
     protected override withAutos(

@@ -35,8 +35,8 @@ export interface DiscPanel {
 
 /** R-4.7, R-4.9-H1, R-3.7.5 One question, two buttons; a step that draws stages (R-X.2). */
 export class DiscDraft extends DeciderDraft<DiscValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(DiscStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(DiscStageOrder, contextOf, decisionOf)
     }
 
     private offer: PlaceDiscOffer | undefined = $derived.by(() => {

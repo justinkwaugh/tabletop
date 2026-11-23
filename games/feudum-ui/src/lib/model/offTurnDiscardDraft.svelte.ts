@@ -36,8 +36,11 @@ export interface OffTurnDiscardPanel {
 
 /** R-4.4-H5 A writ is discarded at any time, so each other seat holding one has a chip. */
 export class OffTurnDiscardDraft extends DeciderDraft<OffTurnDiscardValues, OffTurnDiscardContext> {
-    constructor(contextOf: () => OffTurnDiscardContext | undefined) {
-        super(OffTurnDiscardStageOrder, contextOf)
+    constructor(
+        contextOf: () => OffTurnDiscardContext | undefined,
+        decisionOf?: () => string | undefined
+    ) {
+        super(OffTurnDiscardStageOrder, contextOf, decisionOf)
     }
 
     private openSeat(context: OffTurnDiscardContext): string | undefined {

@@ -1287,6 +1287,25 @@ describe('MoveDraft minimum tests', () => {
             expect(session.movePanel?.stage).toBeDefined()
         })
 
+        it('policy 33 a catch-up that brings no Action leaves the steps standing: the decision stands', async () => {
+            const turn = await table(['move'], (state, { seat }) => {
+                ruleTown(state, seat)
+                giveTile(state, seat)
+                stand(state, seat, Inland, Elsewhere)
+            })
+            const { session, seat, host: tableHost } = turn
+            session.pressTurnCard('move')
+            flushSync()
+            await press(session, pawnTarget(seat, 1))
+            await press(session, spaceTarget(RoadEnd))
+            expect(stepCount(session)).toBe(1)
+
+            await tableHost.reconcile(seat)
+            await settled(session)
+            expect(stepCount(session)).toBe(1)
+            expect(session.movePanel?.stage).toBeDefined()
+        })
+
         it('a lone card comes back with no steps: the draft ends with the state too', async () => {
             const { session, seat } = await table(['move'], (state, turn) => {
                 stand(state, turn.seat, Inland, Elsewhere)

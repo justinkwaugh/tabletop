@@ -28,8 +28,8 @@ export interface WritLimitPanel {
 
 /** R-4.4.4 Over the limit at a turn's end: the discard goes under face down. */
 export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(WritLimitStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(WritLimitStageOrder, contextOf, decisionOf)
     }
 
     protected override withAutos(

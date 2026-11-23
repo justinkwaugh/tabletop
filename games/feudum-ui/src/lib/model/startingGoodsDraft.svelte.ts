@@ -26,8 +26,11 @@ const NothingPicked: StartingGoodsPick = { goods: [], sulfurTo: 'supply' }
 
 /** R-1.4.8 `ChooseStartingGoods` (contract: Setup; S1). */
 export class StartingGoodsDraft extends StagedDraft<StartingGoodsValues> {
-    constructor(private readonly offers: () => readonly Good[]) {
-        super(StartingGoodsStageOrder)
+    constructor(
+        private readonly offers: () => readonly Good[],
+        decisionOf?: () => string | undefined
+    ) {
+        super(StartingGoodsStageOrder, decisionOf)
     }
 
     /** R-1.4.8 With exactly three goods in the haversack the pick is the lone legal choice. */

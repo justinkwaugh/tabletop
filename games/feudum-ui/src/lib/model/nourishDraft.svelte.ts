@@ -81,28 +81,16 @@ export interface NourishPanel {
     readonly primary: TurnPrimary
 }
 
-/** R-4.10-H4 Seats decide at once; read back only under `keyOf`, never by the next seat. */
+/** R-4.10-H4 Seats decide at once; a draft reads back only under its decision, never the next seat's. */
 export class NourishDraft extends DeciderDraft<NourishValues> {
-    private key: string | undefined = $state.raw()
-
-    constructor(
-        contextOf: () => TurnContext | undefined,
-        private readonly keyOf: () => string | undefined
-    ) {
-        super(NourishStageOrder, contextOf)
-    }
-
-    protected override write(stages: StagedSelectionState<NourishValues>): void {
-        this.key = this.keyOf()
-        super.write(stages)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf: () => string | undefined) {
+        super(NourishStageOrder, contextOf, decisionOf)
     }
 
     protected override withAutos(
-        kept: StagedSelectionState<NourishValues>,
+        stored: StagedSelectionState<NourishValues>,
         { state, playerId }: TurnContext
     ): StagedSelectionState<NourishValues> {
-        const current = this.keyOf()
-        const stored = current !== undefined && this.key === current ? kept : {}
         const offer = nourishOffer(state, playerId, stored.cover?.value ?? [])
         return offer
             ? withLoneChoice<NourishValues, 'feeding'>(stored, NourishStageOrder, 'feeding', [

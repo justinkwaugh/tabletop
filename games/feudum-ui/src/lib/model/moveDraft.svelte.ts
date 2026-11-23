@@ -125,8 +125,11 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         this.withLoneChoices(super.read())
     )
 
-    constructor(private readonly contextOf: () => MoveContext | undefined) {
-        super(MoveStageOrder)
+    constructor(
+        private readonly contextOf: () => MoveContext | undefined,
+        decisionOf?: () => string | undefined
+    ) {
+        super(MoveStageOrder, decisionOf)
     }
 
     /** R-X.1 Others and History View have no draft; a lone piece reads through as `auto`. */

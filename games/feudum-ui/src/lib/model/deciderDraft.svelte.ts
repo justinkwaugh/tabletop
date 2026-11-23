@@ -112,9 +112,10 @@ export abstract class DeciderDraft<
 
     constructor(
         stageOrder: readonly Extract<keyof TValues, string>[],
-        protected readonly contextOf: () => TContext | undefined
+        protected readonly contextOf: () => TContext | undefined,
+        decisionOf?: () => string | undefined
     ) {
-        super(stageOrder)
+        super(stageOrder, decisionOf)
     }
 
     protected override read(): StagedSelectionState<TValues> {

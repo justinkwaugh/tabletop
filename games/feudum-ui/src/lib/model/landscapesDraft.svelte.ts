@@ -30,8 +30,8 @@ export interface LandscapesPanel {
 
 /** R-4.3.4 The serf's landscapes under other rulers: each it may collect, or leave. */
 export class LandscapesDraft extends DeciderDraft<LandscapesValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(LandscapesStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(LandscapesStageOrder, contextOf, decisionOf)
     }
 
     private input = $derived.by(() => {

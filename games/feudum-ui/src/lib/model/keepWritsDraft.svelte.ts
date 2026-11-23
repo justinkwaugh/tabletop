@@ -43,8 +43,8 @@ export interface KeepWritsPanel {
 
 /** R-4.4.1, R-3.10.2 The drawer's keep; its two sends are always a press on a button. */
 export class KeepWritsDraft extends DeciderDraft<KeepWritsValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(KeepWritsStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(KeepWritsStageOrder, contextOf, decisionOf)
     }
 
     private needs({ state, playerId }: TurnContext): readonly Good[] {

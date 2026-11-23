@@ -63,8 +63,8 @@ export interface CommitPanel {
 
 /** R-4.8.2 The attacker's saltpeter and weapons; the logic's preview is the tally. */
 export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(CommitAttackStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(CommitAttackStageOrder, contextOf, decisionOf)
     }
 
     private needsOf(adds: readonly CommitAdd[], { state, playerId }: TurnContext) {

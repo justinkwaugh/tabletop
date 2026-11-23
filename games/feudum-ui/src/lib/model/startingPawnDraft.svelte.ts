@@ -20,8 +20,8 @@ void stageCoverage
 
 /** R-1.4.9 (contract: Setup) A space pressed first survives the character press. */
 export class StartingPawnDraft extends StagedDraft<StartingPawnValues> {
-    constructor() {
-        super(StartingPawnStageOrder)
+    constructor(decisionOf?: () => string | undefined) {
+        super(StartingPawnStageOrder, decisionOf)
     }
 
     private held<TKind extends StartingPawnPress['kind']>(

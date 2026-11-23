@@ -182,8 +182,11 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly pouchAnimator = new PouchAnimator()
     readonly historyLog = new HistoryLog(this)
 
-    readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
-    readonly startingPawn = new StartingPawnDraft()
+    readonly startingGoods = new StartingGoodsDraft(
+        () => startingGoodOffers(this.gameState),
+        () => this.decision
+    )
+    readonly startingPawn = new StartingPawnDraft(() => this.decision)
     readonly hand = new HandDraft(() => this.handKey)
     readonly layers = new TableLayers(() => this.pickFrame)
     readonly turn = new TurnDraft(
@@ -205,40 +208,57 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                       cardManual: false
                   })
                 : []
-        }
+        },
+        () => this.decision
     )
-    readonly move = new MoveDraft(() => this.moveContext)
-    readonly guild = new GuildDraft(() => this.guildContext)
-    readonly keepWrits = new KeepWritsDraft(() => this.deciding(ActionType.KeepWrits))
-    readonly favours = new FavoursDraft(() => this.deciding(ActionType.ChooseFavours))
-    readonly commitAttack = new CommitAttackDraft(() => this.deciding(ActionType.CommitAttack))
-    readonly answerStarve = new AnswerStarveDraft(() => this.deciding(ActionType.AnswerStarve))
-    readonly writLimit = new WritLimitDraft(() => this.writLimitContext)
+    readonly move = new MoveDraft(
+        () => this.moveContext,
+        () => this.decision
+    )
+    readonly guild = new GuildDraft(
+        () => this.guildContext,
+        () => this.decision
+    )
+    readonly keepWrits = new KeepWritsDraft(
+        () => this.deciding(ActionType.KeepWrits),
+        () => this.decision
+    )
+    readonly favours = new FavoursDraft(
+        () => this.deciding(ActionType.ChooseFavours),
+        () => this.decision
+    )
+    readonly commitAttack = new CommitAttackDraft(
+        () => this.deciding(ActionType.CommitAttack),
+        () => this.decision
+    )
+    readonly answerStarve = new AnswerStarveDraft(
+        () => this.deciding(ActionType.AnswerStarve),
+        () => this.decision
+    )
+    readonly writLimit = new WritLimitDraft(
+        () => this.writLimitContext,
+        () => this.decision
+    )
     readonly nourish = new NourishDraft(
         () => this.deciding(ActionType.Nourish),
-        () => this.nourishKey
+        () => this.decision
     )
-    readonly landscapes = new LandscapesDraft(() => this.deciding(ActionType.CollectLandscapes))
-    readonly disc = new DiscDraft(() => this.deciding(ActionType.PlaceDisc))
-    readonly atWill = new AtWillDraft(() => this.atWillContext)
-    readonly offTurnDiscard = new OffTurnDiscardDraft(() => this.offTurnDiscardContext)
-
-    private readonly oneStateDrafts = [
-        this.startingGoods,
-        this.startingPawn,
-        this.turn,
-        this.move,
-        this.guild,
-        this.keepWrits,
-        this.favours,
-        this.commitAttack,
-        this.answerStarve,
-        this.writLimit,
-        this.landscapes,
-        this.disc,
-        this.offTurnDiscard,
-        this.atWill
-    ]
+    readonly landscapes = new LandscapesDraft(
+        () => this.deciding(ActionType.CollectLandscapes),
+        () => this.decision
+    )
+    readonly disc = new DiscDraft(
+        () => this.deciding(ActionType.PlaceDisc),
+        () => this.decision
+    )
+    readonly atWill = new AtWillDraft(
+        () => this.atWillContext,
+        () => this.decision
+    )
+    readonly offTurnDiscard = new OffTurnDiscardDraft(
+        () => this.offTurnDiscardContext,
+        () => this.decision
+    )
 
     private readonly followUps = [
         this.atWill,
@@ -255,20 +275,18 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
     )
 
-    /** R-4.10-H4 A nourish draft lasts for this seat's decision this round. */
-    private nourishKey: string | undefined = $derived.by(() => {
+    /**
+     * Contract, Shared visual state: a draft lasts while the seat's decision stands and the seat
+     * sends nothing, from this device or another; earlier history arriving changes nothing.
+     */
+    private decision: string | undefined = $derived.by(() => {
         const me = this.myPlayerId
-        const round = this.gameState.roundManager.currentRound?.number
-        if (
-            this.isViewingHistory ||
-            !me ||
-            round === undefined ||
-            this.gameState.machineState !== MachineState.Nourishing
-        ) {
+        if (this.isViewingHistory || !me) {
             return undefined
         }
-        const own = this.actions.findLastIndex((action) => action.playerId === me)
-        return `round-${round}:${me}:${own}`
+        const { machineState, activePlayerIds } = this.gameState
+        const sent = this.actions.findLast(({ playerId }) => playerId === me)?.id
+        return `${me}:${machineState}:${activePlayerIds.includes(me)}:${sent}`
     })
 
     constructor(options: SessionOptions) {
@@ -295,7 +313,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** Contract, Shared visual state: the hand draft outlives others' Actions, a reconciliation and at-will plays. */
+    /**
+     * Policy 33, contract: Shared visual state: every draft outlives others' Actions, a
+     * reconciliation and the seat's own Actions, and reads only under the decision it was made in.
+     */
     override keepsLocalSelections(transition: PresentedTransition): boolean {
         return (
             transition.kind === 'other-action' ||
@@ -335,34 +356,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return !this.historyLog.replaying && super.shouldAutoStepAction(action, next)
     }
 
-    override beforeNewState(transition: PresentedTransition) {
+    override beforeNewState(_transition: PresentedTransition) {
         this.boardAnimator.settle()
         this.flightAnimator.settle()
         this.pouchAnimator.settle()
-        if (this.endsDrafts(transition)) {
-            for (const draft of this.oneStateDrafts) {
-                draft.clear()
-            }
-        }
-    }
-
-    /** Contract, Shared visual state: another seat's Action leaves a draft while its decision stands. */
-    private endsDrafts({ kind, actions }: PresentedTransition): boolean {
-        if (kind !== 'other-action' && kind !== 'reconciliation') {
-            return true
-        }
-        const incoming = this.incomingGameState
-        return (
-            !incoming ||
-            actions.length === 0 ||
-            actions.some(({ playerId }) => playerId === this.myPlayerId) ||
-            this.decisionIn(incoming) !== this.decisionIn(this.gameState)
-        )
-    }
-
-    private decisionIn({ machineState, activePlayerIds }: HydratedFeudumGameState): string {
-        const me = this.myPlayerId
-        return `${machineState}:${me !== undefined && activePlayerIds.includes(me)}`
     }
 
     private isOffered(type: ActionType): boolean {

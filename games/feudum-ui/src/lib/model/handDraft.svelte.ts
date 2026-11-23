@@ -1,4 +1,3 @@
-import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
     MachineState,
     type ActionCardKind,
@@ -45,20 +44,8 @@ export function handDraftKey(
 
 /** R-3.1, R-3.3, S4, S9 (contract: Shared visual state) A draft reads back only under its own key. */
 export class HandDraft extends StagedDraft<HandDraftValues> {
-    private key: string | undefined = $state.raw()
-
-    constructor(private readonly currentKey: () => string | undefined) {
-        super(HandStageOrder)
-    }
-
-    protected override read(): StagedSelectionState<HandDraftValues> {
-        const current = this.currentKey()
-        return current !== undefined && this.key === current ? super.read() : {}
-    }
-
-    protected override write(stages: StagedSelectionState<HandDraftValues>): void {
-        this.key = this.currentKey()
-        super.write(stages)
+    constructor(decisionOf: () => string | undefined) {
+        super(HandStageOrder, decisionOf)
     }
 
     get hand(): DraftedHand {

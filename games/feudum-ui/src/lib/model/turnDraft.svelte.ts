@@ -91,9 +91,10 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             action: ActionType,
             context: TurnContext,
             input: CardPlayInput
-        ) => readonly BoardTarget[]
+        ) => readonly BoardTarget[],
+        decisionOf?: () => string | undefined
     ) {
-        super(TurnStageOrder)
+        super(TurnStageOrder, decisionOf)
     }
 
     /** R-X.1 Others and History View have no draft; lone choices read through as `auto`. */

@@ -589,13 +589,30 @@ describe('R-1.4.8, R-3.1 what a draft keeps across a transition (contract: Share
         'view-switch',
         'edit',
         'initial'
-    ] as const)('policy 33 the goods draft ends on %s', async (kind) => {
+    ] as const)(
+        'policy 33 beforeNewState ends no registered draft on %s: the keep hook and the draft’s decision do',
+        async (kind) => {
+            const table = openTable()
+            const session = await table.openSeat(table.setupSeat)
+            session.pressStartingGood('iron')
+            expect(session.startingGoods.goods).toEqual(['iron'])
+
+            session.beforeNewState({ kind, actions: [], intent: 'actions' })
+
+            expect(session.startingGoods.goods).toEqual(['iron'])
+        }
+    )
+
+    it("policy 33 the seat's own Action ends its goods draft: the draft reads only under the decision it was made in", async () => {
         const table = openTable()
         const session = await table.openSeat(table.setupSeat)
         session.pressStartingGood('iron')
         expect(session.startingGoods.goods).toEqual(['iron'])
+        expect(
+            session.keepsLocalSelections({ kind: 'own-action', actions: [], intent: 'actions' })
+        ).toBe(true)
 
-        session.beforeNewState({ kind, actions: [], intent: 'actions' })
+        await table.playStartingGoods(undefined, 1)
 
         expect(session.startingGoods.goods).toEqual([])
     })

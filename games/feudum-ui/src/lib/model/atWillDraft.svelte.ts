@@ -108,8 +108,8 @@ type WritRow = NonNullable<AtWillPanel['writs']>[number]
 
 /** Contract, At-will actions: what a seat may do any time its window is open (R-4.4-H1). */
 export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
-    constructor(contextOf: () => AtWillContext | undefined) {
-        super(AtWillStageOrder, contextOf)
+    constructor(contextOf: () => AtWillContext | undefined, decisionOf?: () => string | undefined) {
+        super(AtWillStageOrder, contextOf, decisionOf)
     }
 
     /** R-4.4.2 What a held mandate can do now; an alternative the logic refuses is not drawn. */

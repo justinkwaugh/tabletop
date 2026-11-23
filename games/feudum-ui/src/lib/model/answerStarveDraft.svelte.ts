@@ -38,8 +38,8 @@ export interface AnswerStarvePanel {
 
 /** R-3.14.2 Nothing here sends: each answer is a press (contract: Asked out of turn). */
 export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
-        super(AnswerStarveStageOrder, contextOf)
+    constructor(contextOf: () => TurnContext | undefined, decisionOf?: () => string | undefined) {
+        super(AnswerStarveStageOrder, contextOf, decisionOf)
     }
 
     protected override withAutos(

@@ -127,8 +127,11 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         this.withLoneChoices(super.read())
     )
 
-    constructor(private readonly contextOf: () => GuildContext | undefined) {
-        super(GuildStageOrder)
+    constructor(
+        private readonly contextOf: () => GuildContext | undefined,
+        decisionOf?: () => string | undefined
+    ) {
+        super(GuildStageOrder, decisionOf)
     }
 
     /** R-X.1 Others and History View have no draft. */

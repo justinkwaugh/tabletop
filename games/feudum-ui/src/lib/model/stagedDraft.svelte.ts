@@ -14,12 +14,19 @@ import {
 
 type StageOf<TValues extends Record<string, unknown>> = Extract<keyof TValues, string>
 
+const AnyDecision = () => ''
+
+/** docs/user-interactions.md, Lifetime: a kept draft reads only under the decision it was made in. */
 export class StagedDraft<TValues extends Record<string, unknown>> {
     private stages: StagedSelectionState<TValues> = $state.raw({})
+    private madeIn: string | undefined = $state.raw()
 
     readonly localSelection: LocalSelection
 
-    constructor(readonly stageOrder: readonly StageOf<TValues>[]) {
+    constructor(
+        readonly stageOrder: readonly StageOf<TValues>[],
+        private readonly decisionOf: () => string | undefined = AnyDecision
+    ) {
         this.localSelection = undoableStagedSelection(
             stageOrder,
             () => this.read(),
@@ -28,10 +35,12 @@ export class StagedDraft<TValues extends Record<string, unknown>> {
     }
 
     protected read(): StagedSelectionState<TValues> {
-        return this.stages
+        const decision = this.decisionOf()
+        return decision !== undefined && decision === this.madeIn ? this.stages : {}
     }
 
     protected write(stages: StagedSelectionState<TValues>): void {
+        this.madeIn = this.decisionOf()
         this.stages = stages
     }
 
