@@ -60,6 +60,7 @@ import {
     GuildScale,
     goodsOffTheBoard,
     guildPoint,
+    immunityOf,
     keyOfRef,
     placedPieces,
     type GuildsApart
@@ -490,7 +491,7 @@ function flyGoods(plan: FlightBuilder, change: FlightChange, at: number): number
                 kind: 'board',
                 point: place.point,
                 size: GoodSize,
-                ...(place.key ? { piece: place.key, hide: true } : {})
+                ...(place.key ? { piece: place.key, hide: place.single === true } : {})
             })
         }
         for (const { good: reached, place } of board.arriving) {
@@ -902,13 +903,18 @@ function concealedChanges({ from, to }: FlightChange) {
             (state.spaces[id].serf?.immune ? 1 : 0) +
             (state.spaces[id].ruler?.subjectImmune ? 1 : 0)
         const geometry = spaceGeometry(id)
-        const under = from.spaces[id].serf?.immune ? geometry.serf : geometry.subject
-        shift(immunity(to) - immunity(from), {
-            silent: immunity(to) > immunity(from),
+        const change = immunity(to) - immunity(from)
+        const serfHad = from.spaces[id].serf?.immune === true
+        const serfLost = serfHad && !to.spaces[id].serf?.immune
+        const role = (change < 0 ? serfLost : serfHad) ? 'serf' : 'subject'
+        const under = geometry[role]
+        shift(change, {
+            silent: change > 0,
             end: {
                 kind: 'board',
                 point: { x: under.x, y: under.y + MarkerSize / 2 },
-                size: ImmunitySealSize
+                size: ImmunitySealSize,
+                ...(change < 0 ? { piece: immunityOf(id, role), hide: true } : {})
             }
         })
     }

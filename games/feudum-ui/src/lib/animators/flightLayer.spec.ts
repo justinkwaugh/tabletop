@@ -1340,6 +1340,45 @@ describe('Contract, Replay: a copy an earlier step left resting', () => {
         expect(copies.get('2-goods-0')?.style.visibility).toBe('visible')
     })
 
+    it('R-1.1 is the one taken when a later step’s copy leaves one of a stack, and the drawn stack stays', async () => {
+        const { animator, stage } = rig()
+        const copies = new Map<string, FakeCopy>()
+        await playStep(animator, copies, foodFlight(FoodAtSeat, FoodOnSpace))
+        const fromStack: FlightEnd = {
+            kind: 'board',
+            point: { x: 10, y: 10 },
+            size: 20,
+            piece: 'good:s:food',
+            hide: false
+        }
+        await playStep(animator, copies, foodFlight(fromStack, FoodAtSeat))
+        expect(copies.get('1-goods-0')?.style.visibility).toBe('hidden')
+        expect(stage.everHidden).toBe(false)
+    })
+
+    it('R-3.14.2 a token the board left for a piece is taken in place of the drawn piece, which is not hidden', async () => {
+        const stage = new FakeStage()
+        const taken: string[] = []
+        const animator = new FlightAnimator(
+            () => false,
+            (piece) => {
+                taken.push(piece)
+                return true
+            }
+        )
+        animator.useStage(stage)
+        const seal: FlightEnd = {
+            kind: 'board',
+            point: { x: 10, y: 10 },
+            size: 20,
+            piece: 'immunity:s:serf',
+            hide: true
+        }
+        await playStep(animator, new Map(), foodFlight(seal, FoodAtSeat))
+        expect(taken).toEqual(['immunity:s:serf'])
+        expect(stage.everHidden).toBe(false)
+    })
+
     it('R-1.1 is carried by a later step’s board motion: moved along it, and faded with it', async () => {
         const { animator } = rig()
         const copies = new Map<string, FakeCopy>()

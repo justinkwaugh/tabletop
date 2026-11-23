@@ -175,10 +175,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly colourPaintOf = (colour: Color): SeatPaint =>
         dummyPaint(this.colors, this.gameState, colour)
 
-    readonly boardAnimator = new BoardAnimator(undefined, (piece) =>
+    readonly boardAnimator: BoardAnimator = new BoardAnimator(undefined, (piece) =>
         this.flightAnimator.carrier(piece)
     )
-    readonly flightAnimator = new FlightAnimator()
+    readonly flightAnimator: FlightAnimator = new FlightAnimator(undefined, (piece) =>
+        this.boardAnimator.takeResting(piece)
+    )
     readonly pouchAnimator = new PouchAnimator()
     readonly historyLog = new HistoryLog(this)
 

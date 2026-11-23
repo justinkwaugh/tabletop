@@ -8,6 +8,7 @@
         tileById,
         type TileId
     } from '@tabletop/feudum'
+    import { immunityOf } from '$lib/animators/boardPlan.js'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
@@ -56,12 +57,18 @@
     const MarkerFrame = MarkerSize + 10
 </script>
 
-{#snippet marker(spaceId: SpaceId, role: string, at: Point, playerId: string, immune: boolean)}
+{#snippet marker(
+    spaceId: SpaceId,
+    role: 'ruler' | 'subject' | 'serf',
+    at: Point,
+    playerId: string,
+    immune: boolean
+)}
     {@const target = markerTarget(spaceId, playerId, role)}
     <BoardPiece {at} piece="marker:{spaceId}:{role}">
         <g opacity={dimmed(roleOf(chrome.offer, target))}>
-            {#if immune}
-                <g data-immune>
+            {#if immune && role !== 'ruler'}
+                <g data-immune data-motion={immunityOf(spaceId, role)}>
                     <SealFace
                         faceShown={false}
                         size={ImmunitySealSize}

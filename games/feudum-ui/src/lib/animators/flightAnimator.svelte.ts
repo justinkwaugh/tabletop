@@ -64,7 +64,11 @@ export class FlightAnimator {
     private readonly poses = new Map<string, CopyPose>()
     private readonly hidden = new Set<HideableSource>()
 
-    constructor(private readonly reduced: () => boolean = () => prefersReducedMotion.current) {}
+    constructor(
+        private readonly reduced: () => boolean = () => prefersReducedMotion.current,
+        /** Contract, Animation plan: takes the board's token an earlier step left for a piece. */
+        private readonly takeBoardToken: (piece: string) => boolean = () => false
+    ) {}
 
     readonly attach = (layer: HTMLElement) => this.useStage(new DomFlightStage(layer))
 
@@ -206,11 +210,11 @@ export class FlightAnimator {
             return known
         }
         const start = this.place(flight.from)
-        if (start.source && 'hide' in flight.from && flight.from.hide) {
+        const tookResting = this.leaveResting(flight)
+        if (!tookResting && start.source && 'hide' in flight.from && flight.from.hide) {
             start.source.style.visibility = 'hidden'
             this.hidden.add(start.source)
         }
-        this.leaveResting(flight)
         const pose: CopyPose = {
             x: start.x,
             y: start.y,
@@ -226,18 +230,22 @@ export class FlightAnimator {
     }
 
     /** Contract, Animation plan: a flight from a piece an earlier step left as a copy takes that copy away. */
-    private leaveResting(flight: Flight) {
+    private leaveResting(flight: Flight): boolean {
         const { from } = flight
-        if (from.kind !== 'board' || !from.piece || !from.hide) {
-            return
+        if (from.kind !== 'board' || !from.piece) {
+            return false
         }
         const before = this.flights.slice(0, this.flights.indexOf(flight))
-        const resting = before.findLast((one) => this.restsAs(one) === from.piece)
+        const resting = before.findLast(
+            (one) => this.restsAs(one) === from.piece && this.poses.get(one.id)?.visible
+        )
         const pose = resting && this.poses.get(resting.id)
         if (resting && pose) {
             pose.visible = false
             this.redraw(resting, pose)
+            return true
         }
+        return this.takeBoardToken(from.piece)
     }
 
     private redraw(flight: Flight, pose: CopyPose) {

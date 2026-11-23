@@ -62,6 +62,14 @@
                     x={-face.size / 2}
                     y={-face.size / 2}
                 />
+            {:else if face.kind === 'disc'}
+                <SeatToken
+                    kind={face.reeve ? 'reeve' : 'disc'}
+                    paint={paintOf(face.playerId)}
+                    size={face.size}
+                    x={-face.size / 2}
+                    y={-face.size / 2}
+                />
             {:else if face.kind === 'vessel'}
                 <VesselToken
                     vessel={face.vessel}

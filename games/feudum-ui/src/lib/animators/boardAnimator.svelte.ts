@@ -4,8 +4,10 @@ import type { AnimationContext } from '@tabletop/frontend-components'
 import type { GameAction, Point } from '@tabletop/common'
 import type { GuildId, HydratedFeudumGameState } from '@tabletop/feudum'
 import {
+    guildPoint,
     planBoardMotion,
     planDirect,
+    ridesOf,
     type BoardMotion,
     type BoardPlan,
     type MotionTarget,
@@ -43,6 +45,8 @@ export interface BoardChangeArgs {
 /** The presenter publishes state only after the last Action, so poses carry step to step. */
 export class BoardAnimator {
     tokens: readonly MotionToken[] = $state.raw([])
+    /** Contract, Animation plan: the tokens earlier steps of this replay left, which stand for pieces. */
+    private earlier: readonly MotionToken[] = []
 
     private surface: MotionSurface | undefined
     /** Contract, Desk layout: each guild area an open side stands upright, its own svg. */
@@ -104,6 +108,8 @@ export class BoardAnimator {
         const plan = this.withOwnTokens(built)
         const flightsAt = built.flightsAt ?? 0
         const generation = this.generation
+        const earlier = this.tokens
+        this.earlier = earlier
         if (plan.tokens.length > 0) {
             this.tokens = [...this.tokens, ...plan.tokens]
             await tick()
@@ -117,12 +123,12 @@ export class BoardAnimator {
                 (a, b) => a.at + a.duration - (b.at + b.duration)
             )
             for (const motion of landing) {
-                this.followWithoutTween(timeline, motion, generation)
+                this.followWithoutTween(timeline, motion, generation, earlier)
             }
             return 0
         }
         for (const motion of plan.motions) {
-            this.schedule(timeline, motion, generation)
+            this.schedule(timeline, motion, generation, earlier)
         }
         return flightsAt
     }
@@ -141,6 +147,7 @@ export class BoardAnimator {
         if (this.tokens.length > 0) {
             this.tokens = []
         }
+        this.earlier = []
     }
 
     private withOwnTokens(plan: BoardPlan): BoardPlan {
@@ -160,10 +167,11 @@ export class BoardAnimator {
     private schedule(
         timeline: AnimationContext['actionTimeline'],
         motion: BoardMotion,
-        generation: number
+        generation: number,
+        earlier: readonly MotionToken[]
     ) {
         if (motion.duration === 0) {
-            timeline.call(() => this.land(motion, generation), undefined, motion.at)
+            timeline.call(() => this.land(motion, generation, earlier), undefined, motion.at)
             return
         }
         const clock = { t: 0 }
@@ -175,7 +183,7 @@ export class BoardAnimator {
                 duration: motion.duration,
                 ease: 'power1.inOut',
                 onStart: () => {
-                    update = this.begin(motion, generation)
+                    update = this.begin(motion, generation, earlier)
                 },
                 onUpdate: () => update?.(clock.t)
             },
@@ -186,7 +194,8 @@ export class BoardAnimator {
     private followWithoutTween(
         timeline: AnimationContext['actionTimeline'],
         motion: BoardMotion,
-        generation: number
+        generation: number,
+        earlier: readonly MotionToken[]
     ) {
         const shows =
             motion.path ||
@@ -194,15 +203,15 @@ export class BoardAnimator {
             motion.opacity !== undefined ||
             motion.scaleX !== undefined
         if (shows) {
-            timeline.call(() => this.land(motion, generation), undefined, 0)
+            timeline.call(() => this.land(motion, generation, earlier), undefined, 0)
         }
     }
 
-    private land(motion: BoardMotion, generation: number) {
+    private land(motion: BoardMotion, generation: number, earlier: readonly MotionToken[]) {
         if (generation !== this.generation) {
             return
         }
-        const found = this.resolve(motion.target)
+        const found = this.resolve(motion.target, earlier)
         if (!found) {
             const carry = this.carried(motion.target)
             const end = motion.path?.at(-1)
@@ -214,8 +223,9 @@ export class BoardAnimator {
             }
             return
         }
-        const { element, pose, world } = found
-        const end = motion.path?.at(-1)
+        const { element, pose, world, frame } = found
+        const last = motion.path?.at(-1)
+        const end = last && frame(last)
         if (end) {
             pose.x = end.x - world.x
             pose.y = end.y - world.y
@@ -228,11 +238,15 @@ export class BoardAnimator {
         this.draw(element, pose)
     }
 
-    private begin(motion: BoardMotion, generation: number): ((t: number) => void) | undefined {
+    private begin(
+        motion: BoardMotion,
+        generation: number,
+        earlier: readonly MotionToken[]
+    ): ((t: number) => void) | undefined {
         if (generation !== this.generation) {
             return undefined
         }
-        const found = this.resolve(motion.target)
+        const found = this.resolve(motion.target, earlier)
         if (!found) {
             const carry = this.carried(motion.target)
             if (!carry) {
@@ -252,14 +266,14 @@ export class BoardAnimator {
                 }
             }
         }
-        const { element, pose, world } = found
+        const { element, pose, world, frame } = found
         if (motion.reveal) {
             pose.opacity = 1
         }
         const start = { ...pose }
         const path = motion.path && [
             { x: start.x + world.x, y: start.y + world.y },
-            ...motion.path.slice(1)
+            ...motion.path.slice(1).map(frame)
         ]
         return (t) => {
             if (generation !== this.generation || this.poses.get(element) !== pose) {
@@ -290,13 +304,22 @@ export class BoardAnimator {
     }
 
     private carried(target: MotionTarget): RestingCopy | undefined {
-        return 'piece' in target && target.part === undefined
-            ? this.carrier(target.piece)
-            : undefined
+        if (!('piece' in target)) {
+            return undefined
+        }
+        return this.carrier(target.part === 'rides' ? ridesOf(target.piece) : target.piece)
     }
 
-    private resolve(target: MotionTarget) {
-        const element = this.find(this.selectorOf(target)) ?? this.restingToken(target)
+    /** Contract, Animation plan: a token an earlier step left stands for its piece before the drawn one. */
+    private resolve(target: MotionTarget, earlier: readonly MotionToken[]) {
+        const resting = BoardAnimator.restingTokenOf(target, earlier)
+        const drawn =
+            resting || ('resting' in target && target.resting)
+                ? undefined
+                : this.find(this.selectorOf(target))
+        const element = resting
+            ? this.find(this.selectorOf({ token: resting.id }))
+            : (drawn ?? undefined)
         if (!element) {
             return undefined
         }
@@ -305,9 +328,26 @@ export class BoardAnimator {
                 pieces.add(element)
             }
         }
-        const pose = this.poses.get(element) ?? this.firstPose(target)
+        const pose =
+            this.poses.get(element) ?? this.firstPose(resting ? { token: resting.id } : target)
         this.poses.set(element, pose)
-        return { element, pose, world: this.worldOf(element) }
+        const guild = resting?.guild
+        const frame = (point: Point) => (guild ? guildPoint(guild, point) : point)
+        return { element, pose, world: this.worldOf(element), frame }
+    }
+
+    /** Contract, Animation plan: a flight from a piece an earlier step left as a token takes that token. */
+    takeResting(piece: string): boolean {
+        const resting = this.earlier.findLast(({ rests }) => rests === piece)
+        const element = resting && this.find(this.selectorOf({ token: resting.id }))
+        if (!resting || !element) {
+            return false
+        }
+        const pose = this.poses.get(element) ?? this.firstPose({ token: resting.id })
+        pose.opacity = 0
+        this.poses.set(element, pose)
+        this.draw(element, pose)
+        return true
     }
 
     private find(selector: string): MotionElement | null | undefined {
@@ -319,12 +359,15 @@ export class BoardAnimator {
     }
 
     /** Contract, Animation plan: a piece an earlier step's token brought on is that token until the state shows. */
-    private restingToken(target: MotionTarget): MotionElement | null | undefined {
-        if (!('piece' in target) || target.part !== undefined) {
+    private static restingTokenOf(
+        target: MotionTarget,
+        earlier: readonly MotionToken[]
+    ): MotionToken | undefined {
+        if (!('piece' in target)) {
             return undefined
         }
-        const token = this.tokens.findLast(({ rests }) => rests === target.piece)
-        return token ? this.find(this.selectorOf({ token: token.id })) : undefined
+        const rests = target.part === 'rides' ? ridesOf(target.piece) : target.piece
+        return earlier.findLast((token) => token.rests === rests)
     }
 
     private forgetArea(area: MotionSurface) {

@@ -7,6 +7,7 @@ import {
     ActionType,
     type BeginDawn,
     ChickenSpaces,
+    EpicVoyageTrack,
     FarmerBarn,
     Goods,
     GuildTrackSpaces,
@@ -29,6 +30,7 @@ import {
     seatKnightRow,
     Spaces,
     type SealId,
+    type SpaceId,
     type TileId
 } from '@tabletop/feudum'
 import { askedToDefend, type AskTable } from '$lib/testing/askTable.js'
@@ -53,7 +55,11 @@ import { BoardAnimator, type MotionElement, type MotionSurface } from './boardAn
 import type { RestingCopy } from './flightAnimator.svelte.js'
 import { planFlights } from './flightPlan.js'
 import {
+    guildPoint,
+    immunityOf,
+    keyOfRef,
     planBoardMotion,
+    ridesOf,
     planDirect,
     type BoardChange,
     type BoardMotion,
@@ -585,6 +591,56 @@ describe('Contract, Replay: every kind a flight lands on the board rests as the 
         expect(ends).toContainEqual(expect.objectContaining({ rests: `seal:${scroll.id}` }))
     })
 
+    it('R-1.1 a good flown on to a space that holds one already rests as that space’s good', async () => {
+        const table = await emptyTable()
+        const [{ id }] = Spaces
+        table.host.edit((state) => {
+            state.spaces[id].goods.food = 1
+        })
+        const [good] = planFlights({
+            ...changeFrom(table, (to) => {
+                to.spaces[id].goods.food = 2
+            }),
+            action: anAction(table.seat)
+        }).flights.filter(({ row }) => row === 'goods')
+        expect(good.legs.at(-1)?.to).toMatchObject({ kind: 'board', rests: `good:${id}:food` })
+    })
+
+    it('R-1.1 a good leaving a space that holds two leaves from that space’s good, and the drawn count stays', async () => {
+        const table = await emptyTable()
+        const [{ id }] = Spaces
+        table.host.edit((state) => {
+            state.spaces[id].goods.food = 2
+        })
+        const [good] = planFlights({
+            ...changeFrom(table, (to) => {
+                to.spaces[id].goods.food = 1
+            }),
+            action: anAction(table.seat)
+        }).flights.filter(({ row }) => row === 'goods')
+        expect(good.from).toMatchObject({ kind: 'board', piece: `good:${id}:food`, hide: false })
+    })
+
+    it('R-3.14.2 a crowned seal lost leaves from the seal under its marker', async () => {
+        const table = await emptyTable()
+        const [{ id }] = Spaces
+        table.host.edit((state) => {
+            state.spaces[id].serf = { playerId: table.other, immune: true }
+        })
+        const [seal] = planFlights({
+            ...changeFrom(table, (to) => {
+                to.spaces[id].serf = { playerId: table.other }
+                to.supply.sealPileCount += 1
+            }),
+            action: anAction(table.seat)
+        }).flights.filter(({ row }) => row === 'seals')
+        expect(seal.from).toMatchObject({
+            kind: 'board',
+            piece: immunityOf(id, 'serf'),
+            hide: true
+        })
+    })
+
     it('R-1.1 a good an earlier Action flew on hides with the step that takes it on: its resting copy fades', async () => {
         const scene = await Scenes.goods()
         const resting = new FakeResting()
@@ -631,6 +687,200 @@ describe('Contract, Replay: every kind a flight lands on the board rests as the 
         const taken = surface.inner.elements.get(tokens[1])
         expect(left?.opacity).toBe(0)
         expect(taken?.opacity).toBe(1)
+    })
+})
+
+/** A state the replay reaches next, edited from one it reached. */
+function copied(
+    state: HydratedFeudumGameState,
+    edit: (copy: HydratedFeudumGameState) => void = () => {}
+): HydratedFeudumGameState {
+    const copy = new HydratedFeudumGameState(structuredClone(state.dehydrate()))
+    edit(copy)
+    return copy
+}
+
+/** Each step of a replay played through, the state never drawn between them. */
+async function replay(
+    animator: BoardAnimator,
+    steps: readonly (BoardChange & { readonly action: GameAction })[]
+) {
+    for (const step of steps) {
+        const context = new AnimationContext()
+        await animator.onGameStateChange({ ...step, animationContext: context })
+        play(context)
+    }
+}
+
+describe('Contract, Replay: every piece a replay step puts on the board rests as that piece', () => {
+    it('R-4.2.2 a vessel left behind rests as the space’s vessel; one taken up as the pawn’s ride', async () => {
+        const scene = await walkScene()
+        const key = `pawn:${scene.seat}:1`
+        const record = { routeId: scene.route.id, from: scene.route.a }
+        const walking = (way: object) =>
+            planBoardMotion({
+                ...scene,
+                action: moved(scene.seat, {
+                    steps: scene.action.steps,
+                    metadata: { steps: [{ ...record, ...way }] }
+                })
+            })
+        expect(walking({ left: 'ship' }).tokens[0]).toMatchObject({
+            face: { kind: 'vessel', vessel: 'ship' },
+            rests: `vessel:${scene.route.a}:ship`
+        })
+        expect(walking({ vessel: 'ship' }).tokens[0]).toMatchObject({
+            face: { kind: 'vessel', vessel: 'ship' },
+            rests: ridesOf(key)
+        })
+    })
+
+    it('R-4.2.2 the vessel an earlier step put a pawn on rides with the pawn’s next walk', async () => {
+        const scene = await walkScene()
+        const [step] = scene.action.steps
+        const boarding = {
+            ...scene,
+            action: moved(scene.seat, {
+                steps: [step],
+                metadata: {
+                    steps: [{ routeId: scene.route.id, from: scene.route.a, vessel: 'ship' }]
+                }
+            })
+        }
+        const aboard = (state: HydratedFeudumGameState, spaceId: SpaceId) => {
+            const pawn = state.getPlayerState(scene.seat).pawns.find(({ n }) => n === 1)
+            assertExists(pawn, 'R-1.4 The pawn stands')
+            pawn.spaceId = spaceId
+            pawn.vessel = 'ship'
+        }
+        const from = copied(scene.to, (state) => aboard(state, scene.route.b))
+        const back = {
+            from,
+            to: copied(from, (state) => aboard(state, scene.route.a)),
+            action: moved(scene.seat, {
+                steps: [{ ...step, to: scene.route.a }],
+                metadata: { steps: [{ routeId: scene.route.id, from: scene.route.b }] }
+            })
+        }
+        const ride = planBoardMotion(back).motions.find(
+            ({ target }) => 'part' in target && target.part === 'rides'
+        )
+        const token = '[data-transient="1-token-0"]'
+        const surface = new KnownSurface([token])
+        const animator = new BoardAnimator(() => false)
+        animator.attach(surface)
+        await replay(animator, [boarding])
+        const boarded = surface.inner.elements.get(token)?.point
+        await replay(animator, [back])
+        const end = ride?.path?.at(-1)
+        expect(end).toBeDefined()
+        expect(surface.inner.elements.get(token)?.point).toEqual(end)
+        expect(end).not.toEqual(boarded)
+    })
+
+    it('R-1.3 a Knight row’s new marker rests as that marker: the next step takes it to the icon', async () => {
+        const table = await emptyTable()
+        const [icon] = KnightMonsterIcons
+        table.host.edit((state) => {
+            const own = seatKnightRow(state, table.seat)?.row
+            assertExists(own, 'R-1.4 The seat has a Knight row')
+            own.markers = 1
+        })
+        const fill = changeFrom(table, (to) => {
+            const own = seatKnightRow(to, table.seat)?.row
+            assertExists(own, 'R-1.4 The seat has a Knight row')
+            own.markers = 3
+        })
+        const rowId = seatKnightRow(fill.to, table.seat)?.rowId
+        assertExists(rowId, 'R-1.4 The seat has a Knight row')
+        const filled = planBoardMotion({ ...fill, action: anAction(table.seat) })
+        expect(filled.tokens.map(({ rests, guild }) => ({ rests, guild }))).toEqual([
+            { rests: `knight:${rowId}:2`, guild: 'knight' },
+            { rests: `knight:${rowId}:3`, guild: 'knight' }
+        ])
+        const control = {
+            from: fill.to,
+            to: copied(fill.to, (to) => {
+                to.monsters[icon.monster] = { playerId: table.seat }
+                const own = seatKnightRow(to, table.seat)?.row
+                assertExists(own, 'R-1.4 The seat has a Knight row')
+                own.markers -= 1
+            }),
+            action: anAction(table.seat)
+        }
+        const token = '[data-transient="1-token-1"]'
+        const surface = new KnownSurface([token])
+        const animator = new BoardAnimator(() => false)
+        animator.attach(surface)
+        await replay(animator, [{ ...fill, action: anAction(table.seat) }, control])
+        // Drawn to the hundredth of a unit, in the board's frame the token stands in.
+        const onIcon = guildPoint('knight', monsterIconMarker(icon.id))
+        const landed = surface.inner.elements.get(token)?.point
+        expect(landed?.x).toBeCloseTo(onIcon.x, 1)
+        expect(landed?.y).toBeCloseTo(onIcon.y, 1)
+    })
+
+    it('R-3.14.2 a crowned seal rests as the seal under its marker; R-1.2 a turned disc as that disc', async () => {
+        const table = await emptyTable()
+        const [{ id }] = Spaces
+        table.host.edit((state) => {
+            state.spaces[id].serf = { playerId: table.other }
+        })
+        const crowned = planBoardMotion({
+            ...changeFrom(table, (to) => {
+                to.spaces[id].serf = { playerId: table.other, immune: true }
+            }),
+            action: anAction(table.seat)
+        })
+        expect(crowned.tokens[0]).toMatchObject({
+            face: { kind: 'seal' },
+            rests: immunityOf(id, 'serf')
+        })
+        const turned = planBoardMotion(await Scenes.discs())
+        expect(turned.tokens).toContainEqual(
+            expect.objectContaining({
+                face: expect.objectContaining({ kind: 'location' }),
+                rests: `disc:${Spaces[0].id}`
+            })
+        )
+    })
+
+    it('R-4.7 a reeve placed, and R-3.7.5 a disc put on a track, fade in where they stand and rest as those discs', async () => {
+        const table = await emptyTable()
+        const [space] = GuildTrackSpaces
+        const [voyage] = EpicVoyageTrack
+        table.host.edit((state) => {
+            const track = state.guilds.tracks[space.guild]
+            delete track.master
+            delete track.journeyman
+            delete track.apprentice
+            delete state.voyageTrack[table.seat]
+        })
+        const { tokens, motions } = planBoardMotion({
+            ...changeFrom(table, (to) => {
+                to.guilds.tracks[space.guild][space.rank] = { playerId: table.seat, reeve: true }
+                to.voyageTrack[table.seat] = voyage.id
+            }),
+            action: anAction(table.seat)
+        })
+        const discs = tokens.filter(({ face }) => face.kind === 'disc')
+        expect(discs.map(({ face, rests, guild }) => ({ face, rests, guild }))).toEqual([
+            {
+                face: expect.objectContaining({ playerId: table.seat, reeve: true }),
+                rests: `reeve:${space.id}`,
+                guild: space.guild
+            },
+            {
+                face: expect.objectContaining({ playerId: table.seat, reeve: false }),
+                rests: `voyage:${table.seat}`,
+                guild: undefined
+            }
+        ])
+        for (const disc of discs) {
+            expect(motions).toContainEqual(
+                expect.objectContaining({ target: { token: disc.id }, reveal: true })
+            )
+        }
     })
 })
 
@@ -820,7 +1070,11 @@ describe('R-3.7.1 pawns and monsters on a Move', () => {
             })
         })
         expect(riding.tokens).toEqual([])
-        expect(riding.motions).toHaveLength(1)
+        // The drawn pawn carries its vessel; a copy an earlier step left riding follows it.
+        expect(riding.motions.map(({ target }) => target)).toEqual([
+            { piece: keyOfRef(piece), part: 'rides', resting: true },
+            { piece: keyOfRef(piece) }
+        ])
         const leaving = planBoardMotion({
             ...scene,
             action: moved(seat, {

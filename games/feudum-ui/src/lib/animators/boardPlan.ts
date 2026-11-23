@@ -62,6 +62,7 @@ import {
     ServiceFanStep,
     ServiceSpaces,
     StackCentres,
+    TrackDiscSize,
     SupplyCorner,
     VoyageFanStep,
     VoyageSpaces,
@@ -104,6 +105,12 @@ export type TokenFace =
           readonly start: boolean
       }
     | { readonly kind: 'seal' }
+    | {
+          readonly kind: 'disc'
+          readonly playerId: string
+          readonly reeve: boolean
+          readonly size: number
+      }
     | { readonly kind: 'die-face'; readonly region: RegionId }
     | { readonly kind: 'tile'; readonly epoch: TileEpoch; readonly landscape: LandscapeKind }
     | { readonly kind: 'chip'; readonly text: string; readonly rose: boolean }
@@ -118,10 +125,28 @@ export interface MotionToken {
     readonly scaleX?: number
     /** Contract, Animation plan: the piece this token stands for once it lands, until the state shows it. */
     readonly rests?: string
+    /** The guild area a later motion of that piece is given in; the token itself is in the board's frame. */
+    readonly guild?: GuildId
 }
 
 export type MotionTarget =
-    { readonly piece: string; readonly part?: 'rides' } | { readonly token: string }
+    | {
+          readonly piece: string
+          readonly part?: 'rides'
+          /** Contract, Animation plan: moves only a copy an earlier step left, never the drawn piece. */
+          readonly resting?: true
+      }
+    | { readonly token: string }
+
+/** Contract, Animation plan: what a pawn's own vessel rests as once an earlier step drew it riding. */
+export function ridesOf(piece: string): string {
+    return `rides:${piece}`
+}
+
+/** R-3.14.2 */
+export function immunityOf(spaceId: SpaceId, role: 'serf' | 'subject'): string {
+    return `immunity:${spaceId}:${role}`
+}
 
 export interface MotionChange {
     readonly path?: readonly Point[]
@@ -186,15 +211,26 @@ class PlanBuilder implements BoardPlan {
     flightsAt = 0
     pilferToken: MotionTarget | undefined
 
-    token(face: TokenFace, place: Point, layer: 'under' | 'over' = 'over', scaleX?: number) {
+    token(
+        face: TokenFace,
+        place: Point,
+        layer: 'under' | 'over' = 'over',
+        {
+            scaleX,
+            rests,
+            guild
+        }: { readonly scaleX?: number; readonly rests?: string; readonly guild?: GuildId } = {}
+    ) {
         const id = `token-${this.tokens.length}`
-        this.tokens.push({ id, face, place, layer, ...(scaleX === undefined ? {} : { scaleX }) })
-        return { token: id }
-    }
-
-    restingToken(face: TokenFace, place: Point, rests: string | undefined) {
-        const id = `token-${this.tokens.length}`
-        this.tokens.push({ id, face, place, layer: 'over', ...(rests ? { rests } : {}) })
+        this.tokens.push({
+            id,
+            face,
+            place,
+            layer,
+            ...(scaleX === undefined ? {} : { scaleX }),
+            ...(rests ? { rests } : {}),
+            ...(guild ? { guild } : {})
+        })
         return { token: id }
     }
 
@@ -369,7 +405,9 @@ function playWays(
                 plan.move('pieces', { piece: key, part: 'rides' }, at, 0, { opacity: 0 })
                 plan.move(
                     'pieces',
-                    plan.token({ kind: 'vessel', vessel: way.left }, slot, 'under'),
+                    plan.token({ kind: 'vessel', vessel: way.left }, slot, 'under', {
+                        rests: `vessel:${way.from}:${way.left}`
+                    }),
                     at,
                     0,
                     {
@@ -381,7 +419,9 @@ function playWays(
         }
         if (way.vessel && !ownVessel.get(key) && !riders.has(key)) {
             const place = { x: path[0].x, y: path[0].y + rideOffset }
-            const rider = plan.token({ kind: 'vessel', vessel: way.vessel }, place, 'under')
+            const rider = plan.token({ kind: 'vessel', vessel: way.vessel }, place, 'under', {
+                rests: ridesOf(key)
+            })
             riders.set(key, rider)
             plan.move('pieces', rider, at, 0, { reveal: true })
             if (way.boards && from.spaces[way.from].vessels[way.vessel] === 1) {
@@ -391,8 +431,13 @@ function playWays(
             }
         }
         const rider = riders.get(key)
+        const ridden = shifted(path, 0, rideOffset)
         if (rider) {
-            plan.move('pieces', rider, at, duration, { path: shifted(path, 0, rideOffset) })
+            plan.move('pieces', rider, at, duration, { path: ridden })
+        } else if (ownVessel.get(key)) {
+            plan.move('pieces', { piece: key, part: 'rides', resting: true }, at, duration, {
+                path: ridden
+            })
         }
         if (way.ferry) {
             const ferry = plan.token({ kind: 'ferry' }, path[0], 'under')
@@ -532,6 +577,47 @@ function slideRanks(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
     return ends
 }
 
+/** R-4.7, R-3.7.5, R-4.9 A player disc placed as a reeve or on a track fades in where it stands. */
+function bringDiscs(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
+    let ends = at
+    const bring = (playerId: string, place: Point, rests: string, guild?: GuildId) => {
+        const reeve = guild !== undefined
+        const size = reeve ? GuildSizes.reeve * GuildScale : TrackDiscSize
+        const token = plan.token({ kind: 'disc', playerId, reeve, size }, place, 'over', {
+            rests,
+            ...(guild ? { guild } : {})
+        })
+        ends = plan.move('markers', token, at, FadeSeconds, { reveal: true })
+    }
+    for (const space of GuildTrackSpaces) {
+        const holder = to.guilds.tracks[space.guild][space.rank]
+        const had = (playerId: string) =>
+            GuildTrackSpaces.some(({ guild, rank }) => {
+                const was = from.guilds.tracks[guild][rank]
+                return guild === space.guild && was?.reeve && was.playerId === playerId
+            })
+        if (holder?.reeve && !had(holder.playerId)) {
+            const slot = guildSlot(space.id)
+            const offset = reeveOffset(space.guild)
+            const place = guildPoint(space.guild, { x: slot.x + offset.x, y: slot.y + offset.y })
+            bring(holder.playerId, place, `reeve:${space.id}`, space.guild)
+        }
+    }
+    const tracks = [
+        { of: voyageDiscs, table: VoyageSpaces, step: VoyageFanStep },
+        { of: serviceDiscs, table: ServiceSpaces, step: ServiceFanStep }
+    ]
+    for (const { of, table, step } of tracks) {
+        const before = of(from)
+        for (const disc of of(to)) {
+            if (!before.some(({ key }) => key === disc.key)) {
+                bring(disc.playerId, trackDiscPlace(table, disc, step), disc.key)
+            }
+        }
+    }
+    return ends
+}
+
 /** R-4.8 */
 function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
@@ -549,7 +635,9 @@ function fillKnightRows(plan: PlanBuilder, { from, to }: BoardChange, at: number
                             : { colour: dummyRowColour(to, rowId) },
                     size: GuildSizes.marker * GuildScale
                 },
-                label
+                label,
+                'over',
+                { rests: knightMarkerPiece(rowId, column), guild: 'knight' }
             )
             ends = plan.move('markers', token, at + (column - was - 1) * GoodGap, SlideSeconds, {
                 path: [label, guildPoint('knight', knightCell(lane, column))],
@@ -587,20 +675,20 @@ function markMonsterIcons(plan: PlanBuilder, { from, to }: BoardChange, at: numb
 /** R-3.14.2 A crowned seal slides in under the marker it guards. */
 function slideSeals(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
-    const slide = (place: Point) => {
+    const slide = (place: Point, rests: string) => {
         const under = { x: place.x, y: place.y + MarkerSize / 2 }
         const start = { x: under.x, y: under.y + SealDrop }
-        const token = plan.token({ kind: 'seal' }, start, 'under')
+        const token = plan.token({ kind: 'seal' }, start, 'under', { rests })
         ends = plan.move('markers', token, at, SlideSeconds, { path: [start, under], reveal: true })
     }
     for (const { id } of Spaces) {
         const before = from.spaces[id]
         const after = to.spaces[id]
         if (after.serf?.immune && !before.serf?.immune) {
-            slide(spaceGeometry(id).serf)
+            slide(spaceGeometry(id).serf, immunityOf(id, 'serf'))
         }
         if (after.ruler?.subjectImmune && !before.ruler?.subjectImmune) {
-            slide(spaceGeometry(id).subject)
+            slide(spaceGeometry(id).subject, immunityOf(id, 'subject'))
         }
     }
     return ends
@@ -657,7 +745,7 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
             },
             spaceGeometry(id).centre,
             'under',
-            0
+            { scaleX: 0, rests: `disc:${id}` }
         )
         ends = plan.move('discs', face, at + FlipSeconds, FlipSeconds, { scaleX: 1, reveal: true })
     }
@@ -667,6 +755,8 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
 export interface GoodPlace {
     readonly point: Point
     readonly key?: string
+    /** R-1.1 The drawn piece is this one good, not a count of several. */
+    readonly single?: boolean
 }
 
 function spaceGoodPlace(
@@ -681,7 +771,8 @@ function spaceGoodPlace(
     }
     return {
         point: plateSlot(spaceGeometry(spaceId).plate, slot),
-        ...(kinds[slot].count === 1 ? { key: `good:${spaceId}:${good}` } : {})
+        key: `good:${spaceId}:${good}`,
+        single: kinds[slot].count === 1
     }
 }
 
@@ -690,7 +781,9 @@ function barnGoodPlace(state: HydratedFeudumGameState, good: Good): GoodPlace {
     const top = Math.max(0, (stack?.tokens ?? 1) - 1)
     return {
         point: guildPoint('farmer', barnTokenAt(good, top)),
-        ...(stack && !stack.count ? { key: `good:${FarmerBarn.id}:${good}:${top}` } : {})
+        ...(stack && !stack.count
+            ? { key: `good:${FarmerBarn.id}:${good}:${top}`, single: true }
+            : {})
     }
 }
 
@@ -721,7 +814,8 @@ const GoodHolders: readonly GoodHolder[] = [
             space.good === good && state.guilds.merchant.market[space.id] ? 1 : 0,
         place: () => ({
             point: guildPoint('merchant', guildSlot(space.id)),
-            key: `good:${space.id}`
+            key: `good:${space.id}`,
+            single: true
         }),
         guild: 'merchant'
     })),
@@ -730,7 +824,8 @@ const GoodHolders: readonly GoodHolder[] = [
             space.good === good && state.guilds.alchemist.carts[space.id] ? 1 : 0,
         place: () => ({
             point: guildPoint('alchemist', guildSlot(space.id)),
-            key: `good:${space.id}`
+            key: `good:${space.id}`,
+            single: true
         }),
         guild: 'alchemist'
     })),
@@ -834,9 +929,14 @@ function flyGoods(
     for (const { good, from: source, to: landing } of goodCrossings(change, pilfered, apart)
         .pairs) {
         if (source.key) {
-            plan.move('goods', { piece: source.key }, launch, 0, { opacity: 0 })
+            const piece: MotionTarget = source.single
+                ? { piece: source.key }
+                : { piece: source.key, resting: true }
+            plan.move('goods', piece, launch, 0, { opacity: 0 })
         }
-        const token = plan.restingToken({ kind: 'good', good, size: 24 }, source.point, landing.key)
+        const token = plan.token({ kind: 'good', good, size: 24 }, source.point, 'over', {
+            rests: landing.key
+        })
         ends = plan.move('goods', token, launch, GoodFlight, {
             path: arc(source.point, landing.point),
             reveal: true
@@ -1045,7 +1145,9 @@ function playCombat(plan: PlanBuilder, combat: CombatFigures, at: number): numbe
 /** R-3.14.1 The Defend the seat just turned up, beside it on the space under attack. */
 function flipDefend(plan: PlanBuilder, spaceId: SpaceId, defenderId: string, at: number): number {
     const { x, y } = spaceGeometry(spaceId).centre
-    const card = plan.token({ kind: 'defend', playerId: defenderId }, { x: x + 44, y }, 'over', 0)
+    const card = plan.token({ kind: 'defend', playerId: defenderId }, { x: x + 44, y }, 'over', {
+        scaleX: 0
+    })
     return plan.move('combat', card, at, FlipSeconds * 2, { reveal: true, scaleX: 1 })
 }
 
@@ -1090,6 +1192,7 @@ function playStateRows(
         slideRoles(plan, change, at),
         slideRanks(plan, change, at),
         slideTrackDiscs(plan, change, at),
+        bringDiscs(plan, change, at),
         flipLocations(plan, change, at),
         slideSeals(plan, change, at),
         fillKnightRows(plan, change, at),
