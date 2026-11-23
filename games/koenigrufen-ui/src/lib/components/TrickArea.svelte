@@ -1,7 +1,10 @@
 <script lang="ts">
-    import type { TrickPlay } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { ShownTrick } from '$lib/utils/trickMotion.js'
     import Card from './Card.svelte'
+
+    // On a phone the caption sits on a pill over the foot of my card, clear of my seat below.
+    let { captionInside = false }: { captionInside?: boolean } = $props()
 
     const gameSession = getGameSession()
     const animator = gameSession.trickAnimator
@@ -11,25 +14,31 @@
     // The side places lean in; the trick animator turns a card into its lean as it lands.
     const Tilt = { bottom: 0, right: 8, top: 0, left: -8 } as const
 
-    function placed(plays: TrickPlay[]) {
-        return plays.map((play, order) => {
-            const place = Places[Math.max(gameSession.seatsFromMe.indexOf(play.playerId), 0)]
-            return { ...play, order, place, tilt: Tilt[place] }
-        })
+    // The won trick still on the table lies under the cards led to the next.
+    function placed({ plays, won }: ShownTrick) {
+        const wonPlays = (won?.plays ?? []).map((play) => ({
+            ...play,
+            winning: play.playerId === won?.winnerId
+        }))
+        return [...wonPlays, ...plays.map((play) => ({ ...play, winning: false }))].map(
+            (play, order) => {
+                const place = Places[Math.max(gameSession.seatsFromMe.indexOf(play.playerId), 0)]
+                return { ...play, order, place, tilt: Tilt[place] }
+            }
+        )
     }
 
-    const plays = $derived(placed(gameSession.shownTrick.plays))
-    const winnerId = $derived(gameSession.shownTrick.winnerId)
+    const plays = $derived(placed(gameSession.shownTrick))
+    const winnerId = $derived(gameSession.shownTrick.won?.winnerId)
 </script>
 
 <div class="trick">
     {#each plays as play (play.cardId)}
-        {@const winning = play.playerId === winnerId}
         <div class="place {play.place}" style:z-index={play.order}>
             <div class="fly" data-tilt={play.tilt} {@attach animator.trickCard(play.cardId)}>
                 <div class="tilt" style:rotate="{play.tilt}deg">
                     <Card cardId={play.cardId} style={gameSession.cardStyle} />
-                    {#if winning}
+                    {#if play.winning}
                         <div class="ring" {@attach animator.winnerMark('ring')}></div>
                     {/if}
                 </div>
@@ -37,7 +46,7 @@
         </div>
     {/each}
     {#if winnerId}
-        <div class="caption" {@attach animator.winnerMark('caption')}>
+        <div class="caption" class:inside={captionInside} {@attach animator.winnerMark('caption')}>
             {gameSession.getPlayerName(winnerId)} won the trick
         </div>
     {/if}
@@ -98,5 +107,12 @@
         font-size: 0.85rem;
         color: #f1e7cf;
         text-shadow: 0 1px 0 rgb(0 0 0 / 0.7);
+    }
+
+    .caption.inside {
+        bottom: 12px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: rgb(16 30 21 / 0.85);
     }
 </style>

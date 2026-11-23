@@ -56,7 +56,7 @@
     <div class="seat right">
         <Seat playerId={seats[3]} openRows={narrow.current ? 2 : 1} />
     </div>
-    <div class="center"><TrickArea /></div>
+    <div class="center"><TrickArea captionInside={narrow.current} /></div>
     <div class="middle-talon"><Talon place={TalonPlace.Middle} /></div>
     {#if gameSession.showsHandSummary && gameSession.lastHandResult && closedAfterHand !== handsPlayed}
         <div class="hand-summary">

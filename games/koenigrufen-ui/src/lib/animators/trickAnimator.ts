@@ -4,10 +4,9 @@ import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
 import type { GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import type { HydratedKoenigrufenGameState } from '@tabletop/koenigrufen'
+import { isDealHand, type HydratedKoenigrufenGameState } from '@tabletop/koenigrufen'
 import {
     directTrickStep,
-    shownTrickOf,
     trickMotion,
     type ShownTrick,
     type TrickMove,
@@ -19,11 +18,14 @@ import { layoutWidthOf, type CardFlights, type Flight } from './flights.js'
 const ACTION = {
     // A played card's flight from the hand to its place in the trick.
     flight: 0.42,
-    // A won trick stays this long once its last card lands, its winning card ringed.
-    hold: 1,
-    // Then it slides to its winner's pile, each card a little after the last.
+    // A won trick stays on the table, its winning card ringed, until a card is led to the next.
+    // Then it slides to its winner's pile, each card a little after the last, and the led card
+    // follows it onto the table.
     sweep: 0.5,
     sweepStagger: 0.04,
+    leadAfter: 0.15,
+    // The hand's last trick has no lead to wait for: it stays this long before the deal takes it.
+    lastHold: 1.5,
     markIn: 0.15,
     landFade: 0.08
 }
@@ -42,9 +44,9 @@ type TrickPresenter = {
 }
 
 // Cards fly from where they were held to their place in the trick. The card that completes a trick
-// lands, the winning card is ringed and the winner named for a moment, then the trick slides to its
-// winner's pile. Motion is written straight to each trick card's `fly` wrapper, which holds no other
-// transform.
+// lands, and the winning card is ringed and the winner named. The trick stays there until a card is
+// led to the next, so everyone can see it; then it slides to its winner's pile. Motion is written
+// straight to each trick card's `fly` wrapper, which holds no other transform.
 export class TrickAnimator {
     private trickCards = new Map<string, HTMLElement>()
     // The winning card's ring and the caption naming the winner.
@@ -82,17 +84,17 @@ export class TrickAnimator {
             await this.step(from, to, animationContext)
             return
         }
-        const { arriving, won } = trickMotion(from, to)
-        if (arriving.length === 0 && won === undefined) {
+        const { arriving, completed, taken, shown } = trickMotion(from, to)
+        if (arriving.length === 0 && completed === undefined && taken === undefined) {
             return
         }
-        this.presenter.present(won ?? shownTrickOf(to))
+        this.presenter.present(shown)
         await tick()
 
         const timeline = animationContext.actionTimeline
         // The won trick is measured in its places before the last card's flight starts it back
         // in the hand.
-        if (won) {
+        if (completed) {
             const landed = arriving.length > 0 ? ACTION.flight : 0
             for (const mark of this.marks.values()) {
                 timeline.fromTo(
@@ -102,23 +104,32 @@ export class TrickAnimator {
                     landed
                 )
             }
-            this.sweep(won, timeline, landed + ACTION.hold)
         }
+        // A new deal takes the last hand's trick, once it has been seen.
+        const takenAt = isDealHand(action) ? ACTION.lastHold : 0
+        if (taken) {
+            this.sweep(taken, timeline, takenAt, ACTION.sweep, ACTION.sweepStagger)
+        }
+        const flyAt = taken ? takenAt + ACTION.leadAfter : 0
         for (const play of arriving) {
-            this.fly({ play }, timeline, 0, ACTION.flight)
+            this.fly({ play }, timeline, flyAt, ACTION.flight)
         }
     }
 
-    // Without an action's story, every card goes straight to its new place at once: into the
-    // trick from a hand, or from the pile of a won trick taken back, and back to a hand from the
-    // trick or that pile. A trick the step wins simply goes.
+    // Without an action's story, every card goes straight to its new place at once: onto the
+    // table from a hand, or from the pile of a won trick taken back; back to a hand from the table
+    // or that pile; and a won trick the step takes, to its winner's pile. A step to another hand
+    // simply shows it.
     private async step(
         from: HydratedKoenigrufenGameState,
         to: HydratedKoenigrufenGameState,
         animationContext: AnimationContext
     ) {
-        const { arriving, leaving } = directTrickStep(from, to)
-        if (arriving.length === 0 && leaving.length === 0) {
+        if (from.dealNumber() !== to.dealNumber()) {
+            return
+        }
+        const { arriving, leaving, taken, shown: onTable } = directTrickStep(from, to)
+        if (arriving.length === 0 && leaving.length === 0 && taken === undefined) {
             return
         }
         // Cards going back to a hand are measured where they are, then drawn over the table, before
@@ -127,12 +138,15 @@ export class TrickAnimator {
             leaving.flatMap((move) => this.homeward(move)),
             animationContext
         )
-        this.presenter.present(shownTrickOf(to))
+        this.presenter.present(onTable)
         await tick()
 
         const timeline = animationContext.actionTimeline
         if (shown) {
             this.flights.start(shown, timeline)
+        }
+        if (taken) {
+            this.sweep(taken, timeline, 0, FAST_FLIGHT, 0)
         }
         for (const move of arriving) {
             this.fly(move, timeline, 0, FAST_FLIGHT)
@@ -230,7 +244,13 @@ export class TrickAnimator {
         )
     }
 
-    private sweep(trick: WonTrick, timeline: gsap.core.Timeline, at: number) {
+    private sweep(
+        trick: WonTrick,
+        timeline: gsap.core.Timeline,
+        at: number,
+        duration: number,
+        stagger: number
+    ) {
         const pile = this.places.trickPileOf(trick.winnerId) ?? this.places.seatOf(trick.winnerId)
         if (!pile) {
             return
@@ -238,7 +258,7 @@ export class TrickAnimator {
         const to = centerOf(pile)
         const caption = this.marks.get('caption')
         if (caption) {
-            timeline.to(caption, { opacity: 0, duration: ACTION.markIn }, at)
+            timeline.to(caption, { opacity: 0, duration: Math.min(ACTION.markIn, duration) }, at)
         }
         trick.plays.forEach((play, index) => {
             const card = this.trickCards.get(play.cardId)
@@ -247,14 +267,14 @@ export class TrickAnimator {
             }
             const from = centerOf(card)
             const scale = scaleOf(card)
-            const start = at + index * ACTION.sweepStagger
+            const start = at + index * stagger
             timeline.to(
                 card,
                 {
                     x: (to.x - from.x) / scale,
                     y: (to.y - from.y) / scale,
                     scale: this.pileCardWidth(trick.winnerId, scale) / from.width,
-                    duration: ACTION.sweep,
+                    duration,
                     ease: 'power2.inOut'
                 },
                 start
@@ -263,7 +283,7 @@ export class TrickAnimator {
             timeline.to(
                 card,
                 { opacity: 0, duration: ACTION.landFade },
-                start + ACTION.sweep - ACTION.landFade
+                start + duration - ACTION.landFade
             )
         })
     }

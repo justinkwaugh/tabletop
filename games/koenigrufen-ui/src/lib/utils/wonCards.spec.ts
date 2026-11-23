@@ -11,10 +11,14 @@ function trickWonBy(winnerId: string) {
     }
 }
 
+// A card led to the next trick, so every trick won has gone to its winner's pile.
+const led = { leaderId: 'a', plays: [{ playerId: 'a', cardId: 'led' }] }
+
 // Declarer is c, so d gathers the defenders' cards.
 function table({
     contract = Contract.Rufer,
     machineState = MachineState.Playing,
+    trick = led,
     tricks = [],
     discardCount = 0,
     shownDiscards = [],
@@ -23,6 +27,7 @@ function table({
 }: {
     contract?: Contract
     machineState?: MachineState
+    trick?: WonCardsTable['trick']
     tricks?: WonCardsTable['tricks']
     discardCount?: number
     shownDiscards?: string[]
@@ -37,6 +42,7 @@ function table({
         turnManager: { turnOrder: order },
         contractDefinition: () => contractDefinition(contract),
         isCalledKingInTalon: () => kingInTalon,
+        trick,
         tricks,
         getPlayerState: (playerId) =>
             playerId === 'c'
@@ -108,5 +114,13 @@ describe('cards won', () => {
             tricks: [{ ...trickWonBy('a'), talonCardId: 't1' }, trickWonBy('a')]
         })
         expect(wonCardCount(won, 'a')).toBe(9)
+    })
+
+    it('leaves out the last trick while it is still on the table, but not its talon card', () => {
+        const tricks = [trickWonBy('a'), { ...trickWonBy('a'), talonCardId: 't1' }]
+        const onTable = { leaderId: 'a', plays: [] }
+        expect(wonCardCount(table({ trick: onTable, tricks }), 'a')).toBe(5)
+        // The hand is over: no trick in play.
+        expect(wonCardCount({ ...table({ tricks }), trick: undefined }, 'a')).toBe(5)
     })
 })
