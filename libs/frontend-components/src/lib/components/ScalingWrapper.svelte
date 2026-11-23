@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
-    import type { RectangleDimensions } from '@tabletop/common'
+    import type { Point, RectangleDimensions } from '@tabletop/common'
     import { wheelDeltaUnit } from '../utils/wheelDelta.js'
     import {
         scrollAncestorsWithFinger,
@@ -8,6 +8,8 @@
         type ScrollAxis
     } from '../utils/scrollChain.js'
     import { fling, fingerVelocity, type Fling } from '../utils/touchFling.js'
+    import { DoubleTapDetector, isInteractiveTarget } from '../utils/doubleTap.js'
+    import { pointDistance } from '../utils/pointDistance.js'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
@@ -51,11 +53,6 @@
         paddingY: number
         animate: boolean
         align: FocusAlign
-    }
-
-    type Point = {
-        x: number
-        y: number
     }
 
     type PlacedView = {
@@ -186,6 +183,7 @@
     // Reversing a drag that has scrolled the page keeps scrolling the page.
     let handedOffAxes: Record<ScrollAxis, boolean> = { x: false, y: false }
     let gestureStartScale: number | null = null
+    const doubleTap = new DoubleTapDetector()
     let mouseStartPoint: Point | null = null
     let mouseLastPoint: Point | null = null
     let mouseDragging = $state(false)
@@ -213,7 +211,7 @@
         }
         if (
             !mouseDragging &&
-            Math.hypot(event.clientX - mouseStartPoint.x, event.clientY - mouseStartPoint.y) < 5
+            pointDistance({ x: event.clientX, y: event.clientY }, mouseStartPoint) < 5
         )
             return
         mouseDragging = true
@@ -1081,7 +1079,10 @@
     function getTouchDistance(touches: TouchList) {
         const first = touches[0]
         const second = touches[1]
-        return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+        return pointDistance(
+            { x: first.clientX, y: first.clientY },
+            { x: second.clientX, y: second.clientY }
+        )
     }
 
     function getTouchMidpoint(touches: TouchList) {
@@ -1141,6 +1142,9 @@
     }
 
     function handleTouchStart(event: TouchEvent) {
+        const stopsFling = !!panFling?.running || scrollFling?.stoppedBy === event
+        if (event.touches.length !== 1) doubleTap.reset()
+
         if (event.touches.length === 2) {
             cancelViewAnimation()
             cancelPinchAnimation()
@@ -1177,6 +1181,9 @@
             scrollVelocityX = 0
             scrollVelocityY = 0
             handedOffAxes = { x: false, y: false }
+            if (expandable && !stopsFling && !isInteractiveTarget(event.target, scroller))
+                doubleTap.begin(panLastClientPoint, event.timeStamp)
+            else doubleTap.reset()
         }
     }
 
@@ -1196,6 +1203,7 @@
         event.preventDefault()
         const touch = event.touches[0]
         const nextPoint = { x: touch.clientX, y: touch.clientY }
+        doubleTap.move(nextPoint)
         const deltaX = nextPoint.x - panLastClientPoint.x
         const deltaY = nextPoint.y - panLastClientPoint.y
         const deltaMs =
@@ -1282,9 +1290,14 @@
         startScrollInertia(stillMs)
         panLastClientPoint = null
         panLastTimestamp = null
+        if (doubleTap.endCompletesDoubleTap(event.timeStamp)) {
+            event.preventDefault()
+            toggleExpanded()
+        }
     }
 
     function handleTouchCancel() {
+        doubleTap.reset()
         clearPinchState()
         panLastClientPoint = null
         panLastTimestamp = null

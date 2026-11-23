@@ -11,6 +11,8 @@ const STILL_BEFORE_LIFT_MS = 100
 export type Fling = {
     stop(): void
     readonly running: boolean
+    /** The touch or wheel on `stopOn` that stopped the fling, if one did. */
+    readonly stoppedBy: Event | undefined
 }
 
 /** Speed in px/ms, blending a finger's latest move with its speed so far. */
@@ -19,14 +21,15 @@ export function fingerVelocity(previous: number, delta: number, elapsedMs: numbe
     return previous * 0.35 + sample * 0.65
 }
 
-type FlingStop = { stopOn: Node | Window; stop: () => void }
+type FlingStop = { stopOn: Node | Window; stopBy: (event: Event) => void }
 
 const stoppableFlings = new Set<FlingStop>()
 
 function stopFlingsUnder(event: Event) {
     const target = event.target
-    for (const { stopOn, stop } of stoppableFlings)
-        if (!(stopOn instanceof Node) || (target instanceof Node && stopOn.contains(target))) stop()
+    for (const { stopOn, stopBy } of stoppableFlings)
+        if (!(stopOn instanceof Node) || (target instanceof Node && stopOn.contains(target)))
+            stopBy(event)
 }
 
 // Added once, as the page loads: WebKit restyles the whole page whenever a touch or wheel listener
@@ -54,7 +57,12 @@ export function fling(
     let current = velocity
     let frame: number | undefined
     let lastTimestamp: number | undefined
-    const stoppable: FlingStop | undefined = stopOn ? { stopOn, stop } : undefined
+    let stoppedBy: Event | undefined
+    const stoppable: FlingStop | undefined = stopOn ? { stopOn, stopBy } : undefined
+    function stopBy(event: Event) {
+        stoppedBy = event
+        stop()
+    }
     function stop() {
         if (frame !== undefined) cancelAnimationFrame(frame)
         frame = undefined
@@ -82,6 +90,9 @@ export function fling(
         stop,
         get running() {
             return frame !== undefined
+        },
+        get stoppedBy() {
+            return stoppedBy
         }
     }
 }
