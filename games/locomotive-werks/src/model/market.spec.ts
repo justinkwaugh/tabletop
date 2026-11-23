@@ -135,6 +135,30 @@ describe('Market Demands', () => {
         expect(newest.existingOrders).toEqual([1, 3])
     })
 
+    it('retires every generation older than the newest two', () => {
+        const first = space(LocomotiveId.Passenger1, [2], [5])
+        const second = space(LocomotiveId.Passenger2, [4, 3], [1])
+        const third = space(LocomotiveId.Passenger3, [4])
+        const fourth = space(LocomotiveId.Passenger4, [1])
+        const steps = adjustDemand(
+            LocomotiveKind.Passenger,
+            board([first, second, third, fourth]),
+            pool([6, 6, 6, 3])
+        )
+        expect(steps.map((step) => [step.locomotiveId, step.change])).toEqual([
+            [LocomotiveId.Passenger1, DemandChange.Obsolete],
+            [LocomotiveId.Passenger2, DemandChange.Obsolete],
+            [LocomotiveId.Passenger3, DemandChange.Filled],
+            [LocomotiveId.Passenger4, DemandChange.Grown]
+        ])
+        for (const retired of [first, second]) {
+            expect(retired.existingOrders).toEqual([])
+            expect(retired.customerBase).toEqual([])
+        }
+        expect(third.existingOrders).toEqual([4, 6, 6, 6])
+        expect(fourth.existingOrders).toEqual([1, 3])
+    })
+
     it('adds only the dice left in the pool', () => {
         const passenger = space(LocomotiveId.Passenger2, [4])
         adjustDemand(LocomotiveKind.Passenger, board([passenger]), pool([2], 0))

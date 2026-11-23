@@ -18,8 +18,10 @@ import {
 
 const SLIDE = 0.32
 const FLIP = 0.14
-// Undo and history steps without their action stay within the 200ms fallback budget.
+// Undo and history steps without their action stay within the 200ms fallback budget. Stepping
+// forward slides for QUICK_SLIDE, and a reduced die finishes its flip half as long again after.
 const QUICK = 0.18
+const QUICK_SLIDE = 0.12
 
 export function orderDieId(locomotiveId: string, slot: number): string {
     return `lw-order-${locomotiveId}-${slot}`
@@ -60,6 +62,14 @@ function firstDifference(space: LocomotiveSpace, next: LocomotiveSpace): number 
     return space.existingOrders.findIndex((face, index) => face !== next.existingOrders[index])
 }
 
+export type ShipmentDiceHost = Pick<
+    LwGameSession,
+    'gameState' | 'showBoardStep' | 'addGameStateChangeListener' | 'removeGameStateChangeListener'
+>
+
+// The board SVG, where each order die is found by its id.
+export type DiceBoard = { querySelector(selectors: string): object | null }
+
 // Shows what each shipment did to its order die: a reduced die flips to its new face, and a filled
 // or exceeded die slides into the Customer Base. Undo and history steps without their action make
 // the same motion quickly, in reverse when stepping back.
@@ -67,8 +77,8 @@ export class ShipmentDiceAnimator {
     private readonly listener = (change: Change) => this.onGameStateChange(change)
 
     constructor(
-        private readonly session: LwGameSession,
-        private readonly board: SVGElement
+        private readonly session: ShipmentDiceHost,
+        private readonly board: DiceBoard
     ) {}
 
     register() {
@@ -92,7 +102,7 @@ export class ShipmentDiceAnimator {
         if (to.actionCount < from.actionCount) {
             await this.unship(to, saleMarks(to, from), animationContext)
         } else {
-            await this.slide(from, to, saleMarks(from, to), QUICK, animationContext)
+            await this.slide(from, to, saleMarks(from, to), QUICK_SLIDE, animationContext)
         }
     }
 
@@ -181,7 +191,7 @@ export class ShipmentDiceAnimator {
         }
     }
 
-    private die(mark: SaleMark): Element | null {
+    private die(mark: SaleMark): object | null {
         return this.board.querySelector(`#${orderDieId(mark.locomotiveId, mark.slot)}`)
     }
 

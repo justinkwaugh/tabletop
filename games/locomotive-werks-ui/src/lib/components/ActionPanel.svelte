@@ -55,7 +55,11 @@
         </p>
         <CapacityTable />
         <label class="auto-ship">
-            <input type="checkbox" bind:checked={gameSession.autoShip} />
+            <input
+                type="checkbox"
+                checked={gameSession.autoShip}
+                onchange={(event) => gameSession.setAutoShip(event.currentTarget.checked)}
+            />
             Ship everything automatically this round
         </label>
         <div class="row">

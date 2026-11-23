@@ -5,9 +5,11 @@ import {
     CapacityStageOrder,
     ShipStageOrder,
     addCapacityStep,
+    capacityPlan,
     keepsWerksOpen,
     mergeCapacitySteps,
     plannedUnits,
+    setAutoShip,
     toggleHeld
 } from './selection.js'
 
@@ -34,7 +36,18 @@ describe('planning capacity', () => {
             { locomotiveId: LocomotiveId.Fast1, from: LocomotiveId.Passenger1 }
         )
         const once = popHighestManualStagedSelection(twice, CapacityStageOrder).nextState
-        expect(once.steps?.value).toEqual([{ locomotiveId: LocomotiveId.Passenger1 }])
+        expect(capacityPlan(once).steps).toEqual([{ locomotiveId: LocomotiveId.Passenger1 }])
+    })
+
+    it('takes back the automatic shipping tick in turn with the planned steps', () => {
+        const step = { locomotiveId: LocomotiveId.Passenger1 }
+        const ticked = addCapacityStep(setAutoShip(addCapacityStep({}, step), true), step)
+        expect(capacityPlan(ticked)).toEqual({ steps: [step, step], autoShip: true })
+
+        const lastStep = popHighestManualStagedSelection(ticked, CapacityStageOrder).nextState
+        expect(capacityPlan(lastStep)).toEqual({ steps: [step], autoShip: true })
+        const tick = popHighestManualStagedSelection(lastStep, CapacityStageOrder).nextState
+        expect(capacityPlan(tick)).toEqual({ steps: [step], autoShip: false })
     })
 
     it('merges runs of the same step into one purchase', () => {

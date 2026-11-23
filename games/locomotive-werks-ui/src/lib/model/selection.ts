@@ -5,23 +5,42 @@ import type { CapacityPurchase, LocomotiveId, Plant } from '@tabletop/locomotive
 // buying submits them. A step without `from` adds a unit; one with `from` moves a unit up.
 export type CapacityStep = { locomotiveId: LocomotiveId; from?: LocomotiveId }
 
+// The steps and the automatic shipping tick share one stage, so Undo takes back presses of
+// either in the order they were made.
+export type CapacityPlan = { steps: CapacityStep[]; autoShip: boolean }
+
 export type CapacitySelectionValues = {
-    steps: CapacityStep[]
+    plan: CapacityPlan
 }
 
 export type CapacitySelection = StagedSelectionState<CapacitySelectionValues>
 
 export const CapacityStageOrder = [
-    'steps'
+    'plan'
 ] as const satisfies readonly (keyof CapacitySelectionValues)[]
 
-export function addCapacityStep(selection: CapacitySelection, step: CapacityStep) {
-    return pushStagedSelectionValue<CapacitySelectionValues, 'steps'>(
+const EMPTY_PLAN: CapacityPlan = { steps: [], autoShip: false }
+
+export function capacityPlan(selection: CapacitySelection): CapacityPlan {
+    return selection.plan?.value ?? EMPTY_PLAN
+}
+
+function pushPlan(selection: CapacitySelection, plan: CapacityPlan) {
+    return pushStagedSelectionValue<CapacitySelectionValues, 'plan'>(
         selection,
         CapacityStageOrder,
-        'steps',
-        [...(selection.steps?.value ?? []), step]
+        'plan',
+        plan
     )
+}
+
+export function addCapacityStep(selection: CapacitySelection, step: CapacityStep) {
+    const plan = capacityPlan(selection)
+    return pushPlan(selection, { ...plan, steps: [...plan.steps, step] })
+}
+
+export function setAutoShip(selection: CapacitySelection, autoShip: boolean) {
+    return pushPlan(selection, { ...capacityPlan(selection), autoShip })
 }
 
 // Each werk's units once the planned steps are made.

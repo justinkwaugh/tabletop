@@ -17,6 +17,7 @@ import { LwRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { PhaseName } from '../stateHandlers/flow.js'
 import { StartingCash } from './gameConfig.js'
+import { diceOnSpace } from '../model/market.js'
 
 const engine = new GameEngine(LwRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
@@ -184,6 +185,22 @@ describe('Locomotive Development', () => {
         })
     })
 
+    it('rolls no Initial Orders die for the next locomotive once the pool is empty', () => {
+        let table = edit(start(3), (state) => {
+            const onBoard = state.spaces.reduce((sum, space) => sum + diceOnSpace(space), 0)
+            const passenger = state.space(LocomotiveId.Passenger1)
+            passenger.customerBase.push(...Array.from({ length: 20 - onBoard }, () => 1))
+        })
+        table = run(table, { type: ActionType.Develop, locomotiveId: LocomotiveId.Fast1 })
+        const state = hydrate(table)
+        expect(state.space(LocomotiveId.Fast1).existingOrders).toHaveLength(1)
+        expect(state.space(LocomotiveId.Freight1).initialOrder).toBeUndefined()
+        const develop = table.actions.find(isDevelop)
+        expect(develop?.metadata?.nextLocomotiveId).toBeUndefined()
+        expect(develop?.metadata?.nextRoll).toBeUndefined()
+        expect(develop?.revealsInfo).toBeFalsy()
+    })
+
     it('passes over players who cannot afford any development', () => {
         let table = edit(start(3), (state) => {
             state.getPlayerState('p1').cash = 7
@@ -235,6 +252,33 @@ describe('Production Capacity', () => {
                 .developOptions(playerId)
                 .map((option) => option.locomotive.id)
         ).not.toContain(LocomotiveId.Passenger4)
+    })
+
+    it('upgrades only to a locomotive the player owns', () => {
+        const table = edit(passUntil(start(3), MachineState.ExpandingCapacity), (state) => {
+            state.getPlayerState(state.activePlayerIds[0]).cash = 50
+        })
+        const playerId = table.state.activePlayerIds[0]
+        const state = hydrate(table)
+        expect(state.canShift(playerId, LocomotiveId.Passenger1, LocomotiveId.Passenger2, 1)).toBe(
+            false
+        )
+        state.getPlayerState(playerId).addPlant(LocomotiveId.Passenger2, 0)
+        expect(state.canShift(playerId, LocomotiveId.Passenger1, LocomotiveId.Passenger2, 1)).toBe(
+            true
+        )
+    })
+
+    it('passes over a player with nothing they can afford', () => {
+        let table = passUntil(start(3), MachineState.ExpandingCapacity)
+        const [first, second, third] = hydrate(table).turnManager.turnOrder
+        expect(table.state.activePlayerIds).toEqual([first])
+        table = edit(table, (state) => {
+            state.getPlayerState(second).cash = 0
+        })
+        table = run(table, { type: ActionType.ExpandCapacity, purchases: [] })
+        expect(table.state.machineState).toBe(MachineState.ExpandingCapacity)
+        expect(table.state.activePlayerIds).toEqual([third])
     })
 
     it('takes the whole plan in one action and ends the turn', () => {

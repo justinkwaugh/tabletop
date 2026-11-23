@@ -51,7 +51,7 @@ The three intents belong to three machine states, so at most one is active. Hist
 - **Meaning:** whether Done buying asks for this Production phase's selling turns to be taken automatically.
 - **Producer:** the checkbox under the capacity table.
 - **Consumers:** Done buying.
-- **Lifetime:** a writable derived of the Game State shown while the player acts in Production Capacity, so every newly shown state starts it unticked. Undo of a planned press leaves it as it is.
+- **Lifetime:** part of the capacity plan's staged selection, so each tick or untick is one press that Undo takes back in turn with the planned steps. Done buying submits it, and the new Game State clears it.
 - **Validity:** applies only while the player is acting in Production Capacity.
 
 ### Round review

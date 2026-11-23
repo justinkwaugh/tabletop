@@ -32,7 +32,9 @@ import {
     addCapacityStep,
     keepsWerksOpen,
     mergeCapacitySteps,
+    capacityPlan,
     plannedUnits,
+    setAutoShip,
     toggleHeld,
     type CapacitySelection,
     type CapacityStep,
@@ -226,9 +228,9 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
     )
 
     // The purchases planned so far this turn. Nothing is bought until Done buying.
-    capacitySteps: CapacityStep[] = $derived(
-        this.expanding ? (this.capacitySelection.steps?.value ?? []) : []
-    )
+    private plan = $derived(this.expanding ? capacityPlan(this.capacitySelection) : undefined)
+
+    capacitySteps: CapacityStep[] = $derived(this.plan?.steps ?? [])
 
     private stepCost(step: CapacityStep): number {
         return step.from
@@ -270,10 +272,14 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
         }
     }
 
-    private capacityTurnState = $derived(this.expanding ? this.gameState : undefined)
+    // Ticked beside Done buying and sent with it; Undo takes the tick back like a planned step.
+    autoShip: boolean = $derived(this.plan?.autoShip ?? false)
 
-    // Ticked beside Done buying and sent with it; every newly shown state starts it unticked.
-    autoShip: boolean = $derived(resetWith(this.capacityTurnState, false))
+    setAutoShip(autoShip: boolean) {
+        if (this.expanding && autoShip !== this.autoShip) {
+            this.capacitySelection = setAutoShip(this.capacitySelection, autoShip)
+        }
+    }
 
     // Submits the whole plan, in the order it was made, as the turn's one action.
     async finishExpanding() {
