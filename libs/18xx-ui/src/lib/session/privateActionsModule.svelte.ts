@@ -40,6 +40,11 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
           }
         | { kind: 'immediate'; run(): Promise<void> }
     )
+/**
+ * A private used from its own buttons in the powers list, such as a marker, a free station or an
+ * early train: its Use opens that list.
+ */
+export type PrivateButtonsPower = PrivateTrackPower & { kind: 'buttons' }
 export type PrivateActionSource = 'mine' | 'other' | 'powers'
 type ChosenPower = PrivateTrackPower & { label?: string }
 type PrivateActionStages = { source: PrivateActionSource; power: ChosenPower }
@@ -209,13 +214,43 @@ export class PrivateActionsModule implements LocalSelection {
         this.chooseTitlePower(power)
     }
     /** Every power the private offers now, under the shared rules or the title's own. */
-    powersFor(privateCompanyId: string): (PrivateTrackPower | TitlePrivatePower)[] {
+    powersFor(
+        privateCompanyId: string
+    ): (PrivateTrackPower | TitlePrivatePower | PrivateButtonsPower)[] {
         return [
             ...this.sharedTrackPowers.filter(
                 (power) => power.privateCompanyId === privateCompanyId
             ),
-            ...this.titlePowers.filter((power) => power.privateCompanyId === privateCompanyId)
+            ...this.titlePowers.filter((power) => power.privateCompanyId === privateCompanyId),
+            ...this.buttonsPowers.filter((power) => power.privateCompanyId === privateCompanyId)
         ]
+    }
+    private buttonsPowers = $derived.by(() => {
+        const powers: PrivateButtonsPower[] = []
+        const { playerId } = this.session
+        for (const option of [
+            ...this.decisions.privateMarkerOptions,
+            ...this.decisions.privateTokenOptions,
+            ...(playerId
+                ? this.decisions.privateTrainOptions.map((option) => ({ ...option, playerId }))
+                : [])
+        ]) {
+            const power = {
+                privateCompanyId: option.privateCompanyId,
+                playerId: option.playerId,
+                kind: 'buttons' as const
+            }
+            if (!powers.some((listed) => samePower(listed, power))) powers.push(power)
+        }
+        return powers
+    })
+    /** Opens the powers list, where the private's own buttons are. */
+    startButtonsPower(power: PrivateButtonsPower) {
+        assert(
+            this.buttonsPowers.some((option) => samePower(option, power)),
+            'Choose an available private power'
+        )
+        this.choosePowers()
     }
     chooseTitlePower(power: TitlePrivatePower) {
         if (power.kind === 'immediate') {

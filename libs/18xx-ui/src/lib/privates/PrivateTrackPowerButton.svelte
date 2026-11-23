@@ -2,6 +2,7 @@
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type {
+        PrivateButtonsPower,
         PrivateTrackPower,
         TitlePrivatePower
     } from '../session/privateActionsModule.svelte.js'
@@ -12,10 +13,16 @@
         label = 'Use'
     }: {
         session: EighteenXXSessionView
-        power: PrivateTrackPower | TitlePrivatePower
+        power: PrivateTrackPower | TitlePrivatePower | PrivateButtonsPower
         label?: string
     } = $props()
     const selected = $derived.by(() => {
+        if ('kind' in power && power.kind === 'buttons')
+            return (
+                session.privateActions.selection === 'powers' &&
+                !session.privateActions.titlePower &&
+                !session.privateActions.trackPowerSelection
+            )
         const chosen =
             session.privateActions.titlePower ?? session.privateActions.trackPowerSelection?.value
         return (
@@ -25,7 +32,9 @@
         )
     })
     function start() {
-        if ('kind' in power) session.privateActions.startTitlePower(power)
+        if ('kind' in power && power.kind === 'buttons')
+            session.privateActions.startButtonsPower(power)
+        else if ('kind' in power) session.privateActions.startTitlePower(power)
         else session.privateActions.startTrackPower(power)
     }
 </script>

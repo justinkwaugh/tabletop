@@ -7,6 +7,7 @@ import {
 import { singleChoice } from './stagedSelection.svelte.js'
 import type {
     CompanyDecision,
+    PrivateMarkerOption,
     PrivateTileOption,
     PrivateTokenOption
 } from './companyDecisionsModule.svelte.js'
@@ -22,7 +23,8 @@ function privateActions(
     exchangeOptions: { playerId: string; privateCompanyId: string; certificateId: string }[] = [],
     titlePowers: TitlePrivatePower[] = [],
     offered?: { privateCompanyId: string; playerId: string },
-    privateTokenOptions: PrivateTokenOption[] = []
+    privateTokenOptions: PrivateTokenOption[] = [],
+    privateMarkerOptions: PrivateMarkerOption[] = []
 ) {
     let trackSelected = false
     let trackCleared = 0
@@ -33,7 +35,7 @@ function privateActions(
             { ...power, details: tileDetails }
         ]),
         privateTrainOptions: [],
-        privateMarkerOptions: [],
+        privateMarkerOptions,
         privateTokenOptions
     }
     const track = {
@@ -275,6 +277,43 @@ describe('PrivateActionsModule', () => {
         expect(module.selection).toBeUndefined()
         expect(module.trackPowerSelection).toBeUndefined()
         expect(module.undo()).toBe(false)
+    })
+
+    it('offers a marker or station private from its Use, which opens the powers list', () => {
+        const bridge = (locationId: string): PrivateMarkerOption => ({
+            privateCompanyId: 'OBC',
+            playerId: 'alex',
+            kind: 'bridge',
+            locationId
+        })
+        const station: PrivateTokenOption = {
+            privateCompanyId: 'TS',
+            playerId: 'alex',
+            companyId: 'R',
+            position: { locationId: 'B2', nodeId: 'city', slot: 0 }
+        }
+        const { module } = privateActions(
+            [Alpha],
+            {},
+            {},
+            [],
+            [],
+            undefined,
+            [station],
+            [bridge('G6'), bridge('H3')]
+        )
+        expect(module.powersFor('OBC')).toEqual([
+            { privateCompanyId: 'OBC', playerId: 'alex', kind: 'buttons' }
+        ])
+        expect(module.powersFor('TS')).toEqual([
+            { privateCompanyId: 'TS', playerId: 'alex', kind: 'buttons' }
+        ])
+        expect(module.powersFor('alpha')).toEqual([Alpha])
+        module.startButtonsPower({ privateCompanyId: 'OBC', playerId: 'alex', kind: 'buttons' })
+        expect(module.selection).toBe('powers')
+        expect(module.trackPowerSelection).toBeUndefined()
+        expect(module.undo()).toBe(true)
+        expect(module.selection).toBeUndefined()
     })
 
     it('closing leaves private actions and drops their track and company choices', () => {
