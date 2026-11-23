@@ -46,8 +46,10 @@
         }
     }
 
+    // Pointing never opens the terms over another open menu, such as the announcements, which
+    // showing them would close.
     function onPointerEnter(event: PointerEvent) {
-        if (event.pointerType === 'mouse' && !open) {
+        if (event.pointerType === 'mouse' && !open && !document.querySelector(':popover-open')) {
             fromHover = true
             popup?.showPopover()
         }
@@ -65,6 +67,13 @@
             event.preventDefault()
             fromHover = false
         }
+    }
+
+    // Keeps the terms under the contract when the page or a panel around the game scrolls.
+    function followScrolling() {
+        const follow = () => open && place()
+        addEventListener('scroll', follow, { capture: true, passive: true })
+        return () => removeEventListener('scroll', follow, { capture: true })
     }
 </script>
 
@@ -89,6 +98,7 @@
     popover="auto"
     aria-label="Contract terms"
     onbeforetoggle={onBeforeToggle}
+    {@attach followScrolling}
 >
     <div class="title">{bidHeading(choice)}</div>
     <p>{terms.traits}</p>
