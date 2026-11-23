@@ -14,7 +14,7 @@ import type { BoardOffer, BoardTarget } from '$lib/model/boardOffer.js'
 import { stackTilesByEpoch } from '$lib/model/boardView.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import type { PickFrame, PlacedArea } from '$lib/model/boardFocus.svelte.js'
-import { TableLayers, type EnlargedFace } from '$lib/model/tableLayers.svelte.js'
+import { boardFloatOf, TableLayers, type EnlargedFace } from '$lib/model/tableLayers.svelte.js'
 import { OpenPick } from '$lib/testing/openPick.svelte.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import { atPlayingCards, ruleTown } from '$lib/testing/turnTable.js'
@@ -93,6 +93,49 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
         expect(layers.escape(false)).toBe(true)
         expect(layers.writsOpen).toBe(false)
         expect(layers.escape(false)).toBe(false)
+    })
+
+    it('Contract, Coexistence and precedence: one card floats over the board, a popup or the site card, and no layer over the board shows either', () => {
+        const pick = new OpenPick()
+        const layers = new TableLayers(pick.read)
+        const west = { anchor: 'guild:merchant' as const, choices: [] }
+        const onMap = { anchor: spaceTarget(A), choices: [] }
+        const desk = { bench: false, benchCovers: false, desk: true }
+        expect(boardFloatOf(layers, { ...desk, popup: onMap })).toEqual({
+            kind: 'popup',
+            popup: onMap
+        })
+        // A desk's popup beside a guild area stands only while its side is open.
+        layers.openSite(A)
+        expect(boardFloatOf(layers, { ...desk, popup: west })).toEqual({ kind: 'site', spaceId: A })
+        expect(boardFloatOf(layers, { ...desk, popup: west, desk: false })).toMatchObject({
+            kind: 'popup'
+        })
+        layers.toggleGuildSide('west')
+        expect(boardFloatOf(layers, { ...desk, popup: west })).toMatchObject({ kind: 'popup' })
+        // Under the bench the popup stands where the bench covers the board; the site card never.
+        layers.closeGuildSide()
+        expect(boardFloatOf(layers, { ...desk, popup: west, benchCovers: true })).toMatchObject({
+            kind: 'popup'
+        })
+        layers.openSite(A)
+        expect(boardFloatOf(layers, { ...desk, bench: true })).toBeUndefined()
+        expect(boardFloatOf(layers, desk)).toEqual({ kind: 'site', spaceId: A })
+        // An enlarged piece, a seat, a stack view, a sheet or the writ reference covers both.
+        const covers = [
+            () => layers.enlarge({}, () => Bead),
+            () => layers.openSeat('p1'),
+            () => layers.openStack({ kind: 'region', region: RegionIds[0] }),
+            () => layers.openTracks(),
+            () => layers.openGuilds(),
+            () => layers.openWrits()
+        ]
+        for (const cover of covers) {
+            cover()
+            expect(boardFloatOf(layers, { ...desk, popup: onMap })).toBeUndefined()
+            layers.closeEnlarged()
+            layers.closeSeatOrStack()
+        }
     })
 
     it('Contract, Coexistence and precedence: an open Key or Supply card closes last; in full screen, after full screen', () => {

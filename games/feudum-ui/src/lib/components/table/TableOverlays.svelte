@@ -1,9 +1,9 @@
 <script lang="ts">
     import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
-    import { guildSideOf } from '$lib/model/boardFocus.svelte.js'
     import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { boardFloatOf } from '$lib/model/tableLayers.svelte.js'
     import { GuildBox } from '$lib/utils/boardGeometry.js'
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedLayer from './EnlargedLayer.svelte'
@@ -37,20 +37,14 @@
             ? Math.min(EnlargedGuildWidth, (across * GuildBox.width) / GuildBox.height)
             : Math.min(EnlargedWidth, across)
     )
-    let popup = $derived(gameSession.boardPopup)
     let bench = $derived(gameSession.guildPanel?.bench)
-    /** Contract, Desk layout: a popup beside a guild area stands only while its side is open. */
-    let anchorShut = $derived.by(() => {
-        const side = popup && guildSideOf(popup.anchor)
-        return !phone.phone && !gameSession.benchCovers && !!side && layers.guildSide !== side
-    })
-    let covered = $derived(
-        layers.enlarged !== undefined ||
-            layers.openSeatId !== undefined ||
-            layers.stackView !== undefined ||
-            layers.tracksOpen ||
-            layers.guildsOpen ||
-            layers.writsOpen
+    let float = $derived(
+        boardFloatOf(layers, {
+            popup: gameSession.boardPopup,
+            bench: bench !== undefined,
+            benchCovers: gameSession.benchCovers,
+            desk: !phone.phone
+        })
     )
 </script>
 
@@ -58,10 +52,10 @@
     {#if bench}
         <BenchLayer {bench} />
     {/if}
-    {#if popup && !covered && !anchorShut}
-        <BoardPopup {popup} />
-    {:else if layers.site && !covered && !bench}
-        <SiteCardLayer spaceId={layers.site} onClose={() => layers.closeSite()} />
+    {#if float?.kind === 'popup'}
+        <BoardPopup popup={float.popup} />
+    {:else if float?.kind === 'site'}
+        <SiteCardLayer spaceId={float.spaceId} onClose={() => layers.closeSite()} />
     {/if}
 </div>
 {#if layers.openSeatId !== undefined}

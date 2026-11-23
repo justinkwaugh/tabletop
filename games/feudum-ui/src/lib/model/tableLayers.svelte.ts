@@ -11,7 +11,13 @@ import type {
     WritId
 } from '@tabletop/feudum'
 import { untrack } from 'svelte'
-import { guildSideFollowing, type GuildSide, type PickFrame } from './boardFocus.svelte.js'
+import {
+    guildSideFollowing,
+    guildSideOf,
+    type GuildSide,
+    type PickFrame
+} from './boardFocus.svelte.js'
+import type { BoardTarget } from './boardOffer.js'
 import type { SeatPaint } from './seatPaint.js'
 
 /** R-4.4.4 Its owner's props, so a back stays a back. */
@@ -242,4 +248,34 @@ export class TableLayers {
         }
         return false
     }
+}
+
+export type BoardFloat<TPopup> =
+    | { readonly kind: 'popup'; readonly popup: TPopup }
+    | { readonly kind: 'site'; readonly spaceId: SpaceId }
+
+export interface BoardFloatInput<TPopup> {
+    readonly popup?: TPopup
+    readonly bench: boolean
+    readonly benchCovers: boolean
+    readonly desk: boolean
+}
+
+/**
+ * Contract, Coexistence and precedence: the one card over the board, the open popup or the site
+ * card. A layer over the board covers both; on a desk a popup beside a guild area stands only while
+ * its side is open (Desk layout); the bench leaves no site card.
+ */
+export function boardFloatOf<TPopup extends { readonly anchor: BoardTarget }>(
+    layers: TableLayers,
+    { popup, bench, benchCovers, desk }: BoardFloatInput<TPopup>
+): BoardFloat<TPopup> | undefined {
+    if (layers.covering) {
+        return undefined
+    }
+    const side = popup && guildSideOf(popup.anchor)
+    if (popup && !(desk && !benchCovers && side !== undefined && layers.guildSide !== side)) {
+        return { kind: 'popup', popup }
+    }
+    return layers.site && !bench ? { kind: 'site', spaceId: layers.site } : undefined
 }

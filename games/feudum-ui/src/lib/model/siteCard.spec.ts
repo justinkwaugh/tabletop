@@ -111,9 +111,9 @@ describe('the site card layer', () => {
         layers.openSite('space.forest.1')
         expect(layers.site).toBeUndefined()
         layers.openSite('space.forest.2')
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.site).toBeUndefined()
-        expect(layers.escape()).toBe(false)
+        expect(layers.escape(false)).toBe(false)
     })
 
     it('shows the hovered site while none is pressed, and the pressed one over it', () => {
