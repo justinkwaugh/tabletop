@@ -11,7 +11,8 @@
 
     const gameSession = getGameSession()
 
-    let open: 'key' | 'supply' | undefined = $state()
+    const layers = gameSession.layers
+    let open = $derived(layers.corner)
     let supplyToggle: HTMLButtonElement | undefined = $state()
 
     let paint = $derived.by(() => {
@@ -21,32 +22,22 @@
 
     const { paintOf } = gameSession
 
-    function toggle(card: 'key' | 'supply') {
-        open = open === card ? undefined : card
-    }
-
-    function closeOnEscape(event: KeyboardEvent) {
-        if (open && event.key === 'Escape') {
-            open = undefined
-        }
-    }
-
     function closeOnPress(event: PointerEvent) {
         const onToggle = event.target instanceof Node && supplyToggle?.contains(event.target)
         if (open === 'supply' && !onToggle) {
-            open = undefined
+            layers.closeCorner()
         }
     }
 
     const keepWheelOnCard = keepWheelIn('.card')
 
     function openWrits() {
-        open = undefined
-        gameSession.layers.openWrits()
+        layers.closeCorner()
+        layers.openWrits()
     }
 </script>
 
-<svelte:window onkeydown={closeOnEscape} onpointerdown={closeOnPress} />
+<svelte:window onpointerdown={closeOnPress} />
 
 <div class="layer" class:end onwheel={keepWheelOnCard}>
     {#if open === 'key'}
@@ -64,7 +55,7 @@
             id="feudum-supply"
             role="presentation"
             onpointerdown={(event) => event.stopPropagation()}
-            onclick={() => (open = undefined)}
+            onclick={() => layers.closeCorner()}
         >
             <SupplyCard
                 state={gameSession.gameState}
@@ -84,7 +75,7 @@
             aria-label="Symbol key"
             title="Symbol key"
             data-symbol-key-toggle
-            onclick={() => toggle('key')}
+            onclick={() => layers.toggleCorner('key')}
         >
             Key
         </button>
@@ -96,7 +87,7 @@
             aria-controls="feudum-supply"
             title="General supply"
             data-supply-toggle
-            onclick={() => toggle('supply')}
+            onclick={() => layers.toggleCorner('supply')}
         >
             Supply
         </button>

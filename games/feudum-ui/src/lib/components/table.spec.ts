@@ -41,14 +41,14 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
         layers.openSeat('p1')
         layers.enlarge({}, () => Back)
 
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.enlarged).toBeUndefined()
         expect(layers.openSeatId).toBe('p1')
 
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.openSeatId).toBeUndefined()
 
-        expect(layers.escape()).toBe(false)
+        expect(layers.escape(false)).toBe(false)
     })
 
     it('R-4.4.4 It reads its owner, so a back stays a back, and ends with its owner', () => {
@@ -88,11 +88,30 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
         layers.openWrits()
         expect(layers.stackView).toBeUndefined()
         layers.enlarge({}, () => Bead)
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.writsOpen).toBe(true)
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.writsOpen).toBe(false)
-        expect(layers.escape()).toBe(false)
+        expect(layers.escape(false)).toBe(false)
+    })
+
+    it('Contract, Coexistence and precedence: an open Key or Supply card closes last; in full screen, after full screen', () => {
+        const layers = new TableLayers()
+        layers.toggleCorner('key')
+        layers.openSite('space.desert.1')
+        expect(layers.escape(true)).toBe(true)
+        expect(layers.site).toBeUndefined()
+        expect(layers.corner).toBe('key')
+        // Full screen takes this Escape; the card stays open.
+        expect(layers.escape(true)).toBe(false)
+        expect(layers.corner).toBe('key')
+        expect(layers.escape(false)).toBe(true)
+        expect(layers.corner).toBeUndefined()
+        layers.toggleCorner('supply')
+        layers.toggleCorner('key')
+        expect(layers.corner).toBe('key')
+        layers.toggleCorner('key')
+        expect(layers.corner).toBeUndefined()
     })
 
     it('Contract, Desk layout: one guild side at a time; its button again, or Escape, closes it', () => {
@@ -109,11 +128,11 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
 
         layers.toggleGuildSide('west')
         layers.enlarge({}, () => Bead)
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.guildSide).toBe('west')
-        expect(layers.escape()).toBe(true)
+        expect(layers.escape(false)).toBe(true)
         expect(layers.guildSide).toBeUndefined()
-        expect(layers.escape()).toBe(false)
+        expect(layers.escape(false)).toBe(false)
     })
 
     it('Contract, Pick framing: a pick wholly on one side opens it once; one in both sides opens nothing; the map’s closes it', () => {

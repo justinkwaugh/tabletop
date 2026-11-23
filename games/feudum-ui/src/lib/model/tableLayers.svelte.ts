@@ -52,6 +52,8 @@ export interface StackViewOf {
     readonly region: RegionId
 }
 
+export type CornerCard = 'key' | 'supply'
+
 interface Enlarged {
     readonly owner: object
     readonly read: () => EnlargedFace
@@ -67,6 +69,8 @@ export class TableLayers {
     guildsOpen: boolean = $state(false)
     /** Contract, Supply: the writ reference. */
     writsOpen: boolean = $state(false)
+    /** Contract, Symbol key and Supply: the looking card open over the board's corner. */
+    corner: CornerCard | undefined = $state(undefined)
     private readonly pickKey = $derived.by(() => this.pickFrame()?.key)
     private sideChosen: GuildSide | undefined = $state(undefined)
     /** Contract, Desk layout: the guild side open over a desk's map. */
@@ -191,19 +195,36 @@ export class TableLayers {
         this.writsOpen = false
     }
 
-    /** Contract, Coexistence and precedence: Escape closes one layer at a time. */
-    escape(): boolean {
+    toggleCorner(card: CornerCard): void {
+        this.corner = this.corner === card ? undefined : card
+    }
+
+    closeCorner(): void {
+        this.corner = undefined
+    }
+
+    /** Contract, Coexistence and precedence: the layers that stand over the board's popups. */
+    get covering(): boolean {
+        return (
+            this.enlargedBy !== undefined ||
+            this.openSeatId !== undefined ||
+            this.stackView !== undefined ||
+            this.tracksOpen ||
+            this.guildsOpen ||
+            this.writsOpen
+        )
+    }
+
+    /**
+     * Contract, Coexistence and precedence: Escape closes one layer at a time; in full screen it
+     * leaves full screen to the wrapper before an open Key or Supply card.
+     */
+    escape(fullScreen: boolean): boolean {
         if (this.enlargedBy) {
             this.closeEnlarged()
             return true
         }
-        if (
-            this.openSeatId !== undefined ||
-            this.stackView ||
-            this.tracksOpen ||
-            this.guildsOpen ||
-            this.writsOpen
-        ) {
+        if (this.covering) {
             this.closeSeatOrStack()
             return true
         }
@@ -213,6 +234,10 @@ export class TableLayers {
         }
         if (this.site) {
             this.closeSite()
+            return true
+        }
+        if (this.corner && !fullScreen) {
+            this.closeCorner()
             return true
         }
         return false

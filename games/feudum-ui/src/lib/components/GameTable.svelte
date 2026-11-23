@@ -161,7 +161,7 @@
 
     /** Contract, Coexistence and precedence: Escape closes a layer before full screen. */
     function onEscape(event: KeyboardEvent) {
-        if (event.key === 'Escape' && feudumSession.layers.escape()) {
+        if (event.key === 'Escape' && feudumSession.layers.escape(expanded)) {
             event.preventDefault()
             event.stopPropagation()
         }

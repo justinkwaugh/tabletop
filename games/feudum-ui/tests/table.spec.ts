@@ -386,6 +386,41 @@ test('S70 smoke: full screen holds the panel in the toolbar and Escape leaves it
     await expect(panel(page)).toBeVisible()
 })
 
+for (const [card, toggle, open] of [
+    ['Key', '[data-symbol-key-toggle]', '#feudum-symbol-key'],
+    ['Supply', '[data-supply-toggle]', '#feudum-supply']
+] as const) {
+    test(`Contract, Coexistence and precedence: in full screen, Escape leaves full screen with the ${card} card open; the next closes it`, async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToCards(page)
+        await page
+            .locator('button[aria-label*="full" i]:visible, button[title*="full" i]:visible')
+            .first()
+            .click()
+        const modal = page.locator('dialog:modal')
+        await expect(modal).toHaveCount(1)
+        await settled(page)
+        await modal.locator(toggle).click()
+        await expect(modal.locator(open)).toBeVisible()
+
+        // An Escape from outside the dialog reaches the window's listeners, not the dialog's.
+        await page.evaluate(() =>
+            document.body.dispatchEvent(
+                new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+            )
+        )
+        await expect(modal).toHaveCount(0)
+        await expect(page.locator(open)).toBeVisible()
+        await expect(page.locator(toggle)).toHaveAttribute('aria-expanded', 'true')
+
+        await page.keyboard.press('Escape')
+        await expect(page.locator(open)).toHaveCount(0)
+        await expect(page.locator(toggle)).toHaveAttribute('aria-expanded', 'false')
+    })
+}
+
 test.describe('on a phone', () => {
     test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true })
 
