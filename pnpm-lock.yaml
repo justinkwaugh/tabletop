@@ -4477,7 +4477,7 @@ importers:
         version: link:../../libs/common
       typebox:
         specifier: ^1.0.79
-        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+        version: 1.0.79(patch_hash=254a1b93bab94bd5ec2989a56d4abfc76aecb2cfdd44e71679eb56f985b52c97)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
