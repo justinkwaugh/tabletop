@@ -43,7 +43,7 @@ The three choices belong to three machine states, so at most one is active, and 
 - **Meaning:** the locomotive the player is about to develop.
 - **Producer:** a press on a developable row; a press on another row replaces it.
 - **Consumers:** the row's filled ring and the develop picker.
-- **Lifetime:** one manual stage: Undo, or a press outside the picker, closes it; Develop submits it, and the new Game State clears it.
+- **Lifetime:** one manual stage: Undo, a press outside the picker, or scrolling the board closes it; Develop submits it, and the new Game State clears it.
 - **Validity:** applies only while the player is acting in Locomotive Development and can still develop that locomotive.
 
 ### Capacity plan
@@ -67,7 +67,7 @@ The three choices belong to three machine states, so at most one is active, and 
 - **Meaning:** the werk whose picker is open.
 - **Producer:** a press on one of the player's werk rows, as a manual stage after the capacity plan. A step planned in the picker keeps it open as an automatic selection.
 - **Consumers:** the plaque's filled ring and the werk picker.
-- **Lifetime:** Undo closes a picker opened since the last step; otherwise Undo takes back the last step and closes the picker with it. A press outside the picker, or a change to the automatic shipping choice, closes it. The new Game State clears it.
+- **Lifetime:** Undo closes a picker opened since the last step; otherwise Undo takes back the last step and closes the picker with it. A press outside the picker, scrolling the board, or a change to the automatic shipping choice closes it. The new Game State clears it.
 - **Validity:** applies only while the player is acting in Production Capacity and owns the werk.
 
 ### Round review

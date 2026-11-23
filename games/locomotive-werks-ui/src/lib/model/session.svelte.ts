@@ -229,7 +229,15 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
     }
 
     closeDevelopPicker() {
-        this.developSelection = {}
+        if (this.chosenLocomotive !== undefined) {
+            this.developSelection = {}
+        }
+    }
+
+    // A picker whose row scrolls out of view would leave Undo a step the player cannot see.
+    closeBoardPickers() {
+        this.closeDevelopPicker()
+        this.closeWerkPicker()
     }
 
     async develop(locomotiveId: LocomotiveId) {

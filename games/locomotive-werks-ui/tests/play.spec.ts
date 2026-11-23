@@ -225,6 +225,12 @@ test('a werk on the board plans units until Done buying, and Undo takes back a p
     await expect(add).toHaveCount(0)
 
     await passenger(1).click()
+    await expect(add).toBeVisible()
+    await page.locator('.board-scroll').evaluate((board) => board.scrollBy(0, 200))
+    await expect(add).toHaveCount(0)
+    await page.locator('.board-scroll').evaluate((board) => board.scrollTo(0, 0))
+
+    await passenger(1).click()
     await add.click()
     await page.getByRole('button', { name: 'Upgrade a unit to Fast I for $2' }).click()
     await expect(passenger(1)).toBeVisible()
