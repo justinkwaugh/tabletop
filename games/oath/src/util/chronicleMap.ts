@@ -15,7 +15,14 @@ import { rulesSite } from './rule.js'
 import { forestTempleKeepsSite } from './persistent.js'
 import { killWarbands, returnWarbandsOnCardToBanks } from './force.js'
 import { warbandEntries } from './warbands.js'
-import { forgetRelicSlots, forgetSitePeeks, renameRelicSlots } from './knowledge.js'
+import {
+    EVERYONE,
+    forgetRelicSlots,
+    forgetSitePeeks,
+    putOnDiscardPile,
+    renameRelicSlots
+} from './knowledge.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 /** R-2.1.1 — the regions, top of the map first. */
 const REGIONS = [Region.Cradle, Region.Provinces, Region.Hinterland] as const
@@ -347,7 +354,11 @@ export function discardToCradlePile(
     cardIds: readonly string[]
 ): void {
     if (cardIds.length === 0) return
-    discardOnto(state.requireVault(), Region.Cradle, [...cardIds])
+    // R-9.4 — the table saw these faceup cards go down, so its record of the pile's backs keeps them,
+    // as in play. From revision 35 (R-X.4); before it the record misses them until R-8.5 shuffles.
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes30))
+        putOnDiscardPile(state, Region.Cradle, [...cardIds], false, { witnessOf: () => [EVERYONE] })
+    else discardOnto(state.requireVault(), Region.Cradle, [...cardIds])
     state.discardPileCounts[Region.Cradle] += cardIds.length
     state.discardTopBackType = { ...state.discardTopBackType, [Region.Cradle]: CardKind.Denizen }
 }

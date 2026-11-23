@@ -2,6 +2,26 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Region, Suit, TOTAL_FAVOR } from '../model/oathEnums.js'
 import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { totalWarbands, countOf, adjustCount, warbandEntries } from '../util/warbands.js'
+import { isVision } from '../data/cardRegistry.js'
+
+/** R-9.4 — where a pile's Visions lie in the vault, counted from its top: 1 is the top card. */
+export function vaultVisionPlaces(state: HydratedOathGameState, region: Region): number[] {
+    return state
+        .requireVault()
+        .discardPiles[region].flatMap((cardId, at) => (isVision(cardId) ? [at + 1] : []))
+}
+
+/** R-9.4 — every pile shows its Visions where the vault holds them. */
+export function expectPilePlacesMatchTheVault(state: HydratedOathGameState): void {
+    for (const region of Object.values(Region)) {
+        const shown = state.discardVisionPlacesIn(region)
+        const held = vaultVisionPlaces(state, region)
+        if (shown === undefined || shown.join() !== held.join())
+            throw Error(
+                `The ${region} pile shows Visions at ${shown === undefined ? 'no places' : `[${shown.join(', ')}]`}; the vault holds them at [${held.join(', ')}]`
+            )
+    }
+}
 
 /** R-1.4 */
 export function favorCensus(state: HydratedOathGameState): number {
