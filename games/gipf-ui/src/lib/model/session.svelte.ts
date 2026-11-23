@@ -245,6 +245,10 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return isPushPiece(action) ? action : undefined
     }
 
+    // History cuts the session's actions back to the move on screen, so the live list is kept
+    // from the moment history opens, to name the moves its steps cross.
+    private actionsBeforeHistory: readonly GameAction[] | undefined
+
     // The one action taken between two states a step apart, when the session holds it.
     steppedAction(
         from: Pick<GipfGameState, 'actionCount'>,
@@ -252,7 +256,8 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     ): GameAction | undefined {
         if (Math.abs(from.actionCount - to.actionCount) !== 1) return undefined
         const index = Math.min(from.actionCount, to.actionCount)
-        return this.actions.find((candidate) => candidate.index === index)
+        const named = (candidate: GameAction) => candidate.index === index
+        return this.actions.find(named) ?? this.actionsBeforeHistory?.find(named)
     }
 
     // None when the view passes to the other player as the Undo lands, as the harness's
@@ -273,6 +278,9 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
 
     override beforeNewState({ kind }: PresentedTransition): void {
         this.changedByPlayer = false
+        // Read before the new state's actions replace the ones on screen.
+        if (kind === 'history') this.actionsBeforeHistory ??= this.actions
+        else this.actionsBeforeHistory = undefined
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const incoming = this.presentingState
         const push = kind === 'undo' && incoming ? this.restagedPush(incoming) : undefined
