@@ -36,7 +36,6 @@ import {
 } from './walk.js'
 import { locationKindOf } from '../model/locationDiscs.js'
 
-/** One way a writ fires, as a line of the sweep names it: a printed alternative by its id. */
 export function writKey(
     writId: WritId,
     { alternative, rewardGuild }: { alternative?: MandateAlternativeId; rewardGuild?: GuildId }
@@ -53,14 +52,11 @@ const GoodLists: readonly (readonly Good[])[] = [4, 3, 2, 1].flatMap((length) =>
     )
 )
 
-/** Seats that ask for what the walk's own seats never use: every writ, every special, the Guild card. */
 export class CorpusSeats implements WalkPlan {
-    /** One card kind in one use, as a line of the sweep names it. */
     static cardKey(kind: ActionCardKind, mode: string): string {
         return `${cardOf(kind).id} ${mode}`
     }
 
-    /** What has fired, and in which seed's game first. */
     readonly fired = new Map<string, string>()
     seed = ''
 
@@ -374,7 +370,6 @@ export class CorpusSeats implements WalkPlan {
             : undefined
     }
 
-    /** What one user Action fired: the cards in `played`, the writs in its Actions. */
     private static firedBy({ processed, after }: WalkStep): string[] {
         const cards = after.flatMap(({ players }) =>
             players.flatMap(({ played }) =>
@@ -408,7 +403,6 @@ export class CorpusSeats implements WalkPlan {
         return [...cards, ...writs]
     }
 
-    /** The input a guild function might take: the seat's real farms and whatever goods fit. */
     private static paramsToTry(
         state: HydratedFeudumGameState,
         playerId: string
@@ -432,13 +426,11 @@ export interface CorpusGames {
     readonly walks: readonly GameWalk[]
 }
 
-/** One game of a corpus: the seed and the seats at its table. */
 export interface CorpusGame {
     readonly seed: string
     readonly numPlayers: number
 }
 
-/** The games in order: each seat wants what no earlier game has fired. */
 export function corpusGames(games: readonly CorpusGame[]): CorpusGames {
     const seats = new CorpusSeats()
     const walks = games.map(({ seed, numPlayers }) => {

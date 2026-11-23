@@ -34,7 +34,7 @@ export const PlaceDiscMetadata = Type.Object({
     disc: Type.Union([Type.Literal('reeve'), Type.Literal('military'), Type.Literal('voyage')]),
     /** R-4.7 */
     guildId: Type.Optional(GuildIdSchema),
-    /** R-4.7 What the reeve scored on placing. */
+    /** R-4.7 */
     reevePoints: Type.Optional(ComponentCount),
     /** R-4.9.1, R-3.7.5 The track space taken; absent when the disc was kept. */
     space: Type.Optional(Type.Union([VoyageSpaceIdSchema, MilitarySpaceIdSchema])),
@@ -96,7 +96,7 @@ export type PlaceDiscOffer =
       }
     | {
           readonly disc: 'military'
-          /** R-4.9.1 The track space the disc would take. */
+          /** R-4.9.1 */
           readonly space: MilitarySpaceId
           /** R-4.9.2 What a disc on that space covers at a dawn. */
           readonly penalty: number
@@ -104,7 +104,7 @@ export type PlaceDiscOffer =
       }
     | {
           readonly disc: 'voyage'
-          /** R-3.7.5 The track space the disc would take. */
+          /** R-3.7.5 */
           readonly space: VoyageSpaceId
           /** R-3.7-H1 A disc is already on the track, so this takes no free disc. */
           readonly advances: boolean

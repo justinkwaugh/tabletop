@@ -21,11 +21,9 @@ import { testGame } from './state.js'
 const engine = new GameEngine(FeudumRuntime)
 const MasterSeed = '0123456789abcdef0123456789abcdef'
 
-/** A game driven through the engine, for specs that assert an Action's whole cascade. */
 export class Table {
     readonly game: Game
     state: FeudumProjectedState
-    /** Everything processed so far, in order, for a spec that undoes it. */
     readonly processed: GameAction[] = []
     private sent = 0
 
@@ -34,12 +32,10 @@ export class Table {
         this.state = engine.startGame(this.game, { masterSeed: MasterSeed }).initialState
     }
 
-    /** Executes one Action canonically and returns everything it processed. */
     send(playerId: string, move: Record<string, unknown> & { type: ActionType }): GameAction[] {
         return this.execute({ source: ActionSource.User, playerId, ...move })
     }
 
-    /** Executes a System Action as a handler's `addSystemAction` would, with its cascade. */
     sendSystem(move: Record<string, unknown> & { type: ActionType }): GameAction[] {
         return this.execute({ source: ActionSource.System, ...move })
     }
@@ -58,7 +54,6 @@ export class Table {
         return processedActions
     }
 
-    /** Whether the engine's validity check takes this Action now, without applying it. */
     accepts(playerId: string, move: Record<string, unknown> & { type: ActionType }): boolean {
         return engine.accepts({
             game: this.game,
@@ -73,7 +68,6 @@ export class Table {
         })
     }
 
-    /** Why the Action itself refuses to apply now, if it does, past any check the engine makes first. */
     refusal(
         playerId: string,
         move: Record<string, unknown> & { type: ActionType }
@@ -105,7 +99,6 @@ export class Table {
         return this.hydrated().getPlayerState(playerId)
     }
 
-    /** As an Action's handler would: `edit` returns the state to enter, then any System Action runs. */
     moveTo(
         edit: (
             state: HydratedFeudumGameState,
@@ -127,7 +120,6 @@ export class Table {
         return this.state.turnManager.turnOrder
     }
 
-    /** The one seat the state machine is asking. */
     get asked(): string {
         const [playerId] = this.state.activePlayerIds
         assertExists(playerId, 'A seat is being asked')

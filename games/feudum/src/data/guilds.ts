@@ -26,7 +26,7 @@ export interface GuildRow {
     readonly pullsFrom: GuildId
     /** R-1.2.3 The guild after this one in the ring. */
     readonly pushesTo: GuildId
-    /** R-4.6.2, R-4.6-H3 What receives this guild's apprentice share. */
+    /** R-4.6.2, R-4.6-H3 */
     readonly charity: CharityId
 }
 
@@ -150,7 +150,7 @@ export const MerchantPullGoods = 3
 /** R-4.6.5 The goods a Merchant push moves from the market to the carts and piles. */
 export const MerchantPushGoods = 4
 
-/** R-4.6.3 What a vessel for sale costs. */
+/** R-4.6.3 */
 export const AlchemistTradePrice = 3
 
 /** R-4.6.4 The goods an Alchemist pull moves from the market to the carts and piles. */
@@ -181,7 +181,7 @@ export const NoblePushSeals = 2
 /** R-4.6.5 The rosary totals that reach a Noble push's first, second and third level. */
 export const NoblePushTotals = [5, 11, 17] as const
 
-/** R-4.6.3 What a bead from the rosary costs. */
+/** R-4.6.3 */
 export const MonkTradePrice = 3
 
 /** R-4.6.4 */
@@ -193,7 +193,7 @@ export const MonkPullThreshold = 11
 /** R-4.6.5 The chicken totals that reach a Monk push's first, second and third level. */
 export const MonkPushTotals = [3, 6, 9] as const
 
-/** R-4.6.4 A pull reaching its threshold. */
+/** R-4.6.4 */
 export const PullReward = { vp: 3, writs: { draw: 2, keep: 1 } } as const
 
 /** R-4.6.5 A push's points for 1, 2 and 3 or more completions. */
@@ -248,7 +248,6 @@ export type MarketSpaceId = `guild.merchant.space.${Good}-${MarketSlot}`
 
 export interface MarketSpace {
     readonly id: MarketSpaceId
-    /** The bin, and the only good this space holds. */
     readonly good: Good
     /** R-4.6.3 Goods come in at the lowest empty space, and are bought from the highest filled. */
     readonly space: MarketSlot
@@ -290,7 +289,7 @@ export interface AlchemistCartSpace {
     readonly filledAtSetup: boolean
 }
 
-/** R-1.3 The production carts and piles. */
+/** R-1.3 */
 export const AlchemistCartSpaces: readonly AlchemistCartSpace[] = CartGoods.flatMap((good) =>
     CartSlots.map((space) => ({
         id: `guild.alchemist.cart.${good}-${space}` as const,
@@ -303,7 +302,6 @@ export const AlchemistCartSpaces: readonly AlchemistCartSpace[] = CartGoods.flat
 /** R-1.3, R-4.2.3 Vessels for sale, covering the ferry symbol. */
 export const AlchemistVesselSpace = { id: 'guild.alchemist.vessel-space', setupVessels: 2 } as const
 
-/** The goods an invention uses from the carts. */
 export type Recipe = Readonly<Partial<Record<Good, number>>>
 
 export interface VesselInvention {
@@ -329,7 +327,7 @@ export const VesselInventions: readonly VesselInvention[] = [
 
 export interface KrudBarrel {
     readonly id: `guild.alchemist.invention.krud-${number}`
-    /** R-4.6-H4 Which barrel of one action this prices. */
+    /** R-4.6-H4 */
     readonly barrel: number
     readonly recipe: Recipe
 }
@@ -390,7 +388,7 @@ export const KnightRowSections: readonly KnightRowSection[] = FeudumColors.flatM
 export interface KnightMonsterIcon {
     readonly id: `guild.knight.monster.${MonsterId}`
     readonly monster: MonsterId
-    /** R-4.6.3 What taming this monster costs in returned markers. */
+    /** R-4.6.3 */
     readonly markers: number
 }
 

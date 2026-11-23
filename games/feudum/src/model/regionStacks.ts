@@ -64,7 +64,7 @@ export type ImprovementTile =
     | { readonly kind: 'legal'; readonly tile: RegionTile }
     | { readonly kind: 'prohibited'; readonly candidates: readonly StackTile[] }
 
-/** R-4.3.2, R-4.3-H1 What an improvement in this region offers. */
+/** R-4.3.2, R-4.3-H1 */
 export function improvementTile(state: HydratedFeudumGameState, region: RegionId): ImprovementTile {
     const top = stackTop(state, region)
     if (top !== undefined && isTileLegal(epochNumber(state), top)) {

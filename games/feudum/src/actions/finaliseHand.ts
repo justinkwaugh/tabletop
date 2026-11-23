@@ -115,7 +115,7 @@ export interface FinaliseHandPreview {
     readonly revealsInfo: true
 }
 
-/** R-3.1, R-3.3, R-3.13-H1 What a seat's draft would do if sent. */
+/** R-3.1, R-3.3, R-3.13-H1 */
 export function previewFinaliseHand(
     state: HydratedFeudumGameState,
     playerId: string,

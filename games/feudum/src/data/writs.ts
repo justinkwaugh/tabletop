@@ -262,7 +262,6 @@ export interface KingdomCharter extends CharterBase {
     readonly kingdom: Kingdom
     /** R-6.2-H1 Index 0 is 1 location ruled. */
     readonly vpByLocationsRuled: readonly number[]
-    /** The card's dots. */
     readonly spaces: readonly SpaceId[]
 }
 

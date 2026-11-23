@@ -93,16 +93,15 @@ export const Pilfer = Type.Object({
     sulfurToBarrel: Type.Optional(Type.Literal(true))
 })
 
-/** What the input doesn't say of a step: the route, where from, and the vessels it touched. */
 export type MoveStepRecord = Type.Static<typeof MoveStepRecord>
 export const MoveStepRecord = Type.Object({
     routeId: Type.Enum(Routes.map((route) => route.id)),
     from: SpaceIdSchema,
     /** R-4.1 The character the pawn shows, for the sentence; absent for a monster. */
     character: Type.Optional(GuildIdSchema),
-    /** R-4.2.2 The vessel the pawn rode this step. */
+    /** R-4.2.2 */
     vessel: Type.Optional(VesselTypeSchema),
-    /** R-4.2.2 The vessel it stepped off, left on `from`. */
+    /** R-4.2.2 */
     left: Type.Optional(VesselTypeSchema),
     /** R-4.2.3 */
     fare: Type.Optional(Type.Integer({ minimum: 0 }))

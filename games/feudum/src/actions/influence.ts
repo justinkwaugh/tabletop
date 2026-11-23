@@ -148,7 +148,7 @@ export function reasonInfluenceRefused(
     )
 }
 
-/** R-3.8.3 What the card prints. */
+/** R-3.8.3 */
 function moneyPrice(): number {
     const need = cardOf('influence').special.needs.find((row) => row.kind === 'shillings')
     assert(need?.kind === 'shillings', 'R-3.8.3 Money is Influence prints its price')

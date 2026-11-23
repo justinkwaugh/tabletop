@@ -16,13 +16,9 @@ import { endCardTurn, type Table, tableAtHandSelection, tableAtPlayingCards } fr
 export const AnyTime = DiscardAnyTime
 
 export const Weapon: WritId = 'writ.mandate.1'
-/** A turn-in alternative for a vessel. */
 export const VesselMandate: WritId = 'writ.mandate.2'
-/** A turn-in alternative for shillings. */
 export const ShillingMandate: WritId = 'writ.mandate.5'
-/** A reward per guild: goods, shillings, a vessel. */
 export const FarmerMandate: WritId = 'writ.mandate.6'
-/** A reward per guild: influence, a seal, a bead. */
 export const KnightMandate: WritId = 'writ.mandate.8'
 export const Charter: WritId = 'writ.charter.monster-defeat'
 export const Charters: readonly WritId[] = [
@@ -39,7 +35,6 @@ export function alternativeOf(writId: WritId, printed: 1 | 2): MandateAlternativ
     return mandate.alternatives[printed - 1].id
 }
 
-/** Every good of this seat back in the haversack, keeping totals. */
 export function returnAllGoods(state: HydratedFeudumGameState, playerId: string): void {
     const { goods } = state.getPlayerState(playerId)
     for (const good of Goods) {

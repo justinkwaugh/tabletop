@@ -73,7 +73,7 @@ export function reasonSulfurToBarrelRefused(
         : 'Your barrel is full.'
 }
 
-/** R-4.10.2 How many more sulfur the barrel holds. */
+/** R-4.10.2 */
 export function barrelRoom(state: HydratedFeudumGameState, playerId: string): number {
     return WineBarrelCapacity - state.getPlayerState(playerId).barrel
 }

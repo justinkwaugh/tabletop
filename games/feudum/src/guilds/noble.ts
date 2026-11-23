@@ -18,7 +18,7 @@ import { flipTotals, reasonSealPicksRefused } from './sealFlips.js'
 
 export interface NobleTradeOffer {
     readonly price: number
-    /** R-4.6-H1 The scroll spaces holding a seal to buy. */
+    /** R-4.6-H1 */
     readonly scrollSpaces: readonly ScrollSpaceId[]
     readonly most: number
 }

@@ -4,13 +4,11 @@ interface DocFiles {
     readFileSync(path: URL, encoding: 'utf8'): string
 }
 
-/** The text of one of this package's `docs/` files, for specs that check data against them. */
 export async function readDoc(name: string): Promise<string> {
     const fs = await vi.importActual<DocFiles>('node:fs')
     return fs.readFileSync(new URL(`../../docs/${name}`, import.meta.url), 'utf8')
 }
 
-/** The lines under a heading, up to the next heading of the same or a higher level. */
 export function docSection(doc: string, heading: string): string[] {
     const lines = doc.split('\n')
     const start = lines.indexOf(heading)
@@ -26,7 +24,6 @@ export function docSection(doc: string, heading: string): string[] {
     return end < 0 ? rest : rest.slice(0, end)
 }
 
-/** The rows of the table directly under a heading, keyed by column title, cells bare of padding and backticks. */
 export function docTableRows(doc: string, heading: string): Record<string, string>[] {
     const section = docSection(doc, heading)
     const subheading = section.findIndex((line) => line.startsWith('#'))

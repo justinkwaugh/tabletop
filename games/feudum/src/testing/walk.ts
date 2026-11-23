@@ -44,15 +44,12 @@ import { locationKindOf } from '../model/locationDiscs.js'
 
 const engine = new GameEngine(FeudumRuntime)
 
-/** What a seat sends: an Action's input, with no id and nothing the engine fills in. */
 export type WalkMove = Record<string, unknown> & { type: ActionType; playerId: string }
 
 export interface WalkStep {
-    /** The input alone, as a client sends it. */
     readonly input: WalkMove & { id: string }
     readonly before: FeudumProjectedState
     readonly processed: readonly GameAction[]
-    /** The state after each processed Action, in step with `processed`. */
     readonly after: readonly FeudumProjectedState[]
 }
 
@@ -63,17 +60,14 @@ export interface GameWalk {
     readonly final: FeudumProjectedState
 }
 
-/** The most Actions a walk may send before it counts as stuck. */
 const MostMoves = 4000
 
-/** Seats' first pawns: a noble for Starve the People, farmers for inspecting a harvest. */
 const FirstCharacters: readonly GuildId[] = ['noble', 'farmer', 'farmer', 'monk', 'knight']
 const MigrantCharacters: readonly GuildId[] = ['farmer', 'noble', 'merchant', 'knight', 'monk']
 
 /** R-4.11.2 The epoch whose stacks show their last tiles. */
 const LastTileEpoch = 4
 
-/** What the walk has already done, so the seats turn to what it hasn't. */
 export class Progress {
     private readonly reached = new Set<string>()
 
@@ -101,12 +95,10 @@ export function walkCount(state: HydratedFeudumGameState): number {
     return state.actionCount - Math.max(0, revealed)
 }
 
-/** The regions whose stacks are nearly out: a location there can empty one. */
 function stackSize(state: HydratedFeudumGameState, spaceId: SpaceId): number {
     return state.regionStacks[regionOf(spaceId)].length
 }
 
-/** The location whose stack is shortest, keeping the walk moving towards the end of the game. */
 function bestImprovement(
     state: HydratedFeudumGameState,
     playerId: string
@@ -135,7 +127,6 @@ function improveMove(offer: ImproveOffer, playerId: string): WalkMove {
     }
 }
 
-/** A pawn goes where it can take a marker, the sooner where a stack is running short. */
 function spaceWorth(state: HydratedFeudumGameState, playerId: string, spaceId: SpaceId): number {
     const { location } = state.spaces[spaceId]
     const takesMarker = nextMarkerRole(state.spaces[spaceId], playerId) === undefined ? 0 : 3
@@ -147,7 +138,6 @@ function spaceWorth(state: HydratedFeudumGameState, playerId: string, spaceId: S
     )
 }
 
-/** The best way on offer for one piece; ties turn with the action count, so pawns spread out. */
 function bestStep(state: HydratedFeudumGameState, playerId: string, steps: readonly MoveStep[]) {
     const offers = moveOffers(state, playerId, { steps })
     if (offers.stepsLeft === 0) {
@@ -209,7 +199,6 @@ function pilferOf({ piece, from, resource }: PilferOffer): Pilfer {
     return { piece, from, resource }
 }
 
-/** What each card would do now, if anything worth a card. */
 export function cardMove(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -365,7 +354,6 @@ function waitsToStarve(
     )
 }
 
-/** What each card would do if the seat were on turn holding it, run on a copy. */
 function usefulCards(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -424,7 +412,6 @@ function favoursFrom({ drawn, favours }: ChooseFavoursOffer): GoodCounts {
     return taken
 }
 
-/** What the seat asked sends in each state that asks. */
 function moveOf(state: HydratedFeudumGameState, playerId: string, progress: Progress): WalkMove {
     switch (state.machineState) {
         case MachineState.ChoosingStartingGoods: {
@@ -545,12 +532,10 @@ function moveOf(state: HydratedFeudumGameState, playerId: string, progress: Prog
     }
 }
 
-/** What a seat asked anything but a card sends: the walk's own answer, for a spec playing on. */
 export function answerOf(state: HydratedFeudumGameState, playerId: string): WalkMove {
     return moveOf(state, playerId, new Progress())
 }
 
-/** Runs one user Action canonically. */
 function stepOf(game: Game, state: FeudumProjectedState, input: WalkStep['input']): WalkStep {
     const { processedActions, actionCascade } = engine.executeCanonicalAction({
         game,
@@ -565,7 +550,6 @@ function stepOf(game: Game, state: FeudumProjectedState, input: WalkStep['input'
     }
 }
 
-/** What seats want beyond the walk's own play: each ask goes to it first. */
 export interface WalkPlan {
     moveFor(
         state: HydratedFeudumGameState,
@@ -575,7 +559,6 @@ export interface WalkPlan {
     noted(step: WalkStep): void
 }
 
-/** User Actions only, each from the real offers, so the input alone replays the game. */
 export function walkGame(
     masterSeed: string,
     numPlayers = 3,
@@ -587,7 +570,6 @@ export function walkGame(
     return walkFrom(game, initial, plan)
 }
 
-/** Plays on from any complete state to the end of the game, by the same real offers. */
 export function walkFrom(game: Game, initial: FeudumProjectedState, plan?: WalkPlan): GameWalk {
     const progress = new Progress()
     const steps: WalkStep[] = []

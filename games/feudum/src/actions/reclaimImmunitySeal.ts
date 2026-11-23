@@ -65,7 +65,7 @@ export function reasonReclaimImmunitySealRefused(
         : 'No seal lies under a marker of yours there.'
 }
 
-/** R-3.14.2 A seal this seat could take back. */
+/** R-3.14.2 */
 export interface ReclaimImmunitySealOffer {
     readonly spaceId: SpaceId
     readonly role: StarveRole

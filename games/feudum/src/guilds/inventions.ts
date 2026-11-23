@@ -129,7 +129,6 @@ export interface InventionOffer {
     readonly invention: InventionChoice
     /** R-4.6.5 What one costs as the first of this action. */
     readonly goods: GoodCounts
-    /** Set when it cannot be made now. */
     readonly reason?: string
 }
 

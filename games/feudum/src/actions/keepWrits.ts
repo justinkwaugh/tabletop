@@ -153,7 +153,7 @@ export interface KeepWritsOffer {
     readonly shovelsAndSwords?: ShovelsOffer
 }
 
-/** R-4.4.1, R-3.10.2 What the drawer is deciding. */
+/** R-4.4.1, R-3.10.2 */
 export function keepWritsOffer(
     state: HydratedFeudumGameState,
     playerId: string

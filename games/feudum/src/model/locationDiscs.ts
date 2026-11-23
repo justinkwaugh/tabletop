@@ -42,7 +42,6 @@ function discsOfSupply(
 
 export interface DiscChoice {
     readonly discId: DiscId
-    /** What its other face shows; absent on a starting disc's plain back. */
     readonly other?: LocationKind
 }
 
@@ -96,7 +95,7 @@ function locationDisc(discId: DiscId): LocationDisc {
     return disc
 }
 
-/** R-4.1, R-4.8-H2 What the location shows, read from its disc. */
+/** R-4.1, R-4.8-H2 */
 export function locationKindOf(location: LocationState): LocationKind {
     const disc = locationDisc(location.discId)
     if (!('faces' in disc)) {

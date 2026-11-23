@@ -28,9 +28,8 @@ function movableToScrolls(state: HydratedFeudumGameState, cap: number): number {
 }
 
 export interface RowsToScrollsOffer {
-    /** R-4.6.1 The most markers that can move now. */
+    /** R-4.6.1 */
     readonly movable: number
-    /** Each row holding a marker, by its id. */
     readonly knightRows: readonly KnightRowId[]
     readonly scrollSpaces: readonly ScrollSpaceId[]
 }
@@ -101,7 +100,7 @@ export interface RowsToScrollsRules {
         move: RowsToScrollsMove,
         params: GuildFunctionParams
     ): { readonly details: GuildFunctionDetails; readonly completions: number }
-    /** R-4.6.1 The level the best lines reach. */
+    /** R-4.6.1 */
     reached(lines: number): number
 }
 

@@ -9,7 +9,7 @@ import {
     VesselTypeSchema
 } from '../model/stateSchemas.js'
 
-/** R-4.6.1 Which of a function's two counts scored. */
+/** R-4.6.1 */
 export type CompletionCount = Type.Static<typeof CompletionCount>
 export const CompletionCount = Type.Union([Type.Literal('rows'), Type.Literal('columns')])
 

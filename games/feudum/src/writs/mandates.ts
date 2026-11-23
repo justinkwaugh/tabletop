@@ -55,5 +55,5 @@ function registrationOf(mandate: Mandate): MandateRegistration | WeaponRegistrat
     }
 }
 
-/** R-4.4.2 The eight mandates. */
+/** R-4.4.2 */
 export const MandateRegistrations = Mandates.map(registrationOf)

@@ -191,7 +191,7 @@ export function commitAttackOffer(
 export interface CommitAttackPreview {
     readonly refused?: string
     readonly strength: CombatStrength
-    /** R-3.13.1 What it scores as things would stand. */
+    /** R-3.13.1 */
     readonly vp: number
 }
 

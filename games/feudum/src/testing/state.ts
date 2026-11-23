@@ -46,7 +46,6 @@ export function testGame(numPlayers = 4, seed = 123): Game {
     }
 }
 
-/** A game as the engine hands it to its first seat, on both random streams, for specs. */
 export function initialState(numPlayers = 4, seed = 123): HydratedFeudumGameState {
     const game = testGame(numPlayers, seed)
     const state: UninitializedGameState = {
@@ -67,7 +66,6 @@ export function initialState(numPlayers = 4, seed = 123): HydratedFeudumGameStat
     return gameState
 }
 
-/** A hydrated host-side state as complete canonical data, for specs that read concealed fields. */
 export function canonicalOf(state: HydratedFeudumGameState): FeudumGameState {
     const data = state.dehydrate()
     assert(FeudumGameStateValidator.Check(data), 'A host-side state is complete')
@@ -88,7 +86,6 @@ export function coverService(
     }
 }
 
-/** A game as initialization leaves it, as complete canonical data. */
 export function canonicalState(numPlayers = 4, seed = 123): FeudumGameState {
     return canonicalOf(initialState(numPlayers, seed))
 }

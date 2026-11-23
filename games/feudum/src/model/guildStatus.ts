@@ -17,9 +17,7 @@ export type RankChange = Type.Static<typeof RankChange>
 export const RankChange = Type.Object({
     guildId: GuildIdSchema,
     playerId: Type.String(),
-    /** Absent: was not a member. */
     from: Type.Optional(Type.Enum(GuildRanks)),
-    /** Absent: no longer a member. */
     to: Type.Optional(Type.Enum(GuildRanks)),
     /** R-4.7 */
     reeveReturned: Type.Optional(Type.Literal(true))
@@ -111,7 +109,7 @@ function rankGuild(state: HydratedFeudumGameState, guildId: GuildId, order: stri
     return true
 }
 
-/** R-4.5 The net change of one guild's track. */
+/** R-4.5 */
 function trackChanges(
     guildId: GuildId,
     before: GuildTrack,
@@ -144,8 +142,8 @@ export function recomputeRanks(
 ): RankChange[] {
     const order = tieOrder(state, actingPlayerId)
     const before = GuildIds.map((guildId) => state.guilds.tracks[guildId])
-    while (GuildIds.some((guildId) => rankGuild(state, guildId, order))) {
-        // Each pass changed one track.
+    for (let changed = true; changed;) {
+        changed = GuildIds.some((guildId) => rankGuild(state, guildId, order))
     }
     return GuildIds.flatMap((guildId, index) =>
         trackChanges(guildId, before[index], state.guilds.tracks[guildId], order)

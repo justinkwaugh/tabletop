@@ -6,7 +6,6 @@ export function plural(count: number, one: string, many = `${one}s`): string {
     return `${count} ${count === 1 ? one : many}`
 }
 
-/** An id's words: a medium's, a vessel's, a monster's, a landscape's or a guild function's. */
 export function spaced(id: string): string {
     return id.replaceAll('-', ' ')
 }

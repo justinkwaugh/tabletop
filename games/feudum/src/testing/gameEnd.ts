@@ -7,7 +7,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { epochAt } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
-/** R-6.2 What `ScoreGame` recorded in a cascade. */
+/** R-6.2 */
 export function scoredIn(processed: readonly GameAction[]): ScoreGameMetadata {
     const action = processed.find((row) => isScoreGame(row))
     assertExists(action?.metadata, 'R-6.2 The game was scored')

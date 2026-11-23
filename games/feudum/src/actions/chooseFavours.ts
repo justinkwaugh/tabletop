@@ -84,9 +84,9 @@ export function reasonChooseFavoursRefused(
 export interface ChooseFavoursOffer {
     readonly spaceId: SpaceId
     readonly drawn: Readonly<GoodCounts>
-    /** R-3.11.2 How many to take. */
+    /** R-3.11.2 */
     readonly favours: number
-    /** R-3.11.2 The beads that taking them would flip. */
+    /** R-3.11.2 */
     readonly beads: number
     /** R-4.10.2 How many sulfur taken could go in the barrel. */
     readonly sulfurToBarrel: number

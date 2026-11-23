@@ -59,7 +59,6 @@ export function setJourneyman(
     state.recomputeRanks(playerId)
 }
 
-/** Moves goods between a place and the haversack, keeping totals. */
 function setGoods(state: HydratedFeudumGameState, place: GoodCounts, amounts: GoodAmounts): void {
     for (const good of Goods) {
         const target = amounts[good] ?? 0
@@ -80,7 +79,6 @@ export function setFarmGoods(
     setGoods(state, state.spaces[spaceId].goods, amounts)
 }
 
-/** Each bin filled to this many spaces, the rest empty, keeping totals. */
 export function setMarket(state: HydratedFeudumGameState, filled: GoodAmounts): void {
     for (const { id, good, space } of MarketSpaces) {
         const wanted = space <= (filled[good] ?? 0)
@@ -90,7 +88,6 @@ export function setMarket(state: HydratedFeudumGameState, filled: GoodAmounts): 
     }
 }
 
-/** Each cart filled to this many spaces, the rest empty, keeping totals. */
 export function setCarts(state: HydratedFeudumGameState, filled: GoodAmounts): void {
     for (const { id, good, space } of AlchemistCartSpaces) {
         const wanted = space <= (filled[good] ?? 0)
@@ -100,7 +97,6 @@ export function setCarts(state: HydratedFeudumGameState, filled: GoodAmounts): v
     }
 }
 
-/** The seat holds exactly this many shillings, keeping totals. */
 export function setShillings(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -111,7 +107,6 @@ export function setShillings(
     player.shillings = shillings
 }
 
-/** Exactly these vessels are for sale, the rest in the general supply. */
 export function setVesselsForSale(
     state: HydratedFeudumGameState,
     vessels: readonly VesselType[]
@@ -126,7 +121,6 @@ export function setVesselsForSale(
     alchemist.vesselsForSale = [...vessels]
 }
 
-/** Each Knight row, in order, holds this many markers, keeping totals. */
 export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly number[]): void {
     knightRows(state).forEach((entry, index) => {
         const { row } = entry
@@ -136,7 +130,6 @@ export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly 
     })
 }
 
-/** A seal of this value out of the pile, swapped off a scroll first if one lies there. */
 function takeSealOfValue(state: HydratedFeudumGameState, value: BeadValue): SealId {
     const vault = state.requireVault()
     const ofValue = Seals.filter((seal) => seal.beadValue === value).map((seal) => seal.id)
@@ -206,7 +199,6 @@ export function setScrollSeal(
     vault.scrollSeals[spaceId] = takeSealOfValue(state, value)
 }
 
-/** The general supply holds this many seals; the rest go to this seat, keeping totals. */
 export function setSealPile(state: HydratedFeudumGameState, playerId: string, count: number): void {
     while (state.supply.sealPileCount > count) {
         moveConcealedSeal(state, { kind: 'pile' }, { kind: 'held', playerId })
@@ -235,7 +227,7 @@ export function tableAtGuild(
     return { table, playerId, others }
 }
 
-/** R-3.16.1 A farm the seat rules, holding these goods. */
+/** R-3.16.1 */
 export function ruleFarm(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -247,7 +239,6 @@ export function ruleFarm(
     return spaceId
 }
 
-/** What an Action records for the history, as text: its metadata, without the engine's patches. */
 export function recordedText(action: GameAction): string {
     return 'metadata' in action ? JSON.stringify(action.metadata) : ''
 }

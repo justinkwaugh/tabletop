@@ -36,7 +36,7 @@ import {
 export type TendLandscapeMetadata = Type.Static<typeof TendLandscapeMetadata>
 export const TendLandscapeMetadata = Type.Object({
     landscape: LandscapeKindSchema,
-    /** R-4.3.4, R-1.1-H1 What the fill found in its supply. */
+    /** R-4.3.4, R-1.1-H1 */
     filled: ComponentCount,
     vp: Type.Integer({ minimum: 0 }),
     /** R-4.3.4 Absent: left where it lay. */
@@ -225,7 +225,7 @@ export class HydratedTendLandscape
         }
     }
 
-    /** R-3.9.3 What the card prints for its special. */
+    /** R-3.9.3 */
     private static tendVp(): number {
         const { vp } = cardOf('improve').special
         assertExists(vp, 'R-3.9.3 Tend Landscape prints its vp')

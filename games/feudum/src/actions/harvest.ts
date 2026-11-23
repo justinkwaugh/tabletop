@@ -132,7 +132,7 @@ export interface HarvestFarmOffer {
 
 export interface HarvestOffers {
     readonly farms: readonly HarvestFarmOffer[]
-    /** R-3.11.2 The beads that favours would flip. */
+    /** R-3.11.2 */
     readonly beads: number
     /** R-3.11.3 */
     readonly inspect: boolean
@@ -243,7 +243,7 @@ export class HydratedHarvest extends HydratableAction<typeof Harvest> implements
         }
     }
 
-    /** R-3.11.1 What the card prints. */
+    /** R-3.11.1 */
     private static harvestVp(): number {
         const { vp } = cardOf('harvest')
         const points = vp === 'variable' ? undefined : vp?.at(0)

@@ -9,7 +9,7 @@ import { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf, RankChange } from '../model/guildStatus.js'
 import { GuildIdSchema, SpaceIdSchema } from '../model/stateSchemas.js'
 
-/** R-1.4.9 The printed starting spaces. */
+/** R-1.4.9 */
 export const StartingSpaceIds: readonly SpaceId[] = Spaces.filter(
     (space) => space.startingSpace
 ).map((space) => space.id)

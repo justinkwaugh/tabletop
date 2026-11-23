@@ -21,7 +21,6 @@ import { knightRow, knightRows } from './knightRows.js'
 export type ConservedComponent =
     'goods' | 'shillings' | 'markers' | 'vessels' | 'targets' | 'seals' | 'discs' | 'tiles'
 
-/** One total that does not add up; `part` names the good, colour or count when there are several. */
 export interface ConservationBreak {
     readonly component: ConservedComponent
     readonly part?: string
@@ -38,7 +37,7 @@ function total(
     return found === expected ? [] : [{ component, expected, found, ...(part ? { part } : {}) }]
 }
 
-/** Every id of a catalogue lies in exactly one place. */
+/** R-1.1 Every id of a catalogue lies in exactly one place. */
 function identities(
     component: ConservedComponent,
     catalogue: readonly string[],
@@ -102,7 +101,6 @@ function shillingsFound(state: FeudumGameState): number {
     ])
 }
 
-/** The markers a seat has out of its supply, apart from those in a Knight row. */
 function markersPlaced(state: FeudumGameState, playerId: string): number {
     const { tracks } = state.guilds
     return sum([

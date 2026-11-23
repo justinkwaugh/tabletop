@@ -1,7 +1,7 @@
 import type { GuildId } from './components.js'
 import type { ProvisionalEntry } from './provisional.js'
 
-/** R-4.6.2 What receives a guild's apprentice share. */
+/** R-4.6.2 */
 export type CharityId = 'guild.farmer.purse' | 'guild.monk.coffer'
 
 const Charity = {

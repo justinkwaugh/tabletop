@@ -26,9 +26,7 @@ const Triggers: Readonly<
 
 export interface DawnTable {
     readonly table: Table
-    /** The turn order the dawn saw; the next round can change the table's. */
     readonly order: readonly string[]
-    /** What the last card set off, and each feeding nourishing waited on: the roll, the dawn, as far as it runs. */
     readonly processed: GameAction[]
 }
 
@@ -59,11 +57,8 @@ export function playToDawn(
 
 export interface LandscapePlacing {
     readonly rulerId: string
-    /** With none, the landscape is untended. */
     readonly serfId?: string
-    /** With none, whichever first-epoch tile is on top: only two of a kind show at once. */
     readonly kind?: LandscapeKind
-    /** Whether a first fill lies on it already. */
     readonly filled?: boolean
     readonly except?: readonly SpaceId[]
 }

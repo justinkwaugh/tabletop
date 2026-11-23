@@ -13,7 +13,6 @@ import { drawWrits } from '../model/writDeck.js'
 import { setUp } from './improving.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
-/** Where `tableAtHandSelection` stands every seat's first pawn. */
 export const Battlefield: SpaceId = 'space.desert.3'
 
 const AttackerHand: ActionCardKind[] = ['conquer', 'move', 'tax']

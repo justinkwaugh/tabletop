@@ -6,7 +6,6 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { removeTopTile, stackTop } from '../model/regionStacks.js'
 import type { Table } from './table.js'
 
-/** A stack's top: a tile of this epoch, or 'V' for the stack gone empty. */
 export type StackShowing = TileEpoch | 'V'
 
 /** R-4.3.1 One entry per region, left to right; each stack only ever gets shorter. */

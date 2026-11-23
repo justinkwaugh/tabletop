@@ -1,7 +1,6 @@
 import { ProvisionalCards } from './provisional.cards.js'
 import { ProvisionalGuilds } from './provisional.guilds.js'
 
-/** The specs that assert a printed value once it is confirmed. */
 export type DataBlockedSpec =
     | 'alchemist.spec.ts'
     | 'charters.spec.ts'
@@ -18,7 +17,6 @@ export interface ProvisionalEntry<T = unknown> {
     readonly value: string
     readonly placeholder: T
     readonly settledBy: string
-    /** The ruling that governs the placeholder, when one does. */
     readonly ruling?: string
     readonly dataBlockedIn: readonly DataBlockedSpec[]
 }

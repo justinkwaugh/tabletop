@@ -68,7 +68,6 @@ export function routeBetween(from: SpaceId, to: SpaceId, medium: RouteMedium): R
     return routesAt(from).find((route) => route.medium === medium && routeEnd(route, from) === to)
 }
 
-/** One step a piece may take. `vessel` names a vessel it must take up to go; none: it needs none, or is aboard. */
 export interface RouteStep {
     readonly route: Route
     readonly to: SpaceId

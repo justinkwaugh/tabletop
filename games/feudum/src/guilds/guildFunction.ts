@@ -107,7 +107,6 @@ export const GuildFunctionOutcome = Type.Object({
     rankChanges: Type.Array(RankChange)
 })
 
-/** What a function's own rule did, before the base scores it. */
 export interface PerformedFunction {
     readonly details: GuildFunctionDetails
     readonly completions?: number
@@ -143,7 +142,6 @@ export interface SealFlipPreview {
     readonly ifLowest: ScoringPreview
 }
 
-/** What a function's own rule says it would do. A function adds its optional facts here. */
 export interface PreviewedFunction {
     readonly completions?: number
     readonly rows?: number
@@ -154,7 +152,6 @@ export interface PreviewedFunction {
     readonly trade?: TradePreview
     readonly beadDraw?: BeadDrawPreview
     readonly sealFlip?: SealFlipPreview
-    /** What it would record, for a function that draws nothing and whose record says it all. */
     readonly details?: GuildFunctionDetails
 }
 

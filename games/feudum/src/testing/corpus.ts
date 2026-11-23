@@ -32,8 +32,6 @@ import { cardTurnSeat } from '../model/turns.js'
 import { locationKindOf } from '../model/locationDiscs.js'
 import { goodsTotal } from '../model/collections.js'
 
-/** The components the corpus sweeps go through: the reach sweep's routes and the playthrough's. */
-
 export const registered = writRegistry.registrations()
 
 export function isTiming<Timing extends WritRegistration['timing']>(timing: Timing) {
@@ -91,7 +89,7 @@ export function setStars(state: HydratedFeudumGameState, seat: string, guild?: G
     }
 }
 
-/** R-4.4.3, R-6.2 What a charter met in full pays. */
+/** R-4.4.3, R-6.2 */
 export const TopScore: Readonly<Record<CharterId, number>> = {
     'writ.charter.sulfur-barrel': 7,
     'writ.charter.eastern-kingdom': 9,
@@ -108,10 +106,8 @@ export const CharterCases = registered
     .map(({ writId }) => ({ writId, vp: TopScore[writId] }))
 
 /** R-4.4.4 What takes a seat holding one charter over the writ limit. */
-/** A card play as `Table.send` takes it. */
 export type CardMove = Record<string, unknown> & { type: ActionType }
 
-/** One way to use a card on its owner's turn, whichever route brought the card there. */
 export interface CardCase {
     readonly name: string
     readonly rule: string
@@ -119,7 +115,6 @@ export interface CardCase {
     readonly use: 'regular' | 'special'
     arrange(state: HydratedFeudumGameState, seat: string, rival: string): void
     move(state: HydratedFeudumGameState, seat: string, rival: string): CardMove
-    /** Decides what the play asks before its card is done. */
     answer?(table: Table, seat: string, rival: string): void
     /** R-3.4 Its effect shows, and what a special left of the regular action. */
     fired(
@@ -590,7 +585,6 @@ export const Replays = CardCases.filter(
 
 export const RivalHand: ActionCardKind[] = ['tax', 'harvest', 'explore', 'influence']
 
-/** Cards the seat holds only so the one under test is never its last. */
 export function fillersBeside(kind: ActionCardKind): ActionCardKind[] {
     return RivalHand.filter((filler) => filler !== kind).slice(0, 2)
 }

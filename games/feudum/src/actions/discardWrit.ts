@@ -10,7 +10,7 @@ import { putWritsUnderUnseen } from '../model/writDeck.js'
 
 export type DiscardWritMetadata = Type.Static<typeof DiscardWritMetadata>
 export const DiscardWritMetadata = Type.Object({
-    /** R-4.4.4, R-5.1 The slot it took under the deck. */
+    /** R-4.4.4, R-5.1 */
     slot: ComponentCount
 })
 

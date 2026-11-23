@@ -10,7 +10,6 @@ export type DiscFace = 'a' | 'b'
 export interface StartingDisc {
     readonly id: `disc.start.${number}`
     readonly kind: Exclude<LocationKind, 'feudum'>
-    /** The ringed back: this disc goes on a starting space. */
     readonly circleMark: boolean
 }
 

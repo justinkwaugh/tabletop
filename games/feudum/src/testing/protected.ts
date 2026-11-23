@@ -26,7 +26,6 @@ export function seedOf(n: number): string {
     return n.toString(16).padStart(32, '0')
 }
 
-/** Real games at 2 to 5 seats that between them reach every hidden draw, flip and return. */
 const RealGames = [
     { seed: seedOf(12), numPlayers: 2 },
     { seed: seedOf(8), numPlayers: 3 },
@@ -45,7 +44,6 @@ export function started({ game }: Tabled): Game {
     return { ...game, protectedInformation: true }
 }
 
-/** Every seat and a spectator. */
 export function perspectivesOf({ game }: Tabled): Visibility.Perspective[] {
     return [
         Spectator,
@@ -122,7 +120,6 @@ export function runGuarded(
     }
 }
 
-/** One processed Action with the states either side of it. */
 export interface Transition {
     readonly action: GameAction
     readonly before: FeudumGameState
@@ -130,7 +127,6 @@ export interface Transition {
     readonly step: WalkStep
 }
 
-/** A step's Actions, each between the host states it went from and to. */
 export function transitionsOfStep(step: WalkStep): Transition[] {
     let before = canonical(step.before)
     return step.processed.map((action, index) => {
@@ -197,7 +193,6 @@ export function withoutOwnerKnown(view: FeudumProjectedState): FeudumProjectedSt
     return bare
 }
 
-/** The canonical table with exactly what `perspective` may not see taken away. */
 export function withoutConcealed(
     state: FeudumGameState,
     perspective: Visibility.Perspective

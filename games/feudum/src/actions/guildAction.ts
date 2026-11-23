@@ -109,7 +109,6 @@ export function guildActionOffers(
 }
 
 export type GuildActionPreview = GuildFunctionPreview & {
-    /** Set while the staged input would still be refused. */
     readonly refused?: string
 }
 

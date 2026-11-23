@@ -28,7 +28,7 @@ function markersInRow(state: HydratedFeudumGameState, playerId: string): number 
     return seatRow(state, playerId)?.markers ?? 0
 }
 
-/** R-4.6.3 What taming this monster returns. */
+/** R-4.6.3 */
 function tameCost(monster: MonsterId): number {
     const icon = KnightMonsterIcons.find((row) => row.monster === monster)
     assertExists(icon, `R-4.2.4 ${monster} has an icon`)

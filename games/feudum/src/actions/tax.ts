@@ -22,7 +22,7 @@ const TaxBaseShillings = 2
 
 export type TaxMetadata = Type.Static<typeof TaxMetadata>
 export const TaxMetadata = Type.Object({
-    /** R-3.12.1, R-1.1-H1 What the supply paid. */
+    /** R-3.12.1, R-1.1-H1 */
     shillings: Type.Integer({ minimum: 0 }),
     /** R-3.12.2 Where the marker came from; absent: none was taken. */
     reinforcements: Type.Optional(
@@ -61,7 +61,6 @@ export function taxShillings(state: HydratedFeudumGameState, playerId: string): 
     return TaxBaseShillings + others.length - 1
 }
 
-/** What a Tax press says beside the card. */
 export type TaxInput = CardPlayInput & Pick<Tax, 'collect'>
 
 /** R-3.12.2 Where the seat's marker would come from: the general supply, else its own Knight row. */

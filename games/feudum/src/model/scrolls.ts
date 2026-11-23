@@ -51,7 +51,6 @@ export function scrollLinesCompleted(
     }
 }
 
-/** Every way to pick `size` of these. */
 function picks(spaces: readonly ScrollSpaceId[], size: number): ScrollSpaceId[][] {
     if (size === 0) {
         return [[]]

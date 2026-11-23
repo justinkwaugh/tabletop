@@ -36,7 +36,7 @@ export function currentFollowUp(state: HydratedFeudumGameState): FollowUp | unde
     return [...pending].sort((a, b) => FollowUpRank[a.kind] - FollowUpRank[b.kind]).at(0)
 }
 
-/** R-3.2 The follow-up being decided is done. */
+/** R-3.2 */
 export function finishFollowUp(state: HydratedFeudumGameState): void {
     const followUp = currentFollowUp(state)
     assertExists(followUp, 'R-3.2 A follow-up is being decided')

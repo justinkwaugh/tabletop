@@ -165,7 +165,7 @@ export class HydratedFeudumGameState
         )
     }
 
-    /** R-4.5.1 Derived. */
+    /** R-4.5.1 */
     statusStars(playerId: string, guildId: GuildId): number {
         return statusStars(this, playerId, guildId)
     }

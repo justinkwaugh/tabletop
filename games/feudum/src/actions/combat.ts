@@ -40,7 +40,7 @@ const DefenceRecord = Type.Object({
     total: ComponentCount
 })
 
-/** R-4.8.3 What a win took off the board. */
+/** R-4.8.3 */
 const ConqueredPiece = Type.Union([
     Type.Object({
         kind: Type.Literal('pawn'),
@@ -54,10 +54,10 @@ const ConqueredPiece = Type.Union([
     Type.Object({ kind: Type.Literal('monster'), monsterId: MonsterIdSchema }),
     Type.Object({
         kind: Type.Literal('feudum'),
-        /** R-4.8-H2 The disc that now shows the outpost. */
+        /** R-4.8-H2 */
         discId: DiscIdSchema,
         markersHome: Type.Array(Type.Object({ playerId: Type.String(), count: ComponentCount })),
-        /** R-4.8.3 The attacking serf, now ruling the outpost. */
+        /** R-4.8.3 */
         newRulerId: Type.Optional(Type.String())
     })
 ])

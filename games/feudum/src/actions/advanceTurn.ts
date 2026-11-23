@@ -16,12 +16,11 @@ export const AdvanceTurnMetadata = Type.Object({
     outcome: Type.Union([
         /** R-3.3-H1 The same seat plays the card it declared. */
         Type.Literal('second-card'),
-        /** R-3.2, R-3.2-H1 The next seat holding a card. */
+        /** R-3.2, R-3.2-H1 */
         Type.Literal('next-seat'),
         /** R-3.2 Nobody holds a card. */
         Type.Literal('last-card')
     ]),
-    /** The seat on turn after this; absent on `last-card`. */
     turnPlayerId: Type.Optional(Type.String())
 })
 

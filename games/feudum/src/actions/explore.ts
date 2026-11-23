@@ -76,7 +76,7 @@ export function reasonExploreRefused(
 }
 
 export interface ExploreOffer {
-    /** R-4.4-H2 What the deck will give. */
+    /** R-4.4-H2 */
     readonly drawCount: number
     readonly keep: number
     /** R-X.2 */

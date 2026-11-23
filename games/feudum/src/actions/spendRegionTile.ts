@@ -40,7 +40,7 @@ export interface SpendRegionTileInput {
 /** R-4.3.3 A tile the seat may spend, and what for. */
 export interface SpendRegionTileOffer {
     readonly tileId: TileId
-    /** R-4.3-H2 The goods the haversack holds. */
+    /** R-4.3-H2 */
     readonly goods: readonly Good[]
     /** R-4.10.2 Whether a sulfur could go straight into the barrel. */
     readonly sulfurToBarrel: boolean

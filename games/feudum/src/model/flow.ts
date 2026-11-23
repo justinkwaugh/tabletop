@@ -27,7 +27,6 @@ export const FollowUp = Type.Union([
     Type.Object({ kind: Type.Literal('inspect-harvest') }, { additionalProperties: false })
 ])
 
-/** A pawn is (playerId, n); a monster is its id. */
 export type PieceRef = Type.Static<typeof PieceRef>
 export const PieceRef = Type.Union([
     Type.Object({
@@ -50,7 +49,7 @@ export const WritDrawSource = Type.Union([
 export type StarveRole = Type.Static<typeof StarveRole>
 export const StarveRole = Type.Union([Type.Literal('subject'), Type.Literal('serf')])
 
-/** R-3.13.1 What a Conquer aims at. */
+/** R-3.13.1 */
 export type CombatTarget = Type.Static<typeof CombatTarget>
 export const CombatTarget = Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })])
 

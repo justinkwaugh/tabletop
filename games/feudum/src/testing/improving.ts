@@ -16,7 +16,6 @@ import { regionOf } from '../model/collections.js'
 
 const ImproveHand: ActionCardKind[] = ['improve', 'move', 'tax', 'guild']
 
-/** Moves goods out of the haversack, keeping totals. */
 export function giveGood(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -32,7 +31,6 @@ export function giveSeal(state: HydratedFeudumGameState, playerId: string): void
     moveConcealedSeal(state, { kind: 'pile' }, { kind: 'held', playerId })
 }
 
-/** The first space on the board showing this location, or nothing. */
 export function spaceOfKind(
     state: HydratedFeudumGameState,
     kind: LocationKind,
@@ -45,7 +43,6 @@ export function spaceOfKind(
     return space.id
 }
 
-/** Edits the table in place, as a spec's starting position. */
 export function setUp(table: Table, edit: (state: HydratedFeudumGameState) => void): void {
     table.moveTo((state) => {
         edit(state)

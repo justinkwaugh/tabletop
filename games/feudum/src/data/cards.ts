@@ -49,7 +49,6 @@ export interface SpecialAbility {
     readonly needs: readonly SpecialNeed[]
     readonly mode: SpecialMode
     readonly effect: string
-    /** The vp the ability prints in place of the card's; null when it prints none. */
     readonly vp: number | null
 }
 
@@ -57,7 +56,6 @@ export interface ActionCard {
     readonly id: ActionCardId
     readonly kind: ActionCardKind
     readonly printedName: string
-    /** One per colour. */
     readonly count: number
     readonly symbols: CardSymbols
     readonly vp: PrintedVp | null

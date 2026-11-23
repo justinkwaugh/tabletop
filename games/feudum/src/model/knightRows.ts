@@ -4,7 +4,7 @@ import { FeudumColors } from '../definition/colors.js'
 import type { FeudumGameState } from './gameState.js'
 import type { KnightRow, KnightRowOwner } from './guildsState.js'
 
-/** R-1.3 A row in play, with its id. */
+/** R-1.3 */
 export interface KnightRowEntry {
     readonly rowId: KnightRowId
     readonly row: KnightRow
@@ -23,7 +23,7 @@ export function knightRows(state: KnightRowsHolder): KnightRowEntry[] {
     })
 }
 
-/** R-1.3 A row in play, by its id. */
+/** R-1.3 */
 export function knightRow(state: KnightRowsHolder, rowId: KnightRowId): KnightRow {
     const row = state.guilds.knight.rows[rowId]
     assertExists(row, `R-1.3 Knight row ${rowId} is in play`)

@@ -24,7 +24,6 @@ import { cardTurnSeat } from '../model/turns.js'
 import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 import { askCardTurn, stateAfterAdvance, stateAfterCardStep } from './cardTurns.js'
 
-/** A card play's hydrated Action. A new card adds its class here. */
 type HydratedCardPlay =
     | HydratedForfeitCard
     | HydratedPlayDefend

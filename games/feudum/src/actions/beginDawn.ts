@@ -22,7 +22,7 @@ import { epochNumber } from '../model/tracks.js'
 
 export type BeginDawnMetadata = Type.Static<typeof BeginDawnMetadata>
 export const BeginDawnMetadata = Type.Object({
-    /** R-4.12 The sunray the marker moved to. */
+    /** R-4.12 */
     epoch: TriggeredEpoch,
     /** R-4.12.1, R-4.12.2 One row per seat, in turn order. */
     sheet: Type.Array(DawnSheetRow),

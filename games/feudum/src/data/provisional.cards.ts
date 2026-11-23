@@ -1,6 +1,5 @@
 import type { ProvisionalEntry } from './provisional.js'
 
-/** Marks on the Royal Writs that no picture shows legibly. */
 export const ProvisionalCards = {
     northernKingdomSpaces: {
         componentId: 'writ.charter.northern-kingdom',

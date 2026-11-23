@@ -45,7 +45,6 @@ export const DawnSheetRow = Type.Object({
     }),
     /** R-4.9.2 Negative, or 0. */
     disloyaltyVp: Type.Integer({ maximum: 0 }),
-    /** What the row moved the seat's score by. */
     total: Type.Integer()
 })
 

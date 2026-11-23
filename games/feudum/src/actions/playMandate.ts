@@ -51,7 +51,7 @@ export const MandateReceived = Type.Union([
 
 export type PlayMandateMetadata = Type.Static<typeof PlayMandateMetadata>
 export const PlayMandateMetadata = Type.Object({
-    /** R-4.4.2, R-5.1 The slot it took under the deck. */
+    /** R-4.4.2, R-5.1 */
     slot: ComponentCount,
     received: MandateReceived,
     /** R-4.5-H1, R-4.5-H3 None while nourishing: the recompute that ends it records them. */
@@ -68,7 +68,7 @@ export const PlayMandate = Type.Evaluate(
             metadata: Type.Optional(PlayMandateMetadata),
             /** R-4.4.2 Public: a played writ is shown. */
             writId: WritIdSchema,
-            /** R-4.4.2 A turn-in mandate's printed alternative. */
+            /** R-4.4.2 */
             alternative: Type.Optional(MandateAlternativeIdSchema),
             /** R-4.4.2 Instead of an alternative: the guild whose reward a guild-status mandate takes. */
             rewardGuild: Type.Optional(GuildIdSchema),
@@ -177,7 +177,7 @@ export interface PlayMandateOffer {
     readonly vessel?: VesselType
     readonly turnedIn: readonly Good[]
     readonly reward: TakenReward
-    /** R-X.2 Whether the press stages. */
+    /** R-X.2 */
     readonly revealsInfo: boolean
     /** R-4.3.3 The seat's goods fall short and its tiles can bring the rest. */
     readonly wildTileNeeded: boolean

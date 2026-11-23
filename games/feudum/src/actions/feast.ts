@@ -233,7 +233,6 @@ export type FeastPreview = GuildFunctionPreview & {
     readonly fn: GuildFunctionName
     /** R-3.16.3, R-3.16-H2 Added to the function's `points`. */
     readonly feastPoints: number
-    /** Set while the staged input would still be refused. */
     readonly refused?: string
 }
 

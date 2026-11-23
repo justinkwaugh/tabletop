@@ -43,7 +43,6 @@ import {
 
 const engine = new GameEngine(FeudumRuntime)
 
-/** The Action types that play one card, each by what the card would do now. */
 const CardOfAction: Partial<Readonly<Record<string, ActionCardKind>>> = {
     [ActionType.Influence]: 'influence',
     [ActionType.Explore]: 'explore',
@@ -65,7 +64,6 @@ export class CompleteGameSeats implements WalkPlan {
     private readonly game
     private readonly random: RandomFunction
     private readonly taken = new Set<string>()
-    /** Where the game stood at the last Action, for naming a stall. */
     lastReached = 'the start'
 
     constructor(masterSeed: string, numPlayers: number) {
@@ -103,7 +101,6 @@ export class CompleteGameSeats implements WalkPlan {
         this.lastReached = `${reached.machineState} at epoch ${reached.epoch}, action ${reached.actionCount}`
     }
 
-    /** One Action of this type from the real offers, if the seat has one worth sending. */
     private moveOfType(
         type: string,
         state: HydratedFeudumGameState,
@@ -181,7 +178,6 @@ export class CompleteGameSeats implements WalkPlan {
             : move
     }
 
-    /** A walk move's cards, read against the printed cards, in the order the move holds them. */
     private static cardKindsOf(value: unknown): ActionCardKind[] {
         const listed: unknown[] = Array.isArray(value) ? value : []
         return listed.flatMap((card) =>
@@ -190,7 +186,6 @@ export class CompleteGameSeats implements WalkPlan {
     }
 }
 
-/** A whole game by the scripted seats; a stall throws, naming the seed and where it stood. */
 export function completeGame(masterSeed: string, numPlayers: number): GameWalk {
     const seats = new CompleteGameSeats(masterSeed, numPlayers)
     try {
@@ -203,7 +198,6 @@ export function completeGame(masterSeed: string, numPlayers: number): GameWalk {
     }
 }
 
-/** A replay from storage: the initial state and history as text, a fresh engine, user Actions only. */
 export interface PersistedReplay {
     readonly cascades: readonly number[]
     readonly processed: readonly GameAction[]
@@ -239,7 +233,6 @@ export function persistedReplay(walk: GameWalk): PersistedReplay {
     return { cascades, processed, final: state }
 }
 
-/** One perspective's replay of a whole game: what ran from its view and what waited for the host. */
 export interface ProjectedReplay {
     readonly final: FeudumProjectedState
     /** R-5.1 The Action types this seat's view ran, and those that deferred to the host. */

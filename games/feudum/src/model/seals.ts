@@ -27,7 +27,7 @@ export type BeadPlace =
     | { kind: 'rosary' }
     | { kind: 'chicken'; space: ChickenSpaceId }
 
-/** R-3.14.2 The vault's key for a Royal Immunity seal. */
+/** R-3.14.2 */
 export function immunityKey(spaceId: SpaceId, role: ImmunityRole): string {
     return `${spaceId}.${role}`
 }

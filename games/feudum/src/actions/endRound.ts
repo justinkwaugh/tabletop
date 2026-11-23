@@ -14,7 +14,7 @@ export const EndRoundMetadata = Type.Object({
     startingPlayerId: Type.String(),
     /** R-3.3 */
     pouchesPaid: Type.Array(Type.Object({ playerId: Type.String(), good: PouchGood })),
-    /** R-4.10.2 The drunk pawns whose sulfur went back. */
+    /** R-4.10.2 */
     sobered: Type.Array(Type.Object({ playerId: Type.String(), n: PawnNumberSchema }))
 })
 

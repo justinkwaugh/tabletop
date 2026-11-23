@@ -4,7 +4,7 @@ export type Epoch = 1 | 2 | 3 | 4 | 5
 /** R-6.1 Its dawn is the last thing before final scoring. */
 export const LastEpoch = 5
 
-/** R-1.2.1 The letters printed on the map's spaces. */
+/** R-1.2.1 */
 export type MapDirection = 'N' | 'S' | 'E' | 'W'
 
 export interface EpicVoyageSpace {
@@ -114,7 +114,7 @@ export interface Sunray {
     readonly ray: string
     /** R-4.12.4 Where one random good lands in each region; epoch I's N is setup's (R-1.4.6). */
     readonly mapDirection: MapDirection | null
-    /** R-4.12.2 The catapult icon. */
+    /** R-4.12.2 */
     readonly disloyalty: boolean
     /** R-4.12.5 */
     readonly guildRefill: boolean
