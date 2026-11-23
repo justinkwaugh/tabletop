@@ -155,7 +155,7 @@
                             lot={offered}
                             lotName={session.lotName(offered)}
                             playerName={(id) => session.getPlayerName(id)}
-                            playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
+                            playerColor={(id) => session.playerColorValue(id)}
                             {describe}
                         />
                     </li>
@@ -178,7 +178,7 @@
                                 ? session.mapView.stations[entry.companyId]
                                 : undefined}
                             playerName={(id) => session.getPlayerName(id)}
-                            playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
+                            playerColor={(id) => session.playerColorValue(id)}
                             operatingPlayerId={entry.kind === 'operation'
                                 ? operatingPlayerOf(
                                       entry,

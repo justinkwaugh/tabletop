@@ -41,8 +41,8 @@ export const Shikoku1889MapView: MapViewDefinition = {
         TR: { color: '#00a993', label: 'TR', imageUrl: TRToken },
         KU: { color: '#0189d1', label: 'KU', imageUrl: KUToken },
         UR: { color: '#6f533e', label: 'UR', imageUrl: URToken },
-        AR: { color: '#3c714e', label: 'AR', imageUrl: ARToken },
-        IR: { color: '#305fa4', label: 'IR', imageUrl: IRToken },
-        SR: { color: '#a34c35', label: 'SR', imageUrl: SRToken }
+        AR: { color: '#37383a', label: 'AR', imageUrl: ARToken },
+        IR: { color: '#f48221', label: 'IR', imageUrl: IRToken },
+        SR: { color: '#76a042', label: 'SR', imageUrl: SRToken }
     }
 }

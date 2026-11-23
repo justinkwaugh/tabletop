@@ -67,6 +67,33 @@ describe('explicit user preferences', () => {
             })
         ).toThrow()
     })
+    // Titles release independently and each reads the shared family record with its own schema,
+    // so a value another version saved must cost only that one choice.
+    it('falls back per choice when a stored value is one this schema does not accept', () => {
+        const resolved = resolvePreferences(definition, {
+            title: { version: 1, revision: 0, values: { display: 'huge', sound: false } },
+            family: { version: 1, revision: 0, values: { display: 'small' } }
+        })
+        expect(resolved).toEqual({ display: 'small', sound: false })
+        expect(
+            resolvePreferences(definition, {
+                title: empty,
+                family: { version: 1, revision: 0, values: { display: 'huge', sound: 'loud' } }
+            })
+        ).toEqual({ display: 'full', sound: true })
+    })
+    it('saves a choice beside stored values this schema does not accept, keeping them', () => {
+        const record = changePreferences(
+            definition.family,
+            { version: 1, revision: 3, values: { display: 'huge', later: 7 } },
+            { scope: 'family', version: 1, set: { sound: false }, unset: [] }
+        )
+        expect(record).toEqual({
+            version: 1,
+            revision: 4,
+            values: { display: 'huge', later: 7, sound: false }
+        })
+    })
     it('migrates explicit choices without persisting defaults or losing unrelated keys', () => {
         const migrated = {
             ...definition.title,

@@ -15,7 +15,10 @@
         x?: number
         y?: number
     } = $props()
-    const labelFitsTokenFontSize = $derived(appearance.label.length > 3 ? 9.5 : 12)
+    const InitialsFontSizes = [16, 16, 16, 14, 11.5, 9.5]
+    const labelFitsTokenFontSize = $derived(
+        InitialsFontSizes[Math.min(appearance.label.length, InitialsFontSizes.length - 1)]
+    )
     // A tile spans its hex (radius 50) plus the room Tile's viewBox leaves for its outline.
     const tileBox = $derived(
         appearance.tiles?.orientation === HexOrientation.Pointy
@@ -51,7 +54,7 @@
     {:else if appearance.imageUrl}
         <image href={appearance.imageUrl} width="40" height="40"></image>
     {:else}
-        <circle cx="20" cy="20" r="19" fill={appearance.color} stroke="white"></circle>
+        <circle cx="20" cy="20" r="20" fill={appearance.color}></circle>
         <text
             x="20"
             y="20"
@@ -59,6 +62,7 @@
             dy={centredTextShift(labelFitsTokenFontSize)}
             font-family="ui-sans-serif, system-ui, sans-serif"
             font-size={labelFitsTokenFontSize}
+            font-weight="700"
             fill={contrastingTextColor(appearance.color)}>{appearance.label}</text
         >
     {/if}

@@ -16,7 +16,7 @@
             readonly updatingVisibleState: boolean
             readonly isViewingHistory: boolean
             readonly gameState: { players: readonly { playerId: string }[] }
-            readonly colors: { getPlayerBgColorValue(playerId: string): string }
+            playerColorValue(playerId: string): string
             actionCompanyName(companyId: string): string
             getPlayerName(playerId: string): string
         }
@@ -72,7 +72,7 @@
                             <button
                                 class:player={playerId}
                                 style:--player-color={playerId
-                                    ? session.colors.getPlayerBgColorValue(playerId)
+                                    ? session.playerColorValue(playerId)
                                     : undefined}
                                 disabled={busy}
                                 aria-label={`Redeem a ${name} share from ${from} for ${money(choice.price)}`}

@@ -266,9 +266,7 @@
                                 size={18}
                             />{:else if latest.credit?.kind === 'player'}<span
                                 class="player-dot"
-                                style:background={session.colors.getPlayerBgColorValue(
-                                    latest.credit.playerId
-                                )}
+                                style:background={session.playerColorValue(latest.credit.playerId)}
                             ></span>{/if}</span
                     >
                     <p class="headline">

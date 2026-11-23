@@ -158,7 +158,7 @@
     .request[aria-pressed='true'] {
         background: var(--rail-solid, #695540);
         border-color: var(--rail-focus, #695540);
-        color: #fffaf4;
+        color: var(--rail-solid-text, #fffaf4);
     }
     .request:disabled {
         opacity: 0.45;

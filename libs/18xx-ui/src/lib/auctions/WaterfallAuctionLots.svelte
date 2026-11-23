@@ -81,7 +81,7 @@
     <span class="winner" title={`${winner} · ${money(award.price)}`}
         ><span
             class="dot"
-            style:background={session.colors.getPlayerBgColorValue(award.playerId)}
+            style:background={session.playerColorValue(award.playerId)}
             aria-hidden="true"
         ></span><span class="sr-only">{winner}</span>{money(award.price)}</span
     >
@@ -213,7 +213,7 @@
                 )}<span class="winner" title={winner}
                     ><span
                         class="dot"
-                        style:background={session.colors.getPlayerBgColorValue(lot.award.playerId)}
+                        style:background={session.playerColorValue(lot.award.playerId)}
                         aria-hidden="true"
                     ></span><span class="name">{winner}</span></span
                 >{:else if lot.bids.length}<ul aria-label={`Bids on ${session.lotName(lot)}`}>
@@ -224,9 +224,7 @@
                         >
                             <span
                                 class="dot"
-                                style:background={session.colors.getPlayerBgColorValue(
-                                    bid.playerId
-                                )}
+                                style:background={session.playerColorValue(bid.playerId)}
                                 aria-hidden="true"
                             ></span><span class="sr-only"
                                 >{session.getPlayerName(bid.playerId)}</span

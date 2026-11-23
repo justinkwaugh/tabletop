@@ -491,7 +491,7 @@
     .float-band {
         padding: 3px 6px;
         background: var(--rail-solid, #493b2b);
-        color: #fff8e9;
+        color: var(--rail-solid-text, #fff8e9);
         font-size: 10px;
         line-height: 12px;
         text-align: center;

@@ -71,7 +71,7 @@
         color: var(--rail-text, #e3e9ef);
     }
     :where(.sliding-toggle) > :global(button[aria-pressed='true']) {
-        color: #ffffff;
+        color: var(--rail-solid-text, #ffffff);
         font-weight: 600;
     }
     .thumb {

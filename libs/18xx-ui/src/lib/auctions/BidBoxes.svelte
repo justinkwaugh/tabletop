@@ -47,7 +47,7 @@
     const viewerId = $derived(session.myPlayer?.id)
     const lots = $derived(new Map(bidding.lots.map((entry) => [entry.boxId, entry])))
     let openStack = $state<string>()
-    const playerColor = (playerId: string) => session.colors.getPlayerBgColorValue(playerId)
+    const playerColor = (playerId: string) => session.playerColorValue(playerId)
 
     const currency = $derived(currencyAffixes(money))
     // Typed text that is not a bid the player may prepare; any change to the prepared bids clears it.

@@ -18,7 +18,7 @@
         {#if index}<span class="joiner">and</span>{/if}
         <span
             class="player-color"
-            style:background={session.colors.getPlayerBgColorValue(playerId)}
+            style:background={session.playerColorValue(playerId)}
             aria-hidden="true"
         ></span>{#if waiting}<strong>{session.getPlayerName(playerId)}</strong>{:else}<span
                 ><span class="possessive"><strong>{session.getPlayerName(playerId)}</strong>’s</span

@@ -1,12 +1,18 @@
 <script lang="ts">
     import type { Corporation } from '@tabletop/1846'
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import { CompanyToken, initialToken } from '@tabletop/18xx-ui'
     import { MapView1846 } from './mapView.js'
     let {
         companies,
         size,
-        removed = false
-    }: { companies: readonly Corporation[]; size: number; removed?: boolean } = $props()
+        removed = false,
+        initials
+    }: {
+        companies: readonly Corporation[]
+        size: number
+        removed?: boolean
+        initials: boolean
+    } = $props()
 </script>
 
 <!-- The catalogue's tokens, not the session's: the board draws removed homes as solid discs. -->
@@ -15,7 +21,12 @@
         class:removed
         style:margin-right="{size / 8}px"
         title={removed ? `${company.name} (removed)` : company.name}
-        ><CompanyToken appearance={MapView1846.stations[company.id]} {size} /></span
+        ><CompanyToken
+            appearance={initials
+                ? initialToken(MapView1846.stations[company.id])
+                : MapView1846.stations[company.id]}
+            {size}
+        /></span
     >{/each}
 
 <style>

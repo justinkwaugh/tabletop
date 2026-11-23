@@ -2,9 +2,28 @@ import { assert } from '@tabletop/common'
 import type { RouteBonus, RouteResult, RunTrains, TrainRoute } from '@tabletop/18xx'
 import type { MapRoute } from '../maps/mapDrawing.js'
 
-const RouteColors = ['#b24bce', '#ed9226', '#d34b38', '#325aba']
+export const DefaultRouteColors: readonly string[] = [
+    '#b24bce',
+    '#ed9226',
+    '#d34b38',
+    '#325aba',
+    '#e3489a',
+    '#13a6c9',
+    '#8fd11f',
+    '#5b3fc4'
+]
+/** A train's route color, which the table sets from the player's picks. */
 export function routeColor(index: number): string {
-    return RouteColors[index % RouteColors.length]
+    const place = index % DefaultRouteColors.length
+    return `var(--route-color-${place}, ${DefaultRouteColors[place]})`
+}
+/** The table's route color variables for a player's picks, by place. */
+export function routeColorVariables(
+    picks: Readonly<Record<string, string>>
+): Readonly<Record<string, string>> {
+    return Object.fromEntries(
+        Object.entries(picks).map(([place, color]) => [`--route-color-${place}`, color])
+    )
 }
 
 export function routeBonusArrows(

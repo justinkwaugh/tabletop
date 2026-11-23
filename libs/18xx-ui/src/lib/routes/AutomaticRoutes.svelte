@@ -165,7 +165,7 @@
         gap: 8px;
     }
     .run {
-        color: #fff;
+        color: var(--rail-solid-text, #fff);
         background: var(--rail-solid, #443e35);
         border-color: var(--rail-focus, #443e35);
     }

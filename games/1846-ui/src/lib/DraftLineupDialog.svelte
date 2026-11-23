@@ -3,7 +3,11 @@
     import { clickedBackdrop } from '@tabletop/18xx-ui'
     import type { CompanyLineup } from './companyLineup.js'
     import LineupTokens from './LineupTokens.svelte'
-    let { lineup, onclose }: { lineup: CompanyLineup; onclose: () => void } = $props()
+    let {
+        lineup,
+        initials,
+        onclose
+    }: { lineup: CompanyLineup; initials: boolean; onclose: () => void } = $props()
     let dialog: HTMLDialogElement
     const titleId = $props.id()
     onMount(() => {
@@ -32,7 +36,7 @@
     </header>
     <dl>
         <dt>In play</dt>
-        <dd><LineupTokens companies={lineup.corporations} size={24} /></dd>
+        <dd><LineupTokens companies={lineup.corporations} size={24} {initials} /></dd>
         {#if lineup.passCards}
             <dt>Deck</dt>
             <dd>
@@ -46,7 +50,7 @@
         {#if lineup.removedCorporations.length || lineup.removedPrivateNames.length}
             <dt>Removed</dt>
             <dd class="removed">
-                <LineupTokens companies={lineup.removedCorporations} size={24} removed />
+                <LineupTokens companies={lineup.removedCorporations} size={24} removed {initials} />
                 {lineup.removedPrivateNames.join(' · ')}
             </dd>
         {/if}

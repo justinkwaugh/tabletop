@@ -10,18 +10,29 @@
 
 <button class="setup-entry" aria-haspopup="dialog" onclick={() => (open = true)}>
     <span>Set up for {lineup.playerCount} players</span>
-    <small><LineupTokens companies={lineup.corporations} size={16} /></small>
+    <small
+        ><LineupTokens
+            companies={lineup.corporations}
+            size={16}
+            initials={session.tokenInitials}
+        /></small
+    >
     <small class="kept">{lineup.privateNames.join(' · ')}</small>
     {#if lineup.removedCorporations.length || lineup.removedPrivateNames.length}
         <small
             ><em>Removed</em>
-            <LineupTokens companies={lineup.removedCorporations} size={16} removed />
+            <LineupTokens
+                companies={lineup.removedCorporations}
+                size={16}
+                removed
+                initials={session.tokenInitials}
+            />
             {lineup.removedPrivateNames.join(' · ')}</small
         >
     {/if}
 </button>
 {#if open}
-    <DraftLineupDialog {lineup} onclose={() => (open = false)} />
+    <DraftLineupDialog {lineup} initials={session.tokenInitials} onclose={() => (open = false)} />
 {/if}
 
 <style>

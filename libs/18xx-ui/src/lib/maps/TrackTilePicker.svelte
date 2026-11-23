@@ -409,7 +409,7 @@
         padding: 0.25em 0.6em;
         border-radius: 0.35em;
         background: var(--rail-solid, #302d29);
-        color: #fffaf2;
+        color: var(--rail-solid-text, #fffaf2);
         line-height: 1.2;
         white-space: nowrap;
         box-shadow: 0 2px 5px #0004;

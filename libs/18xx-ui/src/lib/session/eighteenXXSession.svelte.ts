@@ -19,6 +19,7 @@ import {
     trainsOwnedBy,
     type AuctionLot,
     type EighteenXXPreferences,
+    type EighteenXXDisplayPreferences,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HydratedEighteenXXState,
@@ -28,7 +29,7 @@ import {
     type TileFace,
     type TileRotation
 } from '@tabletop/18xx'
-import type { GameAction } from '@tabletop/common'
+import type { Color, GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
 import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
 import { InstructedRunSolver } from './instructedRunSolver.js'
@@ -75,6 +76,11 @@ import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareC
 import { tableTerms, type ResolvedTableTerms } from '../presentation/tableTerms.js'
 import { phaseLabel, phaseName } from '../phases/phaseChart.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
+import { tilePresetColors } from '../table/displayChoices.js'
+import { stableJson } from './stableJson.svelte.js'
+import { tablePresentation, type TablePresentation } from '../colors/tablePalette.js'
+import { withInitialTokens } from '../maps/initialTokens.js'
+import { contrastingTextColor } from '../colors/contrastingTextColor.js'
 import type { PhaseChangePalette } from '../table/historyPhaseChange.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
 import { BidBoxModule } from './bidBoxModule.svelte.js'
@@ -571,13 +577,94 @@ export class EighteenXXSession<
         const text = /^\*\*(.+?)\*\*(?:\n\n|$)/s.exec(description ?? '')?.[1]
         return text ? { tokens: this.privateCardTokens[id] ?? [], text } : undefined
     }
-    /** Tile rendering style for the current presentation, used by every tile drawn in the table. */
-    readonly tileAppearance: TileAppearance = $derived.by(() => {
+    private displayPreview: Partial<EighteenXXDisplayPreferences> = $state.raw({})
+    private shown<Key extends keyof EighteenXXDisplayPreferences>(
+        key: Key
+    ): EighteenXXDisplayPreferences[Key] {
+        return this.displayPreview[key] ?? this.preferences.values[key]
+    }
+    private readonly shownTokenStyle = $derived(this.shown('tokenStyle'))
+    private readonly shownTileStyle = $derived(this.shown('tileStyle'))
+    private readonly shownTableStyle = $derived(this.shown('tableStyle'))
+    readonly playerTint: number = $derived(this.shown('playerTint'))
+    private readonly shownTileColors = stableJson(() => this.shown('tileColors'))
+    private readonly shownRouteColors = stableJson(() => this.shown('routeColors'))
+    private readonly shownPlayerColors = stableJson(() => this.shown('playerColors'))
+    private readonly shownTableColors = stableJson(() => this.shown('tableColors'))
+    get routeColors(): EighteenXXDisplayPreferences['routeColors'] {
+        return this.shownRouteColors()
+    }
+    get seatColors(): readonly Color[] {
+        return this.runtime.playerColors
+    }
+    /** A seat color as drawn: the viewer's pick, or the site's. */
+    seatColorValue(color: Color): string {
+        return this.shownPlayerColors()[color] ?? this.colors.getBgColorValue(color)
+    }
+    playerColorValue(playerId?: string): string {
+        return this.seatColorValue(this.colors.getPlayerColor(playerId))
+    }
+    playerTextColorValue(playerId?: string): string {
+        const pick = this.shownPlayerColors()[this.colors.getPlayerColor(playerId)]
+        return pick ? contrastingTextColor(pick) : this.colors.getPlayerTextColorValue(playerId)
+    }
+    /** Saved display choices, with a color still being dragged in a picker laid over them. */
+    get display(): EighteenXXDisplayPreferences {
+        return {
+            tokenStyle: this.shownTokenStyle,
+            tileStyle: this.shownTileStyle,
+            tileColors: this.shownTileColors(),
+            routeColors: this.shownRouteColors(),
+            playerColors: this.shownPlayerColors(),
+            playerTint: this.playerTint,
+            tableStyle: this.shownTableStyle,
+            tableColors: this.shownTableColors()
+        }
+    }
+    previewDisplay(values: Partial<EighteenXXDisplayPreferences>) {
+        this.displayPreview = { ...this.displayPreview, ...values }
+    }
+    endDisplayPreview() {
+        this.displayPreview = {}
+    }
+    setDisplay(values: Partial<EighteenXXDisplayPreferences>) {
+        this.displayPreview = {}
+        this.preferences.set(values, 'family')
+    }
+    private readonly titleTileAppearance: TileAppearance = $derived.by(() => {
         const published = this.publishedArtwork
             ? this.mapViewDefinition.publishedTileAppearance
             : undefined
         return published ?? MapStyleAppearances[this.map.style]
     })
+    get titleTileColors(): Readonly<Record<string, string>> {
+        return this.titleTileAppearance.colors
+    }
+    /** The chosen color preset over the title's tiles, before the player's own colors. */
+    readonly tileStyleColors: Readonly<Record<string, string>> = $derived(
+        tilePresetColors(this.shownTileStyle, this.titleTileAppearance.colors)
+    )
+    /** Tile rendering style for the current presentation, used by every tile drawn in the table. */
+    readonly tileAppearance: TileAppearance = $derived.by(() => {
+        const base = this.titleTileAppearance
+        const picks = this.shownTileColors()
+        if (this.tileStyleColors === base.colors && !Object.keys(picks).length) return base
+        return { ...base, colors: { ...this.tileStyleColors, ...picks } }
+    })
+    // Held as text, so a color change redraws tiles without rebuilding the map view.
+    private readonly tileDrawingStyleText = $derived(
+        JSON.stringify(tileDrawingStyle(this.tileAppearance))
+    )
+    readonly tokenInitials: boolean = $derived(this.shownTokenStyle === 'initials')
+    readonly tablePresentation: TablePresentation = $derived.by(() =>
+        tablePresentation(
+            this.shownTableStyle,
+            this.shownTableColors(),
+            this.publishedArtwork
+                ? { background: this.mapViewDefinition.boardArtwork?.backgroundColor }
+                : undefined
+        )
+    )
     readonly phaseChangePalette: PhaseChangePalette = $derived.by(() => ({
         phaseColors: this.presentation.phaseColors,
         phaseTileColors: Object.fromEntries(
@@ -606,20 +693,25 @@ export class EighteenXXSession<
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }
             : base
-        const styled = { ...definition, drawingStyle: tileDrawingStyle(this.tileAppearance) }
-        if (!this.publishedArtwork) return styled
-        if (
-            !definition.publishedStations &&
-            !definition.publishedLayouts &&
-            !definition.publishedPlacements
-        )
-            return styled
-        return {
-            ...styled,
-            stations: { ...definition.stations, ...definition.publishedStations, ...overrides },
-            layouts: { ...definition.layouts, ...definition.publishedLayouts },
-            placements: { ...definition.placements, ...definition.publishedPlacements }
-        }
+        const styled = { ...definition, drawingStyle: JSON.parse(this.tileDrawingStyleText) }
+        const keepsTokenArt = this.tokenInitials && !!definition.simpleTokenArt
+        const presented =
+            !this.publishedArtwork ||
+            (!definition.publishedStations &&
+                !definition.publishedLayouts &&
+                !definition.publishedPlacements)
+                ? styled
+                : {
+                      ...styled,
+                      stations: {
+                          ...definition.stations,
+                          ...(keepsTokenArt ? {} : definition.publishedStations),
+                          ...overrides
+                      },
+                      layouts: { ...definition.layouts, ...definition.publishedLayouts },
+                      placements: { ...definition.placements, ...definition.publishedPlacements }
+                  }
+        return this.tokenInitials && !keepsTokenArt ? withInitialTokens(presented) : presented
     })
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() =>

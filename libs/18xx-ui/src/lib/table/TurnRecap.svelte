@@ -75,7 +75,7 @@
 
 {#snippet dot(playerId: string)}<span
         class="player-dot"
-        style:background={session.colors.getPlayerBgColorValue(playerId)}
+        style:background={session.playerColorValue(playerId)}
     ></span>{/snippet}
 
 {#if lines.length}

@@ -6,18 +6,15 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import RestartTurnConfirm from './RestartTurnConfirm.svelte'
+    import DisplaySettings from './DisplaySettings.svelte'
+    import { PhoneLayoutQuery } from './displayChoices.js'
+    import { MediaQuery } from 'svelte/reactivity'
     let {
         session,
         bordered = true,
         centered = false,
-        attention = false,
-        artworkAvailable = false,
-        publishedArtwork = false,
-        onToggleArtwork
+        attention = false
     }: {
-        artworkAvailable?: boolean
-        publishedArtwork?: boolean
-        onToggleArtwork?: () => void
         bordered?: boolean
         centered?: boolean
         attention?: boolean
@@ -71,9 +68,14 @@
     )
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const restart = $derived(session.turnRestart)
-    const restartId = $props.id()
+    const headerId = $props.id()
+    const restartId = `${headerId}-restart`
     let restartButton: HTMLButtonElement | undefined = $state()
     let restartOpen = $state(false)
+    let displayButton: HTMLButtonElement | undefined = $state()
+    let displayOpen = $state(false)
+    let displayModalOpen = $state(false)
+    const phone = new MediaQuery(PhoneLayoutQuery)
     const turnPlayerIds = $derived.by(() => {
         if (!session.isViewingHistory) return gameState.activePlayerIds
         const actorId = session.actions
@@ -88,7 +90,7 @@
         <span class="player-name"
             ><span
                 class="player-color"
-                style:background={session.colors.getPlayerBgColorValue(playerId)}
+                style:background={session.playerColorValue(playerId)}
                 aria-hidden="true"
             ></span>{session.getPlayerName(playerId)}</span
         >
@@ -169,33 +171,41 @@
                 ><span class="restart-label">Restart turn</span></button
             >
         {/if}
-        {#if artworkAvailable}
-            <button
-                class="artwork-toggle"
-                aria-label={publishedArtwork ? 'Use generic presentation' : 'Use published artwork'}
-                title={publishedArtwork ? 'Use generic presentation' : 'Use published artwork'}
-                aria-pressed={publishedArtwork}
-                onclick={onToggleArtwork}
+        <button
+            class="display-toggle"
+            bind:this={displayButton}
+            popovertarget={phone.current ? undefined : `${headerId}-display`}
+            onclick={phone.current ? () => (displayModalOpen = true) : undefined}
+            aria-haspopup="dialog"
+            aria-expanded={displayOpen || displayModalOpen}
+            aria-controls={phone.current ? undefined : `${headerId}-display`}
+            aria-label="Display"
+            title="Display"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                ><path
+                    d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                ></path><circle cx="12" cy="12" r="3"></circle></svg
             >
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                >
-                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                    <circle cx="8" cy="8" r="1.5"></circle>
-                    <path d="m3 17 5-5 4 4 4-6 5 7"></path>
-                </svg>
-            </button>
-        {/if}
+        </button>
     </div>
 </header>
+<DisplaySettings
+    {session}
+    id="{headerId}-display"
+    anchor={displayButton}
+    bind:open={displayOpen}
+    bind:modalOpen={displayModalOpen}
+/>
 {#if restart}
     <RestartTurnConfirm
         {session}
@@ -211,7 +221,7 @@
         min-height: 44px;
         flex-shrink: 0;
         box-sizing: border-box;
-        border-bottom: 1px solid var(--rail-border, #b8a995);
+        border-bottom: 1px solid var(--rail-pane-border, var(--rail-border, #b8a995));
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -368,7 +378,7 @@
             display: none;
         }
     }
-    .artwork-toggle {
+    .display-toggle {
         margin-left: -8px;
         display: inline-flex;
         align-items: center;
@@ -379,7 +389,7 @@
         padding: 6px;
         color: var(--rail-muted, #786550);
     }
-    .artwork-toggle[aria-pressed='true'] {
+    .display-toggle[aria-expanded='true'] {
         background: var(--rail-hover, #69554016);
         color: var(--rail-text, #443c34);
     }

@@ -97,7 +97,7 @@
                 : investor.kind === 'company' && !sameOwner(investor, owner)
                   ? controllingOwner(gameState, investor.companyId)?.playerId
                   : undefined
-        return playerId ? session.colors.getPlayerBgColorValue(playerId) : undefined
+        return playerId ? session.playerColorValue(playerId) : undefined
     }
     const sellers = $derived(
         gameState.machineState === 'StockRound' && !gameState.stockRound.completed
@@ -734,7 +734,7 @@
         padding-inline: 4px;
     }
     .financial-summary .prices .market-value {
-        background: #1b3d4580;
+        background: var(--rail-market, #1f343d);
     }
     .financial-summary .prices .market-value.market-zone-tint {
         background: var(--market-tint);
@@ -1039,10 +1039,10 @@
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #f1e6c8;
+        color: var(--rail-sold-out, #f1e6c8);
     }
     .share-status.unfloated {
-        color: #e2a84f;
+        color: var(--rail-unfloated, #e2a84f);
     }
     .heading-end {
         display: flex;
@@ -1064,7 +1064,11 @@
     }
     tr.player-tinted-row > th,
     tr.player-tinted-row > td {
-        background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37));
+        background: color-mix(
+            in srgb,
+            var(--player-color) var(--player-tint, 15%),
+            var(--rail-surface, #222c37)
+        );
     }
     .president > th,
     .president > td {

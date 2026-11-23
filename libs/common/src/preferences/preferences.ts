@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
+import { Compile, type Validator } from 'typebox/compile'
 
 export const PreferenceValues = Type.Record(Type.String(), Type.Unknown())
 export type PreferenceValues = Type.Static<typeof PreferenceValues>
@@ -61,24 +61,44 @@ export function migratePreferences(
     return values
 }
 
+const choiceValidators = new WeakMap<Type.TObject, ReadonlyMap<string, Validator>>()
+
+function acceptsChoice(schema: Type.TObject, key: string, value: unknown): boolean {
+    let validators = choiceValidators.get(schema)
+    if (!validators) {
+        validators = new Map(
+            Object.entries(schema.properties).map(([name, property]) => [name, Compile(property)])
+        )
+        choiceValidators.set(schema, validators)
+    }
+    return validators.get(key)?.Check(value) ?? false
+}
+
+/**
+ * Each choice from the title record, else the family record, else the default. Titles release
+ * independently and read the shared family record with their own schema, so a stored value this
+ * schema doesn't accept falls back for that choice alone instead of failing the record.
+ */
 export function resolvePreferences<T extends Type.TObject>(
     definition: TitlePreferenceDefinition<T>,
     data: TitlePreferenceData
 ): Type.Static<T> {
-    const values = {
-        ...definition.title.defaults,
-        ...(definition.family && data.family
-            ? migratePreferences(definition.family, data.family)
-            : {}),
-        ...migratePreferences(definition.title, data.title)
-    }
+    const schema = definition.title.schema
+    const layers = [
+        migratePreferences(definition.title, data.title),
+        definition.family && data.family ? migratePreferences(definition.family, data.family) : {}
+    ]
+    const defaults: PreferenceValues = { ...definition.title.defaults }
     const known = Object.fromEntries(
-        Object.keys(definition.title.schema.properties)
-            .filter((key) => Object.hasOwn(values, key))
-            .map((key) => [key, values[key]])
+        Object.keys(schema.properties).flatMap((key) => {
+            const stored = layers.find(
+                (layer) => Object.hasOwn(layer, key) && acceptsChoice(schema, key, layer[key])
+            )
+            if (stored) return [[key, stored[key]]]
+            return Object.hasOwn(defaults, key) ? [[key, defaults[key]]] : []
+        })
     )
-    const validator = Compile(definition.title.schema)
-    if (!validator.Check(known)) throw new PreferenceError('Stored preferences are invalid')
+    if (!Compile(schema).Check(known)) throw new PreferenceError('Preference defaults are invalid')
     return known
 }
 
@@ -99,15 +119,8 @@ export function changePreferences(
         throw new PreferenceError('Unknown preference')
     const partial = Compile(Type.Partial(definition.schema, { additionalProperties: false }))
     if (!partial.Check(change.set)) throw new PreferenceError('Invalid preference value')
+    // Stored values this schema doesn't accept stay for the titles that do; reads skip them.
     const values = { ...migratePreferences(definition, record), ...change.set }
     for (const key of change.unset) delete values[key]
-    const resolved = Object.fromEntries(
-        knownKeys.map((key) => [
-            key,
-            Object.hasOwn(values, key) ? values[key] : definition.defaults[key]
-        ])
-    )
-    if (!Compile(definition.schema).Check(resolved))
-        throw new PreferenceError('Invalid preference combination')
     return { version: definition.version, revision: record.revision + 1, values }
 }

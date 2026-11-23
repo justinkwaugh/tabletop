@@ -206,7 +206,7 @@
             <header
                 class:player-tinted-header={!!player.playerId}
                 style:--player-color={player.playerId
-                    ? session.colors.getPlayerBgColorValue(player.playerId)
+                    ? session.playerColorValue(player.playerId)
                     : undefined}
                 data-private-description-row={player.description ? true : undefined}
                 class:has-description={!!player.description}
@@ -214,7 +214,7 @@
                 <h3>
                     {#if player.playerId}<span
                             class="player-color"
-                            style:background={session.colors.getPlayerBgColorValue(player.playerId)}
+                            style:background={session.playerColorValue(player.playerId)}
                         ></span>{/if}{#if player.description}<PrivateDescription
                             {money}
                             phaseColors={session.presentation.phaseColors}
@@ -278,12 +278,9 @@
                                 aria-label={`${stockRoundActive ? 'Next turn' : 'Turn'} position ${position}`}
                             >
                                 {#if stockRoundActive}<small>Next</small>{/if}<b
-                                    style:background={session.colors.getPlayerBgColorValue(
-                                        player.playerId
-                                    )}
-                                    style:color={session.colors.getPlayerTextColorValue(
-                                        player.playerId
-                                    )}>{position}</b
+                                    style:background={session.playerColorValue(player.playerId)}
+                                    style:color={session.playerTextColorValue(player.playerId)}
+                                    >{position}</b
                                 >
                             </span>
                         {/if}
