@@ -56,6 +56,16 @@ describe('the rulebook’s opening operations (p. 8)', () => {
         expect(game.state.operatingSet?.roundNumber).toBe(2)
     })
 
+    // A browser confirms the host's result by applying its processed Actions one at a time, so
+    // the State between Finish Track and its automatic Finish Stations must stay valid.
+    it('replays each processed Action of a finished track step on its own', () => {
+        const game = openingOperations()
+        let state = game.initialState
+        for (const action of game.actions)
+            state = game.engine.applyProcessedAction({ game: game.game, state, action })
+        expect(state).toEqual(game.state)
+    })
+
     it('earns the OR2 ferry revenues', () => {
         const game = openingOperations()
         expect(game.state.trackStep?.companyId).toBe('B&W')

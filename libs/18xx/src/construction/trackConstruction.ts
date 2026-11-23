@@ -867,15 +867,24 @@ function sameMembers(first: readonly unknown[], second: readonly unknown[]): boo
 export function validateTrackStep(state: {
     machineState: string
     trackStep?: TrackStep
+    stationStep?: { companyId: string; completed: boolean }
     operatingSet?: { companyOrder: readonly string[] }
 }): void {
     if (state.machineState !== 'LayingTrack' && state.machineState !== 'PlacingStation') return
+    const { trackStep, stationStep } = state
     assert(
-        state.trackStep && state.operatingSet?.companyOrder.includes(state.trackStep.companyId),
+        trackStep && state.operatingSet?.companyOrder.includes(trackStep.companyId),
         'Track step requires an operating company'
     )
+    // Where stations are placed with track, finished track waits in the track step for the
+    // automatic Finish Stations that closes the company's open station step.
+    const awaitingStations =
+        state.machineState === 'LayingTrack' &&
+        stationStep?.companyId === trackStep.companyId &&
+        !stationStep.completed
     assert(
-        state.trackStep.completed === (state.machineState !== 'LayingTrack'),
+        trackStep.completed === (state.machineState !== 'LayingTrack') ||
+            (trackStep.completed && awaitingStations),
         'Track completion does not match the machine state'
     )
 }
