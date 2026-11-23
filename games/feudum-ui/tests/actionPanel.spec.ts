@@ -1,5 +1,6 @@
 import { locationKindOf } from '@tabletop/feudum'
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import { createGame, playToCards, playToHands, playToPawn, settled, shot } from './helpers.js'
 
 /**

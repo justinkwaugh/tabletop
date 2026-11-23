@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import { pressGuildArea, settled } from './helpers.js'
 import { openFixture, ScenarioTable } from './scenarioTable.js'
 

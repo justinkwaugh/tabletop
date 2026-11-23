@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import type { ActionType } from '@tabletop/feudum'
 import type { FixturePage } from '../src/lib/testing/fixtureTablePage.js'
 
@@ -473,8 +474,9 @@ export async function openFixture(page: Page, name: string): Promise<void> {
 }
 
 /**
- * One numbered scenario, at both widths (or those named), on its fixture. A page error, a window
- * error event or the session's own "Error applying" or "Error handling" fails it.
+ * One numbered scenario, at both widths (or those named), on its fixture. As every browser test, a
+ * page error or a window error event fails it; so do the session's own "Error applying" or "Error
+ * handling", and markup the palette and accessible-name checks refuse.
  */
 export function scenario(
     title: string,
@@ -487,18 +489,6 @@ export function scenario(
             test.use(Widths[width])
             test(title, async ({ page }) => {
                 const problems: string[] = []
-                page.on('pageerror', (error) => problems.push(error.message))
-                // A ResizeObserver loop reaches the window's error event, never pageerror.
-                await page.addInitScript(() => {
-                    window.addEventListener('error', (event) => {
-                        document.documentElement.dataset.windowErrors = [
-                            document.documentElement.dataset.windowErrors,
-                            event.message
-                        ]
-                            .filter(Boolean)
-                            .join(' | ')
-                    })
-                })
                 page.on('console', (message) => {
                     if (/Error (applying|handling)/.test(message.text())) {
                         problems.push(message.text())
@@ -506,14 +496,7 @@ export function scenario(
                 })
                 await openFixture(page, fixture)
                 await body(new ScenarioTable(page, width !== 'desktop'))
-                await page.evaluate(
-                    () =>
-                        new Promise((done) =>
-                            requestAnimationFrame(() => requestAnimationFrame(done))
-                        )
-                )
-                const windowErrors = await page.locator('html').getAttribute('data-window-errors')
-                expect([...problems, ...(windowErrors ? [windowErrors] : [])]).toEqual([])
+                expect(problems).toEqual([])
                 expect(await markupProblems(page)).toEqual([])
             })
         })

@@ -1,5 +1,6 @@
 import type { Point } from '@tabletop/common'
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import type {
     MotionFrame,
     PawnFrame,

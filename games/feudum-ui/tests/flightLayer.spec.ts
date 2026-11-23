@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import type { FlightFrame, FlightTable } from '../src/lib/testing/flightTablePage.js'
 import { settled } from './helpers.js'
 

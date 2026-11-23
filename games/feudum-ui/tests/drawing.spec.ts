@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import { createGame, playToCards, playToHands, settled } from './helpers.js'
 import { ActionType, MachineState } from '@tabletop/feudum'
 import { realGames } from '@tabletop/feudum/testing'

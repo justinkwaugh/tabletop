@@ -1,6 +1,7 @@
 import type { Point } from '@tabletop/common'
 import { existsSync } from 'node:fs'
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
+import { expect, test } from './test.js'
 import { ActionType } from '@tabletop/feudum'
 import { settled } from './helpers.js'
 import { StarPath } from '../src/lib/utils/pieceShapes.js'

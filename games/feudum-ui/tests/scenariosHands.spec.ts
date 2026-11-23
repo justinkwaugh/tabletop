@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.js'
 import { ActionType } from '@tabletop/feudum'
 import { openFixture, scenario, ScenarioTable } from './scenarioTable.js'
 
