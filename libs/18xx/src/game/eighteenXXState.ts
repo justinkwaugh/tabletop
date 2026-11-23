@@ -262,16 +262,19 @@ export const validateRailwayComponents: StateValidation<EighteenXXState> = (
  */
 export function railwayStateValidation({
     operatingInterruptions = [],
-    phaseDecisionStates = []
+    phaseDecisionStates = [],
+    stationsWithTrack = false
 }: {
     operatingInterruptions?: readonly string[]
     /** A title's states that decide what a phase change brings before its trains are discarded. */
     phaseDecisionStates?: readonly string[]
+    /** The title places stations with track, as its title rules' `stationsWithTrack` says. */
+    stationsWithTrack?: boolean
 } = {}): StateValidation<EighteenXXState> {
     return (state, components) => {
         validateStockRound(state)
         validateOperatingSet(state)
-        validateTrackStep(state)
+        validateTrackStep(state, { stationsWithTrack })
         validateStationStep(state)
         validateTrainFunding(state)
         validateFinalResults(state)

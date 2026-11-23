@@ -11,7 +11,8 @@ import {
     type StationReservation,
     type StationState
 } from '../map/station.js'
-import { reservationFulfilled } from '../stations/stationPlacement.js'
+import { reservationFulfilled, type StationStep } from '../stations/stationPlacement.js'
+import { awaitsFinishStations } from '../stations/stationsWithTrackHandler.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import {
     TilePlacement,
@@ -864,27 +865,23 @@ function sameMembers(first: readonly unknown[], second: readonly unknown[]): boo
     return JSON.stringify(keys(first)) === JSON.stringify(keys(second))
 }
 
-export function validateTrackStep(state: {
-    machineState: string
-    trackStep?: TrackStep
-    stationStep?: { companyId: string; completed: boolean }
-    operatingSet?: { companyOrder: readonly string[] }
-}): void {
+export function validateTrackStep(
+    state: {
+        machineState: string
+        trackStep?: TrackStep
+        stationStep?: Pick<StationStep, 'companyId' | 'completed'>
+        operatingSet?: { companyOrder: readonly string[] }
+    },
+    { stationsWithTrack = false }: { stationsWithTrack?: boolean } = {}
+): void {
     if (state.machineState !== 'LayingTrack' && state.machineState !== 'PlacingStation') return
-    const { trackStep, stationStep } = state
+    const { trackStep } = state
     assert(
         trackStep && state.operatingSet?.companyOrder.includes(trackStep.companyId),
         'Track step requires an operating company'
     )
-    // Where stations are placed with track, finished track waits in the track step for the
-    // automatic Finish Stations that closes the company's open station step.
-    const awaitingStations =
-        state.machineState === 'LayingTrack' &&
-        stationStep?.companyId === trackStep.companyId &&
-        !stationStep.completed
-    assert(
-        trackStep.completed === (state.machineState !== 'LayingTrack') ||
-            (trackStep.completed && awaitingStations),
-        'Track completion does not match the machine state'
-    )
+    const finished =
+        state.machineState === 'PlacingStation' ||
+        (stationsWithTrack && awaitsFinishStations(state))
+    assert(trackStep.completed === finished, 'Track completion does not match the machine state')
 }
