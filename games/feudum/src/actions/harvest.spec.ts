@@ -2,7 +2,7 @@ import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { HarvestCardChart, type ActionCardKind } from '../data/cards.js'
-import { Goods, type Good } from '../data/components.js'
+import { Goods } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
 import { Seals, type BeadValue, type SealId } from '../data/seals.js'
 import { ActionType } from '../definition/actions.js'
@@ -17,14 +17,11 @@ import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { ChooseFavours, chooseFavoursOffer, reasonChooseFavoursRefused } from './chooseFavours.js'
 import { Harvest, harvestOffers, harvestTotal, reasonHarvestRefused } from './harvest.js'
 import { showLocation } from '../testing/improving.js'
+import { goodsTotal } from '../model/collections.js'
 
 const Farm: SpaceId = 'space.forest.1'
 const Second: SpaceId = 'space.forest.3'
 const Third: SpaceId = 'space.desert.1'
-
-function sum(counts: Readonly<Record<Good, number>>): number {
-    return Goods.reduce((total, good) => total + counts[good], 0)
-}
 
 function rule(
     state: HydratedFeudumGameState,
@@ -62,7 +59,7 @@ function goodsOnto(state: HydratedFeudumGameState, spaceId: SpaceId, amount: num
 
 /** Leaves the haversack holding `left` goods; the rest go beside a far space, keeping totals. */
 function shortHaversack(state: HydratedFeudumGameState, left: number): void {
-    goodsOnto(state, 'space.desert.2', sum(state.supply.haversack) - left)
+    goodsOnto(state, 'space.desert.2', goodsTotal(state.supply.haversack) - left)
 }
 
 /** Every good on a space goes back to the haversack, keeping totals. */
@@ -139,7 +136,7 @@ describe('Harvest: R-3.11.1', () => {
 
         const after = table.hydrated()
         const onFarm = after.spaces[Farm].goods
-        expect(sum(onFarm)).toBe(5)
+        expect(goodsTotal(onFarm)).toBe(5)
         for (const good of Goods) {
             expect(after.supply.haversack[good]).toBe(before[good] - onFarm[good])
         }
@@ -175,7 +172,7 @@ describe('Harvest: R-3.11.1', () => {
         const action = harvest(table, playerId, 'plain')
 
         expect(action).toMatchObject({ metadata: { total: 10 } })
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(10)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(10)
     })
 
     it('R-3.11.1 at most 10, whatever the yield', () => {
@@ -191,7 +188,7 @@ describe('Harvest: R-3.11.1', () => {
 
         harvest(table, playerId, 'plain')
 
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(14)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(14)
     })
 
     it('R-3.11.1 refuses a farm at 10, one not ruled, and what is no farm', () => {
@@ -246,8 +243,8 @@ describe('Harvest: R-3.11.1', () => {
 
         const action = harvest(table, playerId, 'plain')
 
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(3)
-        expect(sum(table.state.supply.haversack)).toBe(0)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(3)
+        expect(goodsTotal(table.state.supply.haversack)).toBe(0)
         expect(table.seat(playerId).score).toBe(score + 1)
         expect(action).toMatchObject({ metadata: { total: 5 } })
     })
@@ -295,12 +292,12 @@ describe('Harvest: R-3.11.1', () => {
             ['repeat', 'tax', 'guild']
         )
         const { saltpeter } = table.seat(playerId).goods
-        const before = sum(table.state.supply.haversack)
+        const before = goodsTotal(table.state.supply.haversack)
 
         harvest(table, playerId, 'plain', { asRepeat: 'deja-vu' })
 
         expect(table.seat(playerId).goods.saltpeter).toBe(saltpeter - 1)
-        expect(sum(table.state.supply.haversack)).toBe(before + 1 - 6)
+        expect(goodsTotal(table.state.supply.haversack)).toBe(before + 1 - 6)
         expect(table.seat(playerId).repeatUsed).toBe(true)
     })
 
@@ -341,8 +338,8 @@ describe('Harvest with favours: R-3.11.2, R-3.11-H1', () => {
         for (const good of Goods) {
             toSeat[good] = seat[good] - before[good]
         }
-        expect(sum(after.spaces[Farm].goods)).toBe(row?.partial)
-        expect(sum(toSeat)).toBe(row?.favors)
+        expect(goodsTotal(after.spaces[Farm].goods)).toBe(row?.partial)
+        expect(goodsTotal(toSeat)).toBe(row?.favors)
         expect(action).toMatchObject({ metadata: { total, favours: toSeat } })
     })
 
@@ -353,7 +350,7 @@ describe('Harvest with favours: R-3.11.2, R-3.11-H1', () => {
 
         const action = harvest(table, playerId, 'favours')
 
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(5)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(5)
         expect(action).toMatchObject({ metadata: { total: 6, beadsFlipped: 0 } })
     })
 
@@ -433,12 +430,12 @@ describe('Harvest with favours: R-3.11.2, R-3.11-H1', () => {
             shortHaversack(state, 6)
             giveBead(state, seat, 2)
         })
-        const held = sum(table.seat(playerId).goods)
+        const held = goodsTotal(table.seat(playerId).goods)
 
         const action = harvest(table, playerId, 'favours')
 
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(5)
-        expect(sum(table.seat(playerId).goods)).toBe(held + 1)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(5)
+        expect(goodsTotal(table.seat(playerId).goods)).toBe(held + 1)
         expect(action).toMatchObject({ metadata: { total: 7, beadsFlipped: 1 } })
     })
 
@@ -450,7 +447,7 @@ describe('Harvest with favours: R-3.11.2, R-3.11-H1', () => {
 
         const action = harvest(table, playerId, 'favours')
 
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(4)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(4)
         expect(table.seat(playerId).beads).toHaveLength(1)
         expect(action).toMatchObject({ metadata: { beadsFlipped: 0 } })
     })
@@ -473,7 +470,7 @@ describe('Inspect the Harvest: R-3.11.3', () => {
             giveBead(state, seat, 2)
         })
         const { score } = table.seat(playerId)
-        const before = sum(table.state.supply.haversack)
+        const before = goodsTotal(table.state.supply.haversack)
 
         const action = harvest(table, playerId, 'inspect')
 
@@ -482,9 +479,9 @@ describe('Inspect the Harvest: R-3.11.3', () => {
         expect(table.offered(playerId)).toEqual([ActionType.ChooseFavours])
         const { flow, spaces } = table.hydrated()
         expect(flow.harvest).toMatchObject({ spaceId: Farm, favours: 2 })
-        expect(sum(flow.harvest?.drawn ?? goodCounts())).toBe(7)
-        expect(sum(spaces[Farm].goods)).toBe(0)
-        expect(sum(table.state.supply.haversack)).toBe(before - 7)
+        expect(goodsTotal(flow.harvest?.drawn ?? goodCounts())).toBe(7)
+        expect(goodsTotal(spaces[Farm].goods)).toBe(0)
+        expect(goodsTotal(table.state.supply.haversack)).toBe(before - 7)
         expect(table.seat(playerId).score).toBe(score + 1)
         expect(table.seat(playerId).played).toEqual([{ kind: 'harvest', use: 'special' }])
         expect(table.seat(playerId).beads).toHaveLength(1)
@@ -552,7 +549,7 @@ describe('Inspect the Harvest: R-3.11.3', () => {
             favours: firstOf(drawn, 1)
         })
 
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(4)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(4)
         expect(action).toMatchObject({ metadata: { beadsFlipped: 0 } })
     })
 
@@ -602,7 +599,7 @@ describe('Inspect the Harvest: R-3.11.3', () => {
 
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.hydrated().flow.harvest).toBeUndefined()
-        expect(sum(table.hydrated().spaces[Farm].goods)).toBe(5)
+        expect(goodsTotal(table.hydrated().spaces[Farm].goods)).toBe(5)
         expect(table.seat(playerId).beads).toHaveLength(1)
     })
 

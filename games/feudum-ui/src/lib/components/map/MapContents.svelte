@@ -1,10 +1,11 @@
 <script lang="ts">
     import type { Point } from '@tabletop/common'
     import {
-        RegionTiles,
-        Spaces,
         type HydratedFeudumGameState,
+        RegionTiles,
         type SpaceId,
+        Spaces,
+        tileById,
         type TileId
     } from '@tabletop/feudum'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
@@ -53,10 +54,6 @@
 
     const PilferFrame = 40
     const MarkerFrame = MarkerSize + 10
-
-    function epochOf(tileId: TileId) {
-        return RegionTiles.find(({ id }) => id === tileId)?.epoch ?? 1
-    }
 </script>
 
 {#snippet marker(spaceId: SpaceId, role: string, at: Point, playerId: string, immune: boolean)}
@@ -110,13 +107,13 @@
                     face={() => ({
                         kind: 'tile',
                         faceShown: true,
-                        epoch: epochOf(tileId),
+                        epoch: tileById(tileId).epoch,
                         landscape: state.tileLandscapes[tileId]
                     })}
                 >
                     <TileFace
                         faceShown={true}
-                        epoch={epochOf(tileId)}
+                        epoch={tileById(tileId).epoch}
                         landscape={state.tileLandscapes[tileId]}
                         size={LandscapeSize}
                         x={-LandscapeSize / 2}

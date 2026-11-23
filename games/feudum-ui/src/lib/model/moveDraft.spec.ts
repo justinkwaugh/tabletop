@@ -1,4 +1,4 @@
-import { showLocation } from '@tabletop/feudum/testing'
+import { giveTile, showLocation } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import type { GameAction } from '@tabletop/common'
 import {
@@ -20,7 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import { abandonVessel, giveVessel, landscapeOn, sellOut, serfOn } from '$lib/testing/moveTable.js'
 import { holdWrit } from '$lib/testing/followUpTable.js'
-import { atPlayingCards, giveTile, ruleTown, type TurnTable } from '$lib/testing/turnTable.js'
+import { atPlayingCards, ruleTown, type TurnTable } from '$lib/testing/turnTable.js'
 import {
     chipOf,
     monsterTarget,

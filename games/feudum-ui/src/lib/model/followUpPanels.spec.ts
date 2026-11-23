@@ -1,3 +1,4 @@
+import { giveSeal, giveTile } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ActionType, MachineState, placeMarker, playMandateOffers } from '@tabletop/feudum'
@@ -27,7 +28,7 @@ import {
     threePawns
 } from '$lib/testing/followUpTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
-import { emptySpaces, giveGood, giveSeal, giveTile, returnGoods } from '$lib/testing/turnTable.js'
+import { emptySpaces, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 import { pawnTarget, spaceTarget, type BoardTarget } from './boardOffer.js'
 import { tileName } from './tileName.js'
 import { mandateChoiceLabel } from './writLabels.js'

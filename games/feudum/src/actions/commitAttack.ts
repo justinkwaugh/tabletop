@@ -18,6 +18,7 @@ import { ComponentCount, MandateAlternativeIdSchema, WritIdSchema } from '../mod
 import { putWritsUnderInView } from '../model/writDeck.js'
 import { writRegistry } from '../writs/writRegistry.js'
 import { CombatRecord, conquerVp, resolveCombat, strengthOf } from './combat.js'
+import { priceOfGoods } from '../model/collections.js'
 
 /** R-4.4-H1 A weapon writ played into the attack, by its printed alternative. */
 const WeaponPlay = Type.Object({
@@ -65,13 +66,13 @@ export type CommitAttackInput = Readonly<Pick<CommitAttack, 'saltpeter' | 'weapo
 
 /** R-4.4-H1 What the saltpeter and the weapons' turn-ins cost together. */
 function commitmentPrice({ saltpeter, weapons }: CommitAttackInput): GoodPrice {
-    const price: Partial<Record<Good, number>> = { saltpeter }
-    for (const { writId, alternative } of weapons) {
-        for (const good of writRegistry.weaponBonus(writId, alternative)?.turnedIn ?? []) {
-            price[good] = (price[good] ?? 0) + 1
-        }
-    }
-    return price
+    const turnedIn = weapons.flatMap(
+        ({ writId, alternative }) => writRegistry.weaponBonus(writId, alternative)?.turnedIn ?? []
+    )
+    return priceOfGoods([
+        ...Array.from({ length: saltpeter }, (): Good => 'saltpeter'),
+        ...turnedIn
+    ])
 }
 
 /** R-4.8.2 */
@@ -171,11 +172,7 @@ export function commitAttackOffer(
         .flatMap((writId): WeaponOffer[] => {
             const offers: WeaponOffer[] = []
             for (const { alternative, attack, turnedIn } of writRegistry.weaponBonuses(writId)) {
-                const price: Partial<Record<Good, number>> = {}
-                for (const good of turnedIn) {
-                    price[good] = (price[good] ?? 0) + 1
-                }
-                if (canCoverWithWildTiles(state, playerId, price)) {
+                if (canCoverWithWildTiles(state, playerId, priceOfGoods(turnedIn))) {
                     offers.push({ writId, alternative, attack, turnedIn })
                 }
             }

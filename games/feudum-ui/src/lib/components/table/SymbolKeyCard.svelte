@@ -1,5 +1,12 @@
 <script lang="ts">
-    import { Goods, GuildById, GuildIds, LocationKinds, VesselTypes } from '@tabletop/feudum'
+    import {
+        Goods,
+        GuildById,
+        GuildIds,
+        LocationKinds,
+        spaced,
+        VesselTypes
+    } from '@tabletop/feudum'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import GuildDie from '$lib/components/pieces/GuildDie.svelte'
     import LocationDisc from '$lib/components/pieces/LocationDisc.svelte'
@@ -65,7 +72,7 @@
         <ul>
             {#each VesselTypes as vessel (vessel)}
                 {#snippet token()}<VesselToken {vessel} size={Piece} />{/snippet}
-                {@render entry(vessel.replace('-', ' '), token)}
+                {@render entry(spaced(vessel), token)}
             {/each}
         </ul>
     </section>

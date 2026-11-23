@@ -1,3 +1,11 @@
+import {
+    setBarn,
+    setCarts,
+    setMarket,
+    setMaster,
+    setPawns,
+    showOnStacks
+} from '@tabletop/feudum/testing'
 import { flushSync, mount } from 'svelte'
 import { assertExists, type Point } from '@tabletop/common'
 import {
@@ -20,8 +28,7 @@ import { pawnTarget, roleOf, spaceTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { isHistoryGroup } from '$lib/utils/actionAggregator.js'
 import type { GuildSide } from '$lib/model/boardFocus.svelte.js'
-import { setBarn, setCarts, setMarket, setMaster, setPawns } from './guildTable.js'
-import { playOutRound, showOnStacks } from './roundEndTable.js'
+import { playOutRound } from './roundEndTable.js'
 import { settled, type FeudumHost } from './sessionHarness.js'
 import { addPawn, atPlayingCards, giveGood } from './turnTable.js'
 

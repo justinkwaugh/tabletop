@@ -5,23 +5,19 @@ import {
     ActionType,
     cardTurnSeat,
     type Character,
-    collectTopTile,
     type Good,
     Goods,
     handSizeFor,
     type HydratedFeudumGameState,
     type LocationKind,
     locationKindOf,
-    moveConcealedSeal,
     placeMarker,
     type PouchGood,
-    RegionIds,
     replaceLocationDisc,
     returnGoodToHaversack,
     type SpaceId,
     Spaces,
-    takeGoodFromHaversack,
-    type TileId
+    takeGoodFromHaversack
 } from '@tabletop/feudum'
 import { FeudumHost } from './sessionHarness.js'
 
@@ -77,11 +73,6 @@ export function giveGood(state: HydratedFeudumGameState, playerId: string, good:
     state.getPlayerState(playerId).goods[good] += takeGoodFromHaversack(state, good)
 }
 
-/** R-5-H1 A seal off the pile, unseen. */
-export function giveSeal(state: HydratedFeudumGameState, playerId: string): void {
-    moveConcealedSeal(state, { kind: 'pile' }, { kind: 'held', playerId })
-}
-
 /** R-1.1 A supply pawn stands on the space. */
 export function addPawn(
     state: HydratedFeudumGameState,
@@ -133,13 +124,6 @@ export function ruleOutpost(state: HydratedFeudumGameState, playerId: string): S
     placeMarker(state, playerId, spaceId)
     state.recomputeRanks()
     return spaceId
-}
-
-/** R-4.3.1 A stack's top tile, in the seat's collection. */
-export function giveTile(state: HydratedFeudumGameState, playerId: string): TileId {
-    const region = RegionIds.find((id) => state.regionStacks[id].length > 0)
-    assertExists(region, 'R-4.3.1 A stack has a tile')
-    return collectTopTile(state, playerId, region).tile.id
 }
 
 export function emptySpaces(state: HydratedFeudumGameState, kind: LocationKind): SpaceId[] {

@@ -27,6 +27,7 @@ import { ComponentCount, WritIdSchema } from '../model/stateSchemas.js'
 import { cardTurnSeat } from '../model/turns.js'
 import { putWritsUnderUnseen, writDeckCount } from '../model/writDeck.js'
 import { reasonSpecialRefused } from './cardPlay.js'
+import { plural } from '../model/words.js'
 
 /** R-3.10.2 */
 const ShovelsDraw = 2
@@ -123,7 +124,7 @@ export function reasonKeepWritsRefused(
         return 'No writ draw waits on you.'
     }
     if (keep.length !== writDraw.keep) {
-        return `Keep ${writDraw.keep} writ${writDraw.keep === 1 ? '' : 's'}, not ${keep.length}.`
+        return `Keep ${plural(writDraw.keep, 'writ')}, not ${keep.length}.`
     }
     const drawn = requireDrawnWrits(state)
     if (new Set(keep).size !== keep.length || keep.some((writId) => !drawn.includes(writId))) {

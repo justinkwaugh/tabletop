@@ -1,14 +1,15 @@
 import {
+    type Good,
     Goods,
     GuildById,
+    type GuildId,
+    type HydratedFeudumGameState,
     knightTradeOffer,
     MerchantTradeGoods,
     nobleTradeOffer,
-    VesselTypes,
-    type Good,
-    type GuildId,
-    type HydratedFeudumGameState,
-    type VesselType
+    plural,
+    type VesselType,
+    VesselTypes
 } from '@tabletop/feudum'
 import { paymentTotal, type BenchChoice, type BenchItem, type BenchOffer } from './benchOffer.js'
 import type { GhostPiece } from './benchView.js'
@@ -123,7 +124,7 @@ function knightCards(
     if (!row) {
         return []
     }
-    const gain = `${markers} marker${markers === 1 ? '' : 's'}`
+    const gain = plural(markers, 'marker')
     const press = buy(item, gain)
     return [
         {

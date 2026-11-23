@@ -1,3 +1,4 @@
+import { giveSeal, giveTile } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -26,8 +27,6 @@ import {
     emptySpaces,
     giveBead,
     giveGood,
-    giveSeal,
-    giveTile,
     returnGoods,
     ruleOutpost,
     ruleTown,

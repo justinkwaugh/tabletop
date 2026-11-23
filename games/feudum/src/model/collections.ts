@@ -1,9 +1,10 @@
 import { assertExists, shuffle, type RandomFunction } from '@tabletop/common'
 import { Spaces, type SpaceId } from '../data/board.js'
-import type { Good } from '../data/components.js'
+import { Goods, type Good } from '../data/components.js'
 import type { RegionId } from '../data/regionTiles.js'
 import type { GoodPrice } from './payments.js'
 import { goodCounts, type GoodCounts } from './stateSchemas.js'
+import { plural } from './words.js'
 
 export function sum(values: readonly number[]): number {
     return values.reduce((total, value) => total + value, 0)
@@ -27,6 +28,10 @@ export function regionOf(spaceId: SpaceId): RegionId {
     return space.region
 }
 
+export function goodsTotal(counts: Readonly<GoodCounts>): number {
+    return sum(Goods.map((good) => counts[good]))
+}
+
 export function goodCountsOf(goods: readonly Good[]): GoodCounts {
     const counts = goodCounts()
     for (const good of goods) {
@@ -45,5 +50,5 @@ export function priceOfGoods(turnedIn: readonly Good[]): GoodPrice {
 }
 
 export function shillings(amount: number): string {
-    return `${amount} shilling${amount === 1 ? '' : 's'}`
+    return plural(amount, 'shilling')
 }

@@ -2,10 +2,11 @@ import type { RandomFunction } from '@tabletop/common'
 import { Goods, type Good } from '../data/components.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import type { GoodCounts } from './stateSchemas.js'
+import { goodsTotal } from './collections.js'
 
 /** R-5.2 The walk follows `Goods`, permanent since recorded draws depend on it. */
 export function pickGood(counts: GoodCounts, random: RandomFunction): Good | undefined {
-    const total = Goods.reduce((sum, good) => sum + counts[good], 0)
+    const total = goodsTotal(counts)
     if (total === 0) {
         return undefined
     }

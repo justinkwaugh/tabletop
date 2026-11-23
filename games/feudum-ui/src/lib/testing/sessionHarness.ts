@@ -1,20 +1,20 @@
+import { canonical } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import {
     ActionSource,
-    assert,
     assertExists,
-    GameEngine,
-    GameNotificationAction,
-    GameStorage,
-    GameSyncStatus,
-    NotificationCategory,
-    PlayerStatus,
-    Visibility,
     type Game,
     type GameAction,
+    GameEngine,
+    GameNotificationAction,
     type GameState,
+    GameStorage,
+    GameSyncStatus,
     type HydratedGameState,
-    type UserPreferences
+    NotificationCategory,
+    PlayerStatus,
+    type UserPreferences,
+    Visibility
 } from '@tabletop/common'
 import {
     BridgedContext,
@@ -28,15 +28,13 @@ import {
 import {
     ActionType,
     Definition,
-    FeudumGameStateValidator,
+    type FeudumGameState,
     FeudumRuntime,
+    type Good,
     HydratedFeudumGameState,
     MachineState,
     setupSeat,
-    startingPawnOffers,
-    type FeudumGameState,
-    type FeudumProjectedState,
-    type Good
+    startingPawnOffers
 } from '@tabletop/feudum'
 import { UiDefinition } from '$lib/definitions/definition.js'
 import { FeudumUiRuntime } from '$lib/definitions/runtime.js'
@@ -66,11 +64,6 @@ const SpectatorSeat = 'spectator'
 const HotseatScreen = 'hotseat'
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const engine = new GameEngine(FeudumRuntime)
-
-function canonical(state: FeudumProjectedState): FeudumGameState {
-    assert(FeudumGameStateValidator.Check(state), 'The host holds the canonical state')
-    return state
-}
 
 export async function settled(session: FeudumGameSession) {
     do {

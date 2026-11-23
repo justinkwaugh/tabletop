@@ -10,6 +10,7 @@ import {
 import { moveConcealedSeal } from '../model/seals.js'
 import type { GuildFunctionParams, GuildFunctionRow } from './guildFunction.js'
 import type { GuildFunctionDetails, KnightRowLeft } from './guildFunctionDetails.js'
+import { plural } from '../model/words.js'
 
 /** R-4.6.4, R-4.6.5 Each Knight row holding a marker, by its id. */
 function rowsWithMarkers(state: HydratedFeudumGameState): KnightRowId[] {
@@ -66,7 +67,7 @@ function reasonPicksCannotHappen(
     const { rows } = state.guilds.knight
     const movable = movableToScrolls(state, cap)
     if (knightRows.length > movable) {
-        return `Move at most ${movable} marker${movable === 1 ? '' : 's'}.`
+        return `Move at most ${plural(movable, 'marker')}.`
     }
     if (new Set(knightRows).size < knightRows.length) {
         return 'Pick rows of different colours.'

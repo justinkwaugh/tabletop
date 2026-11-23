@@ -1,7 +1,7 @@
 import { regionOf } from '../model/collections.js'
-import { expect } from 'vitest'
 import {
     ActionSource,
+    assert,
     assertExists,
     GameEngine,
     type Game,
@@ -640,7 +640,7 @@ export function withoutClock(action: GameAction): GameAction {
 /** The engine names each started game's state with a fresh row id; the rules never read it. */
 export function withoutRowId(state: FeudumProjectedState): Omit<FeudumProjectedState, 'id'> {
     const { id, ...rules } = state
-    expect(id).toBeTruthy()
+    assert(id, 'A started game has a row id')
     return rules
 }
 

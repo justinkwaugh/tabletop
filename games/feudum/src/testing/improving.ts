@@ -12,6 +12,7 @@ import { discChoices, locationKindOf, replaceLocationDisc } from '../model/locat
 import { collectTopTile } from '../model/regionStacks.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { tableAtPlayingCards, type Table } from './table.js'
+import { regionOf } from '../model/collections.js'
 
 const ImproveHand: ActionCardKind[] = ['improve', 'move', 'tax', 'guild']
 
@@ -68,9 +69,7 @@ export function tableImproving(kind: LocationKind, cards = ImproveHand): Improvi
         placeMarker(state, playerId, spaceId)
         state.recomputeRanks()
     })
-    const region = Spaces.find((space) => space.id === spaceId)?.region
-    assertExists(region, 'A space lies in a region')
-    return { table, playerId, spaceId, region }
+    return { table, playerId, spaceId, region: regionOf(spaceId) }
 }
 
 /** R-1.4-H2 Collects a top tile whose back shows this landscape. */

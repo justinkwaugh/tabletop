@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { spaced } from '@tabletop/feudum'
     import type { LandscapeKind, RegionId, TileEpoch } from '@tabletop/feudum'
     import { assetUrl, tileBackAsset, tileFrontAsset } from '$lib/art/assetMap.js'
     import { LandscapePaths } from '$lib/utils/pieceShapes.js'
@@ -26,9 +27,7 @@
     const Numerals = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' } as const
     let turned = $derived(faceShown ? landscape : undefined)
     let label = $derived(
-        turned
-            ? turned.replace('-', ' ')
-            : `${region ? `${region} ` : ''}tile, epoch ${Numerals[epoch]}`
+        turned ? spaced(turned) : `${region ? `${region} ` : ''}tile, epoch ${Numerals[epoch]}`
     )
 </script>
 
@@ -59,7 +58,7 @@
             fill-rule="evenodd"
         ></path>
         <text x="32" y="56" text-anchor="middle" font-size="10" fill="var(--feudum-ink)"
-            >{turned.replace('-', ' ')}</text
+            >{spaced(turned)}</text
         >
     {:else}
         <rect

@@ -5,8 +5,8 @@ import {
     type HydratedFeudumGameState,
     knightRows,
     type RegionId,
-    RegionTiles,
     ScoreTrack,
+    tileById,
     type TileEpoch
 } from '@tabletop/feudum'
 import { PrintedColours } from '$lib/utils/boardGeometry.js'
@@ -110,8 +110,8 @@ export interface StackView {
 
 export function stackView(state: HydratedFeudumGameState, region: RegionId): StackView {
     const stack = state.regionStacks[region]
-    const top = RegionTiles.find(({ id }) => id === stack[0])
-    return { region, count: stack.length, ...(top ? { topEpoch: top.epoch } : {}) }
+    const [top] = stack
+    return { region, count: stack.length, ...(top ? { topEpoch: tileById(top).epoch } : {}) }
 }
 
 /** R-4.3.1 A stack's epochs are public; its landscapes are not. */
@@ -119,9 +119,7 @@ export function stackTilesByEpoch(
     state: HydratedFeudumGameState,
     region: RegionId
 ): readonly { readonly epoch: TileEpoch; readonly count: number }[] {
-    const epochs = state.regionStacks[region].flatMap(
-        (tileId) => RegionTiles.find(({ id }) => id === tileId)?.epoch ?? []
-    )
+    const epochs = state.regionStacks[region].map((tileId) => tileById(tileId).epoch)
     return [...new Set(epochs)]
         .toSorted((a, b) => a - b)
         .map((epoch) => ({ epoch, count: epochs.filter((other) => other === epoch).length }))

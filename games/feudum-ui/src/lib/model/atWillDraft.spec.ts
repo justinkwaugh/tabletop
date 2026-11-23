@@ -1,3 +1,4 @@
+import { giveSeal, giveTile } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -21,13 +22,7 @@ import {
 } from '$lib/testing/followUpTable.js'
 import { linesOf, pressCard, rowLabels, rowNamed } from '$lib/testing/actionPanelView.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
-import {
-    atPlayingCards,
-    emptySpace,
-    giveSeal,
-    giveTile,
-    returnGoods
-} from '$lib/testing/turnTable.js'
+import { atPlayingCards, emptySpace, returnGoods } from '$lib/testing/turnTable.js'
 import { AtWillStageOrder, type AtWillList, type AtWillValues } from './atWillDraft.svelte.js'
 import { pawnTarget, roleOf } from './boardOffer.js'
 import type { ActionBlock } from './actionPanel.js'

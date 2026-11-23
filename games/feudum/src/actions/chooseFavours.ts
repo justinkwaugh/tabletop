@@ -16,6 +16,8 @@ import {
 } from '../model/stateSchemas.js'
 import { barrelRoom, putSulfurInBarrel, reasonSulfurCountToBarrelRefused } from '../model/supply.js'
 import { settleHarvest } from './harvest.js'
+import { plural } from '../model/words.js'
+import { goodsTotal } from '../model/collections.js'
 
 export type ChooseFavoursMetadata = Type.Static<typeof ChooseFavoursMetadata>
 export const ChooseFavoursMetadata = Type.Object({
@@ -69,9 +71,9 @@ export function reasonChooseFavoursRefused(
     if (favours === null) {
         return reasonSulfurCountToBarrelRefused(state, playerId, 0, sulfurToBarrel)
     }
-    const count = Goods.reduce((sum, good) => sum + favours[good], 0)
+    const count = goodsTotal(favours)
     if (count !== harvest.favours) {
-        return `Take ${harvest.favours} good${harvest.favours === 1 ? '' : 's'} as favours, or none.`
+        return `Take ${plural(harvest.favours, 'good')} as favours, or none.`
     }
     if (Goods.some((good) => favours[good] > harvest.drawn[good])) {
         return "You can't take goods the harvest didn't draw."

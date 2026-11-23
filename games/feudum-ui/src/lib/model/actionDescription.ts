@@ -1,8 +1,8 @@
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
-    ActionCards,
     AlchemistCartSpaces,
     beadValue,
+    cardOf,
     type ChickenSpaceId,
     ChickenSpaces,
     type CollectedLandscape,
@@ -65,16 +65,20 @@ import {
     type Move,
     type MoveStepRecord,
     type PawnLeft,
+    plural,
     printedSpaceNumber,
     type RankChange,
     regionOf,
     type RowFill,
     type SealId,
+    spaced,
     type SpaceId,
     type StarveRecord,
     sunray,
+    titled,
     type VoyageSpaceId,
     type WildTileSpend,
+    withArticle,
     type WritId
 } from '@tabletop/feudum'
 
@@ -88,7 +92,6 @@ import { PouchTitles } from './pouchWords.js'
 import { fillLine, goodsLine } from './roundEnd.js'
 import { tileName } from './tileName.js'
 import { writName } from './writLabels.js'
-import { plural, titled } from '$lib/utils/words.js'
 
 /** docs/hidden-information.md: a line reads only the Action as this seat received it. */
 export interface ActionLineView {
@@ -117,14 +120,6 @@ function chickenNumber(space: ChickenSpaceId): number {
 
 function listed(items: readonly string[]): string {
     return items.join(', ')
-}
-
-function spoken(word: string): string {
-    return word.replaceAll('-', ' ')
-}
-
-function article(word: string): string {
-    return `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${spoken(word)}`
 }
 
 class Words {
@@ -218,10 +213,6 @@ function wildTilesLine(tiles: readonly WildTileSpend[] | undefined): Clause {
         .join(', ')
 }
 
-function cardName(kind: string): string {
-    return ActionCards.find((card) => card.kind === kind)?.printedName ?? titled(kind)
-}
-
 /** R-3.15, R-3.3-H1 */
 function playedAs(action: { asRepeat?: 'repeat' | 'deja-vu'; secondCard?: true }): Clause {
     return sentence(
@@ -265,7 +256,9 @@ function finaliseLine(action: GameAction, words: Words): string | undefined {
     return sentence(
         `${words.who(playerId)} finalised`,
         seen && action.pouchGood ? `pouch ${action.pouchGood}` : undefined,
-        cards && cards.length > 0 ? listed(cards.map(cardName)) : undefined
+        cards && cards.length > 0
+            ? listed(cards.map((kind) => cardOf(kind).printedName))
+            : undefined
     )
 }
 
@@ -316,7 +309,7 @@ function keepLine(action: GameAction, words: Words): string | undefined {
 
 function stepPiece(step: Move['steps'][number], record?: MoveStepRecord): string {
     if (step.piece.kind === 'monster') {
-        return spoken(step.piece.monsterId)
+        return spaced(step.piece.monsterId)
     }
     return record?.character ?? 'pawn'
 }
@@ -329,10 +322,10 @@ function hop(
     const way = ferry
         ? `ferry${record?.fare ? ` (${record.fare}s)` : ''}`
         : record?.vessel
-          ? spoken(record.vessel)
-          : spoken(medium)
+          ? spaced(record.vessel)
+          : spaced(medium)
     const boarded = vessel === 'board' ? ', boarded' : vessel === 'place' ? ', vessel placed' : ''
-    const left = record?.left ? `, left the ${spoken(record.left)}` : ''
+    const left = record?.left ? `, left the ${spaced(record.left)}` : ''
     return `→ ${spaceLabel(to)} by ${way}${boarded}${left}`
 }
 
@@ -412,7 +405,7 @@ function migrateOnto(action: Migrate): string {
     if (action.onto === 'off') {
         return off ?? 'a pawn off the board'
     }
-    const onto = `${article(action.onto.character)} onto ${spaceLabel(action.onto.spaceId)}`
+    const onto = `${withArticle(action.onto.character)} onto ${spaceLabel(action.onto.spaceId)}`
     return off ? `${off} and ${onto}` : onto
 }
 
@@ -423,7 +416,7 @@ function migrateLine(action: GameAction, words: Words): string | undefined {
     const left = action.metadata?.left
     return sentence(
         `${words.who(action.playerId)} migrated ${migrateOnto(action)}`,
-        left?.vessel ? `${spoken(left.vessel)} left at ${spaceLabel(left.spaceId)}` : undefined,
+        left?.vessel ? `${spaced(left.vessel)} left at ${spaceLabel(left.spaceId)}` : undefined,
         left?.wine ? 'sulfur to the haversack' : undefined,
         action.distantKin ? 'Distant Kin' : undefined,
         wildTilesLine(action.wildTiles),
@@ -487,7 +480,7 @@ function improveLine(action: GameAction, words: Words): string | undefined {
             ? `${countsLine(metadata.goodsToHaversack)} to the haversack`
             : undefined,
         tile
-            ? `took ${tileName(tile.tileId)} (${spoken(tile.landscape)})${action.fallbackRegion ? ' as fallback' : ''}`
+            ? `took ${tileName(tile.tileId)} (${spaced(tile.landscape)})${action.fallbackRegion ? ' as fallback' : ''}`
             : untakenTile(action.spaceId, metadata.noTile),
         tile && tile.vp > 0 ? `+${tile.vp} vp` : undefined,
         ranksLine(metadata.rankChanges, words),
@@ -512,7 +505,7 @@ function tendLine(action: GameAction, words: Words): string | undefined {
     }
     const { metadata } = action
     const place = spaceLabel(action.spaceId)
-    const landscape = metadata ? spoken(metadata.landscape) : 'landscape'
+    const landscape = metadata ? spaced(metadata.landscape) : 'landscape'
     const collected = metadata?.collected
     return sentence(
         `${words.who(action.playerId)} tended the ${landscape} at ${place}`,
@@ -610,12 +603,12 @@ function conqueredLine(
             return sentence(
                 `${words.whose(defenderId)} ${conquered.character} went home`,
                 conquered.vessel
-                    ? `${spoken(conquered.vessel)} left at ${spaceLabel(spaceId)}`
+                    ? `${spaced(conquered.vessel)} left at ${spaceLabel(spaceId)}`
                     : undefined,
                 conquered.wine ? 'sulfur to the haversack' : undefined
             )
         case 'monster':
-            return `${words.whose(defenderId)} ${spoken(conquered.monsterId)} went home`
+            return `${words.whose(defenderId)} ${spaced(conquered.monsterId)} went home`
         case 'feudum': {
             const home = conquered.markersHome.map(
                 ({ playerId, count }) => `${words.whom(playerId)} ${count}`
@@ -640,7 +633,7 @@ function conquerLine(action: GameAction, words: Words): string | undefined {
     const whose = defenderId ? words.whose(defenderId) : 'the'
     const piece =
         target.kind === 'monster'
-            ? spoken(target.monsterId)
+            ? spaced(target.monsterId)
             : target.kind === 'feudum'
               ? 'feudum'
               : (metadata?.character ?? 'pawn')
@@ -780,14 +773,14 @@ function detailsLine(
                 details.completed.length > 0 ? `completed ${listed(details.completed)}` : undefined
             )
         case 'alchemist-trade':
-            return `bought ${params.vesselType ? article(params.vesselType) : 'a vessel'} for ${details.price}s`
+            return `bought ${params.vesselType ? withArticle(params.vesselType) : 'a vessel'} for ${details.price}s`
         case 'alchemist-push':
         case 'knight-pull': {
             // R-4.6-H8 A barrel may fill nothing; only the markers it added are named.
             const fills = details.barrels.flat()
             return sentence(
                 `turned in ${countsLine(details.goodsUsed)}`,
-                params.inventions ? `invented ${listed(params.inventions.map(spoken))}` : undefined,
+                params.inventions ? `invented ${listed(params.inventions.map(spaced))}` : undefined,
                 fills.length > 0
                     ? `barrels: ${listed(fills.map((fill) => `${rowName(fill, words)} +${fill.added}`))}`
                     : undefined
@@ -797,7 +790,7 @@ function detailsLine(
             return sentence(
                 `took ${plural(details.taken, 'marker')}, kept ${details.kept}, paid ${details.price}s`,
                 params.monster
-                    ? `tamed the ${spoken(params.monster)}${params.deploySpaceId ? ` at ${spaceLabel(params.deploySpaceId)}` : ''}`
+                    ? `tamed the ${spaced(params.monster)}${params.deploySpaceId ? ` at ${spaceLabel(params.deploySpaceId)}` : ''}`
                     : undefined
             )
         case 'knight-push':
@@ -932,7 +925,7 @@ function mandateReceived(action: GameAction): Clause {
         case 'goods':
             return goodsCounted(received.goods)
         case 'vessel':
-            return article(received.vessel)
+            return withArticle(received.vessel)
         case 'influence':
             return plural(received.amount, 'marker')
         case 'seal':
@@ -1008,7 +1001,7 @@ function collectLine(action: GameAction, words: Words): string | undefined {
     }
     const named = collections.map(
         ({ spaceId, landscape, collected }) =>
-            `the ${spoken(landscape)} at ${spaceLabel(spaceId)}: ${collectedLine(collected, words)}`
+            `the ${spaced(landscape)} at ${spaceLabel(spaceId)}: ${collectedLine(collected, words)}`
     )
     return sentence(
         `${who} collected ${named.join('; ')}`,
@@ -1049,7 +1042,7 @@ function dawnLine(action: GameAction, words: Words): string | undefined {
     )
     return sentence(
         `Dawn of epoch ${sunray(metadata.epoch).ray}: ${rows.join('; ')}`,
-        metadata.fills.length > 0 ? listed(metadata.fills.map(fillLine).map(spoken)) : undefined
+        metadata.fills.length > 0 ? listed(metadata.fills.map(fillLine).map(spaced)) : undefined
     )
 }
 
@@ -1164,13 +1157,13 @@ function plainLine(action: GameAction, words: Words): string | undefined {
     }
     if (isPlaceStartingPawn(action)) {
         return sentence(
-            `${words.who(action.playerId)} placed ${article(action.character)} at ${spaceLabel(action.spaceId)}`,
+            `${words.who(action.playerId)} placed ${withArticle(action.character)} at ${spaceLabel(action.spaceId)}`,
             ranksLine(action.metadata?.rankChanges, words)
         )
     }
     if (isForfeitCard(action)) {
         return sentence(
-            `${words.who(action.playerId)} forfeited ${cardName(action.kind)}`,
+            `${words.who(action.playerId)} forfeited ${cardOf(action.kind).printedName}`,
             playedAs(action)
         )
     }
@@ -1212,7 +1205,7 @@ function plainLine(action: GameAction, words: Words): string | undefined {
     }
     if (isPlaceVessel(action)) {
         const at = action.metadata ? ` at ${spaceLabel(action.metadata.spaceId)}` : ''
-        return `${words.who(action.playerId)} placed ${article(action.vesselType)}${at}`
+        return `${words.who(action.playerId)} placed ${withArticle(action.vesselType)}${at}`
     }
     if (isReplenishMap(action)) {
         const goods = action.metadata?.goods ?? []

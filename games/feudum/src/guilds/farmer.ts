@@ -23,7 +23,6 @@ import {
     fillCart,
     fillMarket,
     fillMarketWith,
-    goodsTotal,
     marketRoom,
     movableToMarket,
     reasonMarketPicksRefused,
@@ -45,6 +44,7 @@ import {
     type TradePreview
 } from './guildFunction.js'
 import { locationKindOf } from '../model/locationDiscs.js'
+import { goodsTotal } from '../model/collections.js'
 
 export interface FarmerTradeOffer {
     readonly spaceId: SpaceId

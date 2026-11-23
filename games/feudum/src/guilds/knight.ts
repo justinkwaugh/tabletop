@@ -17,6 +17,7 @@ import { canPayGuild, guildSplit, payGuild } from '../model/payments.js'
 import type { GuildFunctionName, GuildFunctionParams, GuildFunctionRow } from './guildFunction.js'
 import { makeInventions, mostInventions, reasonInventionsRefused } from './inventions.js'
 import { rowsToScrollsRow } from './rowsToScrolls.js'
+import { spaced } from '../model/words.js'
 
 /** R-1.4-H1 A seat's row is the one it owns. */
 function seatRow(state: HydratedFeudumGameState, playerId: string): KnightRow | undefined {
@@ -32,10 +33,6 @@ function tameCost(monster: MonsterId): number {
     const icon = KnightMonsterIcons.find((row) => row.monster === monster)
     assertExists(icon, `R-4.2.4 ${monster} has an icon`)
     return icon.markers
-}
-
-function monsterName(monster: MonsterId): string {
-    return monster.replace('-', ' ')
 }
 
 /** R-4.6.3 A port counts for the sea serpent (FAQ). */
@@ -84,7 +81,7 @@ function reasonTameCannotHappen(
     if (!monster) {
         return deploySpaceId ? 'Pick a monster to tame.' : undefined
     }
-    const name = monsterName(monster)
+    const name = spaced(monster)
     if (markersInRow(state, playerId) < tameCost(monster)) {
         return `Taming the ${name} takes ${tameCost(monster)} markers from your row.`
     }
@@ -134,7 +131,7 @@ const KnightTrade: GuildFunctionRow = {
             return cannot
         }
         return params.monster && !params.deploySpaceId
-            ? `Pick a space to deploy the ${monsterName(params.monster)}.`
+            ? `Pick a space to deploy the ${spaced(params.monster)}.`
             : undefined
     },
 

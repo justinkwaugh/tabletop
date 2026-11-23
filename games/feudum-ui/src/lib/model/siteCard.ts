@@ -4,7 +4,9 @@ import {
     type HydratedFeudumGameState,
     locationKindOf,
     type MonsterId,
-    type SpaceId
+    spaced,
+    type SpaceId,
+    titled
 } from '@tabletop/feudum'
 import { spaceLabel } from './cardFlows.js'
 import {
@@ -51,9 +53,7 @@ export interface SiteCard {
     readonly vessels: readonly AbandonedVessels[]
 }
 
-const Titled = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
-
-const monsterName = (monster: MonsterId) => Titled(monster.replace('-', ' '))
+const monsterName = (monster: MonsterId) => titled(spaced(monster))
 
 /** R-4.1 What lies and stands on a space: its markers, pawns, monsters, landscape, goods, vessels. */
 export function siteCardOf(
@@ -110,7 +110,7 @@ export function siteCardOf(
                 name: nameOf(playerId),
                 characters,
                 drunk: own.map(({ drunk }) => drunk),
-                label: characters.map(Titled).join(', ')
+                label: characters.map(titled).join(', ')
             }
         ]
     })
@@ -134,7 +134,7 @@ export function siteCardOf(
         markers,
         pawns,
         monsters,
-        ...(landscape ? { landscape: `${Titled(landscape)} landscape` } : {}),
+        ...(landscape ? { landscape: `${titled(landscape)} landscape` } : {}),
         goods: goodKinds(space.goods),
         vessels: abandonedVessels(space.vessels)
     }

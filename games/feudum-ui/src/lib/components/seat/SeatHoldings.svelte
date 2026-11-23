@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { spaced } from '@tabletop/feudum'
     import type { Attachment } from 'svelte/attachments'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import LockMark from '$lib/components/pieces/LockMark.svelte'
@@ -166,7 +167,7 @@
             {@const tile = entry.tile}
             <Enlargeable
                 tag="div"
-                label="{tile.landscape.replace('-', ' ')} tile"
+                label="{spaced(tile.landscape)} tile"
                 face={() => ({
                     kind: 'tile',
                     faceShown: true,
@@ -188,7 +189,7 @@
         {:else if entry.item === 'vessel'}
             <span
                 class="flex items-center gap-[0.15em]"
-                title="{entry.count} {entry.vessel.replace('-', ' ')}"
+                title="{entry.count} {spaced(entry.vessel)}"
                 data-supply-vessel={entry.vessel}
             >
                 <VesselToken vessel={entry.vessel} size={piece * 1.3} />

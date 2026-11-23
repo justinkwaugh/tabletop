@@ -1,7 +1,7 @@
+import { setPawns } from '@tabletop/feudum/testing'
 import { HydratedFeudumGameState, type GuildId } from '@tabletop/feudum'
 import { describe, expect, it } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { setPawns } from '$lib/testing/guildTable.js'
 import { guildStandingsOf, type GuildStandingsView } from './guildStandings.js'
 
 /** The standings table's one derivation: each guild's track places, then who stars without one. */

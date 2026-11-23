@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { spaced } from '@tabletop/feudum'
     import type { MonsterId } from '@tabletop/feudum'
     import { assetUrl, monsterAsset } from '$lib/art/assetMap.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
@@ -20,7 +21,7 @@
         y?: number
     } = $props()
 
-    let name = $derived(monster.replace('-', ' '))
+    let name = $derived(spaced(monster))
 </script>
 
 <PieceFrame

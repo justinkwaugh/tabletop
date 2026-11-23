@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ActionCards, type ActionCardKind } from '@tabletop/feudum'
+    import { type ActionCardKind, ActionCards, cardOf } from '@tabletop/feudum'
     import { assetUrl, cardAsset, cardBackAsset } from '$lib/art/assetMap.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
@@ -48,7 +48,7 @@
     let tier = $derived(faceTier(width))
     let height = $derived((width * CardBox.height) / CardBox.width)
     let viewBox = `0 0 ${CardBox.width} ${CardBox.height}`
-    let card = $derived(faceShown ? ActionCards.find((one) => one.kind === kind) : undefined)
+    let card = $derived(faceShown && kind ? cardOf(kind) : undefined)
     let label = $derived(
         card ? `${paint.owner} ${card.printedName} card` : `${paint.owner} card back`
     )

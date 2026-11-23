@@ -12,7 +12,7 @@ import { drawGoods } from './haversack.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { KnightRowOwner } from './guildsState.js'
 import { changeOwnerSupply, knightRows, ownerSupply } from './knightRows.js'
-import { goodsTotal } from './market.js'
+import { goodsTotal } from './collections.js'
 import { flipSeal, moveConcealedSeal } from './seals.js'
 import {
     ChickenSpaceIdSchema,

@@ -1,3 +1,4 @@
+import { giveSeal, giveTile } from '@tabletop/feudum/testing'
 import { flushSync, mount } from 'svelte'
 import type { ActionCardKind, WritId } from '@tabletop/feudum'
 import GameTable from '$lib/components/GameTable.svelte'
@@ -15,7 +16,7 @@ import {
 } from './followUpTable.js'
 import { playOutRound, tendLandscape, type DawnEpoch } from './roundEndTable.js'
 import { settled } from './sessionHarness.js'
-import { giveGood, giveSeal, giveTile } from './turnTable.js'
+import { giveGood } from './turnTable.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 
 export type AskRole = 'attacker' | 'asked' | 'third'

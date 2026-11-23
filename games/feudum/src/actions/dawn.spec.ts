@@ -19,7 +19,7 @@ import { MachineState } from '../definition/states.js'
 import { replenishMap } from '../model/dawn.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
-import { goodsTotal } from '../model/market.js'
+import { goodsTotal } from '../model/collections.js'
 import { flipSeal, moveBead } from '../model/seals.js'
 import { placeLandscape, playToDawn } from '../testing/dawn.js'
 import {

@@ -1,3 +1,13 @@
+import {
+    giveMonster,
+    giveSeal,
+    giveTile,
+    setBarn,
+    setMarket,
+    setRowMarkers,
+    setShillings,
+    showOnStacks
+} from '@tabletop/feudum/testing'
 import { assertExists } from '@tabletop/common'
 import {
     type ActionCardKind,
@@ -30,16 +40,9 @@ import {
     type WritId
 } from '@tabletop/feudum'
 import { fillBarrel, holdFood, holdWrit, threePawns } from './followUpTable.js'
-import { seatRowIndex, setBarn, setMarket, setRowMarkers, setShillings } from './guildTable.js'
-import {
-    abandonVessel,
-    giveMonster,
-    giveVessel,
-    landscapeOn,
-    sellOut,
-    serfOn
-} from './moveTable.js'
-import { showOnStacks, tendLandscape } from './roundEndTable.js'
+import { seatRowIndex } from './guildTable.js'
+import { abandonVessel, giveVessel, landscapeOn, sellOut, serfOn } from './moveTable.js'
+import { tendLandscape } from './roundEndTable.js'
 import { FeudumHost } from './sessionHarness.js'
 import {
     addPawn,
@@ -47,8 +50,6 @@ import {
     emptySpace,
     giveBead,
     giveGood,
-    giveSeal,
-    giveTile,
     returnGoods,
     ruleOutpost,
     ruleTown

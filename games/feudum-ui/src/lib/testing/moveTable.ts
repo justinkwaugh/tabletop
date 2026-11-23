@@ -1,9 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import {
-    placeMarker,
     type HydratedFeudumGameState,
     type LandscapeKind,
-    type MonsterId,
+    placeMarker,
     type SpaceId,
     type VesselType
 } from '@tabletop/feudum'
@@ -61,15 +60,4 @@ export function serfOn(
 ) {
     placeMarker(state, ruler, spaceId)
     placeMarker(state, serf, spaceId)
-}
-
-/** R-4.6.3 Tame the Beast: the monster stands for the seat, its icon on the Knight Guild's row. */
-export function giveMonster(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    monster: MonsterId,
-    spaceId: SpaceId
-) {
-    state.monsters[monster] = { playerId, spaceId }
-    state.getPlayerState(playerId).influenceSupply -= 1
 }

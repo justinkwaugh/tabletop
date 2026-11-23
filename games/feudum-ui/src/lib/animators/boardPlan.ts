@@ -24,10 +24,10 @@ import {
     type Move,
     type PieceRef,
     type RegionId,
-    RegionTiles,
     seatKnightRow,
     type SpaceId,
     Spaces,
+    tileById,
     type TileEpoch,
     type TileId,
     type VesselType
@@ -997,7 +997,7 @@ function playDie(
         const tile = plan.token(
             {
                 kind: 'tile',
-                epoch: RegionTiles.find(({ id }) => id === removed.tileId)?.epoch ?? 1,
+                epoch: tileById(removed.tileId).epoch,
                 landscape: removed.landscape
             },
             StackCentres[removed.region]

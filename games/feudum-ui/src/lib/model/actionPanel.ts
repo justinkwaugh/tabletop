@@ -1,13 +1,14 @@
 import {
-    ActionCardKinds,
-    ActionCards,
-    StartingSpaceIds,
     type ActionCardKind,
+    ActionCardKinds,
+    cardOf,
     type Character,
     type Good,
     type KnightRowId,
     type PawnNumber,
     type PouchGood,
+    StartingSpaceIds,
+    titled,
     type WritId
 } from '@tabletop/feudum'
 import type { BenchOffer } from './benchOffer.js'
@@ -28,7 +29,6 @@ import type { TileArt } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 import { waitingWords } from './watching.js'
 import { writName } from './writLabels.js'
-import { titled } from '$lib/utils/words.js'
 
 export type RowArt =
     | { readonly kind: 'good'; readonly good: Good }
@@ -285,7 +285,7 @@ export type PanelSession = Pick<
 function cardFace(kind: ActionCardKind): { readonly number: number; readonly label: string } {
     return {
         number: ActionCardKinds.indexOf(kind) + 1,
-        label: ActionCards.find((card) => card.kind === kind)?.printedName ?? kind
+        label: cardOf(kind).printedName
     }
 }
 

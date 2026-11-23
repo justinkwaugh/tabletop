@@ -1,3 +1,4 @@
+import { giveSeal } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -35,7 +36,6 @@ import {
     buildFeudum,
     emptySpaces,
     giveGood,
-    giveSeal,
     returnGoods
 } from '$lib/testing/turnTable.js'
 

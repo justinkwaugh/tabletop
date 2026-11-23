@@ -1,10 +1,10 @@
 // @vitest-environment node
+import { setPawns } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
 import { HydratedFeudumGameState, type GuildId } from '@tabletop/feudum'
 import { guildStandingsOf } from '$lib/model/guildStandings.js'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { setPawns } from '$lib/testing/guildTable.js'
 import GuildRail from './GuildRail.svelte'
 
 /** One guild's rail beside its area: only what exists, each place named in words. */

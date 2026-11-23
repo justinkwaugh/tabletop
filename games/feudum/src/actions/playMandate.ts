@@ -36,6 +36,7 @@ import {
 import { payShillingsFromSupply, takeInfluenceMarkers } from '../model/supply.js'
 import { putWritsUnderInView } from '../model/writDeck.js'
 import { writRegistry, type MandateAlternativeEffect } from '../writs/writRegistry.js'
+import { spaced } from '../model/words.js'
 
 /** R-4.4.2 What the seat received, as much of the reward as the supply had (R-1.1-H1). */
 export type MandateReceived = Type.Static<typeof MandateReceived>
@@ -142,7 +143,7 @@ function reasonEffectRefused(
     }
     const reward = rewardTaken(effect.reward, vessel)
     return reward.kind === 'vessel' && state.supply.vessels[reward.vessel] === 0
-        ? `The general supply has no ${reward.vessel.replaceAll('-', ' ')}.`
+        ? `The general supply has no ${spaced(reward.vessel)}.`
         : undefined
 }
 

@@ -4,12 +4,12 @@ import {
     isBeginDawn,
     isScoreGame,
     LastEpoch,
+    plural,
     sunray,
     voyageSpace,
     type VoyageSpaceId,
     type WritId
 } from '@tabletop/feudum'
-import { plural } from '$lib/utils/words.js'
 
 export interface GameEndColumn {
     readonly playerId: string

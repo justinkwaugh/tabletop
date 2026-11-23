@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { spaced } from '@tabletop/feudum'
     import type { VesselType } from '@tabletop/feudum'
     import { assetUrl, vesselAsset } from '$lib/art/assetMap.js'
     import { VesselPaths } from '$lib/utils/pieceShapes.js'
@@ -16,7 +17,7 @@
         submersible: 'var(--feudum-route-submersible)',
         'flying-machine': 'var(--feudum-route-flying)'
     } as const
-    let label = $derived(vessel.replace('-', ' '))
+    let label = $derived(spaced(vessel))
 </script>
 
 <PieceFrame

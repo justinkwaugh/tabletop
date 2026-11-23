@@ -1,15 +1,6 @@
-import { assertExists } from '@tabletop/common'
-import type {
-    ActionCardKind,
-    GuildFunctionName,
-    GuildId,
-    HydratedFeudumGameState,
-    ScrollSpaceId,
-    SpaceId
-} from '@tabletop/feudum'
 import {
-    ruleFarm,
-    seatRowIndex,
+    giveTile,
+    type GoodAmounts,
     setBarn,
     setBeads,
     setCarts,
@@ -20,11 +11,19 @@ import {
     setRowMarkers,
     setScrolls,
     setShillings,
-    setVesselsForSale,
-    type GuildArrange,
-    type GoodAmounts
-} from './guildTable.js'
-import { giveTile, returnGoods, ruleTown } from './turnTable.js'
+    setVesselsForSale
+} from '@tabletop/feudum/testing'
+import { assertExists } from '@tabletop/common'
+import type {
+    ActionCardKind,
+    GuildFunctionName,
+    GuildId,
+    HydratedFeudumGameState,
+    ScrollSpaceId,
+    SpaceId
+} from '@tabletop/feudum'
+import { type GuildArrange, ruleFarm, seatRowIndex } from './guildTable.js'
+import { returnGoods, ruleTown } from './turnTable.js'
 
 export const AllCarts: GoodAmounts = { wood: 3, iron: 3, food: 3, sulfur: 3, saltpeter: 3 }
 const FullMarket: GoodAmounts = { saltpeter: 3, sulfur: 3, iron: 1, wood: 3, food: 3 }

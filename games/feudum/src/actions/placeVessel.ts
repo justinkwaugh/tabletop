@@ -9,6 +9,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeVesselUnderPawn } from '../model/media.js'
 import type { PawnState } from '../model/playerState.js'
 import { PawnNumberSchema, SpaceIdSchema, VesselTypeSchema } from '../model/stateSchemas.js'
+import { spaced } from '../model/words.js'
 
 export type PlaceVesselMetadata = Type.Static<typeof PlaceVesselMetadata>
 export const PlaceVesselMetadata = Type.Object({
@@ -115,7 +116,7 @@ export class HydratedPlaceVessel
         }
         const player = state.getPlayerState(playerId)
         if (player.vessels[vesselType] === 0) {
-            return `You have no ${vesselType.replaceAll('-', ' ')} in your supply.`
+            return `You have no ${spaced(vesselType)} in your supply.`
         }
         const pawn = player.pawns.find(({ n }) => n === pawnNumber)
         if (pawn?.spaceId === undefined) {

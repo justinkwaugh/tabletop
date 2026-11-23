@@ -7,6 +7,7 @@ import { cartsHold, takeFromCart } from '../model/market.js'
 import { goodCounts, type GoodCounts } from '../model/stateSchemas.js'
 import { returnGoodToHaversack } from '../model/supply.js'
 import type { InventionChoice, RowFill } from './guildFunctionDetails.js'
+import { spaced } from '../model/words.js'
 
 const InventionChoices: readonly InventionChoice[] = [...VesselTypes, 'krud-barrel']
 
@@ -90,7 +91,7 @@ export function reasonInventionsRefused(
             state.supply.vessels[vessel]
     )
     if (out) {
-        return `The general supply has only ${state.supply.vessels[out]} ${out.replace('-', ' ')}.`
+        return `The general supply has only ${state.supply.vessels[out]} ${spaced(out)}.`
     }
     return barrels > barrelsLeft(state) ? 'No Knight row has an unfilled section left.' : undefined
 }

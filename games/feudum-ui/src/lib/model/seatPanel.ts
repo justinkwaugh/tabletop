@@ -1,29 +1,29 @@
 import {
-    ActionCardKinds,
-    ActionCards,
-    ExtraActionHandSize,
-    Goods,
-    MilitaryServiceTrack,
-    PlayerDiscRoles,
-    RegionTiles,
-    VesselTypes,
-    WineBarrelCapacity,
-    beadValue,
     type ActionCardKind,
+    ActionCardKinds,
     type BeadValue,
+    beadValue,
+    cardOf,
+    coveredServiceSpaces,
+    ExtraActionHandSize,
     type Good,
+    Goods,
     type HydratedFeudumGameState,
     type HydratedFeudumPlayerState,
     type LandscapeKind,
+    MilitaryServiceTrack,
     type PlayedCard,
+    PlayerDiscRoles,
     type PouchGood,
     type RegionId,
+    tileById,
     type TileEpoch,
     type TileId,
     type VesselType,
-    type WritId,
-    coveredServiceSpaces,
-    voyageSpaceOf
+    VesselTypes,
+    voyageSpaceOf,
+    WineBarrelCapacity,
+    type WritId
 } from '@tabletop/feudum'
 import { handFaceShown, writFaceShown } from './perspective.js'
 import { deckNoteOf } from './watching.js'
@@ -168,18 +168,14 @@ export function scoreWords(score: number, leading: boolean): string {
     return `${score} vp${leading ? ', leading' : ''}`
 }
 
-function printedNameOf(kind: ActionCardKind): string {
-    return ActionCards.find((card) => card.kind === kind)?.printedName ?? kind
-}
-
 function faceOf(kind: ActionCardKind): SeatCardFace {
-    return { kind, number: ActionCardKinds.indexOf(kind) + 1, name: printedNameOf(kind) }
+    return { kind, number: ActionCardKinds.indexOf(kind) + 1, name: cardOf(kind).printedName }
 }
 
 /** R-3.2, R-3.15 How a card was used, as public state has it. */
 function markOf({ use, replayedKind, dejaVu }: PlayedCard): string {
     if (replayedKind) {
-        return `${dejaVu ? 'Déjà Vu' : 'replayed'} ${printedNameOf(replayedKind)}`
+        return `${dejaVu ? 'Déjà Vu' : 'replayed'} ${cardOf(replayedKind).printedName}`
     }
     return use === 'defend-flip' ? 'flipped as Defend' : use
 }
@@ -255,11 +251,9 @@ function supplyOf(state: HydratedFeudumGameState, player: HydratedFeudumPlayerSt
         discsOf: PlayerDiscRoles.shared,
         vessels: VesselTypes.map((vessel) => ({ vessel, count: player.vessels[vessel] })),
         tiles: player.regionTiles.flatMap((tileId) => {
-            const tile = RegionTiles.find(({ id }) => id === tileId)
+            const tile = tileById(tileId)
             const landscape = state.tileLandscapes[tileId]
-            return tile && landscape
-                ? [{ tileId, epoch: tile.epoch, region: tile.region, landscape }]
-                : []
+            return landscape ? [{ tileId, epoch: tile.epoch, region: tile.region, landscape }] : []
         }),
         beads: player.beads.map((sealId) => beadValue(sealId)),
         seals: player.sealCount

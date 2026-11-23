@@ -3,6 +3,7 @@ import type { ScrollSpaceId } from '../data/guilds.js'
 import { rosaryBeadSum, unseenBeadValues } from '../model/beads.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { filledScrollSpaces } from '../model/scrolls.js'
+import { plural } from '../model/words.js'
 
 /** R-4.6-H1, R-4.6.4, R-4.6.5 Each pick holds a seal, once; `verb` and `cap` name the function's limit. */
 export function reasonSealPicksRefused(
@@ -12,7 +13,7 @@ export function reasonSealPicksRefused(
     cap: number
 ): string | undefined {
     if (spaces.length > cap) {
-        return `${verb} at most ${cap} seal${cap === 1 ? '' : 's'}.`
+        return `${verb} at most ${plural(cap, 'seal')}.`
     }
     const filled = filledScrollSpaces(state)
     const missing = spaces.some(

@@ -1,4 +1,4 @@
-import { showLocation } from '@tabletop/feudum/testing'
+import { giveSeal, giveTile, showLocation, showOnStacks } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
@@ -32,9 +32,8 @@ import {
     type TileId
 } from '@tabletop/feudum'
 import { askedToDefend, type AskTable } from '$lib/testing/askTable.js'
-import { showOnStacks } from '$lib/testing/roundEndTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
-import { addPawn, atPlayingCards, giveBead, giveSeal, giveTile } from '$lib/testing/turnTable.js'
+import { addPawn, atPlayingCards, giveBead } from '$lib/testing/turnTable.js'
 import { spaceTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { scoreDiscs, seatScores, type SeatScore } from '$lib/model/boardView.js'

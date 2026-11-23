@@ -1,4 +1,4 @@
-import { goodCountsOf } from '../model/collections.js'
+import { goodCountsOf, goodsTotal } from '../model/collections.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
@@ -73,11 +73,6 @@ export function isHarvest(action?: GameAction): action is Harvest {
     return action?.type === ActionType.Harvest
 }
 
-function goodsOn(state: HydratedFeudumGameState, spaceId: SpaceId): number {
-    const { goods } = state.spaces[spaceId]
-    return Goods.reduce((sum, good) => sum + goods[good], 0)
-}
-
 /** R-3.11.1 5 + 1 per other farm or feudum ruled + each held bead's value, at most 10. */
 export function harvestTotal(state: HydratedFeudumGameState, playerId: string): number {
     const ruled = state.ruledSpaceIds(playerId).map((spaceId) => state.spaces[spaceId].location)
@@ -123,7 +118,7 @@ export function reasonHarvestRefused(
     if (space.ruler?.playerId !== playerId) {
         return "You don't rule that farm."
     }
-    return goodsOn(state, input.spaceId) >= HarvestMostGoods
+    return goodsTotal(state.spaces[input.spaceId].goods) >= HarvestMostGoods
         ? `That farm has ${HarvestMostGoods} goods: it takes no harvest until it drops below that.`
         : undefined
 }
@@ -153,7 +148,7 @@ export function harvestOffers(state: HydratedFeudumGameState, playerId: string):
                 (spaceId) =>
                     locationKindOf(state.spaces[spaceId].location) === 'farm' &&
                     state.spaces[spaceId].ruler?.playerId === playerId &&
-                    goodsOn(state, spaceId) < HarvestMostGoods
+                    goodsTotal(state.spaces[spaceId].goods) < HarvestMostGoods
             )
             .map((spaceId) => ({ spaceId, total, partial, favours: favors })),
         beads: state.getPlayerState(playerId).beads.length,

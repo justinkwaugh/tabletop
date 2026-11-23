@@ -1,19 +1,21 @@
-import { flushSync } from 'svelte'
-import { assertExists, type GameAction } from '@tabletop/common'
-import type { GuildFunctionName, GuildId } from '@tabletop/feudum'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-    guildTable,
-    ruleFarm,
-    seatRowIndex,
     setBeads,
     setMarket,
     setRowMarkers,
     setScrolls,
     setShillings,
-    setVesselsForSale,
+    setVesselsForSale
+} from '@tabletop/feudum/testing'
+import { flushSync } from 'svelte'
+import { assertExists, type GameAction } from '@tabletop/common'
+import type { GuildFunctionName, GuildId } from '@tabletop/feudum'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
     type GuildArrange,
-    type GuildTable
+    type GuildTable,
+    guildTable,
+    ruleFarm,
+    seatRowIndex
 } from '$lib/testing/guildTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import { guildTarget } from './boardOffer.js'

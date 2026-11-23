@@ -1,4 +1,17 @@
-import { showLocation } from '@tabletop/feudum/testing'
+import {
+    giveSeal,
+    giveTile,
+    setBarn,
+    setBeads,
+    setJourneyman,
+    setMarket,
+    setMaster,
+    setPawns,
+    setScrolls,
+    setShillings,
+    showLocation,
+    StandingSpace
+} from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -40,19 +53,10 @@ import {
     type SeatTable
 } from '$lib/testing/followUpTable.js'
 import {
-    guildTable,
-    ruleFarm,
-    setBarn,
-    setBeads,
-    setJourneyman,
-    setMarket,
-    setMaster,
-    setPawns,
-    setScrolls,
-    setShillings,
-    StandingSpace,
     type GuildArrange,
-    type GuildTable
+    guildTable,
+    type GuildTable,
+    ruleFarm
 } from '$lib/testing/guildTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import {
@@ -62,8 +66,6 @@ import {
     emptySpace,
     giveBead,
     giveGood,
-    giveSeal,
-    giveTile,
     returnGoods,
     ruleOutpost,
     ruleTown,

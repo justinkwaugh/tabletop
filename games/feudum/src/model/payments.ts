@@ -5,6 +5,7 @@ import { FarmerPurse, GuildById, type CharityId } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { goodCounts, GoodSchema, TileIdSchema, type GoodCounts } from './stateSchemas.js'
 import { barrelRoom, returnGoodToHaversack, takeGoodFromHaversack } from './supply.js'
+import { goodsTotal } from './collections.js'
 
 /** R-4.3.3, R-4.4-H1 What every paying action may carry: a good, never shillings. */
 export type WildTileSpend = Type.Static<typeof WildTileSpend>
@@ -141,7 +142,7 @@ export function canCoverWithWildTiles(
     price: GoodPrice
 ): boolean {
     const short = goodsShort(state, playerId, price)
-    const tilesNeeded = Goods.reduce((sum, good) => sum + short[good], 0)
+    const tilesNeeded = goodsTotal(short)
     return (
         tilesNeeded <= state.getPlayerState(playerId).regionTiles.length &&
         Goods.every((good) => short[good] <= state.supply.haversack[good])

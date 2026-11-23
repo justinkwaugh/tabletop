@@ -1,14 +1,13 @@
 import { assertExists } from '@tabletop/common'
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
-    FerryFare,
-    Move,
-    moveOffers,
-    reasonMoveRefused,
     type CardPlayInput,
+    FerryFare,
     type GodspeedStep,
     type HydratedFeudumGameState,
+    Move,
     type MoveInput,
+    moveOffers,
     type MoveOffers,
     type MovePieceOffer,
     type MoveStep,
@@ -17,8 +16,11 @@ import {
     type Pilfer,
     type PilferOffer,
     type PilferResource,
+    reasonMoveRefused,
     type RouteStep,
-    type SpaceId
+    spaced,
+    type SpaceId,
+    titled
 } from '@tabletop/feudum'
 import {
     pieceTarget,
@@ -41,7 +43,6 @@ import {
 import { primaryLabel } from './confirmingSend.js'
 import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
-import { spaced, titled } from '$lib/utils/words.js'
 
 export type MoveDraftValues = {
     /** R-3.7.1 Stacked: each press is one step, in press order. */

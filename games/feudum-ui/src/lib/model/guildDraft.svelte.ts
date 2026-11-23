@@ -1,24 +1,25 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
     ActionType,
-    Feast,
-    feastOffers,
-    GuildAction,
-    GuildById,
-    guildActionOffers,
-    GuildIds,
-    nobleTradeOffer,
     alchemistTradeOffers,
-    merchantTradeOffers,
     type CardPlayInput,
     type CompletionCount,
+    Feast,
     type FeastOffer,
+    feastOffers,
+    GuildAction,
     type GuildActionOffer,
+    guildActionOffers,
+    GuildById,
     type GuildFunctionName,
     type GuildId,
+    GuildIds,
     type HydratedFeudumGameState,
+    merchantTradeOffers,
     type MonsterId,
-    type SpaceId
+    nobleTradeOffer,
+    type SpaceId,
+    titled
 } from '@tabletop/feudum'
 import {
     benchOffer,
@@ -290,7 +291,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
     private functionRow(context: GuildContext, offer: GuildActionOffer): PanelChoice {
         const { guildId, fn, bestVp } = offer
         const seat = this.seatOf(context)
-        const name = `${fn.charAt(0).toUpperCase()}${fn.slice(1)}`
+        const name = titled(fn)
         const note =
             fn === 'trade'
                 ? this.tradeCost(seat, guildId, guildBenchSource(seat, guildId, fn))

@@ -2,9 +2,10 @@
     import type { Color } from '@tabletop/common'
     import {
         Goods,
+        type HydratedFeudumGameState,
+        spaced,
         VesselTypes,
-        writDeckCount,
-        type HydratedFeudumGameState
+        writDeckCount
     } from '@tabletop/feudum'
     import ArcheryTarget from '$lib/components/pieces/ArcheryTarget.svelte'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
@@ -110,7 +111,7 @@
                 {@render counted(
                     `vessels-${vessel}`,
                     state.supply.vessels[vessel],
-                    vessel.replace('-', ' '),
+                    spaced(vessel),
                     token
                 )}
             {/each}

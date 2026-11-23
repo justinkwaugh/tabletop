@@ -1,12 +1,13 @@
 import {
-    ActionCardKinds,
-    Charters,
-    GuildIds,
-    RoyalWrits,
     type ActionCardId,
+    ActionCardKinds,
     type CharterId,
+    Charters,
     type GuildId,
-    type KingdomCharter
+    GuildIds,
+    type KingdomCharter,
+    RoyalWrits,
+    titled
 } from '@tabletop/feudum'
 import { spaceLabel } from './cardFlows.js'
 import type { EnlargedFace } from './tableLayers.svelte.js'
@@ -273,7 +274,7 @@ const MandateNotes: Readonly<Record<string, RulesNote>> = {
 }
 
 function kingdomTitle(charter: KingdomCharter): string {
-    return `${charter.kingdom.charAt(0).toUpperCase()}${charter.kingdom.slice(1)} Kingdom`
+    return `${titled(charter.kingdom)} Kingdom`
 }
 
 /** R-6.2-H1 */

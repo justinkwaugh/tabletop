@@ -28,6 +28,7 @@ import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { dummyRowColour, knightRows, rowSeat } from '../model/knightRows.js'
 import { locationKindOf } from '../model/locationDiscs.js'
+import { goodsTotal, sum } from '../model/collections.js'
 
 const engine = new GameEngine(FeudumRuntime)
 const MasterSeed = '0123456789abcdef0123456789abcdef'
@@ -99,10 +100,6 @@ function beadValue(sealId: SealId): number {
     return seal.beadValue
 }
 
-function goodsTotal(counts: Record<string, number>): number {
-    return Object.values(counts).reduce((sum, count) => sum + count, 0)
-}
-
 describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
     it('R-1.4.1 gives each seat its personal supply, the scoring disc at 0', () => {
         const state = start(numPlayers)
@@ -136,7 +133,7 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
             ComponentTotals.shillings - numPlayers * StartingSupply.shillings
         )
         expect(supply.targets).toBe(ComponentTotals.targets)
-        expect(goodsTotal(supply.vessels)).toBe(
+        expect(sum(Object.values(supply.vessels))).toBe(
             ComponentTotals.vessels - GuildSetupSpaces.alchemist.vessels
         )
         expect(monsters).toEqual({ behemoth: {}, 'sea-serpent': {} })

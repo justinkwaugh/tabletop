@@ -52,6 +52,7 @@ import {
     type WritId
 } from '@tabletop/feudum'
 import {
+    giveSeal,
     perspectivesOf,
     processedOf,
     realGames,
@@ -67,7 +68,7 @@ import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
 import { playOutRound } from '$lib/testing/roundEndTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
-import { atPlayingCards, giveSeal } from '$lib/testing/turnTable.js'
+import { atPlayingCards } from '$lib/testing/turnTable.js'
 
 const Names: Readonly<Record<string, string>> = { p1: 'Ana', p2: 'Ben', p3: 'Cy' }
 

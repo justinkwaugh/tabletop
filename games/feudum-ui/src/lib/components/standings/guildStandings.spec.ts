@@ -1,10 +1,10 @@
 // @vitest-environment node
+import { setPawns } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
 import { HydratedFeudumGameState } from '@tabletop/feudum'
 import { guildStandingsOf } from '$lib/model/guildStandings.js'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { setPawns } from '$lib/testing/guildTable.js'
 import GuildStandings from './GuildStandings.svelte'
 
 /** The standings table's markup: every cell named, the lead outlined, the placeless muted. */

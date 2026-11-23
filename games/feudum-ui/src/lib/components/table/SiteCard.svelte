@@ -6,6 +6,7 @@
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
     import SeatChip from '$lib/components/panel/SeatChip.svelte'
+    import { spaced } from '@tabletop/feudum'
     import type { SiteCard, SiteSeat } from '$lib/model/siteCard.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
@@ -101,7 +102,7 @@
     {#each card.vessels as { vessel, count } (vessel)}
         <div class="flex items-center gap-1.5">
             <VesselToken {vessel} size={24} />
-            <span>{count > 1 ? `${count} ` : ''}{vessel.replace('-', ' ')}, abandoned</span>
+            <span>{count > 1 ? `${count} ` : ''}{spaced(vessel)}, abandoned</span>
         </div>
     {/each}
 </div>

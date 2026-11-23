@@ -30,6 +30,7 @@ import { canonicalOf } from './state.js'
 import { tableAtPlayingCards, type Table, drawnWrits } from './table.js'
 import { cardTurnSeat } from '../model/turns.js'
 import { locationKindOf } from '../model/locationDiscs.js'
+import { goodsTotal } from '../model/collections.js'
 
 /** The components the corpus sweeps go through: the reach sweep's routes and the playthrough's. */
 
@@ -130,10 +131,6 @@ export interface CardCase {
 }
 
 export const Elsewhere = 'space.forest.2'
-
-export function sumOf(counts: GoodCounts): number {
-    return Goods.reduce((sum, good) => sum + counts[good], 0)
-}
 
 export function firstFavours(drawn: GoodCounts, favours: number): GoodCounts {
     const chosen = goodCounts()
@@ -414,7 +411,7 @@ export const CardCases: readonly CardCase[] = [
         }),
         fired: (after, before, seat) => {
             // R-3.11.2 A total of 5, with one farm and no bead.
-            expect(sumOf(after.spaces[before.ruledSpaceIds(seat)[0]].goods)).toBe(5)
+            expect(goodsTotal(after.spaces[before.ruledSpaceIds(seat)[0]].goods)).toBe(5)
             expect(after.getPlayerState(seat).score).toBe(before.getPlayerState(seat).score + 1)
         }
     },
@@ -442,7 +439,7 @@ export const CardCases: readonly CardCase[] = [
         },
         fired: (after, before, seat) => {
             // R-3.11.2 A total of 5 splits into a partial of 4 and 1 favour.
-            expect(sumOf(after.spaces[before.ruledSpaceIds(seat)[0]].goods)).toBe(4)
+            expect(goodsTotal(after.spaces[before.ruledSpaceIds(seat)[0]].goods)).toBe(4)
             expect(after.getPlayerState(seat).score).toBe(before.getPlayerState(seat).score + 1)
         }
     },

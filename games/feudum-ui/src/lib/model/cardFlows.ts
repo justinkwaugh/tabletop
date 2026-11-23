@@ -56,6 +56,7 @@ import {
     tendLandscapeOffers,
     tendLandscapePreview,
     type TileId,
+    titled,
     type VesselType,
     writDeckCount
 } from '@tabletop/feudum'
@@ -74,7 +75,6 @@ import type { SendPreview } from './confirmingSend.js'
 import { dieLabel, rankedDie, type DieArt } from './guildDie.js'
 import { coverAfterPress, coverNeeds, coverSpends } from './tileCover.js'
 import { tileArt, tileName, type TileArt } from './tileName.js'
-import { titled } from '$lib/utils/words.js'
 
 export type TurnDraftValues = {
     card: ActionCardKind

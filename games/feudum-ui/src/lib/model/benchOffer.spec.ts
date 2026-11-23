@@ -1,17 +1,4 @@
-import { flushSync } from 'svelte'
-import { afterEach, describe, expect, it } from 'vitest'
 import {
-    knightRows,
-    merchantTradeOffers,
-    type GuildFunctionName,
-    type GuildId,
-    type MonsterId,
-    type SpaceId
-} from '@tabletop/feudum'
-import {
-    guildTable,
-    seatRowIndex,
-    ruleFarm,
     setBarn,
     setBeads,
     setCarts,
@@ -23,9 +10,24 @@ import {
     setScrolls,
     setShillings,
     setVesselsForSale,
-    StandingSpace,
+    StandingSpace
+} from '@tabletop/feudum/testing'
+import { flushSync } from 'svelte'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+    knightRows,
+    merchantTradeOffers,
+    type GuildFunctionName,
+    type GuildId,
+    type MonsterId,
+    type SpaceId
+} from '@tabletop/feudum'
+import {
     type GuildArrange,
-    type GuildTable
+    type GuildTable,
+    guildTable,
+    ruleFarm,
+    seatRowIndex
 } from '$lib/testing/guildTable.js'
 import { ruleTown } from '$lib/testing/turnTable.js'
 import type { FeudumHost } from '$lib/testing/sessionHarness.js'

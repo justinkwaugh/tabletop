@@ -1,12 +1,12 @@
 import {
-    RegionTiles,
     type Epoch,
     type LandscapeKind,
     type RegionId,
+    tileById,
     type TileEpoch,
-    type TileId
+    type TileId,
+    titled
 } from '@tabletop/feudum'
-import { assertExists } from '@tabletop/common'
 
 export const EpochNames: Readonly<Record<Epoch, string>> = {
     1: 'I',
@@ -17,9 +17,8 @@ export const EpochNames: Readonly<Record<Epoch, string>> = {
 }
 
 export function tileName(tileId: TileId): string {
-    const tile = RegionTiles.find(({ id }) => id === tileId)
-    assertExists(tile, `R-1.1 ${tileId} is a region tile`)
-    return `${tile.region.charAt(0).toUpperCase()}${tile.region.slice(1)} ${EpochNames[tile.epoch]}`
+    const tile = tileById(tileId)
+    return `${titled(tile.region)} ${EpochNames[tile.epoch]}`
 }
 
 export interface TileArt {
@@ -35,8 +34,7 @@ export function tileArt(
     state: { readonly tileLandscapes: Readonly<Record<string, LandscapeKind>> },
     tileId: TileId
 ): TileArt {
-    const tile = RegionTiles.find(({ id }) => id === tileId)
-    assertExists(tile, `R-4.3 There is a region tile ${tileId}`)
+    const tile = tileById(tileId)
     const landscape = state.tileLandscapes[tileId]
     return {
         kind: 'tile',

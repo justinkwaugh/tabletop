@@ -1,22 +1,22 @@
 import {
+    type ActionCardKind,
     ActionType,
-    MachineState,
-    RegionIds,
     collectTopTile,
+    type Epoch,
     fillLandscape,
+    type HydratedFeudumGameState,
+    MachineState,
     nourishOffer,
     placeMarker,
-    removeTopTile,
+    RegionIds,
     stackTop,
-    type ActionCardKind,
-    type HydratedFeudumGameState,
-    type Epoch,
     type SunrayId
 } from '@tabletop/feudum'
 import { assertExists } from '@tabletop/common'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { settled, type FeudumHost } from './sessionHarness.js'
 import { atPlayingCards, emptySpaces } from './turnTable.js'
+import { showOnStacks, type StackShowing } from '@tabletop/feudum/testing'
 
 export interface RoundEndTable {
     readonly host: FeudumHost
@@ -25,8 +25,6 @@ export interface RoundEndTable {
     readonly sessions: readonly FeudumGameSession[]
     readonly session: FeudumGameSession
 }
-
-type StackShowing = 1 | 2 | 3 | 4 | 5 | 'V'
 
 /** R-4.12 The printed number of an epoch a round can trigger. */
 export type DawnEpoch = Exclude<Epoch, 1>
@@ -39,20 +37,6 @@ const Triggers: Readonly<
     3: { from: 'track.epoch.ii', tops: [3, 3, 3, 3, 3, 3] },
     4: { from: 'track.epoch.iii', tops: [4, 4, 4, 4, 4, 4] },
     5: { from: 'track.epoch.iv', tops: ['V', 4, 4, 4, 4, 4] }
-}
-
-/** R-4.3.1 One entry per region; each stack only ever gets shorter. */
-export function showOnStacks(state: HydratedFeudumGameState, tops: readonly StackShowing[]): void {
-    RegionIds.forEach((region, index) => {
-        const showing = tops[index]
-        for (
-            let top = stackTop(state, region);
-            top && (showing === 'V' || top.epoch < showing);
-            top = stackTop(state, region)
-        ) {
-            removeTopTile(state, region)
-        }
-    })
 }
 
 /** R-4.3.4, R-4.12.3 `serf` tends a filled landscape under `ruler`: the dawn asks it to collect. */

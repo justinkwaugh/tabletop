@@ -1,3 +1,4 @@
+import { giveSeal } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -16,7 +17,7 @@ import type { PickFrame, PlacedArea } from '$lib/model/boardFocus.svelte.js'
 import { TableLayers, type EnlargedFace } from '$lib/model/tableLayers.svelte.js'
 import { OpenPick } from '$lib/testing/openPick.svelte.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
-import { atPlayingCards, giveSeal, ruleTown } from '$lib/testing/turnTable.js'
+import { atPlayingCards, ruleTown } from '$lib/testing/turnTable.js'
 
 function frameOn(key: string, ...holds: PlacedArea[]): PickFrame {
     return { key, rect: { x: 0, y: 0, width: 1, height: 1 }, holds }

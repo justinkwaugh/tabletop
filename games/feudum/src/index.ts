@@ -103,6 +103,7 @@ export * from './model/supply.js'
 export * from './model/supplyState.js'
 export * from './model/tracks.js'
 export * from './model/turns.js'
+export * from './model/words.js'
 export * from './model/vault.js'
 export * from './model/writDeck.js'
 

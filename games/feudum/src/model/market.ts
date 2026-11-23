@@ -1,4 +1,4 @@
-import { goodCountsOf } from './collections.js'
+import { goodCountsOf, goodsTotal } from './collections.js'
 import { assertExists } from '@tabletop/common'
 import { Goods, type Good } from '../data/components.js'
 import {
@@ -17,10 +17,6 @@ type Market = Readonly<Record<MarketSpaceId, boolean>>
 export interface MarketLines {
     readonly rows: number
     readonly columns: number
-}
-
-export function goodsTotal(counts: Readonly<GoodCounts>): number {
-    return Goods.reduce((sum, good) => sum + counts[good], 0)
 }
 
 /** R-4.6.3 Empty spaces in a good's market bin. */

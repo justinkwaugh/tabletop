@@ -1,13 +1,14 @@
 import { assertExists } from '@tabletop/common'
 import {
-    GuildById,
-    Mandates,
-    RoyalWrits,
     type Good,
+    GuildById,
     type HydratedFeudumGameState,
     type MandateAlternative,
     type MandateAlternativeId,
+    Mandates,
     type PlayMandateOffer,
+    RoyalWrits,
+    spaced,
     type WritId
 } from '@tabletop/feudum'
 
@@ -44,7 +45,7 @@ function rewardText(reward: PlayMandateOffer['reward'], supply?: SupplyCounts): 
         case 'attack':
             return `+${reward.amount} attack`
         case 'vessel': {
-            const name = reward.vessel.replaceAll('-', ' ')
+            const name = spaced(reward.vessel)
             // Contract, Supply: a vessel reward says how many the general supply has left.
             return supply ? `${name} · ${supply.vessels[reward.vessel]} left` : name
         }

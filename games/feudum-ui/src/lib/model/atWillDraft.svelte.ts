@@ -18,6 +18,7 @@ import {
     reasonPlayMandateRefused,
     ReclaimImmunitySeal,
     reclaimImmunitySealOffers,
+    spaced,
     type SpaceId,
     SpendRegionTile,
     spendRegionTileOffers,
@@ -466,7 +467,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         return {
             vessels: this.vesselOffers(context).map(({ vesselType, pawns }) => ({
                 vesselType,
-                ...draftChoice(vesselType.replaceAll('-', ' '), vessel === vesselType, () => {
+                ...draftChoice(spaced(vesselType), vessel === vesselType, () => {
                     this.toggle('vessel', vesselType)
                 }),
                 art: { kind: 'vessel', vessel: vesselType },

@@ -13,6 +13,7 @@ import { cardTurnSeat } from '../model/turns.js'
 import type { HydratedFeudumPlayerState, PlayedCard } from '../model/playerState.js'
 import { canCoverWithWildTiles } from '../model/payments.js'
 import { reasonSulfurToBarrelRefused, returnGoodToHaversack } from '../model/supply.js'
+import { titled, withArticle } from '../model/words.js'
 
 /** R-3.15 `repeat` is Repeat replaying an x2 card; `deja-vu` is Déjà Vu, for a saltpeter. */
 export type RepeatMode = Type.Static<typeof RepeatMode>
@@ -122,14 +123,6 @@ export function reasonCardPlayRefused(
               reasonNotLastRefused(state, playerId, kind))) ??
         (input.secondCard ? reasonSecondCardRefused(player) : undefined)
     )
-}
-
-function withArticle(word: string): string {
-    return `${/^[aeiou]/i.test(word) ? 'an' : 'a'} ${word}`
-}
-
-function titled(word: string): string {
-    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
 }
 
 /** R-3.4 The need as the rest of a sentence, or undefined when it is met. */

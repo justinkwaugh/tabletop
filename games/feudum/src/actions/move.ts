@@ -46,6 +46,7 @@ import {
     type RepeatMode
 } from './cardPlay.js'
 import { locationKindOf } from '../model/locationDiscs.js'
+import { spaced } from '../model/words.js'
 
 /** R-3.7.5 The round's second successful move earns the voyage. */
 const SuccessfulMovesForVoyage = 2
@@ -182,10 +183,6 @@ function godspeedAsStep(playerId: string, { pawn, ...way }: GodspeedStep): MoveS
     return { piece: { kind: 'pawn', playerId, n: pawn }, ...way }
 }
 
-function words(id: string): string {
-    return id.replaceAll('-', ' ')
-}
-
 /** R-4.2 The way this step names, if the piece may take it where it now stands. */
 function wayOfStep(
     state: HydratedFeudumGameState,
@@ -212,7 +209,7 @@ function wayOfStep(
 function reasonNoRoute(medium: RouteMedium): string {
     return medium === 'road'
         ? 'No road joins those spaces.'
-        : `No ${words(medium)} route joins those spaces.`
+        : `No ${spaced(medium)} route joins those spaces.`
 }
 
 /** R-4.2.2, R-4.2.3 Why a pawn may not go this way, once `pawnRouteOptions` has said it may not. */
@@ -239,12 +236,12 @@ function reasonWayClosed(state: HydratedFeudumGameState, playerId: string, step:
     if (step.vessel === 'board') {
         const from = spaceOfPiece(state, piece)
         return from && state.spaces[from].vessels[vessel] > 0
-            ? `That ${words(vessel)} was left this turn; it can be boarded on a later turn.`
-            : `There is no ${words(vessel)} to board there.`
+            ? `That ${spaced(vessel)} was left this turn; it can be boarded on a later turn.`
+            : `There is no ${spaced(vessel)} to board there.`
     }
     return step.vessel === 'place'
-        ? `You have no ${words(vessel)} in your supply.`
-        : `That pawn must board or place a ${words(vessel)}.`
+        ? `You have no ${spaced(vessel)} in your supply.`
+        : `That pawn must board or place a ${spaced(vessel)}.`
 }
 
 /** R-4.2, R-4.2.4 */
@@ -289,7 +286,7 @@ function reasonMonsterStepRefused(
         return reasonNoRoute(step.medium)
     }
     if (!monsterMayUse(piece.monsterId, route)) {
-        return `The ${words(piece.monsterId)} can't use that route.`
+        return `The ${spaced(piece.monsterId)} can't use that route.`
     }
     return step.ferry ? 'Only a ferry charges a fare.' : undefined
 }

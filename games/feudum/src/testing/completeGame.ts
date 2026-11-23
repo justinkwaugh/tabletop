@@ -210,18 +210,14 @@ export interface PersistedReplay {
     readonly final: FeudumProjectedState
 }
 
-function stored<T>(value: T): unknown {
-    return JSON.parse(JSON.stringify(value))
-}
-
 function restoredInitial(state: FeudumProjectedState): FeudumGameState {
-    const restored = stored(state)
+    const restored = asStored(state)
     assert(FeudumGameStateValidator.Check(restored), 'A stored initial state is canonical')
     return restored
 }
 
 function restoredAction(action: GameAction): GameAction {
-    const restored = Value.Convert(GameAction, stored(action))
+    const restored = Value.Convert(GameAction, asStored(action))
     assert(Value.Check(GameAction, restored), 'A stored Action is an Action')
     return restored
 }

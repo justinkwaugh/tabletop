@@ -5,6 +5,7 @@ import { canPayGuild, guildSplit, payGuild } from '../model/payments.js'
 import type { GuildFunctionName, GuildFunctionParams, GuildFunctionRow } from './guildFunction.js'
 import { makeInventions, mostInventions, reasonInventionsRefused } from './inventions.js'
 import { marketToCartsRow } from './marketToCarts.js'
+import { spaced } from '../model/words.js'
 
 export interface AlchemistTradeOffer {
     readonly vessel: VesselType
@@ -37,7 +38,7 @@ const AlchemistTrade: GuildFunctionRow = {
         }
         return state.guilds.alchemist.vesselsForSale.includes(vesselType)
             ? undefined
-            : `No ${vesselType.replace('-', ' ')} is for sale.`
+            : `No ${spaced(vesselType)} is for sale.`
     },
 
     /** R-4.6.3, R-4.6.2 The vessel goes to the buyer's supply; it is placed later, for free. */

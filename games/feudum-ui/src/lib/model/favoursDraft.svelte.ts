@@ -5,6 +5,7 @@ import {
     type Good,
     type GoodCounts,
     goodCountsOf,
+    goodsTotal,
     Goods,
     reasonChooseFavoursRefused
 } from '@tabletop/feudum'
@@ -156,7 +157,7 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
         favours: number
     ): readonly (readonly Good[])[] {
         const kinds = Goods.filter((good) => drawn[good] > 0)
-        const total = kinds.reduce((sum, good) => sum + drawn[good], 0)
+        const total = goodsTotal(drawn)
         if (kinds.length !== 1 && total !== favours) {
             return []
         }
