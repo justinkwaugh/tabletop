@@ -87,6 +87,15 @@
                                     Piece
                                 </div>
                                 <div
+                                    role="button"
+                                    aria-disabled="true"
+                                    tabindex="-1"
+                                    data-testid="disabled-piece"
+                                    style="width:100px;height:100px"
+                                >
+                                    Piece
+                                </div>
+                                <div
                                     data-testid="pointer-piece"
                                     style="width:100px;height:100px;cursor:pointer"
                                 >

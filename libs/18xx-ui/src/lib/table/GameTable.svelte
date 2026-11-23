@@ -501,6 +501,9 @@
                 session.track.showChoices ||
                 session.stations.canPlace)
     )
+    const mapTakesTaps = $derived(
+        !consentPreview && (maskPlacementLocations || session.routes.editable)
+    )
     const placementLocationIds = $derived(
         locationChoice
             ? locationChoice.locationIds
@@ -1038,7 +1041,7 @@
         outlinedLocationIds={outlinedLocationId ? [outlinedLocationId] : []}
         {extents}
         {terrainDiscounts}
-        onselect={interactive && !consentPreview
+        onselect={interactive && mapTakesTaps
             ? (selection) =>
                   locationChoice?.locationIds.includes(selection.locationId)
                       ? locationChoice.choose(

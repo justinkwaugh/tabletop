@@ -178,6 +178,12 @@ test.describe('touch', () => {
         })
     }
 
+    test('double tapping a disabled piece enters full screen', async ({ page }) => {
+        await mountBoardWithPieces(page)
+        await doubleTap(page, await centre(page.getByTestId('disabled-piece')))
+        await expect(fullScreenView(page)).toBeVisible()
+    })
+
     test('a tap on a piece then a tap just beside it is not a double tap', async ({ page }) => {
         await mountBoardWithPieces(page)
         const piece = await centre(page.getByTestId('pointer-piece'))

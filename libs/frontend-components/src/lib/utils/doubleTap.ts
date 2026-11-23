@@ -17,6 +17,8 @@ const INTERACTIVE_SELECTOR = [
     )
 ].join(', ')
 
+const DISABLED_SELECTOR = ':disabled, [aria-disabled="true"]'
+
 type TouchStart = { point: Point; startedAt: number }
 type Tap = { point: Point; endedAt: number }
 
@@ -24,7 +26,7 @@ type Tap = { point: Point; endedAt: number }
 export function isInteractiveTarget(target: EventTarget | null, boundary: Element) {
     if (!(target instanceof Element)) return false
     const control = target.closest(INTERACTIVE_SELECTOR)
-    if (control && boundary.contains(control)) return true
+    if (control && boundary.contains(control) && !control.matches(DISABLED_SELECTOR)) return true
     return getComputedStyle(target).cursor === 'pointer'
 }
 
