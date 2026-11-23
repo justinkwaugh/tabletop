@@ -111,7 +111,7 @@ function guildsOfPieces(
     playerId: string,
     spaceId: SpaceId
 ): GuildId[] {
-    const pawns = state.players.find((player) => player.playerId === playerId)?.pawns ?? []
+    const { pawns } = state.getPlayerState(playerId)
     const { location, ruler } = state.spaces[spaceId]
     const feudum = ruler?.playerId === playerId ? feudumGuildOf(location) : undefined
     return [
@@ -143,6 +143,9 @@ function reasonOpponentRefused(
 ): string | undefined {
     if (opponentId === playerId) {
         return "You can't feast on your own pieces."
+    }
+    if (!state.players.some((player) => player.playerId === opponentId)) {
+        return 'No such seat plays.'
     }
     const { name } = GuildById[guildId]
     if (!guildsOfPieces(state, opponentId, spaceId).includes(guildId)) {

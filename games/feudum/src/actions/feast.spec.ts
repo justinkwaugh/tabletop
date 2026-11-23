@@ -449,9 +449,7 @@ describe('Feast: R-3.16.3 what it refuses', () => {
 
     it('R-3.16.3 an unknown seat is refused, not thrown on', () => {
         const { table, playerId } = feastTable(merchantMaster)
-        expect(() => table.send(playerId, feastOn('nobody'))).toThrow(
-            'That seat has no Merchant pawn or feudum there.'
-        )
+        expect(() => table.send(playerId, feastOn('nobody'))).toThrow('No such seat plays.')
     })
 })
 

@@ -66,9 +66,11 @@ export type CommitAttackInput = Readonly<Pick<CommitAttack, 'saltpeter' | 'weapo
 
 /** R-4.4-H1 What the saltpeter and the weapons' turn-ins cost together. */
 function commitmentPrice({ saltpeter, weapons }: CommitAttackInput): GoodPrice {
-    const turnedIn = weapons.flatMap(
-        ({ writId, alternative }) => writRegistry.weaponBonus(writId, alternative)?.turnedIn ?? []
-    )
+    const turnedIn = weapons.flatMap(({ writId, alternative }) => {
+        const bonus = writRegistry.weaponBonus(writId, alternative)
+        assertExists(bonus, `R-4.8.2 ${writId} adds ${alternative} in an attack`)
+        return bonus.turnedIn
+    })
     return priceOfGoods([
         ...Array.from({ length: saltpeter }, (): Good => 'saltpeter'),
         ...turnedIn

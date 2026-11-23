@@ -175,7 +175,11 @@ export class WritRegistry {
         return state
             .getPlayerState(playerId)
             .requireSealedCharters()
-            .map((writId) => ({ writId, vp: this.charterScore(writId, state, playerId) ?? 0 }))
+            .map((writId) => {
+                const vp = this.charterScore(writId, state, playerId)
+                assertExists(vp, `R-4.4.3 The sealed ${writId} is a charter`)
+                return { writId, vp }
+            })
     }
 
     /** R-4.4.3 */

@@ -202,19 +202,20 @@ describe('writRegistry', () => {
             expect(registry.charterScore('writ.mandate.1', state, playerId)).toBeUndefined()
         })
 
-        it('R-6.2 sealed charters score, a writ with no end scoring at 0', () => {
+        it('R-6.2 sealed charters score; a sealed writ with no end scoring is refused, not 0', () => {
             registry.register(monsterDefeat)
             const state = initialState()
             const playerId = state.players[0].playerId
             expect(registry.sealedCharterScores(state, playerId)).toEqual([])
-            state
-                .getPlayerState(playerId)
-                .requireSealedCharters()
-                .push('writ.charter.monster-defeat', 'writ.charter.sulfur-barrel')
+            const sealed = state.getPlayerState(playerId).requireSealedCharters()
+            sealed.push('writ.charter.monster-defeat')
             expect(registry.sealedCharterScores(state, playerId)).toEqual([
-                { writId: 'writ.charter.monster-defeat', vp: 7 },
-                { writId: 'writ.charter.sulfur-barrel', vp: 0 }
+                { writId: 'writ.charter.monster-defeat', vp: 7 }
             ])
+            sealed.push('writ.charter.sulfur-barrel')
+            expect(() => registry.sealedCharterScores(state, playerId)).toThrow(
+                'writ.charter.sulfur-barrel'
+            )
         })
 
         it('lists every registration with its printed text, for the reach sweeps', () => {
