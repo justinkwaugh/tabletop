@@ -17,7 +17,7 @@
     import type { NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
-    import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
+    import PrivatePowerButton from '../privates/PrivatePowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentName from '../finance/PresidentName.svelte'
     import CertificateBadge from '../finance/CertificateBadge.svelte'
@@ -595,7 +595,7 @@
                                             .powersFor(entry.company.id)
                                             .filter((power) => power.playerId === player.playerId) as power (power.privateCompanyId)}<span
                                                 class="private-power"
-                                                ><PrivateTrackPowerButton {session} {power} /></span
+                                                ><PrivatePowerButton {session} {power} /></span
                                             >{/each}{@render holdings(
                                             session.presentation.privateHoldings?.(
                                                 session.gameState,

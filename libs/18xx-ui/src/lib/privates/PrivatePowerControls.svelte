@@ -2,7 +2,7 @@
     import { getCompany, type PrivatePowerRequestDropReason } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import PrivateExchangeButton from './PrivateExchangeButton.svelte'
-    import PrivateTrackPowerButton from './PrivateTrackPowerButton.svelte'
+    import PrivatePowerButton from './PrivatePowerButton.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
@@ -67,7 +67,7 @@
                         power.privateCompanyId
                     )}</span
                 >
-                <PrivateTrackPowerButton
+                <PrivatePowerButton
                     {session}
                     {power}
                     label={prompts[power.privateCompanyId] ?? 'Lay a tile'}

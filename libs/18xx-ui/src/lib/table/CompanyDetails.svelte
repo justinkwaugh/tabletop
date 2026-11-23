@@ -34,7 +34,7 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
-    import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
+    import PrivatePowerButton from '../privates/PrivatePowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
     import type { CompanyMark, PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
@@ -550,7 +550,7 @@
                     income={item.closed ? undefined : item.revenue}
                 />{#each session.privateActions.powersFor(item.id) as power, index (index)}<span
                         class="private-power"
-                        ><PrivateTrackPowerButton
+                        ><PrivatePowerButton
                             {session}
                             {power}
                             label={session.privateActions.powersFor(item.id).length > 1 &&

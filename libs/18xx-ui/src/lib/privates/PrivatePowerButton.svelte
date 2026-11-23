@@ -1,11 +1,6 @@
 <script lang="ts">
-    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import type {
-        PrivateButtonsPower,
-        PrivateTrackPower,
-        TitlePrivatePower
-    } from '../session/privateActionsModule.svelte.js'
+    import type { PrivatePower } from '../session/privateActionsModule.svelte.js'
 
     let {
         session,
@@ -13,30 +8,10 @@
         label = 'Use'
     }: {
         session: EighteenXXSessionView
-        power: PrivateTrackPower | TitlePrivatePower | PrivateButtonsPower
+        power: PrivatePower
         label?: string
     } = $props()
-    const selected = $derived.by(() => {
-        if ('kind' in power && power.kind === 'buttons')
-            return (
-                session.privateActions.selection === 'powers' &&
-                !session.privateActions.titlePower &&
-                !session.privateActions.trackPowerSelection
-            )
-        const chosen =
-            session.privateActions.titlePower ?? session.privateActions.trackPowerSelection?.value
-        return (
-            chosen?.privateCompanyId === power.privateCompanyId &&
-            chosen.playerId === power.playerId &&
-            (!('label' in chosen) || !('label' in power) || chosen.label === power.label)
-        )
-    })
-    function start() {
-        if ('kind' in power && power.kind === 'buttons')
-            session.privateActions.startButtonsPower(power)
-        else if ('kind' in power) session.privateActions.startTitlePower(power)
-        else session.privateActions.startTrackPower(power)
-    }
+    const selected = $derived(session.privateActions.isChosen(power))
 </script>
 
 <button
@@ -47,7 +22,7 @@
         : `Use ${session.companyName(power.privateCompanyId)}`}
     aria-pressed={selected}
     disabled={session.busy}
-    onclick={start}>{label}</button
+    onclick={() => session.privateActions.startPower(power)}>{label}</button
 >
 
 <style>
