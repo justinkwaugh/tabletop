@@ -53,6 +53,7 @@ export class LwGameInitializer
             return hydrated
         })
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
+        turnManager.seriesKeeps = 'latest'
         const spaces = LOCOMOTIVES.map((locomotive): LocomotiveSpace => ({
             locomotiveId: locomotive.id,
             existingOrders: [],
@@ -80,11 +81,10 @@ export class LwGameInitializer
             turnManager,
             roundManager: HydratedRoundManager.generate(),
             phaseManager: HydratedPhaseManager.generate(),
-            lucasOrder: setup.lucasOrder,
             spaces
         })
         const hydrated = new HydratedLwGameState(lwState)
-        hydrated.machineState = startRound(hydrated, 0)
+        hydrated.machineState = startRound(hydrated, 0, setup.lucasOrder)
         return hydrated
     }
 }

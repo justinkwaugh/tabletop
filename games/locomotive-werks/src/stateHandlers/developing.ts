@@ -5,6 +5,7 @@ import { HydratedDevelop, isDevelop } from '../actions/develop.js'
 import { HydratedPassDevelopment, isPassDevelopment } from '../actions/passDevelopment.js'
 import type { HydratedLwGameState } from '../model/gameState.js'
 import { endTurn, nextDeveloper } from './flow.js'
+import { readLwSetup } from '../definition/setup.js'
 
 type DevelopingAction = HydratedDevelop | HydratedPassDevelopment
 
@@ -35,6 +36,11 @@ export class DevelopingStateHandler implements MachineStateHandler<
     onAction(action: DevelopingAction, context: MachineContext<HydratedLwGameState>): MachineState {
         const state = context.gameState
         endTurn(state)
-        return nextDeveloper(state, state.actionCount + 1, action.playerId)
+        return nextDeveloper(
+            state,
+            state.actionCount + 1,
+            readLwSetup(context.gameConfig).lucasOrder,
+            action.playerId
+        )
     }
 }

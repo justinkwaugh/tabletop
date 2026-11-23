@@ -1,4 +1,9 @@
-import { pushStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
+import {
+    clearStagedSelectionAtOrAfter,
+    pushStagedSelectionValue,
+    setStagedSelectionValue,
+    type StagedSelectionState
+} from '@tabletop/frontend-components'
 import type { CapacityPurchase, LocomotiveId, Plant } from '@tabletop/locomotive-werks'
 
 // Production Capacity: the units the player means to add or upgrade, one press at a time. Done
@@ -6,17 +11,19 @@ import type { CapacityPurchase, LocomotiveId, Plant } from '@tabletop/locomotive
 export type CapacityStep = { locomotiveId: LocomotiveId; from?: LocomotiveId }
 
 // The steps and the automatic shipping tick share one stage, so Undo takes back presses of
-// either in the order they were made.
+// either in the order they were made. `werk` is the werk whose picker is open on the board.
 export type CapacityPlan = { steps: CapacityStep[]; autoShip: boolean }
 
 export type CapacitySelectionValues = {
     plan: CapacityPlan
+    werk: LocomotiveId
 }
 
 export type CapacitySelection = StagedSelectionState<CapacitySelectionValues>
 
 export const CapacityStageOrder = [
-    'plan'
+    'plan',
+    'werk'
 ] as const satisfies readonly (keyof CapacitySelectionValues)[]
 
 const EMPTY_PLAN: CapacityPlan = { steps: [], autoShip: false }
@@ -34,9 +41,23 @@ function pushPlan(selection: CapacitySelection, plan: CapacityPlan) {
     )
 }
 
+// The werk's picker stays open after a step, as a transient selection, so the player can plan
+// several; Undo takes back the step and closes the picker together.
 export function addCapacityStep(selection: CapacitySelection, step: CapacityStep) {
     const plan = capacityPlan(selection)
-    return pushPlan(selection, { ...plan, steps: [...plan.steps, step] })
+    const planned = pushPlan(selection, { ...plan, steps: [...plan.steps, step] })
+    const werk = selection.werk?.value
+    return werk === undefined
+        ? planned
+        : setStagedSelectionValue(planned, CapacityStageOrder, 'werk', werk, 'auto')
+}
+
+export function openWerk(selection: CapacitySelection, werk: LocomotiveId) {
+    return setStagedSelectionValue(selection, CapacityStageOrder, 'werk', werk, 'manual')
+}
+
+export function closeWerk(selection: CapacitySelection) {
+    return clearStagedSelectionAtOrAfter(selection, CapacityStageOrder, 'werk')
 }
 
 export function setAutoShip(selection: CapacitySelection, autoShip: boolean) {
@@ -76,6 +97,21 @@ export function mergeCapacitySteps(steps: readonly CapacityStep[]): CapacityPurc
         }
     }
     return purchases
+}
+
+// Locomotive Development: the locomotive chosen on the board, waiting for Develop to be pressed.
+export type DevelopSelectionValues = {
+    locomotive: LocomotiveId
+}
+
+export type DevelopSelection = StagedSelectionState<DevelopSelectionValues>
+
+export const DevelopStageOrder = [
+    'locomotive'
+] as const satisfies readonly (keyof DevelopSelectionValues)[]
+
+export function chooseLocomotive(selection: DevelopSelection, locomotive: LocomotiveId) {
+    return setStagedSelectionValue(selection, DevelopStageOrder, 'locomotive', locomotive, 'manual')
 }
 
 // A selling turn: the locomotives the player keeps back, one press at a time.

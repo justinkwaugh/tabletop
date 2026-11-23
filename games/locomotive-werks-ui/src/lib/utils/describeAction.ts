@@ -32,7 +32,7 @@ function shipmentNote(shipment: ShipmentRecord): string {
     }
 }
 
-// What a shipment does to its order die, in a few characters for the shipping table.
+// What a shipment does to its order die, in a few words for the werk that ships it.
 export function orderEffect(shipment: Pick<ShipmentRecord, 'face' | 'units' | 'outcome'>): string {
     return shipment.outcome === SaleOutcome.Reduced
         ? `${shipment.face} → ${shipment.face - shipment.units}`

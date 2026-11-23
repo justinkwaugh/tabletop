@@ -4,6 +4,7 @@ import type { MachineState } from '../definition/states.js'
 import { HydratedShip, Ship, isShip } from '../actions/ship.js'
 import type { HydratedLwGameState } from '../model/gameState.js'
 import { afterShipping } from './flow.js'
+import { readLwSetup } from '../definition/setup.js'
 
 export class ShippingStateHandler implements MachineStateHandler<
     HydratedShip,
@@ -37,6 +38,10 @@ export class ShippingStateHandler implements MachineStateHandler<
     }
 
     onAction(action: HydratedShip, context: MachineContext<HydratedLwGameState>): MachineState {
-        return afterShipping(context.gameState, action.playerId)
+        return afterShipping(
+            context.gameState,
+            action.playerId,
+            readLwSetup(context.gameConfig).lucasOrder
+        )
     }
 }

@@ -1,12 +1,9 @@
 <script lang="ts">
     import { MachineState } from '@tabletop/locomotive-werks'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import LocomotiveBadge from './LocomotiveBadge.svelte'
     import PhaseTrack from './PhaseTrack.svelte'
     import WaitingView from './WaitingView.svelte'
-    import CapacityTable from './CapacityTable.svelte'
     import RoundReview from './RoundReview.svelte'
-    import ShippingTable from './ShippingTable.svelte'
 
     const gameSession = getGameSession()
 
@@ -15,7 +12,7 @@
     const plannedIncome = $derived(
         gameSession.plannedShipments.reduce((sum, shipment) => sum + shipment.income, 0)
     )
-    const firstShipment = $derived(state.lucasOrder && state.sellingRound?.number === 1)
+    const firstShipment = $derived(gameSession.lucasOrder && state.sellingRound?.number === 1)
     const doneLabel = $derived(
         `${firstShipment ? 'Done, on to shipping' : 'Done buying'}${
             gameSession.plannedSpend > 0 ? ` · $${gameSession.plannedSpend}` : ''
@@ -30,19 +27,13 @@
     {:else if gameSession.isViewingHistory || !gameSession.canAct}
         <WaitingView />
     {:else if machineState === MachineState.Developing}
-        <p class="prompt">Develop a new locomotive. You have ${gameSession.myCash}.</p>
-        <div class="row">
-            {#each gameSession.developOptions as option (option.locomotive.id)}
-                <button
-                    type="button"
-                    class="choice"
-                    disabled={!option.affordable}
-                    onclick={() => gameSession.develop(option.locomotive.id)}
-                    ><LocomotiveBadge locomotiveId={option.locomotive.id} />
-                    <span>${option.locomotive.developmentCost}</span></button
-                >
-            {/each}
-        </div>
+        <p class="prompt">
+            {#if gameSession.developTargets.length > 0}
+                Choose a locomotive on the board to develop. You have ${gameSession.myCash}.
+            {:else}
+                You can afford no locomotive to develop.
+            {/if}
+        </p>
         <div class="row">
             <button type="button" class="secondary" onclick={() => gameSession.passDevelopment()}
                 >Develop nothing</button
@@ -50,10 +41,10 @@
         </div>
     {:else if machineState === MachineState.ExpandingCapacity}
         <p class="prompt">
-            Plan production units to buy or upgrade, then press Done. You have ${gameSession.myCash}{#if gameSession.plannedSpend > 0}:
-                ${gameSession.plannedSpend} planned, ${gameSession.plannedCash} left{/if}.
+            Choose one of your werks on the board to buy or upgrade units, then press Done. You have
+            ${gameSession.myCash}{#if gameSession.plannedSpend > 0}: ${gameSession.plannedSpend} planned,
+                ${gameSession.plannedCash} left{/if}.
         </p>
-        <CapacityTable />
         <label class="auto-ship">
             <input
                 type="checkbox"
@@ -69,10 +60,9 @@
         </div>
     {:else if machineState === MachineState.Shipping}
         <p class="prompt">
-            Ship your locomotives{#if firstShipment}&nbsp;(your first shipment){/if}, or hold some
-            back.
+            Ship your locomotives{#if firstShipment}&nbsp;(your first shipment){/if}. Choose a werk
+            on the board to hold it back or ship it again.
         </p>
-        <ShippingTable />
         <div class="row">
             {#if gameSession.plannedShipments.length > 0}
                 <button
@@ -125,25 +115,5 @@
         flex-wrap: wrap;
         justify-content: center;
         gap: 6px;
-    }
-
-    .choice {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border: 2px solid #a7b8c5;
-        border-radius: 8px;
-        background: #f5f8fa;
-        padding: 4px 8px;
-        font-size: 15px;
-        font-weight: 700;
-    }
-
-    .choice:hover:not(:disabled) {
-        border-color: #232d36;
-    }
-
-    .choice:disabled {
-        opacity: 0.4;
     }
 </style>

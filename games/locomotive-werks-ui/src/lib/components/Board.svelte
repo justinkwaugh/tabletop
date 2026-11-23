@@ -5,6 +5,8 @@
     import { BOARD_WIDTH, HEADER_HEIGHT, ROWS_HEIGHT } from '$lib/utils/boardLayout.js'
     import BoardHeader from './board/BoardHeader.svelte'
     import LocomotiveRow from './board/LocomotiveRow.svelte'
+    import DevelopPicker from './pickers/DevelopPicker.svelte'
+    import WerkPicker from './pickers/WerkPicker.svelte'
 
     const gameSession = getGameSession()
 
@@ -51,6 +53,8 @@
             <LocomotiveRow {space} {index} />
         {/each}
     </svg>
+    <DevelopPicker />
+    <WerkPicker />
 </div>
 
 <style>

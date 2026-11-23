@@ -16,9 +16,9 @@ import {
     isNewer,
     isPayTaxes,
     isShip,
+    readLwSetup,
     type AdjustMarketMetadata,
     locomotiveData,
-    type DevelopOption,
     type HydratedLwGameState,
     type LocomotiveId,
     type LwProjectedState,
@@ -28,8 +28,12 @@ import {
 } from '@tabletop/locomotive-werks'
 import {
     CapacityStageOrder,
+    DevelopStageOrder,
     ShipStageOrder,
     addCapacityStep,
+    chooseLocomotive,
+    closeWerk,
+    openWerk,
     keepsWerksOpen,
     mergeCapacitySteps,
     capacityPlan,
@@ -38,6 +42,7 @@ import {
     toggleHeld,
     type CapacitySelection,
     type CapacityStep,
+    type DevelopSelection,
     type ShipSelection
 } from './selection.js'
 
@@ -74,9 +79,17 @@ function resetWith<V>(_dependency: unknown, value: V): V {
 export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameState> {
     private shipSelection: ShipSelection = $state({})
     private capacitySelection: CapacitySelection = $state({})
+    private developSelection: DevelopSelection = $state({})
 
     constructor(options: SessionOptions) {
         super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                DevelopStageOrder,
+                () => this.developSelection,
+                (selection) => (this.developSelection = selection)
+            )
+        )
         this.localSelections.register(
             undoableStagedSelection(
                 CapacityStageOrder,
@@ -116,6 +129,8 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
     showBoardStep(state: HydratedLwGameState) {
         this.boardStep = state
     }
+
+    lucasOrder: boolean = $derived(readLwSetup(this.game.config).lucasOrder)
 
     myPlayerId = $derived(this.myPlayer?.id)
 
@@ -197,13 +212,25 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
             : []
     })
 
-    // Every locomotive the player could develop, with those they cannot afford marked.
-    developOptions: DevelopOption[] = $derived.by(() => {
-        const playerId = this.myPlayerId
-        return playerId && this.actingIn(MachineState.Developing)
-            ? this.gameState.developOptions(playerId)
-            : []
+    // The locomotive chosen on the board; its picker asks to confirm, since a development that
+    // rolls a die cannot be undone.
+    chosenLocomotive: LocomotiveId | undefined = $derived.by(() => {
+        const chosen = this.developSelection.locomotive?.value
+        return chosen !== undefined && this.developTargets.includes(chosen) ? chosen : undefined
     })
+
+    chooseLocomotive(locomotiveId: LocomotiveId) {
+        if (this.developTargets.includes(locomotiveId)) {
+            this.developSelection =
+                this.chosenLocomotive === locomotiveId
+                    ? {}
+                    : chooseLocomotive(this.developSelection, locomotiveId)
+        }
+    }
+
+    closeDevelopPicker() {
+        this.developSelection = {}
+    }
 
     async develop(locomotiveId: LocomotiveId) {
         if (this.developTargets.includes(locomotiveId)) {
@@ -272,6 +299,33 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
         }
     }
 
+    // The werk whose picker is open on the board.
+    openedWerk: LocomotiveId | undefined = $derived.by(() => {
+        const werk = this.expanding ? this.capacitySelection.werk?.value : undefined
+        return werk !== undefined && this.myPlants.some((plant) => plant.locomotiveId === werk)
+            ? werk
+            : undefined
+    })
+
+    chooseWerk(locomotiveId: LocomotiveId) {
+        if (
+            !this.expanding ||
+            !this.myPlants.some((plant) => plant.locomotiveId === locomotiveId)
+        ) {
+            return
+        }
+        this.capacitySelection =
+            this.openedWerk === locomotiveId
+                ? closeWerk(this.capacitySelection)
+                : openWerk(this.capacitySelection, locomotiveId)
+    }
+
+    closeWerkPicker() {
+        if (this.openedWerk !== undefined) {
+            this.capacitySelection = closeWerk(this.capacitySelection)
+        }
+    }
+
     // Ticked beside Done buying and sent with it; Undo takes the tick back like a planned step.
     autoShip: boolean = $derived(this.plan?.autoShip ?? false)
 
@@ -306,6 +360,10 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
     plannedShipments: Shipment[] = $derived(
         this.shipments.filter((shipment) => !this.held.includes(shipment.locomotiveId))
     )
+
+    shipmentOf(locomotiveId: LocomotiveId): Shipment | undefined {
+        return this.shipments.find((shipment) => shipment.locomotiveId === locomotiveId)
+    }
 
     toggleHold(locomotiveId: LocomotiveId) {
         if (this.shipments.some((shipment) => shipment.locomotiveId === locomotiveId)) {

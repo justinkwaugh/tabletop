@@ -10,7 +10,7 @@ import { createGame } from '../testing/bot.js'
 import { HydratedLwGameState, type LwGameState } from '../model/gameState.js'
 import { LocomotiveId } from '../model/locomotives.js'
 import { isPayTaxes } from '../actions/payTaxes.js'
-import { isDevelop } from '../actions/develop.js'
+import { HydratedDevelop, isDevelop } from '../actions/develop.js'
 import { isShip } from '../actions/ship.js'
 import { ActionType } from './actions.js'
 import { LwRuntime } from './runtime.js'
@@ -63,6 +63,13 @@ function run(table: Table, action: Record<string, unknown>): Table {
         state: result.updatedState,
         actions: [...table.actions, ...result.processedActions]
     }
+}
+
+// Puts every die not yet on the board into Passenger 1's Customer Base.
+function fillDicePool(state: HydratedLwGameState) {
+    const onBoard = state.spaces.reduce((sum, space) => sum + diceOnSpace(space), 0)
+    const passenger = state.space(LocomotiveId.Passenger1)
+    passenger.customerBase.push(...Array.from({ length: 20 - onBoard }, () => 1))
 }
 
 function edit(table: Table, change: (state: HydratedLwGameState) => void): Table {
@@ -186,11 +193,7 @@ describe('Locomotive Development', () => {
     })
 
     it('rolls no Initial Orders die for the next locomotive once the pool is empty', () => {
-        let table = edit(start(3), (state) => {
-            const onBoard = state.spaces.reduce((sum, space) => sum + diceOnSpace(space), 0)
-            const passenger = state.space(LocomotiveId.Passenger1)
-            passenger.customerBase.push(...Array.from({ length: 20 - onBoard }, () => 1))
-        })
+        let table = edit(start(3), fillDicePool)
         table = run(table, { type: ActionType.Develop, locomotiveId: LocomotiveId.Fast1 })
         const state = hydrate(table)
         expect(state.space(LocomotiveId.Fast1).existingOrders).toHaveLength(1)
@@ -199,6 +202,22 @@ describe('Locomotive Development', () => {
         expect(develop?.metadata?.nextLocomotiveId).toBeUndefined()
         expect(develop?.metadata?.nextRoll).toBeUndefined()
         expect(develop?.revealsInfo).toBeFalsy()
+    })
+
+    it('develops without the protected dice stream when it rolls nothing', () => {
+        const state = hydrate(edit(start(3), fillDicePool))
+        state.protectedPrng = undefined
+        const develop = new HydratedDevelop({
+            id: 'develop',
+            gameId: 'lw',
+            source: ActionSource.User,
+            type: ActionType.Develop,
+            playerId: 'p0',
+            locomotiveId: LocomotiveId.Fast1
+        })
+        develop.apply(state)
+        expect(develop.revealsInfo).toBeFalsy()
+        expect(state.space(LocomotiveId.Fast1).existingOrders).toHaveLength(1)
     })
 
     it('passes over players who cannot afford any development', () => {

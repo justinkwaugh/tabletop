@@ -4,6 +4,7 @@ import type { MachineState } from '../definition/states.js'
 import { AdjustMarket, HydratedAdjustMarket, isAdjustMarket } from '../actions/adjustMarket.js'
 import type { HydratedLwGameState } from '../model/gameState.js'
 import { afterMarket } from './flow.js'
+import { readLwSetup } from '../definition/setup.js'
 
 export class AdjustingMarketStateHandler implements MachineStateHandler<
     HydratedAdjustMarket,
@@ -32,6 +33,6 @@ export class AdjustingMarketStateHandler implements MachineStateHandler<
         _action: HydratedAdjustMarket,
         context: MachineContext<HydratedLwGameState>
     ): MachineState {
-        return afterMarket(context.gameState)
+        return afterMarket(context.gameState, readLwSetup(context.gameConfig).lucasOrder)
     }
 }

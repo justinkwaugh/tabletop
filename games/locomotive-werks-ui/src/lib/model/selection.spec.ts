@@ -5,8 +5,12 @@ import {
     CapacityStageOrder,
     ShipStageOrder,
     addCapacityStep,
+    DevelopStageOrder,
     capacityPlan,
+    chooseLocomotive,
+    closeWerk,
     keepsWerksOpen,
+    openWerk,
     mergeCapacitySteps,
     plannedUnits,
     setAutoShip,
@@ -26,6 +30,42 @@ describe('holding back shipments', () => {
         expect(once.held?.value).toEqual([LocomotiveId.Fast1])
         const none = popHighestManualStagedSelection(once, ShipStageOrder).nextState
         expect(none.held).toBeUndefined()
+    })
+})
+
+describe('choosing a locomotive to develop', () => {
+    it('takes back the choice, and a second choice replaces the first', () => {
+        const first = chooseLocomotive({}, LocomotiveId.Fast1)
+        const second = chooseLocomotive(first, LocomotiveId.Passenger2)
+        expect(second.locomotive?.value).toBe(LocomotiveId.Passenger2)
+        const undone = popHighestManualStagedSelection(second, DevelopStageOrder)
+        expect(undone.poppedStage).toBe('locomotive')
+        expect(undone.nextState.locomotive).toBeUndefined()
+    })
+})
+
+describe('the werk picker', () => {
+    const step = { locomotiveId: LocomotiveId.Passenger1 }
+
+    it('stays open after a step, and Undo takes the step back and closes it', () => {
+        const planned = addCapacityStep(openWerk({}, LocomotiveId.Passenger1), step)
+        expect(planned.werk).toEqual({ value: LocomotiveId.Passenger1, source: 'auto' })
+        const undone = popHighestManualStagedSelection(planned, CapacityStageOrder).nextState
+        expect(capacityPlan(undone).steps).toEqual([])
+        expect(undone.werk).toBeUndefined()
+    })
+
+    it('closes before any step is taken back when opened after the steps', () => {
+        const opened = openWerk(addCapacityStep({}, step), LocomotiveId.Passenger1)
+        const closed = popHighestManualStagedSelection(opened, CapacityStageOrder).nextState
+        expect(closed.werk).toBeUndefined()
+        expect(capacityPlan(closed).steps).toEqual([step])
+        expect(closeWerk(opened)).toEqual(closed)
+    })
+
+    it('closes when the automatic shipping tick changes', () => {
+        const ticked = setAutoShip(openWerk({}, LocomotiveId.Passenger1), true)
+        expect(ticked.werk).toBeUndefined()
     })
 })
 

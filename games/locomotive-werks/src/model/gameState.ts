@@ -13,6 +13,7 @@ import {
     assert,
     assertExists,
     Visibility,
+    type Prng,
     type RandomState
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -46,8 +47,6 @@ export const LwGameState = Type.Object({
     machineState: Type.Enum(MachineState),
     roundManager: RoundManager,
     phaseManager: PhaseManager,
-    // Lucas Order: each player ships their first train straight after their capacity turn.
-    lucasOrder: Type.Boolean(),
     spaces: Type.Array(LocomotiveSpace),
     sellingRound: Type.Optional(SellingRound)
 })
@@ -82,7 +81,6 @@ export class HydratedLwGameState
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
-    declare lucasOrder: boolean
     declare spaces: LocomotiveSpace[]
     declare sellingRound?: SellingRound
 
@@ -110,11 +108,15 @@ export class HydratedLwGameState
     }
 
     // Dice are rolled from the protected stream, so nobody can work out a roll before it is made.
+    // The stream is read only for a roll, so a client can play a development that rolls nothing.
     dicePool(): DicePool {
-        const prng = this.getProtectedPrng()
+        let prng: Prng | undefined
         return {
             available: () => DICE - this.spaces.reduce((sum, space) => sum + diceOnSpace(space), 0),
-            roll: () => prng.dieRoll(6)
+            roll: () => {
+                prng ??= this.getProtectedPrng()
+                return prng.dieRoll(6)
+            }
         }
     }
 

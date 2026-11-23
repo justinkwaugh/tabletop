@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    ExplorationHistory,
     GameEngine,
     assert,
     assertExists,
@@ -75,6 +76,39 @@ describe('visibility', () => {
         for (const develop of actions.filter(isDevelop)) {
             expect(develop.revealsInfo ?? false).toBe(develop.metadata?.nextRoll !== undefined)
         }
+    })
+
+    it('explores from a player’s view, rolling dice from a fresh stream of its own', () => {
+        const { game, state } = playToMarket()
+        const [playerId] = state.turnManager.turnOrder
+        const view = LwRuntime.visibility.state.project(
+            state,
+            { kind: 'player', playerId },
+            { config: game.config }
+        )
+        const populate = LwRuntime.exploration.createFromProjectedState
+        const hypothetical = new ExplorationHistory(engine).prepareState(
+            populate({
+                game,
+                state: view,
+                actions: [],
+                perspective: spectator,
+                random: Math.random
+            })
+        )
+        expect(hypothetical.protectedPrng).not.toEqual(state.protectedPrng)
+        let explored = hypothetical
+        const processed: GameAction[] = []
+        for (let step = 0; !processed.some(isAdjustMarket); step++) {
+            assert(step < 200, 'No Market Demands within 200 steps')
+            const [acting] = explored.activePlayerIds
+            assertExists(acting, `No active player in ${explored.machineState}`)
+            const action = botAction(LwRuntime.hydrator.hydrateState(explored), acting, step)
+            const result = engine.executeCanonicalAction({ game, state: explored, action })
+            processed.push(...result.processedActions)
+            explored = result.updatedState
+        }
+        expect(explored.protectedPrng?.invocations).toBeGreaterThan(0)
     })
 
     it('shows every Perspective the public Actions whole', () => {

@@ -4,6 +4,7 @@ import type { MachineState } from '../definition/states.js'
 import { HydratedExpandCapacity, isExpandCapacity } from '../actions/expandCapacity.js'
 import type { HydratedLwGameState } from '../model/gameState.js'
 import { afterExpanding } from './flow.js'
+import { readLwSetup } from '../definition/setup.js'
 
 export class ExpandingCapacityStateHandler implements MachineStateHandler<
     HydratedExpandCapacity,
@@ -32,6 +33,10 @@ export class ExpandingCapacityStateHandler implements MachineStateHandler<
         action: HydratedExpandCapacity,
         context: MachineContext<HydratedLwGameState>
     ): MachineState {
-        return afterExpanding(context.gameState, action.playerId)
+        return afterExpanding(
+            context.gameState,
+            action.playerId,
+            readLwSetup(context.gameConfig).lucasOrder
+        )
     }
 }

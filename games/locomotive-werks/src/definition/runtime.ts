@@ -7,6 +7,7 @@ import {
 } from '../model/gameState.js'
 import { LwApiActions } from './apiActions.js'
 import { LwColors } from './colors.js'
+import { LwGameExploration } from './exploration.js'
 import { LwHydrator } from './hydrator.js'
 import { LwGameInitializer } from './initializer.js'
 import { LwProgression } from './progression.js'
@@ -24,6 +25,7 @@ export const LwRuntime = {
     scoring: new LwScoring(),
     progression: new LwProgression(),
     stateLogger: new DefaultStateLogger(),
+    exploration: new LwGameExploration(),
     visibility: {
         state: Visibility.createProjector(LwGameState),
         actions: Visibility.createActionProjector(LwApiActions)

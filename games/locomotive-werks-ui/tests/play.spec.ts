@@ -70,16 +70,23 @@ async function playRound(page: Page) {
         }
         switch (await machineState(page)) {
             case 'Developing': {
-                const develop = page.locator('button.choice:enabled')
+                const develop = page.getByRole('button', { name: /^Develop .+ for \$\d+$/ })
                 if ((await develop.count()) > 0) {
                     await develop.last().click()
+                    await page.getByRole('button', { name: /^Develop · / }).click()
                 } else {
                     await page.getByRole('button', { name: 'Develop nothing' }).click()
                 }
                 break
             }
             case 'ExpandingCapacity': {
-                const add = page.getByRole('button', { name: /^Add a unit/ }).first()
+                const add = page.getByRole('button', { name: /^Add a unit/ })
+                if (!(await add.isVisible())) {
+                    await page
+                        .getByRole('button', { name: /^Buy or upgrade units/ })
+                        .first()
+                        .click()
+                }
                 if (await add.isEnabled()) {
                     await add.click()
                 } else {
@@ -120,7 +127,14 @@ test('Lucas Order ships straight after buying capacity', async ({ page }) => {
     await page.getByRole('button', { name: 'Done, on to shipping' }).click()
     await expect.poll(() => machineState(page)).toBe('Shipping')
     expect(await page.evaluate(() => window.lwSession.myPlayerId)).toBe(first)
-    await page.getByRole('button', { name: /^Ship ·/ }).click()
+    const ship = page.getByRole('button', { name: /^Ship ·/ })
+    await page.getByRole('button', { name: /^Hold back Passenger I, now shipping/ }).click()
+    await expect(ship).toHaveCount(0)
+    await expect(
+        page.getByRole('button', { name: 'Ship Passenger I, now held back' })
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'UNDO' }).click()
+    await ship.click()
     await expect.poll(() => machineState(page)).toBe('ExpandingCapacity')
     expect(await page.evaluate(() => window.lwSession.myPlayerId)).not.toBe(first)
 })
@@ -144,11 +158,38 @@ test('a player who ticks automatic shipping ships without being asked', async ({
     await expect(page.getByText(/auto-shipped for \$\d+/)).toBeVisible()
 })
 
-test('the capacity table plans units until Done buying, and Undo takes back a press', async ({
+test('a locomotive is developed from the board, after confirming beside it', async ({ page }) => {
+    await createGame(page)
+    const fast = page.getByRole('button', { name: /^Develop Fast I for \$\d+$/ })
+    const confirm = page.getByRole('button', { name: /^Develop · / })
+    await fast.click()
+    await expect(confirm).toBeVisible()
+    await page.getByRole('button', { name: 'UNDO' }).click()
+    await expect(confirm).toHaveCount(0)
+    expect(await machineState(page)).toBe('Developing')
+    const me = await page.evaluate(() => window.lwSession.myPlayerId)
+    await fast.click()
+    await confirm.click()
+    await expect
+        .poll(() =>
+            page.evaluate(
+                (playerId) =>
+                    window.lwSession.gameState
+                        .getPlayerState(playerId ?? '')
+                        .plants.map((plant) => plant.locomotiveId),
+                me
+            )
+        )
+        .toContain('fast-1')
+})
+
+test('a werk on the board plans units until Done buying, and Undo takes back a press', async ({
     page
 }) => {
     await createGame(page)
-    await page.locator('button.choice', { hasText: 'Fast' }).click()
+    await page.getByRole('button', { name: /^Develop Fast I for/ }).click()
+    await page.getByRole('button', { name: /^Develop · / }).click()
+    await settle(page)
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
         await settle(page)
@@ -163,19 +204,31 @@ test('the capacity table plans units until Done buying, and Undo takes back a pr
                     .plants.map((plant) => `${plant.locomotiveId}:${plant.units}`),
             me
         )
-    const units = page.locator('table span.units')
-    await expect(units).toHaveText(['1', '1'])
+    const passenger = (planned: number) =>
+        page.getByRole('button', {
+            name: `Buy or upgrade units of your Passenger I werk, ${planned} planned`
+        })
+    const fast = (planned: number) =>
+        page.getByRole('button', {
+            name: `Buy or upgrade units of your Fast I werk, ${planned} planned`
+        })
+    const add = page.getByRole('button', { name: 'Add a unit to Passenger I for $2' })
 
-    await page.getByRole('button', { name: 'Add a unit to Passenger I for $2' }).click()
-    await expect(units).toHaveText(['2', '1'])
+    await passenger(1).click()
+    await add.click()
+    await expect(passenger(2)).toBeVisible()
+    await expect(add).toBeVisible()
     await expect(page.getByText('$2 planned')).toBeVisible()
     expect(await plants()).toEqual(['passenger-1:1', 'fast-1:1'])
     await page.getByRole('button', { name: 'UNDO' }).click()
-    await expect(units).toHaveText(['1', '1'])
+    await expect(passenger(1)).toBeVisible()
+    await expect(add).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Add a unit to Passenger I for $2' }).click()
+    await passenger(1).click()
+    await add.click()
     await page.getByRole('button', { name: 'Upgrade a unit to Fast I for $2' }).click()
-    await expect(units).toHaveText(['1', '2'])
+    await expect(passenger(1)).toBeVisible()
+    await expect(fast(2)).toBeVisible()
     await page.getByRole('button', { name: 'Done buying · $4' }).click()
     await expect.poll(plants).toEqual(['passenger-1:1', 'fast-1:2'])
     expect(

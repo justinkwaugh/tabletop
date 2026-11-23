@@ -62,6 +62,8 @@ describe.each(
         expect(best).toBeGreaterThanOrEqual(WINNING_CASH)
         const scores = LwRuntime.scoring.finalScores(finished)
         expect(finished.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)
+        expect(finished.turnManager.seriesKeeps).toBe('latest')
+        expect(finished.turnManager.series.length).toBeLessThanOrEqual(count + 1)
         const again = playToEnd(count, config)
         expect({ ...again, id: finished.id }).toEqual(finished)
     })
