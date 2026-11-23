@@ -7,6 +7,7 @@ import {
     rotateTileFace,
     tileExits,
     type ConstructionState,
+    type TileFace,
     type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
@@ -42,6 +43,17 @@ function untrackedHomes(state: ConstructionState, companyId: string): string[] {
     return companyStationCenters(state, companyId)
         .map((center) => center.locationId)
         .filter((locationId) => !mapState.tile(locationId).face.paths.length)
+}
+
+/**
+ * A medium city is printed with both its choices; its first tile shows towns or cities, and the
+ * printed stops of the other kind go (§X Laying Track). A tile showing neither keeps them all.
+ */
+function unchosenBoomtownStops(before: TileFace, after: TileFace): string[] {
+    if (!isBoomtown(before)) return []
+    const shows = (kind: string) => after.nodes.some((node) => node.kind === kind)
+    const unchosen = shows('city') ? 'town' : shows('town') ? 'city' : undefined
+    return before.nodes.filter((node) => node.kind === unchosen).map((node) => node.id)
 }
 
 /** A tile where Beijing's starting sections are printed keeps their connection (§X). */
@@ -83,6 +95,7 @@ export const TrackRules1880: TrackRules = {
     availableColors: (state) => Phases1880.phase(state.phaseId).tileColors,
     allowance,
     preservesStops: preservesStops1880,
+    removedStops: (_locationId, before, after) => unchosenBoomtownStops(before, after),
     // A city upgraded to brown takes a six-sided tile where one fits (§X Upgrading Tiles).
     mostExits: (before) =>
         before.color === 'green' &&

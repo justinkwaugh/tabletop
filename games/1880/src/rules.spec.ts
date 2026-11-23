@@ -4,6 +4,10 @@ import {
     RailwayMapState,
     RouteNetwork,
     TileEdges,
+    TrackConstruction,
+    keptFace,
+    replacementMappings,
+    replacesColorAndStops,
     rotateTileFace,
     trainsOwnedBy,
     type RoutePath,
@@ -137,6 +141,46 @@ describe('building (§VIII, §X)', () => {
             state.permits.BCR = 'ABC'
         })
         expect(TrackRules1880.allowance(game.hydrated, 'yellow')).toEqual({ cost: 0 })
+    })
+
+    it('lets a medium city take a city or a town tile first (§X Laying Track)', () => {
+        // JHA's Beijing city faces E9, a medium city holding Beijing's starting section.
+        const game = opened(4, 3)
+        while (holderOf(game, 'BCR:president') === game.player) game.act('FinishStockTurn')
+        startMajor(game, 'JHA')
+        edit(game, (state) => {
+            const home = state.stations.find((station) => station.id === 'JHA:home')
+            assertExists(home, 'JHA has a home station')
+            Object.assign(home, {
+                status: 'placed',
+                position: { locationId: 'F8', nodeId: 'city-2', slot: 0 }
+            })
+            state.trackStep = { companyId: 'JHA', lays: [], completed: false }
+        })
+        const laid = new Set(
+            new TrackConstruction(game.hydrated, TrackRules1880)
+                .choices('E9')
+                .map((choice) => choice.definitionId)
+        )
+        expect(laid).toContain('18xx:57')
+        expect(laid).toContain('1880:8850')
+        expect(laid).not.toContain('18xx:7')
+    })
+
+    it('lets a double medium city take two towns or an OO tile first (§X Laying Track)', () => {
+        const before = new RailwayMapState(Map1880, TileSet1880, opened().state.tileInventory).tile(
+            'H8'
+        ).face
+        for (const definitionId of ['1880:8854', '1880:235']) {
+            const after = tileFace1880(definitionId)
+            expect(replacesColorAndStops(TrackRules1880, 'H8', before, after), definitionId).toBe(
+                true
+            )
+            expect(
+                replacementMappings(keptFace(TrackRules1880, 'H8', before, after), after),
+                definitionId
+            ).not.toEqual([])
+        }
     })
 })
 
