@@ -201,37 +201,60 @@ scenario('S9 R-3.1-H1 Draft survives a reconciliation', 'hands-second-sulfur', a
     await expect(table.picked()).toHaveCount(0)
 })
 
-/** The degrees each painted frame turned the seat's pouch by, and its transform once settled. */
+declare global {
+    interface Window {
+        feudumPouchWatch?: { readonly before: string[]; readonly observer: MutationObserver }
+    }
+}
+
+/**
+ * The rotateY of every style the step writes to the seat's pouch, in order, and its transform once
+ * settled. A MutationObserver keeps each write's previous value, so every write is seen whatever
+ * the frame timing.
+ */
 async function pouchTurn(table: ScenarioTable, playerId: string, step: () => Promise<void>) {
     await table.page.evaluate((id) => {
-        const turns: number[] = []
-        const watched = { turns, running: true }
-        Object.assign(window, { feudumPouchWatch: watched })
-        const look = () => {
-            const pouch = document.querySelector(
-                `[data-seat-panel="${id}"] [data-seat-section="pouch"]`
-            )?.parentElement
-            const turned = pouch?.style.transform.match(/rotateY\((-?[\d.]+)deg\)/)
-            if (turned) {
-                turns.push(Number(turned[1]))
+        const before: string[] = []
+        const isPouch = (node: Node) =>
+            node instanceof HTMLElement &&
+            node.closest(`[data-seat-panel="${id}"]`) !== null &&
+            node.querySelector(':scope > [data-seat-section="pouch"]') !== null
+        const observer = new MutationObserver((records) => {
+            for (const record of records) {
+                if (isPouch(record.target)) {
+                    before.push(record.oldValue ?? '')
+                }
             }
-            if (watched.running) {
-                requestAnimationFrame(look)
-            }
-        }
-        requestAnimationFrame(look)
+        })
+        observer.observe(document.body, {
+            subtree: true,
+            attributeFilter: ['style'],
+            attributeOldValue: true
+        })
+        window.feudumPouchWatch = { before, observer }
     }, playerId)
     await step()
     await table.settled()
     return table.page.evaluate((id) => {
-        const watched = (
-            window as unknown as { feudumPouchWatch: { turns: number[]; running: boolean } }
-        ).feudumPouchWatch
-        watched.running = false
         const pouch = document.querySelector(
             `[data-seat-panel="${id}"] [data-seat-section="pouch"]`
         )?.parentElement
-        return { turns: watched.turns, left: pouch?.style.transform ?? 'no pouch' }
+        const watch = window.feudumPouchWatch
+        if (!pouch || !watch) {
+            return { turns: [], left: 'no pouch' }
+        }
+        for (const record of watch.observer.takeRecords()) {
+            if (record.target === pouch) {
+                watch.before.push(record.oldValue ?? '')
+            }
+        }
+        watch.observer.disconnect()
+        const written = [...watch.before.slice(1), pouch.getAttribute('style') ?? '']
+        const turns = written.flatMap((style) => {
+            const turned = style.match(/rotateY\((-?[\d.]+)deg\)/)
+            return turned ? [Number(turned[1])] : []
+        })
+        return { turns, left: pouch.style.transform }
     }, playerId)
 }
 
@@ -251,10 +274,10 @@ async function beforeTheLastFinalise(table: ScenarioTable) {
 const lastFinalise = (table: ScenarioTable) =>
     table.another('p3', { type: ActionType.FinaliseHand, revealsInfo: true, cards: AnotherHand })
 
-/** Edge on at the start, through the turn, flat at the end, and nothing left on the element. */
+/** Edge on at the first write, through the turn, flat at the end, and nothing left on the element. */
 function expectTurned({ turns, left }: { turns: number[]; left: string }) {
     expect(turns.length).toBeGreaterThan(3)
-    expect(turns[0]).toBeGreaterThan(80)
+    expect(turns[0]).toBe(90)
     expect(turns.some((degrees) => degrees > 5 && degrees < 85)).toBe(true)
     expect(turns.slice(1).every((degrees, index) => degrees <= turns[index])).toBe(true)
     expect(Math.min(...turns)).toBeLessThan(5)
