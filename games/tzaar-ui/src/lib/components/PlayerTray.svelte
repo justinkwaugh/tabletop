@@ -18,6 +18,9 @@
         session.gameState.result !== undefined &&
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
+    // I set, you choose, before a colour is taken: no colours on the cards, and a note on any
+    // card without pieces to place.
+    const note = $derived(session.cardNote(playerState.playerId))
     const placing = $derived(session.gameState.machineState === MachineState.PlacingPieces)
 
     // Whose pieces the card counts, a row each: the player's own, except while an I set, you
@@ -36,34 +39,37 @@
 <div class="tray" class:active={isActive}>
     <div
         class="flex items-center gap-2 rounded-t-[10px] px-3 py-1 font-semibold"
-        style:background={session.colors.getPlayerBgColorValue(playerState.playerId)}
-        style:color={session.colors.getPlayerTextColorValue(playerState.playerId)}
+        style:background={session.colorsOpen
+            ? 'var(--tzaar-panel-rule)'
+            : session.colors.getPlayerBgColorValue(playerState.playerId)}
+        style:color={session.colorsOpen
+            ? 'var(--tzaar-ink)'
+            : session.colors.getPlayerTextColorValue(playerState.playerId)}
     >
         <span class="truncate text-[17px]">{session.getPlayerName(playerState.playerId)}</span>
         <span class="ms-auto text-[13px] tracking-[0.12em] whitespace-nowrap uppercase">
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
-    {#each owners as ownerId, row (ownerId)}
-        {@const tone = session.toneOfPlayer(ownerId)}
-        <div class="body">
-            {#each PIECE_KINDS as kind (kind)}
-                {@const count = countOf(ownerId, kind)}
-                <div class="kind" class:out={count === 0 && !placing} title={KIND_NAMES[kind]}>
-                    <strong>{count}</strong>
-                    <PieceIcon {tone} {kind} size={34} />
-                </div>
-            {/each}
-            {#if placing}
-                <span class="caption" class:unseen={row > 0}>left</span>
-            {/if}
-        </div>
+    {#if note}
+        <p class="note">{note}</p>
     {:else}
-        <div class="body">
-            <span class="kind"><strong>&nbsp;</strong></span>
-            <span class="caption">takes a colour once the board is set</span>
-        </div>
-    {/each}
+        {#each owners as ownerId, row (ownerId)}
+            {@const tone = session.toneOfPlayer(ownerId)}
+            <div class="body">
+                {#each PIECE_KINDS as kind (kind)}
+                    {@const count = countOf(ownerId, kind)}
+                    <div class="kind" class:out={count === 0 && !placing} title={KIND_NAMES[kind]}>
+                        <strong>{count}</strong>
+                        <PieceIcon {tone} {kind} size={34} />
+                    </div>
+                {/each}
+                {#if placing}
+                    <span class="caption" class:unseen={row > 0}>left</span>
+                {/if}
+            </div>
+        {/each}
+    {/if}
 </div>
 
 <style>
@@ -117,6 +123,12 @@
         margin-inline-start: auto;
         font-size: 13px;
         letter-spacing: 0.08em;
+        color: var(--tzaar-ink-quiet);
+    }
+
+    .note {
+        padding: 10px 12px;
+        font-size: 15px;
         color: var(--tzaar-ink-quiet);
     }
 </style>

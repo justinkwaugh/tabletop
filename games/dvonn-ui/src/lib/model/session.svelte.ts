@@ -10,6 +10,7 @@ import {
     ChooseColor,
     DvonnVersion,
     isMoveStack,
+    MachineState,
     MoveStack,
     PlacePiece,
     DvonnPreferenceDefinition,
@@ -131,6 +132,24 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
     private setsBoth: boolean = $derived(
         versionFromConfig(this.game.config) === DvonnVersion.ISetYouChoose
     )
+
+    // I set, you choose, until the other player takes a colour: neither player has one yet.
+    colorsOpen: boolean = $derived(
+        this.setsBoth &&
+            (this.gameState.machineState === MachineState.PlacingPieces ||
+                this.gameState.machineState === MachineState.ChoosingColor)
+    )
+
+    // What a card says in place of its pieces while the colours are open. The setter's card holds
+    // the pieces still to place.
+    cardNote(playerId: string): string | undefined {
+        if (!this.colorsOpen) return undefined
+        const setter = playerId === this.gameState.firstPlayerId()
+        if (this.gameState.machineState === MachineState.PlacingPieces) {
+            return setter ? undefined : 'Takes White or Black when the board is set'
+        }
+        return setter ? 'Set the board, plays the colour left' : 'Taking White or Black'
+    }
 
     placeable: AxialCoordinates[] = $derived(
         this.canPlace ? this.gameState.board.vacantSpaces() : []
