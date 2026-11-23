@@ -23,6 +23,7 @@ import {
     payModifierCosts,
     resolveModifiers,
     runAfter,
+    usableModifiers,
     type ActiveModifier,
     type ModifierUse
 } from '../util/modifiers.js'
@@ -355,14 +356,30 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
         )
         if (relicTargets) return true
 
-        return Object.values(Banner).some(
-            (banner) =>
-                HydratedRecover.reasonCannotRecover(state, playerId, {
-                    target: { kind: RecoverTargetKind.Banner, banner },
-                    amountPaid: state.banners[banner].value + 1,
-                    redistributeFrom: Suit.Discord
-                }) === undefined
-        )
+        // R-7.4 — a modifier may win a banner the player's own tokens cannot (Magician's Code adds
+        // two secrets to any paid, "even none"), so each usable card is tried alone, at every bid.
+        const declarations: ModifierUse[][] = [
+            [],
+            ...usableModifiers(state, playerId, ActionType.Recover).map((power) => [
+                { cardId: power.cardId, powerIndex: power.powerIndex }
+            ])
+        ]
+        const player = state.getPlayerState(playerId)
+        return Object.values(Banner).some((banner) => {
+            const held =
+                banner === Banner.PeoplesFavor ? usableFavor(state, playerId) : player.secrets
+            return declarations.some((modifiers) =>
+                Array.from({ length: held + 1 }, (_, amountPaid) => amountPaid).some(
+                    (amountPaid) =>
+                        HydratedRecover.reasonCannotRecover(state, playerId, {
+                            target: { kind: RecoverTargetKind.Banner, banner },
+                            amountPaid,
+                            redistributeFrom: Suit.Discord,
+                            modifiers
+                        }) === undefined
+                )
+            )
+        })
     }
 
     /** R-5.4.4 */

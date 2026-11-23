@@ -217,7 +217,8 @@ export function recoverableBanners(
         .map((banner) => {
             const held =
                 banner === Banner.PeoplesFavor ? usableFavor(state, playerId) : player.secrets
-            const amounts = range(1, held).filter(
+            // R-7.4 — from none: Magician's Code wins the Darkest Secret "even" with none paid.
+            const amounts = range(0, held + 1).filter(
                 (amountPaid) =>
                     reasonCannotRecoverBanner(
                         state,

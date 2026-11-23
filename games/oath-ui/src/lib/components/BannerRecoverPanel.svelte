@@ -40,20 +40,27 @@
                 <Magnifier {preview} label={preview.label} />
             </span>
             <div class="flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-start">
-                <span class="text-sm font-semibold"
-                    ><TokenText text="{bannerName(banner)}: pay how many {token}?" /></span
-                >
-                <TokenRow
-                    image={secret ? secretToken() : favorToken()}
-                    {held}
-                    addable={held}
-                    {picked}
-                    floor={least}
-                    label={(amount) => `pay ${amount} ${token}`}
-                    ontap={(amount) =>
-                        gameSession.setBannerAmount(tappedCount(picked, amount, least))}
-                    {busy}
-                />
+                {#if held === 0}
+                    <!-- R-7.4 — a bid of none, won by Magician's Code alone: nothing to tap. -->
+                    <span class="text-sm font-semibold"
+                        ><TokenText text="{bannerName(banner)}: pay no {token}" /></span
+                    >
+                {:else}
+                    <span class="text-sm font-semibold"
+                        ><TokenText text="{bannerName(banner)}: pay how many {token}?" /></span
+                    >
+                    <TokenRow
+                        image={secret ? secretToken() : favorToken()}
+                        {held}
+                        addable={held}
+                        {picked}
+                        floor={least}
+                        label={(amount) => `pay ${amount} ${token}`}
+                        ontap={(amount) =>
+                            gameSession.setBannerAmount(tappedCount(picked, amount, least))}
+                        {busy}
+                    />
+                {/if}
             </div>
         </div>
         {#if gameSession.needsFavorStart}
