@@ -1,4 +1,9 @@
-import type { BoundingBox, Point, RectangleDimensions } from '@tabletop/common'
+import {
+    assertExists,
+    type BoundingBox,
+    type Point,
+    type RectangleDimensions
+} from '@tabletop/common'
 import { untrack } from 'svelte'
 import {
     EpicVoyageTrack,
@@ -289,7 +294,9 @@ function placeOf(state: HydratedFeudumGameState, target: BoardTarget): Placed {
         }
         case 'pawn':
         case 'monster': {
-            return { area: 'map', at: SpacePoints.get(pieceSpace(state, target) ?? '') }
+            const spaceId = pieceSpace(state, target)
+            assertExists(spaceId, `${target} stands on the map`)
+            return { area: 'map', at: SpacePoints.get(spaceId) }
         }
         default: {
             return { area: 'map', at: SpacePoints.get(id) }

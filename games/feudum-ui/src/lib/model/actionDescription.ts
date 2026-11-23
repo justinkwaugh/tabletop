@@ -100,7 +100,7 @@ export interface ActionLineView {
     readonly hostView?: boolean
     readonly nameOf: (playerId: string) => string
     /** R-1.4-H1 A dummy row's colour as the table shows it. */
-    readonly dummyName?: (rowId: KnightRowId) => string
+    readonly dummyName: (rowId: KnightRowId) => string
     readonly seats?: readonly string[]
 }
 
@@ -138,7 +138,7 @@ class Words {
     }
 
     dummy(rowId: KnightRowId): string {
-        return this.view.dummyName?.(rowId) ?? rowId
+        return this.view.dummyName(rowId)
     }
 
     whose(playerId: string): string {

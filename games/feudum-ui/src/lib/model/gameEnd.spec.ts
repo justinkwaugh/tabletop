@@ -60,7 +60,7 @@ describe('R-6.3 the barrel tie-break, as the end screen and the History word it'
             ],
             shared: true
         })
-        const line = describeAction(action, { viewerId: undefined, nameOf })
+        const line = describeAction(action, { viewerId: undefined, nameOf, dummyName: String })
         expect(line).toContain('tie on vp and on barrel sulfur: Dana 1, Rhys 1 · won by Dana, Rhys')
         expect(line).not.toMatch(/broken/)
     })
@@ -82,9 +82,9 @@ describe('R-6.3 the barrel tie-break, as the end screen and the History word it'
             ],
             shared: false
         })
-        expect(describeAction(action, { viewerId: undefined, nameOf })).toContain(
-            'tie broken by barrel sulfur: Dana 3, Rhys 1 · won by Dana'
-        )
+        expect(
+            describeAction(action, { viewerId: undefined, nameOf, dummyName: String })
+        ).toContain('tie broken by barrel sulfur: Dana 3, Rhys 1 · won by Dana')
     })
 
     it('R-6.3 three tied on vp, two level on the barrel: the third is out and the two still share', () => {
@@ -98,7 +98,9 @@ describe('R-6.3 the barrel tie-break, as the end screen and the History word it'
             ]
         )
         expect(gameEndOf([action])?.tieBreak).toMatchObject({ broken: true, shared: true })
-        expect(describeAction(action, { viewerId: undefined, nameOf })).toContain(
+        expect(
+            describeAction(action, { viewerId: undefined, nameOf, dummyName: String })
+        ).toContain(
             'tie broken by barrel sulfur: Dana 2, Rhys 2, Ann 0, still tied · won by Dana, Rhys'
         )
     })

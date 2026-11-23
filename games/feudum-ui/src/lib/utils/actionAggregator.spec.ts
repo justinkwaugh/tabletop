@@ -405,7 +405,7 @@ describe('R-4.10, R-4.11, R-4.12 The end of a round', () => {
         const NobodyFed = 'No pawn needed feeding'
         const linesOf = (group: HistoryGroup) =>
             linedActions(group).map((action) =>
-                describeAction(action, { viewerId: P1, nameOf: String })
+                describeAction(action, { viewerId: P1, nameOf: String, dummyName: String })
             )
         const gameFedNobody = act(30, ActionType.NourishPawns, undefined, { fed: [] })
         const seatFed = Object.assign(
@@ -964,7 +964,7 @@ describe('R-5-H1 Whole games, from every seat and a spectator', () => {
                         ? recordFor(original, { kind: 'player', playerId: original.playerId }, walk)
                         : original
                     const hidden = writsNamedIn(known).filter((writ) => !open.has(writ))
-                    const line = describeAction(action, { viewerId, nameOf })
+                    const line = describeAction(action, { viewerId, nameOf, dummyName: String })
                     expect(line, action.type).toBeDefined()
                     if (viewerId !== action.playerId) {
                         for (const writId of hidden) {

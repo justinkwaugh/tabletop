@@ -423,7 +423,8 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
             expect(rollLinesOf(seat.actionPanel)).toEqual([])
             const told = describeAction(roll, {
                 viewerId: seat.myPlayerId,
-                nameOf: (playerId) => seat.getPlayerName(playerId)
+                nameOf: (playerId) => seat.getPlayerName(playerId),
+                dummyName: String
             })
             expect(told).toContain(`${name} removed`)
         }
@@ -440,7 +441,8 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
             assertExists(action, `The dawn played ${type}`)
             return describeAction(action, {
                 viewerId: session.myPlayerId,
-                nameOf: (playerId) => session.getPlayerName(playerId)
+                nameOf: (playerId) => session.getPlayerName(playerId),
+                dummyName: String
             })
         }
         expect(told(ActionType.ReplenishMap)).toMatch(/new goods/i)

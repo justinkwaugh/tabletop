@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { seatOf } from '$lib/model/actionPanel.js'
     import type { BenchOffer } from '$lib/model/benchOffer.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -46,7 +47,7 @@
         primary={primary?.kind === 'primary' ? primary : undefined}
         staged={staged?.kind === 'staged' ? staged : undefined}
         state={gameSession.gameState}
-        playerId={gameSession.myPlayerId ?? ''}
+        playerId={seatOf(gameSession)}
         {paintOf}
         {colourPaintOf}
         pointer={gameSession}

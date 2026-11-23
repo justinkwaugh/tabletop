@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { flushSync, mount, unmount } from 'svelte'
 import { dev } from '$app/environment'
 import GameTable from '$lib/components/GameTable.svelte'
@@ -56,7 +57,10 @@ export async function openFixture(name: string): Promise<void> {
             }
         },
         forfeitRound: () => forfeitRound(host),
-        markupProblems: () => (showing ? tableMarkupProblems(target, showing.colors) : [])
+        markupProblems: () => {
+            assertExists(showing, 'A table is shown')
+            return tableMarkupProblems(target, showing.colors)
+        }
     }
     Object.assign(window, { feudumFixture: page })
 }

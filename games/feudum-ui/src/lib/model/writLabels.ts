@@ -29,7 +29,9 @@ function printedAlternatives(writId: WritId): readonly MandateAlternative[] {
 
 /** R-4.8.2 A weapon's alternative, in the rulebook's words. */
 export function weaponLabel(writId: WritId, alternative: MandateAlternativeId): string {
-    return printedAlternatives(writId).find(({ id }) => id === alternative)?.text ?? writId
+    const printed = printedAlternatives(writId).find(({ id }) => id === alternative)
+    assertExists(printed, `${writId} prints ${alternative}`)
+    return printed.text
 }
 
 function counted(goods: readonly Good[]): string {

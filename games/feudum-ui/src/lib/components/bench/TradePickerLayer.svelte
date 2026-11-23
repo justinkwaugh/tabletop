@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ActionBlock } from '$lib/model/actionPanel.js'
+    import { seatOf, type ActionBlock } from '$lib/model/actionPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import TradePicker from './TradePicker.svelte'
 
@@ -18,7 +18,7 @@
     {compact}
     send={block.send}
     state={gameSession.gameState}
-    playerId={gameSession.myPlayerId ?? ''}
+    playerId={seatOf(gameSession)}
     {paintOf}
     {colourPaintOf}
     pointer={gameSession}

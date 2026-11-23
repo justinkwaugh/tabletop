@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import {
     AlchemistPullGoods,
     AlchemistPushInventions,
@@ -654,6 +655,7 @@ function beadItems(preview: BenchPreview | undefined): readonly BenchItem[] {
     const note = preview.payment ? priceNote(preview.payment) : undefined
     return [...new Set([draw.high, draw.low])].map((sealId) => {
         const value = Seals.find(({ id }) => id === sealId)?.beadValue
+        assertExists(value, `${sealId} is a bead`)
         return {
             id: `bead:${sealId}`,
             label: `Bead ${value}`,
@@ -988,11 +990,15 @@ function stagedPicks(
             .map((candidate) => [candidateId(candidate.pick), candidate])
     )
     const order = [...new Set(stages.picks.map(candidateId))].filter((item) => moving.has(item))
-    return order.map((item) => ({
-        item,
-        label: moving.get(item)?.label ?? item,
-        count: stages.picks.filter((pick) => candidateId(pick) === item).length
-    }))
+    return order.map((item) => {
+        const candidate = moving.get(item)
+        assertExists(candidate, `${item} is a first-area pick`)
+        return {
+            item,
+            label: candidate.label,
+            count: stages.picks.filter((pick) => candidateId(pick) === item).length
+        }
+    })
 }
 
 /** R-4.6.1 */

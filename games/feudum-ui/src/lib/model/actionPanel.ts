@@ -234,6 +234,12 @@ export interface ActionPanelView {
     readonly blocks: readonly ActionBlock[]
 }
 
+/** Only a seat has a panel to act in, a bench or a trade picker. */
+export function seatOf({ myPlayerId }: Pick<FeudumGameSession, 'myPlayerId'>): string {
+    assertExists(myPlayerId, 'The table is played from a seat')
+    return myPlayerId
+}
+
 export type PanelSession = Pick<
     FeudumGameSession,
     | 'paintOf'
@@ -456,7 +462,8 @@ function handBlocks(
         })),
         ...(lead ? { lead } : {})
     }
-    const paint = session.paintOf(session.myPlayerId ?? '')
+    // R-3.1-H1 A spectator sees the finalise row and no hand of its own.
+    const paint = () => session.paintOf(seatOf(session))
     if (!drafting) {
         return [
             finalise,
@@ -464,7 +471,7 @@ function handBlocks(
                 ? [
                       {
                           kind: 'hand-set' as const,
-                          paint,
+                          paint: paint(),
                           cards: set.cards.map((kind) => ({ kind, ...cardFace(kind) })),
                           ...(set.pouch ? { pouch: set.pouch } : {})
                       }
@@ -486,7 +493,7 @@ function handBlocks(
         line('count', drafting.count, 'Hand'),
         {
             kind: 'slots',
-            paint,
+            paint: paint(),
             slots: drafting.slots.map((kind, at) => {
                 if (kind === undefined) {
                     return { at: at + 1 }
@@ -514,7 +521,7 @@ function handBlocks(
         ...atWillBlocks(session)
     ]
     return [
-        { kind: 'cards', tone: 'draft', paint, rows: cards },
+        { kind: 'cards', tone: 'draft', paint: paint(), rows: cards },
         ...beside.map((block): ActionBlock => ({ ...block, stands: 'draft' }))
     ]
 }
@@ -740,7 +747,7 @@ function nourishBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['nourishPanel']>
 ): ActionBlock[] {
-    const paint = session.paintOf(session.myPlayerId ?? '')
+    const paint = session.paintOf(seatOf(session))
     const [send] = sends(panel.primary, () => session.sendFollowUp())
     return [
         line('flow', 'Feed'),
@@ -795,7 +802,7 @@ function landscapesBlocks(
 /** R-4.6 */
 function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
     const state = session.gameState
-    const moves = stagedMoves(benchViewOf(bench, state, session.myPlayerId ?? ''), bench)
+    const moves = stagedMoves(benchViewOf(bench, state, seatOf(session)), bench)
     if (!moves) {
         return []
     }
@@ -826,7 +833,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const guild = session.guildPanel
     const flowLine = guild?.line ?? move?.line ?? turn.flow?.line
     const primary = guild?.primary ?? move?.primary ?? turn.primary
-    const me = session.myPlayerId ?? ''
+    const me = seatOf(session)
     // R-3.3 "2 cards" and the pouch's sulfur it spends; the full words stay its accessible name.
     const secondRows: ActionRow[] = turn.secondCard
         ? [

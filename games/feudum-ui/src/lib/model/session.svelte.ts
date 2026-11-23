@@ -888,7 +888,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     /** R-4.4.4 The writ limit's own panel, for the seat its state asks. */
     private writLimitContext: TurnContext | undefined = $derived(
         this.gameState.machineState === MachineState.DiscardingWrits &&
-            this.gameState.activePlayerIds.includes(this.myPlayerId ?? '')
+            this.myPlayerId !== undefined &&
+            this.gameState.activePlayerIds.includes(this.myPlayerId)
             ? this.deciding(ActionType.DiscardWrit)
             : undefined
     )

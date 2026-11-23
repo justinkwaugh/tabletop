@@ -73,7 +73,7 @@ import { atPlayingCards } from '$lib/testing/turnTable.js'
 const Names: Readonly<Record<string, string>> = { p1: 'Ana', p2: 'Ben', p3: 'Cy' }
 
 function viewOf(viewerId: string | undefined, hostView = false): ActionLineView {
-    return { viewerId, hostView, nameOf: (id) => Names[id] ?? id }
+    return { viewerId, hostView, nameOf: (id) => Names[id] ?? id, dummyName: String }
 }
 
 const Base = { id: 'a', gameId: 'g', source: ActionSource.User, playerId: 'p1' }
@@ -1570,7 +1570,11 @@ describe('R-4.4.3 A real sealed charter, from each seat', () => {
             .actions.find(({ type }) => type === ActionType.ScoreGame)
         assertExists(spectator, 'A spectator receives the record')
         expect(
-            describeAction(spectator, { viewerId: undefined, nameOf: () => 'That seat' })
+            describeAction(spectator, {
+                viewerId: undefined,
+                nameOf: () => 'That seat',
+                dummyName: String
+            })
         ).toContain(Words)
         host.close()
     })
@@ -1749,7 +1753,7 @@ describe('R-X.2 Whole games at 2 to 5 seats, every Action from every perspective
                     const record = recordFor(action, perspective, walk)
                     const viewerId =
                         perspective.kind === 'player' ? perspective.playerId : undefined
-                    const said = describeAction(record, { viewerId, nameOf })
+                    const said = describeAction(record, { viewerId, nameOf, dummyName: String })
                     expect(said, action.type).toBeDefined()
                     expect(said, action.type).not.toMatch(RawId)
                     expect(said, action.type).not.toMatch(Unfilled)
@@ -1796,7 +1800,8 @@ describe('R-X.2 Whole games at 2 to 5 seats, every Action from every perspective
                 if (changes.length === 0) {
                     continue
                 }
-                const said = describeAction(action, { viewerId: undefined, nameOf }) ?? ''
+                const said =
+                    describeAction(action, { viewerId: undefined, nameOf, dummyName: String }) ?? ''
                 for (const change of changes) {
                     expect(said, action.type).toContain(nameOf(change))
                     named += 1
