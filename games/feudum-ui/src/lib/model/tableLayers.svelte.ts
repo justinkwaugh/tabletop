@@ -73,7 +73,7 @@ export class TableLayers {
     stackView: StackViewOf | undefined = $state.raw(undefined)
     tracksOpen: boolean = $state(false)
     guildsOpen: boolean = $state(false)
-    /** Contract, Supply: the writ reference. */
+    /** Contract, Supply */
     writsOpen: boolean = $state(false)
     /** Contract, Symbol key and Supply: the looking card open over the board's corner. */
     corner: CornerCard | undefined = $state(undefined)

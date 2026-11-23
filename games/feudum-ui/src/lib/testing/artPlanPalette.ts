@@ -4,7 +4,6 @@ export interface PlannedToken {
     readonly dark: string
 }
 
-/** A first cell of backticked names; `-suffix` shares the previous name's first word. */
 function namesInCell(cell: string): string[] {
     let stem = ''
     return [...cell.matchAll(/`(-?[a-z-]+)`/g)].map((match) => {
@@ -17,7 +16,6 @@ function namesInCell(cell: string): string[] {
     })
 }
 
-/** A cell's colours as CSS writes them: `#RRGGBB at N %` is `#rrggbbaa`. */
 function valuesInCell(cell: string): string[] {
     return [...cell.matchAll(/`(#[0-9A-Fa-f]{6,8})`(?: at (\d+) %)?/g)].map(([, hex, percent]) =>
         percent
@@ -28,7 +26,6 @@ function valuesInCell(cell: string): string[] {
     )
 }
 
-/** The art plan's Palette table, one row per token: a row's one value serves each of its names, and a Dark of "same" is the Light. */
 export function plannedPalette(artPlan: string): PlannedToken[] {
     const start = artPlan.indexOf('\n## Palette\n')
     const rest = artPlan.slice(start + '\n## Palette\n'.length)

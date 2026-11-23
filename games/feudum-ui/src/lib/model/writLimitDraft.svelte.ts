@@ -63,7 +63,7 @@ export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
         const { state, playerId } = context
         const picked = this.value('writ')
         return {
-            // R-4.4.4 How many writs over the limit.
+            // R-4.4.4
             line: `Discard ${state.getPlayerState(playerId).writCount - WritLimit}`,
             writs: discardWritOffers(state, playerId).map((writId) => ({
                 writId,

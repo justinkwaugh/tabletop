@@ -14,7 +14,7 @@ export interface FixturePage {
     settled(): Promise<void>
     /** R-3.2 Every seat plays out its cards by forfeit, and the round ends by the real roll. */
     forfeitRound(): Promise<void>
-    /** Contract, Palette and S71: what the shown table's own markup breaks. */
+    /** Contract, Palette and S71 */
     markupProblems(): string[]
 }
 

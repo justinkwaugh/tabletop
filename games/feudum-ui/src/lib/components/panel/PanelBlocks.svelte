@@ -304,7 +304,7 @@
     </div>
 {/snippet}
 
-<!-- Contract, Guild and Feast: the trade picker. -->
+<!-- Contract, Guild and Feast -->
 {#snippet pickerTray(list: readonly ActionBlock[])}
     {@const controls = list.filter(({ kind }) => kind === 'rows')}
     {@const rest = list.filter(({ kind }) => kind !== 'rows')}

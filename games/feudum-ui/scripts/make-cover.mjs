@@ -1,4 +1,3 @@
-// Writes the catalog image: `node scripts/make-cover.mjs (--titled | --art <image>) [--out <file>]`.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { parseArgs } from 'node:util'

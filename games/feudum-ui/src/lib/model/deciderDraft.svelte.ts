@@ -21,7 +21,7 @@ export interface DraftChoice {
     readonly refusal?: string
     readonly spent?: boolean
     readonly press?: () => void
-    /** Contract, Coexistence and precedence: what the row brightens on the board. */
+    /** Contract, Coexistence and precedence */
     readonly lights?: () => readonly BoardTarget[]
 }
 

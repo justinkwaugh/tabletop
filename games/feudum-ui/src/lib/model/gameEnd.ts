@@ -15,7 +15,7 @@ export interface GameEndColumn {
     readonly playerId: string
     /** R-6.3 What the seat had scored before the V dawn, so that the column adds up to its total. */
     readonly beforeDawn: number
-    /** R-6.1 What the V dawn scored this seat. */
+    /** R-6.1 */
     readonly fifthDawn: number
     /** R-6.2 The section it reached and what that pays; with no disc, it says so. */
     readonly voyage: { readonly label: string; readonly vp: number }

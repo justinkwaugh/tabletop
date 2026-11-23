@@ -98,7 +98,7 @@ export interface GuildContext {
     readonly playerId: string
     readonly nameOf: (playerId: string) => string
     readonly mode: ActionType.GuildAction | ActionType.Feast
-    /** R-3.3, R-3.15 What the card's play declares. */
+    /** R-3.3, R-3.15 */
     readonly input: CardPlayInput
     readonly cardManual: boolean
 }
@@ -262,7 +262,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         }
     }
 
-    /** R-3.16, R-4.6.1 Contract, Coexistence and precedence: what staging the function or Feast would light. */
+    /** R-3.16, R-4.6.1 Contract, Coexistence and precedence */
     lightsOpening(context: GuildContext): readonly BoardTarget[] {
         const { picks } =
             context.mode === ActionType.GuildAction

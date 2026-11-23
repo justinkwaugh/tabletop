@@ -79,7 +79,7 @@ export type MoveStageName = 'steps' | 'godspeed' | 'pilfer' | 'send'
 export interface MoveContext {
     readonly state: HydratedFeudumGameState
     readonly playerId: string
-    /** R-3.3, R-3.15 What the card's play declares. */
+    /** R-3.3, R-3.15 */
     readonly input: CardPlayInput
 }
 
@@ -258,7 +258,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             : undefined
     }
 
-    /** Contract, Coexistence and precedence: what staging a Move would light. */
+    /** Contract, Coexistence and precedence */
     lightsOpening(context: MoveContext): readonly BoardTarget[] {
         const offers = moveOffers(context.state, context.playerId, { steps: [] })
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)

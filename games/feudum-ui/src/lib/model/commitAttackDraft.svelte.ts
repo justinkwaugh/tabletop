@@ -205,7 +205,7 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         }
     })
 
-    /** R-4.8.2 What these adds turn in. */
+    /** R-4.8.2 */
     private static turnedIn(adds: readonly CommitAdd[], offer: CommitAttackOffer): Good[] {
         return adds.flatMap((add) =>
             add.kind === 'saltpeter'

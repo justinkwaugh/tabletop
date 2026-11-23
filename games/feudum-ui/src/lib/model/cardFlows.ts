@@ -80,7 +80,7 @@ export type TurnDraftValues = {
     card: ActionCardKind
     /** R-3.3 Declared with the first card, kept by every later press. */
     secondCard: true
-    /** R-3.15 The played card this Repeat replays. */
+    /** R-3.15 */
     replay: ActionCardKind
     mode: CardAction
     pawn: PawnNumber
@@ -472,7 +472,7 @@ function influenceFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }
 }
 
-/** R-3.9.1 The step a lit place would take and what it costs. */
+/** R-3.9.1 */
 function improveStepNote({ from, to, cost }: ImproveOffer): ChipNote {
     return {
         kind: 'cost',

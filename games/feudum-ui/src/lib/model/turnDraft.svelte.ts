@@ -453,7 +453,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         return getStagedSelectionValue<TurnDraftValues, K>(stages, stage)
     }
 
-    /** R-3.13-H1, R-3.15 Why only Forfeit is left, in one short line. */
+    /** R-3.13-H1, R-3.15 */
     private forfeitFact(
         card: ActionCardKind,
         notLast: boolean,

@@ -37,9 +37,7 @@ export interface MarkupRules {
     /** Colours the platform's colourizer hands out for seats, painted as given. */
     readonly seatColours: ReadonlySet<string>
     readonly declared: (token: string) => boolean
-    /** Whether a stylesheet on the page has a rule for this class. */
     readonly styled: (className: string) => boolean
-    /** The title's component that drew the element, or undefined for markup the title does not own. */
     readonly drawnBy: (element: MarkupElement) => string | undefined
 }
 
@@ -134,7 +132,6 @@ function classesStyledOnPage(): Set<string> {
     return classes
 }
 
-/** The rules for the table under `root`, with the seat colours the session's colourizer gives. */
 export function tableMarkupProblems(root: Element, colors: SeatColourSource): string[] {
     const given = Object.values(Color).flatMap((color) =>
         [

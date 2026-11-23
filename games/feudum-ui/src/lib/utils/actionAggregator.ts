@@ -30,7 +30,7 @@ export interface HistoryGroup {
     readonly replays: boolean
 }
 
-/** R-4.11.2 An epoch's interstitial. */
+/** R-4.11.2 */
 export interface EpochDivider {
     readonly kind: 'epoch'
     readonly id: string
