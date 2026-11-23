@@ -4,12 +4,13 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import { Color, sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     ChooseColor,
     DvonnVersion,
     isMoveStack,
+    MachineState,
     MoveStack,
     PlacePiece,
     DvonnPreferenceDefinition,
@@ -56,7 +57,7 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
     moveInterrupter: MoveInterrupter | undefined
     // Until the state lands: the pieces each player has in hand once a step that places a piece
     // ends, set as it starts, so a piece dropping onto the board is not counted in hand too.
-    private landingHands: Map<string, number> | undefined = $derived.by(() => {
+    private landingHands: Map<string, PieceColor[]> | undefined = $derived.by(() => {
         void this.gameState
         return undefined
     })
@@ -132,6 +133,24 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
         versionFromConfig(this.game.config) === DvonnVersion.ISetYouChoose
     )
 
+    // I set, you choose, until the other player takes a colour: neither player has one yet.
+    colorsOpen: boolean = $derived(
+        this.setsBoth &&
+            (this.gameState.machineState === MachineState.PlacingPieces ||
+                this.gameState.machineState === MachineState.ChoosingColor)
+    )
+
+    // What a card says in place of its pieces while the colours are open. The setter's card holds
+    // the pieces still to place.
+    cardNote(playerId: string): string | undefined {
+        if (!this.colorsOpen) return undefined
+        const setter = playerId === this.gameState.firstPlayerId()
+        if (this.gameState.machineState === MachineState.PlacingPieces) {
+            return setter ? undefined : 'Takes White or Black when the board is set'
+        }
+        return setter ? 'Set the board, plays the colour left' : 'Taking White or Black'
+    }
+
     placeable: AxialCoordinates[] = $derived(
         this.canPlace ? this.gameState.board.vacantSpaces() : []
     )
@@ -178,14 +197,28 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
         return pieceTone(piece, (playerId) => this.toneOfPlayer(playerId))
     }
 
-    piecesInHand(playerId: string): number {
-        return this.landingHands?.get(playerId) ?? this.gameState.piecesInHand(playerId)
+    // The colours of the pieces a player has still to place, White's first.
+    handOf(playerId: string): PieceColor[] {
+        return this.landingHands?.get(playerId) ?? this.handIn(this.gameState, playerId)
+    }
+
+    // Each player places their own pieces, except in I set, you choose, where the first player
+    // holds both colours' pieces and the other player none.
+    private handIn(state: HydratedDvonnGameState, playerId: string): PieceColor[] {
+        const colors: PieceColor[] = this.setsBoth
+            ? playerId === state.firstPlayerId()
+                ? [Color.White, Color.Black]
+                : []
+            : [state.getPlayerState(playerId).color as PieceColor]
+        return colors.flatMap((color) =>
+            Array.from({ length: state.piecesInHand(state.playerWith(color)) }, () => color)
+        )
     }
 
     // A step that brings pieces onto the board starts: count each hand as it will be.
     landHands(to: HydratedDvonnGameState) {
         this.landingHands = new Map(
-            to.players.map((player) => [player.playerId, to.piecesInHand(player.playerId)])
+            to.players.map((player) => [player.playerId, this.handIn(to, player.playerId)])
         )
     }
 

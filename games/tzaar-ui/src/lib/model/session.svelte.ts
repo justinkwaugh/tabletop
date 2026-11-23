@@ -6,6 +6,7 @@ import {
 } from '@tabletop/frontend-components'
 import {
     assertExists,
+    Color,
     sameCoordinates,
     type AxialCoordinates,
     type GameAction
@@ -16,6 +17,7 @@ import {
     ChooseColor,
     isCapture,
     isStack,
+    MachineState,
     Pass,
     PIECE_KINDS,
     PieceKind,
@@ -136,6 +138,24 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         versionFromConfig(this.game.config) === TzaarVersion.ISetYouChoose
     )
 
+    // I set, you choose, until the other player takes a colour: neither player has one yet.
+    colorsOpen: boolean = $derived(
+        this.setsBoth &&
+            (this.gameState.machineState === MachineState.PlacingPieces ||
+                this.gameState.machineState === MachineState.ChoosingColor)
+    )
+
+    // What a card says in place of its pieces while the colours are open. The setter's card holds
+    // the pieces still to place.
+    cardNote(playerId: string): string | undefined {
+        if (!this.colorsOpen) return undefined
+        const setter = playerId === this.gameState.firstPlayerId()
+        if (this.gameState.machineState === MachineState.PlacingPieces) {
+            return setter ? undefined : 'Takes White or Black when the board is set'
+        }
+        return setter ? 'Set the board, plays the colour left' : 'Taking White or Black'
+    }
+
     placingColor: PieceColor | undefined = $derived(
         this.canPlace && this.setsBoth ? this.gameState.colorToPlace() : undefined
     )
@@ -217,6 +237,15 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
 
     piecesInHand(kind: PieceKind): number {
         return this.gameState.piecesInHand(this.placingOwner(), kind)
+    }
+
+    // Whose pieces a player's card counts. While an I set, you choose board is set the setter
+    // holds both colours', White's first, and the other player none.
+    handOwners(playerId: string): string[] {
+        const state = this.gameState
+        if (!this.setsBoth || state.machineState !== MachineState.PlacingPieces) return [playerId]
+        if (playerId !== state.firstPlayerId()) return []
+        return [state.playerWith(Color.White), state.playerWith(Color.Black)]
     }
 
     private placingOwner(): string {
