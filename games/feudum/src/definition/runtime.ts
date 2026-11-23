@@ -1,7 +1,7 @@
 import { DefaultStateLogger, type GameRuntime, Visibility } from '@tabletop/common'
-import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import {
     FeudumGameState,
+    FeudumGameStateValidator,
     type FeudumProjectedState,
     type HydratedFeudumGameState
 } from '../model/gameState.js'
@@ -17,7 +17,7 @@ import { FeudumStateHandlers } from './stateHandlers.js'
 export const FeudumRuntime = {
     randomnessVersion: 1,
     initializer: new FeudumGameInitializer(),
-    canonicalStateValidator: FeudumCanonicalStateValidator,
+    canonicalStateValidator: FeudumGameStateValidator,
     hydrator: new FeudumHydrator(),
     stateHandlers: FeudumStateHandlers,
     apiActions: FeudumApiActions,

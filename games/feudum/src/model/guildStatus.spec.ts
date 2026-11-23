@@ -5,7 +5,7 @@ import { GuildIds, type GuildId } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
 import { makeFeudum, showLocation } from '../testing/improving.js'
 import { canonicalOf, initialState } from '../testing/state.js'
-import { conservationBreaks } from './canonicalValidator.js'
+import { conservationBreaks } from './conservation.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { recomputeRanks, rankOf, RankChange, statusStars } from './guildStatus.js'
 

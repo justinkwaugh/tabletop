@@ -4,7 +4,7 @@ import { VesselTypes, type Good } from '../data/components.js'
 import { Mandates } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { conservationBreaks } from '../model/canonicalValidator.js'
+import { conservationBreaks } from '../model/conservation.js'
 import { giveTile, returnAllGoods, tableInWindow } from '../testing/atWill.js'
 import { meetCharter } from '../testing/charters.js'
 import {

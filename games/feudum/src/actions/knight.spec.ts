@@ -4,7 +4,7 @@ import { KnightRowIds, ScrollSpaces, type ScrollSpaceId } from '../data/guilds.j
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { rowsToScrollsOffer } from '../guilds/rowsToScrolls.js'
-import { conservationBreaks } from '../model/canonicalValidator.js'
+import { conservationBreaks } from '../model/conservation.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { knightRows, ownerSupply } from '../model/knightRows.js'
 import {

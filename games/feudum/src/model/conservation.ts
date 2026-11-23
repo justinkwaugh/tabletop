@@ -14,7 +14,7 @@ import {
     type Landscape
 } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
-import { FeudumGameState, FeudumGameStateValidator } from './gameState.js'
+import type { FeudumGameState } from './gameState.js'
 import { chickenBeads, type KnightRowOwner } from './guildsState.js'
 import { knightRow, knightRows } from './knightRows.js'
 
@@ -283,10 +283,4 @@ export function conservationBreaks(state: FeudumGameState): ConservationBreak[] 
         ),
         ...tilesBreaks(state)
     ]
-}
-
-export const FeudumCanonicalStateValidator = {
-    Check(state: unknown): state is FeudumGameState {
-        return FeudumGameStateValidator.Check(state) && conservationBreaks(state).length === 0
-    }
 }

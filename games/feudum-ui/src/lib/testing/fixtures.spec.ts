@@ -1,6 +1,6 @@
 import {
     conservationBreaks,
-    FeudumCanonicalStateValidator,
+    FeudumGameStateValidator,
     handSizeFor,
     HydratedFeudumGameState
 } from '@tabletop/feudum'
@@ -21,7 +21,7 @@ describe.each(FixtureNames)('the fixture %s', (name) => {
     it('R-1.1 holds to the logic: its state passes the validators, and every good and coin is accounted for', async () => {
         const { host } = await fixtureNamed(name).build()
         expect(conservationBreaks(host.state)).toEqual([])
-        expect(FeudumCanonicalStateValidator.Check(host.state)).toBe(true)
+        expect(FeudumGameStateValidator.Check(host.state)).toBe(true)
     })
 
     it('R-3.1 could be reached: each hand as big as its pouch allows, each rank as its markers say', async () => {

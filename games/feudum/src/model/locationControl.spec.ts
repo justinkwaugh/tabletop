@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { canonicalOf, initialState } from '../testing/state.js'
-import { conservationBreaks } from './canonicalValidator.js'
+import { conservationBreaks } from './conservation.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { canPlaceMarker, landscapeTender, nextMarkerRole, placeMarker } from './locationControl.js'
 import { immunityKey, moveConcealedSeal } from './seals.js'

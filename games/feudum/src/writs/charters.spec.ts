@@ -16,7 +16,7 @@ import {
 import { setUp } from '../testing/improving.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { placeMarker } from '../model/locationControl.js'
-import { conservationBreaks } from '../model/canonicalValidator.js'
+import { conservationBreaks } from '../model/conservation.js'
 import { canonicalOf } from '../testing/state.js'
 import { writRegistry, type CharterRegistration } from './writRegistry.js'
 

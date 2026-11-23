@@ -11,6 +11,7 @@ import { isRevealPouches } from '../actions/revealPouches.js'
 import { isRollProgressDie } from '../actions/rollProgressDie.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import { isTendLandscape } from '../actions/tendLandscape.js'
+import { conservationBreaks } from '../model/conservation.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
 import { openTurnSeat } from '../model/turns.js'
 import {
@@ -21,6 +22,7 @@ import {
 } from '../testing/completeGame.js'
 import {
     asStored,
+    canonical,
     perspectivesOf,
     processedOf,
     seedOf,
@@ -198,6 +200,13 @@ describe.each(Games)(
                 expect(engine.getValidActionTypesForPlayer(game, before, input.playerId)).toContain(
                     input.type
                 )
+            }
+        })
+
+        it('R-1.1 every state holds every component, none made or lost', () => {
+            const { initial, steps } = walk()
+            for (const state of [initial, ...steps.flatMap(({ after }) => after)]) {
+                expect(conservationBreaks(canonical(state))).toEqual([])
             }
         })
 

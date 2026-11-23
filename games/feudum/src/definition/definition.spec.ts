@@ -12,8 +12,7 @@ import { Value } from 'typebox/value'
 import { describe, expect, it } from 'vitest'
 import { RegionIds, type RegionId, type TileId } from '../data/regionTiles.js'
 import { LastEpoch, type Epoch } from '../data/tracks.js'
-import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
-import type { FeudumProjectedState } from '../model/gameState.js'
+import { FeudumGameStateValidator, type FeudumProjectedState } from '../model/gameState.js'
 import { setBarrel } from '../testing/charters.js'
 import { rowOf, scoreFrom } from '../testing/gameEnd.js'
 import { canonicalState, epochAt, initialState } from '../testing/state.js'
@@ -143,7 +142,7 @@ describe('The definition', () => {
         expect(runtime.initializer).toBeInstanceOf(FeudumGameInitializer)
         expect(runtime.hydrator).toBeInstanceOf(FeudumHydrator)
         expect(runtime.playerColors).toBe(FeudumColors)
-        expect(runtime.canonicalStateValidator).toBe(FeudumCanonicalStateValidator)
+        expect(runtime.canonicalStateValidator).toBe(FeudumGameStateValidator)
         expect(runtime.apiActions).toBe(FeudumApiActions)
         expect(runtime.stateHandlers).toBe(FeudumStateHandlers)
         expect(runtime.scoring).toBeInstanceOf(FeudumScoring)
@@ -154,10 +153,11 @@ describe('The definition', () => {
         expect(Definition.runtime.initializer.supportsStartingPositions).toBe(true)
     })
 
-    it('R-1.1 the registered validator checks shape and component totals', () => {
+    it('R-1.1 the registered validator is the canonical schema compiled', () => {
         const { canonicalStateValidator: validator } = Definition.runtime
         const state = canonicalState()
 
+        expect(validator).toBe(FeudumGameStateValidator)
         expect(validator?.Check(state)).toBe(true)
         expect(validator?.Check({ ...state, supply: { ...state.supply, shillings: -1 } })).toBe(
             false
@@ -314,7 +314,7 @@ describe('Game Progress', () => {
                 if (index % ViewEvery !== 0 && index !== states.length - 1) {
                     return
                 }
-                assert(FeudumCanonicalStateValidator.Check(state), 'A host state is canonical')
+                assert(FeudumGameStateValidator.Check(state), 'A host state is canonical')
                 for (const perspective of perspectives) {
                     const view = projector.project(state, perspective, {
                         config: walk.game.config

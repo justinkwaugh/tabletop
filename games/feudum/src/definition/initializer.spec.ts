@@ -15,8 +15,11 @@ import { ProvisionalGuilds } from '../data/provisional.guilds.js'
 import { EpochLandscapes, RegionTiles, TileEpochs, type TileId } from '../data/regionTiles.js'
 import { SealBeadCounts, Seals, type SealId } from '../data/seals.js'
 import { RoyalWrits } from '../data/writs.js'
-import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
-import { HydratedFeudumGameState, type FeudumGameState } from '../model/gameState.js'
+import {
+    FeudumGameStateValidator,
+    HydratedFeudumGameState,
+    type FeudumGameState
+} from '../model/gameState.js'
 import { chickenBeads } from '../model/guildsState.js'
 import { canonicalOf, testGame } from '../testing/state.js'
 import { FeudumColors } from './colors.js'
@@ -317,7 +320,7 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
     it('R-1.1 passes the canonical validator and round-trips, across seeds', () => {
         for (const masterSeed of [MasterSeed, OtherMasterSeed]) {
             const state = start(numPlayers, masterSeed)
-            expect(FeudumCanonicalStateValidator.Check(state)).toBe(true)
+            expect(FeudumGameStateValidator.Check(state)).toBe(true)
             const rehydrated = new HydratedFeudumGameState(structuredClone(state))
             expect(rehydrated.dehydrate()).toEqual(state)
         }

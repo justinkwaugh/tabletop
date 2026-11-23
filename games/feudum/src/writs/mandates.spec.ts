@@ -9,7 +9,7 @@ import {
 import { commitAttackOffer, commitAttackPreview } from '../actions/commitAttack.js'
 import { playMandateOffers, reasonPlayMandateRefused } from '../actions/playMandate.js'
 import { ActionType } from '../definition/actions.js'
-import { conservationBreaks } from '../model/canonicalValidator.js'
+import { conservationBreaks } from '../model/conservation.js'
 import { alternativeOf, giveTile, returnAllGoods, tableInWindow } from '../testing/atWill.js'
 import {
     addPawn,

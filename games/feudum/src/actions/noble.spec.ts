@@ -4,7 +4,7 @@ import type { BeadValue } from '../data/seals.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { rosaryBeadSum, unseenBeadValues } from '../model/beads.js'
-import { conservationBreaks } from '../model/canonicalValidator.js'
+import { conservationBreaks } from '../model/conservation.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import {
     setBeads,

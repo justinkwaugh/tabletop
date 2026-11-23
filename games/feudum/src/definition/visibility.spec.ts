@@ -2,7 +2,6 @@ import { assertExists, GameEngine, Visibility } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionCardKinds } from '../data/cards.js'
 import { Charters, Mandates, type WritId } from '../data/writs.js'
-import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import {
     FeudumGameState,
     FeudumGameStateValidator,
@@ -243,7 +242,6 @@ describe('hydrating a projection', () => {
     it('R-5-H1 the strict schemas stay strict: a projection is not a complete state', () => {
         const projected = project(tableInPlay(), spectator)
         expect(FeudumGameStateValidator.Check(projected)).toBe(false)
-        expect(FeudumCanonicalStateValidator.Check(projected)).toBe(false)
     })
 
     it('R-5-H1 fills no secret: what was omitted stays absent', () => {

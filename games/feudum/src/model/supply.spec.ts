@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ComponentTotals } from '../data/components.js'
 import { canonicalOf, initialState } from '../testing/state.js'
-import { conservationBreaks } from './canonicalValidator.js'
+import { conservationBreaks } from './conservation.js'
 import {
     payShillingsFromSupply,
     payShillingsToSupply,

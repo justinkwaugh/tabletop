@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { ChickenSpaces, type ChickenSpaceId } from '../data/guilds.js'
 import type { SealId } from '../data/seals.js'
 import { canonicalOf, initialState } from '../testing/state.js'
-import { conservationBreaks } from './canonicalValidator.js'
+import { conservationBreaks } from './conservation.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import {
     beadToSeal,

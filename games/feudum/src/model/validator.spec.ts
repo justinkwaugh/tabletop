@@ -6,12 +6,8 @@ import { DoubleSidedDiscs, LocationDiscs } from '../data/discs.js'
 import { RegionTiles } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
 import { canonicalState } from '../testing/state.js'
-import {
-    conservationBreaks,
-    FeudumCanonicalStateValidator,
-    type ConservedComponent
-} from './canonicalValidator.js'
-import type { FeudumGameState } from './gameState.js'
+import { conservationBreaks, type ConservedComponent } from './conservation.js'
+import { FeudumGameStateValidator, type FeudumGameState } from './gameState.js'
 import { knightRows, seatKnightRow } from './knightRows.js'
 
 function table(numPlayers = 4): FeudumGameState {
@@ -43,18 +39,18 @@ function landscapeOn(
 }
 
 function expectConserved(state: FeudumGameState) {
+    expect(FeudumGameStateValidator.Check(state)).toBe(true)
     expect(conservationBreaks(state)).toEqual([])
-    expect(FeudumCanonicalStateValidator.Check(state)).toBe(true)
 }
 
 function expectBroken(state: FeudumGameState, component: ConservedComponent) {
+    expect(FeudumGameStateValidator.Check(state)).toBe(true)
     expect(conservationBreaks(state).map((broken) => broken.component)).toContain(component)
-    expect(FeudumCanonicalStateValidator.Check(state)).toBe(false)
 }
 
 describe('the canonical validator', () => {
-    it('R-1.1 is the runtime validator', () => {
-        expect(FeudumRuntime.canonicalStateValidator).toBe(FeudumCanonicalStateValidator)
+    it('R-1.1 the runtime registers the compiled schema, and the totals are a spec invariant', () => {
+        expect(FeudumRuntime.canonicalStateValidator).toBe(FeudumGameStateValidator)
     })
 
     it('R-1.1 accepts the initial table at 2 to 5 players', () => {
@@ -63,11 +59,11 @@ describe('the canonical validator', () => {
         }
     })
 
-    it('R-1.1 rejects what the schema rejects, before counting', () => {
+    it('R-1.1 rejects what the schema rejects', () => {
         const state = table()
-        expect(FeudumCanonicalStateValidator.Check({ ...state, epoch: 6 })).toBe(false)
-        expect(FeudumCanonicalStateValidator.Check({ ...state, spaces: {} })).toBe(false)
-        expect(FeudumCanonicalStateValidator.Check({ ...state, flow: undefined })).toBe(false)
+        expect(FeudumGameStateValidator.Check({ ...state, epoch: 6 })).toBe(false)
+        expect(FeudumGameStateValidator.Check({ ...state, spaces: {} })).toBe(false)
+        expect(FeudumGameStateValidator.Check({ ...state, flow: undefined })).toBe(false)
     })
 
     it('R-1.1 names the totals it enforces', () => {

@@ -7,8 +7,7 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { MinimumKnightRows } from '../data/guilds.js'
-import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
-import type { FeudumProjectedState } from '../model/gameState.js'
+import { FeudumGameStateValidator, type FeudumProjectedState } from '../model/gameState.js'
 import type { KnightRowEntry } from '../model/knightRows.js'
 import { knightRows, rowSeat } from '../model/knightRows.js'
 import { testGame } from '../testing/state.js'
@@ -114,7 +113,7 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
 
             expect(withoutRowId(start())).toEqual(withoutRowId(seated))
             expect(withoutSeating(seated)).toEqual(withoutSeating(unassigned))
-            assert(FeudumCanonicalStateValidator.Check(seated), 'Setup must be canonical')
+            assert(FeudumGameStateValidator.Check(seated), 'Setup must be canonical')
         }
     })
 
@@ -140,7 +139,7 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
     it('R-1.4.7 every assigned setup still projects and hydrates for every seat', () => {
         for (const { order, walk } of walks) {
             const canonical = walk.initial
-            assert(FeudumCanonicalStateValidator.Check(canonical), 'Setup must be canonical')
+            assert(FeudumGameStateValidator.Check(canonical), 'Setup must be canonical')
             for (const perspective of [
                 { kind: 'spectator' } as const,
                 ...order.map((playerId) => ({ kind: 'player', playerId }) as const)
@@ -178,7 +177,7 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
         for (const { order, walk } of walks) {
             const { final } = walk
             expect(final.machineState).toBe(MachineState.EndOfGame)
-            assert(FeudumCanonicalStateValidator.Check(final), 'A finished game must be canonical')
+            assert(FeudumGameStateValidator.Check(final), 'A finished game must be canonical')
             expect(() => validateGameResult(final)).not.toThrow()
             expect(final.result).toBe(
                 final.winningPlayerIds.length === 1 ? GameResult.Win : GameResult.Draw
@@ -199,7 +198,7 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
     it('R-6.3 every seat reads the same final scores from its own view', () => {
         for (const { order, walk } of walks) {
             const { final } = walk
-            assert(FeudumCanonicalStateValidator.Check(final), 'A finished game must be canonical')
+            assert(FeudumGameStateValidator.Check(final), 'A finished game must be canonical')
             const finalScores = FeudumRuntime.scoring.finalScores(final)
             for (const perspective of [
                 { kind: 'spectator' } as const,
