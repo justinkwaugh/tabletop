@@ -1,11 +1,9 @@
+/// <reference types="node" />
+import { assert } from '@tabletop/common'
 import { vi } from 'vitest'
 
-interface DocFiles {
-    readFileSync(path: URL, encoding: 'utf8'): string
-}
-
 export async function readDoc(name: string): Promise<string> {
-    const fs = await vi.importActual<DocFiles>('node:fs')
+    const fs = await vi.importActual<typeof import('node:fs')>('node:fs')
     return fs.readFileSync(new URL(`../../docs/${name}`, import.meta.url), 'utf8')
 }
 
@@ -27,16 +25,27 @@ export function docSection(doc: string, heading: string): string[] {
 export function docTableRows(doc: string, heading: string): Record<string, string>[] {
     const section = docSection(doc, heading)
     const subheading = section.findIndex((line) => line.startsWith('#'))
-    const rows = (subheading < 0 ? section : section.slice(0, subheading))
-        .filter((line) => line.startsWith('|'))
-        .map((line) =>
-            line
-                .slice(1, line.lastIndexOf('|'))
-                .split('|')
-                .map((cell) => cell.trim().replaceAll('`', ''))
-        )
-    const [titles = [], , ...body] = rows
-    return body.map((cells) =>
-        Object.fromEntries(titles.map((title, column) => [title, cells[column] ?? '']))
+    const tables: string[][][] = []
+    let inTable = false
+    for (const line of subheading < 0 ? section : section.slice(0, subheading)) {
+        const row = line.startsWith('|')
+        if (row && !inTable) {
+            tables.push([])
+        }
+        inTable = row
+        if (row) {
+            tables[tables.length - 1].push(
+                line
+                    .slice(1, line.lastIndexOf('|'))
+                    .split('|')
+                    .map((cell) => cell.trim().replaceAll('`', ''))
+            )
+        }
+    }
+    return tables.flatMap(([titles, , ...body]) =>
+        body.map((cells) => {
+            assert(cells.length === titles.length, `A row under "${heading}" has a cell per column`)
+            return Object.fromEntries(titles.map((title, column) => [title, cells[column]]))
+        })
     )
 }
