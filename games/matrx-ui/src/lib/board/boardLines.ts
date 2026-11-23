@@ -46,6 +46,65 @@ export function tableArea(frame: Frame) {
     }
 }
 
+export type Box = { left: number; top: number; right: number; bottom: number }
+
+// The board's box clips the table wherever the round fade has not finished: always at the frame's
+// top, and at its sides on a narrow screen or its bottom on a short one. A band of the table's
+// colour softens the grid inward from each edge the box cuts, and covers the table past it.
+const EDGE_FADE = SPACING * 0.9
+
+export function frameBox(frame: Frame): Box {
+    const [left, top, width, height] = frame.viewBox.split(' ').map(Number)
+    return { left, top, right: left + width, bottom: top + height }
+}
+
+export function edgeFades(seen: Box, table: ReturnType<typeof tableArea>) {
+    const tableRight = table.x + table.width
+    const tableBottom = table.y + table.height
+    return [
+        {
+            side: 'top',
+            rect: {
+                x: table.x,
+                y: table.y,
+                width: table.width,
+                height: seen.top + EDGE_FADE - table.y
+            },
+            line: { x1: 0, y1: seen.top, x2: 0, y2: seen.top + EDGE_FADE }
+        },
+        {
+            side: 'bottom',
+            rect: {
+                x: table.x,
+                y: seen.bottom - EDGE_FADE,
+                width: table.width,
+                height: tableBottom - seen.bottom + EDGE_FADE
+            },
+            line: { x1: 0, y1: seen.bottom, x2: 0, y2: seen.bottom - EDGE_FADE }
+        },
+        {
+            side: 'left',
+            rect: {
+                x: table.x,
+                y: table.y,
+                width: seen.left + EDGE_FADE - table.x,
+                height: table.height
+            },
+            line: { x1: seen.left, y1: 0, x2: seen.left + EDGE_FADE, y2: 0 }
+        },
+        {
+            side: 'right',
+            rect: {
+                x: seen.right - EDGE_FADE,
+                y: table.y,
+                width: tableRight - seen.right + EDGE_FADE,
+                height: table.height
+            },
+            line: { x1: seen.right, y1: 0, x2: seen.right - EDGE_FADE, y2: 0 }
+        }
+    ].filter(({ rect }) => rect.width > 0 && rect.height > 0)
+}
+
 // The hexagon of E5's six neighbours, whose triangles the fine grid also covers.
 export function centreTriangles(view: BoardView): string {
     const centre = view.center(CENTRE)

@@ -13,6 +13,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import { MAX_FIT_SCALE } from '$lib/board/geometry.js'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -100,7 +101,7 @@
                     justify="center"
                     controls="bottom-left"
                     maxScale={4}
-                    maxFitScale={2.5}
+                    maxFitScale={MAX_FIT_SCALE}
                     renderAtViewScale
                     expandable
                 >

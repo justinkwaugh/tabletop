@@ -23,6 +23,8 @@ export const RESERVE_DOT_RADIUS = PIECE_RADIUS * 0.37
 export const RESERVE_LINE_WIDTH = PIECE_RADIUS * 2 * 0.043
 
 export const TILT = 0.75
+// The most the scaling wrapper enlarges the board to fit its box.
+export const MAX_FIT_SCALE = 2.5
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 
