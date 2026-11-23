@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import { keepWheelIn } from '$lib/utils/wheelKeeper.js'
     import type { Snippet } from 'svelte'
     import { seatOrder } from '$lib/model/seatPanel.js'
@@ -16,7 +17,8 @@
     let supplyToggle: HTMLButtonElement | undefined = $state()
 
     let paint = $derived.by(() => {
-        const playerId = gameSession.myPlayerId ?? seatOrder(gameSession.gameState)[0] ?? ''
+        const playerId = gameSession.myPlayerId ?? seatOrder(gameSession.gameState)[0]
+        assertExists(playerId, 'R-1.4 The table has a seat')
         return paintOf(playerId)
     })
 

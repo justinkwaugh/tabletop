@@ -778,7 +778,7 @@ function spaceGoodPlace(
 
 function barnGoodPlace(state: HydratedFeudumGameState, good: Good): GoodPlace {
     const stack = goodStacks(state.guilds.farmer.barn).find((one) => one.good === good)
-    const top = Math.max(0, (stack?.tokens ?? 1) - 1)
+    const top = stack ? stack.tokens - 1 : 0
     return {
         point: guildPoint('farmer', barnTokenAt(good, top)),
         ...(stack && !stack.count
