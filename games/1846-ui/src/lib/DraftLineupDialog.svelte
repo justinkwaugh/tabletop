@@ -1,9 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import type { Corporation } from '@tabletop/1846'
-    import { clickedBackdrop, CompanyToken } from '@tabletop/18xx-ui'
+    import { clickedBackdrop } from '@tabletop/18xx-ui'
     import type { CompanyLineup } from './companyLineup.js'
-    import { MapView1846 } from './mapView.js'
+    import LineupTokens from './LineupTokens.svelte'
     let { lineup, onclose }: { lineup: CompanyLineup; onclose: () => void } = $props()
     let dialog: HTMLDialogElement
     const titleId = $props.id()
@@ -15,13 +14,6 @@
         if (clickedBackdrop(dialog, event)) dialog.close()
     }
 </script>
-
-<!-- The catalogue's tokens, not the session's: the board draws removed homes as solid discs. -->
-{#snippet tokens(companies: readonly Corporation[])}
-    {#each companies as company (company.id)}<span class="token" title={company.name}
-            ><CompanyToken appearance={MapView1846.stations[company.id]} size={24} /></span
-        >{/each}
-{/snippet}
 
 <dialog bind:this={dialog} aria-labelledby={titleId} {onclose} onclick={closeOutside}>
     <header>
@@ -40,7 +32,7 @@
     </header>
     <dl>
         <dt>In play</dt>
-        <dd>{@render tokens(lineup.corporations)}</dd>
+        <dd><LineupTokens companies={lineup.corporations} size={24} /></dd>
         {#if lineup.passCards}
             <dt>Deck</dt>
             <dd>
@@ -54,7 +46,7 @@
         {#if lineup.removedCorporations.length || lineup.removedPrivateNames.length}
             <dt>Removed</dt>
             <dd class="removed">
-                {@render tokens(lineup.removedCorporations)}
+                <LineupTokens companies={lineup.removedCorporations} size={24} removed />
                 {lineup.removedPrivateNames.join(' · ')}
             </dd>
         {/if}
@@ -130,18 +122,10 @@
     dd {
         margin: 0;
     }
-    .token {
-        display: inline-block;
-        margin-right: 3px;
-        vertical-align: middle;
-    }
     .pass {
         font-style: italic;
     }
     .removed {
         color: var(--rail-muted, #786550);
-    }
-    .removed > .token {
-        opacity: 0.45;
     }
 </style>
