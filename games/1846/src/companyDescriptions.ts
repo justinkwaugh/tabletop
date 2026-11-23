@@ -13,7 +13,7 @@ export const CompanyDescriptions1846: Readonly<Record<string, string>> = {
     LM: `If ${place('H12')} and ${place('G13')} are not connected, grants an extra free tile lay or upgrade in each hex to connect them.`,
     MC: `Two extra free yellow tile lays in the Michigan Central hexes, ${places(PrivateTrackBlocks.MC, 'conjunction')}.`,
     'O&I': `Two extra free yellow tile lays in the Ohio & Indiana hexes, ${places(PrivateTrackBlocks['O&I'], 'conjunction')}.`,
-    BT: 'Adds a $20 revenue marker to an eligible location during phases I–III.',
+    BT: `Adds a $20 revenue marker in ${place('H12')} during phases I–III.`,
     SC: 'Adds a $20-per-port-symbol revenue marker at one port.',
     MPC: `Adds a $30 revenue marker in ${places(MeatPackingLocations, 'disjunction')}.`,
     TBC: 'Reduces each mountain, pass, or tunnel cost by $20.'

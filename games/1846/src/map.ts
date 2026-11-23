@@ -71,6 +71,9 @@ for (const [id, hexes] of Object.entries(PrivateTrackBlocks))
             }
         ]
 export const MeatPackingLocations = ['I1', 'D6']
+export const BoomtownLocation = 'H12'
+/** The map marker each revenue private's printed or drawn symbol is listed under. */
+export const RevenueSymbolMarkers = { SC: 'ports', MPC: 'meat-packing', BT: 'boomtown' } as const
 export const PortSymbols: Readonly<Record<string, number>> = { B8: 2, C5: 1, D14: 1, G19: 2, I1: 1 }
 export const EastWestBonuses: Readonly<Record<string, { side: 'east' | 'west'; amount: number }>> =
     {
@@ -102,7 +105,7 @@ for (const [id, ports] of Object.entries(PortSymbols))
     markers[id] = [
         ...(markers[id] ?? []),
         {
-            id: 'ports',
+            id: RevenueSymbolMarkers.SC,
             label: `Port ×${ports}`,
             description: `${ports} port symbols for Steamboat Company.`,
             count: ports
@@ -112,11 +115,19 @@ for (const id of MeatPackingLocations)
     markers[id] = [
         ...(markers[id] ?? []),
         {
-            id: 'meat-packing',
+            id: RevenueSymbolMarkers.MPC,
             label: 'Meat packing',
             description: 'Meat Packing Company may place its +$30 marker here.'
         }
     ]
+markers[BoomtownLocation] = [
+    ...(markers[BoomtownLocation] ?? []),
+    {
+        id: RevenueSymbolMarkers.BT,
+        label: 'Boomtown',
+        description: 'While Boomtown is in play, it may place its +$20 marker here.'
+    }
+]
 const locations = createLetterNumberLocationFactory({
     orientation: HexOrientation.Pointy,
     numberOffset: 1,

@@ -128,7 +128,7 @@ export type {
 export { printedHomeCompanies } from './session/titlePresentation.js'
 export { constructionOperatingSteps } from './table/operatingStep.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
-export { tileSymbolMarkup } from './tiles/tileSymbols.js'
+export { skylineMarkup, tileSymbolMarkup } from './tiles/tileSymbols.js'
 export { counted } from './presentation/count.js'
 export { InstructedRunSolver } from './session/instructedRunSolver.js'
 export { currencyAffixes, moneyFormat, type MoneyFormat } from './presentation/money.js'

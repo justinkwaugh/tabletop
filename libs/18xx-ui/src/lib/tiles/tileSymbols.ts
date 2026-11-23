@@ -2,7 +2,7 @@ import type { StationAppearance } from '../maps/stationPresentation.js'
 import type { TileAppearance } from './tileAppearance.js'
 import { svgDataUrl } from '../presentation/svgDataUrl.js'
 
-export type TileSymbolName = 'port' | 'horns' | 'lock'
+export type TileSymbolName = 'port' | 'horns' | 'lock' | 'skyline'
 
 export const PortSymbol = {
     radius: 8,
@@ -29,11 +29,29 @@ export const LockSymbol = {
     body: 'M -3.2 -0.8 H 3.2 A 1 1 0 0 1 4.2 0.2 V 4.6 A 1 1 0 0 1 3.2 5.6 H -3.2 A 1 1 0 0 1 -4.2 4.6 V 0.2 A 1 1 0 0 1 -3.2 -0.8 Z M 0 1.2 A 1 1 0 1 0 0 3.2 A 1 1 0 1 0 0 1.2 Z'
 }
 
+// A city skyline of four blocks on a ground line, stroked in ink, as for a boomtown bonus.
+export const SkylineSymbol = {
+    radius: 8,
+    strokeWidth: 1.2,
+    blocks: 'M -5.75 5 V -0.5 H -3 V 5 Z M -3 5 V -3.5 L -1.25 -4.75 L 0.5 -3.5 V 5 Z M 0.5 5 V -1.75 H 3 V 5 Z M 3 5 V 0.5 H 5.75 V 5 Z',
+    ground: 'M -6.25 5 H 6.25'
+}
+
+/** The skyline stroked at a given weight, for art that draws it finer than the map symbol. */
+export function skylineMarkup(
+    ink: string,
+    strokeWidth: number = SkylineSymbol.strokeWidth
+): string {
+    const { blocks, ground } = SkylineSymbol
+    return `<g fill="none" stroke="${ink}" stroke-width="${strokeWidth}" stroke-linejoin="round"><path d="${blocks}"/><path stroke-linecap="round" d="${ground}"/></g>`
+}
+
 export function tileSymbolMarkup(symbol: TileSymbolName, ink: string): string {
     if (symbol === 'lock') {
         const { strokeWidth, shackle, body } = LockSymbol
         return `<path fill="none" stroke="${ink}" stroke-width="${strokeWidth}" d="${shackle}"/><path fill="${ink}" fill-rule="evenodd" stroke="none" d="${body}"/>`
     }
+    if (symbol === 'skyline') return skylineMarkup(ink)
     if (symbol === 'horns')
         return HornsSymbol.paths
             .map((path) => `<path fill="${ink}" stroke="none" d="${path}"/>`)

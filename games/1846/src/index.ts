@@ -33,6 +33,7 @@ export * from './earnings.js'
 export { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 export {
     AssignRevenueMarker,
+    boomtownInPlay,
     isAssignRevenueMarker,
     revenueMarkerChoices,
     revenueMarkerValue,
