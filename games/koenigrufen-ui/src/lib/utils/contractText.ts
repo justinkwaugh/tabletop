@@ -142,8 +142,10 @@ function birdNote(choice: BidChoice): string | undefined {
     return `The ${bonusName(choice.bird)} is announced with the bid (game ${game} + bird ${bidValue(choice) - game}): ${bonusGoal(choice.bird)}`
 }
 
-// Defining traits first, joined by dashes, then the details.
-export function contractSummary(choice: BidChoice, rules: TableRules = StandardRules): string {
+// A contract's terms: its defining traits, joined by dashes, then a sentence or two per detail.
+export type ContractTerms = { readonly traits: string; readonly notes: readonly string[] }
+
+export function contractTerms(choice: BidChoice, rules: TableRules = StandardRules): ContractTerms {
     const { contract } = choice
     const definition = contractDefinition(contract)
     const traits = present([
@@ -168,7 +170,13 @@ export function contractSummary(choice: BidChoice, rules: TableRules = StandardR
         birdNote(choice),
         ContractNotes[contract]?.replace('{talon}', trischakenTalonNote(rules))
     ])
-    return [`${traits.join(' - ')}.`, ...notes].join(' ')
+    return { traits: `${traits.join(' - ')}.`, notes }
+}
+
+// The terms in one line, for the action panel.
+export function contractSummary(choice: BidChoice, rules: TableRules = StandardRules): string {
+    const { traits, notes } = contractTerms(choice, rules)
+    return [traits, ...notes].join(' ')
 }
 
 // Declarer's choice when the called King lies in the talon. Giving up a Besserrufer also pays the

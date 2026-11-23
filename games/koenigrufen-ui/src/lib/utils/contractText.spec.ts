@@ -4,6 +4,7 @@ import {
     bidHeading,
     contractRequirement,
     contractSummary,
+    contractTerms,
     contractValue,
     kingInTalonPrompt,
     meinSpielSummary
@@ -51,6 +52,19 @@ describe('contract text', () => {
         expect(contractSummary({ contract: Contract.Farbendreier })).toBe(
             '1v3 - Goal: 36+. Take 3 talon cards; the defenders get the other 3. Trumps don’t win, and are led or played only when you have no suit cards left. Lay away trumps first, except the Trull, face down; suit cards laid away are shown. No bonuses except Valat and Four Kings.'
         )
+    })
+
+    it('gives the terms as traits and a list of notes, for the header popup', () => {
+        expect(contractTerms({ contract: Contract.Rufer })).toEqual({
+            traits: '2v2 - Goal: 36+ - Call for King partner - Forehand only.',
+            notes: [
+                'Take 3 talon cards; the defenders get the other 3.',
+                'If the called King is in the talon, declarer gives up (paying each player) or plays alone (no Kontra).'
+            ]
+        })
+        expect(contractTerms({ contract: Contract.Dreier }).notes).toEqual([
+            'Take 3 talon cards; the defenders get the other 3.'
+        ])
     })
 
     it('says which bird a Besserrufer bid announces and what it adds', () => {

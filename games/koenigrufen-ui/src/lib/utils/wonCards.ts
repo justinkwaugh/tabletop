@@ -1,4 +1,5 @@
-import { TalonSize, type CompletedTrick } from '@tabletop/koenigrufen'
+import { TalonSize } from '@tabletop/koenigrufen'
+import { trickOnTable, type TrickTable } from './trickMotion.js'
 import {
     defenderCollector,
     talonGoesToDefenders,
@@ -6,17 +7,17 @@ import {
     type TalonTable
 } from './talonView.js'
 
-export type WonCardsTable = Omit<TalonTable, 'tricks'> & {
-    readonly tricks: readonly CompletedTrick[]
-    getPlayerState(playerId: string): {
-        readonly discardCount: number
-        readonly shownDiscards: readonly string[]
+export type WonCardsTable = Omit<TalonTable, 'tricks'> &
+    TrickTable & {
+        getPlayerState(playerId: string): {
+            readonly discardCount: number
+            readonly shownDiscards: readonly string[]
+        }
     }
-}
 
 // The cards lying face down in a player's capture pile: won tricks with any talon card given for
-// them, the declarer's cards laid away face down, and the talon cards the defenders' collector
-// gathered. Face-up cards are public,
+// them (the last trick once it has left the table), the declarer's cards laid away face down, and
+// the talon cards the defenders' collector gathered. Face-up cards are public,
 // so they do not count.
 export function wonCardCount(table: WonCardsTable, playerId: string): number {
     return (
@@ -27,11 +28,14 @@ export function wonCardCount(table: WonCardsTable, playerId: string): number {
 }
 
 function trickCards(table: WonCardsTable, playerId: string): number {
+    const onTable = trickOnTable(table)
     return table.tricks
         .filter((trick) => trick.winnerId === playerId)
         .reduce(
             (count, trick) =>
-                count + trick.plays.length + (trick.talonCardId === undefined ? 0 : 1),
+                count +
+                (trick === onTable ? 0 : trick.plays.length) +
+                (trick.talonCardId === undefined ? 0 : 1),
             0
         )
 }
