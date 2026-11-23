@@ -47,14 +47,13 @@ describe('the 8E-trains going unbought (§X; R48)', () => {
         expect(game.state.machineState).toBe('BuyingTrains')
         expect(game.state.trainPurchaseStep?.companyId).toBe(companyId)
         expect(trainOnSale(game.hydrated)).toBe('10')
+        // The company operates last, so finishing its turn ends the operating round.
         const operating = game.state.operatingSet
+        expect(operating?.companyOrder.at(-1)).toBe(companyId)
         game.act('FinishOperatingTurn', { companyId })
-        // Its turn is over: done in this operating round, or the round ended with it.
-        const next = game.state.operatingSet
-        expect(
-            next?.completedCompanyIds.includes(companyId) ||
-                next?.roundNumber !== operating?.roundNumber ||
-                next?.number !== operating?.number
-        ).toBe(true)
+        expect(game.state.operatingSet?.completedCompanyIds).not.toContain(companyId)
+        expect([game.state.operatingSet?.roundNumber, game.state.operatingSet?.number]).not.toEqual(
+            [operating?.roundNumber, operating?.number]
+        )
     }, 300_000)
 })

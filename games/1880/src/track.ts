@@ -8,6 +8,7 @@ import {
     tileExits,
     type ConstructionState,
     type TileFace,
+    type TileNode,
     type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
@@ -51,7 +52,7 @@ function untrackedHomes(state: ConstructionState, companyId: string): string[] {
  */
 function unchosenBoomtownStops(before: TileFace, after: TileFace): string[] {
     if (!isBoomtown(before)) return []
-    const shows = (kind: string) => after.nodes.some((node) => node.kind === kind)
+    const shows = (kind: TileNode['kind']) => after.nodes.some((node) => node.kind === kind)
     const unchosen = shows('city') ? 'town' : shows('town') ? 'city' : undefined
     return before.nodes.filter((node) => node.kind === unchosen).map((node) => node.id)
 }

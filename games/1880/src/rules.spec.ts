@@ -5,9 +5,6 @@ import {
     RouteNetwork,
     TileEdges,
     TrackConstruction,
-    keptFace,
-    replacementMappings,
-    replacesColorAndStops,
     rotateTileFace,
     trainsOwnedBy,
     type RoutePath,
@@ -168,19 +165,35 @@ describe('building (§VIII, §X)', () => {
     })
 
     it('lets a double medium city take two towns or an OO tile first (§X Laying Track)', () => {
-        const before = new RailwayMapState(Map1880, TileSet1880, opened().state.tileInventory).tile(
-            'H8'
-        ).face
-        for (const definitionId of ['1880:8854', '1880:235']) {
-            const after = tileFace1880(definitionId)
-            expect(replacesColorAndStops(TrackRules1880, 'H8', before, after), definitionId).toBe(
-                true
+        // The BCR's home Chengdu faces N4, a double medium city.
+        const game = opened(4, 3)
+        const across = TileEdges.find((edge) => Map1880.across('N4', edge)?.location.id === 'M3')
+        assertExists(across, 'N4 borders M3')
+        layCityFacing(game, 'N4', across)
+        edit(game, (state) => {
+            const home = state.stations.find((station) => station.id === 'BCR:home')
+            assertExists(home, 'The BCR has a home station')
+            Object.assign(home, {
+                status: 'placed',
+                position: { locationId: 'M3', nodeId: 'city', slot: 0 }
+            })
+            state.permits.BCR = 'ABC'
+            const treasury = state.cash.find(
+                (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'BCR'
             )
-            expect(
-                replacementMappings(keptFace(TrackRules1880, 'H8', before, after), after),
-                definitionId
-            ).not.toEqual([])
-        }
+            assertExists(treasury, 'The BCR has a treasury')
+            treasury.amount = 100
+            state.trackStep = { companyId: 'BCR', lays: [], completed: false }
+        })
+        const laid = new Set(
+            new TrackConstruction(game.hydrated, TrackRules1880)
+                .choices('N4')
+                .map((choice) => choice.definitionId)
+        )
+        expect(laid).toContain('1880:235')
+        expect(laid).toContain('1880:8854')
+        expect(laid).not.toContain('18xx:57')
+        expect(laid).not.toContain('1880:8850')
     })
 })
 
