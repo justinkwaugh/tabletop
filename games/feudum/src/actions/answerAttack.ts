@@ -72,18 +72,6 @@ export function answerAttackOffer(
     }
 }
 
-/** R-3.14.1 The defender flips Defend out of turn and scores it. */
-function flipDefend(state: HydratedFeudumGameState, playerId: string): number {
-    const combat = state.flow.combat
-    assertExists(combat, 'R-3.14-H1 An attack is waiting')
-    const player = state.getPlayerState(playerId)
-    playOutOfTurn(player, 'defend', 'defend-flip')
-    const vp = defendVp()
-    player.score += vp
-    combat.defendFlipped = true
-    return vp
-}
-
 export class HydratedAnswerAttack
     extends HydratableAction<typeof AnswerAttack>
     implements AnswerAttack
@@ -103,10 +91,22 @@ export class HydratedAnswerAttack
         if (refused) {
             throw Error(refused)
         }
-        const vp = this.flipDefend ? flipDefend(state, this.playerId) : 0
+        const vp = this.flipDefend ? HydratedAnswerAttack.scoreDefendFlip(state, this.playerId) : 0
         this.metadata = attackerMayAdd(state, followUpSeat(state))
             ? { vp }
             : { vp, combat: resolveCombat(state, 0, 0) }
+    }
+
+    /** R-3.14.1 The defender flips Defend out of turn and scores it. */
+    private static scoreDefendFlip(state: HydratedFeudumGameState, playerId: string): number {
+        const combat = state.flow.combat
+        assertExists(combat, 'R-3.14-H1 An attack is waiting')
+        const player = state.getPlayerState(playerId)
+        playOutOfTurn(player, 'defend', 'defend-flip')
+        const vp = defendVp()
+        player.score += vp
+        combat.defendFlipped = true
+        return vp
     }
 
     /** R-3.14.1, R-3.14-H1 */
