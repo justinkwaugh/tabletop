@@ -30,7 +30,7 @@
         payoutRecipients
     } from './lastAction.js'
     import { describeLastAction } from './lastActionDescription.js'
-    import TrainBadge from '../trains/TrainBadge.svelte'
+    import TrainBadgeList from '../trains/TrainBadgeList.svelte'
     import TrackLayResult from './TrackLayResult.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import GameEnding from '../ending/GameEnding.svelte'
@@ -276,10 +276,11 @@
                             >{' '}{/if}<PlaceText
                             text={latest.sentence.text}
                         />{#if latest.trainDefinitionIds.length}{' '}<span class="trains"
-                                >{#each latest.trainDefinitionIds as id, i (i)}<TrainBadge
-                                        name={session.trainDepot.trainDefinition(id).name}
-                                        color={trainColors[id]}
-                                    />{/each}</span
+                                ><TrainBadgeList
+                                    definitionIds={latest.trainDefinitionIds}
+                                    name={(id) => session.trainDepot.trainDefinition(id).name}
+                                    colors={trainColors}
+                                /></span
                             >{/if}{#if latest.price}{latest.price.connective === '·'
                                 ? ' · '
                                 : ' '}<span class="price"
@@ -311,10 +312,11 @@
                             <strong><PlaceText text={consequence.description.text} /></strong
                             >{#if consequence.description.trainDefinitionIds?.length}{' '}<span
                                     class="trains"
-                                    >{#each consequence.description.trainDefinitionIds as id, i (i)}<TrainBadge
-                                            name={session.trainDepot.trainDefinition(id).name}
-                                            color={trainColors[id]}
-                                        />{/each}</span
+                                    ><TrainBadgeList
+                                        definitionIds={consequence.description.trainDefinitionIds}
+                                        name={(id) => session.trainDepot.trainDefinition(id).name}
+                                        colors={trainColors}
+                                    /></span
                                 >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{' · '}<PlaceText
                                     text={consequence.detail}
                                 />{/if}{#each consequence.description.detailLines ?? [] as line, index (index)}<br

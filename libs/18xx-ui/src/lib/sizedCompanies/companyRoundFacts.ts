@@ -6,6 +6,7 @@ import {
     type SizedCompanyState
 } from '@tabletop/18xx'
 import type { MoneyFormat } from '../presentation/money.js'
+import { trainsFact } from '../trains/trainsFact.js'
 import type { CardAction } from '../stock/CompanyActionCard.svelte'
 import type { TitleFact } from '../session/titlePresentation.js'
 import type {
@@ -62,10 +63,7 @@ export function companyAssetFacts(
     companyId: string,
     companyName: (companyId: string) => string
 ): TitleFact[] {
-    const counts = new Map<string, number>()
-    for (const train of trainsOwnedBy(state, { kind: 'company', companyId }))
-        counts.set(train.definitionId, (counts.get(train.definitionId) ?? 0) + 1)
-    const trains = [...counts].map(([type, count]) => (count > 1 ? `${type} ×${count}` : type))
+    const trains = trainsOwnedBy(state, { kind: 'company', companyId })
     const privates = state.companies.filter(
         (company) =>
             company.kind === 'private' && privateOwningCompany(state, company.id) === companyId
@@ -73,14 +71,22 @@ export function companyAssetFacts(
     const placed = state.stations.filter(
         (station) => station.companyId === companyId && station.status === 'placed'
     ).length
+    const counted = rules.stations
+        .heldLimitMarkers(state, companyId)
+        .map((marker) => ` + ${marker.privateCompanyId}`)
+        .join('')
     return [
-        { label: 'Trains', value: trains.length ? trains.join(', ') : '—' },
-        { label: 'Stations', value: `${placed}/${rules.stations.heldStations(state, companyId)}` },
+        trainsFact(trains),
+        {
+            label: 'Stations',
+            value: `${placed}/${rules.stations.heldStations(state, companyId)}${counted}`
+        },
         ...(privates.length
             ? [
                   {
                       label: 'Privates',
-                      value: privates.map((company) => companyName(company.id)).join(', ')
+                      value: privates.map((company) => companyName(company.id)).join(', '),
+                      privateIds: privates.map((company) => company.id)
                   }
               ]
             : [])

@@ -26,7 +26,7 @@
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     import type { HistoryBankBreak } from './historyStates.js'
     import { pricedValue } from './lastAction.js'
-    import TrainBadge from '../trains/TrainBadge.svelte'
+    import TrainBadgeList from '../trains/TrainBadgeList.svelte'
     import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import HistoryCallout from './HistoryCallout.svelte'
@@ -209,10 +209,11 @@
                                 ? afterPlayerName(row.text, companyLabels)
                                 : row.text}{#if row.trainDefinitionIds?.length}<span
                                     class="run-trains"
-                                    >{#each row.trainDefinitionIds as id, index (index)}<TrainBadge
-                                            name={trainName(id)}
-                                            color={trainColors[id]}
-                                        />{/each}</span
+                                    ><TrainBadgeList
+                                        definitionIds={row.trainDefinitionIds}
+                                        name={trainName}
+                                        colors={trainColors}
+                                    /></span
                                 >{/if}{#if row.phase}<span class="phase-colors"
                                     >{row.phase.label}</span
                                 >{/if}{#if row.value}{' '}for
@@ -309,10 +310,11 @@
                                 ? (row.ledgerText ?? row.text)
                                 : row.text}{#if row.trainDefinitionIds?.length}<span
                                     class="run-trains"
-                                    >{#each row.trainDefinitionIds as id, index (index)}<TrainBadge
-                                            name={trainName(id)}
-                                            color={trainColors[id]}
-                                        />{/each}</span
+                                    ><TrainBadgeList
+                                        definitionIds={row.trainDefinitionIds}
+                                        name={trainName}
+                                        colors={trainColors}
+                                    /></span
                                 >{/if}{#if row.phase}<span class="phase-colors"
                                     >{row.phase.label}</span
                                 >{/if}{#if row.ledgerValue}<span class="ledger-note"

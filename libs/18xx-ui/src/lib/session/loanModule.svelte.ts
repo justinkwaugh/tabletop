@@ -7,7 +7,6 @@ import {
     loanRate,
     loanRateTable,
     loansOutstanding,
-    loansRemaining,
     nextOperatingCompany,
     type EighteenXXState,
     type EighteenXXTitleRules
@@ -47,10 +46,6 @@ export class LoanModule {
         const roundRate = this.operatingRoundInProgress() ? state.interestRate : undefined
         return loanRateTableView(table, loansOutstanding(state), roundRate)
     })
-    /** Loans the bank can still lend. */
-    remaining = $derived.by(() =>
-        this.rules ? loansRemaining(this.session.state, this.rules) : undefined
-    )
     operatingCompanyId = $derived.by(() =>
         this.rules && this.session.state.machineState !== 'StockRound'
             ? nextOperatingCompany(this.session.state)

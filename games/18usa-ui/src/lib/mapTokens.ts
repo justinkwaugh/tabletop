@@ -22,6 +22,7 @@ import { assert, assertExists } from '@tabletop/common'
 import { privateOwningCompany } from '@tabletop/18xx'
 import {
     svgDataUrl,
+    svgText,
     tileSymbolMarkup,
     type LocationMarkerArt,
     type MapMarkerArt,
@@ -128,7 +129,7 @@ function tokenImage({ fill, ink, symbol, lines }: TokenFace): string {
     const text = lines
         .map(
             (line, index) =>
-                `<text y="${baselines[index]}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${line.length > 3 ? 5.6 : 6.6}" font-weight="800" fill="${ink}">${line}</text>`
+                `<text y="${baselines[index]}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${line.length > 3 ? 5.6 : 6.6}" font-weight="800" fill="${ink}">${svgText(line)}</text>`
         )
         .join('')
     return svgDataUrl(

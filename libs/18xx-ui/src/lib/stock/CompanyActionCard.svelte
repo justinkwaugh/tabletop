@@ -12,6 +12,8 @@
     import type { Snippet } from 'svelte'
     import { getCompany } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import TrainBadge from '../trains/TrainBadge.svelte'
+    import PrivateDescription from '../privates/PrivateDescription.svelte'
     import type { TitleFact } from '../session/titlePresentation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
@@ -37,6 +39,23 @@
     const name = $derived(session.companyName(companyId))
 </script>
 
+{#snippet privateName(privateId: string)}
+    {@const item = session.privates.companies.find((company) => company.id === privateId)}
+    <PrivateDescription
+        money={session.presentation.money}
+        phaseColors={session.presentation.phaseColors}
+        tokens={session.privateCardTokens[privateId]}
+        imageUrl={session.publishedCardImage(privateId)}
+        plate={session.publishedCardPlate(privateId)}
+        shortName={session.companyName(privateId)}
+        fullName={session.companyFullName(privateId)}
+        description={item?.description ?? ''}
+        income={!item || item.closed || session.presentation.privatesWithoutIncome
+            ? undefined
+            : item.revenue}
+    />
+{/snippet}
+
 <div class="company-card" aria-label={name}>
     <div class="identity">
         <CompanyToken appearance={session.mapView.stations[companyId]} size={30} />
@@ -47,7 +66,22 @@
         <dl class="facts">
             {#each facts as fact (fact.label)}<div>
                     <dt>{fact.label}</dt>
-                    <dd>{fact.value}</dd>
+                    <dd>
+                        {#if fact.trains?.length}<span class="trains"
+                                >{#each fact.trains as train, index (index)}<TrainBadge
+                                        name={session.trainDepot.trainDefinition(train.definitionId)
+                                            .name}
+                                        color={session.presentation.trainColors[train.definitionId]}
+                                        obsolete={train.obsolete}
+                                    />{/each}</span
+                            >{:else if fact.privateIds?.length}<span class="privates"
+                                >{#each fact.privateIds as privateId (privateId)}<span
+                                        class="private"
+                                        data-private-description-row
+                                        >{@render privateName(privateId)}</span
+                                    >{/each}</span
+                            >{:else}{fact.value}{/if}
+                    </dd>
                 </div>{/each}
         </dl>
     {/if}
@@ -113,6 +147,25 @@
         line-height: 11px;
         text-transform: uppercase;
         letter-spacing: 0.035em;
+    }
+    .privates {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        column-gap: 0.3em;
+    }
+    .private {
+        display: inline-flex;
+    }
+    .private:not(:last-child)::after {
+        content: ',';
+    }
+    .trains {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 3px;
+        vertical-align: middle;
     }
     dd {
         margin: 0;

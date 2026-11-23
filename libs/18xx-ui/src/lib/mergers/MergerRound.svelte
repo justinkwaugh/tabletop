@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { finiteCashOwnedBy, presidentOf, trainsOwnedBy } from '@tabletop/18xx'
+    import { finiteCashOwnedBy, isObsoleteTrain, presidentOf, trainsOwnedBy } from '@tabletop/18xx'
+    import TrainBadge from '../trains/TrainBadge.svelte'
+    import { trainsFact } from '../trains/trainsFact.js'
     import CompanyActionCard, { type CardAction } from '../stock/CompanyActionCard.svelte'
     import StockPanelHeading from '../stock/StockPanelHeading.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -40,10 +42,7 @@
                 label: 'Treasury',
                 value: money(finiteCashOwnedBy(gameState, { kind: 'company', companyId }))
             },
-            {
-                label: 'Trains',
-                value: trains.length ? trains.map((train) => train.definitionId).join(', ') : '—'
-            },
+            trainsFact(trains),
             { label: 'Loans', value: String(company?.loans ?? 0) }
         ]
     }
@@ -217,7 +216,13 @@
                     <button
                         class="action-button"
                         disabled={busy}
-                        onclick={() => mergers.discardTrain(train.id)}>{train.definitionId}</button
+                        aria-label={`Discard a ${session.trainDepot.trainDefinition(train.definitionId).name}`}
+                        onclick={() => mergers.discardTrain(train.id)}
+                        ><TrainBadge
+                            name={session.trainDepot.trainDefinition(train.definitionId).name}
+                            color={session.presentation.trainColors[train.definitionId]}
+                            obsolete={isObsoleteTrain(train)}
+                        /></button
                     >
                 {/each}
             </div>

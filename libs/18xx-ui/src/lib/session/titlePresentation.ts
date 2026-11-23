@@ -49,9 +49,15 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 export type TitlePrivateAction = { label: string; pressed: boolean; press(): void }
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
+/** A train a company fact lists. */
+export type FactTrain = { definitionId: string; obsolete?: boolean }
 export type TitleFact = {
     label: string
     value: string
+    /** Trains the fact lists, drawn as train badges in place of its text value. */
+    trains?: readonly FactTrain[]
+    /** Privates the fact lists, each name opening its card. */
+    privateIds?: readonly string[]
     /** Shown on a company card as a line beneath its figures rather than as one of them. */
     below?: true
 }

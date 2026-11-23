@@ -27,10 +27,12 @@ import {
     type ConversionRounds,
     type CorporateBuyBacks,
     type HydratedEighteenXXState,
+    type PlacedStation,
     type ShortSelling,
     type SizedCompanyRecords
 } from '@tabletop/18xx'
 import { PassableBidding, assert } from '@tabletop/common'
+import type { MapLocationChoice } from './eighteenXXSession.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 
 type SizedCompanyTitleState = HydratedEighteenXXState & SizedCompanyRecords
@@ -319,6 +321,21 @@ export class CompanyExcessModule {
         }
     })
 
+    /** The stations and station markers a company over its limit may give up, chosen on the map. */
+    readonly mapChoice = $derived.by((): MapLocationChoice | undefined => {
+        const current = this.current
+        if (!current) return undefined
+        const valid = this.session.validActionTypes
+        return excessMapChoice(
+            valid.includes('RemoveStation') ? current.stations : [],
+            valid.includes('RemoveStationMarker') ? current.markers : [],
+            {
+                station: (stationId) => void this.removeStation(stationId),
+                marker: (marker) => void this.removeMarker(marker)
+            }
+        )
+    })
+
     private requireCompanyId(): string {
         const companyId = this.current?.companyId
         assert(companyId, 'A company is over its limits')
@@ -348,6 +365,37 @@ export class CompanyExcessModule {
                 trainId
             })
         )
+    }
+}
+
+type ExcessMarker = { locationId: string; kind: string }
+
+/**
+ * Where the company's stations and station markers may be given up, and which a tap takes: the
+ * station in the hex, or the city tapped where a hex holds the company's stations in two.
+ */
+export function excessMapChoice(
+    stations: readonly PlacedStation[],
+    markers: readonly ExcessMarker[],
+    remove: { station(stationId: string): void; marker(marker: ExcessMarker): void }
+): MapLocationChoice | undefined {
+    if (!stations.length && !markers.length) return undefined
+    return {
+        locationIds: [
+            ...new Set([
+                ...stations.map((station) => station.position.locationId),
+                ...markers.map((marker) => marker.locationId)
+            ])
+        ],
+        choose: (locationId, nodeId) => {
+            const here = stations.filter((station) => station.position.locationId === locationId)
+            const cities = new Set(here.map((station) => station.position.nodeId))
+            const station =
+                cities.size > 1 ? here.find((entry) => entry.position.nodeId === nodeId) : here[0]
+            if (station) return remove.station(station.id)
+            const marker = markers.find((entry) => entry.locationId === locationId)
+            if (marker) remove.marker(marker)
+        }
     }
 }
 

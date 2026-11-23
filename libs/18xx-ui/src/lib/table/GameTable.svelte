@@ -1151,10 +1151,6 @@
                     <span class="next-rate">next {session.loans.nextRate}%</span></span
                 >
             </span>
-            <span class="game-information-item">
-                <span class="information-label">Loans</span>
-                <span>{session.loans.remaining} left</span>
-            </span>
         {/if}
         {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
             <span class="game-information-item">

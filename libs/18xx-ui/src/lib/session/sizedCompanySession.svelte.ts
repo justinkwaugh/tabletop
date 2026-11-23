@@ -17,6 +17,7 @@ import {
     EighteenXXSession,
     type EighteenXXSessionRules,
     type EighteenXXSessionView,
+    type MapLocationChoice,
     type SessionOptions
 } from './eighteenXXSession.svelte.js'
 import {
@@ -123,5 +124,9 @@ export class SizedCompanySession<
                 available: () => this.shortSelling.options.length > 0
             }
         ])
+    }
+
+    override get mapLocationChoice(): MapLocationChoice | undefined {
+        return this.excess.mapChoice ?? super.mapLocationChoice
     }
 }
