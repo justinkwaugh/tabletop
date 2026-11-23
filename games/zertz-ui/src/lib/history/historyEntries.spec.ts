@@ -145,7 +145,7 @@ describe('historyEntries', () => {
                 ],
                 captured: [
                     { color: MarbleColor.Black, seed: coordinatesToNumber({ q: 0, r: 0 }) },
-                    { color: MarbleColor.White, seed: coordinatesToNumber({ q: 0, r: 0 }) }
+                    { color: MarbleColor.White, seed: coordinatesToNumber({ q: 2, r: 0 }) }
                 ]
             },
             {
@@ -165,11 +165,7 @@ describe('historyEntries', () => {
         ])
     })
 
-    it('names each marble with the specks it had on the board', () => {
-        const place = (id: string, q: number): PlaceMarble => ({
-            ...placement(id, 'p0', MarbleColor.Grey, false),
-            coords: { q, r: 0 }
-        })
+    it('names a marble placed before the state kept seeds by its ring', () => {
         const capture: Capture = {
             ...base('c', 'p1'),
             type: ActionType.Capture,
@@ -182,10 +178,10 @@ describe('historyEntries', () => {
                 continues: false
             }
         }
-        const [, , jump] = historyEntries([place('a', 0), place('b', 1), capture])
+        const [jump] = historyEntries([capture])
         expect(jump).toMatchObject({
-            jumperSeed: placementSeed({ q: 0, r: 0 }, 0),
-            captured: [{ color: MarbleColor.Grey, seed: placementSeed({ q: 1, r: 0 }, 1) }]
+            jumperSeed: coordinatesToNumber({ q: 0, r: 0 }),
+            captured: [{ color: MarbleColor.Grey, seed: coordinatesToNumber({ q: 1, r: 0 }) }]
         })
     })
 

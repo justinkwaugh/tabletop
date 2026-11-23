@@ -1,7 +1,6 @@
 import {
     assertExists,
     isCallGameAction,
-    sameCoordinates,
     type AxialCoordinates,
     type CallGameAction,
     type GameAction
@@ -13,7 +12,7 @@ import {
     type MarbleColor,
     type Ring
 } from '@tabletop/zertz'
-import { actionNumber, applyToSeeds, placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
+import { actionNumber, marbleSeed, placementSeed, ringSeed } from '$lib/board/marbleSeeds.js'
 
 type TurnSpan = {
     id: string
@@ -56,7 +55,6 @@ export type HistoryEntry = MoveEntry | CallEntry
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
-    const seeds = new Map<number, number>()
     let chain: CaptureEntry | undefined
 
     actions.forEach((action, index) => {
@@ -87,14 +85,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 placedAt: action.coords,
                 fromCaptures: metadata.source === MarbleSource.Captured,
                 ...(action.remove === undefined ? {} : { removedAt: action.remove }),
-                claimed: claimed.map((ring) => ({
-                    ...ring,
-                    seed:
-                        ring.marbleSeed ??
-                        (sameCoordinates(ring.coords, action.coords)
-                            ? seed
-                            : seedAt(seeds, ring.coords))
-                }))
+                claimed: claimed.map((ring) => ({ ...ring, seed: marbleSeed(ring) }))
             })
         } else if (isCapture(action)) {
             const { metadata } = action
@@ -107,7 +98,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                     lastIndex: index,
                     playerId: action.playerId,
                     jumper: metadata.jumper,
-                    jumperSeed: metadata.jumperSeed ?? seedAt(seeds, action.from),
+                    jumperSeed: metadata.jumperSeed ?? ringSeed(action.from),
                     path: [action.from],
                     captured: []
                 }
@@ -117,13 +108,12 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             chain.path.push(action.to)
             chain.captured.push({
                 color: metadata.captured,
-                seed: metadata.capturedSeed ?? seedAt(seeds, metadata.over)
+                seed: metadata.capturedSeed ?? ringSeed(metadata.over)
             })
             if (!metadata.continues) {
                 chain = undefined
             }
         }
-        applyToSeeds(seeds, action, number)
     })
 
     return entries
