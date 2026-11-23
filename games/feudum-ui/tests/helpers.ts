@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { expect, test } from './test.js'
+import { expect, test } from './errorWatch.js'
 import type { FeudumGameSession } from '../src/lib/model/session.svelte.js'
 
 declare global {

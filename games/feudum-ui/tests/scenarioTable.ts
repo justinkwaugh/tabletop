@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { expect, test } from './test.js'
+import { expect, test } from './errorWatch.js'
 import type { ActionType } from '@tabletop/feudum'
 import type { FixturePage } from '../src/lib/testing/fixtureTablePage.js'
 

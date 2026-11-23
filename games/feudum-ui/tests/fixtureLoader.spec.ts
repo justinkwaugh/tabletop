@@ -1,4 +1,4 @@
-import { expect, test } from './test.js'
+import { expect, test } from './errorWatch.js'
 import { openFixture } from './scenarioTable.js'
 
 /** Named fixtures, on the dev server: what the scenarios stand on. */

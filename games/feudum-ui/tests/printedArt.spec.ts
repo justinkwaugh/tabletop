@@ -1,7 +1,7 @@
 import type { BoundingBox, Point } from '@tabletop/common'
 import { existsSync } from 'node:fs'
 import type { Locator, Page } from '@playwright/test'
-import { expect, test } from './test.js'
+import { expect, test } from './errorWatch.js'
 import { GuildById, GuildIds, MarketSpaces } from '@tabletop/feudum'
 import { createGame, playToHands, pressGuildArea, settled } from './helpers.js'
 
