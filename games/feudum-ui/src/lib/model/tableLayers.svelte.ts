@@ -68,15 +68,14 @@ export class TableLayers {
     /** Contract, Supply: the writ reference. */
     writsOpen: boolean = $state(false)
     private readonly pickKey = $derived.by(() => this.pickFrame()?.key)
-    private sideShown: GuildSide | undefined
+    private sideChosen: GuildSide | undefined = $state(undefined)
     /** Contract, Desk layout: the guild side open over a desk's map. */
     guildSide: GuildSide | undefined = $derived.by(() => {
         void this.pickKey
-        const next = untrack(() => guildSideFollowing(this.pickFrame()))
-        if (next !== 'keep') {
-            this.sideShown = next
-        }
-        return this.sideShown
+        return untrack(() => {
+            const next = guildSideFollowing(this.pickFrame())
+            return next === 'keep' ? this.sideChosen : next
+        })
     })
 
     private sitePressed: SpaceId | undefined = $derived.by(() => {
@@ -180,7 +179,7 @@ export class TableLayers {
     }
 
     private showSide(side: GuildSide | undefined): void {
-        this.sideShown = side
+        this.sideChosen = side
         this.guildSide = side
     }
 

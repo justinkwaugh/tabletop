@@ -128,11 +128,14 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
         // A new pick on the other side opens that one.
         pick.frame = frameOn('guild:knight', 'east')
         expect(layers.guildSide).toBe('east')
-        // A pick in both sides opens nothing and keeps the side as it is.
+        // A pick in both sides opens nothing: the side last opened by hand shows, here none.
         pick.frame = frameOn('guild:knight guild:merchant', 'east', 'west')
+        expect(layers.guildSide).toBeUndefined()
+        layers.toggleGuildSide('east')
+        pick.frame = frameOn('guild:knight guild:merchant guild:monk', 'east', 'west')
         expect(layers.guildSide).toBe('east')
         layers.closeGuildSide()
-        pick.frame = frameOn('guild:knight guild:merchant guild:monk', 'east', 'west')
+        pick.frame = frameOn('guild:knight guild:monk', 'east', 'west')
         expect(layers.guildSide).toBeUndefined()
         // A pick on the map closes it, and so does a pick's end.
         layers.toggleGuildSide('west')
