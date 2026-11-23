@@ -337,7 +337,7 @@ const Trade = 'Trade (anyone)'
 const PullScore = 'Reaching it scores 3 vp and a Royal Writ (draw 2, keep 1).'
 const PushScore = '1, 2 or 3 of them score 4, 5 or 6 vp.'
 
-/** R-4.6 Each guild's three functions. */
+/** R-4.6 */
 const GuildNotes: Readonly<Record<GuildNoteId, RulesNote>> = {
     'guild.farmer': {
         title: 'Farmer Guild',

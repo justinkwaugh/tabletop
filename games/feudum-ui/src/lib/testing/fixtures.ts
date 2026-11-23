@@ -48,7 +48,6 @@ import { tendLandscape } from './roundEndTable.js'
 import { FeudumHost } from './sessionHarness.js'
 import { emptySpace, giveBead, giveGood, returnGoods, ruleOutpost, ruleTown } from './turnTable.js'
 
-/** Invented seat names: nobody's, and short enough for a phone's chips. */
 export const SeatNames = ['Ana', 'Bram', 'Cleo', 'Dov', 'Esme'] as const
 
 interface SeatPlan {
@@ -181,7 +180,6 @@ export interface FixtureTable {
 }
 
 export interface Fixture {
-    /** Set: why a hand arranged the table; the logic's canonical validator still has to pass. */
     readonly arranged?: string
     build(): Promise<FixtureTable>
 }
@@ -202,7 +200,7 @@ const Pouches = seats(
     plain
 )
 
-/** R-4.2 Where the seat's first pawn can walk to. */
+/** R-4.2 */
 function roadNeighbour(host: FeudumHost, playerId: string): SpaceId {
     const from = new HydratedFeudumGameState(host.state).getPlayerState(playerId).pawns[0].spaceId
     const route = Routes.find(({ medium, a, b }) => medium === 'road' && (a === from || b === from))

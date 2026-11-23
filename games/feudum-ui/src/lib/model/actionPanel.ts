@@ -234,7 +234,6 @@ export interface ActionPanelView {
     readonly blocks: readonly ActionBlock[]
 }
 
-/** Only a seat has a panel to act in, a bench or a trade picker. */
 export function seatOf({ myPlayerId }: Pick<FeudumGameSession, 'myPlayerId'>): string {
     assertExists(myPlayerId, 'The table is played from a seat')
     return myPlayerId
@@ -526,7 +525,7 @@ function handBlocks(
     ]
 }
 
-/** R-4.4-H1 The at-will row under the hand. */
+/** R-4.4-H1 */
 function atWillBlocks(session: PanelSession): ActionBlock[] {
     const panel = session.atWillPanel
     if (!panel) {

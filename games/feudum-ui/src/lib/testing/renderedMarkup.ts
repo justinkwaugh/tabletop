@@ -34,7 +34,6 @@ const Painted = ['class', 'style', 'fill', 'stroke', 'color', 'stop-color', 'flo
 export type MarkupElement = Pick<Element, 'localName' | 'getAttribute' | 'hasAttribute'>
 
 export interface MarkupRules {
-    /** Colours the platform's colourizer hands out for seats, painted as given. */
     readonly seatColours: ReadonlySet<string>
     readonly declared: (token: string) => boolean
     readonly styled: (className: string) => boolean
@@ -48,7 +47,6 @@ export function rawColoursIn(text: string): string[] {
     return NamedColour.test(text.trim()) ? [...raw, text.trim()] : raw
 }
 
-/** A `#rrggbb` colour as the CSS object model writes it back into a style attribute. */
 export function serialisedRgb(hex: string): string {
     const [red, green, blue] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16))
     return `rgb(${red}, ${green}, ${blue})`

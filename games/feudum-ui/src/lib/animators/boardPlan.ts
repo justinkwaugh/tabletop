@@ -449,7 +449,7 @@ function playWays(
     return { ends: cursor, named }
 }
 
-/** R-3.7.4 The good hops onto the piece that took it. */
+/** R-3.7.4 */
 function playPilfer(
     plan: PlanBuilder,
     action: Move,
@@ -522,7 +522,7 @@ function rolesOn(state: HydratedFeudumGameState, spaceId: SpaceId): readonly Hel
     ]
 }
 
-/** R-4.1.2 Ruler and serf swap places. */
+/** R-4.1.2 */
 function slideRoles(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
     for (const { id } of Spaces) {

@@ -40,7 +40,6 @@ function channel(value: number): number {
     return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4
 }
 
-/** WCAG relative luminance of a `#rrggbb` colour. */
 export function luminance(hex: string): number {
     const [red, green, blue] = [1, 3, 5].map((start) =>
         channel(parseInt(hex.slice(start, start + 2), 16))
@@ -48,7 +47,6 @@ export function luminance(hex: string): number {
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 }
 
-/** The WCAG contrast ratio of two relative luminances. */
 export function contrast(first: number, second: number): number {
     const [light, dark] = first > second ? [first, second] : [second, first]
     return (light + 0.05) / (dark + 0.05)

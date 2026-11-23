@@ -66,7 +66,7 @@ import {
     type GuildsApart
 } from './boardPlan.js'
 
-/** Contract, Animation plan: what a moving copy is, one row for each. */
+/** Contract, Animation plan */
 export type FlightRow =
     'pawns' | 'markers' | 'goods' | 'shillings' | 'tiles' | 'writs' | 'seals' | 'score'
 
@@ -155,7 +155,7 @@ export interface FlightChange {
     readonly viewerId?: string
     /** Contract, Animation plan: a desk draws no score ring, so each score flies to its seat. */
     readonly scoreFlights?: boolean
-    /** Contract, Desk layout: the guild areas an open side shows. */
+    /** Contract, Desk layout */
     readonly apart?: GuildsApart
 }
 

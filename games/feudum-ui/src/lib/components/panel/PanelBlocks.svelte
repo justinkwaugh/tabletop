@@ -106,7 +106,7 @@
         return sends
     }
 
-    /** R-3.1-H1 The waiting line once the seat's hand is set. */
+    /** R-3.1-H1 */
     const SetWaitingClasses =
         'w-full sm:w-auto sm:min-w-0 sm:flex-1 text-lg font-bold text-feudum-accent max-sm:text-sm'
 
@@ -541,7 +541,7 @@
             line-height: 1rem;
         }
 
-        /* Contract, Phone layout: the sheet's hand. */
+        /* Contract, Phone layout */
         .hand-draft {
             grid-template-columns: minmax(0, 1fr);
             grid-template-areas:

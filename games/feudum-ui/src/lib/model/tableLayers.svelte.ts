@@ -79,7 +79,7 @@ export class TableLayers {
     corner: CornerCard | undefined = $state(undefined)
     private readonly pickKey = $derived.by(() => this.pickFrame()?.key)
     private sideChosen: GuildSide | undefined = $state(undefined)
-    /** Contract, Desk layout: the guild side open over a desk's map. */
+    /** Contract, Desk layout */
     guildSide: GuildSide | undefined = $derived.by(() => {
         void this.pickKey
         return untrack(() => {
@@ -221,10 +221,7 @@ export class TableLayers {
         )
     }
 
-    /**
-     * Contract, Coexistence and precedence: Escape closes one layer at a time; in full screen it
-     * leaves full screen to the wrapper before an open Key or Supply card.
-     */
+    /** Contract, Coexistence and precedence: Escape closes one layer at a time; full screen goes before an open Key or Supply card. */
     escape(fullScreen: boolean): boolean {
         if (this.enlargedBy) {
             this.closeEnlarged()
@@ -261,11 +258,7 @@ export interface BoardFloatInput<TPopup> {
     readonly desk: boolean
 }
 
-/**
- * Contract, Coexistence and precedence: the one card over the board, the open popup or the site
- * card. A layer over the board covers both; on a desk a popup beside a guild area stands only while
- * its side is open (Desk layout); the bench leaves no site card.
- */
+/** Contract, Coexistence and precedence: one card over the board; a guild popup on a desk only while its side is open. */
 export function boardFloatOf<TPopup extends { readonly anchor: BoardTarget }>(
     layers: TableLayers,
     { popup, bench, benchCovers, desk }: BoardFloatInput<TPopup>

@@ -3,7 +3,7 @@ import { followUpSeat, MachineState, type HydratedFeudumGameState } from '@table
 /** Contract, Watching (waiting view): what they are deciding is the History's to say once they send. */
 export interface WatchingPanel {
     readonly waitingOn?: readonly string[]
-    /** R-4.4.1 How many face-down writs the drawer is holding. */
+    /** R-4.4.1 */
     readonly backs?: number
 }
 

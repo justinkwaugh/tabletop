@@ -172,7 +172,7 @@ export interface SpaceGeometry {
     readonly subject: Point
     readonly serf: Point
     readonly landscape: Point
-    /** R-1.1 One slot per kind present. */
+    /** R-1.1 */
     readonly plate: GoodsPlate
     readonly vessels: Readonly<Record<VesselType, Point>>
     readonly letters: Point
@@ -541,7 +541,6 @@ export const RegionLabels: Record<RegionId, Point> = {
     mountain: { x: 1930, y: 640 }
 }
 
-/** Schematic and our own. */
 export const RiverPaths: readonly string[] = [
     'M1030 545 C1180 470 1380 500 1532 425 S1640 340 1760 340 S1960 320 2040 170',
     'M1950 300 C1930 360 1970 400 1985 440'
@@ -688,7 +687,7 @@ export function reeveOffset(guild: GuildId): Point {
     return guildPrinted(guild) ? printedReeveOffset(guild) : ReeveOffset
 }
 
-/** R-1.3 One row per good. */
+/** R-1.3 */
 export const MarketCell = { width: 98, height: 46, tokenOffset: 28 } as const
 export const CartCell = { width: 50, height: 46 } as const
 export const KnightCell = 42
@@ -874,7 +873,6 @@ export function monsterIconMarker(id: string): Point {
         : { x: slot.x + 46, y: slot.y - 40 }
 }
 
-/** The printed glass box is narrow. */
 export function vesselForSaleSize(): number {
     return guildPrinted('alchemist') ? PrintedVesselSize : GuildSizes.vessel
 }

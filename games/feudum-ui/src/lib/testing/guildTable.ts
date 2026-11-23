@@ -20,7 +20,7 @@ import {
     type GoodAmounts
 } from '@tabletop/feudum/testing'
 
-/** R-4.6.3 The seat's marker rules a free farm holding these goods. */
+/** R-4.6.3 */
 export function ruleFarm(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -32,7 +32,7 @@ export function ruleFarm(
     return spaceId
 }
 
-/** The place among the Knight rows of this seat's own row (R-1.4-H1). */
+/** R-1.4-H1 */
 export function seatRowIndex(state: HydratedFeudumGameState, playerId: string): number {
     return knightRows(state).findIndex(({ row }) => rowSeat(row.owner) === playerId)
 }

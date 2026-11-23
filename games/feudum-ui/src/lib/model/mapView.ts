@@ -34,7 +34,7 @@ export interface GoodKind {
     readonly count: number
 }
 
-/** R-1.1 The goods on a space by kind, each with how many lie there. */
+/** R-1.1 */
 export function goodKinds(goods: Readonly<GoodCounts>): readonly GoodKind[] {
     return Goods.filter((good) => goods[good] > 0).map((good) => ({ good, count: goods[good] }))
 }

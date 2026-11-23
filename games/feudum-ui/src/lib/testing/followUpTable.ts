@@ -39,7 +39,7 @@ export async function seatedAtCards(
     return { ...turn, session: await turn.host.openSeat(turn.seat) }
 }
 
-/** R-4.4 The seat holds this writ, drawn off the deck. */
+/** R-4.4 */
 export function holdWrit(state: HydratedFeudumGameState, playerId: string, writId: WritId): void {
     const deck = state.requireVault().writDeck
     const entry = deck.find((row) => row.writId === writId)
@@ -65,7 +65,7 @@ export function holdFood(state: HydratedFeudumGameState, playerId: string, count
     }
 }
 
-/** R-3.14.2 A seal from the pile lies under this marker. */
+/** R-3.14.2 */
 export function sealMarker(
     state: HydratedFeudumGameState,
     spaceId: SpaceId,

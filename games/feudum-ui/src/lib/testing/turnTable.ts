@@ -71,7 +71,7 @@ export function giveGood(state: HydratedFeudumGameState, playerId: string, good:
     state.getPlayerState(playerId).goods[good] += takeGoodFromHaversack(state, good)
 }
 
-/** R-3.11 A bead off the seal pile, in the seat's hands. */
+/** R-3.11 */
 export function giveBead(state: HydratedFeudumGameState, playerId: string): void {
     const sealId = state.requireVault().sealPile.pop()
     assertExists(sealId, 'R-3.11 The pile has a seal')
@@ -95,7 +95,7 @@ export function spendMarkers(
     }
 }
 
-/** R-3.12.1 The seat's marker rules a free town. */
+/** R-3.12.1 */
 export function ruleTown(state: HydratedFeudumGameState, playerId: string): SpaceId {
     const spaceId = emptySpace(state, 'town')
     placeMarker(state, playerId, spaceId)
@@ -103,7 +103,7 @@ export function ruleTown(state: HydratedFeudumGameState, playerId: string): Spac
     return spaceId
 }
 
-/** R-3.10.1 The seat's marker rules a free outpost. */
+/** R-3.10.1 */
 export function ruleOutpost(state: HydratedFeudumGameState, playerId: string): SpaceId {
     const spaceId = emptySpace(state, 'outpost')
     placeMarker(state, playerId, spaceId)

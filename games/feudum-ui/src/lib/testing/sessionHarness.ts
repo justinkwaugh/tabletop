@@ -459,7 +459,6 @@ export class FeudumHost {
         }
     }
 
-    /** The harness's notification service is shared by every session. */
     private closeSeat(playerId: string) {
         const seat = this.seats.get(playerId)
         if (seat) {

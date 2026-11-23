@@ -102,7 +102,7 @@ export interface StartingPawnPanel {
     readonly deciding: boolean
     readonly characters: readonly {
         readonly character: Character
-        /** R-4.5 The rank this character would give now. */
+        /** R-4.5 */
         readonly rank?: GuildRank
         readonly picked: boolean
     }[]
@@ -277,10 +277,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
     )
 
-    /**
-     * Contract, Shared visual state: a draft lasts while the seat's decision stands and the seat
-     * sends nothing, from this device or another; earlier history arriving changes nothing.
-     */
+    /** Contract, Shared visual state: a draft lasts while the seat's decision stands and the seat sends nothing. */
     private decision: string | undefined = $derived.by(() => {
         const me = this.myPlayerId
         if (this.isViewingHistory || !me) {
@@ -315,10 +312,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /**
-     * Policy 33, contract: Shared visual state: every draft outlives others' Actions, a
-     * reconciliation and the seat's own Actions, and reads only under the decision it was made in.
-     */
+    /** Policy 33, contract: Shared visual state: a draft outlives every Action and reconciliation, reading only under its decision. */
     override keepsLocalSelections(transition: PresentedTransition): boolean {
         return (
             transition.kind === 'other-action' ||
@@ -869,7 +863,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         await this.sendTurnPlay(this.guild.play ?? this.move.play ?? this.turn.flow?.play)
     }
 
-    /** R-3.2 Its press sends. */
+    /** R-3.2 */
     async forfeitTurnCard() {
         await this.sendTurnPlay(this.turn.forfeitPlay)
     }

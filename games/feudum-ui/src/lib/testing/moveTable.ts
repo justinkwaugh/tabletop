@@ -9,13 +9,13 @@ import {
 
 /** R-4.2 What a hand arranges for a Move: a vessel, a monster, a landscape to pilfer from. */
 
-/** R-1.1 A vessel from the general supply into the seat's supply. */
+/** R-1.1 */
 export function giveVessel(state: HydratedFeudumGameState, playerId: string, vessel: VesselType) {
     state.supply.vessels[vessel] -= 1
     state.getPlayerState(playerId).vessels[vessel] += 1
 }
 
-/** R-1.1 A vessel from the general supply, abandoned on a space. */
+/** R-1.1 */
 export function abandonVessel(
     state: HydratedFeudumGameState,
     spaceId: SpaceId,

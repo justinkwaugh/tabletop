@@ -198,7 +198,7 @@ export interface FlowView {
     readonly line?: string
     readonly tally?: readonly TallyLine[]
     readonly tallyNote?: string
-    /** R-X.2 Names the primary button, when this flow can show one. */
+    /** R-X.2 */
     readonly primaryName?: string
     readonly primaryNamed?: string
     readonly confirms?: boolean

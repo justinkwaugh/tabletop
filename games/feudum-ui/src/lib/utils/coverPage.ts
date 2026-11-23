@@ -1,5 +1,4 @@
 import type { BoundingBox, RectangleDimensions } from '@tabletop/common'
-/** 4:5 at twice the catalog's large card height, for `scripts/make-cover.mjs` to render. */
 export const CoverSize = { width: 544, height: 680 } as const
 
 type Token = (name: string) => string | undefined
@@ -11,7 +10,6 @@ export interface PrintedTitle {
     readonly right: number
 }
 
-/** FEUDUM in its scrolled frame on the 2400 × 1618 box front, from the F's foot to the M's tail. */
 export const BoxFrontTitle: PrintedTitle = { left: 495 / 2400, right: 1890 / 2400 }
 
 export const TitleMargin = 16

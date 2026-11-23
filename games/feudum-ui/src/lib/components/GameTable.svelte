@@ -156,7 +156,7 @@
         return () => observer.disconnect()
     }
 
-    /** Contract, Desk layout: where the map rests between the side buttons. */
+    /** Contract, Desk layout */
     let deskRest = $derived(deskMapAtRest(viewSize, seats, expanded, column))
 
     /** Contract, Coexistence and precedence: Escape closes a layer before full screen. */
