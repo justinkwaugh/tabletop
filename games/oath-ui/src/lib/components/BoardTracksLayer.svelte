@@ -10,6 +10,7 @@
     } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import { regionName } from '$lib/model/names.js'
+    import { discardBoxLines } from '$lib/model/discardBox.js'
     import { visionsMarkerImage } from '$lib/images/tileImages.js'
     import BankCount from '$lib/components/BankCount.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -120,16 +121,23 @@
     <img src={visionsMarkerImage()} alt="Visions drawn: {gameState.visionsDrawn}" />
 </span>
 
-<!-- R-2.1.2 — one discard box per region. R-9.4 keeps the pile's fronts private;
-     its count and the back on top are public. -->
+<!-- R-2.1.2 — one discard box per region. R-9.4 keeps the pile's fronts private; its count
+     and every back are public, so the box right of the pile names the count and where any
+     Vision lies from the top, never which. -->
 {#each REGIONS as region (region)}
     {@const box = DISCARD_RECTS[region]}
     {@const count = gameState.discardPileCountIn(region)}
     {@const back = gameState.discardTopBackIn(region)}
+    {@const lines = discardBoxLines(
+        `${regionName(region)} discard pile`,
+        count,
+        gameState.discardVisionPlacesIn(region)
+    )}
     {@const row = discardRow(region)}
     {@const pickable = row !== undefined}
     <div
         class="discard"
+        data-region={region}
         class:empty={count === 0}
         class:pickable
         class:pointed={menuPointer.is({ kind: 'pile', region })}
@@ -145,7 +153,25 @@
                 <CardImage {back} width={pile.width} label="{regionName(region)} discard pile" />
             </span>
         {/if}
-        <span class="discard__count">{count}</span>
+        <span
+            class="discard__box"
+            class:discard__box--visions={lines.visions !== undefined}
+            role="img"
+            aria-label={lines.label}
+        >
+            <span class="discard__count">{lines.count}</span>
+            <span class="discard__unit">{lines.unit}</span>
+            {#if lines.visions}
+                <span class="discard__visions">
+                    <span class="discard__rule"></span>
+                    <span class="discard__back">
+                        <CardImage back={CardKind.Vision} width={22} label="A Vision" />
+                    </span>
+                    <span class="discard__vision-word">{lines.visions.word}</span>
+                    <span class="discard__places">{lines.visions.places}</span>
+                </span>
+            {/if}
+        </span>
         {#if row}<span class="pick-cost pick-cost--discard">{row.cost} supply</span>{/if}
     </div>
 {/each}
@@ -286,11 +312,7 @@
     .discard {
         position: absolute;
         z-index: 6;
-        display: flex;
         cursor: default;
-        align-items: center;
-        justify-content: flex-end;
-        padding-right: 14px;
         pointer-events: auto;
     }
 
@@ -304,25 +326,88 @@
         transform: translate(-50%, -50%) rotate(90deg);
     }
 
-    .discard__count {
-        position: relative;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 62px;
-        height: 62px;
-        padding: 0 10px;
-        border-radius: 999px;
-        background: rgba(12, 10, 9, 0.82);
+    /* One gold-framed box right of the pile, 10 board px from it: the count, and under a rule
+       a Vision back with the places of the pile's Visions. 160 px wide, it ends before the
+       board's edge beside the Hinterland's pile; at most 156 px tall, above the site rows. */
+    .discard__box {
+        position: absolute;
+        left: calc(100% + 10px);
+        top: 0;
+        box-sizing: border-box;
+        width: 160px;
+        height: 76px;
+        border: 3px solid #ca8a04;
+        border-radius: 12px;
+        background: #1c1917;
         color: #fef3c7;
-        font-size: 34px;
-        font-weight: 800;
         line-height: 1;
+        white-space: nowrap;
     }
 
-    .discard.empty .discard__count {
-        background: rgba(12, 10, 9, 0.4);
+    .discard__box--visions {
+        height: 156px;
+    }
+
+    .discard__count,
+    .discard__unit {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+    }
+
+    .discard__count {
+        top: 5px;
+        font-size: 44px;
+        font-weight: 800;
+    }
+
+    .discard__unit {
+        top: 47px;
+        color: #d6d3d1;
+        font-size: 20px;
+    }
+
+    .discard__rule {
+        position: absolute;
+        top: 74px;
+        left: 11px;
+        right: 11px;
+        height: 2px;
+        background: #57534e;
+    }
+
+    .discard__back {
+        position: absolute;
+        top: 83px;
+        left: 11px;
+        line-height: 0;
+    }
+
+    .discard__vision-word {
+        position: absolute;
+        top: 81px;
+        left: 41px;
+        color: #d6d3d1;
+        font-size: 20px;
+    }
+
+    .discard__places {
+        position: absolute;
+        top: 118px;
+        left: 41px;
+        color: #d8b4fe;
+        font-size: 26px;
+        font-weight: 800;
+    }
+
+    .discard.empty .discard__box {
+        background: rgba(28, 25, 23, 0.4);
+        border-color: rgba(202, 138, 4, 0.55);
+    }
+
+    .discard.empty .discard__count,
+    .discard.empty .discard__unit {
         color: rgba(254, 243, 199, 0.55);
     }
 

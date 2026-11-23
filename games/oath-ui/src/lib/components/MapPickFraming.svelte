@@ -77,7 +77,7 @@
     .map-pick-framing {
         display: contents;
     }
-    /* Along the map's top edge, clear of the framed sites, as the desktop's focus views sit. */
+    /* Along the map's top edge, clear of the framed sites. */
     .chips {
         position: absolute;
         top: 4px;

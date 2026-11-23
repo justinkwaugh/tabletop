@@ -53,11 +53,26 @@ async function still(locator: Locator) {
         .toBe(true)
 }
 
-/** On a phone the map is framed on the region named, as a pan would. */
+/**
+ * On a phone the map rests on one region, the Provinces: a drag by hand centres `region`'s column
+ * (from its first site to the next region's) in the board's pane, at the same zoom.
+ */
 async function frame(page: Page, region: string) {
-    await page
-        .locator('.chooser__view', { hasText: region })
-        .evaluate((view) => view instanceof HTMLElement && view.click())
+    const site = (slotId: string) => page.locator(`.site[data-slot="${slotId}"]`)
+    const cradle = await site('slot.cradle.0').boundingBox()
+    const provinces = await site('slot.provinces.0').boundingBox()
+    const there = await site(`slot.${region.toLowerCase()}.0`).boundingBox()
+    const pane = await page.locator('.scaling-surface').first().boundingBox()
+    if (!cradle || !provinces || !there || !pane) throw Error('The board is laid out')
+    const column = provinces.x - cradle.x
+    const by = pane.x + (pane.width - column) / 2 - there.x
+    // Already in view: the region the map shows.
+    if (Math.abs(by) < column / 4) return
+    const from = { x: pane.x + pane.width / 2, y: pane.y + pane.height / 2 }
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.mouse.move(from.x + by, from.y, { steps: 12 })
+    await page.mouse.up()
     await still(page.locator('.board-card').first())
 }
 
