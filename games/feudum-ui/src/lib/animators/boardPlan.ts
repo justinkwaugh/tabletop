@@ -125,7 +125,7 @@ export interface MotionToken {
     readonly scaleX?: number
     /** Contract, Animation plan: the piece this token stands for once it lands, until the state shows it. */
     readonly rests?: string
-    /** The guild area a later motion of that piece is given in; the token itself is in the board's frame. */
+    /** Contract, Animation plan: a later motion of that piece is given in this guild area's frame. */
     readonly guild?: GuildId
 }
 

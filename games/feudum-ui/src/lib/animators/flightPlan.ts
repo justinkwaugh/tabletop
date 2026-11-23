@@ -129,7 +129,7 @@ export interface FlightLeg {
     readonly duration: number
     readonly arc?: boolean
     readonly turnTo?: FlightFace
-    /** R-4.3 A removed tile. */
+    /** R-4.3 */
     readonly fade?: boolean
 }
 
@@ -139,7 +139,7 @@ export interface Flight {
     readonly face: FlightFace
     readonly from: FlightEnd
     readonly legs: readonly FlightLeg[]
-    /** R-3.6 A pawn conquered or unfed. */
+    /** R-3.6 */
     readonly flash?: { readonly at: number; readonly duration: number }
 }
 

@@ -5,7 +5,7 @@ import type { AnimationContext } from '@tabletop/frontend-components'
 import type { HydratedFeudumGameState } from '@tabletop/feudum'
 import type { SeatPouch } from '$lib/model/seatPanel.js'
 
-/** R-3.1-H1 How long a pouch takes to turn over at the reveal. */
+/** R-3.1-H1 */
 export const PouchTurnSeconds = 0.42
 
 const PouchPerspective = 190

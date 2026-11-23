@@ -45,7 +45,6 @@ export interface BoardChangeArgs {
 /** The presenter publishes state only after the last Action, so poses carry step to step. */
 export class BoardAnimator {
     tokens: readonly MotionToken[] = $state.raw([])
-    /** Contract, Animation plan: the tokens earlier steps of this replay left, which stand for pieces. */
     private earlier: readonly MotionToken[] = []
 
     private surface: MotionSurface | undefined
