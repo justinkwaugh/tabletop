@@ -6,7 +6,7 @@ import {
     type AxialCoordinates,
     type GameAction
 } from '@tabletop/common'
-import { ZertzSetup } from './config.js'
+import { FirstPlayer, firstPlayerFromConfig, ZertzSetup } from './config.js'
 import { ZertzRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
@@ -635,5 +635,48 @@ describe('random playouts', () => {
         expect(state.result).toBe(GameResult.Win)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
+    })
+})
+
+describe('choice of first player', () => {
+    const [A, B] = ['p0', 'p1']
+    const owner = { ownerId: 'u-p1', userIds: { [A]: 'u-p0', [B]: 'u-p1' } }
+    const startUnassigned = (game: ZertzGame) => engine.startGame(game).initialState
+
+    it('gives the first move to the game creator or the opponent when chosen', () => {
+        const creatorFirst = startUnassigned(
+            createGame(ZertzSetup.Standard, [A, B], { ...owner, firstPlayer: FirstPlayer.Creator })
+        )
+        expect(creatorFirst.activePlayerIds).toEqual([B])
+        expect(creatorFirst.players[0].playerId).toBe(B)
+        const opponentFirst = startUnassigned(
+            createGame(ZertzSetup.Standard, [A, B], { ...owner, firstPlayer: FirstPlayer.Opponent })
+        )
+        expect(opponentFirst.activePlayerIds).toEqual([A])
+    })
+
+    it('draws the first player by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [A]: 'u-p0', [B]: 'u-p1' } }
+        for (const options of [
+            { firstPlayer: FirstPlayer.Random },
+            { ...outsider, firstPlayer: FirstPlayer.Creator },
+            { ...outsider, firstPlayer: FirstPlayer.Opponent }
+        ]) {
+            const firsts = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const game = { ...createGame(ZertzSetup.Standard, [A, B], options), seed }
+                    const state = startUnassigned(game)
+                    expect(state.activePlayerIds).toEqual([state.turnManager.turnOrder[0]])
+                    return state.turnManager.turnOrder[0]
+                })
+            )
+            expect(firsts).toEqual(new Set([A, B]))
+        }
+    })
+
+    it('reads a missing choice as Random and rejects an unknown one', () => {
+        expect(firstPlayerFromConfig({})).toBe(FirstPlayer.Random)
+        expect(firstPlayerFromConfig({ firstPlayer: 'Creator' })).toBe(FirstPlayer.Creator)
+        expect(() => firstPlayerFromConfig({ firstPlayer: 'NoSuchPlayer' })).toThrow()
     })
 })

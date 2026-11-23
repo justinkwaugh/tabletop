@@ -2,6 +2,7 @@ import {
     type GameInitializer,
     type StartingPositionAssignment,
     type UninitializedGameState,
+    assertExists,
     BaseGameInitializer,
     Game,
     HydratedTurnManager,
@@ -11,7 +12,13 @@ import {
 import { HydratedLyngkGameState, LyngkGameState } from '../model/gameState.js'
 import { HydratedLyngkPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
-import { LyngkSetup, setupFromConfig, variantFromConfig } from './config.js'
+import {
+    FirstPlayer,
+    firstPlayerFromConfig,
+    LyngkSetup,
+    setupFromConfig,
+    variantFromConfig
+} from './config.js'
 import { LyngkColors } from './colors.js'
 import { emptyBoard, type LyngkBoard } from '../model/board.js'
 import { POINTS } from '../model/geometry.js'
@@ -52,7 +59,7 @@ export class LyngkGameInitializer
                 color: LyngkColors[index % LyngkColors.length]
             })),
             prng.random,
-            assignment
+            assignment ?? this.chosenFirstPlayer(game)
         )
         turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
@@ -80,6 +87,22 @@ export class LyngkGameInitializer
         })
 
         return new HydratedLyngkGameState(lyngkGameState)
+    }
+
+    // The game creator is the player whose user created the game; in a local game every seat
+    // belongs to that user, so the first listed seat counts as the creator's. A creator who does
+    // not play leaves the first player to the draw.
+    private chosenFirstPlayer(game: Game): StartingPositionAssignment | undefined {
+        const choice = firstPlayerFromConfig(game.config)
+        const creator = game.players.find((player) => player.userId === game.ownerId)
+        if (choice === FirstPlayer.Random || creator === undefined) {
+            return undefined
+        }
+        const opponent = game.players.find((player) => player.id !== creator.id)
+        assertExists(opponent, 'LYNGK needs two players')
+        const first = choice === FirstPlayer.Creator ? creator : opponent
+        const second = first === creator ? opponent : creator
+        return { playerIds: [first.id, second.id] }
     }
 
     // One piece on every point, dealt at random.

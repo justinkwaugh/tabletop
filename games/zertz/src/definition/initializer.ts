@@ -14,7 +14,13 @@ import { HydratedZertzGameState, ZertzGameState } from '../model/gameState.js'
 import { HydratedZertzPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { ZertzColors } from './colors.js'
-import { autoJumpFromConfig, SETUP_RULES, setupFromConfig } from './config.js'
+import {
+    autoJumpFromConfig,
+    FirstPlayer,
+    firstPlayerFromConfig,
+    SETUP_RULES,
+    setupFromConfig
+} from './config.js'
 import { layoutCoordinates } from '../model/layouts.js'
 import { noMarbles } from '../model/marbles.js'
 
@@ -31,7 +37,11 @@ export class ZertzGameInitializer
     ): HydratedZertzGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
-        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
+        const turnManager = HydratedTurnManager.generate(
+            players,
+            prng.random,
+            assignment ?? this.chosenFirstPlayer(game)
+        )
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
         const orderedPlayers = turnManager.turnOrder.map((playerId) => {
@@ -55,6 +65,22 @@ export class ZertzGameInitializer
         })
 
         return new HydratedZertzGameState(zertzGameState)
+    }
+
+    // The game creator is the player whose user created the game; in a local game every seat
+    // belongs to that user, so the first listed seat counts as the creator's. A creator who does
+    // not play leaves the first player to the draw.
+    private chosenFirstPlayer(game: Game): StartingPositionAssignment | undefined {
+        const choice = firstPlayerFromConfig(game.config)
+        const creator = game.players.find((player) => player.userId === game.ownerId)
+        if (choice === FirstPlayer.Random || creator === undefined) {
+            return undefined
+        }
+        const opponent = game.players.find((player) => player.id !== creator.id)
+        assertExists(opponent, 'ZÈRTZ needs two players')
+        const first = choice === FirstPlayer.Creator ? creator : opponent
+        const second = first === creator ? opponent : creator
+        return { playerIds: [first.id, second.id] }
     }
 
     private initializePlayers(game: Game, prng: Prng): HydratedZertzPlayerState[] {

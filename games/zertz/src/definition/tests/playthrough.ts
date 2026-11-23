@@ -8,7 +8,7 @@ import {
 import { Definition } from '../definition.js'
 import { ZertzRuntime } from '../runtime.js'
 import { ZertzInfo } from '../info.js'
-import { ZertzSetup } from '../config.js'
+import { ZertzSetup, type FirstPlayer } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedZertzGameState, type ZertzGameState } from '../../model/gameState.js'
@@ -17,18 +17,28 @@ export const engine = new GameEngine(ZertzRuntime)
 
 export function createGame(
     setup: ZertzSetup = ZertzSetup.Standard,
-    playerIds: string[] = ['p0', 'p1']
+    playerIds: string[] = ['p0', 'p1'],
+    options: {
+        firstPlayer?: FirstPlayer
+        ownerId?: string
+        userIds?: Record<string, string>
+    } = {}
 ) {
     return ZertzRuntime.initializer.initializeGame(
         {
             id: 'zertz-test',
             typeId: 'zertz',
-            ownerId: 'owner',
+            ownerId: options.ownerId ?? 'owner',
             seed: 7,
-            config: { ...defaultGameConfig(ZertzInfo.configurator?.options ?? []), setup },
+            config: {
+                ...defaultGameConfig(ZertzInfo.configurator?.options ?? []),
+                setup,
+                ...(options.firstPlayer === undefined ? {} : { firstPlayer: options.firstPlayer })
+            },
             players: playerIds.map((id) => ({
                 id,
                 name: id,
+                userId: options.userIds?.[id],
                 isHuman: true,
                 status: PlayerStatus.Joined
             }))
