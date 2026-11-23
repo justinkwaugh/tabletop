@@ -1,23 +1,34 @@
 <script lang="ts">
+    import { goto } from '$app/navigation'
+    import { page } from '$app/state'
+    import { assertExists } from '@tabletop/common'
     import { nextTabIndex } from '$lib/utils/tabNavigation'
-    import AdminUsersTab from '$lib/components/admin/AdminUsersTab.svelte'
-    import AdminGamesTab from '$lib/components/admin/AdminGamesTab.svelte'
-    import AdminStatsTab from '$lib/components/admin/AdminStatsTab.svelte'
+    import { adminTabOf, adminTabPath, type AdminTab } from '$lib/utils/adminPaths'
 
-    type AdminTab = 'users' | 'games' | 'stats'
+    let { children } = $props()
+
     const tabs: { id: AdminTab; label: string }[] = [
         { id: 'users', label: 'Users' },
         { id: 'games', label: 'Games' },
         { id: 'stats', label: 'Stats' }
     ]
-    let tab = $state<AdminTab>('users')
+    const tab = $derived.by(() => {
+        const current = adminTabOf(page.url.pathname)
+        assertExists(current, `No admin tab at ${page.url.pathname}`)
+        return current
+    })
+
+    function selectTab(next: AdminTab, replaceState = false) {
+        if (next === tab) return
+        void goto(adminTabPath(next), { replaceState, noScroll: true, keepFocus: true })
+    }
 
     function moveTab(event: KeyboardEvent, index: number) {
         const next = nextTabIndex(event.key, index, tabs.length)
         if (next === undefined) return
         event.preventDefault()
-        tab = tabs[next].id
-        document.getElementById(`admin-tab-${tab}`)?.focus()
+        selectTab(tabs[next].id, true)
+        document.getElementById(`admin-tab-${tabs[next].id}`)?.focus()
     }
 </script>
 
@@ -35,7 +46,7 @@
                     aria-selected={tab === candidate.id}
                     aria-controls="admin-panel"
                     tabindex={tab === candidate.id ? 0 : -1}
-                    onclick={() => (tab = candidate.id)}
+                    onclick={() => selectTab(candidate.id)}
                     onkeydown={(event) => moveTab(event, index)}
                     class="collection-tab {tab === candidate.id
                         ? 'border-blue-500 text-blue-700 dark:text-blue-400'
@@ -46,12 +57,6 @@
         </div>
     </div>
     <div id="admin-panel" role="tabpanel" aria-labelledby={`admin-tab-${tab}`} class="pt-5">
-        {#if tab === 'users'}
-            <AdminUsersTab />
-        {:else if tab === 'games'}
-            <AdminGamesTab />
-        {:else}
-            <AdminStatsTab />
-        {/if}
+        {@render children()}
     </div>
 </main>

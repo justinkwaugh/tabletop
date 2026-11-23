@@ -53,6 +53,7 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
+    import { adminTabPath } from '$lib/utils/adminPaths'
     import { BellSolid, DownloadOutline, HeartOutline, RefreshOutline } from 'flowbite-svelte-icons'
     import {
         isInstalledApp,
@@ -268,7 +269,7 @@
 
     async function gotoAdmin() {
         showCancelPrompt = false
-        await goto('/admin')
+        await goto(adminTabPath('users'))
     }
 
     async function gotoDashboard() {
