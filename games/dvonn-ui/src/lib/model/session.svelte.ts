@@ -4,7 +4,7 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import { Color, sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     ChooseColor,
@@ -56,7 +56,7 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
     moveInterrupter: MoveInterrupter | undefined
     // Until the state lands: the pieces each player has in hand once a step that places a piece
     // ends, set as it starts, so a piece dropping onto the board is not counted in hand too.
-    private landingHands: Map<string, number> | undefined = $derived.by(() => {
+    private landingHands: Map<string, PieceColor[]> | undefined = $derived.by(() => {
         void this.gameState
         return undefined
     })
@@ -178,14 +178,28 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
         return pieceTone(piece, (playerId) => this.toneOfPlayer(playerId))
     }
 
-    piecesInHand(playerId: string): number {
-        return this.landingHands?.get(playerId) ?? this.gameState.piecesInHand(playerId)
+    // The colours of the pieces a player has still to place, White's first.
+    handOf(playerId: string): PieceColor[] {
+        return this.landingHands?.get(playerId) ?? this.handIn(this.gameState, playerId)
+    }
+
+    // Each player places their own pieces, except in I set, you choose, where the first player
+    // holds both colours' pieces and the other player none.
+    private handIn(state: HydratedDvonnGameState, playerId: string): PieceColor[] {
+        const colors: PieceColor[] = this.setsBoth
+            ? playerId === state.firstPlayerId()
+                ? [Color.White, Color.Black]
+                : []
+            : [state.getPlayerState(playerId).color as PieceColor]
+        return colors.flatMap((color) =>
+            Array.from({ length: state.piecesInHand(state.playerWith(color)) }, () => color)
+        )
     }
 
     // A step that brings pieces onto the board starts: count each hand as it will be.
     landHands(to: HydratedDvonnGameState) {
         this.landingHands = new Map(
-            to.players.map((player) => [player.playerId, to.piecesInHand(player.playerId)])
+            to.players.map((player) => [player.playerId, this.handIn(to, player.playerId)])
         )
     }
 

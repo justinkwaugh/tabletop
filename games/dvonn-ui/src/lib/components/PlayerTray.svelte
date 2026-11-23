@@ -5,7 +5,7 @@
         PIECES_PER_PLAYER,
         type HydratedDvonnPlayerState
     } from '@tabletop/dvonn'
-    import { seedKeyOf } from '$lib/board/pieceStyle.js'
+    import { seedKeyOf, toneOf } from '$lib/board/pieceStyle.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_RADIUS, stackBounds, TILT } from '$lib/board/pieceGeometry.js'
     import { controlledTally, inStacks, TALLY_HEIGHT } from '$lib/board/tally.js'
@@ -22,16 +22,13 @@
         session.gameState.result !== undefined &&
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
-    const tone = $derived(session.toneOfPlayer(playerState.playerId))
     const placing = $derived(session.gameState.machineState === MachineState.PlacingPieces)
 
-    // While placing, the pieces still in hand; after, the pieces in stacks the player controls,
+    // While placing, the pieces still in hand, both colours on the setter's card in I set, you
+    // choose; after, the pieces in stacks the player controls,
     // which is the score (rule G2).
-    const count = $derived(
-        placing
-            ? session.piecesInHand(playerState.playerId)
-            : session.gameState.score(playerState.playerId)
-    )
+    const hand = $derived(placing ? session.handOf(playerState.playerId) : [])
+    const count = $derived(placing ? hand.length : session.gameState.score(playerState.playerId))
     const caption = $derived(placing ? 'left' : 'high')
     // Both captions take the wider one's room, so the tally keeps its size when placing ends.
     const CAPTIONS = ['left', 'high']
@@ -40,9 +37,10 @@
     const tally = $derived(
         placing
             ? inStacks(
-                  Array.from({ length: count }, (_, index) => ({
-                      tone,
-                      seedKey: `hand-${playerState.playerId}-${index}`
+                  // Numbered within each colour, so placing one keeps the others' looks.
+                  hand.map((color, index) => ({
+                      tone: toneOf(color),
+                      seedKey: `hand-${playerState.playerId}-${color}-${index - hand.indexOf(color)}`
                   }))
               )
             : controlledTally(session.gameState.board.stacks, playerState.playerId).map((stack) =>
