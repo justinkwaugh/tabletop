@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import {
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
@@ -11,6 +12,12 @@ export enum ZertzSetup {
     Standard = 'Standard',
     Blitz = 'Blitz',
     Tournament = 'Tournament'
+}
+
+export enum FirstPlayer {
+    Random = 'Random',
+    Creator = 'Creator',
+    Opponent = 'Opponent'
 }
 
 export enum BoardLayout {
@@ -64,7 +71,8 @@ export const SETUP_RULES: Record<ZertzSetup, SetupRules> = {
 export type ZertzGameConfig = Type.Static<typeof ZertzGameConfig>
 export const ZertzGameConfig = Type.Object({
     setup: Type.Optional(Type.Enum(ZertzSetup)),
-    autoJump: Type.Optional(Type.Boolean())
+    autoJump: Type.Optional(Type.Boolean()),
+    firstPlayer: Type.Optional(Type.Enum(FirstPlayer))
 })
 
 const standardDescription =
@@ -97,6 +105,31 @@ export const ZertzGameConfigOptions: GameConfigOptions = [
         alwaysShow: true
     },
     {
+        id: 'firstPlayer',
+        type: ConfigOptionType.List,
+        name: 'First player',
+        description: 'Who makes the first move.',
+        default: FirstPlayer.Random,
+        options: [
+            {
+                name: 'Random',
+                value: FirstPlayer.Random,
+                description: 'The first player is drawn by lot.'
+            },
+            {
+                name: 'Game creator',
+                value: FirstPlayer.Creator,
+                description: 'The player who created the game goes first.'
+            },
+            {
+                name: 'Opponent',
+                value: FirstPlayer.Opponent,
+                description: "The creator's opponent goes first."
+            }
+        ],
+        alwaysShow: true
+    },
+    {
         id: 'autoJump',
         type: ConfigOptionType.Boolean,
         name: 'Auto-jump for both players',
@@ -118,4 +151,11 @@ export function setupFromConfig(config: GameConfig): ZertzSetup {
 
 export function autoJumpFromConfig(config: GameConfig): boolean {
     return config.autoJump === true
+}
+
+export function firstPlayerFromConfig(config: GameConfig): FirstPlayer {
+    if (config.firstPlayer === undefined) return FirstPlayer.Random
+    const choice = Object.values(FirstPlayer).find((known) => known === config.firstPlayer)
+    assertExists(choice, `Unknown choice of first player ${String(config.firstPlayer)}`)
+    return choice
 }
