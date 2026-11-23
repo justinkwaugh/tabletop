@@ -23,9 +23,7 @@ export interface MotionSurface {
     querySelector(selector: string): MotionElement | null
 }
 
-interface Pose {
-    x: number
-    y: number
+interface Pose extends Point {
     rotate: number
     scaleX: number
     scaleY: number

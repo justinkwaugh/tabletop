@@ -34,9 +34,7 @@ export interface CopySide {
     toggleAttribute(name: string, force: boolean): unknown
 }
 
-interface CopyPose {
-    x: number
-    y: number
+interface CopyPose extends Point {
     size: number
     opacity: number
     turn: number

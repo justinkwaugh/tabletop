@@ -217,10 +217,8 @@ export async function openPilferTable() {
     })
 }
 
-export interface PawnFrame {
+export interface PawnFrame extends Readonly<Point> {
     readonly at: number
-    readonly x: number
-    readonly y: number
     readonly drawn: 'piece' | 'copy'
 }
 
@@ -357,10 +355,8 @@ export async function openRoundEndTable() {
     })
 }
 
-export interface PaintedPiece {
+export interface PaintedPiece extends Readonly<Point> {
     readonly id: string
-    readonly x: number
-    readonly y: number
 }
 
 export interface PaintedFrame {

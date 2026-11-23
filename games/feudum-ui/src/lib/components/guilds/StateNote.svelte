@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Point } from '@tabletop/common'
     import type { SVGAttributes } from 'svelte/elements'
     import Level from './Level.svelte'
 
@@ -8,9 +9,7 @@
         text,
         size = 20,
         ...rest
-    }: {
-        x: number
-        y: number
+    }: Point & {
         text: string
         size?: number
     } & SVGAttributes<SVGTextElement> = $props()

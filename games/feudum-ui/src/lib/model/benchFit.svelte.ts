@@ -1,9 +1,8 @@
+import type { RectangleDimensions } from '@tabletop/common'
 import type { Attachment } from 'svelte/attachments'
 import { GuildBox } from '$lib/utils/boardGeometry.js'
 
-export interface BenchRoom {
-    readonly height: number
-    readonly width: number
+export interface BenchRoom extends Readonly<RectangleDimensions> {
     readonly title: number
     readonly footer: number
     readonly padding: number

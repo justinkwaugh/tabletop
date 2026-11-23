@@ -16,11 +16,9 @@ import { seatedAtCards } from './followUpTable.js'
 import { FeudumHost, settled } from './sessionHarness.js'
 import { emptySpace, giveGood, returnGoods } from './turnTable.js'
 
-export interface SeenCopy {
+export interface SeenCopy extends Readonly<Point> {
     readonly id: string
     readonly row: string
-    readonly x: number
-    readonly y: number
     readonly width: number
     readonly inDialog: boolean
     readonly html: string
@@ -32,14 +30,7 @@ export interface FlightFrame {
     readonly hidden: readonly string[]
 }
 
-export interface Box {
-    readonly x: number
-    readonly y: number
-    readonly left: number
-    readonly right: number
-    readonly top: number
-    readonly bottom: number
-}
+export type Box = Readonly<Point> & Pick<DOMRectReadOnly, 'left' | 'right' | 'top' | 'bottom'>
 
 function seenCopies(): SeenCopy[] {
     return [...document.querySelectorAll('[data-flight]')].flatMap((copy) => {

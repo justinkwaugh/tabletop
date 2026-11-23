@@ -9,6 +9,9 @@ import {
 import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 import type { SeatsAndRows } from './knightLanes.js'
+import type { FeudumGameSession } from './session.svelte.js'
+
+type SessionColours = FeudumGameSession['colors']
 
 export const SeatPieceKinds = ['marker', 'disc', 'reeve'] as const
 export type SeatPieceKind = (typeof SeatPieceKinds)[number]
@@ -67,10 +70,8 @@ function paintOfFill(fill: string, owner: string, colour?: Color): SeatPaint {
 }
 
 export function seatPaint(
-    colors: {
-        getPlayerUiColor(playerId?: string): string
-        getPlayerColor?(playerId?: string): Color
-    },
+    colors: Pick<SessionColours, 'getPlayerUiColor'> &
+        Partial<Pick<SessionColours, 'getPlayerColor'>>,
     playerId: string,
     name: string
 ): SeatPaint {
@@ -82,10 +83,7 @@ export function seatPaint(
 }
 
 /** R-1.4-H1 A colour with no seat behind it, a dummy Knight row, is named by its colour. */
-export function colourPaint(
-    colors: { getUiColor(color: Color): string },
-    colour: Color
-): SeatPaint {
+export function colourPaint(colors: Pick<SessionColours, 'getUiColor'>, colour: Color): SeatPaint {
     return paintOfFill(colors.getUiColor(colour), colour, colour)
 }
 
@@ -105,10 +103,7 @@ export function dummyColourShown(
     return spare.at(moved.indexOf(dummy)) ?? dummy
 }
 
-export interface DummyPaintColours {
-    getPlayerColor(playerId?: string): Color
-    getUiColor(color: Color): string
-}
+export type DummyPaintColours = Pick<SessionColours, 'getPlayerColor' | 'getUiColor'>
 
 /** R-1.4-H1 A dummy row's paint, in a colour no seat is displayed in. */
 export function dummyPaint(

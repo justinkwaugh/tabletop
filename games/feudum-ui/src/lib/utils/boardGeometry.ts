@@ -1,4 +1,4 @@
-import { Color, type BoundingBox, type Point } from '@tabletop/common'
+import { Color, type BoundingBox, type Point, type RectangleDimensions } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
     AlchemistVesselSpace,
@@ -941,11 +941,9 @@ const ScoreRun = [
 
 export type ScoreSide = (typeof ScoreRun)[number]['side']
 
-export interface ScoreSpace {
+export interface ScoreSpace extends Readonly<RectangleDimensions> {
     readonly space: number
     readonly centre: Point
-    readonly width: number
-    readonly height: number
     readonly side: ScoreSide
     readonly corner: boolean
 }

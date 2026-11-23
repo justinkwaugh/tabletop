@@ -1,4 +1,5 @@
 import { Color } from '@tabletop/common'
+import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 
 /** Elements whose implicit role takes no name: a screen reader drops an aria-label on them. */
 export const Unnamed = new Set([
@@ -89,21 +90,23 @@ export function markupProblems(elements: readonly MarkupElement[], rules: Markup
     })
 }
 
-interface SeatColourSource {
-    getUiColor(color: Color): string
-    getBgColor(color: Color): string
-    getBgColorValue(color: Color): string
-    getTextColor(color: Color): string
-    getTextColorValue(color: Color): string
-    getBorderColor(color: Color): string
-    getBorderColorValue(color: Color): string
-}
+type SeatColourSource = Pick<
+    FeudumGameSession['colors'],
+    | 'getUiColor'
+    | 'getBgColor'
+    | 'getBgColorValue'
+    | 'getTextColor'
+    | 'getTextColorValue'
+    | 'getBorderColor'
+    | 'getBorderColorValue'
+>
 
 /** Svelte's dev build tags each element with the component file that drew it. */
 function titleFileOf(element: MarkupElement): string | undefined {
-    const file = (element as { __svelte_meta?: { loc?: { file?: string } } }).__svelte_meta?.loc
-        ?.file
-    return file?.startsWith('src/') ? file : undefined
+    const meta = '__svelte_meta' in element ? element.__svelte_meta : undefined
+    const loc = typeof meta === 'object' && meta !== null && 'loc' in meta ? meta.loc : undefined
+    const file = typeof loc === 'object' && loc !== null && 'file' in loc ? loc.file : undefined
+    return typeof file === 'string' && file.startsWith('src/') ? file : undefined
 }
 
 function classesStyledOnPage(): Set<string> {
@@ -115,8 +118,8 @@ function classesStyledOnPage(): Set<string> {
                     classes.add(name.replace(/\\(.)/g, '$1'))
                 }
             }
-            if ('cssRules' in rule) {
-                walk((rule as CSSGroupingRule).cssRules)
+            if (rule instanceof CSSGroupingRule) {
+                walk(rule.cssRules)
             }
         }
     }
