@@ -182,6 +182,11 @@ describe('Contract, Desk layout: the map between the West and East guild buttons
         expect(deskRestScaleOf(4000, 4000, 4)).toBe(1)
     })
 
+    it('a room narrower than its gutters gives a scale of 0, never below', () => {
+        expect(deskRestScaleOf(40, 900, 4)).toBe(0)
+        expect(deskRestScaleOf(1200, 900, 4, { perRow: 1, width: 1400 })).toBe(0)
+    })
+
     it('the view is that shape at the column’s width', () => {
         expect(deskViewHeight(1096, 4)).toBeCloseTo((998 * deskScaledHeight(4)) / MapArea.width, 5)
         expect(deskViewHeight(60, 4)).toBe(0)

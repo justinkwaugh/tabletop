@@ -92,11 +92,12 @@ export function deskRestScaleOf(
     seats: number,
     column?: DeskColumn
 ): number {
-    return Math.min(
+    const fit = Math.min(
         (viewWidth - 2 * SideGutter - besideOf(column)) / MapArea.width,
         viewHeight / (column ? MapArea.height : deskScaledHeight(seats)),
         1
     )
+    return Math.max(0, fit)
 }
 
 /** Contract, Desk layout: only the room decides, never the view, so the layout never flips. */
@@ -116,7 +117,7 @@ export function deskColumnViewWidth(
     seats: number,
     column: DeskColumn
 ): number {
-    const scale = Math.max(0, deskRestScaleOf(room.width, room.height, seats, column))
+    const scale = deskRestScaleOf(room.width, room.height, seats, column)
     return Math.min(
         room.width,
         Math.ceil(MapArea.width * scale + 2 * SideGutter + besideOf(column))
@@ -145,7 +146,7 @@ export function deskMapAtRest(
     column?: DeskColumn
 ): DeskRest {
     const scale = deskRestScaleOf(view.width, view.height, seats, column)
-    if (!(scale > 0)) {
+    if (scale === 0) {
         return { x: SideGutter, y: 0, width: 0, height: 0, scale: 0, gutter: 0, trail: 0 }
     }
     const width = MapArea.width * scale
