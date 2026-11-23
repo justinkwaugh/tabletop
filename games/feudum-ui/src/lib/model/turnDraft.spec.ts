@@ -1,4 +1,4 @@
-import { giveSeal, giveTile } from '@tabletop/feudum/testing'
+import { addPawn, buildFeudum, giveSeal, giveTile } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -20,9 +20,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import {
-    addPawn,
     atPlayingCards,
-    buildFeudum,
     emptySpace,
     emptySpaces,
     giveBead,

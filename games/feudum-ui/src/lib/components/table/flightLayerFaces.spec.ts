@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { buildFeudum } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
@@ -14,7 +15,7 @@ import { planFlights, type FlightPlan } from '$lib/animators/flightPlan.js'
 import { writName } from '$lib/model/writLabels.js'
 import type { FeudumHost } from '$lib/testing/sessionHarness.js'
 import { seatedAtCards } from '$lib/testing/followUpTable.js'
-import { atPlayingCards, buildFeudum, emptySpace, returnGoods } from '$lib/testing/turnTable.js'
+import { atPlayingCards, emptySpace, returnGoods } from '$lib/testing/turnTable.js'
 import FlightLayer from './FlightLayer.svelte'
 
 let host: FeudumHost | undefined

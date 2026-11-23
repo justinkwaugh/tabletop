@@ -1,3 +1,4 @@
+import { addPawn, buildFeudum } from '@tabletop/feudum/testing'
 import { flushSync, mount } from 'svelte'
 import { AnimationContext } from '@tabletop/frontend-components'
 import { ActionSource, type GameAction, type Point } from '@tabletop/common'
@@ -13,7 +14,7 @@ import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { writName } from '$lib/model/writLabels.js'
 import { seatedAtCards } from './followUpTable.js'
 import { FeudumHost, settled } from './sessionHarness.js'
-import { addPawn, buildFeudum, emptySpace, giveGood, returnGoods } from './turnTable.js'
+import { emptySpace, giveGood, returnGoods } from './turnTable.js'
 
 export interface SeenCopy {
     readonly id: string

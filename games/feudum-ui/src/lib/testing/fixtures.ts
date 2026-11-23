@@ -1,4 +1,6 @@
 import {
+    addPawn,
+    buildFeudum,
     giveMonster,
     giveSeal,
     giveTile,
@@ -44,16 +46,7 @@ import { seatRowIndex } from './guildTable.js'
 import { abandonVessel, giveVessel, landscapeOn, sellOut, serfOn } from './moveTable.js'
 import { tendLandscape } from './roundEndTable.js'
 import { FeudumHost } from './sessionHarness.js'
-import {
-    addPawn,
-    buildFeudum,
-    emptySpace,
-    giveBead,
-    giveGood,
-    returnGoods,
-    ruleOutpost,
-    ruleTown
-} from './turnTable.js'
+import { emptySpace, giveBead, giveGood, returnGoods, ruleOutpost, ruleTown } from './turnTable.js'
 
 /** Invented seat names: nobody's, and short enough for a phone's chips. */
 export const SeatNames = ['Ana', 'Bram', 'Cleo', 'Dov', 'Esme'] as const

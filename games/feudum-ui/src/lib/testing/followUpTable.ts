@@ -1,3 +1,4 @@
+import { addPawn } from '@tabletop/feudum/testing'
 import { assertExists } from '@tabletop/common'
 import {
     collectTopTile,
@@ -17,14 +18,7 @@ import {
     type WritId
 } from '@tabletop/feudum'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
-import {
-    addPawn,
-    atPlayingCards,
-    emptySpaces,
-    giveGood,
-    returnGoods,
-    type TurnTable
-} from './turnTable.js'
+import { atPlayingCards, emptySpaces, giveGood, returnGoods, type TurnTable } from './turnTable.js'
 
 export interface SeatTable extends TurnTable {
     readonly session: FeudumGameSession

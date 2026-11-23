@@ -10,7 +10,7 @@ import {
     placeMarker,
     type SpaceId
 } from '@tabletop/feudum'
-import { writsNamedIn } from '@tabletop/feudum/testing'
+import { addPawn, buildFeudum, writsNamedIn } from '@tabletop/feudum/testing'
 import {
     isHistoryGroup,
     type HistoryGroup,
@@ -21,7 +21,7 @@ import { primaryNamed } from '$lib/testing/actionPanelView.js'
 import { playOutRound, type RoundEndTable } from '$lib/testing/roundEndTable.js'
 import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
-import { addPawn, buildFeudum, emptySpace, giveGood, returnGoods } from '$lib/testing/turnTable.js'
+import { emptySpace, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 import type { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 

@@ -1,3 +1,4 @@
+import { addPawn, buildFeudum } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { AnimationContext } from '@tabletop/frontend-components'
@@ -20,14 +21,7 @@ import {
 } from '@tabletop/feudum'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
-import {
-    addPawn,
-    atPlayingCards,
-    buildFeudum,
-    emptySpace,
-    giveGood,
-    returnGoods
-} from '$lib/testing/turnTable.js'
+import { atPlayingCards, emptySpace, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 import { FlightAnimator, type CopyElement, type CopySide } from './flightAnimator.svelte.js'
 import type { FlightStage, HideableSource, StagePlace } from './flightAnchors.js'
 import {

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { addPawn } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { describe, expect, it, vi } from 'vitest'
 import { HydratedFeudumGameState, RegionIds, StartingSpaceIds } from '@tabletop/feudum'
@@ -6,7 +7,6 @@ import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
 import { guildTarget, markerTarget, spaceTarget, stackTarget } from '$lib/model/boardOffer.js'
 import type { BoardOffer } from '$lib/model/boardOffer.js'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { addPawn } from '$lib/testing/turnTable.js'
 import MapLayers from './map/MapLayers.svelte'
 import PickChrome from './map/PickChrome.svelte'
 import RegionStacks from './tracks/RegionStacks.svelte'

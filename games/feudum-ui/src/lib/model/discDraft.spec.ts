@@ -1,4 +1,4 @@
-import { setCarts, setMarket, setMaster } from '@tabletop/feudum/testing'
+import { addPawn, setCarts, setMarket, setMaster } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -24,13 +24,7 @@ import {
     type SeatTable
 } from '$lib/testing/followUpTable.js'
 import { guildTable } from '$lib/testing/guildTable.js'
-import {
-    atPlayingCards,
-    addPawn,
-    emptySpaces,
-    giveGood,
-    returnGoods
-} from '$lib/testing/turnTable.js'
+import { atPlayingCards, emptySpaces, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     guildTarget,

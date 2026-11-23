@@ -1,4 +1,6 @@
 import {
+    addPawn,
+    buildFeudum,
     giveSeal,
     giveTile,
     setBarn,
@@ -60,9 +62,7 @@ import {
 } from '$lib/testing/guildTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import {
-    addPawn,
     atPlayingCards,
-    buildFeudum,
     emptySpace,
     giveBead,
     giveGood,

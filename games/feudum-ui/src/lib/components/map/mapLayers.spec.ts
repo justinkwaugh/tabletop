@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { addPawn } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -14,7 +15,7 @@ import {
     type SpaceId
 } from '@tabletop/feudum'
 import { RegionOutlines, plateSlot, spaceGeometry } from '$lib/utils/boardGeometry.js'
-import { atPlayingCards, addPawn, type TurnTable } from '$lib/testing/turnTable.js'
+import { atPlayingCards, type TurnTable } from '$lib/testing/turnTable.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import WritFace from '$lib/components/pieces/WritFace.svelte'
 import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'

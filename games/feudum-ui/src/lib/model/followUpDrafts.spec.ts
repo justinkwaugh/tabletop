@@ -1,4 +1,4 @@
-import { giveTile } from '@tabletop/feudum/testing'
+import { addPawn, buildFeudum, giveTile } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -28,7 +28,7 @@ import {
     type SeatTable
 } from '$lib/testing/followUpTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
-import { addPawn, buildFeudum, emptySpace, giveGood, returnGoods } from '$lib/testing/turnTable.js'
+import { emptySpace, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 import { markerTarget, pawnTarget, roleOf, spaceTarget } from './boardOffer.js'
 import { CommitAttackStageOrder, type CommitAttackValues } from './commitAttackDraft.svelte.js'
 import type { DraftChoice } from './deciderDraft.svelte.js'

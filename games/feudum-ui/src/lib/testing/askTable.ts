@@ -1,3 +1,4 @@
+import { addPawn } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { assertExists } from '@tabletop/common'
 import {
@@ -11,7 +12,7 @@ import { markerTarget, pawnTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { holdFood, seatedAtCards, type SeatTable } from './followUpTable.js'
 import { settled } from './sessionHarness.js'
-import { addPawn, emptySpaces } from './turnTable.js'
+import { emptySpaces } from './turnTable.js'
 
 export interface AskTable extends SeatTable {
     readonly asked: FeudumGameSession

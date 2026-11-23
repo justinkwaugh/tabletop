@@ -1,9 +1,9 @@
 // @vitest-environment node
-import { giveSeal, giveTile } from '@tabletop/feudum/testing'
+import { buildFeudum, giveSeal, giveTile } from '@tabletop/feudum/testing'
 import { describe, expect, it } from 'vitest'
 import { HydratedFeudumGameState, Mandates } from '@tabletop/feudum'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { buildFeudum, emptySpace, giveBead } from '$lib/testing/turnTable.js'
+import { emptySpace, giveBead } from '$lib/testing/turnTable.js'
 import { fillBarrel, holdWrit } from '$lib/testing/followUpTable.js'
 import { seatPanelOf } from './seatPanel.js'
 import { pawnsNoteOf, seatLinesOf, serviceShieldOf } from './seatLines.js'

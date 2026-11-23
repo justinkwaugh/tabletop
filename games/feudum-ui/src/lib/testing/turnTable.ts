@@ -4,7 +4,6 @@ import {
     ActionCards,
     ActionType,
     cardTurnSeat,
-    type Character,
     type Good,
     Goods,
     handSizeFor,
@@ -13,7 +12,6 @@ import {
     locationKindOf,
     placeMarker,
     type PouchGood,
-    replaceLocationDisc,
     returnGoodToHaversack,
     type SpaceId,
     Spaces,
@@ -73,19 +71,6 @@ export function giveGood(state: HydratedFeudumGameState, playerId: string, good:
     state.getPlayerState(playerId).goods[good] += takeGoodFromHaversack(state, good)
 }
 
-/** R-1.1 A supply pawn stands on the space. */
-export function addPawn(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    character: Character,
-    spaceId: SpaceId
-): void {
-    const pawn = state.getPlayerState(playerId).pawns.find(({ spaceId: on }) => !on)
-    assertExists(pawn, 'R-1.1 A pawn is in supply')
-    pawn.spaceId = spaceId
-    pawn.character = character
-}
-
 /** R-3.11 A bead off the seal pile, in the seat's hands. */
 export function giveBead(state: HydratedFeudumGameState, playerId: string): void {
     const sealId = state.requireVault().sealPile.pop()
@@ -138,14 +123,4 @@ export function emptySpace(state: HydratedFeudumGameState, kind: LocationKind): 
     const [spaceId] = emptySpaces(state, kind)
     assertExists(spaceId, `R-1.4 A ${kind} is free`)
     return spaceId
-}
-
-/** R-3.9.1 The space shows a feudum this seat's marker rules. */
-export function buildFeudum(
-    state: HydratedFeudumGameState,
-    rulerId: string,
-    spaceId: SpaceId
-): void {
-    replaceLocationDisc(state, spaceId, 'disc.feudum.knight-1', 'feudum', 'knight')
-    placeMarker(state, rulerId, spaceId)
 }

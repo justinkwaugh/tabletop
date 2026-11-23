@@ -1,4 +1,4 @@
-import { giveSeal } from '@tabletop/feudum/testing'
+import { buildFeudum, giveSeal } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -31,13 +31,7 @@ import {
 import { playOutRound, tendLandscape, type DawnEpoch } from '$lib/testing/roundEndTable.js'
 import { describeAction } from './actionDescription.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
-import {
-    atPlayingCards,
-    buildFeudum,
-    emptySpaces,
-    giveGood,
-    returnGoods
-} from '$lib/testing/turnTable.js'
+import { atPlayingCards, emptySpaces, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 
 import { tileName } from './tileName.js'
 import type { ActionPanelView } from './actionPanel.js'

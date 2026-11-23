@@ -1,4 +1,5 @@
 import {
+    addPawn,
     setBarn,
     setCarts,
     setMarket,
@@ -30,7 +31,7 @@ import { isHistoryGroup } from '$lib/utils/actionAggregator.js'
 import type { GuildSide } from '$lib/model/boardFocus.svelte.js'
 import { playOutRound } from './roundEndTable.js'
 import { settled, type FeudumHost } from './sessionHarness.js'
-import { addPawn, atPlayingCards, giveGood } from './turnTable.js'
+import { atPlayingCards, giveGood } from './turnTable.js'
 
 export interface MotionFrame {
     readonly at: number

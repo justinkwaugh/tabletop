@@ -1,10 +1,10 @@
 // @vitest-environment node
+import { addPawn } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
 import { Goods, HydratedFeudumGameState, MonsterIds, Spaces, type SpaceId } from '@tabletop/feudum'
 import SiteCard from '$lib/components/table/SiteCard.svelte'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { addPawn } from '$lib/testing/turnTable.js'
 import { spaceLabel } from './cardFlows.js'
 import { siteCardOf } from './siteCard.js'
 import { TableLayers } from './tableLayers.svelte.js'

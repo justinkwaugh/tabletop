@@ -1,6 +1,7 @@
+import { addPawn } from '@tabletop/feudum/testing'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { HydratedFeudumGameState, MonsterIds, Spaces, type SpaceId } from '@tabletop/feudum'
-import { addPawn, atPlayingCards, type TurnTable } from '$lib/testing/turnTable.js'
+import { atPlayingCards, type TurnTable } from '$lib/testing/turnTable.js'
 import { SpaceRingFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
 import {
     pawnTarget,
