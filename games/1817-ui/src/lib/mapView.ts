@@ -1,5 +1,8 @@
 import { EighteenSeventeenMap, EighteenSeventeenTileSet } from '@tabletop/1817'
 import { towardTileEdge, type MapViewDefinition } from '@tabletop/18xx-ui'
+import BridgeToken from './images/tokens/bridge.svg'
+import MineToken from './images/tokens/mine.svg'
+import RanchToken from './images/tokens/ranch.svg'
 
 export const EighteenSeventeenMapView: MapViewDefinition = {
     // The market's tall cells and the loan table below them span the map's width 16 units above
@@ -12,6 +15,12 @@ export const EighteenSeventeenMapView: MapViewDefinition = {
     map: EighteenSeventeenMap,
     tileSet: EighteenSeventeenTileSet,
     locationMarkerNames: { mine: 'Mine', bridge: 'Bridge', ranch: 'Ranch' },
+    // Each private's token sits whole in the clear corner of the tile it was laid with.
+    markerArt: {
+        mine: { token: { imageUrl: MineToken, place: 'corner' } },
+        ranch: { token: { imageUrl: RanchToken, place: 'corner' } },
+        bridge: { token: { imageUrl: BridgeToken, place: 'corner' } }
+    },
     layouts: {
         // Cleveland's two stations sit level and a little low, clear of its row of revenues.
         // Positions are given before the pointy tile's 30° turn.
