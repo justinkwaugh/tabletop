@@ -117,6 +117,8 @@ test('R-4.8 the commit: the stepper raises the tally the third seat reads afterw
     const before = await primary(page).innerText()
     await panel(page).getByRole('button', { name: 'Add saltpeter' }).click()
     await expect(primary(page)).not.toHaveText(before)
+    // docs/user-interactions.md: no "−" with one on; Undo takes it back.
+    await expect(panel(page).locator('[data-rows="saltpeter"] button')).toHaveCount(1)
     await shot(page, 'commit-attacker')
     await openTable(page, `openCommitTable('third')`)
     await expect(panel(page).locator('[data-waiting]')).toHaveText(/^Waiting on Player \d\.$/)

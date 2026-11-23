@@ -47,11 +47,10 @@ export const CommitAttackStageOrder: readonly (keyof CommitAttackValues)[] = ['a
 
 export interface CommitPanel {
     readonly tally: readonly TallyLine[]
-    /** R-4.8.2 The stepper: "+" not drawn when no saltpeter can go on, "−" when none is on. */
+    /** R-4.8.2, docs/user-interactions.md: "+" alone; Undo takes back each saltpeter it put on. */
     readonly saltpeter: {
         readonly count: number
         readonly add?: DraftChoice
-        readonly remove?: DraftChoice
     }
     readonly weapons: readonly {
         readonly writId: WritId
@@ -141,19 +140,9 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
                       this.push('adds', more)
                   })
         const payable = count > 0 || this.canAdd([{ kind: 'saltpeter' }], offer, c)
-        const remove = draftChoice('Take saltpeter off', false, () => {
-            this.push(
-                'adds',
-                adds.toSpliced(
-                    adds.findLastIndex(({ kind }) => kind === 'saltpeter'),
-                    1
-                )
-            )
-        })
         return {
             count,
-            ...(payable && offer.saltpeterMost > 0 ? { add: { ...add, shown: '+' } } : {}),
-            ...(count > 0 ? { remove: { ...remove, shown: '−' } } : {})
+            ...(payable && offer.saltpeterMost > 0 ? { add: { ...add, shown: '+' } } : {})
         }
     }
 

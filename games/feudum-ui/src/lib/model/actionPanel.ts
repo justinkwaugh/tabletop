@@ -687,12 +687,12 @@ function commitBlocks(
     return [
         line('flow', 'Add to the attack'),
         { kind: 'tally', lines: panel.tally },
-        // R-4.8.2 The stepper's presses are the saltpeter cube and "+" or "−", named in words.
+        // R-4.8.2 The stepper's press is the saltpeter cube and "+", named in words.
         ...rows(
             'saltpeter',
-            [saltpeter.add, saltpeter.remove].flatMap((choice) =>
-                choice ? [draftRow(session, choice, { kind: 'good', good: 'saltpeter' })] : []
-            ),
+            saltpeter.add
+                ? [draftRow(session, saltpeter.add, { kind: 'good', good: 'saltpeter' })]
+                : [],
             `Saltpeter ${saltpeter.count}`
         ),
         ...(panel.weapons.length > 0

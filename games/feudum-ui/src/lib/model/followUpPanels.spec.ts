@@ -221,7 +221,7 @@ describe('R-4.8 the commit, as drawn', () => {
         expect(session.gameState.machineState).toBe(MachineState.CommittingAttack)
         const view = session.actionPanel
         expect(blockOf(view, 'tally')).toBeDefined()
-        // R-4.8.2 With none on, "−" is not drawn; "+" is the cube, its words its name.
+        // R-4.8.2 "+" is the cube, its words its name.
         expect(rowLabels(view, 'saltpeter')).toEqual(['Add saltpeter'])
         expect(rowsOf(view, 'saltpeter')[0]).toMatchObject({
             art: { kind: 'good', good: 'saltpeter' },
@@ -231,10 +231,9 @@ describe('R-4.8 the commit, as drawn', () => {
         const attackBefore = blockOf(view, 'tally')?.lines.at(-1)?.attack ?? 0
         await pressRow(rowNamed(view, 'Add saltpeter'))
         expect(blockOf(session.actionPanel, 'tally')?.lines.at(-1)?.attack).toBe(attackBefore + 1)
-        // One on: "−" is drawn beside "+", to take it off.
-        expect(rowsOf(session.actionPanel, 'saltpeter').map(({ choice }) => choice)).toMatchObject([
-            { label: 'Add saltpeter', shown: '+' },
-            { label: 'Take saltpeter off', shown: '−' }
+        // docs/user-interactions.md One on: no "−" is drawn; Undo takes it off.
+        expect(rowsOf(session.actionPanel, 'saltpeter').map(({ choice }) => choice.label)).toEqual([
+            'Add saltpeter'
         ])
         // Others read the flow, not the attacker's draft.
         expect(blockOf(third.actionPanel, 'tally')?.lines.at(-1)?.attack).toBe(attackBefore)

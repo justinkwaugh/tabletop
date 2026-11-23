@@ -582,12 +582,23 @@ describe('R-4.8 The commit', () => {
             giveGood(state, seat, 'saltpeter')
             giveGood(state, seat, 'saltpeter')
         })
-        expect(session.commitPanel?.saltpeter.remove).toBeUndefined()
         await press(session, session.commitPanel?.saltpeter.add)
         expect(session.commitPanel?.saltpeter.add).toMatchObject({ spent: true })
         expect(session.commitPanel?.saltpeter.add?.refusal).toBeUndefined()
         expect(session.commitPanel?.saltpeter.add?.press).toBeUndefined()
-        expect(session.commitPanel?.saltpeter.remove?.press).toBeDefined()
+    })
+
+    it('docs/user-interactions.md R-4.8.2 the stepper has no "−": Undo takes back each "+"', async () => {
+        const { session } = await committing((state, seat) => {
+            giveGood(state, seat, 'saltpeter')
+        })
+        await press(session, session.commitPanel?.saltpeter.add)
+        expect(session.commitPanel?.saltpeter.count).toBe(1)
+        expect(session.commitPanel?.saltpeter).not.toHaveProperty('remove')
+        await session.undo()
+        flushSync()
+        expect(session.commitPanel?.saltpeter.count).toBe(0)
+        expect(session.gameState.machineState).toBe(MachineState.CommittingAttack)
     })
 
     it('R-4.8.2 with no saltpeter and no tile to bring one, the stepper is not drawn', async () => {
