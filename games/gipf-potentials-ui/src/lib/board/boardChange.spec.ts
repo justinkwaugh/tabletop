@@ -122,4 +122,22 @@ describe('boardChange', () => {
         })
         expect(boardChange(after, before)).toMatchObject({ kind: 'discs', removed: [] })
     })
+
+    it('lifts a taken piece rather than undoing a push that would leave the same layout', () => {
+        const b5 = gipf('w')
+        const c5 = gipf('w')
+        const before = board({ B5: [b5], C5: [c5] })
+        const after = board({ B5: [b5] })
+        expect(boardChange(before, after)).toMatchObject({
+            kind: 'discs',
+            removed: [
+                {
+                    coords: pointAt('C5'),
+                    from: 0,
+                    discs: [{ id: c5.discIds[0] }, { id: c5.discIds[1] }]
+                }
+            ],
+            added: []
+        })
+    })
 })

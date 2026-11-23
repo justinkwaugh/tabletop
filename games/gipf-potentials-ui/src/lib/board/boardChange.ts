@@ -52,6 +52,8 @@ export type BoardChange = PushChange | MoveChange | DiscsChange
 
 // Undo and history steps carry no action, so the move is read from the boards. A push that moved
 // nothing on could have come from either dot beside its spot, so the known move is tried first.
+// Boards are compared disc by disc: taking a piece from a line of like pieces can leave the same
+// kinds where an undone push would, and only the disc ids tell the two apart.
 export function boardChange(
     before: HydratedGipfPotentialsBoard,
     after: HydratedGipfPotentialsBoard,
@@ -165,7 +167,10 @@ function layout(board: HydratedGipfPotentialsBoard): string {
         .map(
             (stack) =>
                 `${coordinatesToNumber(stack.coords)}:${stack.units
-                    .map((unit) => `${unit.playerId}/${unit.kind}/${unit.load}`)
+                    .map(
+                        (unit) =>
+                            `${unit.playerId}/${unit.kind}/${unit.load}/${unit.discIds.join('+')}`
+                    )
                     .join(',')}`
         )
         .toSorted()
