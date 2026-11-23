@@ -24,7 +24,7 @@ import {
 } from '../model/payments.js'
 import { KnownDeckWrit } from '../model/playerState.js'
 import { ComponentCount, WritIdSchema } from '../model/stateSchemas.js'
-import { cardTurnSeat } from '../model/turns.js'
+import { turnSeatsPending } from '../model/turns.js'
 import { putWritsUnderUnseen, writDeckCount } from '../model/writDeck.js'
 import { reasonSpecialRefused } from './cardPlay.js'
 import { plural } from '../model/words.js'
@@ -79,18 +79,13 @@ export function isKeepWrits(action?: GameAction): action is KeepWrits {
 /** R-3.10.2 */
 const ShovelsPrice = { iron: 1 }
 
-/** R-4.4.1 The draw waiting on this seat, if any: the turn seat's. */
-function drawOf(state: HydratedFeudumGameState, playerId: string) {
-    return cardTurnSeat(state) === playerId ? state.flow.writDraw : undefined
-}
-
 /** R-3.10.2, R-3.10-H2, R-3.10-H3 The unkept go under first, so they count as there to draw. */
 function reasonShovelsRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     wildTiles: readonly WildTileSpend[] = []
 ): string | undefined {
-    const writDraw = drawOf(state, playerId)
+    const writDraw = turnSeatsPending(state, playerId, state.flow.writDraw)
     if (!writDraw?.shovelsOffered) {
         return 'Shovels & Swords follows only the keep from an Explore draw.'
     }
@@ -119,7 +114,7 @@ export function reasonKeepWritsRefused(
         readonly wildTiles?: readonly WildTileSpend[]
     }
 ): string | undefined {
-    const writDraw = drawOf(state, playerId)
+    const writDraw = turnSeatsPending(state, playerId, state.flow.writDraw)
     if (!writDraw) {
         return 'No writ draw waits on you.'
     }
@@ -158,7 +153,7 @@ export function keepWritsOffer(
     state: HydratedFeudumGameState,
     playerId: string
 ): KeepWritsOffer | undefined {
-    const writDraw = drawOf(state, playerId)
+    const writDraw = turnSeatsPending(state, playerId, state.flow.writDraw)
     if (!writDraw) {
         return undefined
     }

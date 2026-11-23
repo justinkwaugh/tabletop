@@ -6,7 +6,7 @@ import type { MandateAlternativeId, WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { saltpeterAllowed, type CombatStrength } from '../model/combatStrength.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
-import { cardTurnSeat } from '../model/turns.js'
+import { turnSeatsPending } from '../model/turns.js'
 import {
     canCoverWithWildTiles,
     canPayGoods,
@@ -108,18 +108,13 @@ function reasonWeaponsRefused(
     return undefined
 }
 
-/** R-4.8.2 The attack waiting on this seat, if any: the turn seat's. */
-function attackOf(state: HydratedFeudumGameState, playerId: string) {
-    return cardTurnSeat(state) === playerId ? state.flow.combat : undefined
-}
-
 /** R-4.8.2, R-4.4-H1 */
 export function reasonCommitAttackRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     input: CommitAttackInput
 ): string | undefined {
-    const combat = attackOf(state, playerId)
+    const combat = turnSeatsPending(state, playerId, state.flow.combat)
     if (!combat) {
         return 'No attack of yours is waiting.'
     }
@@ -164,7 +159,7 @@ export function commitAttackOffer(
     state: HydratedFeudumGameState,
     playerId: string
 ): CommitAttackOffer | undefined {
-    const combat = attackOf(state, playerId)
+    const combat = turnSeatsPending(state, playerId, state.flow.combat)
     if (!combat) {
         return undefined
     }
@@ -201,7 +196,7 @@ export function commitAttackPreview(
     playerId: string,
     input: Partial<CommitAttackInput>
 ): CommitAttackPreview | undefined {
-    const combat = attackOf(state, playerId)
+    const combat = turnSeatsPending(state, playerId, state.flow.combat)
     if (!combat) {
         return undefined
     }

@@ -19,3 +19,12 @@ export function cardTurnSeat(state: TurnsHolder): string | undefined {
 export function setupSeat(state: TurnsHolder): string | undefined {
     return openTurnSeat(state)
 }
+
+/** R-3.2 A pending card step waits on the turn seat alone. */
+export function turnSeatsPending<T>(
+    state: TurnsHolder,
+    playerId: string,
+    pending: T | undefined
+): T | undefined {
+    return cardTurnSeat(state) === playerId ? pending : undefined
+}

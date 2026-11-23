@@ -8,6 +8,7 @@ import { HydratedChooseFavours, isChooseFavours } from '../actions/chooseFavours
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { followUpSeat } from '../model/followUps.js'
+import { turnSeatsPending } from '../model/turns.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterCardStep } from './cardTurns.js'
 
@@ -28,7 +29,7 @@ export class InspectingHarvestStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
         const state = context.gameState
-        return state.flow.harvest && followUpSeat(state) === playerId
+        return turnSeatsPending(state, playerId, state.flow.harvest)
             ? [ActionType.ChooseFavours]
             : []
     }

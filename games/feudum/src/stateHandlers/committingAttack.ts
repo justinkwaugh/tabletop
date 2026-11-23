@@ -8,6 +8,7 @@ import { HydratedCommitAttack, isCommitAttack } from '../actions/commitAttack.js
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { followUpSeat } from '../model/followUps.js'
+import { turnSeatsPending } from '../model/turns.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterCardStep } from './cardTurns.js'
 
@@ -28,9 +29,7 @@ export class CommittingAttackStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
         const state = context.gameState
-        return state.flow.combat && followUpSeat(state) === playerId
-            ? [ActionType.CommitAttack]
-            : []
+        return turnSeatsPending(state, playerId, state.flow.combat) ? [ActionType.CommitAttack] : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
