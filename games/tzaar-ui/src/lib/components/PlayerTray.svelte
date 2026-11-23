@@ -18,15 +18,18 @@
         session.gameState.result !== undefined &&
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
-    const tone = $derived(session.toneOfPlayer(playerState.playerId))
     const placing = $derived(session.gameState.machineState === MachineState.PlacingPieces)
+
+    // Whose pieces the card counts, a row each: the player's own, except while an I set, you
+    // choose board is set, when the setter holds both colours' and the other player none.
+    const owners = $derived(session.handOwners(playerState.playerId))
 
     // While placing, the pieces of each type still in hand; after, the stacks each type tops,
     // which the player must keep above none (rule B1).
-    function countOf(kind: PieceKind): number {
+    function countOf(ownerId: string, kind: PieceKind): number {
         return placing
-            ? session.gameState.piecesInHand(playerState.playerId, kind)
-            : session.gameState.board.topsOf(playerState.playerId, kind)
+            ? session.gameState.piecesInHand(ownerId, kind)
+            : session.gameState.board.topsOf(ownerId, kind)
     }
 </script>
 
@@ -41,18 +44,26 @@
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
-    <div class="body">
-        {#each PIECE_KINDS as kind (kind)}
-            {@const count = countOf(kind)}
-            <div class="kind" class:out={count === 0 && !placing} title={KIND_NAMES[kind]}>
-                <strong>{count}</strong>
-                <PieceIcon {tone} {kind} size={34} />
-            </div>
-        {/each}
-        {#if placing}
-            <span class="caption">left</span>
-        {/if}
-    </div>
+    {#each owners as ownerId, row (ownerId)}
+        {@const tone = session.toneOfPlayer(ownerId)}
+        <div class="body">
+            {#each PIECE_KINDS as kind (kind)}
+                {@const count = countOf(ownerId, kind)}
+                <div class="kind" class:out={count === 0 && !placing} title={KIND_NAMES[kind]}>
+                    <strong>{count}</strong>
+                    <PieceIcon {tone} {kind} size={34} />
+                </div>
+            {/each}
+            {#if placing}
+                <span class="caption" class:unseen={row > 0}>left</span>
+            {/if}
+        </div>
+    {:else}
+        <div class="body">
+            <span class="kind"><strong>&nbsp;</strong></span>
+            <span class="caption">takes a colour once the board is set</span>
+        </div>
+    {/each}
 </div>
 
 <style>
@@ -96,6 +107,10 @@
 
     .kind.out strong {
         color: #b3261e;
+    }
+
+    .caption.unseen {
+        visibility: hidden;
     }
 
     .caption {
