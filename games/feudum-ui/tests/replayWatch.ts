@@ -1,11 +1,10 @@
+import type { Point } from '@tabletop/common'
 import { expect } from './errorWatch.js'
 import type { ScenarioTable } from './scenarioTable.js'
 
 /** A piece or a moving copy as one frame painted it: its centre, in the page's pixels. */
-interface Seen {
+interface Seen extends Readonly<Point> {
     readonly id: string
-    readonly x: number
-    readonly y: number
 }
 
 interface ReplayFrame {
