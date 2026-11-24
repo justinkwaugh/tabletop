@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { describe1846Action } from './history.js'
 
-const describeAction = describe1846Action({ getPlayerName: (playerId) => `Player ${playerId}` })
-const names = { companyName: (id: string) => `Company ${id}`, place: (id: string) => id }
+const describeAction = describe1846Action({
+    getPlayerName: (playerId) => `Player ${playerId}`,
+    companyName: (id) => `Card ${id}`
+})
+const names = { companyName: (id: string) => `Initials ${id}`, place: (id: string) => id }
 const shared = () => ({ text: 'shared' })
 
 function recordedAction(
@@ -43,7 +46,7 @@ describe('draft history', () => {
                 shared
             )
         ).toEqual({
-            text: 'took the final company, Company BIG4',
+            text: 'took the final company, Card BIG4',
             value: '$80',
             detail: 'reduced from $100'
         })
@@ -61,14 +64,14 @@ describe('draft history', () => {
                 shared
             )
         ).toEqual({
-            text: 'passed Company BIG4; its price fell to $60',
+            text: 'passed Card BIG4; its price fell to $60',
             detail: 'Player p2 had to take it for $60'
         })
     })
 })
 
 describe('draft reveal history', () => {
-    it('lists only the companies bought below face, as older games recorded no final pick price', () => {
+    it('names who bought every private and for how much, noting a price below face', () => {
         expect(
             describeAction(
                 recordedAction(ActionSource.System, 'RevealDraft', {
@@ -87,7 +90,10 @@ describe('draft reveal history', () => {
             text: 'Private companies revealed and paid for',
             omitActor: true,
             important: true,
-            detailLines: ['Company BIG4 went for $80, reduced from $100']
+            detailLines: [
+                'Player p1 bought Card MS for $140',
+                'Player p2 bought Card BIG4 for $80, reduced from $100'
+            ]
         })
     })
 })
@@ -103,6 +109,6 @@ describe('two-player opening history', () => {
                 names,
                 shared
             )
-        ).toEqual({ text: 'bought Company MS', value: `$${price}`, detail })
+        ).toEqual({ text: 'bought Card MS', value: `$${price}`, detail })
     })
 })
