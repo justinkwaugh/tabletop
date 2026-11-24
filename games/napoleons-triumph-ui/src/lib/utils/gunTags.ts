@@ -121,13 +121,19 @@ function placeOnBar(
     })
 }
 
+/** Only an army holding the locale its guns fired from could fire across from it again. */
+function stillHeld(state: HydratedNapoleonsTriumphGameState, guns: RestingArtillery): boolean {
+    if (guns.playerId === undefined) return true
+    return state.occupantOf(state.map.approach(guns.attackApproach).locale) === guns.playerId
+}
+
 export function gunTags(
     state: HydratedNapoleonsTriumphGameState,
     rotation: number,
     arrows: readonly ConvexOutline[]
 ): GunTag[] {
     const bars = new Map<number, SizedTag[]>()
-    for (const guns of restingArtillery(state)) {
+    for (const guns of restingArtillery(state).filter((guns) => stillHeld(state, guns))) {
         const bar = barOf(state, guns.attackApproach)
         bars.set(bar, [...(bars.get(bar) ?? []), sizedTag(state, guns)])
     }
