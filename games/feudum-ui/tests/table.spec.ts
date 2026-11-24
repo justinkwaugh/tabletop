@@ -406,12 +406,9 @@ for (const [card, toggle, open] of [
         await modal.locator(toggle).click()
         await expect(modal.locator(open)).toBeVisible()
 
-        // An Escape from outside the dialog reaches the window's listeners, not the dialog's.
-        await page.evaluate(() =>
-            document.body.dispatchEvent(
-                new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
-            )
-        )
+        await modal.locator(toggle).focus()
+        await expect(modal.locator(toggle)).toBeFocused()
+        await page.keyboard.press('Escape')
         await expect(modal).toHaveCount(0)
         await expect(page.locator(open)).toBeVisible()
         await expect(page.locator(toggle)).toHaveAttribute('aria-expanded', 'true')
