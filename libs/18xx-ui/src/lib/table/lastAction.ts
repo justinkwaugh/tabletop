@@ -8,6 +8,7 @@ import {
     isFinishOperatingTurn,
     isFinishStockTurn,
     isFloatCompany,
+    isInterruptOperatingTurn,
     isIssueTreasuryShares,
     isLayTile,
     isOfferPurchase,
@@ -76,7 +77,10 @@ export function turnRecap(
     playerId: string,
     routine: (action: GameAction) => boolean
 ): TurnRecapLine[] {
-    const roundStart = actions.findLastIndex(isStartStockRound)
+    // A stock round that interrupts an operating turn (1880) starts without a StartStockRound.
+    const roundStart = actions.findLastIndex(
+        (action) => isStartStockRound(action) || isInterruptOperatingTurn(action)
+    )
     const previousTurnEnd = actions.findLastIndex(
         (action) => isFinishStockTurn(action) && action.playerId === playerId
     )

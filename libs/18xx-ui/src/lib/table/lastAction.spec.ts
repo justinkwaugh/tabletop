@@ -140,6 +140,13 @@ it('recaps nothing before the player has had a turn in this stock round', () => 
     expect(turnRecap(previousRound, 'alex', routine)).toEqual([])
 })
 
+it('recaps nothing before the player has had a turn in a stock round that interrupted operating', () => {
+    const interrupt = stockAction('InterruptOperatingTurn', undefined, automatic)
+    const operating = stockAction('RunTrains', 'blair', { companyId: 'R', routes: [] })
+    const previousRound = [pass('alex'), operating, interrupt, buy('blair'), endTurn('blair')]
+    expect(turnRecap(previousRound, 'alex', routine)).toEqual([])
+})
+
 it('recaps nothing once the player has acted in their turn', () => {
     const actions = [pass('alex'), pass('blair'), buy('alex')]
     expect(turnRecap(actions, 'alex', routine)).toEqual([])
