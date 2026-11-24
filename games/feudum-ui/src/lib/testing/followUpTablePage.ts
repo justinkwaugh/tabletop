@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { giveSeal, giveTile, holdWrit } from '@tabletop/feudum/testing'
 import { flushSync, mount } from 'svelte'
 import type { ActionCardKind, WritId } from '@tabletop/feudum'
@@ -114,7 +115,8 @@ export async function openNourishTogetherTable(role: 'hotseat' | 'watcher') {
             fillBarrel(state, playerId, 1)
         }
     })
-    const watcher = table.host.order.find((id) => id !== table.seat && id !== table.other) ?? ''
+    const watcher = table.host.order.find((id) => id !== table.seat && id !== table.other)
+    assertExists(watcher, 'R-1.4 A third seat watches')
     await show(
         role === 'hotseat' ? await table.host.openHotseat() : await table.host.openSeat(watcher)
     )

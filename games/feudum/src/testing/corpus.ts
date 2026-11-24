@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { expect } from 'vitest'
 import { cardOf, type RepeatMode } from '../actions/cardPlay.js'
 import { improveOffers } from '../actions/improve.js'
@@ -163,7 +164,8 @@ export function serfOnOutpost(state: HydratedFeudumGameState, seat: string, riva
 }
 
 export function keepFirst(table: Table, seat: string, extra: Record<string, unknown> = {}): void {
-    const drawn = drawnWrits(table.hydrated()) ?? []
+    const drawn = drawnWrits(table.hydrated())
+    assertExists(drawn, 'R-3.10.1 The seat holds its draw')
     table.send(seat, { type: ActionType.KeepWrits, keep: drawn.slice(0, 1), ...extra })
 }
 
@@ -427,9 +429,10 @@ export const CardCases: readonly CardCase[] = [
         }),
         answer: (table, seat) => {
             const { harvest } = table.hydrated().flow
+            assertExists(harvest, 'R-3.11.1 An inspected harvest waits on its favours')
             table.send(seat, {
                 type: ActionType.ChooseFavours,
-                favours: firstFavours(harvest?.drawn ?? goodCounts(), harvest?.favours ?? 0)
+                favours: firstFavours(harvest.drawn, harvest.favours)
             })
         },
         fired: (after, before, seat) => {

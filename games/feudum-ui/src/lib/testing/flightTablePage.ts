@@ -1,7 +1,7 @@
 import { addPawn, buildFeudum } from '@tabletop/feudum/testing'
 import { flushSync, mount } from 'svelte'
 import { AnimationContext } from '@tabletop/frontend-components'
-import { ActionSource, type GameAction, type Point } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction, type Point } from '@tabletop/common'
 import {
     ActionType,
     HydratedFeudumGameState,
@@ -195,7 +195,8 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
             const { writsDrawn } = new HydratedFeudumGameState(
                 structuredClone(host.state)
             ).getPlayerState(seat)
-            return (writsDrawn ?? []).flatMap((writId) => [writId, writName(writId)])
+            assertExists(writsDrawn, 'R-3.10.1 The seat holds its draw')
+            return writsDrawn.flatMap((writId) => [writId, writName(writId)])
         },
         pawnHome: () => stage(pawnHome),
         pawnHomeOpeningFullScreen: () =>
@@ -254,9 +255,10 @@ export async function openFlightTable(viewer: 'drawer' | 'other') {
             framesOf(async () => {
                 const sent = host.send(seat, { type: ActionType.Explore, revealsInfo: true })
                 await new Promise((done) => setTimeout(done, 120))
-                const drawn =
-                    new HydratedFeudumGameState(structuredClone(host.state)).getPlayerState(seat)
-                        .writsDrawn ?? []
+                const drawn = new HydratedFeudumGameState(
+                    structuredClone(host.state)
+                ).getPlayerState(seat).writsDrawn
+                assertExists(drawn, 'R-3.10.1 The seat holds its draw')
                 await Promise.all([
                     sent,
                     host.send(seat, { type: ActionType.KeepWrits, keep: drawn.slice(0, 1) })
