@@ -18,12 +18,11 @@ import { Presentation1846 } from './presentation.js'
 
 export function describe1846Action(session: {
     getPlayerName(playerId: string): string
-    companyName(companyId: string): string
+    draftCardName(cardId: string): string
 }): TitleActionDescription {
     const money = Presentation1846.money
     const playerName = (playerId: string) => session.getPlayerName(playerId)
-    // History shortens minors to initials; opening rows name the draft card, as Big 4.
-    const cardName = (cardId: string) => session.companyName(cardId)
+    const cardName = (cardId: string) => session.draftCardName(cardId)
 
     function reducedPrice(selection: Selection): string | undefined {
         const face = facePrice(selection.cardId)

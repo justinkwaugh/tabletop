@@ -4,7 +4,7 @@ import { describe1846Action } from './history.js'
 
 const describeAction = describe1846Action({
     getPlayerName: (playerId) => `Player ${playerId}`,
-    companyName: (id) => `Card ${id}`
+    draftCardName: (id) => `Card ${id}`
 })
 const names = { companyName: (id: string) => `Initials ${id}`, place: (id: string) => id }
 const shared = () => ({ text: 'shared' })
@@ -110,5 +110,13 @@ describe('two-player opening history', () => {
                 shared
             )
         ).toEqual({ text: 'bought Card MS', value: `$${price}`, detail })
+    })
+})
+
+describe('operating history', () => {
+    it('names a company by its history initials outside the opening', () => {
+        expect(
+            describeAction(userAction('PlaceCWIStation', { companyId: 'BIG4' }), names, shared)
+        ).toEqual({ text: 'Initials BIG4 placed its C&WI station in Chicago' })
     })
 })
