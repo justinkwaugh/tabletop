@@ -166,6 +166,8 @@ export class Session1860 extends BaseSession {
             construction: {
                 choices: (locationId) =>
                     locationId === home ? construction.choices(locationId) : [],
+                hasChoice: (locationId) =>
+                    locationId === home && construction.hasChoice(locationId),
                 canReach: (locationId) => locationId === home,
                 evaluate: (request) => construction.evaluate(request),
                 inventoryAfter: (details) => construction.inventoryAfter(details),

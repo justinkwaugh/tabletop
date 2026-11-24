@@ -55,9 +55,9 @@ export class LayingTrackHandler implements MachineStateHandler<
         const construction = new TrackConstruction(state, this.rules)
         if (!construction.canAct(playerId, companyId)) return []
         return this.rules.map.definition.locations.some((location) =>
-            construction
-                .choices(location.id)
-                .some((choice) => this.free(construction, choice, playerId))
+            construction.hasChoice(location.id, (choice) =>
+                this.free(construction, choice, playerId)
+            )
         )
             ? ['LayTile', 'FinishTrack']
             : ['FinishTrack']

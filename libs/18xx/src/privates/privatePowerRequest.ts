@@ -105,7 +105,7 @@ export function hasLegalPrivateTrackUse(
     const construction = privateTrackConstruction(state, terms, track)
     return (
         togetherLaysOpen(state, terms, construction) &&
-        terms.locationIds.some((id) => construction.choices(id).length > 0)
+        terms.locationIds.some((id) => construction.hasChoice(id))
     )
 }
 

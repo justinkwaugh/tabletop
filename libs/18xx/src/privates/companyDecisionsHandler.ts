@@ -123,7 +123,7 @@ export class CompanyDecisionsHandler<
                 const construction = new TrackConstruction(state, this.track)
                 if (
                     this.track.map.definition.locations.some((location) =>
-                        construction.choices(location.id).some((choice) => {
+                        construction.hasChoice(location.id, (choice) => {
                             const consenters = construction.consenters(choice)
                             return consenters.length > 0 && !consenters.includes(playerId)
                         })

@@ -319,12 +319,22 @@ export class TrackConstruction {
         )
     }
     choices(locationId: string): TrackLayDetails[] {
-        const companyId = this.state.trackStep?.companyId
-        if (!companyId || !this.canReach(locationId)) return []
-        const choices: TrackLayDetails[] = []
         const reservations = this.state.stationReservations.filter(
             (reservation) => reservation.locationId === locationId
         )
+        const choices: TrackLayDetails[] = []
+        for (const details of this.lays(locationId))
+            if (!choices.some((choice) => samePlacement(choice, details, reservations)))
+                choices.push(details)
+        return choices
+    }
+    hasChoice(locationId: string, test: (details: TrackLayDetails) => boolean = () => true) {
+        for (const details of this.lays(locationId)) if (test(details)) return true
+        return false
+    }
+    private *lays(locationId: string): Generator<TrackLayDetails> {
+        const companyId = this.state.trackStep?.companyId
+        if (!companyId || !this.canReach(locationId)) return
         for (const definition of this.rules.tileSet.definitions) {
             if (
                 !this.basicTileAllowed(locationId, definition) ||
@@ -345,24 +355,17 @@ export class TrackConstruction {
                     rotateTileFace(definition.face, rotation)
                 ).face
                 for (const nodeMapping of this.layMappings(locationId, before, after)) {
-                    const result = this.evaluate({
+                    const { details } = this.evaluate({
                         companyId,
                         locationId,
                         definitionId: definition.id,
                         rotation,
                         nodeMapping
                     })
-                    if (
-                        result.details &&
-                        !choices.some((choice) =>
-                            samePlacement(choice, result.details, reservations)
-                        )
-                    )
-                        choices.push(result.details)
+                    if (details) yield details
                 }
             }
         }
-        return choices
     }
     /**
      * The players whose agreement lets the lay go ahead, the one asked unless another is named

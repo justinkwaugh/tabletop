@@ -213,6 +213,7 @@ describe('PrivateActionsModule', () => {
             prompt: 'Lay Beta',
             construction: {
                 choices: () => [],
+                hasChoice: () => false,
                 canReach: () => false,
                 evaluate: () => ({ reason: 'none' }),
                 inventoryAfter: () => ({ placements: [] }) as never,

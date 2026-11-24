@@ -152,9 +152,9 @@ function preferredBrownFits(state: ConstructionState, request: TrackRequest): bo
                 ? 'Only preferred cities'
                 : TrackRules1833NE.restriction(inner, candidate)
     })
-    return construction
-        .choices(request.locationId)
-        .some((choice) => PreferredBrownCities.includes(choice.definitionId))
+    return construction.hasChoice(request.locationId, (choice) =>
+        PreferredBrownCities.includes(choice.definitionId)
+    )
 }
 
 /**

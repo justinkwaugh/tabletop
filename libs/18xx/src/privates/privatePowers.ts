@@ -215,6 +215,6 @@ export function togetherLaysOpen(
     return (
         !terms.together ||
         !!state.privateTrackLay?.required ||
-        terms.locationIds.every((locationId) => construction.choices(locationId).length > 0)
+        terms.locationIds.every((locationId) => construction.hasChoice(locationId))
     )
 }

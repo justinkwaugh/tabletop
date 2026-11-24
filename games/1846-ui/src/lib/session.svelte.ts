@@ -203,6 +203,8 @@ export class EighteenFortySixSession extends BaseSession {
                     construction: {
                         choices: (locationId) =>
                             choices.filter((choice) => choice.locationId === locationId),
+                        hasChoice: (locationId) =>
+                            choices.some((choice) => choice.locationId === locationId),
                         canReach: (locationId) =>
                             choices.some((choice) => choice.locationId === locationId),
                         evaluate: (request) => {

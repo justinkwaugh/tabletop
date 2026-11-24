@@ -155,6 +155,7 @@ function titleLaying() {
         () => ({
             construction: {
                 choices: (id) => (id === locationId ? construction.choices(id) : []),
+                hasChoice: (id) => id === locationId && construction.hasChoice(id),
                 canReach: (id) => id === locationId,
                 evaluate: (request) => construction.evaluate(request),
                 inventoryAfter: (details) => construction.inventoryAfter(details),

@@ -41,7 +41,7 @@ type PrivateActions = Pick<PrivateActionsModule, 'selection' | 'trackPowerSelect
 /** The construction a lay the title applies itself is chosen from. */
 export type TitleTrackConstruction = Pick<
     TrackConstruction,
-    'choices' | 'canReach' | 'evaluate' | 'inventoryAfter' | 'stationsAfter'
+    'choices' | 'hasChoice' | 'canReach' | 'evaluate' | 'inventoryAfter' | 'stationsAfter'
 >
 /**
  * A lay the title asks for outside a company's track step, such as 1860's home tile as a company
@@ -107,17 +107,6 @@ export class TrackModule {
                             this.session.validActionTypes.includes('FinishTrack')))))
     )
     showChoices = $derived.by(() => !this.session.viewingHistory && this.laying)
-    private choicesByLocation = $derived.by(
-        () =>
-            new Map(
-                this.showChoices
-                    ? this.mapView().map.definition.locations.map(
-                          (location) =>
-                              [location.id, this.construction.choices(location.id)] as const
-                      )
-                    : []
-            )
-    )
     // A private power lays only at its own locations, which may need no connection at all.
     reachableLocationIds = $derived.by(() =>
         this.showChoices && !this.titleLay && !this.privateActions.trackPowerSelection
@@ -129,13 +118,19 @@ export class TrackModule {
             : []
     )
     locationIds = $derived.by(() =>
-        [...this.choicesByLocation].filter(([, choices]) => choices.length).map(([id]) => id)
+        this.showChoices
+            ? this.mapView()
+                  .map.definition.locations.filter((location) =>
+                      this.construction.hasChoice(location.id)
+                  )
+                  .map((location) => location.id)
+            : []
     )
     /** The legal hexes, with every hex a tile laid there covers too, which choose it as well. */
     pieceLocationIds = $derived.by(() => withTileGroups(this.mapView(), this.locationIds))
     choices = $derived.by(() =>
-        this.selection.locationId
-            ? (this.choicesByLocation.get(this.selection.locationId.value) ?? [])
+        this.showChoices && this.selection.locationId
+            ? this.construction.choices(this.selection.locationId.value)
             : []
     )
     tiles = $derived.by(() =>
@@ -220,7 +215,7 @@ export class TrackModule {
         )
         this.stages.clear()
         this.stages.choose('locationId', locationId)
-        const choices = this.choicesByLocation.get(locationId) ?? []
+        const choices = this.choices
         if (new Set(choices.map((choice) => choice.definitionId)).size === 1) {
             this.chooseTile(choices[0].definitionId, choices.slice(0, 1), 'auto')
             this.tileInFlight = true

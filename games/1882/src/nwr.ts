@@ -191,9 +191,9 @@ class HydratedMoveRebellionStation extends MoveRebellionStationAction.Base {
         }
         const terms = rebellionTrackTerms(state, NwrId, this.playerId)
         assertExists(terms, 'The destination hex has its extra lay')
-        const noLay = !privateTrackConstruction(state, terms, TrackRules1882).choices(
+        const noLay = !privateTrackConstruction(state, terms, TrackRules1882).hasChoice(
             this.position.locationId
-        ).length
+        )
         if (noLay) {
             delete state.privateTrackLay
             recordPrivatePowerUse(state, NwrId)
