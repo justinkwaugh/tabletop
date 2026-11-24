@@ -92,9 +92,7 @@ export function describeAction(action: GameAction): Description {
         if (action.locomotiveIds.length === 0) {
             return ['held back their locomotives']
         }
-        return [
-            `${action.source === ActionSource.System ? 'auto-shipped' : 'shipped'} for $${income}`
-        ]
+        return [`${action.source === ActionSource.System ? 'auto-sold' : 'sold'} for $${income}`]
     }
     if (isPayTaxes(action)) {
         return [action.metadata?.gameOver ? 'Taxes paid: the game is over' : 'Taxes paid']

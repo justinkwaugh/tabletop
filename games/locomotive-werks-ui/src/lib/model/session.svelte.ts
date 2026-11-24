@@ -32,13 +32,13 @@ import {
     ShipStageOrder,
     addCapacityStep,
     chooseLocomotive,
-    closeWerk,
-    openWerk,
     keepsWerksOpen,
     mergeCapacitySteps,
     capacityPlan,
     plannedUnits,
     setAutoShip,
+    saleChoice,
+    setSaleAutoShip,
     toggleHeld,
     type CapacitySelection,
     type CapacityStep,
@@ -212,8 +212,8 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
             : []
     })
 
-    // The locomotive chosen on the board; its picker asks to confirm, since a development that
-    // rolls a die cannot be undone.
+    // The locomotive chosen in the action panel, waiting for Develop to be pressed, since a
+    // development that rolls a die cannot be undone.
     chosenLocomotive: LocomotiveId | undefined = $derived.by(() => {
         const chosen = this.developSelection.locomotive?.value
         return chosen !== undefined && this.developTargets.includes(chosen) ? chosen : undefined
@@ -226,18 +226,6 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
                     ? {}
                     : chooseLocomotive(this.developSelection, locomotiveId)
         }
-    }
-
-    closeDevelopPicker() {
-        if (this.chosenLocomotive !== undefined) {
-            this.developSelection = {}
-        }
-    }
-
-    // A picker whose row scrolls out of view would leave Undo a step the player cannot see.
-    closeBoardPickers() {
-        this.closeDevelopPicker()
-        this.closeWerkPicker()
     }
 
     async develop(locomotiveId: LocomotiveId) {
@@ -307,33 +295,6 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
         }
     }
 
-    // The werk whose picker is open on the board.
-    openedWerk: LocomotiveId | undefined = $derived.by(() => {
-        const werk = this.expanding ? this.capacitySelection.werk?.value : undefined
-        return werk !== undefined && this.myPlants.some((plant) => plant.locomotiveId === werk)
-            ? werk
-            : undefined
-    })
-
-    chooseWerk(locomotiveId: LocomotiveId) {
-        if (
-            !this.expanding ||
-            !this.myPlants.some((plant) => plant.locomotiveId === locomotiveId)
-        ) {
-            return
-        }
-        this.capacitySelection =
-            this.openedWerk === locomotiveId
-                ? closeWerk(this.capacitySelection)
-                : openWerk(this.capacitySelection, locomotiveId)
-    }
-
-    closeWerkPicker() {
-        if (this.openedWerk !== undefined) {
-            this.capacitySelection = closeWerk(this.capacitySelection)
-        }
-    }
-
     // Ticked beside Done buying and sent with it; Undo takes the tick back like a planned step.
     autoShip: boolean = $derived(this.plan?.autoShip ?? false)
 
@@ -363,7 +324,18 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
         return playerId && this.shipping ? this.gameState.shipments(playerId) : []
     })
 
-    held: LocomotiveId[] = $derived(this.shipping ? (this.shipSelection.held?.value ?? []) : [])
+    private sale = $derived(this.shipping ? saleChoice(this.shipSelection) : undefined)
+
+    held: LocomotiveId[] = $derived(this.sale?.held ?? [])
+
+    // Ticked beside Sell and sent with it; Undo takes the tick back like a hold.
+    saleAutoShip: boolean = $derived(this.sale?.autoShip ?? false)
+
+    setSaleAutoShip(autoShip: boolean) {
+        if (this.shipping && autoShip !== this.saleAutoShip) {
+            this.shipSelection = setSaleAutoShip(this.shipSelection, autoShip)
+        }
+    }
 
     plannedShipments: Shipment[] = $derived(
         this.shipments.filter((shipment) => !this.held.includes(shipment.locomotiveId))
@@ -382,7 +354,8 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
     async ship(shipments: Shipment[]) {
         await this.applyAction(
             this.createPlayerAction(Ship, {
-                locomotiveIds: shipments.map((shipment) => shipment.locomotiveId)
+                locomotiveIds: shipments.map((shipment) => shipment.locomotiveId),
+                ...(this.saleAutoShip ? { autoShip: true } : {})
             })
         )
     }

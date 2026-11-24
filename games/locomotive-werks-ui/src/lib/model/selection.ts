@@ -1,5 +1,4 @@
 import {
-    clearStagedSelectionAtOrAfter,
     pushStagedSelectionValue,
     setStagedSelectionValue,
     type StagedSelectionState
@@ -11,19 +10,17 @@ import type { CapacityPurchase, LocomotiveId, Plant } from '@tabletop/locomotive
 export type CapacityStep = { locomotiveId: LocomotiveId; from?: LocomotiveId }
 
 // The steps and the automatic shipping tick share one stage, so Undo takes back presses of
-// either in the order they were made. `werk` is the werk whose picker is open on the board.
+// either in the order they were made.
 export type CapacityPlan = { steps: CapacityStep[]; autoShip: boolean }
 
 export type CapacitySelectionValues = {
     plan: CapacityPlan
-    werk: LocomotiveId
 }
 
 export type CapacitySelection = StagedSelectionState<CapacitySelectionValues>
 
 export const CapacityStageOrder = [
-    'plan',
-    'werk'
+    'plan'
 ] as const satisfies readonly (keyof CapacitySelectionValues)[]
 
 const EMPTY_PLAN: CapacityPlan = { steps: [], autoShip: false }
@@ -41,23 +38,9 @@ function pushPlan(selection: CapacitySelection, plan: CapacityPlan) {
     )
 }
 
-// The werk's picker stays open after a step, as a transient selection, so the player can plan
-// several; Undo takes back the step and closes the picker together.
 export function addCapacityStep(selection: CapacitySelection, step: CapacityStep) {
     const plan = capacityPlan(selection)
-    const planned = pushPlan(selection, { ...plan, steps: [...plan.steps, step] })
-    const werk = selection.werk?.value
-    return werk === undefined
-        ? planned
-        : setStagedSelectionValue(planned, CapacityStageOrder, 'werk', werk, 'auto')
-}
-
-export function openWerk(selection: CapacitySelection, werk: LocomotiveId) {
-    return setStagedSelectionValue(selection, CapacityStageOrder, 'werk', werk, 'manual')
-}
-
-export function closeWerk(selection: CapacitySelection) {
-    return clearStagedSelectionAtOrAfter(selection, CapacityStageOrder, 'werk')
+    return pushPlan(selection, { ...plan, steps: [...plan.steps, step] })
 }
 
 export function setAutoShip(selection: CapacitySelection, autoShip: boolean) {
@@ -114,24 +97,41 @@ export function chooseLocomotive(selection: DevelopSelection, locomotive: Locomo
     return setStagedSelectionValue(selection, DevelopStageOrder, 'locomotive', locomotive, 'manual')
 }
 
-// A selling turn: the locomotives the player keeps back, one press at a time.
+// A selling turn: the locomotives the player keeps back and whether their later selling turns
+// are taken for them. Both share one stage, so Undo takes back presses of either in order.
+export type SaleChoice = { held: LocomotiveId[]; autoShip: boolean }
+
 export type ShipSelectionValues = {
-    held: LocomotiveId[]
+    plan: SaleChoice
 }
 
 export type ShipSelection = StagedSelectionState<ShipSelectionValues>
 
-export const ShipStageOrder = ['held'] as const satisfies readonly (keyof ShipSelectionValues)[]
+export const ShipStageOrder = ['plan'] as const satisfies readonly (keyof ShipSelectionValues)[]
 
-export function toggleHeld(selection: ShipSelection, locomotiveId: LocomotiveId) {
-    const held = selection.held?.value ?? []
-    const next = held.includes(locomotiveId)
-        ? held.filter((candidate) => candidate !== locomotiveId)
-        : [...held, locomotiveId]
-    return pushStagedSelectionValue<ShipSelectionValues, 'held'>(
+const EMPTY_SALE: SaleChoice = { held: [], autoShip: false }
+
+export function saleChoice(selection: ShipSelection): SaleChoice {
+    return selection.plan?.value ?? EMPTY_SALE
+}
+
+function pushSale(selection: ShipSelection, plan: SaleChoice) {
+    return pushStagedSelectionValue<ShipSelectionValues, 'plan'>(
         selection,
         ShipStageOrder,
-        'held',
-        next
+        'plan',
+        plan
     )
+}
+
+export function toggleHeld(selection: ShipSelection, locomotiveId: LocomotiveId) {
+    const plan = saleChoice(selection)
+    const held = plan.held.includes(locomotiveId)
+        ? plan.held.filter((candidate) => candidate !== locomotiveId)
+        : [...plan.held, locomotiveId]
+    return pushSale(selection, { ...plan, held })
+}
+
+export function setSaleAutoShip(selection: ShipSelection, autoShip: boolean) {
+    return pushSale(selection, { ...saleChoice(selection), autoShip })
 }

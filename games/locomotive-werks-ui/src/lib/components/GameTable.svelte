@@ -100,7 +100,7 @@
                     {@render actionControls()}
                 </div>
                 <!-- The board fills the column's width and scrolls under its frozen banner. -->
-                <div class="board-scroll" onscroll={() => gameSession.closeBoardPickers()}>
+                <div class="board-scroll">
                     <Board />
                 </div>
             </div>

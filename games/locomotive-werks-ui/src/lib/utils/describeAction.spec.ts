@@ -76,7 +76,7 @@ describe('describing actions', () => {
                 ]
             }
         }
-        expect(text(describeAction(ship))).toBe('shipped for $5')
+        expect(text(describeAction(ship))).toBe('sold for $5')
         expect(describeDetails(ship).map(text)).toEqual([
             '3 units of [passenger-1] for $3, filling the 3',
             '1 unit of [fast-1] for $2, the 4 drops to 3'

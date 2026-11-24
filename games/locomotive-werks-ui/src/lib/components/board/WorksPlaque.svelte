@@ -3,10 +3,11 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { WORKS } from '$lib/utils/boardLayout.js'
 
-    // One player's werk for a locomotive: their colour, their units, and the units already shipped
+    // One player's werk for a locomotive: their colour, their units, and the units already sold
     // this production phase, which sit above the card until it ends. A dashed ring marks a
-    // shipment being held back. On the acting player's turn their werks are highlighted as
-    // targets, showing the units they plan to have and a note on what choosing the werk does.
+    // shipment being held back. While the acting player plans capacity their werks show the units
+    // they plan to have; while they sell, the werks they can sell from are ringed, mirroring the
+    // choices in the action panel.
     let {
         x,
         y,
@@ -35,10 +36,10 @@
     const ink = $derived(gameSession.colors.getPlayerTextColorValue(playerId))
     const name = $derived(gameSession.getPlayerName(playerId))
     const shown = $derived(units ?? plant.units - plant.shipped)
-    const line = $derived(note ?? (plant.shipped > 0 ? `${plant.shipped} shipped` : undefined))
+    const line = $derived(note ?? (plant.shipped > 0 ? `${plant.shipped} sold` : undefined))
     const RIM = 4
     const label = $derived(
-        `${name}: ${plant.units} units${plant.shipped > 0 ? `, ${plant.shipped} shipped` : ''}`
+        `${name}: ${plant.units} units${plant.shipped > 0 ? `, ${plant.shipped} sold` : ''}`
     )
 </script>
 

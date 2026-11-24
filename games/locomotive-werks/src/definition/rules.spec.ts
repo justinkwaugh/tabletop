@@ -430,6 +430,31 @@ describe('Automatic shipping', () => {
         expect(state.players.every((player) => player.autoShip === undefined)).toBe(true)
     })
 
+    it('ships everything for a player who asks in a selling turn, from their next one', () => {
+        let table = edit(start(3), (state) => {
+            state.space(LocomotiveId.Passenger1).existingOrders = [1, 1, 3]
+            for (const player of state.players) {
+                player.requirePlant(LocomotiveId.Passenger1).units = 2
+            }
+            state.getPlayerState('p0').requirePlant(LocomotiveId.Passenger1).units = 4
+        })
+        table = passUntil(table, MachineState.Shipping)
+        expect(table.state.activePlayerIds).toEqual(['p0'])
+        table = run(table, {
+            type: ActionType.Ship,
+            locomotiveIds: [LocomotiveId.Passenger1],
+            autoShip: true
+        })
+        expect(hydrate(table).getPlayerState('p0').autoShip).toBe(true)
+        table = passWhile(table, (state) => state.machineState === MachineState.Shipping)
+        expect(
+            table.actions.filter(
+                (action) => isShip(action) && action.source === ActionSource.System
+            )
+        ).toMatchObject([{ playerId: 'p0', metadata: { income: 1, sellingRound: 2 } }])
+        expect(hydrate(table).players.every((player) => player.autoShip === undefined)).toBe(true)
+    })
+
     it('ships straight after buying under Buy and Ship', () => {
         let table = start(3, { buyAndShip: true })
         table = passUntil(table, MachineState.ExpandingCapacity)

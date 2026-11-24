@@ -23,7 +23,7 @@
     const phases = $derived([
         { name: PhaseName.Development, label: 'Development' },
         gameSession.buyAndShip
-            ? { name: PhaseName.CapacityAndFirstShipment, label: 'Capacity & First Shipment' }
+            ? { name: PhaseName.CapacityAndFirstShipment, label: 'Capacity & First Sale' }
             : { name: PhaseName.ProductionCapacity, label: 'Production Capacity' },
         { name: PhaseName.Production, label: 'Production' },
         { name: PhaseName.Taxes, label: 'Taxes' },

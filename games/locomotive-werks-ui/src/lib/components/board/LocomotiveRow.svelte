@@ -25,7 +25,6 @@
     import OrderBox from './OrderBox.svelte'
     import WorksPlaque from './WorksPlaque.svelte'
     import { orderDieId } from '$lib/animators/shipmentDice.js'
-    import { orderEffect } from '$lib/utils/describeAction.js'
 
     let { space, index }: { space: LocomotiveSpace; index: number } = $props()
 
@@ -86,7 +85,7 @@
         target?: { selected: boolean }
     }
 
-    // How the acting player's own werk shows while they choose on the board.
+    // How the acting player's own werk shows while they plan or sell in the action panel.
     function werkView(playerId: string, units: number): WerkView {
         if (!mine(playerId)) {
             return {}
@@ -95,8 +94,7 @@
             return {
                 units: plannedUnits,
                 note: plannedUnits === units ? undefined : `was ${units}`,
-                closing: plannedUnits === 0,
-                target: { selected: gameSession.openedWerk === space.locomotiveId }
+                closing: plannedUnits === 0
             }
         }
         if (shipment) {
@@ -106,44 +104,6 @@
             }
         }
         return {}
-    }
-
-    type RowTarget = { label: string; pressed: boolean; onselect: () => void }
-
-    // The row takes the press, so the target is easy to hit on a phone.
-    const rowTarget: RowTarget | undefined = $derived.by(() => {
-        const locomotiveId = space.locomotiveId
-        if (developable) {
-            return {
-                label: `Develop ${name} for $${locomotive.developmentCost}`,
-                pressed: chosen,
-                onselect: () => gameSession.chooseLocomotive(locomotiveId)
-            }
-        }
-        if (plannedUnits !== undefined) {
-            return {
-                label: `Buy or upgrade units of your ${name} werk, ${plannedUnits} planned`,
-                pressed: gameSession.openedWerk === locomotiveId,
-                onselect: () => gameSession.chooseWerk(locomotiveId)
-            }
-        }
-        if (shipment) {
-            return {
-                label: shipHeld
-                    ? `Ship ${name}, now held back`
-                    : `Hold back ${name}, now shipping ${shipment.plan.units}: ${orderEffect(shipment.plan)}, for $${shipment.income}`,
-                pressed: !shipHeld,
-                onselect: () => gameSession.toggleHold(locomotiveId)
-            }
-        }
-        return undefined
-    })
-
-    function onRowKey(event: KeyboardEvent) {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            rowTarget?.onselect()
-        }
     }
 </script>
 
@@ -279,36 +239,9 @@
             <Die x={existingOrderBox(slot) + BOX / 2} y={middle} size={DIE} {face} />
         </g>
     {/each}
-    {#if rowTarget}
-        {@const target = rowTarget}
-        <rect
-            class="row-target"
-            x={STRIPE_WIDTH}
-            y={top}
-            width={BOARD_WIDTH - 2 * STRIPE_WIDTH}
-            height={ROW_HEIGHT}
-            fill="transparent"
-            role="button"
-            tabindex="0"
-            aria-label={target.label}
-            aria-pressed={target.pressed}
-            onclick={() => target.onselect()}
-            onkeydown={onRowKey}
-        ></rect>
-    {/if}
 </g>
 
 <style>
-    .row-target {
-        cursor: pointer;
-        outline: none;
-    }
-
-    .row-target:focus-visible {
-        stroke: #232d36;
-        stroke-width: 2;
-    }
-
     .numeral {
         font-family: 'LW Abril', Georgia, serif;
         font-size: 58px;
