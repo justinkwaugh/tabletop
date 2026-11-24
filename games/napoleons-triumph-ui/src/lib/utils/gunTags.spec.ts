@@ -19,7 +19,6 @@ const BACK = { from: 74, to: 72 }
 const FRENCH_GUNS: PiecePlacement = { id: 'F25', side: Side.French, face: artillery(), locale: 72 }
 const ALLIED_FOOT: PiecePlacement = { id: 'A26', side: Side.Allied, face: infantry(2), locale: 74 }
 
-/** French guns hold one end of the bar, Allied infantry the other. */
 function underway(): TestGame {
     const game = new TestGame({ scenario: Scenario.December2 })
     game.deployBoth()
@@ -88,16 +87,27 @@ describe('the tags on approaches artillery fired across', () => {
         expect(apart(a, b)).toBeCloseTo(12)
     })
 
-    it('leave the bar once the army that fired holds the locale it fired from no longer', () => {
+    it('leave the bar while the army that fired holds the locale it fired from no longer', () => {
         const game = underway()
         const flat = approachOf(game, FLAT)
         fire(game, Side.French, flat, 1)
+        arrangeBattlefield(game, [ALLIED_FOOT])
+        expect(labels(game)).toEqual([])
         arrangeBattlefield(game, [{ ...ALLIED_FOOT, locale: FLAT.from }])
         expect(labels(game)).toEqual([])
         fire(game, Side.Allied, flat)
         expect(gunTags(game.hydrated, 0, []).map(({ playerId }) => playerId)).toEqual([
             game.playerOf(Side.Allied)
         ])
+    })
+
+    it('come back when the army retakes the locale before its guns may lead again', () => {
+        const game = underway()
+        const flat = approachOf(game, FLAT)
+        fire(game, Side.French, flat, 1)
+        arrangeBattlefield(game, [ALLIED_FOOT])
+        arrangeBattlefield(game, [{ ...FRENCH_GUNS, id: 'F01', face: infantry(3) }, ALLIED_FOOT])
+        expect(labels(game)).toEqual([{ approach: flat, text: '8AM' }])
     })
 
     it('slide along the bar out from under an arrow', () => {
