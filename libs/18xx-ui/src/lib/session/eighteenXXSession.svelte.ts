@@ -103,7 +103,8 @@ import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { StockModule } from './stockModule.svelte.js'
-import type { MapRoute } from '../maps/mapDrawing.js'
+import { locationMarkerName, type MapRoute } from '../maps/mapDrawing.js'
+import { privateLocationPowers } from './privateLocationPowers.js'
 import { TableNotices } from './tableNotices.svelte.js'
 import type {
     MarketMarker,
@@ -341,8 +342,22 @@ export class EighteenXXSession<
             clear: () => this.track.stages.clear()
         },
         this.privates,
-        () => this.titlePrivatePowers,
+        () => [...this.titlePrivatePowers, ...this.privateLocationPowers],
         () => this.offeredPrivatePower
+    )
+    private privateLocationPowers = $derived.by(() =>
+        privateLocationPowers(
+            this.decisions.privateMarkerOptions,
+            this.decisions.privateTokenOptions,
+            {
+                company: (privateCompanyId) => this.actionCompanyName(privateCompanyId),
+                marker: (kind) => locationMarkerName(this.mapView, kind)
+            },
+            {
+                marker: (option) => this.decisions.placePrivateMarker(option),
+                token: (option) => this.decisions.placePrivateToken(option)
+            }
+        )
     )
     readonly track: TrackModule = new TrackModule(
         this.moduleSession,

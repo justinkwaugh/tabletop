@@ -14,9 +14,10 @@ export type PrivateTrackPower = {
     option?: { id: string; label: string }
 }
 /**
- * A private power whose rules the title applies itself, offered with the shared powers. A track
- * power lays through the ordinary track selection on the map, a location power is chosen on the
- * map, a confirm power asks before acting, and an immediate power acts when chosen.
+ * A private power offered beside the shared tile powers: one whose rules the title applies
+ * itself, or a shared marker or station placed on the map. A track power lays through the
+ * ordinary track selection on the map, a location power is chosen on the map, a confirm power
+ * asks before acting, and an immediate power acts when chosen.
  */
 export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: string } & (
         | {
@@ -56,11 +57,7 @@ export type PrivateActionsSession = ModuleSession<
 >
 type Decisions = Pick<
     CompanyDecisionsModule,
-    | 'choice'
-    | 'privateTileOptions'
-    | 'privateTrainOptions'
-    | 'privateMarkerOptions'
-    | 'privateTokenOptions'
+    'choice' | 'privateTileOptions' | 'privateTrainOptions'
 >
 type TrackSelection = Pick<LocalSelection, 'undo' | 'clear'>
 type Exchanges = Pick<PrivatesModule, 'exchangeOptions'>
@@ -107,8 +104,6 @@ export class PrivateActionsModule implements LocalSelection {
     private get powersWithOwnButtons() {
         return (
             this.decisions.privateTrainOptions.length > 0 ||
-            this.decisions.privateMarkerOptions.length > 0 ||
-            this.decisions.privateTokenOptions.length > 0 ||
             this.exchanges.exchangeOptions.length > 0
         )
     }
@@ -157,7 +152,7 @@ export class PrivateActionsModule implements LocalSelection {
             return selected
         if (this.offeredPower) return { value: this.offeredPower, source: 'auto' as const }
         // A lone power needs no choice; an immediate one still waits to be pressed, and a power
-        // with its own button, such as a free station, leaves the player a choice to make.
+        // with its own button, such as a private train, leaves the player a choice to make.
         const powers = [...this.trackPowers, ...this.choosableTitlePowers]
         return powers.length === 1 &&
             !this.powersWithOwnButtons &&

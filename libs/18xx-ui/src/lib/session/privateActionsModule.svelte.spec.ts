@@ -5,11 +5,7 @@ import {
     type TitlePrivatePower
 } from './privateActionsModule.svelte.js'
 import { singleChoice } from './stagedSelection.svelte.js'
-import type {
-    CompanyDecision,
-    PrivateTileOption,
-    PrivateTokenOption
-} from './companyDecisionsModule.svelte.js'
+import type { CompanyDecision, PrivateTileOption } from './companyDecisionsModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const Alpha = { privateCompanyId: 'alpha', playerId: 'alex' }
@@ -21,8 +17,7 @@ function privateActions(
     availability = {},
     exchangeOptions: { playerId: string; privateCompanyId: string; certificateId: string }[] = [],
     titlePowers: TitlePrivatePower[] = [],
-    offered?: { privateCompanyId: string; playerId: string },
-    privateTokenOptions: PrivateTokenOption[] = []
+    offered?: { privateCompanyId: string; playerId: string }
 ) {
     let trackSelected = false
     let trackCleared = 0
@@ -32,9 +27,7 @@ function privateActions(
             { ...power, details: tileDetails },
             { ...power, details: tileDetails }
         ]),
-        privateTrainOptions: [],
-        privateMarkerOptions: [],
-        privateTokenOptions
+        privateTrainOptions: []
     }
     const track = {
         undo: () => {
@@ -132,13 +125,22 @@ describe('PrivateActionsModule', () => {
     })
 
     it('waits for a manual choice between a tile power and a station power', () => {
-        const { module } = privateActions([Alpha], {}, {}, [], [], undefined, [
-            {
-                ...Beta,
-                companyId: 'R',
-                position: { locationId: 'A12', nodeId: 'city', slot: 0 }
-            }
-        ])
+        const { module } = privateActions(
+            [Alpha],
+            {},
+            {},
+            [],
+            [
+                {
+                    ...Beta,
+                    kind: 'location',
+                    label: 'Beta: station',
+                    prompt: 'Choose a city',
+                    locationIds: ['A12'],
+                    choose: async () => {}
+                }
+            ]
+        )
         module.choosePowers()
         expect(module.trackPowerSelection).toBeUndefined()
         module.chooseTrackPower(Alpha)

@@ -403,15 +403,6 @@ export function locationMarkerName(
     return name
 }
 
-/** How the private powers panel names placing a marker. */
-export function privateMarkerLabel(
-    view: Pick<MapViewDefinition, 'locationMarkerNames' | 'map'>,
-    kind: string,
-    locationId: string
-): string {
-    return `${locationMarkerName(view, kind).toLowerCase()} on ${view.map.placeName(locationId)}`
-}
-
 /** The cities holding more stations than they have spaces, as `locationId nodeId`. */
 export function overfullCityKeys(
     stations: readonly Station[],

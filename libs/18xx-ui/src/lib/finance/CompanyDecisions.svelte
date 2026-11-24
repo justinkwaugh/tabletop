@@ -3,7 +3,6 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { getCompany, isCompanyPurchaseOffer, placeReference } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import { privateMarkerLabel } from '../maps/mapDrawing.js'
     import CompanyBuying from './CompanyBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
@@ -195,37 +194,6 @@
                                 >
                             {/each}
                         {/if}
-                    </div>
-                {/if}
-                {#if session.privateActions.selection === 'powers' && session.decisions.privateMarkerOptions.length}
-                    <div class="private-track" aria-label="Private markers">
-                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}:${option.nodeId ?? ''}`)}
-                            <button
-                                disabled={!session.decisions.canResolve}
-                                onclick={() => session.decisions.placePrivateMarker(option)}
-                                >Place {privateMarkerLabel(
-                                    session.mapView,
-                                    option.kind,
-                                    option.locationId
-                                )}{option.stopOrdinal
-                                    ? `, stop ${option.stopOrdinal.index} of ${option.stopOrdinal.count}`
-                                    : ''} ({session.actionCompanyName(
-                                    option.privateCompanyId
-                                )})</button
-                            >
-                        {/each}
-                    </div>
-                {/if}
-                {#if session.privateActions.selection === 'powers' && session.decisions.privateTokenOptions.length}
-                    <div class="private-track" aria-label="Private stations">
-                        {#each session.decisions.privateTokenOptions as option (`${option.privateCompanyId}:${option.position.locationId}:${option.position.nodeId}`)}
-                            <button
-                                disabled={!session.decisions.canResolve}
-                                onclick={() => session.decisions.placePrivateToken(option)}
-                                >Place the {session.actionCompanyName(option.privateCompanyId)} station
-                                for free</button
-                            >
-                        {/each}
                     </div>
                 {/if}
                 {#if showPowers && session.decisions.privateTrainOptions.length}
