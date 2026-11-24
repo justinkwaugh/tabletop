@@ -17,6 +17,7 @@ import {
     EighteenUSATileSet,
     CompanyTownTileIds,
     RegionalHeadquartersTileId,
+    RuralJunctionTileIds,
     isCompanyTown
 } from './tiles.js'
 import { EighteenUSAPhases } from './trains.js'
@@ -180,7 +181,7 @@ function tileDefinition(definitionId: string) {
 }
 
 function placedFace(state: ConstructionState, locationId: string): TileFace | undefined {
-    const placement = EighteenUSATileSet.parseInventory(state.tileInventory).placements[locationId]
+    const placement = state.tileInventory.placements[locationId]
     return placement ? tileDefinition(placement.definitionId)?.face : undefined
 }
 
@@ -206,7 +207,8 @@ export function layRestriction(
         EighteenUSAPhases.isAtLeast(state.phaseId, BrownPhaseId) &&
         current?.color === 'white' &&
         current.nodes.some((node) => node.kind === 'city') &&
-        definition.face.color === 'yellow'
+        definition.face.color === 'yellow' &&
+        !RuralJunctionTileIds.includes(definition.id)
     )
         return 'From phase 5 an empty city hex takes a green city tile (§12.2.4).'
     const unupgradable = locationMarkers(state, { locationId: request.locationId }).find((marker) =>

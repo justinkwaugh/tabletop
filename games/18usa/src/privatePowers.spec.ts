@@ -44,6 +44,7 @@ import {
     PlainCityTileIds,
     RegionalHeadquartersId,
     RequiredTileEdges,
+    RuralJunctionId,
     SubsidyPrivateIds,
     SuemWynnId,
     noSubsidyCityIds
@@ -322,6 +323,28 @@ describe('Regional Headquarters (P16)', () => {
                 game.player
             )?.locationIds
         ).toContain(ClevelandId)
+    })
+})
+
+describe('Rural Junction (P26)', () => {
+    const junctionLays = (phaseId: string) => {
+        const game = operatingCompany('H22', (state) => {
+            setPhase(state, phaseId)
+            givePrivate(state, RuralJunctionId, 'ATSF')
+        })
+        const terms = EighteenUSAPrivatePowerRules.trackTerms(
+            game.hydrated,
+            RuralJunctionId,
+            game.player
+        )
+        assertExists(terms, 'Rural Junction lays track')
+        const construction = privateTrackConstruction(game.hydrated, terms, EighteenUSATrackRules)
+        return terms.locationIds.filter((locationId) => construction.choices(locationId).length)
+    }
+
+    it('lays a junction in an empty city hex from phase 5, which takes no green city', () => {
+        expect(junctionLays('2')).toEqual(['H20'])
+        expect(junctionLays('5')).toEqual(['H20'])
     })
 })
 

@@ -76,7 +76,7 @@ function cityBonus(state: RouteState, locationId: string): number {
 }
 
 function isRuralJunction(state: TrainRunningState, locationId: string): boolean {
-    const placement = EighteenUSATileSet.parseInventory(state.tileInventory).placements[locationId]
+    const placement = state.tileInventory.placements[locationId]
     return !!placement && RuralJunctionTileIds.includes(placement.definitionId)
 }
 

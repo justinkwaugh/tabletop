@@ -1,13 +1,14 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
-import { getCompany, releaseTrains, startCompanyAtPar, trainsOwnedBy } from '@tabletop/18xx'
+import { getCompany, releaseTrains, startCompanyAtPar } from '@tabletop/18xx'
 import { startingPositionFile } from '@tabletop/common/testing'
 import { EighteenUSAEndingRules } from '../../18usa/src/endingRules.js'
 import type { EighteenUSAState } from '../../18usa/src/state.js'
 import { EighteenUSAMarket } from '../../18usa/src/stockMarket.js'
 import { EighteenUSAPhases, EighteenUSATrainDepot, PullmanTrainId } from '../../18usa/src/trains.js'
-import { botMove, Random } from '../../18usa/test/bot.js'
-import { edit, kit, type Table } from '../../18usa/test/kit.js'
+import { playUntil, runningWithPullman } from './seededGames.js'
+import * as Privates from './privateScenarios.js'
+import { edit, type Table } from '../../18usa/test/kit.js'
 import { atLimitWithExpressFreight, mergerChoice } from '../../18usa/test/mergers.js'
 import {
     giveTrain,
@@ -60,39 +61,8 @@ function untilReducingStations(game: Table, companyId: string) {
     return game
 }
 
-/** The first of the seeded games to reach the position. */
-function playUntil(players: number, seed: number, done: (game: Table) => boolean, seeds = 40) {
-    for (let tried = seed; tried < seed + seeds; tried++) {
-        const game = kit.table(players, tried)
-        const random = new Random(tried)
-        try {
-            for (let count = 0; count < 8000 && !done(game); count++) {
-                if (game.state.machineState === 'GameOver') break
-                const next = botMove(game, random)
-                game.act(next.type, next.fields, next.playerId)
-            }
-        } catch (error) {
-            console.warn(`Seed ${tried} failed after ${game.actions.length} actions`, error)
-            continue
-        }
-        if (done(game)) return game
-    }
-    throw new Error('The position never came')
-}
-
 const offersSubsidy = (game: Table, locationId: string) =>
     !!game.state.citySubsidies[locationId] && !game.state.noSubsidyCityIds.includes(locationId)
-
-const runningWithPullman = (game: Table) => {
-    const companyId = game.state.routeStep?.companyId
-    return (
-        game.state.machineState === 'RunningTrains' &&
-        !!companyId &&
-        trainsOwnedBy(game.state, { kind: 'company', companyId }).some(
-            (train) => train.definitionId === PullmanTrainId
-        )
-    )
-}
 
 type RecordedRun = {
     companyId: string
@@ -233,6 +203,14 @@ describe.skipIf(!process.env.SCENARIOS)('18USA harness scenarios', () => {
         arrange('phase-8-run', 'phase 8 run', () =>
             recordedPhase8Run(playUntil(4, 1, runningWithPullman))
         )
+        arrange('privates-resources', 'privates resources', Privates.resourcePrivates)
+        arrange('privates-track', 'privates track', Privates.trackPrivates)
+        arrange('privates-tiles', 'privates tiles', Privates.tilePrivates)
+        arrange('privates-stations', 'privates stations', Privates.stationPrivates)
+        arrange('privates-run', 'privates run', Privates.runPrivates)
+        arrange('privates-trains', 'privates trains', Privates.trainPrivates)
+        arrange('privates-company-start', 'privates company start', Privates.companyStartPrivates)
+        arrange('privates-boomtown-subsidy', 'privates boomtown subsidy', Privates.boomtownSubsidy)
         arrange('president-sale', 'president sale', () => {
             const { game, president } = presidentHoldingFive({ noPresidentLimit: true })
             emptyTreasury(game, 'ATSF', president)
