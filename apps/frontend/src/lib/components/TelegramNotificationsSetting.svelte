@@ -5,6 +5,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForNotificationChannelChanges } from '$lib/services/notificationChannelUpdates'
     import { LatestRequest } from '$lib/utils/latestRequest'
+    import TelegramConnectButton from '$lib/components/TelegramConnectButton.svelte'
 
     type Setup =
         | { kind: 'loading' }
@@ -20,7 +21,6 @@
     let setup: Setup = $state({ kind: 'loading' })
     let disconnecting = $state(false)
 
-    // The link is fetched before the press: a window opened after an await is blocked as a pop-up.
     async function load() {
         const current = requests.begin()
         try {
@@ -85,9 +85,15 @@
                 game. Sending /stop to the bot turns it off too.
             </p>
             <div class="flex justify-center py-1">
-                <Button color="alternative" disabled={disconnecting} onclick={disconnect}>
+                <Button
+                    class="h-[30px] w-[120px] rounded-full"
+                    color="light"
+                    size="xs"
+                    disabled={disconnecting}
+                    onclick={disconnect}
+                >
                     {#if disconnecting}<Spinner size="4" class="me-2" />{/if}
-                    Disconnect Telegram
+                    Disconnect
                 </Button>
             </div>
         {:else if setup.kind === 'disconnected'}
@@ -96,9 +102,7 @@
                 Connect, then press Start in Telegram.
             </p>
             <div class="flex justify-center py-1">
-                <Button color="blue" href={setup.link} target="_blank" rel="noopener noreferrer">
-                    Connect Telegram
-                </Button>
+                <TelegramConnectButton href={setup.link} />
             </div>
         {:else}
             <p class="text-sm font-medium text-gray-900 dark:text-white">
