@@ -286,24 +286,12 @@ export function runsCobourg(handler: StateHandler1828): StateHandler1828 {
                 : handler.onAction(action, context)
         }
     }
-    const running = new SystemActionFirstHandler(
+    return new SystemActionFirstHandler(
         choosing,
         RunCobourg,
         (state) => (cobourgRunDue(state) ? {} : undefined),
         'OperatingSet'
     )
-    return {
-        isValidAction: (action, context) => running.isValidAction(action, context),
-        validActionsForPlayer: (playerId, context) =>
-            running.validActionsForPlayer(playerId, context),
-        // The step's record comes first: its state must load even with a run due at once.
-        enter(context) {
-            const state = context.gameState
-            if (cobourgRunning(state)) state.routeStep ??= { companyId: CobourgRailwayId }
-            running.enter(context)
-        },
-        onAction: (action, context) => running.onAction(action, context)
-    }
 }
 
 /**

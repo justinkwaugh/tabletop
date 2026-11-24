@@ -67,7 +67,7 @@ import { privateActions } from '../privates/privateActions.js'
 import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
 import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { routeActions } from '../routes/routeActions.js'
-import { RunningTrainsHandler } from '../routes/runningTrainsHandler.js'
+import { RunningTrainsHandler, recordsRunningCompany } from '../routes/runningTrainsHandler.js'
 import { InstructedRunsHandler } from '../routes/instructedRunsHandler.js'
 import { runInstructionActions } from '../routes/runInstructionActions.js'
 import { RunInstructionHandler } from '../routes/runInstructionHandler.js'
@@ -530,15 +530,17 @@ export function createEighteenXXRuntime<
                   )
               }
             : {}),
-        RunningTrains: followsRunInstructions(
-            'RunningTrains',
-            operatingStep(
-                operatesReceivership(
-                    'RunningTrains',
-                    decides(
+        RunningTrains: recordsRunningCompany(
+            followsRunInstructions(
+                'RunningTrains',
+                operatingStep(
+                    operatesReceivership(
                         'RunningTrains',
-                        allowsCorporateFinance(
-                            new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
+                        decides(
+                            'RunningTrains',
+                            allowsCorporateFinance(
+                                new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
+                            )
                         )
                     )
                 )
