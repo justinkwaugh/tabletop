@@ -41,7 +41,7 @@ export type HarvestMetadata = Type.Static<typeof HarvestMetadata>
 export const HarvestMetadata = Type.Object({
     /** R-3.11.1 What the seat's holdings yield; R-1.1-H1 `drawn` may come to less. */
     total: ComponentCount,
-    /** R-5.2 Every good out of the haversack, by kind. */
+    /** R-5.2 */
     drawn: GoodCounts,
     vp: Type.Integer({ minimum: 0 }),
     /** R-3.11.2 To the seat's supply. Absent: favours weren't drawn in this Action. */

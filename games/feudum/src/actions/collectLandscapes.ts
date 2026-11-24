@@ -103,7 +103,7 @@ export function reasonCollectLandscapesRefused(
     return reasonSulfurCountToBarrelRefused(state, playerId, gained, sulfurToBarrel)
 }
 
-/** R-4.3.4 One landscape the asked serf could collect. */
+/** R-4.3.4 */
 export interface CollectLandscapeSpaceOffer {
     readonly spaceId: SpaceId
     readonly landscape: LandscapeKind

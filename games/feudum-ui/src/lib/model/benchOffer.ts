@@ -114,7 +114,7 @@ export interface BenchItem extends BenchChoice {
     readonly area: number
     readonly role: BenchItemRole
     readonly count?: number
-    /** R-4.6.2 A trade's price for it, in shillings. */
+    /** R-4.6.2 */
     readonly price?: number
 }
 

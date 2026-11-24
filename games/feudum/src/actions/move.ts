@@ -448,7 +448,7 @@ function takePilfer(
     return { spaceId }
 }
 
-/** R-3.7.1, R-3.7.3, R-3.7.4 Every piece the input moves. */
+/** R-3.7.1, R-3.7.3, R-3.7.4 */
 function piecesMoved(playerId: string, { steps, godspeed }: MoveDraft): PieceRef[] {
     return [
         ...steps.map((step) => step.piece),

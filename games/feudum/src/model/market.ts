@@ -19,7 +19,7 @@ export interface MarketLines {
     readonly columns: number
 }
 
-/** R-4.6.3 Empty spaces in a good's market bin. */
+/** R-4.6.3 */
 export function marketRoom(state: HydratedFeudumGameState, good: Good): number {
     const { market } = state.guilds.merchant
     return MarketSpaces.filter((row) => row.good === good && !market[row.id]).length
@@ -34,7 +34,7 @@ export function fillMarket(state: HydratedFeudumGameState, good: Good): MarketSp
     return space.id
 }
 
-/** R-4.6.3 Empty spaces in a good's cart. */
+/** R-4.6.3 */
 export function cartRoom(state: HydratedFeudumGameState, good: Good): number {
     const { carts } = state.guilds.alchemist
     return AlchemistCartSpaces.filter((row) => row.good === good && !carts[row.id]).length

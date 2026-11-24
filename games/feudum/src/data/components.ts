@@ -163,7 +163,7 @@ export const ComponentTotals = {
     pawnFaces: PawnFaces.length
 } as const
 
-/** R-1.4.1 What each player takes into their personal supply. */
+/** R-1.4.1 */
 export const StartingSupply = {
     pawns: PawnsPerColour,
     playerDiscs: PlayerDiscsPerColour,

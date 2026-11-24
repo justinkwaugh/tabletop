@@ -22,7 +22,7 @@ export interface GameEndColumn {
     /** R-6.2 Its sets, and what they are made of. */
     readonly largeEmpire: { readonly label: string; readonly vp: number }
     readonly shillings: { readonly label: string; readonly vp: number }
-    /** R-4.4.3, R-6.2 Every sealed charter, face up with its score. */
+    /** R-4.4.3, R-6.2 */
     readonly charters: readonly { readonly writId: WritId; readonly vp: number }[]
     /** R-6.3 */
     readonly score: number

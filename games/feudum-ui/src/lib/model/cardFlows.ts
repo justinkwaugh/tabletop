@@ -99,7 +99,7 @@ export type TurnDraftValues = {
     harvest: HarvestMode
     collect: boolean
     barrel: number
-    /** R-4.4-H1 The tiles covering a short payment, stacked. */
+    /** R-4.4-H1 */
     cover: readonly TileId[]
 }
 

@@ -43,7 +43,7 @@ export function returnAllGoods(state: HydratedFeudumGameState, playerId: string)
     }
 }
 
-/** R-4.3.3 The seat collects a stack's top tile. */
+/** R-4.3.3 */
 export function giveTile(state: HydratedFeudumGameState, playerId: string): TileId {
     const region = RegionIds.find((id) => state.regionStacks[id].length > 0)
     assertExists(region, 'R-4.3.1 A stack has a tile')

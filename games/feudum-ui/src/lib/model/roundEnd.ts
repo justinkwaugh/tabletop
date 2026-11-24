@@ -17,7 +17,7 @@ type MapGood = NonNullable<ReplenishMap['metadata']>['goods'][number]
 
 export interface DawnSheetView {
     readonly epoch: Epoch
-    /** R-4.12.1, R-4.12.2 One per seat, in turn order. */
+    /** R-4.12.1, R-4.12.2 */
     readonly rows: readonly DawnSheetRow[]
     /** R-4.12.3 The landscape fills, in the order they filled. */
     readonly fills: readonly string[]

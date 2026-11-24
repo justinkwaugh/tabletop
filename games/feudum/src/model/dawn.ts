@@ -103,7 +103,7 @@ function scoreDawnRow(
     return { playerId, ranks, landscapes, activeRegions, disloyaltyVp: disloyalty, total }
 }
 
-/** R-4.12.1, R-4.12.2 Every seat's row, in turn order. */
+/** R-4.12.1, R-4.12.2 */
 export function scoreDawn(state: HydratedFeudumGameState, epoch: Epoch): DawnSheetRow[] {
     return state.turnManager.turnOrder.map((playerId) => scoreDawnRow(state, playerId, epoch))
 }

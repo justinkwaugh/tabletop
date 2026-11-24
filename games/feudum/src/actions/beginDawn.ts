@@ -24,7 +24,7 @@ export type BeginDawnMetadata = Type.Static<typeof BeginDawnMetadata>
 export const BeginDawnMetadata = Type.Object({
     /** R-4.12 */
     epoch: TriggeredEpoch,
-    /** R-4.12.1, R-4.12.2 One row per seat, in turn order. */
+    /** R-4.12.1, R-4.12.2 */
     sheet: Type.Array(DawnSheetRow),
     /** R-4.12.3 Every landscape, in the order it filled (R-4.12-H1). */
     fills: Type.Array(LandscapeFilled)

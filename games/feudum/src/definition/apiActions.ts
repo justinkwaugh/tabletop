@@ -40,7 +40,6 @@ import { Tax } from '../actions/tax.js'
 import { TendLandscape } from '../actions/tendLandscape.js'
 import { ActionType } from './actions.js'
 
-// The backend generates an endpoint per Action from this, with schema validation.
 export const FeudumApiActions = {
     [ActionType.ChooseStartingGoods]: ChooseStartingGoods,
     [ActionType.PlaceStartingPawn]: PlaceStartingPawn,

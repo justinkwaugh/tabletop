@@ -693,7 +693,7 @@ function commitBlocks(
     return [
         line('flow', 'Add to the attack'),
         { kind: 'tally', lines: panel.tally },
-        // R-4.8.2 The stepper's press is the saltpeter cube and "+", named in words.
+        // R-4.8.2
         ...rows(
             'saltpeter',
             saltpeter.add

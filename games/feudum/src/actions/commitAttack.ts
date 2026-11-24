@@ -129,7 +129,7 @@ export function reasonCommitAttackRefused(
     )
 }
 
-/** R-4.4-H1 One way to use a held weapon. */
+/** R-4.4-H1 */
 export interface WeaponOffer {
     readonly writId: WritId
     readonly alternative: MandateAlternativeId

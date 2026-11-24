@@ -44,7 +44,6 @@ export function marketToCartsRow(
             return { details, completions: reached(details.completed.length) }
         },
 
-        /** The real rule on a copy; a staged input short of the count is read too. */
         preview(state, _actor, params) {
             if (reasonCartPicksRefused(state, params.goods ?? [], cap)) {
                 return undefined

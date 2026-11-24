@@ -73,7 +73,7 @@ function startingSpaceShowing(host: FeudumHost, kind: LocationKind): SpaceId {
     return space.id
 }
 
-/** R-1.4.8 Each seat takes its goods, in setup order. */
+/** R-1.4.8 */
 async function chooseGoods(host: FeudumHost, plans: readonly SeatPlan[]) {
     await host.playStartingGoods((playerId) => {
         const { goods, sulfurToBarrel } = planOf(host, plans, playerId)
@@ -532,7 +532,7 @@ async function gameEnding(lift: readonly number[]) {
     return host
 }
 
-/** R-4.10.1 Each seat nourishing asks feeds every pawn food. */
+/** R-4.10.1 */
 async function feedWithFood(host: FeudumHost) {
     while (host.state.machineState === MachineState.Nourishing) {
         const [playerId] = host.state.flow.nourish?.pending ?? []

@@ -168,7 +168,7 @@ export function nourishHasChoice(state: HydratedFeudumGameState, playerId: strin
     )
 }
 
-/** R-4.10.1 One pawn the seat decides for. */
+/** R-4.10.1 */
 export interface NourishPawnOffer {
     readonly n: PawnNumber
     readonly spaceId: SpaceId

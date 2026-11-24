@@ -39,7 +39,7 @@ export const GuildFunctionParams = Type.Object({
     farmSpaceId: Type.Optional(SpaceIdSchema),
     /** R-4.6.3 Farmer trade: how many rewards are food; the rest are shillings. */
     takeFood: Type.Optional(Type.Integer({ minimum: 0 })),
-    /** R-4.6.1 The goods moved, in order. */
+    /** R-4.6.1 */
     goods: Type.Optional(Type.Array(GoodSchema)),
     /** R-4.6.3, R-4.10.2 Merchant trade: of the sulfur bought, how many go in the barrel. */
     sulfurToBarrel: Type.Optional(SulfurToBarrelCount),
@@ -54,7 +54,7 @@ export const GuildFunctionParams = Type.Object({
     deploySpaceId: Type.Optional(SpaceIdSchema),
     /** R-4.6.4, R-4.6.5 Knight push, Noble pull: each marker's row, by its row id. */
     knightRows: Type.Optional(Type.Array(KnightRowIdSchema, { maxItems: KnightRowIds.length })),
-    /** R-4.6-H1, R-4.6.4, R-4.6.5 The scroll spaces filled or emptied, in order. */
+    /** R-4.6-H1, R-4.6.4, R-4.6.5 */
     scrollSpaces: Type.Optional(Type.Array(ScrollSpaceIdSchema))
 })
 
@@ -155,7 +155,6 @@ export interface PreviewedFunction {
     readonly details?: GuildFunctionDetails
 }
 
-/** `reasonRefused` is read only once `reasonClosed` is clear; `preview` reads no vault. */
 export interface GuildFunctionRow {
     reasonClosed(state: HydratedFeudumGameState, actor: FunctionActor): string | undefined
     reasonRefused(

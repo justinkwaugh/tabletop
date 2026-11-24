@@ -59,7 +59,7 @@ export interface CharterRegistration {
 
 export type WritRegistration = MandateRegistration | WeaponRegistration | CharterRegistration
 
-/** R-6.2 One sealed charter, revealed with what it scores. */
+/** R-6.2 */
 export interface CharterScore {
     readonly writId: WritId
     readonly vp: number
@@ -187,7 +187,7 @@ export class WritRegistry {
         return this.charters.has(writId) ? undefined : `${writId} has no end scoring`
     }
 
-    /** R-4.4-H1, R-4.4.3 The one timing each writ has. */
+    /** R-4.4-H1, R-4.4.3 */
     private static timingOf(writ: RoyalWrit): WritTiming {
         switch (writ.kind) {
             case 'turn-in':

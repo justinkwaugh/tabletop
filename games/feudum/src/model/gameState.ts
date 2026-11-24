@@ -158,7 +158,7 @@ export class HydratedFeudumGameState
         return PlayerDiscRoles.shared - reeves - voyage - service
     }
 
-    /** R-4.1.4 Derived: the spaces this player rules. */
+    /** R-4.1.4 */
     ruledSpaceIds(playerId: string): SpaceId[] {
         return Spaces.map((space) => space.id).filter(
             (spaceId) => this.spaces[spaceId].ruler?.playerId === playerId

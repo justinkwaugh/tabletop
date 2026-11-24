@@ -72,7 +72,7 @@ export function canonicalOf(state: HydratedFeudumGameState): FeudumGameState {
     return data
 }
 
-/** R-4.9-H2 The seat has covered its first `covered` spaces. */
+/** R-4.9-H2 */
 export function coverService(
     state: Pick<FeudumGameState, 'militaryService'>,
     playerId: string,

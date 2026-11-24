@@ -8,7 +8,6 @@ export type SpaceId = `space.${RegionId}.${number}`
 export interface Space {
     readonly id: SpaceId
     readonly region: RegionId
-    /** The letters printed on it; a space with two counts for both directions. */
     readonly letters: readonly MapDirection[]
     /** The printed starting mark (R-1.4.9). */
     readonly startingSpace: boolean

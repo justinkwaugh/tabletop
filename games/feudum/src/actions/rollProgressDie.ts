@@ -18,7 +18,7 @@ export type RollProgressDieMetadata = Type.Static<typeof RollProgressDieMetadata
 export const RollProgressDieMetadata = Type.Object({
     /** R-4.11.1 Every face in order, the last the one that counted; empty: the die wasn't rolled. */
     faces: Type.Array(RegionIdSchema),
-    /** R-4.11.1, R-4.11-H2 The tile the last face removed. */
+    /** R-4.11.1, R-4.11-H2 */
     removed: Type.Optional(
         Type.Object({
             region: RegionIdSchema,

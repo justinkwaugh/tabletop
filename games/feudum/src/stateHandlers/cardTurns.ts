@@ -36,7 +36,7 @@ export function stateAfterCardStep(context: MachineContext<HydratedFeudumGameSta
     return MachineState.PlayingCards
 }
 
-/** R-3.2, R-3.3-H1 What each outcome of `AdvanceTurn` leads to. */
+/** R-3.2, R-3.3-H1 */
 const StatesAfterAdvance: Readonly<Record<AdvanceTurnMetadata['outcome'], MachineState>> = {
     'second-card': MachineState.PlayingCards,
     'next-seat': MachineState.PlayingCards,

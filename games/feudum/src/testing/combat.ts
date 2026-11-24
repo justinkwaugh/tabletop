@@ -111,7 +111,7 @@ export const PawnOf = (playerId: string, n: 1 | 2 | 3 = 1): CombatTarget => ({
     n
 })
 
-/** R-3.13.1 Plays Conquer at the battlefield. */
+/** R-3.13.1 */
 export function conquer(
     { table, attackerId }: CombatTable,
     target: CombatTarget,

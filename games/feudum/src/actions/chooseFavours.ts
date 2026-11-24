@@ -22,7 +22,7 @@ import { goodsTotal } from '../model/collections.js'
 export type ChooseFavoursMetadata = Type.Static<typeof ChooseFavoursMetadata>
 export const ChooseFavoursMetadata = Type.Object({
     spaceId: SpaceIdSchema,
-    /** R-3.11.3 Everything the harvest drew, by kind. */
+    /** R-3.11.3 */
     drawn: GoodCounts,
     /** R-3.11.3 To the seat; all zero when none were taken. The input names any for the barrel. */
     favours: GoodCounts,

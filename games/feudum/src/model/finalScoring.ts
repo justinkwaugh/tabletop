@@ -26,7 +26,7 @@ export const FinalSheetRow = Type.Object({
     }),
     /** R-6.2 */
     shillings: Type.Object({ held: ComponentCount, vp: ComponentCount }),
-    /** R-4.4.3, R-6.2 Every sealed charter, revealed with what it paid. */
+    /** R-4.4.3, R-6.2 */
     charters: Type.Array(Type.Object({ writId: WritIdSchema, vp: ComponentCount })),
     total: ComponentCount,
     /** R-6.3 The seat's score once the row is added. */

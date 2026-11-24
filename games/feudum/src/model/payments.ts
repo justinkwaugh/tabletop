@@ -18,7 +18,7 @@ export const WildTileSpend = Type.Object({
 
 export type GoodPrice = Readonly<Partial<Record<Good, number>>>
 
-/** R-4.6.2 Where a payment's shillings go. */
+/** R-4.6.2 */
 export interface GuildSplit {
     readonly members: { readonly playerId: string; readonly amount: number }[]
     readonly charity: { readonly id: CharityId; readonly amount: number }

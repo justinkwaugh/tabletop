@@ -57,7 +57,7 @@ export const GoodCounts = Type.Record(GoodSchema, ComponentCount)
 export type VesselCounts = Type.Static<typeof VesselCounts>
 export const VesselCounts = Type.Record(VesselTypeSchema, ComponentCount)
 
-/** A record with exactly these keys. The data layer computes its ids, so they reach here as a list. */
+/** The data layer computes its ids, so they reach here as a list. */
 export function recordOf<K extends string, V extends Type.TSchema>(keys: readonly K[], value: V) {
     return Type.Unsafe<Record<K, Type.Static<V>>>(Type.Record(Type.Enum([...keys]), value))
 }

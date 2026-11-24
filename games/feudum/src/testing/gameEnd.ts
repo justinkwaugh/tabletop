@@ -14,7 +14,7 @@ export function scoredIn(processed: readonly GameAction[]): ScoreGameMetadata {
     return action.metadata
 }
 
-/** R-6.2 One seat's row of the final sheet. */
+/** R-6.2 */
 export function rowOf(metadata: ScoreGameMetadata, playerId: string) {
     const row = metadata.sheet.find((entry) => entry.playerId === playerId)
     assertExists(row, `R-6.2 ${playerId} has a row`)

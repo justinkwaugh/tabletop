@@ -53,7 +53,7 @@ const RoutesBySpace: ReadonlyMap<SpaceId, readonly Route[]> = Routes.reduce((byS
     return bySpace
 }, new Map<SpaceId, Route[]>())
 
-/** R-1.2.2 Every route touching a space, in `Routes` order. */
+/** R-1.2.2 */
 export function routesAt(spaceId: SpaceId): readonly Route[] {
     return RoutesBySpace.get(spaceId) ?? []
 }
@@ -161,7 +161,7 @@ export function pawnRouteOptions(
     return options
 }
 
-/** R-3.7.1, R-4.2 Every step this pawn may take now. */
+/** R-3.7.1, R-4.2 */
 export function pawnSteps(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -180,7 +180,7 @@ export function monsterMayUse(monster: MonsterId, route: Route): boolean {
     )
 }
 
-/** R-3.7.1, R-4.2.4 Every step this monster may take now. */
+/** R-3.7.1, R-4.2.4 */
 export function monsterSteps(state: HydratedFeudumGameState, monster: MonsterId): RouteStep[] {
     const spaceId = state.monsters[monster].spaceId
     if (spaceId === undefined) {

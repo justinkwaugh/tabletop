@@ -18,7 +18,6 @@ export interface FixturePage {
     markupProblems(): string[]
 }
 
-/** Served by the dev server alone: no route and no other file of the package imports it. */
 export async function openFixture(name: string): Promise<void> {
     if (!dev) {
         throw new Error('Fixtures open on the dev server only')

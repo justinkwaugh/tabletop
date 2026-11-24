@@ -40,7 +40,7 @@ export interface ScoreDisc extends ScoreOnTrack {
     readonly count: number
 }
 
-/** R-1.2.5 Each seat's score, in turn order. */
+/** R-1.2.5 */
 export function seatScores(state: HydratedFeudumGameState): readonly SeatScore[] {
     const { turnOrder } = state.turnManager
     const rank = (playerId: string) => {

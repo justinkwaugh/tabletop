@@ -3,7 +3,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { cardTurnSeat } from './turns.js'
 
-/** R-4.4-H1, R-4.4-H5 The moments a seat may act at will. */
+/** R-4.4-H1, R-4.4-H5 */
 export type AtWillWindow = 'before-card' | 'hand-selection' | 'nourishing' | 'writ-limit'
 
 /** R-4.4-H1, R-3.1-H1, R-4.10-H4, R-4.4-H5 */

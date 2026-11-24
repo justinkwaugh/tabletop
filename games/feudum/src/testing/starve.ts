@@ -21,7 +21,7 @@ function noFood(state: HydratedFeudumGameState, playerId: string): void {
     goods.food = 0
 }
 
-/** R-3.14.2 The seat takes one food off the haversack. */
+/** R-3.14.2 */
 export function giveFood(state: HydratedFeudumGameState, playerId: string): void {
     state.getPlayerState(playerId).goods.food += takeGoodFromHaversack(state, 'food')
 }
@@ -51,7 +51,7 @@ export function sealUnder({ table, role }: StarveTable): void {
     })
 }
 
-/** R-3.13.2 Plays Starve the People at the battlefield. */
+/** R-3.13.2 */
 export function starve(
     { table, attackerId, defenderId, role }: StarveTable,
     extra: Record<string, unknown> = {}

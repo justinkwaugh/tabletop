@@ -159,7 +159,6 @@ export function deskMapAtRest(
     const left = centred ? Math.max(0, (view.width - width - 2 * SideGutter - beside) / 2) : 0
     const fitted = column ? MapArea.height : deskScaledHeight(seats)
     const top = centred ? Math.max(0, (view.height - fitted * scale) / 2) : 0
-    // The wrapper centres the strip's content itself.
     const inset = column ? left : 0
     return {
         x: left + SideGutter,
@@ -249,7 +248,6 @@ function columnOf(area: 'west' | 'east'): BoundingBox {
     return unionOf(corners, 0)
 }
 
-/** As the scaling wrapper reckons its rest. */
 export function restScaleOf(viewWidth: number, viewHeight: number): number {
     const across = viewWidth / BoardWidth
     const down = Math.max(1, viewHeight - ChooserInset) / ScaledHeight

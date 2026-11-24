@@ -43,7 +43,6 @@ export class HistoryLog {
         return this.replayingNow?.entryId
     }
 
-    /** The shared history refuses while the table is busy. */
     get available(): boolean {
         return !this.replaying && !this.session.history.isDisabled()
     }

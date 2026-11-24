@@ -8,7 +8,7 @@ export interface SealBeadCount {
     readonly count: number
 }
 
-/** R-1.1 How many discs show each bead value. */
+/** R-1.1 */
 export const SealBeadCounts: readonly SealBeadCount[] = [
     { beadValue: 2, count: 9 },
     { beadValue: 3, count: 5 },
