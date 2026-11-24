@@ -14,6 +14,9 @@ import {
     DiscordBotApi,
     DiscordService,
     DiscordTransport,
+    TelegramBotApi,
+    TelegramService,
+    TelegramTransport,
     EmailService,
     EnvSecretsService,
     EnvService,
@@ -91,6 +94,7 @@ declare module 'fastify' {
         gameService: GameService
         notificationService: NotificationService
         discordService: DiscordService
+        telegramService: TelegramService
         ablyService: AblyService | undefined
         ssePubSub: PubSubService | undefined
         chatService: ChatService
@@ -126,6 +130,7 @@ const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 const BUG_REPORT_DATA_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_DATA_CHANNEL_ID']
 const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
+const useTelegram = !!process.env['TELEGRAM_BOT_TOKEN']
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle' | 'afterTitleLoads'>
 
@@ -226,6 +231,27 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     }
 
     const discordService = new DiscordService(notificationService, userService, discordTransport)
+
+    const telegramBot = useTelegram
+        ? {
+              api: new TelegramBotApi(await secretsService.getSecret('TELEGRAM_BOT_TOKEN')),
+              webhookSecret: await secretsService.getSecret('TELEGRAM_WEBHOOK_SECRET')
+          }
+        : undefined
+    if (telegramBot) {
+        notificationService.addTransport(
+            new TelegramTransport(libraryService, catalogService, telegramBot.api)
+        )
+    }
+    const telegramService = new TelegramService(
+        {
+            notifications: notificationService,
+            subscriptions: notificationStore,
+            users: userService,
+            cache: redisCacheService
+        },
+        telegramBot
+    )
 
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
     notificationService.addTransport(webPushTransport)
@@ -337,6 +363,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('catalogService', catalogService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
+    fastify.decorate('telegramService', telegramService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
     fastify.decorate('rateLimitCounter', new RedisRateLimitCounter(redisService.client))

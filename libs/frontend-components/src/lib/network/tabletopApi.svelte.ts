@@ -111,6 +111,8 @@ export type GetGameOptions = {
 
 export type RealtimeTokenOptions = { relayStats?: boolean }
 
+export type TelegramNotificationStatus = { available: boolean; connected: boolean }
+
 export class TabletopApi {
     readonly supportsReproductionSeed?: boolean = true
     readonly supportsHostView?: boolean = true
@@ -1170,6 +1172,33 @@ export class TabletopApi {
     async unsubscribeFromPushNotifications(endpoint: string) {
         await this.wretch
             .post({ endpoint }, '/notification/webpush/unsubscribe')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .res()
+    }
+
+    async getTelegramNotificationStatus(): Promise<TelegramNotificationStatus> {
+        const response = await this.wretch
+            .get('/notification/telegram/status')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<{ payload: TelegramNotificationStatus }>()
+        return response.payload
+    }
+
+    /** A one-time t.me link that connects the chat which opens it; it works for an hour. */
+    async createTelegramLink(): Promise<string> {
+        const response = await this.wretch
+            .post({}, '/notification/telegram/link')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<{ payload: { url: string } }>()
+        return response.payload.url
+    }
+
+    async disconnectTelegram(): Promise<void> {
+        await this.wretch
+            .post({}, '/notification/telegram/disconnect')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .res()

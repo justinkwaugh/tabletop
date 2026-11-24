@@ -1,10 +1,11 @@
-import { PlayerVoteKind, UserNotification, UserNotificationAction } from '@tabletop/common'
+import { UserNotification, UserNotificationAction } from '@tabletop/common'
 import {
     ButtonStyle,
     ComponentType,
     RESTPostAPIChannelMessageJSONBody
 } from 'discord-api-types/v10'
 import { siteUrl, truncate } from '../../discord/discordFormatting.js'
+import { userNotificationCopy } from './userNotificationCopy.js'
 
 export type DiscordNotificationContext = {
     frontendHost: string
@@ -13,16 +14,7 @@ export type DiscordNotificationContext = {
     sentAt: Date
 }
 
-type NotificationCopy = {
-    summary: string
-    heading: string
-    color: number
-    path: string
-    buttonLabel: string
-}
-
 const SITE_NAME = 'BoardTogether'
-const DASHBOARD_PATH = '/dashboard'
 
 // Discord rejects the whole message when any of these fields is over its limit.
 const Limit = {
@@ -31,22 +23,22 @@ const Limit = {
     EmbedAuthorName: 256
 } as const
 
-const Color = {
-    Turn: 0x22c55e,
-    Started: 0x3b82f6,
-    Invited: 0xa855f7,
-    Joined: 0x14b8a6,
-    Declined: 0x6b7280,
-    Vote: 0xf59e0b,
-    Seated: 0x0ea5e9,
-    Unseated: 0x6b7280
-} as const
+const Color: Record<UserNotificationAction, number> = {
+    [UserNotificationAction.IsYourTurn]: 0x22c55e,
+    [UserNotificationAction.GameStarted]: 0x3b82f6,
+    [UserNotificationAction.WasInvited]: 0xa855f7,
+    [UserNotificationAction.PlayerJoined]: 0x14b8a6,
+    [UserNotificationAction.PlayerDeclined]: 0x6b7280,
+    [UserNotificationAction.PlayerVoteRequested]: 0xf59e0b,
+    [UserNotificationAction.TookOverSeat]: 0x0ea5e9,
+    [UserNotificationAction.LostSeat]: 0x6b7280
+}
 
 export function discordNotificationMessage(
     notification: UserNotification,
     context: DiscordNotificationContext
 ): RESTPostAPIChannelMessageJSONBody {
-    const copy = notificationCopy(notification)
+    const copy = userNotificationCopy(notification)
     const url = siteUrl(copy.path, context.frontendHost)
 
     return {
@@ -58,7 +50,7 @@ export function discordNotificationMessage(
                 title: truncate(notification.data.game.name, Limit.EmbedTitle),
                 url,
                 description: context.gameTitle,
-                color: copy.color,
+                color: Color[notification.action],
                 thumbnail: context.thumbnailUrl
                     ? { url: siteUrl(context.thumbnailUrl, context.frontendHost) }
                     : undefined,
@@ -80,83 +72,5 @@ export function discordNotificationMessage(
             }
         ],
         allowed_mentions: { parse: [] }
-    }
-}
-
-function notificationCopy(notification: UserNotification): NotificationCopy {
-    const gameName = notification.data.game.name
-    const gamePath = `/game/${notification.data.game.id}`
-
-    switch (notification.action) {
-        case UserNotificationAction.IsYourTurn:
-            return {
-                summary: `It's your turn in ${gameName}`,
-                heading: "It's your turn",
-                color: Color.Turn,
-                path: gamePath,
-                buttonLabel: 'Take your turn'
-            }
-        case UserNotificationAction.GameStarted:
-            return {
-                summary: `${gameName} has begun!`,
-                heading: 'Your game has begun',
-                color: Color.Started,
-                path: gamePath,
-                buttonLabel: 'Open game'
-            }
-        case UserNotificationAction.WasInvited:
-            return {
-                summary: `${notification.data.owner.username} invited you to ${gameName}`,
-                heading: `${notification.data.owner.username} invited you to play`,
-                color: Color.Invited,
-                path: DASHBOARD_PATH,
-                buttonLabel: 'View invitation'
-            }
-        case UserNotificationAction.PlayerJoined:
-            return {
-                summary: `${notification.data.player.name} joined ${gameName}`,
-                heading: `${notification.data.player.name} joined your game`,
-                color: Color.Joined,
-                path: DASHBOARD_PATH,
-                buttonLabel: 'Open dashboard'
-            }
-        case UserNotificationAction.PlayerDeclined:
-            return {
-                summary: `${notification.data.player.name} declined to join ${gameName}`,
-                heading: `${notification.data.player.name} declined your invitation`,
-                color: Color.Declined,
-                path: DASHBOARD_PATH,
-                buttonLabel: 'Open dashboard'
-            }
-        case UserNotificationAction.PlayerVoteRequested:
-            return {
-                summary:
-                    notification.data.kind === PlayerVoteKind.Call
-                        ? `${notification.data.initiator.name} asks to end ${gameName}`
-                        : `${notification.data.initiator.name} asks to go back in ${gameName}`,
-                heading:
-                    notification.data.kind === PlayerVoteKind.Call
-                        ? `${notification.data.initiator.name} asks everyone to end the game`
-                        : `${notification.data.initiator.name} asks everyone to go back`,
-                color: Color.Vote,
-                path: gamePath,
-                buttonLabel: 'Vote'
-            }
-        case UserNotificationAction.TookOverSeat:
-            return {
-                summary: `You've taken over ${notification.data.formerHolder.name}'s seat in ${gameName}`,
-                heading: `An administrator gave you ${notification.data.formerHolder.name}'s seat`,
-                color: Color.Seated,
-                path: gamePath,
-                buttonLabel: 'Open game'
-            }
-        case UserNotificationAction.LostSeat:
-            return {
-                summary: `${notification.data.newHolder.name} has taken over your seat in ${gameName}`,
-                heading: `An administrator gave your seat to ${notification.data.newHolder.name}`,
-                color: Color.Unseated,
-                path: DASHBOARD_PATH,
-                buttonLabel: 'Open dashboard'
-            }
     }
 }

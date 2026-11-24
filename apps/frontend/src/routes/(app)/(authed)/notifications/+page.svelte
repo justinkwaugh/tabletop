@@ -9,6 +9,7 @@
     import TurnRemindersEditor from '$lib/components/TurnRemindersEditor.svelte'
     import EmailNotificationsSetting from '$lib/components/EmailNotificationsSetting.svelte'
     import WebNotificationsSetting from '$lib/components/WebNotificationsSetting.svelte'
+    import TelegramNotificationsSetting from '$lib/components/TelegramNotificationsSetting.svelte'
 
     let { authorizationService } = getAppContext()
 
@@ -26,8 +27,8 @@
         <div class="flex flex-col gap-3">
             <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">Turn Notifications</h2>
             <p class="text-sm text-gray-700 dark:text-gray-300">
-                Board Together tells you it's your turn through your web browser and Discord. Turn
-                notifications are never sent by email.
+                Board Together tells you it's your turn through your web browser, Discord and
+                Telegram. Turn notifications are never sent by email.
             </p>
         </div>
 
@@ -77,6 +78,8 @@
                 {/if}
             </div>
         {/if}
+
+        <TelegramNotificationsSetting />
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">

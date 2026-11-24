@@ -3,7 +3,8 @@ import { NotificationSubscription } from '../subscriptions/notificationSubscript
 
 export enum TransportType {
     WebPush = 'webPush',
-    Discord = 'discord'
+    Discord = 'discord',
+    Telegram = 'telegram'
 }
 
 export type NotificationResult = {

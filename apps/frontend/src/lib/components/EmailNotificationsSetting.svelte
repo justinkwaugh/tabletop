@@ -16,5 +16,6 @@
     reminders. Account emails are always sent.
 </p>
 <p class="text-sm font-medium text-gray-900 dark:text-white">
-    Email never tells you it's your turn. For that, turn on web or Discord notifications above.
+    Email never tells you it's your turn. For that, turn on web, Discord or Telegram notifications
+    above.
 </p>

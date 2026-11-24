@@ -43,7 +43,8 @@ import type {
 import type {
     GameVersionProvider,
     GetGameOptions,
-    RealtimeTokenOptions
+    RealtimeTokenOptions,
+    TelegramNotificationStatus
 } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type {
@@ -469,6 +470,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async unsubscribeFromPushNotifications(_endpoint: string): Promise<void> {
         return this.fail('unsubscribeFromPushNotifications')
+    }
+
+    async getTelegramNotificationStatus(): Promise<TelegramNotificationStatus> {
+        return this.fail('getTelegramNotificationStatus')
+    }
+
+    async createTelegramLink(): Promise<string> {
+        return this.fail('createTelegramLink')
+    }
+
+    async disconnectTelegram(): Promise<void> {
+        return this.fail('disconnectTelegram')
     }
 
     async searchUsers(_query: string): Promise<User[]> {
