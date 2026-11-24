@@ -1,17 +1,11 @@
 <script lang="ts">
+    import { untrack } from 'svelte'
+    import type { GameSession } from '$lib/model/gameSession.svelte.js'
+    import { setGameSession } from '$lib/model/gameSessionContext.js'
     import { TabWorkspace, HistoryKeyControls, type WorkspaceTab } from '../../index.js'
-    import { setGameSession } from '../../model/gameSessionContext.js'
-    import type { GameSessionView } from '../../model/gameSessionView.js'
 
-    let steps: string[] = $state([])
-    setGameSession({
-        myPlayer: undefined,
-        isBusy: () => false,
-        history: {
-            goToPreviousAction: () => steps.push('previous'),
-            goToNextAction: () => steps.push('next')
-        }
-    } as unknown as GameSessionView)
+    let { session }: { session: GameSession<any, any> } = $props()
+    setGameSession(untrack(() => session))
 
     const tabs: WorkspaceTab[] = [
         { id: 'actions', label: 'Actions', closable: false },
@@ -26,4 +20,6 @@
         {#snippet children(id)}<p>{id} content</p>{/snippet}
     </TabWorkspace>
 </div>
-<output aria-label="History steps">{steps.join(',')}</output>
+<output aria-label="History position"
+    >{session.isViewingHistory ? session.history.actionIndex : 'live'}</output
+>

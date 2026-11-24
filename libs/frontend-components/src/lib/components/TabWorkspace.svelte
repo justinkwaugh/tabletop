@@ -174,8 +174,20 @@
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
     let dropTarget: string | undefined = $state()
-    // The tab that took focus from a pointer press, until it loses focus.
-    let clickedTab: string | undefined
+    let pressedTab: string | undefined
+    let pointerFocusedTab: string | undefined
+    function pressTab(id: string) {
+        pressedTab = id
+        setTimeout(() => (pressedTab = undefined))
+    }
+    function focusTab(id: string) {
+        // Focus coming back with the window keeps the mode it left with.
+        if (pressedTab === id) pointerFocusedTab = id
+        else if (pointerFocusedTab !== id) pointerFocusedTab = undefined
+    }
+    function blurTab(id: string) {
+        if (pointerFocusedTab === id && document.hasFocus()) pointerFocusedTab = undefined
+    }
     let resize:
         | {
               id: string
@@ -328,10 +340,9 @@
             transfer(tabId, layout.panes[next].pane.id)
             return
         }
-        // A tab focused by a click leaves Left/Right to the table's history keys; a tab
-        // reached from the keyboard switches tabs with them, as a tab list should.
-        // (:focus-visible can't tell: Chromium turns it on at the first key press.)
-        if (clickedTab === tabId && ['ArrowLeft', 'ArrowRight'].includes(event.key)) return
+        // Left/Right belong to the history keys on a clicked tab. :focus-visible can't
+        // tell a click from the keyboard: Chromium turns it on at the first key press.
+        if (pointerFocusedTab === tabId && ['ArrowLeft', 'ArrowRight'].includes(event.key)) return
         const index = pane.tabs.indexOf(tabId)
         const next =
             event.key === 'ArrowRight'
@@ -448,10 +459,9 @@
                             draggable={splittable}
                             onclick={() => select(id)}
                             onkeydown={(event) => tabKeys(event, item.pane.id, id)}
-                            onpointerdown={() => (clickedTab = id)}
-                            onblur={() => {
-                                if (clickedTab === id) clickedTab = undefined
-                            }}
+                            onpointerdown={() => pressTab(id)}
+                            onfocus={() => focusTab(id)}
+                            onblur={() => blurTab(id)}
                             title={splittable
                                 ? 'Drag to reorder or move to another pane; Alt+Shift+Left/Right moves between panes'
                                 : undefined}

@@ -5,9 +5,3 @@ import type { WorkspaceAttention } from '../workspaceTypes.js'
 export function mountWorkspace(splittable = true, attention?: WorkspaceAttention) {
     mount(Fixture, { target: document.body, props: { splittable, attention } })
 }
-
-import HistoryKeysFixture from './WorkspaceHistoryKeys.fixture.svelte'
-
-export function mountWorkspaceWithHistoryKeys() {
-    mount(HistoryKeysFixture, { target: document.body })
-}

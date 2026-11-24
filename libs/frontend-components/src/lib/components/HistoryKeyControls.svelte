@@ -4,7 +4,6 @@
     let gameSession = getGameSession()
 
     function onKeyDown(event: KeyboardEvent) {
-        // A focused control that already used the key (a tab list, a split divider) keeps it.
         if (
             !gameSession ||
             event.defaultPrevented ||
