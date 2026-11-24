@@ -19,7 +19,7 @@ type PlacedRevenueMarker = {
     companyId: string
     locationId: string
 }
-type RevenueIcon = TileSymbolName | 'skyline'
+type RevenueIcon = Extract<TileSymbolName, 'port' | 'horns'> | 'skyline'
 
 const ArtRadius = 10.5
 const Ink = '#1d1b18'
