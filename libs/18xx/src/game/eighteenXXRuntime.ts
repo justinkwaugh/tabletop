@@ -67,7 +67,7 @@ import { privateActions } from '../privates/privateActions.js'
 import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
 import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { routeActions } from '../routes/routeActions.js'
-import { RunningTrainsHandler, recordsRunningCompany } from '../routes/runningTrainsHandler.js'
+import { RunningTrainsHandler, startsRouteStep } from '../routes/runningTrainsHandler.js'
 import { InstructedRunsHandler } from '../routes/instructedRunsHandler.js'
 import { runInstructionActions } from '../routes/runInstructionActions.js'
 import { RunInstructionHandler } from '../routes/runInstructionHandler.js'
@@ -530,7 +530,7 @@ export function createEighteenXXRuntime<
                   )
               }
             : {}),
-        RunningTrains: recordsRunningCompany(
+        RunningTrains: startsRouteStep(
             followsRunInstructions(
                 'RunningTrains',
                 operatingStep(

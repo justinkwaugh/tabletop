@@ -48,10 +48,10 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
-        const companyId = state.routeStep?.companyId
+        assertExists(state.routeStep, 'Running Trains is entered with its route step')
+        const companyId = state.routeStep.companyId
         if (
-            companyId &&
-            !state.routeStep?.result &&
+            !state.routeStep.result &&
             new RouteEvaluation(state, this.rules).cannotRun(companyId)
         ) {
             context.addSystemAction(RunTrains, {
@@ -69,11 +69,10 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
 }
 
 /**
- * Starts the running step's record on entry, before anything ``handler`` wraps: a title's System
- * Action due first (an investor's lease, a borrowed train) is recorded in a state that must still
- * load, and running trains without a running company does not.
+ * Starts the running step on entry, ahead of everything ``handler`` wraps, so a System Action due
+ * first is recorded in a state that loads.
  */
-export function recordsRunningCompany<Running extends State>(
+export function startsRouteStep<Running extends State>(
     handler: MachineStateHandler<HydratedAction, Running>
 ): MachineStateHandler<HydratedAction, Running> {
     return {
