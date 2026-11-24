@@ -174,6 +174,8 @@
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
     let dropTarget: string | undefined = $state()
+    // The tab that took focus from a pointer press, until it loses focus.
+    let clickedTab: string | undefined
     let resize:
         | {
               id: string
@@ -326,6 +328,10 @@
             transfer(tabId, layout.panes[next].pane.id)
             return
         }
+        // A tab focused by a click leaves Left/Right to the table's history keys; a tab
+        // reached from the keyboard switches tabs with them, as a tab list should.
+        // (:focus-visible can't tell: Chromium turns it on at the first key press.)
+        if (clickedTab === tabId && ['ArrowLeft', 'ArrowRight'].includes(event.key)) return
         const index = pane.tabs.indexOf(tabId)
         const next =
             event.key === 'ArrowRight'
@@ -442,6 +448,10 @@
                             draggable={splittable}
                             onclick={() => select(id)}
                             onkeydown={(event) => tabKeys(event, item.pane.id, id)}
+                            onpointerdown={() => (clickedTab = id)}
+                            onblur={() => {
+                                if (clickedTab === id) clickedTab = undefined
+                            }}
                             title={splittable
                                 ? 'Drag to reorder or move to another pane; Alt+Shift+Left/Right moves between panes'
                                 : undefined}

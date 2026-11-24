@@ -4,10 +4,13 @@
     let gameSession = getGameSession()
 
     function onKeyDown(event: KeyboardEvent) {
+        // A focused control that already used the key (a tab list, a split divider) keeps it.
         if (
             !gameSession ||
+            event.defaultPrevented ||
             event.target instanceof HTMLInputElement ||
-            event.target instanceof HTMLTextAreaElement
+            event.target instanceof HTMLTextAreaElement ||
+            event.target instanceof HTMLSelectElement
         ) {
             return
         }
