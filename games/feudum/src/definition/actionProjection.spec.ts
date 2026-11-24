@@ -8,6 +8,7 @@ import { isPlayMandate } from '../actions/playMandate.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import { docTableRows, readDoc } from '../testing/docs.js'
 import {
+    asStored,
     concealedSeals,
     perspectivesOf,
     realGames,
@@ -309,11 +310,6 @@ interface Scan {
     readonly statesAmiss: string[]
     readonly flips: { count: number }
     readonly reached: Set<string>
-}
-
-/** A value as storage keeps it: a field set to undefined isn't there. */
-function asStored(value: unknown): unknown {
-    return JSON.parse(JSON.stringify(value))
 }
 
 function scanTransition(

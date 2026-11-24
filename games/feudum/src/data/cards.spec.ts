@@ -11,6 +11,7 @@ import {
     type SpecialNeed
 } from './cards.js'
 import { StartingSupply } from './components.js'
+import { titled } from '../model/words.js'
 
 let rows: Record<string, string>[] = []
 let digestRows: Record<string, string>[] = []
@@ -18,16 +19,12 @@ let totals: Record<string, string>[] = []
 let digest = ''
 let components = ''
 
-function capitalised(word: string): string {
-    return word.charAt(0).toUpperCase() + word.slice(1)
-}
-
 function needText(need: SpecialNeed): string {
     switch (need.kind) {
         case 'pawn-on-board':
-            return `${capitalised(need.character)} pawn on the board`
+            return `${titled(need.character)} pawn on the board`
         case 'pawn-at-location':
-            return `${capitalised(need.character)} pawn at the location`
+            return `${titled(need.character)} pawn at the location`
         case 'good':
             return need.good
         case 'barrel-sulfur':
