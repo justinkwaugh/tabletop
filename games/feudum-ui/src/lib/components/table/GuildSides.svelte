@@ -193,6 +193,7 @@
         position: absolute;
         inset: 0;
         background: var(--feudum-dim);
+        cursor: pointer;
     }
 
     .row {

@@ -583,6 +583,27 @@ test.describe('a 1440 px desk', () => {
         await expect(westView).toBeVisible()
     })
 
+    test('Contract, Full screen: an open side’s scrim and the open Supply card close on a press, and show the pointer', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        const cursorOf = (target: Locator) =>
+            target.evaluate((element) => getComputedStyle(element).cursor)
+
+        await sideButton(page, 'West').click()
+        const scrim = page.locator('[data-guild-scrim]')
+        expect(await cursorOf(scrim)).toBe('pointer')
+        await scrim.click({ position: { x: 4, y: 4 } })
+        await expect(page.locator('[data-guild-view]')).toHaveCount(0)
+
+        await page.locator('[data-supply-toggle]').click()
+        const supply = page.locator('#feudum-supply')
+        expect(await cursorOf(supply)).toBe('pointer')
+        await supply.click({ position: { x: 8, y: 8 } })
+        await expect(supply).toHaveCount(0)
+    })
+
     test('S82 Contract, Pick framing: a pick wholly in the West guilds opens them, lit; closing leaves the dot', async ({
         page
     }) => {

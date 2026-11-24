@@ -53,7 +53,7 @@
         </div>
     {:else if open === 'supply'}
         <div
-            class="card"
+            class="card closes"
             id="feudum-supply"
             role="presentation"
             onpointerdown={(event) => event.stopPropagation()}
@@ -130,6 +130,10 @@
         gap: 0.25rem;
         margin-left: 7.25rem;
         margin-right: 0.25rem;
+    }
+
+    .closes {
+        cursor: pointer;
     }
 
     .end .card {
