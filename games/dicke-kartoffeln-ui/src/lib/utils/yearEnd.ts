@@ -76,6 +76,11 @@ function roundOf(action: YearEndAction): YearEndRound {
     return MachineState.SpreadingCompost
 }
 
+function netText(amount: number): string {
+    if (amount === 0) return 'broke even'
+    return `net ${amount > 0 ? '+' : '−'}${marks(Math.abs(amount))}`
+}
+
 function resultsOf(action: YearEndAction): Record<string, string[]> {
     if (isReactSoil(action)) {
         return Object.fromEntries(
@@ -102,8 +107,11 @@ function resultsOf(action: YearEndAction): Record<string, string[]> {
         (action.metadata?.outcomes ?? []).map((outcome) => [
             outcome.playerId,
             [
-                ...compostParts(outcome),
+                ...compostParts(outcome, true),
                 ...(outcome.cost > 0 ? [`paid ${marks(outcome.cost)}`] : []),
+                ...(outcome.cost > 0 && outcome.income > 0
+                    ? [netText(outcome.income - outcome.cost)]
+                    : []),
                 ...(outcome.loansTaken > 0
                     ? [`borrowed ${marks(outcome.loansTaken * LOAN_AMOUNT)}`]
                     : [])

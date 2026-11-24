@@ -76,7 +76,7 @@ function planText(outcome: PlanOutcome): string {
     }
 }
 
-export function compostParts(outcome: PlanOutcome): string[] {
+export function compostParts(outcome: PlanOutcome, withEarnings = false): string[] {
     const plan = outcome.plan
     if (plan.kind !== PlanKind.SpreadCompost) return []
     const spread = sum(plan.placements.map((placement) => placement.worms))
@@ -85,7 +85,7 @@ export function compostParts(outcome: PlanOutcome): string[] {
             ? `spread ${plural(spread, 'worm')} on ${fieldList(plan.placements.map((placement) => placement.fieldId))}`
             : '',
         outcome.income > 0
-            ? `sold ${plural(outcome.income / BANK_WORM_PRICE, 'worm')} to the bank`
+            ? `sold ${plural(outcome.income / BANK_WORM_PRICE, 'worm')} to the bank${withEarnings ? ` for ${marks(outcome.income)}` : ''}`
             : ''
     ].filter((part) => part)
 }
