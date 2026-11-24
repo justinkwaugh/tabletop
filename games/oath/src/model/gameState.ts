@@ -411,6 +411,24 @@ export class HydratedOathGameState
         return this.discardPileCountIn(region) > 0 ? this.discardTopBackType[region] : undefined
     }
 
+    /**
+     * R-9.4 — every back in a pile is public, so where its Visions lie is too, counted from its top (1
+     * is the top card); which Vision lies there is not. Read from the table's record of the pile
+     * (`seenDiscardPiles`), which holds the back of every card the table saw go down. Undefined when
+     * the record does not show a back at every place, as in a game recorded before it kept them all.
+     */
+    discardVisionPlacesIn(region: Region): number[] | undefined {
+        const record = this.seenDiscardPiles[region]
+        if (record.length !== this.discardPileCountIn(region)) return undefined
+        const backs = record.map((entry) => {
+            if (entry === null) return undefined
+            return typeof entry === 'string' ? kindOf(entry) : entry.back
+        })
+        if (backs.includes(undefined)) return undefined
+        // The record runs from the bottom.
+        return backs.toReversed().flatMap((back, at) => (back === CardKind.Vision ? [at + 1] : []))
+    }
+
     allSiteIds(): string[] {
         return [
             ...this.map[Region.Cradle],

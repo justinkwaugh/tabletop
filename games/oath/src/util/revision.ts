@@ -36,10 +36,12 @@ export enum OathRevision {
     EngineFixes26 = 31,
     EngineFixes27 = 32,
     EngineFixes28 = 33,
-    EngineFixes29 = 34
+    EngineFixes29 = 34,
+    /** R-9.4 — the denizens the chronicle's map discards to the Cradle's pile are in the table's record of its backs. */
+    EngineFixes30 = 35
 }
 
-export const CURRENT_OATH_REVISION = OathRevision.EngineFixes29
+export const CURRENT_OATH_REVISION = OathRevision.EngineFixes30
 
 export function isAtLeastOathRevision(
     state: Pick<OathGameState, 'oathRevision'>,

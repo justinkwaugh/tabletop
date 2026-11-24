@@ -22,17 +22,14 @@
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
     import SinceLastTurn from '$lib/components/SinceLastTurn.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
-    import FocusChooser from '$lib/components/FocusChooser.svelte'
     import MapPickFraming from '$lib/components/MapPickFraming.svelte'
     import { MachineState } from '@tabletop/oath'
     import type { BoundingBox } from '@tabletop/common'
     import {
         allSitesFrameRect,
-        focusRect,
         siteFocusRect,
         siteRowsFrameRect,
-        travelFrameRect,
-        type FocusView
+        travelFrameRect
     } from '$lib/definitions/boardFocusAreas.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import type { MapPick } from '$lib/model/actionOffers.js'
@@ -48,21 +45,21 @@
     let oath = $derived(toOathSession(gameSession))
     setGameSession(untrack(() => toOathSession(gameSession)))
 
-    // Rule 5 — a focus view or a site's row; choosing the focused one again restores the view before it.
+    // Rule 5 — a site's row; choosing the focused one again restores the view before it.
     let wrapper = $state<ScalingWrapper>()
     let boardFocus = $state<{
         key: string
-        view: FocusView | undefined
         /** What a pick on the map framed on a phone: its step, not the player, chose this focus. */
         mapPick?: MapFrame
         restore: ReturnType<ScalingWrapper['captureView']>
     }>()
 
-    // Room below the chooser and above the zoom buttons, so the focused area is never under them.
+    // Room below the phone's map-pick chips and above the zoom buttons, so the focused area is
+    // never under them.
     const FOCUS_PADDING = { x: 12, y: 44 }
     const FOCUS_MAX_SCALE = 2
 
-    function focusBoard(key: string, view: FocusView | undefined, rect: BoundingBox | undefined) {
+    function focusBoard(key: string, rect: BoundingBox) {
         if (!wrapper) return
         if (boardFocus?.key === key) {
             const { restore } = boardFocus
@@ -70,20 +67,12 @@
             restore({ animate: true })
             return
         }
-        boardFocus = { key, view, restore: boardFocus?.restore ?? wrapper.captureView() }
-        if (rect) {
-            wrapper.focusRect(rect, {
-                animate: true,
-                maxScale: FOCUS_MAX_SCALE,
-                padding: FOCUS_PADDING
-            })
-        } else {
-            wrapper.fitToContent({ animate: true })
-        }
-    }
-
-    function focusView(view: FocusView) {
-        focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
+        boardFocus = { key, restore: boardFocus?.restore ?? wrapper.captureView() }
+        wrapper.focusRect(rect, {
+            animate: true,
+            maxScale: FOCUS_MAX_SCALE,
+            padding: FOCUS_PADDING
+        })
     }
 
     // A pick on the map on a phone (Travel, Setup's start site, the spoils' banish) frames the lit
@@ -103,7 +92,7 @@
         if (!wrapper) return
         const restore =
             boardFocus?.mapPick !== undefined ? boardFocus.restore : wrapper.captureView()
-        boardFocus = { key: `map-pick:${frame}`, view: undefined, mapPick: frame, restore }
+        boardFocus = { key: `map-pick:${frame}`, mapPick: frame, restore }
         wrapper.focusRect(frameRect(pick, frame), {
             animate: true,
             maxScale: FOCUS_MAX_SCALE,
@@ -170,7 +159,7 @@
     }
 
     function focusSite(slotId: string) {
-        focusBoard(`site:${slotId}`, undefined, siteFocusRect(slotId))
+        focusBoard(`site:${slotId}`, siteFocusRect(slotId))
     }
 </script>
 
@@ -256,7 +245,6 @@
                 >
                     <Board />
                     {#snippet overlay()}
-                        <FocusChooser selected={boardFocus?.view} onselect={focusView} />
                         {#if mapPick}
                             {@const pick = mapPick}
                             {#key `${layout.upright}:${pick.kind}`}

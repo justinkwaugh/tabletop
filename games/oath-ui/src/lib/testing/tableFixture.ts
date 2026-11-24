@@ -101,6 +101,7 @@ import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable
 import { landWardenStackTable, plainStackTable } from './questionStackTable.js'
 import { riotsTieFacedownTable, riotsTieSearchTable } from './riotsTieTables.js'
 import { searchFullSiteTable } from './searchFullSiteTable.js'
+import { discardVisionsTable } from './discardVisionsTables.js'
 import { useOnEveryCardTable } from './useOnEveryCardTables.js'
 import { zoomPagingSearchTable } from './zoomPagingTables.js'
 import { greatSlumPowers } from './greatSlumPowersTable.js'
@@ -255,6 +256,8 @@ export type TableName =
     | 'searchPlayTo'
     | 'searchFullSite'
     | 'searchFullSiteRoom'
+    | 'discardVisions'
+    | 'discardVisionsOlderGame'
     | 'useOnEveryCard'
     | 'useOnEveryCardScepter'
     | 'useOnEveryCardPair'
@@ -5875,6 +5878,9 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     // R-5.1.4.I, Crop Rotation — Dana searched with Crop Rotation at the full Plains, holding the People's Favor.
     searchFullSite: () => searchFullSiteTable(),
     searchFullSiteRoom: () => searchFullSiteTable(true),
+    // R-9.4 — each discard pile's box: its count, and where its Visions lie from the top.
+    discardVisions: () => discardVisionsTable(),
+    discardVisionsOlderGame: () => discardVisionsTable(true),
     useOnEveryCard: () => useOnEveryCardTable('envoy'),
     useOnEveryCardScepter: () => useOnEveryCardTable('scepter'),
     useOnEveryCardPair: () => useOnEveryCardTable('pair'),
