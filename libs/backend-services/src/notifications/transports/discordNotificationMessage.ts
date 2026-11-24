@@ -4,7 +4,8 @@ import {
     ComponentType,
     RESTPostAPIChannelMessageJSONBody
 } from 'discord-api-types/v10'
-import { siteUrl, truncate } from '../../discord/discordFormatting.js'
+import { truncate } from '../../discord/discordFormatting.js'
+import { siteUrl } from '../../site/siteUrl.js'
 import { userNotificationCopy } from './userNotificationCopy.js'
 
 export type DiscordNotificationContext = {

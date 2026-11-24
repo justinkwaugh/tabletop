@@ -1,5 +1,5 @@
 import { UserNotification } from '@tabletop/common'
-import { siteUrl } from '../../discord/discordFormatting.js'
+import { siteUrl } from '../../site/siteUrl.js'
 import type { TelegramSendMessage } from '../../telegram/telegramBotApi.js'
 import { userNotificationCopy } from './userNotificationCopy.js'
 
@@ -8,8 +8,7 @@ export type TelegramNotificationContext = {
     gameTitle?: string
 }
 
-/** Telegram's HTML parse mode needs only these three escaped, plus quotes inside attributes. */
-export function escapeTelegramHtml(text: string): string {
+function escapeTelegramHtml(text: string): string {
     return text
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')

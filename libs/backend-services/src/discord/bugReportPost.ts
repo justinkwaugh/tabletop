@@ -7,7 +7,8 @@ import {
     type RESTPostAPIChannelMessageJSONBody,
     type RESTPostAPIGuildForumThreadsJSONBody
 } from 'discord-api-types/v10'
-import { siteUrl, truncate } from './discordFormatting.js'
+import { truncate } from './discordFormatting.js'
+import { siteUrl } from '../site/siteUrl.js'
 
 export type BugReporter = {
     username: string

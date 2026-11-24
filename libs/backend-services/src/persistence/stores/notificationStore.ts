@@ -12,4 +12,5 @@ export interface NotificationStore {
         registrationLimit?: number
     }): Promise<void>
     deleteNotificationSubscription(identifier: NotificationSubscriptionIdentifier): Promise<void>
+    findSubscriptionTopics(identifier: NotificationSubscriptionIdentifier): Promise<string[]>
 }

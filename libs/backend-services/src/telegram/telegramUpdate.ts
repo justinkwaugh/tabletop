@@ -5,7 +5,7 @@ const TelegramChat = Type.Object({
     type: Type.String()
 })
 
-/** The parts of a Telegram webhook Update the bot reads; Telegram sends many more fields. */
+// Telegram sends many more fields; only these are read.
 export type TelegramUpdate = Static<typeof TelegramUpdate>
 export const TelegramUpdate = Type.Object({
     update_id: Type.Number(),

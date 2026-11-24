@@ -3,7 +3,7 @@
     import { Button, Hr, Spinner } from 'flowbite-svelte'
     import { CheckCircleSolid } from 'flowbite-svelte-icons'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { listenForNotificationChannelChanges } from '$lib/services/notificationChannelUpdates'
+    import { listenForTopicRegistrationChanges } from '$lib/services/topicRegistrationUpdates'
     import { LatestRequest } from '$lib/utils/latestRequest'
     import TelegramConnectButton from '$lib/components/TelegramConnectButton.svelte'
 
@@ -61,7 +61,7 @@
 
     onMount(() => {
         void load()
-        const unsubscribe = listenForNotificationChannelChanges(notificationService, load)
+        const unsubscribe = listenForTopicRegistrationChanges(notificationService, load)
         document.addEventListener('visibilitychange', refreshStaleLink)
         return () => {
             requests.cancel()

@@ -6,6 +6,7 @@ import { RegistrationLimitExceededError } from '../../notifications/notification
 import { userTopic } from '../../notifications/topics.js'
 import { TransportType } from '../../notifications/transports/notificationTransport.js'
 import { WebPushTransport } from '../../notifications/transports/webPushTransport.js'
+import { telegramSubscriptionFor } from '../../notifications/subscriptions/telegramSubscription.js'
 import { webPushClientData } from '../../notifications/tests/webPushFixtures.js'
 import { FirestoreNotificationStore } from './notificationStore.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
@@ -43,6 +44,17 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             live.cache.destroy()
             client.destroy()
             await db.terminate()
+        })
+
+        it('finds the topics a subscription is registered on', async () => {
+            const chat = telegramSubscriptionFor(randomUUID())
+            expect(await store.findSubscriptionTopics(chat)).toEqual([])
+
+            await store.upsertNotificationSubscription({ subscription: chat, topic })
+            expect(await store.findSubscriptionTopics(chat)).toEqual([topic])
+
+            await store.deleteNotificationSubscription(chat)
+            expect(await store.findSubscriptionTopics(chat)).toEqual([])
         })
 
         it('caps new registrations of one transport per topic without touching the others', async () => {

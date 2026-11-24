@@ -1,4 +1,4 @@
-import { isNotificationChannelsChangedNotification } from '@tabletop/common'
+import { isTopicRegistrationsChangedNotification } from '@tabletop/common'
 import {
     isDataEvent,
     isDiscontinuityEvent,
@@ -7,8 +7,7 @@ import {
 } from '@tabletop/frontend-components'
 import { refreshOnNotifications } from './notificationRefresh'
 
-/** Refreshes when a chat channel (Telegram) connects or disconnects, and after the user stream reconnects. */
-export function listenForNotificationChannelChanges(
+export function listenForTopicRegistrationChanges(
     notifications: Pick<NotificationService, 'addListener' | 'removeListener'>,
     refresh: () => Promise<void>
 ): () => void {
@@ -17,7 +16,7 @@ export function listenForNotificationChannelChanges(
         (event) => {
             if (event.channel !== NotificationChannel.User) return false
             if (isDataEvent(event))
-                return isNotificationChannelsChangedNotification(event.notification)
+                return isTopicRegistrationsChangedNotification(event.notification)
             return isDiscontinuityEvent(event)
         },
         refresh

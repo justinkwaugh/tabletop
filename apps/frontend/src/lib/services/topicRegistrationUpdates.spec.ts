@@ -6,12 +6,12 @@ import {
     type NotificationEvent,
     type NotificationListener
 } from '@tabletop/frontend-components'
-import { listenForNotificationChannelChanges } from './notificationChannelUpdates'
+import { listenForTopicRegistrationChanges } from './topicRegistrationUpdates'
 
-const channelsChanged = {
+const registrationsChanged = {
     id: 'notification',
     type: NotificationCategory.System,
-    action: SystemNotificationAction.NotificationChannelsChanged,
+    action: SystemNotificationAction.TopicRegistrationsChanged,
     data: {}
 }
 
@@ -22,17 +22,17 @@ function listen() {
         removeListener: vi.fn()
     }
     const refresh = vi.fn(async () => {})
-    listenForNotificationChannelChanges(notifications, refresh)
+    listenForTopicRegistrationChanges(notifications, refresh)
     return { send: (event: NotificationEvent) => listener!(event), refresh }
 }
 
-describe('listenForNotificationChannelChanges', () => {
-    it('refreshes when a channel changes on the user stream', async () => {
+describe('listenForTopicRegistrationChanges', () => {
+    it("refreshes when the user's topic registrations change", async () => {
         const { send, refresh } = listen()
         await send({
             eventType: NotificationEventType.Data,
             channel: NotificationChannel.User,
-            notification: channelsChanged
+            notification: registrationsChanged
         })
         expect(refresh).toHaveBeenCalledTimes(1)
     })
@@ -51,7 +51,7 @@ describe('listenForNotificationChannelChanges', () => {
         await send({
             eventType: NotificationEventType.Data,
             channel: NotificationChannel.User,
-            notification: { ...channelsChanged, action: 'relayStats' }
+            notification: { ...registrationsChanged, action: 'relayStats' }
         })
         await send({
             eventType: NotificationEventType.Discontinuity,

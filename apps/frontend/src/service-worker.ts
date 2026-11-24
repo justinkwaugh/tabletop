@@ -5,8 +5,7 @@
 
 import {
     Notification,
-    NotificationCategory,
-    type UserNotification,
+    isUserNotification,
     UserNotificationAction,
     PlayerVoteKind,
     type IsYourTurnNotification,
@@ -63,10 +62,6 @@ async function focusOrOpenWindow(gameId?: string) {
     } else {
         sw.clients.openWindow(url)
     }
-}
-
-function isUserNotification(notification: Notification): notification is UserNotification {
-    return notification.type === NotificationCategory.User
 }
 
 async function generateLocalNotification(

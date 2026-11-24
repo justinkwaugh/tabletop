@@ -143,6 +143,10 @@ export const LostSeatNotification = Type.Evaluate(
     ])
 )
 
+export function isUserNotification(notification: Notification): notification is UserNotification {
+    return notification.type === NotificationCategory.User
+}
+
 export function isYourTurnNotification(
     notification: Notification
 ): notification is IsYourTurnNotification {

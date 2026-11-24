@@ -1,11 +1,8 @@
 import { PlayerVoteKind, UserNotification, UserNotificationAction } from '@tabletop/common'
 
-/** The words and link every chat transport (Discord, Telegram) shows for a User Notification. */
 export type UserNotificationCopy = {
-    /** One line that stands alone, as in a phone's notification banner */
     summary: string
     heading: string
-    /** Site path the message links to */
     path: string
     buttonLabel: string
 }

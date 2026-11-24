@@ -4,7 +4,7 @@ import { Notification, NotificationCategory } from './notification.js'
 
 export enum SystemNotificationAction {
     RelayStats = 'relayStats',
-    NotificationChannelsChanged = 'notificationChannelsChanged'
+    TopicRegistrationsChanged = 'topicRegistrationsChanged'
 }
 
 export type RelayStatsNotification = Type.Static<typeof RelayStatsNotification>
@@ -32,27 +32,26 @@ export function isRelayStatsNotification(
     return RelayStatsNotificationValidator.Check(notification)
 }
 
-/** Sent on a user's topic when a chat channel (Telegram) connects or disconnects, so an open Notifications page reloads. */
-export type NotificationChannelsChangedNotification = Type.Static<
-    typeof NotificationChannelsChangedNotification
+export type TopicRegistrationsChangedNotification = Type.Static<
+    typeof TopicRegistrationsChangedNotification
 >
-export const NotificationChannelsChangedNotification = Type.Evaluate(
+export const TopicRegistrationsChangedNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
         Type.Object({
             type: Type.Literal(NotificationCategory.System),
-            action: Type.Literal(SystemNotificationAction.NotificationChannelsChanged),
+            action: Type.Literal(SystemNotificationAction.TopicRegistrationsChanged),
             data: Type.Object({})
         })
     ])
 )
 
-const NotificationChannelsChangedNotificationValidator = Compile(
-    NotificationChannelsChangedNotification
+const TopicRegistrationsChangedNotificationValidator = Compile(
+    TopicRegistrationsChangedNotification
 )
 
-export function isNotificationChannelsChangedNotification(
+export function isTopicRegistrationsChangedNotification(
     notification: unknown
-): notification is NotificationChannelsChangedNotification {
-    return NotificationChannelsChangedNotificationValidator.Check(notification)
+): notification is TopicRegistrationsChangedNotification {
+    return TopicRegistrationsChangedNotificationValidator.Check(notification)
 }

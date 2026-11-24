@@ -2,16 +2,20 @@ import { GameCatalogEntry } from '@tabletop/common'
 import { CatalogService } from '../../games/catalogService.js'
 import { LibraryService } from '../../games/libraryService.js'
 
-/** The served catalog entry for a title, or undefined when it can't be read; a message still goes out without it. */
+export type NotificationCatalog = {
+    library: Pick<LibraryService, 'getServedManifest'>
+    catalog: Pick<CatalogService, 'getCatalog'>
+}
+
+// A message still goes out without the title when the catalog can't be read.
 export async function notificationCatalogEntry(
-    libraryService: LibraryService,
-    catalogService: CatalogService,
+    { library, catalog }: NotificationCatalog,
     typeId: string
 ): Promise<GameCatalogEntry | undefined> {
     try {
-        const manifest = await libraryService.getServedManifest()
-        const catalog = await catalogService.getCatalog(manifest)
-        return catalog.find((entry) => entry.id === typeId)
+        const manifest = await library.getServedManifest()
+        const entries = await catalog.getCatalog(manifest)
+        return entries.find((entry) => entry.id === typeId)
     } catch (error) {
         console.error('Could not load the game catalog for a notification', error)
         return undefined

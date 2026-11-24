@@ -4,11 +4,10 @@ import * as Value from 'typebox/value'
 import {
     canHoldAuthenticatedSession,
     NotificationCategory,
-    type NotificationChannelsChangedNotification,
-    SystemNotificationAction
+    SystemNotificationAction,
+    type TopicRegistrationsChangedNotification
 } from '@tabletop/common'
 
-import type { RedisCacheService } from '../cache/cacheService.js'
 import type { UserService } from '../users/userService.js'
 import type { NotificationStore } from '../persistence/stores/notificationStore.js'
 import {
@@ -18,18 +17,24 @@ import {
 import { telegramSubscriptionFor } from '../notifications/subscriptions/telegramSubscription.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 import { userTopic } from '../notifications/topics.js'
+import { siteUrl } from '../site/siteUrl.js'
 import type { TelegramBotApi } from './telegramBotApi.js'
 import { TelegramUpdate } from './telegramUpdate.js'
 
 const NOTIFICATIONS_PATH = '/notifications'
 
-/** How long a Connect Telegram link works; the Notifications page fetches one when it opens. */
 export const TELEGRAM_LINK_SECONDS = 60 * 60
 
 export type TelegramBot = {
-    api: TelegramBotApi
-    /** Telegram echoes this in X-Telegram-Bot-Api-Secret-Token on every webhook call. */
+    api: Pick<TelegramBotApi, 'sendMessage' | 'botUsername'>
+    // Telegram echoes this in X-Telegram-Bot-Api-Secret-Token on every webhook call.
     webhookSecret: string
+}
+
+export type TelegramLinkTokens = {
+    get(key: string): Promise<{ value: unknown }>
+    set(key: string, value: string, forSeconds: number): Promise<void>
+    delete(key: string): Promise<void>
 }
 
 type TelegramServiceDependencies = {
@@ -39,20 +44,19 @@ type TelegramServiceDependencies = {
         | 'unregisterNotificationSubscription'
         | 'sendNotification'
     >
-    subscriptions: Pick<NotificationStore, 'findNotificationSubscriptions'>
+    subscriptions: Pick<
+        NotificationStore,
+        'findNotificationSubscriptions' | 'findSubscriptionTopics'
+    >
     users: Pick<UserService, 'getUser'>
-    cache: Pick<RedisCacheService, 'get' | 'set' | 'delete'>
+    linkTokens: TelegramLinkTokens
 }
 
-/**
- * Links private Telegram chats with the site's bot to user accounts. A user opens a one-time
- * t.me deep link from the Notifications page and presses Start; the bot's webhook receives
- * `/start <token>` with the chat id and subscribes that chat to the user's topic.
- */
 export class TelegramService {
     constructor(
         private readonly dependencies: TelegramServiceDependencies,
-        private readonly bot: TelegramBot | undefined
+        private readonly bot: TelegramBot | undefined,
+        private readonly frontendHost: string
     ) {}
 
     get isAvailable(): boolean {
@@ -69,7 +73,7 @@ export class TelegramService {
     async connectLink(userId: string): Promise<string> {
         const bot = this.requireBot()
         const token = nanoid(32)
-        await this.dependencies.cache.set(linkKey(token), userId, TELEGRAM_LINK_SECONDS)
+        await this.dependencies.linkTokens.set(this.linkKey(token), userId, TELEGRAM_LINK_SECONDS)
         const username = await bot.api.botUsername()
         return `https://t.me/${username}?start=${token}`
     }
@@ -84,7 +88,7 @@ export class TelegramService {
                 telegramSubscriptionFor(chatId)
             )
         }
-        await this.announceChannelsChanged(userId)
+        await this.announceRegistrationsChanged([userTopic(userId)])
     }
 
     async handleUpdate(update: unknown): Promise<void> {
@@ -92,12 +96,10 @@ export class TelegramService {
             return
         }
 
-        const blocked = update.my_chat_member
-        if (blocked && blocked.chat.type === 'private') {
-            if (blocked.new_chat_member.status === 'kicked') {
-                await this.dependencies.notifications.unregisterNotificationSubscription(
-                    telegramSubscriptionFor(String(blocked.chat.id))
-                )
+        const membership = update.my_chat_member
+        if (membership && membership.chat.type === 'private') {
+            if (membership.new_chat_member.status === 'kicked') {
+                await this.unregisterChat(String(membership.chat.id))
             }
             return
         }
@@ -112,9 +114,10 @@ export class TelegramService {
         if (command === '/start') {
             await this.start(chatId, argument)
         } else if (command === '/stop') {
-            await this.stop(chatId)
+            await this.unregisterChat(chatId)
+            await this.reply(chatId, this.stoppedMessage())
         } else {
-            await this.reply(chatId, helpMessage())
+            await this.reply(chatId, this.helpMessage())
         }
     }
 
@@ -122,33 +125,32 @@ export class TelegramService {
         const userId = token ? await this.redeem(token) : undefined
         const user = userId ? await this.dependencies.users.getUser(userId) : undefined
         if (!user || !canHoldAuthenticatedSession(user)) {
-            await this.reply(chatId, notLinkedMessage())
+            await this.reply(chatId, this.notLinkedMessage())
             return
         }
 
-        // One chat follows one account: linking again moves it.
-        const subscription = telegramSubscriptionFor(chatId)
-        await this.dependencies.notifications.unregisterNotificationSubscription(subscription)
+        await this.unregisterChat(chatId)
         await this.dependencies.notifications.registerNotificationSubscription({
-            subscription,
+            subscription: telegramSubscriptionFor(chatId),
             topic: userTopic(user.id)
         })
-        await this.announceChannelsChanged(user.id)
-        await this.reply(chatId, connectedMessage(user.username))
+        await this.announceRegistrationsChanged([userTopic(user.id)])
+        await this.reply(chatId, this.connectedMessage(user.username))
     }
 
-    private async stop(chatId: string) {
-        await this.dependencies.notifications.unregisterNotificationSubscription(
-            telegramSubscriptionFor(chatId)
-        )
-        await this.reply(chatId, stoppedMessage())
+    private async unregisterChat(chatId: string) {
+        const subscription = telegramSubscriptionFor(chatId)
+        const topics = await this.dependencies.subscriptions.findSubscriptionTopics(subscription)
+        if (topics.length === 0) return
+        await this.dependencies.notifications.unregisterNotificationSubscription(subscription)
+        await this.announceRegistrationsChanged(topics)
     }
 
     private async redeem(token: string): Promise<string | undefined> {
-        const key = linkKey(token)
-        const { value } = await this.dependencies.cache.get<string>(key)
+        const key = this.linkKey(token)
+        const { value } = await this.dependencies.linkTokens.get(key)
         if (typeof value !== 'string') return undefined
-        await this.dependencies.cache.delete(key)
+        await this.dependencies.linkTokens.delete(key)
         return value
     }
 
@@ -162,25 +164,25 @@ export class TelegramService {
     }
 
     // A failed push only leaves an open Notifications page stale until it reloads.
-    private async announceChannelsChanged(userId: string) {
-        const notification: NotificationChannelsChangedNotification = {
+    private async announceRegistrationsChanged(topics: string[]) {
+        const notification: TopicRegistrationsChangedNotification = {
             id: nanoid(),
             type: NotificationCategory.System,
-            action: SystemNotificationAction.NotificationChannelsChanged,
+            action: SystemNotificationAction.TopicRegistrationsChanged,
             data: {}
         }
         try {
             await this.dependencies.notifications.sendNotification({
                 notification,
-                topics: [userTopic(userId)],
+                topics,
                 channels: [NotificationDistributionMethod.Topical]
             })
         } catch (error) {
-            console.error('Could not announce a Telegram connection change', error)
+            console.error('Could not announce a Telegram registration change', error)
         }
     }
 
-    // A failed reply never fails the webhook; Telegram would retry the whole update.
+    // A failed reply never fails the webhook; Telegram would redeliver the whole update.
     private async reply(chatId: string, text: string) {
         try {
             const result = await this.requireBot().api.sendMessage({
@@ -202,30 +204,29 @@ export class TelegramService {
         }
         return this.bot
     }
-}
 
-function linkKey(token: string): string {
-    return `telegram-link-${token}`
-}
+    private linkKey(token: string): string {
+        return `telegram-link-${token}`
+    }
 
-function notificationsUrl(): string {
-    const frontendHost = process.env.FRONTEND_HOST
-    return frontendHost ? new URL(NOTIFICATIONS_PATH, frontendHost).href : NOTIFICATIONS_PATH
-}
+    private notificationsUrl(): string {
+        return siteUrl(NOTIFICATIONS_PATH, this.frontendHost)
+    }
 
-function connectedMessage(username: string | undefined): string {
-    const account = username ? ` as ${username}` : ''
-    return `You're connected${account} on Board Together. I'll message you here when it's your turn or you're invited to a game. Send /stop to turn these messages off.`
-}
+    private connectedMessage(username: string | undefined): string {
+        const account = username ? ` as ${username}` : ''
+        return `You're connected${account} on Board Together. I'll message you here when it's your turn or you're invited to a game. Send /stop to turn these messages off.`
+    }
 
-function notLinkedMessage(): string {
-    return `This chat isn't connected to a Board Together account. To connect it, press Connect Telegram on ${notificationsUrl()}. Each link works once, for an hour.`
-}
+    private notLinkedMessage(): string {
+        return `This chat isn't connected to a Board Together account. To connect it, press Connect on ${this.notificationsUrl()}. Each link works once, for an hour.`
+    }
 
-function stoppedMessage(): string {
-    return `Done. I won't message you here any more. To turn messages back on, press Connect Telegram on ${notificationsUrl()}.`
-}
+    private stoppedMessage(): string {
+        return `Done. I won't message you here any more. To turn messages back on, press Connect on ${this.notificationsUrl()}.`
+    }
 
-function helpMessage(): string {
-    return `I only send Board Together notifications. Send /stop to turn them off, or manage them on ${notificationsUrl()}.`
+    private helpMessage(): string {
+        return `I only send Board Together notifications. Send /stop to turn them off, or manage them on ${this.notificationsUrl()}.`
+    }
 }

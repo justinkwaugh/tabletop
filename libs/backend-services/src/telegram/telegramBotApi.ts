@@ -1,7 +1,10 @@
+import { Type } from 'typebox'
+import * as Value from 'typebox/value'
+
 const API_ENDPOINT = 'https://api.telegram.org'
 
-export type TelegramResult<T> =
-    { ok: true; result: T } | { ok: false; errorCode: number; description: string }
+export type TelegramResult =
+    { ok: true; result: unknown } | { ok: false; errorCode: number; description: string }
 
 export type TelegramInlineKeyboardButton = { text: string; url: string }
 
@@ -13,48 +16,60 @@ export type TelegramSendMessage = {
     reply_markup?: { inline_keyboard: TelegramInlineKeyboardButton[][] }
 }
 
-type TelegramResponseBody =
-    { ok: true; result: unknown } | { ok: false; error_code?: number; description?: string }
+const TelegramResponse = Type.Union([
+    Type.Object({ ok: Type.Literal(true), result: Type.Unknown() }),
+    Type.Object({
+        ok: Type.Literal(false),
+        error_code: Type.Optional(Type.Number()),
+        description: Type.Optional(Type.String())
+    })
+])
 
-/** Calls to the Telegram Bot API; failures Telegram reports come back as results, network failures throw. */
+const TelegramBotUser = Type.Object({ username: Type.String() })
+
 export class TelegramBotApi {
     private username: Promise<string> | undefined
 
     constructor(private readonly botToken: string) {}
 
-    async sendMessage(message: TelegramSendMessage): Promise<TelegramResult<unknown>> {
+    async sendMessage(message: TelegramSendMessage): Promise<TelegramResult> {
         return this.call('sendMessage', message)
     }
 
-    /** The bot's @username, read once from getMe; deep links need it. */
     async botUsername(): Promise<string> {
-        this.username ??= this.call<{ username?: string }>('getMe', {}).then((response) => {
-            if (!response.ok || !response.result.username) {
-                this.username = undefined
-                throw new Error(
-                    `Telegram getMe failed: ${response.ok ? 'no username' : response.description}`
-                )
-            }
-            return response.result.username
+        this.username ??= this.readBotUsername().catch((error: unknown) => {
+            this.username = undefined
+            throw error
         })
         return this.username
     }
 
-    private async call<T>(method: string, body: object): Promise<TelegramResult<T>> {
+    private async readBotUsername(): Promise<string> {
+        const response = await this.call('getMe', {})
+        if (!response.ok) {
+            throw new Error(`Telegram getMe failed: ${response.description}`)
+        }
+        if (!Value.Check(TelegramBotUser, response.result)) {
+            throw new Error('Telegram getMe returned no username')
+        }
+        return response.result.username
+    }
+
+    private async call(method: string, body: object): Promise<TelegramResult> {
         const response = await fetch(`${API_ENDPOINT}/bot${this.botToken}/${method}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify(body)
         })
-        const parsed = (await response.json().catch(() => undefined)) as
-            TelegramResponseBody | undefined
-        if (parsed?.ok) {
-            return { ok: true, result: parsed.result as T }
+        const parsed: unknown = await response.json().catch(() => undefined)
+        if (Value.Check(TelegramResponse, parsed)) {
+            if (parsed.ok) return { ok: true, result: parsed.result }
+            return {
+                ok: false,
+                errorCode: parsed.error_code ?? response.status,
+                description: parsed.description ?? response.statusText
+            }
         }
-        return {
-            ok: false,
-            errorCode: parsed?.error_code ?? response.status,
-            description: parsed?.description ?? response.statusText
-        }
+        return { ok: false, errorCode: response.status, description: response.statusText }
     }
 }

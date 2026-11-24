@@ -1,4 +1,4 @@
-import { Notification, NotificationCategory, UserNotification } from '@tabletop/common'
+import { isUserNotification, Notification } from '@tabletop/common'
 
 import { CatalogService } from '../../games/catalogService.js'
 import { LibraryService } from '../../games/libraryService.js'
@@ -102,13 +102,12 @@ export class DiscordTransport implements NotificationTransport {
     private async generateMessage(
         notification: Notification
     ): Promise<RESTPostAPIChannelMessageJSONBody | undefined> {
-        if (!this.isUserNotification(notification)) {
+        if (!isUserNotification(notification)) {
             return
         }
 
         const catalogEntry = await notificationCatalogEntry(
-            this.libraryService,
-            this.catalogService,
+            { library: this.libraryService, catalog: this.catalogService },
             notification.data.game.typeId
         )
         return discordNotificationMessage(notification, {
@@ -117,9 +116,5 @@ export class DiscordTransport implements NotificationTransport {
             thumbnailUrl: catalogEntry?.thumbnailUrl,
             sentAt: new Date()
         })
-    }
-
-    private isUserNotification(notification: Notification): notification is UserNotification {
-        return notification.type === NotificationCategory.User
     }
 }

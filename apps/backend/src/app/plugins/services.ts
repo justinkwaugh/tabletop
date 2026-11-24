@@ -240,7 +240,11 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         : undefined
     if (telegramBot) {
         notificationService.addTransport(
-            new TelegramTransport(libraryService, catalogService, telegramBot.api)
+            new TelegramTransport(
+                { library: libraryService, catalog: catalogService },
+                telegramBot.api,
+                process.env['FRONTEND_HOST'] ?? ''
+            )
         )
     }
     const telegramService = new TelegramService(
@@ -248,9 +252,10 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             notifications: notificationService,
             subscriptions: notificationStore,
             users: userService,
-            cache: redisCacheService
+            linkTokens: redisCacheService
         },
-        telegramBot
+        telegramBot,
+        process.env['FRONTEND_HOST'] ?? ''
     )
 
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
