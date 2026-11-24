@@ -1,9 +1,9 @@
+import { holdWrit } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { HydratedFeudumGameState, Mandates, MachineState } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
-import { holdWrit } from '$lib/testing/followUpTable.js'
 import { seatPanelOf } from './seatPanel.js'
 
 /** The panel's one derivation, reached through a seat's own session on what that seat was sent. */

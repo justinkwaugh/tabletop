@@ -1,4 +1,4 @@
-import { giveSeal, giveTile } from '@tabletop/feudum/testing'
+import { giveSeal, giveTile, holdWrit } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ActionType, MachineState, placeMarker, playMandateOffers } from '@tabletop/feudum'
@@ -22,7 +22,6 @@ import {
     atNourishing,
     fillBarrel,
     holdFood,
-    holdWrit,
     seatedAtCards,
     sealMarker,
     threePawns

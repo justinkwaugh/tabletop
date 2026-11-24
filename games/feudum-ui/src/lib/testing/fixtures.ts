@@ -4,6 +4,7 @@ import {
     giveMonster,
     giveSeal,
     giveTile,
+    holdWrit,
     setBarn,
     setMarket,
     setRowMarkers,
@@ -41,7 +42,7 @@ import {
     stackTop,
     type WritId
 } from '@tabletop/feudum'
-import { fillBarrel, holdFood, holdWrit, threePawns } from './followUpTable.js'
+import { fillBarrel, holdFood, threePawns } from './followUpTable.js'
 import { seatRowIndex } from './guildTable.js'
 import { abandonVessel, giveVessel, landscapeOn, sellOut, serfOn } from './moveTable.js'
 import { tendLandscape } from './roundEndTable.js'

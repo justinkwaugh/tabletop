@@ -53,6 +53,7 @@ import {
 } from '@tabletop/feudum'
 import {
     giveSeal,
+    holdWrit,
     perspectivesOf,
     processedOf,
     realGames,
@@ -64,7 +65,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { describeAction, type ActionLineView } from '$lib/model/actionDescription.js'
 import { linesOf, primaryNamed } from '$lib/testing/actionPanelView.js'
 import { askedToDefend, askedToStarve, type AskTable } from '$lib/testing/askTable.js'
-import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
+import { seatedAtCards } from '$lib/testing/followUpTable.js'
 import { playOutRound } from '$lib/testing/roundEndTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'

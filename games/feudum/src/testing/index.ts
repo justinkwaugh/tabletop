@@ -1,7 +1,7 @@
 export * from './protected.js'
 export { showLocation, giveSeal } from './improving.js'
 export { giveTile } from './atWill.js'
-export { addPawn, buildFeudum, giveMonster } from './combat.js'
+export { addPawn, buildFeudum, giveMonster, holdWrit } from './combat.js'
 export { showOnStacks, type StackShowing } from './roundEnd.js'
 export {
     setBarn,

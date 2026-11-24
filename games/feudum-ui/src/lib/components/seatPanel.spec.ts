@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { buildFeudum, giveSeal, giveTile } from '@tabletop/feudum/testing'
+import { buildFeudum, giveSeal, giveTile, holdWrit } from '@tabletop/feudum/testing'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
 import {
@@ -15,7 +15,7 @@ import { seatOrder, seatPanelOf, type SeatPanelView } from '$lib/model/seatPanel
 import { writName } from '$lib/model/writLabels.js'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import { emptySpace, giveBead, ruleTown } from '$lib/testing/turnTable.js'
-import { fillBarrel, holdWrit } from '$lib/testing/followUpTable.js'
+import { fillBarrel } from '$lib/testing/followUpTable.js'
 import SeatPanelOnTable from '$lib/testing/SeatPanelOnTable.svelte'
 import { CrownPath, StarPath } from '$lib/utils/pieceShapes.js'
 import SeatPanel from './seat/SeatPanel.svelte'

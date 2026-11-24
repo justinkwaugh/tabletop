@@ -1,4 +1,4 @@
-import { giveSeal, giveTile } from '@tabletop/feudum/testing'
+import { giveSeal, giveTile, holdWrit } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -14,7 +14,6 @@ import {
     atNourishing,
     fillBarrel,
     holdFood,
-    holdWrit,
     sealMarker,
     seatedAtCards,
     threePawns,

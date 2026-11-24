@@ -1,4 +1,4 @@
-import { addPawn, setCarts, setMarket, setMaster } from '@tabletop/feudum/testing'
+import { addPawn, holdWrit, setCarts, setMarket, setMaster } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -17,7 +17,6 @@ import {
     atDisc,
     fillBarrel,
     holdFood,
-    holdWrit,
     seatedAtCards,
     shortenWritDeck,
     threePawns,

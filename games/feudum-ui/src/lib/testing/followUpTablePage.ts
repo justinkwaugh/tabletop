@@ -1,4 +1,4 @@
-import { giveSeal, giveTile } from '@tabletop/feudum/testing'
+import { giveSeal, giveTile, holdWrit } from '@tabletop/feudum/testing'
 import { flushSync, mount } from 'svelte'
 import type { ActionCardKind, WritId } from '@tabletop/feudum'
 import GameTable from '$lib/components/GameTable.svelte'
@@ -10,7 +10,6 @@ import {
     atNourishingTogether,
     fillBarrel,
     holdFood,
-    holdWrit,
     seatedAtCards,
     threePawns
 } from './followUpTable.js'

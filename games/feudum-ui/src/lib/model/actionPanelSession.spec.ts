@@ -3,6 +3,7 @@ import {
     buildFeudum,
     giveSeal,
     giveTile,
+    holdWrit,
     setBarn,
     setBeads,
     setJourneyman,
@@ -49,7 +50,6 @@ import {
 import {
     atDisc,
     holdFood,
-    holdWrit,
     seatedAtCards,
     threePawns,
     type SeatTable

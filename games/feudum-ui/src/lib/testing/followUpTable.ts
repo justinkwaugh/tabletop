@@ -1,8 +1,6 @@
 import { addPawn } from '@tabletop/feudum/testing'
-import { assertExists } from '@tabletop/common'
 import {
     collectTopTile,
-    drawWrits,
     fillLandscape,
     MachineState,
     moveConcealedSeal,
@@ -14,8 +12,7 @@ import {
     type DiscFollowUp,
     type HydratedFeudumGameState,
     type ImmunityRole,
-    type SpaceId,
-    type WritId
+    type SpaceId
 } from '@tabletop/feudum'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { atPlayingCards, emptySpaces, giveGood, returnGoods, type TurnTable } from './turnTable.js'
@@ -37,18 +34,6 @@ export async function seatedAtCards(
         arrange?.(state, turn)
     })
     return { ...turn, session: await turn.host.openSeat(turn.seat) }
-}
-
-/** R-4.4 */
-export function holdWrit(state: HydratedFeudumGameState, playerId: string, writId: WritId): void {
-    const deck = state.requireVault().writDeck
-    const entry = deck.find((row) => row.writId === writId)
-    assertExists(entry, `${writId} is in the deck`)
-    entry.writId = deck[0].writId
-    deck[0].writId = writId
-    const player = state.getPlayerState(playerId)
-    player.requireWrits().push(...drawWrits(state, 1))
-    player.writCount += 1
 }
 
 /** R-4.10.2 Sulfur from the haversack into this seat's barrel, keeping totals. */

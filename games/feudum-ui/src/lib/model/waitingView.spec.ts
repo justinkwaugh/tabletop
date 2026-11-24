@@ -1,4 +1,4 @@
-import { buildFeudum, giveSeal } from '@tabletop/feudum/testing'
+import { buildFeudum, giveSeal, holdWrit } from '@tabletop/feudum/testing'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -24,7 +24,6 @@ import {
     atNourishing,
     fillBarrel,
     holdFood,
-    holdWrit,
     seatedAtCards,
     threePawns
 } from '$lib/testing/followUpTable.js'
