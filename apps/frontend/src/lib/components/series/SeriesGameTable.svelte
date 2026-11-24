@@ -15,9 +15,8 @@
     import GameProgressBar from '$lib/components/GameProgressBar.svelte'
     import SeriesGameEntry from './SeriesGameEntry.svelte'
     import CopyGameLinkButton from '$lib/components/CopyGameLinkButton.svelte'
-    import TurnWait from '$lib/components/TurnWait.svelte'
     import { minuteClock, timeSince } from '$lib/utils/clock.svelte'
-    import { turnWaitDisplay } from '$lib/utils/gamePace'
+    import { lastMovePaceWarning } from '$lib/utils/gamePace'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { activePlayerText } from '$lib/utils/player'
@@ -68,7 +67,7 @@
             { area: 'options', label: 'Options' },
             { area: 'pace', label: 'Pace' },
             { area: 'onmove', label: 'Turn' },
-            { area: 'age', label: 'Waiting' }
+            { area: 'age', label: 'Last action' }
         ],
         finished: [
             { area: 'title', label: 'Title' },
@@ -78,6 +77,8 @@
             { area: 'age', label: 'Finished' }
         ]
     }
+
+    const ageLabel = $derived(HEADINGS[kind].find((heading) => heading.area === 'age')?.label)
 
     // Undefined until the title loads, so a game with options never shows as Standard.
     function options(game: Game) {
@@ -117,6 +118,8 @@
             {@const summary = gameOptions && optionsSummary(gameOptions)}
             {@const pace = gamePaceOf(game)}
             {@const onMove = kind === 'inProgress' ? activePlayerText(game, userId) : undefined}
+            {@const paceWarning =
+                kind === 'inProgress' ? lastMovePaceWarning(game, minuteClock.now) : undefined}
             {@const isOpen = expanded.has(game.id)}
             {@const panelId = `${panelIdPrefix}-${game.id}`}
             <li class:highlight={game.id === highlightId} class:expanded={isOpen}>
@@ -158,17 +161,11 @@
                     {#if summary}<span class="options" class:standard={gameOptions?.length === 0}
                             >{summary}</span
                         >{/if}
-                    {#if kind === 'inProgress'}
-                        {@const wait = turnWaitDisplay(game, minuteClock.now)}
-                        <span class="age" class:past={wait?.pastPace}
-                            >{#if wait}<TurnWait {wait} label="Waiting"
-                                    >{#snippet prefix()}<span class="phone-only">{'waiting '}</span
-                                        >{/snippet}</TurnWait
-                                >{/if}</span
-                        >
-                    {:else}
-                        <span class="age">{age(game)}</span>
-                    {/if}
+                    <span class="age" class:past={paceWarning} title={paceWarning}
+                        ><span class="sr-only">{ageLabel} </span>{age(game)}{#if paceWarning}<span
+                                class="sr-only">, {paceWarning}</span
+                            >{/if}</span
+                    >
                     {#if kind === 'open'}
                         <span
                             class="seats"

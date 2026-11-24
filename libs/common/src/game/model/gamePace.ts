@@ -77,17 +77,6 @@ export function turnStartsAfter(
     )
 }
 
-export function longestTurnWait(game: TurnTiming, now: Date): number | undefined {
-    const activePlayerIds = game.activePlayerIds ?? []
-    if (activePlayerIds.length === 0) return undefined
-    return Math.max(
-        0,
-        ...activePlayerIds.map(
-            (playerId) => now.getTime() - turnStartedAt(game, playerId).getTime()
-        )
-    )
-}
-
 export function waitExceedsPace(
     game: Pick<Game, 'paceMinutes'>,
     waitMilliseconds: number

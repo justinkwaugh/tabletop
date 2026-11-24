@@ -1,5 +1,5 @@
 import { createSubscriber } from 'svelte/reactivity'
-import { createTimeAgo } from '@tabletop/frontend-components'
+import { timeAgoText } from './timeAgoText'
 
 class Clock {
     private readonly subscribe: () => void
@@ -28,8 +28,6 @@ class Clock {
 export const secondClock = new Clock(1_000)
 export const minuteClock = new Clock(30_000)
 
-const timeAgo = createTimeAgo()
-
 export function timeSince(date: Date): string {
-    return timeAgo.format(date, 'round-minute', { now: minuteClock.now.getTime() })
+    return timeAgoText(minuteClock.now.getTime() - date.getTime())
 }
