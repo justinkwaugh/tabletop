@@ -68,7 +68,6 @@ import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
 import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { routeActions } from '../routes/routeActions.js'
 import { RunningTrainsHandler, startRouteStep } from '../routes/runningTrainsHandler.js'
-import { startsStep } from './startsStep.js'
 import { InstructedRunsHandler } from '../routes/instructedRunsHandler.js'
 import { runInstructionActions } from '../routes/runInstructionActions.js'
 import { RunInstructionHandler } from '../routes/runInstructionHandler.js'
@@ -119,6 +118,7 @@ import {
 } from './eighteenXXState.js'
 import type { EighteenXXStateHandler, EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 import { titleComponents } from './titleComponents.js'
+import { startsStep } from './startsStep.js'
 function validateStateComposition(
     schema: Type.TObject,
     options: Pick<
@@ -677,12 +677,11 @@ export function createEighteenXXRuntime<
             }
         }
     }
-    // Each operating step's record starts before anything its handlers queue on entry.
     const stepStarts: Partial<Record<string, (state: State) => void>> = {
         LayingTrack: startTrackStep,
         PlacingStation: startStationStep,
         RunningTrains: startRouteStep
-    }
+    } satisfies Partial<Record<EighteenXXMachineState, (state: State) => void>>
     const startsOwnStep = (machineState: string, handler: Handler): Handler => {
         const start = stepStarts[machineState]
         return start ? startsStep(handler, start) : handler

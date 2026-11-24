@@ -73,7 +73,6 @@ export class LayingTrackHandler implements MachineStateHandler<
     }
 }
 
-/** The track step of the company about to lay track, unless it has already begun. */
 export function startTrackStep(state: State): void {
     if (state.trackStep) return
     const companyId = nextOperatingCompany(state)

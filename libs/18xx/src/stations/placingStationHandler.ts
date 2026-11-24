@@ -94,7 +94,6 @@ export class PlacingStationHandler implements MachineStateHandler<
     }
 }
 
-/** The station step of the company about to place stations, unless it has already begun. */
 export function startStationStep(state: State): void {
     if (state.stationStep) return
     const companyId = nextOperatingCompany(state)

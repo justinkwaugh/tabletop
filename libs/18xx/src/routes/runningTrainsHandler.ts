@@ -68,7 +68,6 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
     }
 }
 
-/** The route step of the company about to run trains, unless it has already begun. */
 export function startRouteStep(state: State): void {
     if (state.routeStep) return
     const companyId = nextOperatingCompany(state)
