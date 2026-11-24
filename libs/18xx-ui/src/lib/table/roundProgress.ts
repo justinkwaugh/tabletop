@@ -22,6 +22,11 @@ import {
     type RoundHeading
 } from './roundHeading.js'
 
+/** Whether the Action starts a stock round: its own start, or one interrupting an operating turn. */
+export function startsStockRound(action: GameAction): boolean {
+    return isStartStockRound(action) || isInterruptOperatingTurn(action)
+}
+
 type ProgressTitleRound = Pick<
     TitleRound,
     'name' | 'abbreviation' | 'starts' | 'ends' | 'followsStockRound'
@@ -73,7 +78,7 @@ export class RoundProgress {
     /** The rounds the Action ended, oldest first. */
     advance(action: GameAction): EndedRound[] {
         const ended: EndedRound[] = []
-        if (isStartStockRound(action) || isInterruptOperatingTurn(action)) {
+        if (startsStockRound(action)) {
             this.#stockRound++
             if (isStartStockRound(action)) this.#setUnderWay = false
             this.#current = stockRoundHeading(this.#stockRound)

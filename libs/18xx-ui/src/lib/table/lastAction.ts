@@ -8,7 +8,6 @@ import {
     isFinishOperatingTurn,
     isFinishStockTurn,
     isFloatCompany,
-    isInterruptOperatingTurn,
     isIssueTreasuryShares,
     isLayTile,
     isOfferPurchase,
@@ -20,7 +19,6 @@ import {
     isRunTrains,
     isSellFundingShares,
     isStartOperatingTurn,
-    isStartStockRound,
     type DistributeEarnings,
     type FloatCompany,
     type Owner
@@ -34,6 +32,7 @@ import {
     type HistoryDescription
 } from './historyDescription.js'
 import { isAutomaticStockDecision, isHistoryBookkeeping } from './historyNavigation.js'
+import { startsStockRound } from './roundProgress.js'
 
 export type LastActionCredit =
     { kind: 'company'; companyId: string } | { kind: 'player'; playerId: string }
@@ -77,10 +76,7 @@ export function turnRecap(
     playerId: string,
     routine: (action: GameAction) => boolean
 ): TurnRecapLine[] {
-    // A stock round that interrupts an operating turn (1880) starts without a StartStockRound.
-    const roundStart = actions.findLastIndex(
-        (action) => isStartStockRound(action) || isInterruptOperatingTurn(action)
-    )
+    const roundStart = actions.findLastIndex(startsStockRound)
     const previousTurnEnd = actions.findLastIndex(
         (action) => isFinishStockTurn(action) && action.playerId === playerId
     )
