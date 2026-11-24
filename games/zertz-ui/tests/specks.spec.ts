@@ -26,9 +26,8 @@ test.afterEach(({ page }) => {
     expect(pageErrors.get(page)).toEqual([])
 })
 
-// A new game with four marbles placed, none beside another, so no capture is forced.
-async function fourPlaced(page: Page) {
-    await page.route('**/model/sessionContext.svelte.ts*', async (route) => {
+function exposeSession(page: Page) {
+    return page.route('**/model/sessionContext.svelte.ts*', async (route) => {
         const response = await route.fetch()
         const body = await response.text()
         await route.fulfill({
@@ -36,6 +35,27 @@ async function fourPlaced(page: Page) {
             body: body.replace('return getContext();', 'return window.zertzSession = getContext();')
         })
     })
+}
+
+function readSpecks(page: Page) {
+    return page.evaluate(() => {
+        window.specks = () => {
+            const board = document.querySelector('svg.zertz-board')
+            const drawn: Specks = {}
+            for (const marble of board?.querySelectorAll('g.marble') ?? []) {
+                const paths = [...marble.querySelectorAll('path')].map((path) =>
+                    path.getAttribute('d')
+                )
+                drawn[marble.getAttribute('transform') ?? ''] = paths.join('|')
+            }
+            return drawn
+        }
+    })
+}
+
+// A new game with four marbles placed, none beside another, so no capture is forced.
+async function fourPlaced(page: Page) {
+    await exposeSession(page)
     await page.clock.install()
     await page.goto('/', { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'New game', exact: true }).click()
@@ -64,18 +84,8 @@ async function fourPlaced(page: Page) {
             await s.chooseRing(target)
             if (s.removableRings.length > 0) await s.chooseRing(s.removableRings[0])
         }
-        window.specks = () => {
-            const board = document.querySelector('svg.zertz-board')
-            const drawn: Specks = {}
-            for (const marble of board?.querySelectorAll('g.marble') ?? []) {
-                const paths = [...marble.querySelectorAll('path')].map((path) =>
-                    path.getAttribute('d')
-                )
-                drawn[marble.getAttribute('transform') ?? ''] = paths.join('|')
-            }
-            return drawn
-        }
     })
+    await readSpecks(page)
     for (let i = 0; i < 4; i++) await act(page, () => window.placeAway())
 }
 
@@ -265,4 +275,53 @@ test('a placed marble keeps its specks from staged through its ring removal', as
         if (before[ring] === undefined) continue
         expect(specks, `${ring} once landed`).toBe(before[ring])
     }
+})
+
+// The placed marble's ring is claimed with its group, so it is not on the board the Undo leaves.
+test('an undone placement that claimed its own ring comes back with its specks', async ({
+    page
+}) => {
+    await exposeSession(page)
+    await page.clock.install()
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Scenarios' }).click()
+    await page.getByText('Claim by placement', { exact: true }).click()
+    await expect.poll(() => page.evaluate(() => !!window.zertzSession)).toBe(true)
+    await settle(page)
+    await readSpecks(page)
+    await act(page, async () => {
+        const s = window.zertzSession
+        // White marbles have no specks.
+        const specked = s.placeableColors.find((color) => color !== 'white')
+        if (specked === undefined) throw Error('No specked marble to place')
+        s.chooseColor(specked)
+        await s.chooseRing({ q: -2, r: 2 })
+    })
+    await page.waitForTimeout(800)
+    const placed = await page.evaluate(() => window.specks())
+    await act(page, () => {
+        const s = window.zertzSession
+        return s.chooseRing(s.removableRings[0])
+    })
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
+    await page.clock.runFor(20)
+    await page.evaluate(() => void window.zertzSession.undo())
+    const frames: Specks[] = []
+    for (let i = 0; i <= 20; i++) {
+        frames.push(await page.evaluate(() => window.specks()))
+        await page.clock.runFor(20)
+    }
+    await page.clock.resume()
+    await settle(page)
+    frames.push(await page.evaluate(() => window.specks()))
+    expect(await page.evaluate(() => window.zertzSession.chosenPlace)).toEqual({ q: -2, r: 2 })
+    let seen = 0
+    frames.forEach((frame, index) => {
+        for (const [ring, specks] of Object.entries(frame)) {
+            if (placed[ring] === undefined) continue
+            seen++
+            expect(specks, `${ring} at frame ${index}`).toBe(placed[ring])
+        }
+    })
+    expect(seen).toBeGreaterThan(0)
 })

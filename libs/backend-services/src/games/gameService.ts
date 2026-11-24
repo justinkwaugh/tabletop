@@ -97,7 +97,8 @@ import {
     type TournamentSchedule,
     receivesGameAndCompetitionEmail,
     playersWithDeletedAccount,
-    playersWithRenamedSeat
+    playersWithRenamedSeat,
+    turnReminderChoices
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -176,9 +177,9 @@ import {
     DEFERRED_TURN_REMINDER_INDEX,
     enqueueTurnReminder,
     FIRST_TURN_REMINDER_INDEX,
-    nextTurnReminderIndex,
-    turnReminderDelaySeconds,
+    planTurnReminder,
     turnReminderIndex,
+    wantsTurnReminder,
     type TurnReminderTask
 } from './turnReminders.js'
 import {
@@ -200,6 +201,8 @@ type UndoPlan = {
     retainedActions: GameAction[]
     actions: GameAction[]
 }
+
+type GameEmailRecipient = User & { email: string }
 
 export class GameService {
     constructor(
@@ -453,9 +456,8 @@ export class GameService {
             masterSeed ? { masterSeed } : undefined
         )
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: created })
-        await this.notifyGameStarted(created)
-        await this.scheduleStartingTurnNotifications(created)
         await this.startStallCheck(created)
+        await this.announceGameStart(created)
         return created
     }
 
@@ -1498,10 +1500,14 @@ export class GameService {
     }
 
     private async notifyStartedGame(game: Game): Promise<void> {
-        //TODO: Send game started email
         await this.notifyGamePlayers(GameNotificationAction.Update, { game })
+        await this.announceGameStart(game)
+    }
+
+    private async announceGameStart(game: Game): Promise<void> {
         await this.notifyGameStarted(game)
         await this.scheduleStartingTurnNotifications(game)
+        await this.sendGameStartedEmail(game)
     }
 
     @Retryable({
@@ -2935,25 +2941,41 @@ export class GameService {
         })
     }
 
-    private async sendGameEndEmail(game: Game): Promise<void> {
-        const userIds = game.players.map((p) => p.userId).filter((id): id is string => !!id)
+    private async sendGameStartedEmail(game: Game): Promise<void> {
+        if (game.hotseat) return
+        for (const user of await this.gameEmailRecipients(game)) {
+            await this.taskService.sendGameStartedEmail({
+                userId: user.id,
+                gameId: game.id,
+                toEmail: user.email
+            })
+        }
+    }
 
-        for (const userId of userIds) {
-            // I'm not sure why we send the email through the task, when
-            // it could just get it on the other end.
-            const user = await this.userService.getUser(userId)
+    private async sendGameEndEmail(game: Game): Promise<void> {
+        for (const user of await this.gameEmailRecipients(game)) {
+            await this.taskService.sendGameEndEmail({
+                userId: user.id,
+                gameId: game.id,
+                toEmail: user.email
+            })
+        }
+    }
+
+    private async gameEmailRecipients(game: Game): Promise<GameEmailRecipient[]> {
+        const recipients: GameEmailRecipient[] = []
+        for (const player of game.players) {
+            if (!player.userId) continue
+            const user = await this.userService.getUser(player.userId)
             if (
                 user &&
                 canHoldAuthenticatedSession(user) &&
                 receivesGameAndCompetitionEmail(user)
             ) {
-                await this.taskService.sendGameEndEmail({
-                    userId: user.id,
-                    gameId: game.id,
-                    toEmail: user.email
-                })
+                recipients.push(user)
             }
         }
+        return recipients
     }
 
     private async notifyGameAudience(
@@ -2987,7 +3009,7 @@ export class GameService {
     private async scheduleTurnNotifications(
         game: Game,
         playerIds: string[],
-        reminderIndex: number
+        fromReminderIndex: number
     ): Promise<void> {
         for (const playerId of playerIds) {
             const player = this.findPlayerByPlayerId(game, playerId)
@@ -2998,7 +3020,7 @@ export class GameService {
             if (!user) {
                 continue
             }
-            await this.scheduleTurnNotification(user, game.id, reminderIndex)
+            await this.scheduleTurnNotification(user, game.id, fromReminderIndex)
         }
     }
 
@@ -3006,21 +3028,25 @@ export class GameService {
     private async scheduleTurnNotification(
         user: User,
         gameId: string,
-        reminderIndex: number
+        fromReminderIndex: number
     ): Promise<void> {
-        const notificationId = nanoid()
         const cacheKey = this.makeTurnNotificationCacheKey(user.id, gameId)
-        const inSeconds = turnReminderDelaySeconds(reminderIndex, new Date(), user)
-        await this.cacheService.set(cacheKey, notificationId, inSeconds + 60)
+        const planned = planTurnReminder(fromReminderIndex, new Date(), user)
+        if (!planned) {
+            await this.cacheService.delete(cacheKey)
+            return
+        }
+        const notificationId = nanoid()
+        await this.cacheService.set(cacheKey, notificationId, planned.inSeconds + 60)
         enqueueTurnReminder(
             this.taskService,
             {
                 userId: user.id,
                 gameId,
                 notificationId,
-                reminderIndex
+                reminderIndex: planned.reminderIndex
             },
-            inSeconds
+            planned.inSeconds
         ).catch((e) => {
             console.error('Failed to send turn notification', e)
         })
@@ -3066,12 +3092,12 @@ export class GameService {
                     }
                 }
             }
-            await this.notifyUser(notification)
-            const nextReminderIndex = EnvService.isLocal()
-                ? undefined
-                : nextTurnReminderIndex(turnReminderIndex(task))
-            if (nextReminderIndex !== undefined) {
-                await this.scheduleTurnNotification(user, gameId, nextReminderIndex)
+            const reminderIndex = turnReminderIndex(task)
+            if (wantsTurnReminder(reminderIndex, turnReminderChoices(user.preferences))) {
+                await this.notifyUser(notification)
+            }
+            if (!EnvService.isLocal()) {
+                await this.scheduleTurnNotification(user, gameId, reminderIndex + 1)
             }
         } catch (e) {
             console.log('error in notifyIsYourTurn', e)

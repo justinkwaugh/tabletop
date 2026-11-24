@@ -205,4 +205,24 @@ describe("Magician's Code — two free secrets on the Darkest Secret", () => {
         expect(s.cardTokens[MAGICIANS_CODE]).toEqual({ favor: 2, secrets: 0 })
         expect(s.getPlayerState('att')).toMatchObject({ favor: 2, secrets: 1 })
     })
+
+    it('offers the Recover to a player with no secrets, the only Recover being one with the Code', () => {
+        const unaided = board([], { att: { secrets: 0, favor: 4 } }, darkestSecretOnly)
+        expect(HydratedRecover.canDoRecover(unaided, 'att')).toBe(false)
+
+        const s = board([MAGICIANS_CODE], { att: { secrets: 0, favor: 4 } }, darkestSecretOnly)
+        expect(HydratedRecover.canDoRecover(s, 'att')).toBe(true)
+
+        // Too little favor to place on the Code leaves nothing to recover.
+        const poor = board([MAGICIANS_CODE], { att: { secrets: 0, favor: 1 } }, darkestSecretOnly)
+        expect(HydratedRecover.canDoRecover(poor, 'att')).toBe(false)
+    })
 })
+
+/** The Darkest Secret unheld at 1; the People's Favor held by `att`, out of reach at 9. */
+const darkestSecretOnly = {
+    banners: {
+        [Banner.PeoplesFavor]: { value: 9, holderPlayerId: 'att' },
+        [Banner.DarkestSecret]: { value: 1 }
+    }
+}

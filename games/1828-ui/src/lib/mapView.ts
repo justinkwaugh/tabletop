@@ -188,6 +188,7 @@ export const MapView1828: MapViewDefinition = {
         market: { x: 1230, y: -50, width: 942, height: 1236 },
         depot: { x: 840, y: 690, width: 381, height: 187 }
     },
+    simpleTokenArt: true,
     stations: Object.fromEntries(
         Object.entries(CompanyColors1828).map(([companyId, color]) => [
             companyId,

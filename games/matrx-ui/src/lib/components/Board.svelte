@@ -12,7 +12,9 @@
         includesCoords,
         PIECE_RADIUS,
         RESERVE_DOT_RADIUS,
-        RESERVE_LINE_WIDTH
+        MAX_FIT_SCALE,
+        RESERVE_LINE_WIDTH,
+        SPACING
     } from '$lib/board/geometry.js'
     import type { BoardDisc } from '$lib/board/boardChange.js'
     import { turnOf, type Disc } from '$lib/board/pieceShape.js'
@@ -21,7 +23,10 @@
         FINE_LINES,
         FINE_TILE,
         gridLines,
-        tableArea as tableAreaOf
+        tableArea as tableAreaOf,
+        edgeFades,
+        frameBox,
+        type Box
     } from '$lib/board/boardLines.js'
     import { pushArrow, stackOutline, topRing, type RingArc } from '$lib/board/marks.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
@@ -140,6 +145,79 @@
     const SPOT_RADIUS = PIECE_RADIUS * 0.13
 
     const tableArea = $derived(tableAreaOf(frame))
+
+    // How far past each side of the frame the board's box shows the table at the board's fitted view,
+    // in board units. Like a printed board, it holds still as you zoom and pan. Never negative.
+    let boxReach = $state<Box>({ left: 0, top: 0, right: 0, bottom: 0 })
+    // Where the box has more room, the grid still ends this near the frame, like a cut edge: closer on
+    // a phone, where the cut edges sit close all round, than on the desktop layout (Tailwind's sm).
+    let desktop = $state(false)
+    const MAX_REACH = $derived(SPACING * (desktop ? 1 : 0.5))
+    const seen = $derived.by(() => {
+        const own = frameBox(frame)
+        const reach = (side: number) => Math.min(side, MAX_REACH)
+        return {
+            left: own.left - reach(boxReach.left),
+            top: own.top - reach(boxReach.top),
+            right: own.right + reach(boxReach.right),
+            bottom: own.bottom + reach(boxReach.bottom)
+        }
+    })
+    const fades = $derived(edgeFades(seen, tableArea))
+
+    function watchBox(svg: SVGSVGElement) {
+        const box = svg.closest('.scaling-surface')
+        const viewport = box?.firstElementChild
+        const content = viewport?.firstElementChild
+        if (!box || !viewport) return
+        let frameId = 0
+        // Measured only at the fitted view, so a resize made while zoomed in is taken up once the
+        // view returns to fit. Two frames on, so the wrapper has fitted the board to a new size.
+        const measure = () => {
+            cancelAnimationFrame(frameId)
+            frameId = requestAnimationFrame(() => {
+                frameId = requestAnimationFrame(() => {
+                    const own = svg.getBoundingClientRect()
+                    const room = viewport.getBoundingClientRect()
+                    if (own.width === 0 || own.height === 0) return
+                    const inside =
+                        own.left >= room.left - 1 &&
+                        own.top >= room.top - 1 &&
+                        own.right <= room.right + 1 &&
+                        own.bottom <= room.bottom + 1
+                    const fills =
+                        Math.abs(own.width - room.width) <= 1 ||
+                        Math.abs(own.height - room.height) <= 1 ||
+                        Math.abs(own.width / frame.width - MAX_FIT_SCALE) < 0.01
+                    if (!inside || !fills) return
+                    const shown = box.getBoundingClientRect()
+                    const perPixel = svg.viewBox.baseVal.width / own.width
+                    const reach = (pixels: number) => Math.max(0, pixels * perPixel)
+                    const next = {
+                        left: reach(own.left - shown.left),
+                        top: reach(own.top - shown.top),
+                        right: reach(shown.right - own.right),
+                        bottom: reach(shown.bottom - own.bottom)
+                    }
+                    desktop = window.matchMedia('(min-width: 640px)').matches
+                    const sides = ['left', 'top', 'right', 'bottom'] as const
+                    if (sides.some((side) => Math.abs(next[side] - boxReach[side]) > 0.5)) {
+                        boxReach = next
+                    }
+                })
+            })
+        }
+        const resized = new ResizeObserver(measure)
+        resized.observe(box)
+        // The wrapper zooms and pans by the content's inline transform.
+        const viewed = new MutationObserver(measure)
+        if (content) viewed.observe(content, { attributes: true, attributeFilter: ['style'] })
+        return () => {
+            resized.disconnect()
+            viewed.disconnect()
+            cancelAnimationFrame(frameId)
+        }
+    }
     const centreTriangles = $derived(centreTrianglesOf(view))
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
     // Labels are centred from the alphabetic baseline, as WebKit mis-scales a central baseline
@@ -224,6 +302,7 @@
         role="group"
         aria-label="MATRX GIPF board"
         {@attach animator.attach}
+        {@attach watchBox}
     >
         <defs>
             <PieceDefs prefix="matrx-board" />
@@ -242,12 +321,26 @@
                 <stop offset="0.7" class="fade-stop clear"></stop>
                 <stop offset="1" class="fade-stop"></stop>
             </radialGradient>
+            {#each fades as fade (fade.side)}
+                <linearGradient
+                    id="matrx-board-fade-{fade.side}"
+                    gradientUnits="userSpaceOnUse"
+                    {...fade.line}
+                >
+                    <stop offset="0" class="fade-stop"></stop>
+                    <stop offset="0.5" class="fade-stop" stop-opacity="0.45"></stop>
+                    <stop offset="1" class="fade-stop clear"></stop>
+                </linearGradient>
+            {/each}
         </defs>
 
         <!-- The grid fades into the table under a gradient of the table's colour, not a mask: a mask
          the size of the table doubled the board's repaint in WebKit. -->
         <rect {...tableArea} class="fine"></rect>
         <rect {...tableArea} fill="url(#matrx-board-fade)" class="fade"></rect>
+        {#each fades as fade (fade.side)}
+            <rect {...fade.rect} fill="url(#matrx-board-fade-{fade.side})" class="fade"></rect>
+        {/each}
         <polygon points={playArea} class="play-area"></polygon>
         <polygon points={centreTriangles} class="fine"></polygon>
 

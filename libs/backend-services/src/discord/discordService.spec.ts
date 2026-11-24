@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ExternalAuthService, UserStatus, type User } from '@tabletop/common'
+import {
+    ExternalAuthService,
+    SystemNotificationAction,
+    UserStatus,
+    type User
+} from '@tabletop/common'
 import {
     ApplicationIntegrationType,
     ApplicationWebhookEventType,
@@ -13,6 +18,7 @@ import { UserService } from '../users/userService.js'
 import { NotificationService } from '../notifications/notificationService.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 import { DiscordTransport } from '../notifications/transports/discordTransport.js'
+import type { DiscordSubscription } from '../notifications/subscriptions/discordSubscription.js'
 
 const discordUser: APIUser = {
     id: 'discord-1',
@@ -29,7 +35,7 @@ const linkedUser: User = {
     externalIds: []
 }
 
-const expectedSubscription = {
+const expectedSubscription: DiscordSubscription = {
     id: discordUser.id,
     transport: TransportType.Discord,
     discordUserId: discordUser.id
@@ -77,13 +83,18 @@ describe('DiscordService webhook events', () => {
             addTransport: vi.fn(),
             registerNotificationSubscription: vi.fn().mockResolvedValue(undefined),
             unregisterNotificationSubscription: vi.fn().mockResolvedValue(undefined),
+            hasUserDirectSubscription: vi.fn(),
             sendNotification: vi.fn()
         }
         userService = Object.create(UserService.prototype)
         vi.spyOn(userService, 'getUserByExternalId').mockResolvedValue(linkedUser)
         discordTransport = Object.create(DiscordTransport.prototype)
         vi.spyOn(discordTransport, 'sendMessage').mockResolvedValue(undefined)
-        service = new DiscordService(notificationService, userService, discordTransport)
+        service = new DiscordService(notificationService, userService, discordTransport, {
+            findNotificationSubscriptions: async (topic: string) =>
+                topic === `user-${linkedUser.id}` ? [expectedSubscription] : [],
+            findSubscriptionTopics: async () => [`user-${linkedUser.id}`]
+        })
     })
 
     it('does not subscribe or welcome a banned user who adds the bot', async () => {
@@ -151,5 +162,29 @@ describe('DiscordService webhook events', () => {
         expect(notificationService.unregisterNotificationSubscription).toHaveBeenCalledWith(
             expectedSubscription
         )
+    })
+
+    it('tells an open Notifications page when a user adds or removes the bot', async () => {
+        await service.handleWebhookEvent(authorizedEvent(ApplicationIntegrationType.UserInstall))
+        await service.handleWebhookEvent(deauthorizedEvent)
+
+        expect(notificationService.sendNotification).toHaveBeenCalledTimes(2)
+        expect(notificationService.sendNotification).toHaveBeenCalledWith(
+            expect.objectContaining({
+                notification: expect.objectContaining({
+                    action: SystemNotificationAction.TopicRegistrationsChanged
+                }),
+                topics: [`user-${linkedUser.id}`]
+            })
+        )
+    })
+
+    it('stops direct messages when the user disconnects on the Notifications page', async () => {
+        await service.disconnect(linkedUser.id)
+
+        expect(notificationService.unregisterNotificationSubscription).toHaveBeenCalledWith(
+            expectedSubscription
+        )
+        expect(notificationService.sendNotification).toHaveBeenCalled()
     })
 })

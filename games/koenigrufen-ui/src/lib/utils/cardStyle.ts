@@ -81,6 +81,16 @@ export function cardLabel(cardId: string, style: CardStyle): string {
     return `${suitCardRank(found, style)}${SuitSymbols[found.suit]}`
 }
 
+// A card's name where it is drawn (its tooltip and accessible name). Industrie und Glück trumps
+// carry only Roman numerals, so their name adds the number: "XII (12)".
+export function cardTitle(cardId: string, style: CardStyle): string {
+    const found = card(cardId)
+    const label = cardLabel(cardId, style)
+    return found.kind === 'trump' && style.classicDeck && found.number !== Skus
+        ? `${label} (${found.number})`
+        : label
+}
+
 export const FaceNames: Readonly<Record<Face, string>> = {
     [Face.King]: 'King',
     [Face.Queen]: 'Queen',

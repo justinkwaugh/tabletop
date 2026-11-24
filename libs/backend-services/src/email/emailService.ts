@@ -1,4 +1,5 @@
 import type {
+    GameStartedProps,
     LeagueSeasonResultsProps,
     LeagueSeasonStartProps,
     LeagueSignUpProps
@@ -13,6 +14,12 @@ import {
 
 export { AccountChangeType } from '@tabletop/common'
 import type { ContentReportEmail } from '../moderation/contentReports.js'
+
+export type GameStartedEmail = GameStartedProps & {
+    url: string
+    notificationsUrl: string
+    toEmail: string
+}
 
 export type LeagueSignUpEmail = LeagueSignUpProps & { url: string; toEmail: string }
 
@@ -64,6 +71,7 @@ export interface EmailService {
         url: string
         toEmail: string
     }): Promise<void>
+    sendGameStartedEmail(email: GameStartedEmail): Promise<void>
     sendTournamentResultsEmail({
         detail,
         definition,

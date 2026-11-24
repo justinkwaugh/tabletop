@@ -16,7 +16,7 @@ import {
     type TitlePresentation
 } from '@tabletop/18xx-ui'
 import { CompanyNames1846 } from './companyPresentation.js'
-import { mapPlacement1846 } from './history.js'
+import { mapPlacement1846 } from './mapPlacement.js'
 import { revenueTokenArt } from './revenueTokens.js'
 import BoomtownToken from './images/tokens/boomtown.svg'
 import MailToken from './images/tokens/mail.svg'

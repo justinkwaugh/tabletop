@@ -13,6 +13,7 @@
 {#if open}
     <DraftLineupDialog
         lineup={companyLineup(session.gameState, (id) => session.companyName(id))}
+        initials={session.tokenInitials}
         onclose={() => (open = false)}
     />
 {/if}

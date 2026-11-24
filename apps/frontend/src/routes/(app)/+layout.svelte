@@ -53,6 +53,7 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
+    import { adminTabPath } from '$lib/utils/adminPaths'
     import { BellSolid, DownloadOutline, HeartOutline, RefreshOutline } from 'flowbite-svelte-icons'
     import {
         isInstalledApp,
@@ -268,7 +269,7 @@
 
     async function gotoAdmin() {
         showCancelPrompt = false
-        await goto('/admin')
+        await goto(adminTabPath('users'))
     }
 
     async function gotoDashboard() {
@@ -385,7 +386,7 @@
 {#snippet gameName()}
     {#if gameService.currentGameSession}
         <Heading
-            class="text-nowrap text-center mt-2 sm:mt-0 max-w-[320px] dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
+            class="text-nowrap text-center mt-2 sm:mt-0 dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
             tag="h4"
             >{currentVisibility === GameVisibility.Public
@@ -418,7 +419,7 @@
     >
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">
-                <div class="header-brand flex justify-center items-center">
+                <div class="header-brand flex flex-1 min-w-0 items-center">
                     <NavBrand href={sessionUser ? '/library' : '/'} class="shrink-0 cursor-pointer">
                         <img src={darkLogo} alt="Board Together" class="full-logo h-8 w-auto" />
                         <img
@@ -429,12 +430,12 @@
                     </NavBrand>
 
                     <div
-                        class="header-title hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
+                        class="header-title hidden sm:block min-w-0 rounded-lg py-2 px-2 md:px-4 ml-4"
                     >
                         {@render gameName()}
                     </div>
                 </div>
-                <div class="header-actions flex items-center">
+                <div class="header-actions flex shrink-0 items-center">
                     <div class="header-links flex items-center gap-3 mr-4">
                         <a
                             href="/about"
@@ -894,19 +895,14 @@
             padding-block: 4px;
         }
         .mobile-game-header .header-brand {
-            flex: 1;
-            min-width: 0;
-            justify-content: flex-start;
             padding-left: 8px;
         }
         .mobile-game-header .header-actions {
-            flex-shrink: 0;
             margin-left: 8px;
         }
         .mobile-game-header .header-title {
             display: block;
             flex: 1;
-            min-width: 0;
             margin-left: 12px;
             padding: 0;
         }

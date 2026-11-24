@@ -19,6 +19,7 @@ import {
     PIECES_OF_KIND,
     type Piece,
     PieceKind,
+    type PieceColor,
     TzaarBoard
 } from './board.js'
 import { SPACES } from './geometry.js'
@@ -90,10 +91,17 @@ export class HydratedTzaarGameState
         return opponent.playerId
     }
 
-    whitePlayerId(): string {
-        const white = this.players.find((player) => player.color === Color.White)
-        assertExists(white, 'No player has White')
-        return white.playerId
+    playerWith(color: Color): string {
+        const player = this.players.find((candidate) => candidate.color === color)
+        assertExists(player, `No player has ${color}`)
+        return player.playerId
+    }
+
+    // The player who places the first piece, who sets the board in I set, you choose.
+    firstPlayerId(): string {
+        const first = this.turnManager.turnOrder[0]
+        assertExists(first, 'The game has a first player')
+        return first
     }
 
     // Rule I: in the tournament version each player places their own 30 pieces.
@@ -106,8 +114,27 @@ export class HydratedTzaarGameState
         return PIECE_KINDS.filter((kind) => this.piecesInHand(playerId, kind) > 0)
     }
 
-    pieceToPlace(playerId: string, kind: PieceKind): Piece {
-        return { id: this.board.pieceCount(), playerId, kind }
+    // Rule I: White places first and the players take turns, so White's pieces go down at the
+    // even counts and Black's at the odd ones, whoever puts them down.
+    colorToPlace(): PieceColor {
+        return this.board.pieceCount() % 2 === 0 ? Color.White : Color.Black
+    }
+
+    ownerOfNextPiece(): string {
+        return this.playerWith(this.colorToPlace())
+    }
+
+    pieceToPlace(kind: PieceKind): Piece {
+        return { id: this.board.pieceCount(), playerId: this.ownerOfNextPiece(), kind }
+    }
+
+    // I set, you choose: taking the other colour takes its pieces too.
+    takeColor(playerId: string, color: PieceColor) {
+        if (this.getPlayerState(playerId).color === color) return
+        for (const player of this.players) {
+            player.color = player.color === Color.White ? Color.Black : Color.White
+        }
+        this.board.trade(playerId, this.opponentOf(playerId))
     }
 
     // Rule D: White's opening turn is a single capture, made before any piece has left the board.

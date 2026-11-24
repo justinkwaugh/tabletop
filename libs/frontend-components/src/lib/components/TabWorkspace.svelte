@@ -174,6 +174,20 @@
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
     let dropTarget: string | undefined = $state()
+    let pressedTab: string | undefined
+    let pointerFocusedTab: string | undefined = $state()
+    function pressTab(id: string) {
+        pressedTab = id
+        setTimeout(() => (pressedTab = undefined))
+    }
+    function focusTab(id: string) {
+        // Focus coming back with the window keeps the mode it left with.
+        if (pressedTab === id) pointerFocusedTab = id
+        else if (pointerFocusedTab !== id) pointerFocusedTab = undefined
+    }
+    function blurTab(id: string) {
+        if (pointerFocusedTab === id && document.hasFocus()) pointerFocusedTab = undefined
+    }
     let resize:
         | {
               id: string
@@ -326,6 +340,9 @@
             transfer(tabId, layout.panes[next].pane.id)
             return
         }
+        // Left/Right belong to the history keys on a clicked tab. :focus-visible can't
+        // tell a click from the keyboard: Chromium turns it on at the first key press.
+        if (pointerFocusedTab === tabId && ['ArrowLeft', 'ArrowRight'].includes(event.key)) return
         const index = pane.tabs.indexOf(tabId)
         const next =
             event.key === 'ArrowRight'
@@ -442,6 +459,10 @@
                             draggable={splittable}
                             onclick={() => select(id)}
                             onkeydown={(event) => tabKeys(event, item.pane.id, id)}
+                            onpointerdown={() => pressTab(id)}
+                            class:pointer-focused={pointerFocusedTab === id}
+                            onfocus={() => focusTab(id)}
+                            onblur={() => blurTab(id)}
                             title={splittable
                                 ? 'Drag to reorder or move to another pane; Alt+Shift+Left/Right moves between panes'
                                 : undefined}
@@ -1066,6 +1087,10 @@
     .divider:hover::after,
     .divider:focus-visible::after {
         background: var(--workspace-focus, #2563eb);
+    }
+    /* Chromium turns :focus-visible on at the first key press after a click. */
+    button.pointer-focused:focus-visible {
+        outline: none;
     }
     button:focus-visible,
     .divider:focus-visible {

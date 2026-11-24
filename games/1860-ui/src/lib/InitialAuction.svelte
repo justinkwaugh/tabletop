@@ -20,7 +20,7 @@
     const auction = $derived(session.gameState.choiceAuction)
     const decision = $derived(session.auctionDecision)
     const name = (playerId: string) => session.getPlayerName(playerId)
-    const color = (playerId: string) => session.colors.getPlayerBgColorValue(playerId)
+    const color = (playerId: string) => session.playerColorValue(playerId)
     const cash = (playerId: string) =>
         finiteCashOwnedBy(session.gameState, { kind: 'player', playerId })
     const token = (companyId: string) => session.mapView.stations[companyId]

@@ -59,7 +59,8 @@ function fixture() {
         sendAccountChangeNotificationEmail: unused,
         sendContentReportEmail: unused,
         sendGameInvitationEmail: vi.fn(async () => {}),
-        sendGameEndEmail: unused
+        sendGameEndEmail: unused,
+        sendGameStartedEmail: unused
     }
     const notifications: NotificationService = {
         addTopicTransport: vi.fn(),
@@ -68,6 +69,7 @@ function fixture() {
         addTransport: vi.fn(),
         registerNotificationSubscription: unused,
         unregisterNotificationSubscription: unused,
+        hasUserDirectSubscription: unused,
         sendNotification: vi.fn(async () => {})
     }
     const service = new GameService(store, users, tokens, tasks, notifications, cache, {

@@ -269,7 +269,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                     data: '{}'
                 })
             const first = await service.getNow()
-            expect(first.notificationClients).toEqual({ webPush: 1, discord: 0 })
+            expect(first.notificationClients).toEqual({ webPush: 1, discord: 0, telegram: 0 })
             await vi.waitFor(async () =>
                 expect((await live.cache.cacheGet('site-stats-now')).cached).toBe(true)
             )

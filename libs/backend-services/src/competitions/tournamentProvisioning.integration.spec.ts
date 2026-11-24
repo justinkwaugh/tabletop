@@ -175,6 +175,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             vi.spyOn(tasks, 'sendGameInvitationEmail').mockRejectedValue(
                 new Error('Must not invite')
             )
+            vi.spyOn(tasks, 'sendGameStartedEmail').mockResolvedValue()
             const tournament: Tournament = {
                 id: `${prefix}-${randomUUID()}`,
                 name: 'Mini',
@@ -551,6 +552,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             vi.spyOn(tasks, 'sendGameInvitationEmail').mockRejectedValue(
                 new Error('Must not invite')
             )
+            vi.spyOn(tasks, 'sendGameStartedEmail').mockResolvedValue()
             const id = `${prefix}-${randomUUID()}`
             const draft: TournamentDraft = {
                 name: 'League · Season 1 · B1',
@@ -1746,6 +1748,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await store.findGameById(gameId, true))?.state).toEqual(game.state)
             expect((await tournaments.read(request.tournamentId))?.status).toBe('inProgress')
             expect(tasks.sendGameInvitationEmail).not.toHaveBeenCalled()
+            expect(
+                vi.mocked(tasks.sendGameStartedEmail).mock.calls.map(([email]) => email.userId)
+            ).toEqual(table.entrantIds.filter((id) => users.find((user) => user.id === id)?.email))
             expect(JSON.stringify(notify.mock.calls)).not.toContain('masterSeed')
             const spectator = await games.getGameForUser({ gameId, user: admin })
             expect(JSON.stringify(spectator)).not.toContain('hidden-one')

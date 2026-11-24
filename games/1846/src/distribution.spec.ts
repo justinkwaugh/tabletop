@@ -11,7 +11,7 @@ import {
     hydrateEighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
-import { BankSize, DraftCompanies, isBlank } from './catalog.js'
+import { BankSize, DraftCompanies, blankCardIds, isBlank, passCardNumber } from './catalog.js'
 import { choicesFor, hiddenDistribution } from './distribution.js'
 
 function money(state: EighteenFortySixProjectedState) {
@@ -68,6 +68,10 @@ describe('1846 setup and distribution', () => {
     it.each([1, 6])('rejects unsupported count %i', (count) =>
         expect(() => start(count)).toThrow('two through five')
     )
+    it('numbers the Pass cards 1 to the player count, as the printed player cards', () => {
+        expect(blankCardIds(5).map(passCardNumber)).toEqual([1, 2, 3, 4, 5])
+        expect(() => passCardNumber('MS')).toThrow()
+    })
     it('rejects non-catalog canonical fields and does not manufacture missing secrets on hydration', () => {
         const { state } = start()
         expect(CanonicalValidator.Check({ ...state, loans: [] })).toBe(false)
@@ -196,6 +200,10 @@ describe('1846 setup and distribution', () => {
                 'PassFinalCompany',
                 'RevealDraft'
             ])
+            expect(result.processedActions[0].metadata).toEqual({
+                reducedOffer: { cardId: id, price: debt },
+                purchase: { playerId: expectedOwner, cardId: id, price: debt }
+            })
             expect(result.processedActions.at(-1)?.metadata).toMatchObject({
                 roundEnd: roundEnd(
                     hydrateEighteenFortySixState(result.updatedState),
@@ -241,6 +249,22 @@ describe('1846 setup and distribution', () => {
                 .updatedState.actionCount
         ).toBe(1)
     })
+    it('records the lowered price of a passed final company above its floor', () => {
+        const { game, state, engine } = start()
+        hiddenDistribution(state).deck = []
+        hiddenDistribution(state).remainingCount = 1
+        hiddenDistribution(state).finalOffer = { cardId: 'MS', price: 110 }
+        for (const player of hiddenDistribution(state).participants)
+            player.packet = player.playerId === state.activePlayerIds[0] ? ['MS'] : []
+        const { processedActions } = engine.executeCanonicalAction({
+            game,
+            state,
+            action: action(state)
+        })
+        expect(processedActions.map((action) => action.metadata)).toEqual([
+            { reducedOffer: { cardId: 'MS', price: 100 } }
+        ])
+    })
     it('lets the current player buy the last company before it reaches the debt floor', () => {
         const { game, state, engine } = start()
         const playerId = state.activePlayerIds[0]
@@ -257,6 +281,9 @@ describe('1846 setup and distribution', () => {
         expect(revealedPurchases(processedActions)).toEqual([
             { playerId, cardId: 'MS', price: 110 }
         ])
+        expect(processedActions[0].metadata).toEqual({
+            finalCompany: { cardId: 'MS', price: 110 }
+        })
         expect(
             updatedState.cash.find(
                 (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'MS'

@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince-ui",
-    "version": "16.4.1",
+    "version": "17.3.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",

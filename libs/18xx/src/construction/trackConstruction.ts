@@ -11,7 +11,8 @@ import {
     type StationReservation,
     type StationState
 } from '../map/station.js'
-import { reservationFulfilled } from '../stations/stationPlacement.js'
+import { reservationFulfilled, type StationStep } from '../stations/stationPlacement.js'
+import { awaitsFinishStations } from '../stations/stationsWithTrackHandler.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import {
     TilePlacement,
@@ -911,20 +912,25 @@ function sameMembers(first: readonly unknown[], second: readonly unknown[]): boo
     return JSON.stringify(keys(first)) === JSON.stringify(keys(second))
 }
 
-export function validateTrackStep(state: {
-    machineState: string
-    trackStep?: TrackStep
-    operatingSet?: { companyOrder: readonly string[] }
-}): void {
+export function validateTrackStep(
+    state: {
+        machineState: string
+        trackStep?: TrackStep
+        stationStep?: Pick<StationStep, 'companyId' | 'completed'>
+        operatingSet?: { companyOrder: readonly string[] }
+    },
+    { stationsWithTrack = false }: { stationsWithTrack?: boolean } = {}
+): void {
     if (state.machineState !== 'LayingTrack' && state.machineState !== 'PlacingStation') return
+    const { trackStep } = state
     assert(
-        state.trackStep && state.operatingSet?.companyOrder.includes(state.trackStep.companyId),
+        trackStep && state.operatingSet?.companyOrder.includes(trackStep.companyId),
         'Track step requires an operating company'
     )
-    assert(
-        state.trackStep.completed === (state.machineState !== 'LayingTrack'),
-        'Track completion does not match the machine state'
-    )
+    const finished =
+        state.machineState === 'PlacingStation' ||
+        (stationsWithTrack && awaitsFinishStations(state))
+    assert(trackStep.completed === finished, 'Track completion does not match the machine state')
 }
 
 /** The company's network as its track rules trace it: the stops it may not continue through, and the full cities it may. */

@@ -25,7 +25,6 @@
     let { player, playerState }: { player: Player; playerState: LowenherzProjectedPlayerState } =
         $props()
 
-    let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let headerColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
     let isMe = $derived(gameSession.myPlayer?.id === player.id)
     const cardDeck = (card: PoliticsCard | undefined, index: number) =>
@@ -120,20 +119,9 @@
     // a stray divider. Derived from CARD_H so it tracks the real card size.
     const EMPTY_SLOT_H = Math.round(CARD_H * 0.4)
 
-    // A card's face only ever shows for your own hand (never an opponent's - that's
-    // still purely a client-side convention, not server-enforced, same as before) -
-    // except once the game is actually over, when there's no more hidden information
-    // left to protect and every hand turns face up for the final tally.
-    // Every card shows face-up on your own turn (so you can see your whole hand
-    // while deciding what to do), and an applicable card shows face-up even outside
-    // your turn too, so its APPLY button is actually attached to real card art.
-    // Everything else stays face-down.
     function shouldRevealFace(card?: PoliticsCard): boolean {
         if (!card) return false
-        if (gameSession.gameState.machineState === MachineState.EndOfGame) return true
-        if (!isMe) return false
-        if (applicableCards.includes(card)) return true
-        return !!isTurn
+        return isMe || gameSession.gameState.machineState === MachineState.EndOfGame
     }
 
     // Applicable cards that are visually identical - same type, and same printed value for
@@ -327,9 +315,7 @@
             {#if overlapCount > 0}
                 <!-- Laid out flat (full CARD_W + CARD_GAP spacing) as long as this group
                      fits that way alongside the applicable row - only once it wouldn't does
-                     step compress below CARD_W, tucking each card under its neighbor. Every
-                     card flips face up (see shouldRevealFace) on your own turn; otherwise it
-                     stays face-down. -->
+                     step compress below CARD_W, tucking each card under its neighbor. -->
                 <div
                     class="relative h-[103px] shrink-0"
                     style="width: {CARD_W + (overlapCount - 1) * step}px;"

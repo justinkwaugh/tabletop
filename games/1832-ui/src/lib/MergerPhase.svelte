@@ -217,7 +217,7 @@
                             <div class="presidency" role="group" aria-label="System president">
                                 {#each outcomes.presidencies as choice (choice.terms.president)}
                                     <button
-                                        style:--player-color={session.colors.getPlayerBgColorValue(
+                                        style:--player-color={session.playerColorValue(
                                             choice.terms.president
                                         )}
                                         disabled={busy}

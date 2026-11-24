@@ -29,6 +29,7 @@ export const darkPalette = {
     blue: '#93c5fd',
     brandBlue: '#4a7fd0',
     gold: '#fbbf24',
+    warningSurface: '#3a2f12',
     button: '#2563eb',
     buttonBorder: '#3b82f6',
 }

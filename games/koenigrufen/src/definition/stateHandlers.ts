@@ -8,6 +8,7 @@ import { ChoosingTalonHalfStateHandler } from '../stateHandlers/choosingTalonHal
 import { DealingStateHandler } from '../stateHandlers/dealing.js'
 import { EndingHandStateHandler } from '../stateHandlers/endingHand.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { GivingTalonCardStateHandler } from '../stateHandlers/givingTalonCard.js'
 import { LayingAwayStateHandler } from '../stateHandlers/layingAway.js'
 import { PickingUpTalonStateHandler } from '../stateHandlers/pickingUpTalon.js'
 import { PlayingStateHandler } from '../stateHandlers/playing.js'
@@ -28,6 +29,7 @@ export const KoenigrufenStateHandlers: Record<
     [MachineState.LayingAway]: new LayingAwayStateHandler(),
     [MachineState.Announcing]: new AnnouncingStateHandler(),
     [MachineState.Playing]: new PlayingStateHandler(),
+    [MachineState.GivingTalonCard]: new GivingTalonCardStateHandler(),
     [MachineState.EndingHand]: new EndingHandStateHandler(),
     [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { isBlank, priceFor } from '@tabletop/1846'
+    import { priceFor } from '@tabletop/1846'
     import DraftCard from './DraftCard.svelte'
     import DraftLineup from './DraftLineup.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
@@ -12,7 +12,6 @@
     )
     const choosers = $derived(state.activePlayerIds.map((id) => session.getPlayerName(id)))
     const panel = $derived(session.packetGate.panel(mine, !!hiddenDraft?.finalOffer))
-    const label = (id: string) => (isBlank(id) ? 'Pass' : session.companyName(id))
 </script>
 
 {#if hiddenDraft}
@@ -77,7 +76,8 @@
             <div class="draft-commitments" aria-label="Your commitments">
                 <span class="commitments-label">Your picks</span>
                 {#each mine.selections as selection (selection.cardId)}<span class="commitment"
-                        >{label(selection.cardId)} <strong>{money(selection.price)}</strong></span
+                        >{session.draftCardName(selection.cardId)}
+                        <strong>{money(selection.price)}</strong></span
                     >{/each}
                 <span class="commitments-total"
                     >Total <strong

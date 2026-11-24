@@ -4,15 +4,17 @@
     import ViewingHistoryLine from './ViewingHistoryLine.svelte'
 
     let gameSession = getGameSession()
-    const { myPlayer, colors, isViewingHistory } = gameSession.bridge
+    const { myPlayer, colors, isViewingHistory, gameState } = gameSession.bridge
     let hotseatPlayerBgColor = $derived($colors.getPlayerBgColorValue($myPlayer?.id))
     let hotseatPlayerTextColor = $derived($colors.getPlayerTextColorValue($myPlayer?.id))
     let showActingPlayerControl = $derived(
         gameSession.isActingAdmin && !gameSession.isViewingAsNonActivePlayer
     )
+    // Once nobody is left to act the row stays, so the game below it does not jump up.
+    let gameOver = $derived($gameState?.result !== undefined)
 </script>
 
-{#if $myPlayer || showActingPlayerControl}
+{#if $myPlayer || showActingPlayerControl || gameOver}
     <div
         class="shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-center items-center text-lg"
         style:background-color={hotseatPlayerBgColor}
@@ -25,6 +27,8 @@
             <ActingPlayerControl />
         {:else if $myPlayer}
             <span class="font-bold">{$myPlayer.name}</span>&nbsp;- It's your turn
+        {:else}
+            End of game
         {/if}
     </div>
 {/if}

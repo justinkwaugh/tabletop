@@ -38,6 +38,8 @@ export interface NotificationService {
         identifier: NotificationSubscriptionIdentifier
     ): Promise<void>
 
+    hasUserDirectSubscription(userId: string): Promise<boolean>
+
     sendNotification({
         notification,
         topics,

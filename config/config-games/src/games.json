@@ -68,6 +68,10 @@
         "packageId": "south-african-railroads"
     },
     {
+        "gameId": "locomotive-werks",
+        "packageId": "locomotive-werks"
+    },
+    {
         "gameId": "reef-encounter",
         "packageId": "reef-encounter"
     },

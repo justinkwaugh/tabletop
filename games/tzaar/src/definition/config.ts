@@ -10,10 +10,11 @@ import {
 export enum TzaarVersion {
     Random = 'Random',
     Fixed = 'Fixed',
-    Tournament = 'Tournament'
+    Tournament = 'Tournament',
+    ISetYouChoose = 'ISetYouChoose'
 }
 
-export enum WhitePlayer {
+export enum FirstPlayer {
     Random = 'Random',
     Creator = 'Creator',
     Opponent = 'Opponent'
@@ -22,12 +23,15 @@ export enum WhitePlayer {
 export type TzaarGameConfig = Type.Static<typeof TzaarGameConfig>
 export const TzaarGameConfig = Type.Object({
     version: Type.Optional(Type.Enum(TzaarVersion)),
-    whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
+    // Stored games keep the key from before the first player could end up with Black.
+    whitePlayer: Type.Optional(Type.Enum(FirstPlayer))
 })
 
 const randomDescription = 'The pieces start spread at random.'
 const fixedDescription = "The rulebook's start position."
 const tournamentDescription = 'Players take turns placing their pieces on an empty board.'
+const iSetYouChooseDescription =
+    'The first player places every piece, then the other picks a colour. White moves first.'
 
 export const TzaarGameConfigOptions: GameConfigOptions = [
     {
@@ -35,7 +39,7 @@ export const TzaarGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.List,
         name: 'Version',
         // Older site forms show only this, so it describes every version.
-        description: `Random: ${randomDescription} Fixed: ${fixedDescription} Tournament: ${tournamentDescription}`,
+        description: `Random: ${randomDescription} Fixed: ${fixedDescription} Tournament: ${tournamentDescription} I set, you choose: ${iSetYouChooseDescription}`,
         default: TzaarVersion.Random,
         options: [
             { name: 'Random start', value: TzaarVersion.Random, description: randomDescription },
@@ -44,6 +48,11 @@ export const TzaarGameConfigOptions: GameConfigOptions = [
                 name: 'Tournament',
                 value: TzaarVersion.Tournament,
                 description: tournamentDescription
+            },
+            {
+                name: 'I set, you choose',
+                value: TzaarVersion.ISetYouChoose,
+                description: iSetYouChooseDescription
             }
         ],
         alwaysShow: true
@@ -51,13 +60,13 @@ export const TzaarGameConfigOptions: GameConfigOptions = [
     {
         id: 'whitePlayer',
         type: ConfigOptionType.List,
-        name: 'White',
-        description: 'Who plays White and goes first.',
-        default: WhitePlayer.Random,
+        name: 'First player',
+        description: 'Who plays White and goes first, or in I set, you choose sets the board.',
+        default: FirstPlayer.Random,
         options: [
-            { name: 'Random', value: WhitePlayer.Random },
-            { name: 'Game creator', value: WhitePlayer.Creator },
-            { name: 'Opponent', value: WhitePlayer.Opponent }
+            { name: 'Random', value: FirstPlayer.Random },
+            { name: 'Game creator', value: FirstPlayer.Creator },
+            { name: 'Opponent', value: FirstPlayer.Opponent }
         ],
         alwaysShow: true
     }
@@ -75,9 +84,14 @@ export function versionFromConfig(config: GameConfig): TzaarVersion {
     return version
 }
 
-export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
-    if (config.whitePlayer === undefined) return WhitePlayer.Random
-    const choice = Object.values(WhitePlayer).find((known) => known === config.whitePlayer)
-    assertExists(choice, `Unknown choice of White ${String(config.whitePlayer)}`)
+// The versions whose pieces are placed one at a time on an empty board.
+export function placesPieces(version: TzaarVersion): boolean {
+    return version === TzaarVersion.Tournament || version === TzaarVersion.ISetYouChoose
+}
+
+export function firstPlayerFromConfig(config: GameConfig): FirstPlayer {
+    if (config.whitePlayer === undefined) return FirstPlayer.Random
+    const choice = Object.values(FirstPlayer).find((known) => known === config.whitePlayer)
+    assertExists(choice, `Unknown choice of first player ${String(config.whitePlayer)}`)
     return choice
 }

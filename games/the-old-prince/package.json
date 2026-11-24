@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince",
-    "version": "16.2.1",
+    "version": "17.2.0",
     "private": true,
     "type": "module",
     "exports": {

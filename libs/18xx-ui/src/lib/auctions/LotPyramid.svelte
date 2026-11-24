@@ -48,11 +48,9 @@
                         class:turn-lot={turnLotId === lot.lotId}
                         class:doomed={doomedLotIds.includes(lot.lotId)}
                         style:background={sold
-                            ? session.colors.getPlayerBgColorValue(sold.playerId)
+                            ? session.playerColorValue(sold.playerId)
                             : undefined}
-                        style:color={sold
-                            ? session.colors.getPlayerTextColorValue(sold.playerId)
-                            : undefined}
+                        style:color={sold ? session.playerTextColorValue(sold.playerId) : undefined}
                         aria-label={label(lot)}
                         aria-pressed={inspectedLotId === lot.lotId}
                         title={selectionLotName(session, lot.lotId)}

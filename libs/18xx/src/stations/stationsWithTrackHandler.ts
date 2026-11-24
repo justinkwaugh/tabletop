@@ -14,7 +14,8 @@ import { isPlaceStation } from './placeStation.js'
 import {
     StationPlacement,
     type StationPlacementState,
-    type StationRules
+    type StationRules,
+    type StationStep
 } from './stationPlacement.js'
 import { placeableStations } from '../map/station.js'
 import { actionMayOperate, automaticStepCredit } from '../finance/receivership.js'
@@ -26,6 +27,19 @@ export function stationChoicesWithTrack(state: StationPlacementState, rules: Sta
     const companyId = state.stationStep?.companyId
     const station = companyId ? placeableStations(state, rules.map, companyId)[0] : undefined
     return station ? new StationPlacement(state, rules).choices(station.id) : []
+}
+
+/** Whether finished track waits for the automatic Finish Stations that closes its station step. */
+export function awaitsFinishStations(state: {
+    trackStep?: { companyId: string; completed: boolean }
+    stationStep?: Pick<StationStep, 'companyId' | 'completed'>
+}): boolean {
+    const { trackStep, stationStep } = state
+    return (
+        !!trackStep?.completed &&
+        stationStep?.companyId === trackStep.companyId &&
+        !stationStep.completed
+    )
 }
 
 /**
@@ -68,9 +82,8 @@ export class StationsWithTrackHandler<S extends State> implements MachineStateHa
         if (isFinishStations(action))
             return (
                 action.source === ActionSource.System &&
-                !!state.trackStep?.completed &&
+                awaitsFinishStations(state) &&
                 state.stationStep?.companyId === action.companyId &&
-                !state.stationStep.completed &&
                 actionMayOperate(state, action, action.companyId)
             )
         if (!isPlaceStation(action)) return this.handler.isValidAction(action, context)

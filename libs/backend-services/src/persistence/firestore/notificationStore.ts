@@ -191,6 +191,22 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
         }
     }
 
+    async findSubscriptionTopics(
+        identifier: NotificationSubscriptionIdentifier
+    ): Promise<string[]> {
+        const subscriptionId = this.docIdForSubscription(identifier)
+        try {
+            const snapshot = await this.notificationSubscriptions.doc(subscriptionId).get()
+            this.recordRead('notificationSubscriptions')
+            const topics: unknown = snapshot.get('topics')
+            return Array.isArray(topics)
+                ? topics.filter((topic): topic is string => typeof topic === 'string')
+                : []
+        } catch (error) {
+            this.handleError(error, subscriptionId, 'NotificationSubscription')
+        }
+    }
+
     private countClientsOfTransport(pushTopic: StoredPushTopic, transport: TransportType): number {
         return pushTopic.clients.filter((client) => client.type === transport).length
     }

@@ -34,13 +34,15 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
-    import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
+    import PrivatePowerButton from '../privates/PrivatePowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
     import type { CompanyMark, PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
     import CertificateBadge from '../finance/CertificateBadge.svelte'
     import { multiShareMark } from '../finance/multiShareCertificates.js'
     import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
+    import './cardOpener.css'
+    import { controlMiddleY, pressesCardItself } from './cardPress.js'
     import RemainingStationTokens from './RemainingStationTokens.svelte'
     import { sessionStationTokens } from './stationTokens.js'
     import { shareSourceName } from '../stock/purchaseSources.js'
@@ -95,7 +97,7 @@
                 : investor.kind === 'company' && !sameOwner(investor, owner)
                   ? controllingOwner(gameState, investor.companyId)?.playerId
                   : undefined
-        return playerId ? session.colors.getPlayerBgColorValue(playerId) : undefined
+        return playerId ? session.playerColorValue(playerId) : undefined
     }
     const sellers = $derived(
         gameState.machineState === 'StockRound' && !gameState.stockRound.completed
@@ -196,10 +198,7 @@
         tradeOpening = { number: openings, anchor: card.getBoundingClientRect(), pointerY }
     }
     function toggleTradesFromCard(event: MouseEvent) {
-        if (
-            !tradeLabel ||
-            (event.target instanceof Element && event.target.closest('button, a, input, select'))
-        ) {
+        if (!tradeLabel || !pressesCardItself(event)) {
             pressedWhileOpen = false
             return
         }
@@ -320,12 +319,10 @@
                         >{/if}
                     {#if tradeLabel}<button
                             type="button"
-                            class="trade-opener"
+                            class="card-opener"
                             aria-label={`Trade ${session.companyName(company.id)} shares`}
-                            onclick={(event) => {
-                                const bounds = event.currentTarget.getBoundingClientRect()
-                                toggleTrades(bounds.y + bounds.height / 2)
-                            }}>{tradeLabel}</button
+                            onclick={(event) => toggleTrades(controlMiddleY(event.currentTarget))}
+                            >{tradeLabel}</button
                         >{/if}
                 </span>
             </div>
@@ -552,7 +549,7 @@
                         : item.revenue}
                 />{#each session.privateActions.powersFor(item.id) as power, index (index)}<span
                         class="private-power"
-                        ><PrivateTrackPowerButton
+                        ><PrivatePowerButton
                             {session}
                             {power}
                             label={session.privateActions.powersFor(item.id).length > 1
@@ -742,7 +739,7 @@
         padding-inline: 4px;
     }
     .financial-summary .prices .market-value {
-        background: #1b3d4580;
+        background: var(--rail-market, #1f343d);
     }
     .financial-summary .prices .market-value.market-zone-tint {
         background: var(--market-tint);
@@ -1047,10 +1044,10 @@
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #f1e6c8;
+        color: var(--rail-sold-out, #f1e6c8);
     }
     .share-status.unfloated {
-        color: #e2a84f;
+        color: var(--rail-unfloated, #e2a84f);
     }
     .heading-end {
         display: flex;
@@ -1064,20 +1061,6 @@
     .company-detail.trading {
         border-color: var(--rail-focus, #a87948);
     }
-    .trade-opener {
-        border: 0;
-        padding: 0;
-        background: transparent;
-        color: var(--rail-focus, #a87948);
-        font: inherit;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .trade-opener:focus-visible {
-        outline: 2px solid var(--rail-focus, #a87948);
-        outline-offset: 2px;
-    }
     .ownership-heading h3 {
         margin-bottom: 0;
     }
@@ -1086,7 +1069,11 @@
     }
     tr.player-tinted-row > th,
     tr.player-tinted-row > td {
-        background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37));
+        background: color-mix(
+            in srgb,
+            var(--player-color) var(--player-tint, 15%),
+            var(--rail-surface, #222c37)
+        );
     }
     .president > th,
     .president > td {

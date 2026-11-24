@@ -31,16 +31,23 @@ const boardCard = (page: Page, cardId: string) =>
     page.locator('.board-card').filter({ has: badge(page, cardId) })
 const seat = (page: Page) => page.locator('.seat').filter({ has: page.locator('.row--held') })
 
-/**
- * On a phone the map opens on the Provinces: the Cradle, where the seat stands, is framed as a
- * pan would (the desktop's focus view, hidden on a phone).
- */
+/** The seat's site, in the Cradle, where the Oracle stands. */
+const HOME = 'slot.cradle.0'
+
+/** Enlarges the seat's site, wherever the board's view is, and zooms the board there. */
+async function zoomToHome(page: Page) {
+    await page
+        .locator(`.site[data-slot="${HOME}"] .board-card`)
+        .first()
+        .evaluate((card) => card instanceof HTMLElement && card.click())
+    await page.getByRole('button', { name: 'Zoom the board here' }).click()
+}
+
+/** On a phone the map opens on the Provinces: the seat's site, in the Cradle, is zoomed to. */
 async function openBadgeTable(page: Page, name: TableFixture.TableName, phone: boolean) {
     await openTable(page, name)
     if (phone) {
-        await page
-            .locator('.chooser__view', { hasText: 'Cradle' })
-            .evaluate((view) => view instanceof HTMLElement && view.click())
+        await zoomToHome(page)
         // The map glides to its frame: wait until its first card stands still.
         const card = page.locator('.board-card').first()
         let last = ''
@@ -419,10 +426,7 @@ for (const viewport of [
                 const rest = await zoomedBadge(page)
                 expect(rest.height).toBeCloseTo(44, 0)
 
-                await page
-                    .getByRole('group', { name: 'Focus the board' })
-                    .getByRole('button', { name: 'Cradle' })
-                    .click()
+                await zoomToHome(page)
                 await expect
                     .poll(async () => (await zoomedBadge(page)).zoom)
                     .toBeGreaterThan(rest.zoom * 1.5)

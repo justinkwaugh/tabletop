@@ -214,10 +214,10 @@
         font-weight: 500;
     }
     tr > * + * {
-        border-left: 1px solid #ffffff10;
+        border-left: 1px solid var(--rail-sheet-rule, #2f3b48);
     }
     .group-start {
-        border-left: 2px solid #5b6d80;
+        border-left: 2px solid var(--rail-sheet-divider, #5b6d80);
     }
     thead th {
         color: var(--rail-text, #786550);
@@ -252,13 +252,21 @@
         background: var(--rail-surface-raised, #f0e7d9);
     }
     .player-tinted-cell {
-        background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37));
+        background: color-mix(
+            in srgb,
+            var(--player-color) var(--player-tint, 15%),
+            var(--rail-surface, #222c37)
+        );
     }
     tbody tr:hover .player-tinted-cell {
         background: color-mix(
             in srgb,
             var(--rail-text, #e3e9ef) 9%,
-            color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37))
+            color-mix(
+                in srgb,
+                var(--player-color) var(--player-tint, 15%),
+                var(--rail-surface, #222c37)
+            )
         );
     }
     thead {

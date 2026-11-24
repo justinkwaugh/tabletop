@@ -26,7 +26,9 @@ export const Trick = Type.Object({
 export type CompletedTrick = Type.Static<typeof CompletedTrick>
 export const CompletedTrick = Type.Object({
     plays: Type.Array(TrickPlay),
-    winnerId: Type.String()
+    winnerId: Type.String(),
+    // Trischaken with the talon by trick: the talon card shown and given to the winner.
+    talonCardId: Type.Optional(CardIdSchema)
 })
 
 export const TricksPerHand = 12

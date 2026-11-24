@@ -1,4 +1,9 @@
-import { EighteenFortySixMap, EighteenFortySixTileSet, Corporations } from '@tabletop/1846'
+import {
+    Corporations,
+    EighteenFortySixMap,
+    EighteenFortySixTileSet,
+    RevenueSymbolMarkers
+} from '@tabletop/1846'
 import PRRLogo from './images/logos/PRR.svg'
 import NYCLogo from './images/logos/NYC.svg'
 import BOLogo from './images/logos/BO.svg'
@@ -134,24 +139,29 @@ export const MapView1846: MapViewDefinition = {
         G21: { x: 43.3, y: -108 },
         E23: { x: 0, y: -33 }
     },
-    // Ports take northeast corners, and Holland's pair sits above its spike. Meat packing takes
+    // Ports and Boomtown's skyline take northeast corners, and Holland's pair sits above its spike. Meat packing takes
     // St. Louis's southeast corner and Chicago's northwest side, as far in from it as Chicago's
     // revenue is from the west side and a little past its middle, away from the revenue.
     symbolPositions: {
-        I1: { ports: NortheastCorner, 'meat-packing': SoutheastCorner },
-        D6: { 'meat-packing': { x: -11.9, y: -28.7 } },
+        I1: {
+            [RevenueSymbolMarkers.SC]: NortheastCorner,
+            [RevenueSymbolMarkers.MPC]: SoutheastCorner
+        },
+        D6: { [RevenueSymbolMarkers.MPC]: { x: -11.9, y: -28.7 } },
         C5: NortheastCorner,
         D14: NortheastCorner,
         // Wheeling's second port continues up the line of its northeast edge.
         G19: [NortheastCorner, { x: 12.7, y: -25.7 }],
-        B8: { x: 20, y: -15 }
+        B8: { x: 20, y: -15 },
+        H12: NortheastCorner
     },
     markerArt: {
         IC: { centeredLabel: true },
         MC: { localLine: true, above: true },
         'O&I': { localLine: true, above: true },
         'east-west': { revenueBadge: true, arrows: true },
-        ports: { revenueSymbol: 'port' },
-        'meat-packing': { revenueSymbol: 'horns' }
+        [RevenueSymbolMarkers.SC]: { revenueSymbol: 'port' },
+        [RevenueSymbolMarkers.MPC]: { revenueSymbol: 'horns' },
+        [RevenueSymbolMarkers.BT]: { revenueSymbol: 'skyline' }
     }
 }

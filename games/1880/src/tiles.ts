@@ -171,16 +171,10 @@ const countOf = (face: TileFace, kind: 'city' | 'town') =>
     face.nodes.filter((node) => node.kind === kind).length
 
 /**
- * A medium city takes a town or a city tile, a double one two towns or an OO tile (§X Laying
- * Track); OO cities and Beijing's cities join into one in brown, keeping their label (p. 23).
+ * OO cities and Beijing's cities join into one in brown, keeping their label (p. 23). A medium
+ * city reaches here as the kind of stop its first tile chose (``TrackRules1880.removedStops``).
  */
 export function preservesStops1880(before: TileFace, after: TileFace): boolean {
-    const boomtowns = before.nodes.filter((node) => node.id.startsWith('boomtown-town')).length
-    if (boomtowns)
-        return (
-            countOf(after, 'town') + countOf(after, 'city') === boomtowns &&
-            (countOf(after, 'town') === 0 || countOf(after, 'city') === 0)
-        )
     if (
         after.color === 'brown' &&
         (before.labels.includes(OOLabel) || before.labels.includes(BeijingLabel))

@@ -1,0 +1,14 @@
+.card-opener {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--rail-focus, #a87948);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.card-opener:focus-visible {
+    outline: 2px solid var(--rail-focus, #a87948);
+    outline-offset: 2px;
+}

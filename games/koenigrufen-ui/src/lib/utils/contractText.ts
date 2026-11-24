@@ -30,6 +30,28 @@ export const LayAwayRuleText: Record<LayAwayRule, string> = {
         'Trumps go first, except the Trull; never Kings. Suit cards are shown.'
 }
 
+// House rules the game was created with that change what the table says about a contract.
+export type TableRules = {
+    // Trischaken: the first six tricks' winners each take a talon card instead of the last trick's
+    // winner taking the whole talon.
+    readonly talonByTrick: boolean
+}
+
+export const StandardRules: TableRules = { talonByTrick: false }
+
+// Where the Trischaken talon goes, in the words of the contract note and of the bid table.
+export function trischakenTalonNote(rules: TableRules): string {
+    return rules.talonByTrick
+        ? 'Winners of the first 6 tricks each reveal and take 1 talon card.'
+        : 'The last trick’s winner takes the talon.'
+}
+
+export function trischakenTalonDetail(rules: TableRules): string {
+    return rules.talonByTrick
+        ? 'First 6 trick winners each reveal and take 1 talon card.'
+        : 'Last trick takes the talon.'
+}
+
 const ContractNotes: Partial<Record<Contract, string>> = {
     [Contract.Rufer]: KingInTalonNote,
     [Contract.Solorufer]: '(If the called King is in the talon, declarer gets that half.)',
@@ -37,7 +59,7 @@ const ContractNotes: Partial<Record<Contract, string>> = {
         'If the called King is in the talon, declarer gives up (paying each player the game and the bird) or plays alone (no Kontra).',
     [Contract.Farbensolo]: 'Declarer leads.',
     [Contract.Trischaken]:
-        'Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
+        'Forehand leads. Beat the highest card if you can; Pagat only as your last trump. {talon} The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
 }
 
 const Teams: Record<Partnership, string> = {
@@ -120,8 +142,10 @@ function birdNote(choice: BidChoice): string | undefined {
     return `The ${bonusName(choice.bird)} is announced with the bid (game ${game} + bird ${bidValue(choice) - game}): ${bonusGoal(choice.bird)}`
 }
 
-// Defining traits first, joined by dashes, then the details.
-export function contractSummary(choice: BidChoice): string {
+// A contract's terms: its defining traits, joined by dashes, then a sentence or two per detail.
+export type ContractTerms = { readonly traits: string; readonly notes: readonly string[] }
+
+export function contractTerms(choice: BidChoice, rules: TableRules = StandardRules): ContractTerms {
     const { contract } = choice
     const definition = contractDefinition(contract)
     const traits = present([
@@ -144,9 +168,15 @@ export function contractSummary(choice: BidChoice): string {
         definition.bonuses === BonusScope.ValatAndFourKings &&
             'No bonuses except Valat and Four Kings.',
         birdNote(choice),
-        ContractNotes[contract]
+        ContractNotes[contract]?.replace('{talon}', trischakenTalonNote(rules))
     ])
-    return [`${traits.join(' - ')}.`, ...notes].join(' ')
+    return { traits: `${traits.join(' - ')}.`, notes }
+}
+
+// The terms in one line, for the action panel.
+export function contractSummary(choice: BidChoice, rules: TableRules = StandardRules): string {
+    const { traits, notes } = contractTerms(choice, rules)
+    return [traits, ...notes].join(' ')
 }
 
 // Declarer's choice when the called King lies in the talon. Giving up a Besserrufer also pays the

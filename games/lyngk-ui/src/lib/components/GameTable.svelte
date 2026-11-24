@@ -15,7 +15,6 @@
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
-    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import ColorStrip from '$lib/components/ColorStrip.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { LyngkGameSession } from '$lib/model/session.svelte.js'
@@ -44,11 +43,7 @@
 {#snippet turnControls()}
     <Header />
     <div class="action-card">
-        {#if gameSession.gameState.result && !gameSession.isViewingHistory}
-            <GameEndPanel />
-        {:else}
-            <ActionPanel />
-        {/if}
+        <ActionPanel />
     </div>
     <ColorStrip />
 {/snippet}
@@ -57,19 +52,19 @@
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
-                enabledColor="text-[#f6f0e3]"
-                disabledColor="text-[#8c7d66]"
-                borderClass="border-[#75664f] border-b-2"
-                bgClass="bg-[#3b3329]"
+                enabledColor="text-[#2a2519]"
+                disabledColor="text-[#bdb4a0]"
+                borderClass="border-[#cfc7b4] border-b-2"
+                bgClass="bg-[#fbf9f3]"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
-                    enabledColor="text-[#f6f0e3]"
-                    disabledColor="text-[#8c7d66]"
-                    borderClass="rounded-lg border-2 border-[#75664f]"
-                    bgClass="rounded-lg bg-[#3b3329]"
+                    enabledColor="text-[#2a2519]"
+                    disabledColor="text-[#bdb4a0]"
+                    borderClass="rounded-lg border-2 border-[#cfc7b4]"
+                    bgClass="rounded-lg bg-[#fbf9f3] shadow-sm"
                 />
             </div>
             <DefaultTabs
@@ -84,11 +79,14 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor="text-gray-400"
-                        bgColor="bg-[#3b3329]"
-                        inputBgColor="bg-[#2e2820]"
-                        inputBorderColor="border-[#75664f]"
-                        borderColor="border-[#75664f]"
+                        timeColor="text-gray-500"
+                        messageTextColor="text-(--lyngk-ink)"
+                        composerTextColor="text-(--lyngk-ink)"
+                        messageHoverColor="hover:bg-(--lyngk-panel-hover)"
+                        bgColor="bg-[#fbf9f3]"
+                        inputBgColor="bg-[#fbf9f3]"
+                        inputBorderColor="border-[#cfc7b4]"
+                        borderColor="border-[#cfc7b4]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -181,7 +179,9 @@
         margin: 0 8px;
         border-radius: 12px;
         background: var(--lyngk-panel);
-        box-shadow: inset 0 0 0 1px var(--lyngk-panel-edge);
+        box-shadow:
+            inset 0 0 0 1px var(--lyngk-panel-edge),
+            var(--lyngk-panel-shadow);
     }
 
     .fullscreen-backdrop {

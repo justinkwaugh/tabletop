@@ -1,23 +1,13 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from 'typebox'
+import { GameEmailTask } from '@tabletop/backend-services'
 
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] || ''
 
-type SendGameEndEmailRequest = Static<typeof SendGameEndEmailRequest>
-const SendGameEndEmailRequest = Type.Object(
-    {
-        userId: Type.String(),
-        gameId: Type.String(),
-        toEmail: Type.String()
-    },
-    { additionalProperties: false }
-)
-
 export default async function (fastify: FastifyInstance) {
-    fastify.post<{ Body: SendGameEndEmailRequest }>(
+    fastify.post<{ Body: GameEmailTask }>(
         '/sendGameEndEmail',
         {
-            schema: { body: SendGameEndEmailRequest }
+            schema: { body: GameEmailTask }
         },
         async function (request, reply) {
             const { gameId, toEmail } = request.body

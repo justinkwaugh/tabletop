@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { Scenario, Side } from '@tabletop/napoleons-triumph'
-import { TestGame, passTurns } from '@tabletop/napoleons-triumph/testing'
+import {
+    TestGame,
+    arrangeBattlefield,
+    artillery,
+    infantry,
+    passTurns,
+    type PiecePlacement
+} from '@tabletop/napoleons-triumph/testing'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { outlinesOverlap } from './convexOutline.js'
 import { gunTags, type GunTag } from './gunTags.js'
@@ -9,9 +16,13 @@ import { cornersOf } from './orientedBox.js'
 const FLAT = { from: 72, to: 74 }
 const BACK = { from: 74, to: 72 }
 
+const FRENCH_GUNS: PiecePlacement = { id: 'F25', side: Side.French, face: artillery(), locale: 72 }
+const ALLIED_FOOT: PiecePlacement = { id: 'A26', side: Side.Allied, face: infantry(2), locale: 74 }
+
 function underway(): TestGame {
     const game = new TestGame({ scenario: Scenario.December2 })
     game.deployBoth()
+    arrangeBattlefield(game, [FRENCH_GUNS, ALLIED_FOOT])
     return game
 }
 
@@ -76,16 +87,27 @@ describe('the tags on approaches artillery fired across', () => {
         expect(apart(a, b)).toBeCloseTo(12)
     })
 
-    it('show both armies when both fired from the same approach', () => {
+    it('leave the bar while the army that fired holds the locale it fired from no longer', () => {
         const game = underway()
         const flat = approachOf(game, FLAT)
         fire(game, Side.French, flat, 1)
+        arrangeBattlefield(game, [ALLIED_FOOT])
+        expect(labels(game)).toEqual([])
+        arrangeBattlefield(game, [{ ...ALLIED_FOOT, locale: FLAT.from }])
+        expect(labels(game)).toEqual([])
         fire(game, Side.Allied, flat)
-        const tags = gunTags(game.hydrated, 0, [])
-        expect(tags.map(({ playerId }) => playerId).toSorted()).toEqual(
-            [game.playerOf(Side.French), game.playerOf(Side.Allied)].toSorted()
-        )
-        expect(apart(tags[0], tags[1])).toBeCloseTo(12)
+        expect(gunTags(game.hydrated, 0, []).map(({ playerId }) => playerId)).toEqual([
+            game.playerOf(Side.Allied)
+        ])
+    })
+
+    it('come back when the army retakes the locale before its guns may lead again', () => {
+        const game = underway()
+        const flat = approachOf(game, FLAT)
+        fire(game, Side.French, flat, 1)
+        arrangeBattlefield(game, [ALLIED_FOOT])
+        arrangeBattlefield(game, [{ ...FRENCH_GUNS, id: 'F01', face: infantry(3) }, ALLIED_FOOT])
+        expect(labels(game)).toEqual([{ approach: flat, text: '8AM' }])
     })
 
     it('slide along the bar out from under an arrow', () => {

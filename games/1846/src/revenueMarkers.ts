@@ -16,7 +16,7 @@ import {
     type CompanyDecisionState,
     EighteenXXPlayerAction
 } from '@tabletop/18xx'
-import { MeatPackingLocations, PortSymbols } from './map.js'
+import { BoomtownLocation, MeatPackingLocations, PortSymbols } from './map.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
 export const RevenuePrivateId = Type.Union([
@@ -50,7 +50,12 @@ export type RevenueMarkerState = Type.Static<Type.TObject<typeof RevenueMarkerFi
 export const RevenueMarkerLocations: Readonly<Record<RevenuePrivateId, readonly string[]>> = {
     SC: Object.keys(PortSymbols),
     MPC: MeatPackingLocations,
-    BT: ['H12']
+    BT: [BoomtownLocation]
+}
+type CompanyStatus = Pick<HydratedEighteenFortySixState['companies'][number], 'id' | 'closed'>
+/** Boomtown is in play while setup kept it and it has not closed. */
+export function boomtownInPlay(state: { readonly companies: readonly CompanyStatus[] }): boolean {
+    return state.companies.some((company) => company.id === 'BT' && !company.closed)
 }
 export function isRevenuePrivate(id: string): id is RevenuePrivateId {
     return id === 'SC' || id === 'MPC' || id === 'BT'

@@ -1,4 +1,10 @@
-import { Goal, MachineState, Partnership, type ContractDefinition } from '@tabletop/koenigrufen'
+import {
+    Goal,
+    MachineState,
+    Partnership,
+    TalonSize,
+    type ContractDefinition
+} from '@tabletop/koenigrufen'
 
 export enum TalonPlace {
     // The middle of the table, from the deal until the contract has used the talon.
@@ -14,12 +20,14 @@ export type TalonTable = {
     readonly talonHalves?: string[][]
     readonly rejectedTalonHalf?: string[]
     readonly turnManager: { readonly turnOrder: readonly string[] }
+    // Trischaken with the talon by trick records each talon card given on the trick that won it.
+    readonly tricks: readonly { readonly talonCardId?: string }[]
     contractDefinition(): ContractDefinition
     isCalledKingInTalon(): boolean
 }
 
 export type TalonView =
-    | { kind: 'stack'; place: TalonPlace }
+    | { kind: 'stack'; place: TalonPlace; count: number }
     | { kind: 'halves'; place: TalonPlace.Middle; halves: string[][] }
     | { kind: 'half'; place: TalonPlace.Corner; cards: string[] }
     | { kind: 'gone' }
@@ -62,14 +70,22 @@ export function talonViewOf(state: TalonTable): TalonView {
             : { kind: 'half', place: TalonPlace.Corner, cards: rejected }
     }
     if (!state.contract || MiddleStates.includes(state.machineState)) {
-        return { kind: 'stack', place: TalonPlace.Middle }
+        return { kind: 'stack', place: TalonPlace.Middle, count: TalonSize }
     }
     const definition = state.contractDefinition()
     // Sechserdreier's declarer has picked it up; the solo games give it to the defenders unseen.
     if (definition.talonCards === 6 || talonGoesToDefenders(state)) {
         return { kind: 'gone' }
     }
-    return { kind: 'stack', place: TalonPlace.Corner }
+    const count = TalonSize - givenTalonCards(state).length
+    return count > 0 ? { kind: 'stack', place: TalonPlace.Corner, count } : { kind: 'gone' }
+}
+
+// The talon cards given so far to the first tricks' winners, in the order they were given.
+export function givenTalonCards(state: Pick<TalonTable, 'tricks'>): string[] {
+    return state.tricks.flatMap((trick) =>
+        trick.talonCardId === undefined ? [] : [trick.talonCardId]
+    )
 }
 
 // The opponent who gathers the defenders' cards: the first after the declarer in turn order.

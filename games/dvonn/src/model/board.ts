@@ -1,7 +1,16 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assertExists, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    AxialCoordinates,
+    Color,
+    Hydratable,
+    sameCoordinates
+} from '@tabletop/common'
 import { DIRECTIONS, isSpace, neighborsOf, spaceKey, SPACES, stepsFrom } from './geometry.js'
+
+export type PieceColor = Type.Static<typeof PieceColor>
+export const PieceColor = Type.Union([Type.Literal(Color.White), Type.Literal(Color.Black)])
 
 // Every piece remembers the space it was placed on, which tells it apart from the others for as
 // long as it stays on the board.
@@ -95,6 +104,14 @@ export class HydratedDvonnBoard extends Hydratable<typeof DvonnBoard> implements
             throw Error('The space is taken')
         }
         this.stacks.push({ coords: { ...coords }, pieces: [piece] })
+    }
+
+    // Every piece of one player's becomes the other's, and the other way round.
+    trade(playerId: string, otherId: string) {
+        for (const piece of this.stacks.flatMap((stack) => stack.pieces)) {
+            if (!isPlayerPiece(piece)) continue
+            piece.playerId = piece.playerId === playerId ? otherId : playerId
+        }
     }
 
     // Rule E6: a stack with all six neighbours occupied is blocked; edge spaces have fewer than six.

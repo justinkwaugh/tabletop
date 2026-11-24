@@ -11,8 +11,10 @@ import {
     FIRST_JOKER_ID,
     LyngkInfo,
     LyngkRuntime,
+    PIECE_COLORS,
     PieceColor,
-    PIECES_PER_COLOR_ON_BOARD
+    PIECES_PER_COLOR_ON_BOARD,
+    POINTS
 } from '@tabletop/lyngk'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
@@ -173,3 +175,60 @@ write(
         { claims: { [FIRST]: ['red'], [SECOND]: ['green'] } }
     )
 )
+
+// The players set the board, as `setup` has them, with `left` points still empty: each piece a
+// colour drawn from those left by a seeded generator.
+function setBoard(setup, left) {
+    const game = LyngkRuntime.initializer.initializeGame(
+        {
+            id: 'scenario',
+            typeId: 'lyngk',
+            ownerId: 'owner',
+            config: { ...defaultGameConfig(LyngkInfo.configurator?.options ?? []), setup },
+            players: [FIRST, SECOND].map((id, index) => ({
+                id,
+                name: index === 0 ? 'Alice' : 'Bob',
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        Definition
+    )
+    const started = engine.startGame(game, {
+        startingPositions: { playerIds: [FIRST, SECOND] }
+    })
+    const { startedGame } = started
+    let state = started.initialState
+    const kit = PIECE_COLORS.flatMap((color) =>
+        Array.from(
+            { length: color === PieceColor.Joker ? 3 : PIECES_PER_COLOR_ON_BOARD },
+            () => color
+        )
+    )
+    let value = 11
+    for (const coords of POINTS.slice(0, POINTS.length - left)) {
+        value = (value * 1103515245 + 12345) % 2147483648
+        const [color] = kit.splice(value % kit.length, 1)
+        state = engine.executeCanonicalAction({
+            game: startedGame,
+            state,
+            action: {
+                id: `a${state.actionCount}`,
+                gameId: startedGame.id,
+                source: 'user',
+                type: 'placePiece',
+                playerId: state.activePlayerIds[0],
+                coords,
+                color
+            }
+        }).updatedState
+    }
+    return { game: startedGame, state }
+}
+
+// Taking turns, three points left: Alice places a piece, Bob one, Alice the last, and then Bob
+// moves first.
+write('taking-turns', 'Taking turns', setBoard('TakeTurns', 3))
+
+// I set, you start, two points left: Alice places both, and then Bob moves first.
+write('i-set-you-start', 'I set, you start', setBoard('ISetYouStart', 2))

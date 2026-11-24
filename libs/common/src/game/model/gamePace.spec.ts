@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
     GamePace,
     gamePaceOf,
-    longestTurnWait,
     snapPaceMinutes,
     turnStartsAfter,
     waitExceedsPace
@@ -77,22 +76,7 @@ describe('turnStartsAfter', () => {
     })
 })
 
-describe('waiting on the active players', () => {
-    it('measures the longest wait among the active players', () => {
-        const game = {
-            createdAt,
-            activePlayerIds: ['a', 'b'],
-            turnStartedAt: { a: minutesAgo(20), b: minutesAgo(50) }
-        }
-        expect(longestTurnWait(game, now)).toBe(50 * 60_000)
-        expect(longestTurnWait({ createdAt, activePlayerIds: [] }, now)).toBeUndefined()
-    })
-
-    it('falls back to the last move for games recorded before turn starts', () => {
-        const game = { createdAt, activePlayerIds: ['a'], lastActionAt: minutesAgo(45) }
-        expect(longestTurnWait(game, now)).toBe(45 * 60_000)
-    })
-
+describe('the pace limit', () => {
     it('exceeds the pace only once the wait is longer than it', () => {
         const minutes = (count: number) => count * 60_000
         expect(waitExceedsPace({ paceMinutes: 60 }, minutes(60))).toBe(false)

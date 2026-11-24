@@ -3,7 +3,8 @@ import { Compile } from 'typebox/compile'
 import { Notification, NotificationCategory } from './notification.js'
 
 export enum SystemNotificationAction {
-    RelayStats = 'relayStats'
+    RelayStats = 'relayStats',
+    TopicRegistrationsChanged = 'topicRegistrationsChanged'
 }
 
 export type RelayStatsNotification = Type.Static<typeof RelayStatsNotification>
@@ -29,4 +30,28 @@ export function isRelayStatsNotification(
     notification: Notification
 ): notification is RelayStatsNotification {
     return RelayStatsNotificationValidator.Check(notification)
+}
+
+export type TopicRegistrationsChangedNotification = Type.Static<
+    typeof TopicRegistrationsChangedNotification
+>
+export const TopicRegistrationsChangedNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.System),
+            action: Type.Literal(SystemNotificationAction.TopicRegistrationsChanged),
+            data: Type.Object({})
+        })
+    ])
+)
+
+const TopicRegistrationsChangedNotificationValidator = Compile(
+    TopicRegistrationsChangedNotification
+)
+
+export function isTopicRegistrationsChangedNotification(
+    notification: unknown
+): notification is TopicRegistrationsChangedNotification {
+    return TopicRegistrationsChangedNotificationValidator.Check(notification)
 }

@@ -1,4 +1,3 @@
-import { tick } from 'svelte'
 import { describe, expect, it } from 'vitest'
 import {
     GameStorage,
@@ -13,36 +12,14 @@ import {
 import {
     createNoteGame,
     note,
-    noteGameInfo,
     noteGameRuntime,
     step,
-    type HydratedNoteGameState,
     type NoteGameState
 } from '@tabletop/common/test-fixtures/note-game'
-import { GameSession } from './gameSession.svelte.js'
-import { BridgedContext } from '../services/bridges/bridgedContext.svelte.js'
 import { HarnessAuthorizationService } from '../harness/harnessAuthorizationService.svelte.js'
-import { HarnessLibraryService } from '../harness/harnessLibraryService.js'
-import { HarnessGameService } from '../harness/harnessGameService.svelte.js'
-import { HarnessChatService } from '../harness/harnessChatService.svelte.js'
-import { DummyNotificationService } from '../harness/dummyNotificationService.js'
 import { DummyRemoteApiService } from '../harness/dummyRemoteApiService.js'
-import { DefaultColorizer } from '../definition/gameColorizer.js'
-import type { GameUIRuntime } from '../definition/gameUiDefinition.js'
-
-const uiRuntime = {
-    ...noteGameRuntime,
-    sessionClass: GameSession,
-    colorizer: new DefaultColorizer(),
-    gameUI: {
-        load: async () => {
-            throw Error('Session test does not render a table')
-        },
-        mount: () => {
-            throw Error('Session test does not render a table')
-        }
-    }
-} satisfies GameUIRuntime<NoteGameState, HydratedNoteGameState>
+import { openNoteSession } from './tests/noteGameSession.fixture.js'
+import { settle } from './tests/privateHandSession.fixture.js'
 
 // The host's side of a submission: like the backend, a replacement reverses history back through
 // the declaration it names, redoes what followed and is then appended (ADR 0008).
@@ -133,47 +110,16 @@ class Authorization extends HarnessAuthorizationService {
 
 // An Administrator acting in a game they do not play acts for its single active Player.
 function hostedSession(host: NoteHost, viewer: { playerId: string } | 'admin') {
-    const authorization =
-        viewer === 'admin'
-            ? new Authorization('admin', true)
-            : new Authorization(viewer.playerId, false)
-    const library = new HarnessLibraryService({
-        info: { ...noteGameInfo, thumbnailUrl: '' },
-        runtime: async () => uiRuntime
-    })
-    const gameService = new HarnessGameService(library, authorization)
-    const chatService = new HarnessChatService()
-    const bridge = new BridgedContext({
-        authorizationService: authorization,
-        gameService,
-        chatService,
-        gameId: host.game.id
-    })
-    const session = new GameSession<NoteGameState, HydratedNoteGameState>({
-        gameService,
-        chatService,
-        notificationService: new DummyNotificationService(),
+    return openNoteSession({
+        game: host.game,
+        state: host.state,
+        actions: host.actions,
         api: new Remote(host),
-        bridgedContext: bridge,
-        runtime: uiRuntime,
-        game: structuredClone(host.game),
-        state: structuredClone(host.state),
-        actions: structuredClone(host.actions)
+        authorization:
+            viewer === 'admin'
+                ? new Authorization('admin', true)
+                : new Authorization(viewer.playerId, false)
     })
-    return {
-        session,
-        dispose() {
-            session.dispose()
-            bridge.dispose()
-        }
-    }
-}
-
-async function settle(session: GameSession<NoteGameState, HydratedNoteGameState>) {
-    await tick()
-    await session.waitForVisibleTransitionSettled()
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
-    await tick()
 }
 
 const ids = (actions: readonly GameAction[]) => actions.map((action) => action.id)

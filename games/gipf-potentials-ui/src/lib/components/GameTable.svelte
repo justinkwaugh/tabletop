@@ -21,7 +21,6 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import ReserveStrip from '$lib/components/ReserveStrip.svelte'
-    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { GipfPotentialsGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -53,11 +52,7 @@
 {#snippet turnControls()}
     <Header />
     <div class="action-card">
-        {#if gameSession.gameState.result && !gameSession.isViewingHistory}
-            <GameEndPanel />
-        {:else}
-            <ActionPanel />
-        {/if}
+        <ActionPanel />
     </div>
     <ReserveStrip />
 {/snippet}

@@ -88,8 +88,174 @@ async function touchDrag(target: Locator, from: Point, ...path: Point[]) {
     )
 }
 
+async function doubleTap(page: Page, point: Point) {
+    await page.touchscreen.tap(point.x, point.y)
+    await page.touchscreen.tap(point.x, point.y)
+}
+
+type TouchStep = { type: 'touchstart' | 'touchmove' | 'touchend'; touches: Point[] }
+
+function tapSteps(point: Point): TouchStep[] {
+    return [
+        { type: 'touchstart', touches: [point] },
+        { type: 'touchend', touches: [] }
+    ]
+}
+
+async function touchSequence(page: Page, steps: TouchStep[]) {
+    await page.evaluate((steps) => {
+        const first = steps[0].touches[0]
+        const target = document.elementFromPoint(first.x, first.y)
+        if (!target) throw new Error('Nothing under the touch')
+        for (const { type, touches } of steps) {
+            const list = touches.map(
+                (point, identifier) =>
+                    new Touch({ identifier, target, clientX: point.x, clientY: point.y })
+            )
+            target.dispatchEvent(
+                new TouchEvent(type, {
+                    touches: list,
+                    changedTouches: list,
+                    bubbles: true,
+                    cancelable: true
+                })
+            )
+        }
+    }, steps)
+}
+
+async function centre(target: Locator) {
+    const box = await target.boundingBox()
+    if (!box) throw new Error('Missing element')
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+async function mountBoardWithPieces(page: Page, props: WrapperFixtureProps = {}) {
+    await mountWrapper(page, { expandable: true, boardWithPieces: true, ...props })
+    await expect.poll(async () => (await page.getByTestId('board').boundingBox())?.width).toBe(375)
+}
+
+function fullScreenView(page: Page) {
+    return page.getByRole('dialog', { name: 'Full screen view' })
+}
+
+async function expectNoFullScreen(page: Page) {
+    await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    )
+    await expect(fullScreenView(page)).toHaveCount(0, { timeout: 0 })
+}
+
+test('a mouse double-click on the board leaves full screen alone', async ({ page }) => {
+    await mountBoardWithPieces(page)
+    const { x, y } = await centre(page.getByTestId('board'))
+    await page.mouse.dblclick(x, y)
+    await expectNoFullScreen(page)
+})
+
 test.describe('touch', () => {
     test.use({ hasTouch: true })
+
+    test('double tapping the board away from its pieces enters and leaves full screen, swallowing the second click', async ({
+        page
+    }) => {
+        await mountBoardWithPieces(page)
+        const board = page.getByTestId('board')
+        const boardTaps = page.getByTestId('board-taps')
+        await doubleTap(page, await centre(board))
+        await expect(fullScreenView(page)).toBeVisible()
+        await expect(boardTaps).toHaveText('1')
+        await doubleTap(page, await centre(board))
+        await expectNoFullScreen(page)
+        await expect(boardTaps).toHaveText('2')
+    })
+
+    for (const piece of ['button-piece', 'role-piece', 'pointer-piece']) {
+        test(`double tapping a ${piece} leaves full screen alone`, async ({ page }) => {
+            await mountBoardWithPieces(page)
+            await doubleTap(page, await centre(page.getByTestId(piece)))
+            await expectNoFullScreen(page)
+        })
+    }
+
+    test('double tapping a disabled piece enters full screen', async ({ page }) => {
+        await mountBoardWithPieces(page)
+        await doubleTap(page, await centre(page.getByTestId('disabled-piece')))
+        await expect(fullScreenView(page)).toBeVisible()
+    })
+
+    test('a tap on a piece then a tap just beside it is not a double tap', async ({ page }) => {
+        await mountBoardWithPieces(page)
+        const piece = await centre(page.getByTestId('pointer-piece'))
+        await page.touchscreen.tap(piece.x, piece.y)
+        await page.touchscreen.tap(piece.x, piece.y + 25)
+        await expectNoFullScreen(page)
+    })
+
+    test('a drag or a pinch between two taps is not a double tap', async ({ page }) => {
+        await mountBoardWithPieces(page)
+        const point = await centre(page.getByTestId('board'))
+        const beside = { x: point.x + 20, y: point.y }
+        await touchSequence(page, [
+            ...tapSteps(point),
+            { type: 'touchstart', touches: [point] },
+            { type: 'touchmove', touches: [beside] },
+            { type: 'touchend', touches: [] }
+        ])
+        await expectNoFullScreen(page)
+        await touchSequence(page, [
+            ...tapSteps(point),
+            { type: 'touchstart', touches: [point] },
+            { type: 'touchstart', touches: [point, beside] },
+            { type: 'touchend', touches: [point] },
+            { type: 'touchend', touches: [] },
+            ...tapSteps(point)
+        ])
+        await expectNoFullScreen(page)
+    })
+
+    for (const flung of ['board', 'table'] as const) {
+        test(`a tap that stops a flung ${flung} is not the first of a double tap`, async ({
+            page
+        }) => {
+            await mountBoardWithPieces(
+                page,
+                flung === 'board' ? { maxScale: 2 } : { scrollable: true }
+            )
+            const board = page.getByTestId('board')
+            if (flung === 'table')
+                await page.getByTestId('table-scroll').evaluate((element) => {
+                    element.scrollLeft = 400
+                })
+            const point = await centre(board)
+            if (flung === 'board')
+                for (let step = 0; step < 3; step++)
+                    await board.dispatchEvent('wheel', {
+                        deltaY: -200,
+                        clientX: point.x,
+                        clientY: point.y
+                    })
+            await touchSequence(page, [
+                { type: 'touchstart', touches: [{ x: point.x - 60, y: point.y }] },
+                ...[-30, 0, 30, 60].map((offset): TouchStep => ({
+                    type: 'touchmove',
+                    touches: [{ x: point.x + offset, y: point.y }]
+                })),
+                { type: 'touchend', touches: [] }
+            ])
+            await doubleTap(page, point)
+            await expectNoFullScreen(page)
+            await page.waitForTimeout(400)
+            await doubleTap(page, await centre(board))
+            await expect(fullScreenView(page)).toBeVisible()
+        })
+    }
+
+    test('double tapping a wrapper that cannot expand leaves it in place', async ({ page }) => {
+        await mountBoardWithPieces(page, { expandable: false })
+        await doubleTap(page, await centre(page.getByTestId('board')))
+        await expectNoFullScreen(page)
+    })
 
     test('dragging a fitted board inside a vertical body scrolls each axis in the scroller that moves along it', async ({
         page

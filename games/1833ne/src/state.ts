@@ -8,7 +8,7 @@ import {
     RailwayFields,
     composeEighteenXXState,
     defineEighteenXXState,
-    validateRailwayState,
+    railwayStateValidation,
     validateWaterfallAuction,
     type EighteenXXStateHandler,
     type HydratedEighteenXXState
@@ -55,6 +55,6 @@ export type State1833NE = Type.Static<typeof State1833NE>
 export type HydratedState1833NE = HydratedEighteenXXState<typeof State1833NE>
 export type StateHandler1833NE = EighteenXXStateHandler<HydratedState1833NE>
 export const StateDefinition1833NE = defineEighteenXXState(State1833NE, [
-    validateRailwayState,
+    railwayStateValidation({ stationsWithTrack: true }),
     validateWaterfallAuction
 ])

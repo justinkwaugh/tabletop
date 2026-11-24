@@ -283,6 +283,8 @@ export class EarningsDistribution {
 }
 
 const AfterEarningsStates = [
+    // A company whose own earnings take its price to zero closes before its turn moves on.
+    'ClosingOperatingCorporation',
     'BuyingTrains',
     'FundingTrain',
     'Bankrupt',

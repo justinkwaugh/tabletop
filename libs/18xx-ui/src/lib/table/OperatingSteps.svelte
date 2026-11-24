@@ -199,7 +199,7 @@
     }
     button.current {
         background: var(--rail-solid, #695543);
-        color: #fffaf3;
+        color: var(--rail-solid-text, #fffaf3);
     }
     button:not(:disabled):hover {
         background: var(--rail-surface-selected, #cdbba9);

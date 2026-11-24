@@ -15,6 +15,7 @@
                 "DISCORD_BUG_REPORT_DATA_CHANNEL_ID",
                 "MODERATION_EMAIL",
                 "TILTIFY_CLIENT_ID",
+                "TELEGRAM_BOT_TOKEN",
                 "FRONTEND_HOST",
                 "K_SERVICE",
                 "GOOGLE_CLIENT_ID",

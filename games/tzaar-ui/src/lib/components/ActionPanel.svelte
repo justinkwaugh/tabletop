@@ -1,20 +1,29 @@
 <script lang="ts">
+    import { Color } from '@tabletop/common'
     import { MachineState, PIECE_KINDS } from '@tabletop/tzaar'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
-    import { KIND_NAMES } from '$lib/history/entryText.js'
+    import { COLOR_NAMES, KIND_NAMES } from '$lib/history/entryText.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
     import PieceIcon from './PieceIcon.svelte'
     import { holdTallest } from './holdTallest.js'
+    import GameEndPanel from './GameEndPanel.svelte'
 
     const session = getGameSession()
+
+    const CHOICES = [Color.White, Color.Black] as const
+
+    // The ending takes the panel's place, so the height it holds keeps the board still.
+    const ended = $derived(session.gameState.result !== undefined && !session.isViewingHistory)
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
     const opening = $derived(session.gameState.isOpeningTurn())
     const second = $derived(session.gameState.machineState === MachineState.SecondMove)
 
     const prompt = $derived.by(() => {
+        if (session.placingColor) return `Place ${session.placingColor.toLowerCase()}`
         if (session.canPlace) return 'Place'
+        if (session.canChooseColor) return 'Take a colour; White moves first:'
         if (session.canCapture && !second) {
             if (session.chosenFrom) return 'Choose a stack to capture'
             return opening ? 'Opening move: capture' : 'Capture'
@@ -28,7 +37,9 @@
 
 <!-- One row: the last move while you wait, the prompt on your turn. -->
 <div class="panel" {@attach holdTallest}>
-    {#if session.isViewingHistory || !prompt}
+    {#if ended}
+        <GameEndPanel />
+    {:else if session.isViewingHistory || !prompt}
         {#if lastEntry}
             <HistoryEntryLine entry={lastEntry} brief />
         {:else}
@@ -54,8 +65,15 @@
                 </button>
             {/each}
         {/if}
+        {#if session.canChooseColor}
+            {#each CHOICES as color (color)}
+                <button type="button" class="command" onclick={() => session.chooseColor(color)}
+                    >{COLOR_NAMES[color]}</button
+                >
+            {/each}
+        {/if}
         {#if session.canPass && !session.chosenFrom}
-            <button type="button" class="pass" onclick={() => session.pass()}>Pass</button>
+            <button type="button" class="command" onclick={() => session.pass()}>Pass</button>
         {/if}
     {/if}
 </div>
@@ -75,7 +93,7 @@
         color: var(--tzaar-ink);
     }
 
-    .pass {
+    .command {
         border-radius: 8px;
         padding: 2px 14px;
         background: var(--tzaar-ink);

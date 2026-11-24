@@ -20,7 +20,7 @@ import { testGame } from '../testing/game.js'
 import { served, spectator } from '../testing/projection.js'
 import { wonTable, wonWithActions } from '../testing/chronicle.js'
 import { chronicleCensus, wholeWorld } from '../testing/chronicleWorld.js'
-import { favorCensus, warbandCensus } from '../testing/census.js'
+import { expectPilePlacesMatchTheVault, favorCensus, warbandCensus } from '../testing/census.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
@@ -47,7 +47,7 @@ import { ChronicleShuffle, chronicleShuffles } from '../util/chronicleRandom.js'
 import { archiveBySuit } from '../util/chronicleCards.js'
 import { clearMap, discardSites, fillSlots, ruinAndSetAside } from '../util/chronicleMap.js'
 import { buildOrRepair, edificeChoiceNamed } from '../util/chronicleChoices.js'
-import { OathRevision } from '../util/revision.js'
+import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
 import type { GameOutcome } from '../util/victory.js'
 import '../powers/index.js'
 import GAME_TWO_FINISHED from '../definition/tests/chronicle-game-2-finished.json'
@@ -1090,6 +1090,58 @@ describe('hidden information through the steps (R-9.4)', () => {
     })
 })
 
+describe('R-9.4 — the backs the chronicle puts on the Cradle’s pile are seen', () => {
+    /** Game 2's end with Sanctuary at the bottom of the Cradle's pile, every back seen going down. */
+    function withSanctuaryInThePile(revision: OathRevision): HydratedOathGameState {
+        const start = gameTwoEnd()
+        start.oathRevision = revision
+        const vault = start.requireVault()
+        vault.worldDeck = vault.worldDeck.filter((cardId) => cardId !== 'vision.sanctuary')
+        vault.discardPiles[Region.Cradle].push('vision.sanctuary')
+        start.discardPileCounts[Region.Cradle] += 1
+        start.worldDeckVisions -= 1
+        for (const region of Object.values(Region))
+            start.seenDiscardPiles[region] = vault.discardPiles[region]
+                .toReversed()
+                .map((cardId) => ({ back: kindOf(cardId) ?? CardKind.Denizen }))
+        return start
+    }
+
+    function builtAt(revision: OathRevision): OathProjectedState {
+        given(GAME_TWO_GIVEN)
+        const start = withSanctuaryInThePile(revision)
+        const vowed = run(wonTable(start, CHANCELLOR_WINS), vow(DANA, OathType.ThePeople))
+        return run(vowed.final, BUILD_AT_MOUNTAIN).final
+    }
+
+    it('from revision 35, while the suit waits, the Cradle’s pile shows Sanctuary at the bottom under the map’s discards', () => {
+        const built = hydrated(builtAt(OathRevision.EngineFixes30))
+        expect(built.chronicle?.step).toBe(ChronicleStep.Suit)
+        expect(built.discardPileCountIn(Region.Cradle)).toBe(10)
+        expect(built.discardVisionPlacesIn(Region.Cradle)).toEqual([10])
+        expectPilePlacesMatchTheVault(built)
+        for (const perspective of [{ kind: 'player' as const, playerId: RHYS }, spectator])
+            expect(
+                hydrated(served(built, perspective)).discardVisionPlacesIn(Region.Cradle)
+            ).toEqual([10])
+    })
+
+    it('from revision 35, the rebuild leaves every pile empty and showing no Vision', () => {
+        const built = builtAt(OathRevision.EngineFixes30)
+        const final = hydrated(run(built, suit(DANA, Suit.Hearth)).final)
+        expect(final.chronicle?.step).toBe(ChronicleStep.Story)
+        expectPilePlacesMatchTheVault(final)
+    })
+
+    it('before revision 35 the record misses the map’s discards, so the Cradle’s pile shows its count alone', () => {
+        const built = hydrated(builtAt(OathRevision.EngineFixes29))
+        expect(built.discardPileCountIn(Region.Cradle)).toBe(10)
+        expect(built.discardVisionPlacesIn(Region.Cradle)).toBeUndefined()
+        expect(built.seenDiscardPiles[Region.Cradle]).toHaveLength(6)
+        expect(built.discardVisionPlacesIn(Region.Provinces)).toEqual([])
+    })
+})
+
 // ---------------------------------------------------------------------------------------------
 // R-8.3.5's seven steps, on two maps
 
@@ -1882,7 +1934,7 @@ describe('R-8.5 with R-9.3 — the Dispossessed can be dealt empty', () => {
         const { initialState } = new GameEngine(Definition.runtime).startGame(next, {
             continuation
         })
-        expect(initialState.oathRevision).toBe(OathRevision.EngineFixes29)
+        expect(initialState.oathRevision).toBe(CURRENT_OATH_REVISION)
         expect(initialState.dispossessedCount).toBe(0)
         expect(vaultOf(initialState).dispossessed).toEqual([])
         expect(Object.values(initialState.denizensBySite).flat()).toContain(GREAT_SPIRE)

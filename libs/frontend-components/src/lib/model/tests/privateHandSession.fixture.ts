@@ -1147,6 +1147,25 @@ export async function mountHistoryControls() {
     })
 }
 
+export async function mountWorkspaceWithHistoryKeys() {
+    const { mount } = await import('svelte')
+    const { default: Fixture } =
+        await import('../../components/tests/WorkspaceHistoryKeys.fixture.svelte')
+    const host = new PrivateHandHost()
+    drawFor(host, 'history-keys-draw')
+    host.apply(
+        createAction(PlaySchema, {
+            id: 'history-keys-play',
+            gameId: host.game.id,
+            source: ActionSource.User,
+            playerId: 'p2',
+            type: 'play',
+            cardId: 'r2'
+        })
+    )
+    mount(Fixture, { target: document.body, props: { session: client(host, p1).session } })
+}
+
 export async function mountTableLayout() {
     const { mount } = await import('svelte')
     await import('../../components/tests/tableLayout.fixture.css')

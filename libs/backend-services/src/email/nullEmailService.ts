@@ -29,6 +29,10 @@ export class NullEmailService implements EmailService {
         console.log(`EMAIL NOT CONFIGURED: Game End Email`)
     }
 
+    async sendGameStartedEmail(): Promise<void> {
+        console.log(`EMAIL NOT CONFIGURED: Game Started Email`)
+    }
+
     async sendTournamentResultsEmail(): Promise<void> {
         console.log(`EMAIL NOT CONFIGURED: Tournament Results Email`)
     }

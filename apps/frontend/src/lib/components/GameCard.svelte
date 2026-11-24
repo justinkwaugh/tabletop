@@ -30,14 +30,13 @@
         playerStatusDisplay
     } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
-    import { turnWaitDisplay } from '$lib/utils/gamePace'
+    import { lastMovePaceWarning } from '$lib/utils/gamePace'
     import { startCountdownText } from '$lib/utils/startCountdown'
     import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
-    import TurnWait from './TurnWait.svelte'
     import CopyGameLinkButton from './CopyGameLinkButton.svelte'
     import { GAME_PACE_LABELS, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
@@ -160,8 +159,8 @@
     let pacedOpen = $derived(isOpen && !game.hotseat)
     let pacedStarted = $derived(game.status === GameStatus.Started && !game.hotseat)
     let hostName = $derived(pacedOpen ? ownerName(game) : undefined)
-    let turnWait = $derived(pacedStarted ? turnWaitDisplay(game, currentTime) : undefined)
     let activePlayer = $derived(activePlayerText(game, sessionUser?.id))
+    let paceWarning = $derived(pacedStarted ? lastMovePaceWarning(game, currentTime) : undefined)
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -534,20 +533,23 @@
                                     {timeSince(lastMoveAt(game))}
                                 </div>
                             </div>
-                        {:else if turnWait}
+                        {:else if game.status === GameStatus.Started}
                             <div class="ms-3 flex shrink-0 flex-col justify-center items-end">
                                 <div
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Waiting
+                                    Last Action
                                 </div>
                                 <div
-                                    class="text-xs text-nowrap {turnWait.pastPace
+                                    class="text-xs text-nowrap {paceWarning
                                         ? 'text-amber-400'
                                         : 'text-gray-400'}"
+                                    title={paceWarning}
                                 >
-                                    <TurnWait wait={turnWait} />
+                                    {timeSince(lastMoveAt(game))}{#if paceWarning}<span
+                                            class="sr-only">, {paceWarning}</span
+                                        >{/if}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}

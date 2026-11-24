@@ -10,7 +10,8 @@ import { NotificationTransport, TransportType } from './transports/notificationT
 import { NotificationSubscription } from './subscriptions/notificationSubscription.js'
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
 import { TopicTransport } from './transports/topicTransport.js'
-import { GLOBAL_TOPIC } from './topics.js'
+import { announceTopicRegistrationsChanged } from './topicRegistrationsChanged.js'
+import { GLOBAL_TOPIC, userTopic } from './topics.js'
 
 export const WEB_PUSH_REGISTRATIONS_PER_TOPIC = 20
 
@@ -124,10 +125,14 @@ export class DefaultNotificationService implements NotificationService {
                                     await this.notificationStore.deleteNotificationSubscription(
                                         subscription
                                     )
+                                    await announceTopicRegistrationsChanged(this, [topic])
                                 }
                             })
                             .catch((e) => {
-                                console.log('Error sending web push notification', e)
+                                console.log(
+                                    `Error sending a ${subscription.transport} notification`,
+                                    e
+                                )
                             })
                     }
                 } catch (e) {
@@ -135,6 +140,13 @@ export class DefaultNotificationService implements NotificationService {
                 }
             }
         }
+    }
+
+    async hasUserDirectSubscription(userId: string): Promise<boolean> {
+        const subscriptions = await this.notificationStore.findNotificationSubscriptions(
+            userTopic(userId)
+        )
+        return subscriptions.some((subscription) => subscription.transport in this.transports)
     }
 
     async registerNotificationSubscription({

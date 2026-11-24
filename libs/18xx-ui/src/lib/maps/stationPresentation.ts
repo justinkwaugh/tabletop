@@ -75,6 +75,11 @@ export type MapViewDefinition = {
      */
     publishedStations?: Readonly<Record<string, StationAppearance>>
     /**
+     * The title's own token art is already simple, such as initials on a plain disc, so the
+     * player's Initials choice keeps it (and leaves published token art aside).
+     */
+    simpleTokenArt?: true
+    /**
      * How a station that another company shares through station access prints, by the access's
      * source, such as one token two corporations hold jointly.
      */

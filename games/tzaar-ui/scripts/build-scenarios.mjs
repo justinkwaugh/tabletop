@@ -26,7 +26,7 @@ const KINDS = { r: 'tzaar', a: 'tzarra', t: 'tott' }
 // on each run.
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-function newGame(version) {
+function newGame(version, playerIds = [FIRST, SECOND]) {
     const game = TzaarRuntime.initializer.initializeGame(
         {
             id: 'scenario',
@@ -44,7 +44,7 @@ function newGame(version) {
     )
     return engine.startGame(game, {
         masterSeed: MASTER_SEED,
-        startingPositions: { playerIds: [FIRST, SECOND] }
+        startingPositions: { playerIds }
     })
 }
 
@@ -368,3 +368,27 @@ function placementEnds() {
 }
 
 write('placement-ends', 'Placement ends', placementEnds())
+
+// I set, you choose: the first player places every piece, White and Black in turn, from a hand
+// of each colour, and `left` spaces stay empty.
+function setBoard(playerIds, left) {
+    const { startedGame: game, initialState } = newGame('ISetYouChoose', playerIds)
+    let state = initialState
+    const hands = [0, 1].map(() =>
+        PIECE_KINDS.flatMap((kind) => Array.from({ length: PIECES_OF_KIND[kind] }, () => kind))
+    )
+    const random = seeded(5)
+    SPACES.slice(0, SPACES.length - left).forEach((coords, index) => {
+        const hand = hands[index % 2]
+        const kind = hand.splice(Math.floor(random() * hand.length), 1)[0]
+        state = act(game, state, { type: 'placePiece', playerId: playerIds[0], coords, kind })
+    })
+    return { game, state }
+}
+
+// Alice sets the board with two spaces left: a white piece goes down, then a black one, and Bob
+// then takes a colour.
+write('setting-the-board', 'Setting the board', setBoard([FIRST, SECOND], 2))
+
+// Bob has set the board; Alice takes a colour and moves second.
+write('choosing-a-colour', 'Choosing a colour', setBoard([SECOND, FIRST], 0))

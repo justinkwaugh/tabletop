@@ -61,7 +61,7 @@ When a board selection needs a follow-up choice as part of a [staged selection](
 
 ### Full screen
 
-Set `expandable` on the `ScalingWrapper` that holds the primary board or map. Full screen exists so players see more of the board at a larger size; the `F` key and the expand control toggle it, and `allowFullscreenShortcut` can gate the key.
+Set `expandable` on the `ScalingWrapper` that holds the primary board or map. Full screen exists so players see more of the board at a larger size; the `F` key and the expand control toggle it, and `allowFullscreenShortcut` can gate the key. On touch screens a double tap on the board toggles it too, unless the tap lands on something the player can press: a button, link or form control, an element with a control role such as `role="button"` that is not disabled or `aria-disabled`, or one whose computed cursor is `pointer`. Mark every tappable board element one of those ways, or a quick double tap on it will also enter or leave full screen.
 
 Full screen is a modal dialog, so everything outside the wrapper sits behind it and cannot be clicked. Leaving the action panel out is a fine default. To keep play going in full screen, render the action area inside the wrapper's `toolbar` snippet only while the dialog is modal, as `games/magna-grecia-ui/src/lib/components/GameTable.svelte` does with its `watchExpansion` attachment.
 

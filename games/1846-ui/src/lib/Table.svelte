@@ -26,14 +26,10 @@
     })
     const state = $derived(session.gameState)
     const privateOperationDescription = (id: string) => CompanyDescriptions1846[id]
+    const historyDescription = $derived(describe1846Action(session))
 </script>
 
-<GameTable
-    {session}
-    {privateOperationDescription}
-    {createRouteWorker}
-    historyDescription={describe1846Action}
->
+<GameTable {session} {privateOperationDescription} {createRouteWorker} {historyDescription}>
     {#snippet historySetup()}<SetupHistoryEntry {session} />{/snippet}
     {#snippet actions(_focusLocation, focusRoute)}
         <div class="midwest-actions">

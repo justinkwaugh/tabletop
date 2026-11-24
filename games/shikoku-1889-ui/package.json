@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/shikoku-1889-ui",
-    "version": "12.4.1",
+    "version": "13.1.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",

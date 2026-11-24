@@ -15,6 +15,7 @@ import {
     Capture,
     isPlaceMarble,
     PlaceMarble,
+    SetAutoJump,
     ZertzPreferenceDefinition,
     type HydratedZertzGameState,
     type ZertzPreferences,
@@ -35,8 +36,6 @@ export type MoveInterrupter = {
     interrupt(): void
     // Lands it and drops the rest of its replay: another state is being shown.
     abandon(): void
-    // Called as a newly published state replaces the one on screen.
-    replacingShown(): void
 }
 
 type SessionOptions = ConstructorParameters<
@@ -83,6 +82,23 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     notation: BoardNotation = $derived(
         boardNotation(this.view.frame(this.gameState.setup).positions, this.view)
+    )
+
+    // Shown to a seated player while the game lasts, unless it was created with auto-jump for both.
+    showsAutoJump: boolean = $derived(
+        this.myPlayer !== undefined &&
+            this.gameState.result === undefined &&
+            this.gameState.autoJumpForAll !== true
+    )
+    autoJump: boolean = $derived.by(() => {
+        const playerId = this.myPlayer?.id
+        return playerId !== undefined && this.gameState.autoJumps(playerId)
+    })
+    // Either player may change it at any time, so it needs no turn.
+    canSetAutoJump: boolean = $derived(
+        this.showsAutoJump &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes(ActionType.SetAutoJump)
     )
 
     canPlace = $derived(this.canAct(ActionType.PlaceMarble))
@@ -161,6 +177,26 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
+    // A new declaration replaces the standing one where nothing has acted on it yet (ADR 0008).
+    // Says what the game holds once the action settles, or nothing when it did not change: a
+    // failed or rejected action resolves all the same, after the game is put back. Read from the
+    // game rather than the state on screen, which catches up only after the motion plays.
+    async toggleAutoJump(): Promise<boolean | undefined> {
+        if (this.moving || this.busy || !this.canSetAutoJump) return undefined
+        const playerId = this.myPlayer?.id
+        if (playerId === undefined) return undefined
+        const on = !this.autoJump
+        await this.applyAction(
+            this.withSupersededAction(
+                this.createPlayerAction(SetAutoJump, { outOfTurn: true, supersedable: true, on })
+            )
+        )
+        const held = this.actionTarget.state.players.find(
+            (player) => player.playerId === playerId
+        )?.autoJump
+        return (held === true) === on ? on : undefined
+    }
+
     // A move's motion is laid out in the view it started in, so turning the board lands it.
     toggleTurned() {
         this.moveInterrupter?.interrupt()
@@ -206,7 +242,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     override beforeNewState({ kind }: PresentedTransition): void {
         this.changedByPlayer = false
-        this.moveInterrupter?.replacingShown()
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const incoming = this.presentingState
         const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined

@@ -1,15 +1,24 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext
+} from '@tabletop/common'
 import { HydratedTzaarGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isSpace } from '../model/geometry.js'
-import { PieceKind } from '../model/board.js'
+import { PieceColor, PieceKind } from '../model/board.js'
 import { stuckPlayerAtOpening } from '../stateHandlers/turnFlow.js'
+import { TzaarVersion, versionFromConfig } from '../definition/config.js'
 
-// `stuckPlayerId` names White when the last placement leaves them no opening capture.
+// `stuckPlayerId` names White when the last placement leaves them no opening capture. `color` is
+// the placed piece's when the setter of an I set, you choose board places for both.
 export type PlacePieceMetadata = Type.Static<typeof PlacePieceMetadata>
 export const PlacePieceMetadata = Type.Object({
+    color: Type.Optional(PieceColor),
     stuckPlayerId: Type.Optional(Type.String())
 })
 
@@ -44,26 +53,29 @@ export class HydratedPlacePiece extends HydratableAction<typeof PlacePiece> impl
         super(data, PlacePieceValidator)
     }
 
-    apply(state: HydratedTzaarGameState, _context?: MachineContext) {
+    apply(state: HydratedTzaarGameState, context?: MachineContext) {
+        assertExists(context, 'A placement is applied by the engine')
         if (!this.isValid(state)) {
             throw Error('Invalid PlacePiece action')
         }
-        state.board.place(this.coords, state.pieceToPlace(this.playerId, this.kind))
-        const metadata: PlacePieceMetadata = {}
-        if (state.board.isFull()) {
-            const stuckPlayerId = stuckPlayerAtOpening(state)
-            if (stuckPlayerId !== undefined) {
-                metadata.stuckPlayerId = stuckPlayerId
-            }
-        }
-        this.metadata = metadata
+        const color = state.colorToPlace()
+        state.board.place(this.coords, state.pieceToPlace(this.kind))
+        this.metadata =
+            versionFromConfig(context.gameConfig) === TzaarVersion.ISetYouChoose
+                ? { color }
+                : this.openingOutcome(state)
+    }
+
+    private openingOutcome(state: HydratedTzaarGameState): PlacePieceMetadata {
+        const stuckPlayerId = state.board.isFull() ? stuckPlayerAtOpening(state) : undefined
+        return stuckPlayerId === undefined ? {} : { stuckPlayerId }
     }
 
     isValid(state: HydratedTzaarGameState): boolean {
         return (
             isSpace(this.coords) &&
             !state.board.isOccupied(this.coords) &&
-            state.piecesInHand(this.playerId, this.kind) > 0
+            state.piecesInHand(state.ownerOfNextPiece(), this.kind) > 0
         )
     }
 }

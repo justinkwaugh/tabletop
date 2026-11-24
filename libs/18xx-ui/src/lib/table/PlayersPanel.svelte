@@ -17,7 +17,7 @@
     import type { NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
-    import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
+    import PrivatePowerButton from '../privates/PrivatePowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentName from '../finance/PresidentName.svelte'
     import CertificateBadge from '../finance/CertificateBadge.svelte'
@@ -206,7 +206,7 @@
             <header
                 class:player-tinted-header={!!player.playerId}
                 style:--player-color={player.playerId
-                    ? session.colors.getPlayerBgColorValue(player.playerId)
+                    ? session.playerColorValue(player.playerId)
                     : undefined}
                 data-private-description-row={player.description ? true : undefined}
                 class:has-description={!!player.description}
@@ -214,7 +214,7 @@
                 <h3>
                     {#if player.playerId}<span
                             class="player-color"
-                            style:background={session.colors.getPlayerBgColorValue(player.playerId)}
+                            style:background={session.playerColorValue(player.playerId)}
                         ></span>{/if}{#if player.description}<PrivateDescription
                             {money}
                             phaseColors={session.presentation.phaseColors}
@@ -278,12 +278,9 @@
                                 aria-label={`${stockRoundActive ? 'Next turn' : 'Turn'} position ${position}`}
                             >
                                 {#if stockRoundActive}<small>Next</small>{/if}<b
-                                    style:background={session.colors.getPlayerBgColorValue(
-                                        player.playerId
-                                    )}
-                                    style:color={session.colors.getPlayerTextColorValue(
-                                        player.playerId
-                                    )}>{position}</b
+                                    style:background={session.playerColorValue(player.playerId)}
+                                    style:color={session.playerTextColorValue(player.playerId)}
+                                    >{position}</b
                                 >
                             </span>
                         {/if}
@@ -597,7 +594,7 @@
                                             .powersFor(entry.company.id)
                                             .filter((power) => power.playerId === player.playerId) as power (`${power.privateCompanyId}:${'label' in power ? power.label : (power.option?.id ?? '')}`)}<span
                                                 class="private-power"
-                                                ><PrivateTrackPowerButton
+                                                ><PrivatePowerButton
                                                     {session}
                                                     {power}
                                                     label={'label' in power

@@ -20,9 +20,9 @@ function eightEsDue(game: Table): boolean {
     )
 }
 
-// Seed 17 is the first 4-player bot game to reach the position.
+// Seed 34 is the first 4-player bot game to reach the position.
 function playUntil(done: (game: Table) => boolean): Table {
-    for (let seed = 17; seed < 40; seed++) {
+    for (let seed = 34; seed < 60; seed++) {
         const game = kit.table(4, seed)
         const random = new Random(seed)
         for (let count = 0; count < 8000 && !done(game); count++) {
@@ -47,7 +47,13 @@ describe('the 8E-trains going unbought (§X; R48)', () => {
         expect(game.state.machineState).toBe('BuyingTrains')
         expect(game.state.trainPurchaseStep?.companyId).toBe(companyId)
         expect(trainOnSale(game.hydrated)).toBe('10')
+        // The company operates last, so finishing its turn ends the operating round.
+        const operating = game.state.operatingSet
+        expect(operating?.companyOrder.at(-1)).toBe(companyId)
         game.act('FinishOperatingTurn', { companyId })
-        expect(game.state.operatingSet?.completedCompanyIds).toContain(companyId)
+        expect(game.state.operatingSet?.completedCompanyIds).not.toContain(companyId)
+        expect([game.state.operatingSet?.roundNumber, game.state.operatingSet?.number]).not.toEqual(
+            [operating?.roundNumber, operating?.number]
+        )
     }, 300_000)
 })

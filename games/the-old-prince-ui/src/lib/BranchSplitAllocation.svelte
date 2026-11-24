@@ -360,7 +360,7 @@
         display: block;
         margin: 10px auto 0;
         padding: 7px 14px;
-        color: white;
+        color: var(--rail-solid-text, white);
         background: var(--rail-solid, #443e35);
     }
     .confirm:hover:not(:disabled) {

@@ -176,7 +176,7 @@
         margin: 0 8px;
         border-radius: 6px;
         background: var(--rail-solid, #40576b);
-        color: #ffffff;
+        color: var(--rail-solid-text, #ffffff);
         font-weight: 600;
     }
     button.commit:hover:not(:disabled) {

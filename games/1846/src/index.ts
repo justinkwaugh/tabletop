@@ -4,10 +4,12 @@ export * from './definition/info.js'
 export * from './state.js'
 export * from './catalog.js'
 export * from './actions.js'
-export { choicesFor, participant, priceFor, hiddenDistribution } from './distribution.js'
+export { choicesFor, facePrice, participant, priceFor, hiddenDistribution } from './distribution.js'
 export {
     BuyOpeningCompany,
     PassOpeningPurchase,
+    isBuyOpeningCompany,
+    isPassOpeningPurchase,
     openingPurchaseChoices,
     canPassOpeningPurchase,
     unboughtOpeningCompanies
@@ -33,6 +35,7 @@ export * from './earnings.js'
 export { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 export {
     AssignRevenueMarker,
+    boomtownInPlay,
     isAssignRevenueMarker,
     revenueMarkerChoices,
     revenueMarkerValue,

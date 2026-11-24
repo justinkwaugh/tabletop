@@ -121,13 +121,26 @@ function placeOnBar(
     })
 }
 
+/**
+ * Rule 11, step 5 still bars an army pushed out of the locale its guns fired from, but with no
+ * guns there it cannot matter, and a tag left on the bar reads as stale.
+ */
+function firingLocaleHeld(
+    state: HydratedNapoleonsTriumphGameState,
+    guns: RestingArtillery
+): boolean {
+    if (guns.playerId === undefined) return true
+    return state.occupantOf(state.map.approach(guns.attackApproach).locale) === guns.playerId
+}
+
 export function gunTags(
     state: HydratedNapoleonsTriumphGameState,
     rotation: number,
     arrows: readonly ConvexOutline[]
 ): GunTag[] {
     const bars = new Map<number, SizedTag[]>()
-    for (const guns of restingArtillery(state)) {
+    const shown = restingArtillery(state).filter((resting) => firingLocaleHeld(state, resting))
+    for (const guns of shown) {
         const bar = barOf(state, guns.attackApproach)
         bars.set(bar, [...(bars.get(bar) ?? []), sizedTag(state, guns)])
     }

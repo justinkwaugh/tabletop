@@ -48,11 +48,13 @@
     --lyngk-line: #000000;
     --lyngk-line-opacity: 1;
     --lyngk-label: #2a2519;
-    /* Dark warm panels for the prompt and the controls, with cream text. */
-    --lyngk-panel: rgb(59 51 41 / 0.95);
-    --lyngk-panel-edge: #75664f;
-    --lyngk-ink: #f6f0e3;
-    --lyngk-ink-quiet: #cdbfa5;
+    /* The prompt panel is white like the cards, with dark text, as MATRX's on its light table. */
+    --lyngk-panel: #fbf9f3;
+    --lyngk-panel-edge: #b4ac98;
+    --lyngk-panel-shadow: 0 2px 6px rgb(60 50 30 / 0.1);
+    --lyngk-panel-hover: color-mix(in srgb, var(--lyngk-panel), #3a2410 6%);
+    --lyngk-ink: #2a2519;
+    --lyngk-ink-quiet: #6b604c;
     /* Text standing on the table itself rather than on a panel. */
     --lyngk-table-ink: #2a2519;
     /* Cards and the history list are white like the play area, so every piece color shows. */

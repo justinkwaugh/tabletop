@@ -13,11 +13,11 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import { MAX_FIT_SCALE } from '$lib/board/geometry.js'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import ReserveStrip from '$lib/components/ReserveStrip.svelte'
-    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { MatrxGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -44,11 +44,7 @@
 {#snippet turnControls()}
     <Header />
     <div class="action-card">
-        {#if gameSession.gameState.result && !gameSession.isViewingHistory}
-            <GameEndPanel />
-        {:else}
-            <ActionPanel />
-        {/if}
+        <ActionPanel />
     </div>
     <ReserveStrip />
 {/snippet}
@@ -85,6 +81,9 @@
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-gray-500"
+                        messageTextColor="text-(--matrx-ink)"
+                        composerTextColor="text-(--matrx-ink)"
+                        messageHoverColor="hover:bg-(--matrx-panel-hover)"
                         bgColor="bg-[#ffffff]"
                         inputBgColor="bg-[#ffffff]"
                         inputBorderColor="border-[#c3cad2]"
@@ -102,7 +101,7 @@
                     justify="center"
                     controls="bottom-left"
                     maxScale={4}
-                    maxFitScale={2.5}
+                    maxFitScale={MAX_FIT_SCALE}
                     renderAtViewScale
                     expandable
                 >

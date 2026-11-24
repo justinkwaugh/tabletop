@@ -1,6 +1,6 @@
 <script lang="ts">
     import { cardArt } from '$lib/utils/cardArt.js'
-    import { cardLabel, cardWidthShare, type CardStyle } from '$lib/utils/cardStyle.js'
+    import { cardTitle, cardWidthShare, type CardStyle } from '$lib/utils/cardStyle.js'
 
     let {
         cardId,
@@ -18,7 +18,7 @@
         onclick?: () => void
     } = $props()
 
-    const label = $derived(cardLabel(cardId, style))
+    const label = $derived(cardTitle(cardId, style))
     const art = $derived(cardArt(cardId, style))
     const widthShare = $derived(cardWidthShare(style))
 

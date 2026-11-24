@@ -48,15 +48,10 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
-        if (!state.routeStep) {
-            const operatingCompanyId = nextOperatingCompany(state)
-            assertExists(operatingCompanyId, 'Step entry requires an operating company')
-            state.routeStep = { companyId: operatingCompanyId }
-        }
-        const companyId = state.routeStep?.companyId
+        assertExists(state.routeStep, 'Running Trains is entered with its route step')
+        const companyId = state.routeStep.companyId
         if (
-            companyId &&
-            !state.routeStep?.result &&
+            !state.routeStep.result &&
             new RouteEvaluation(state, this.rules).cannotRun(companyId)
         ) {
             context.addSystemAction(RunTrains, {
@@ -71,4 +66,11 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
             ? 'RustingTrains'
             : this.nextState
     }
+}
+
+export function startRouteStep(state: State): void {
+    if (state.routeStep) return
+    const companyId = nextOperatingCompany(state)
+    assertExists(companyId, 'Step entry requires an operating company')
+    state.routeStep = { companyId }
 }

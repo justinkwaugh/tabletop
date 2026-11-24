@@ -1,12 +1,11 @@
-import { tick, untrack } from 'svelte'
+import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
 import {
     assertExists,
     coordinatesToNumber,
     sameCoordinates,
-    type AxialCoordinates,
-    type GameAction
+    type AxialCoordinates
 } from '@tabletop/common'
 import type {
     AnimationContext,
@@ -24,13 +23,7 @@ import {
 import type { MoveInterrupter, ZertzGameSession } from '$lib/model/session.svelte.js'
 import { inferJump } from '$lib/board/inferJump.js'
 import { ringExits, type RingExit } from '$lib/board/pullOut.js'
-import {
-    applyToSeeds,
-    marbleSeed,
-    marbleSeedsAfter,
-    placementSeed,
-    type MarbleSeeds
-} from '$lib/board/marbleSeeds.js'
+import { marbleSeed, placementSeed } from '$lib/board/marbleSeeds.js'
 import {
     DROP,
     dropMarble,
@@ -40,6 +33,17 @@ import {
     type StagedDrop
 } from './drop.js'
 import { fromToPose, tweenPose } from './svgPose.js'
+
+function sameBoard(from: HydratedZertzGameState, to: HydratedZertzGameState): boolean {
+    const rings = to.board.rings
+    return (
+        from.board.rings.length === rings.length &&
+        from.board.rings.every((ring, index) => {
+            const other = rings[index]
+            return sameCoordinates(ring.coords, other.coords) && ring.marble === other.marble
+        })
+    )
+}
 
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
@@ -73,13 +77,6 @@ type Step = TransitionStep<HydratedZertzGameState, AnimationContext>
 export class BoardAnimator implements MoveInterrupter {
     // A replay leaves each action's board drawn until the state catches up.
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
-    // A hosted game can open with only its latest actions, so the marbles placed before them are
-    // read again once the rest arrive, which happens only while nothing is moving.
-    seeds: MarbleSeeds = $derived.by(() => {
-        const { actionCount } = this.session.gameState
-        void this.session.hasCompleteHistory
-        return untrack(() => marbleSeedsAfter(this.session.actions, actionCount))
-    })
     flight: Flight | undefined = $state()
     // Until the state lands: your placed marble stays out of the way, and an undone one stands staged.
     placedIn: boolean = $derived.by(() => this.untilLanded(false))
@@ -98,17 +95,9 @@ export class BoardAnimator implements MoveInterrupter {
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private playing: Timeline | undefined
     private staged: StagedDrop | undefined
-    private liveActions: readonly GameAction[] = []
-    private explorationActions: readonly GameAction[] = []
-    // Where the state on screen is: the session has moved on by the time it is replaced.
-    private exploring: boolean
-    private inHistory: boolean
     private abandoned: HydratedZertzGameState | undefined
 
-    constructor(private readonly session: ZertzGameSession) {
-        this.exploring = session.isExploring
-        this.inHistory = session.isViewingHistory
-    }
+    constructor(private readonly session: ZertzGameSession) {}
 
     readonly attach: Attachment = () => {
         this.session.addGameStateChangeListener(this.listener)
@@ -196,36 +185,15 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // A jump forward through history needs the actions it hides, so the actions shown outside
-    // history are kept as another state replaces them. The live game's and an exploration's are
-    // kept apart, so neither stands in for the other.
-    replacingShown() {
-        const { actions, isExploring, history } = this.session
-        if (!this.inHistory) {
-            if (this.exploring) this.explorationActions = actions
-            else this.liveActions = actions
-        }
-        if (isExploring !== this.exploring) this.explorationActions = []
-        this.exploring = isExploring
-        this.inHistory = history.inHistory
-    }
-
-    // History shows its actions only up to the step it is on, so a jump forward reads the list, as
-    // last seen outside history, while it still begins with the actions shown.
-    private actionsAhead(): readonly GameAction[] {
-        const shown = this.session.actions
-        const known = this.session.isExploring ? this.explorationActions : this.liveActions
-        const continues = shown.every((action, index) => known[index]?.id === action.id)
-        return continues && known.length > shown.length ? known : shown
-    }
-
     private untilLanded<T>(value: T): T {
         void this.session.gameState
         return value
     }
 
     private async onGameStateChange({ kind, to, from, action, animationContext }: Step) {
-        if (from === undefined || !ANIMATED_KINDS.has(kind)) {
+        // Turning auto-jump on or off moves nothing, even where it replaces the standing choice; a
+        // jump it makes is a step of its own.
+        if (from === undefined || !ANIMATED_KINDS.has(kind) || sameBoard(from, to)) {
             return
         }
         const presenting = this.session.presentingState
@@ -251,24 +219,6 @@ export class BoardAnimator implements MoveInterrupter {
         const steppedTo = stepped?.index === from.actionCount ? stepped : undefined
         const known = forward ? steppedTo : stepped
         const placement = isPlaceMarble(known) ? known : undefined
-        // The actions list is published with the state, once the step has played, so a move's
-        // seeds come from the move itself.
-        const seedsBefore = this.seeds
-        const seedsDuring = new Map(seedsBefore)
-        const oneForward = forward && to.actionCount === from.actionCount + 1
-        if (action !== undefined) applyToSeeds(seedsDuring, action, from.actionCount)
-        else if (oneForward && steppedTo !== undefined) {
-            applyToSeeds(seedsDuring, steppedTo, from.actionCount)
-        } else {
-            const ahead = marbleSeedsAfter(this.actionsAhead(), to.actionCount)
-            for (const [key, seed] of ahead) seedsDuring.set(key, seed)
-        }
-        // A marble leaving its ring is still drawn there until the step hides or lifts it, so it
-        // keeps its seed; the seeds are read afresh from the actions once the state lands.
-        for (const [key, seed] of seedsBefore) {
-            if (!seedsDuring.has(key)) seedsDuring.set(key, seed)
-        }
-        this.seeds = seedsDuring
         // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
             placement && forward
@@ -290,10 +240,11 @@ export class BoardAnimator implements MoveInterrupter {
         let returned: Staged | undefined
         if (action === undefined) {
             const undone = kind === 'undo' ? this.session.restagedMove(to) : undefined
-            // Staged before its state lands, so it keeps the specks it had.
+            // Staged before its state lands, so it keeps the seed it was placed with: its ring may
+            // have been claimed, so it is not read from the board being left.
             if (undone !== undefined) {
                 const { color, coords } = undone
-                returned = { color, coords, seed: this.seedOn(from, coords, seedsBefore) }
+                returned = { color, coords, seed: placementSeed(coords, to.actionCount) }
             }
             const returning = to.board.rings.filter((ring) => !from.board.hasRing(ring.coords))
             const jump = inferJump(from.board.rings, to.board.rings)
@@ -338,7 +289,7 @@ export class BoardAnimator implements MoveInterrupter {
                 for (const ring of appearing) this.drop(ring.coords, timeline, QUICK_DROP)
             }
             if (jump !== undefined) {
-                const seed = this.seedOn(from, jump.from, seedsBefore)
+                const seed = this.seedOn(from, jump.from)
                 await this.jump(jump.from, jump.to, jump.color, seed, timeline, FALLBACK_DURATION)
             }
             for (const ring of removedRings) {
@@ -375,7 +326,7 @@ export class BoardAnimator implements MoveInterrupter {
                     action.from,
                     action.to,
                     action.metadata.jumper,
-                    this.seedOn(from, action.from, seedsBefore),
+                    this.seedOn(from, action.from),
                     timeline,
                     JUMP.duration
                 )
@@ -655,11 +606,7 @@ export class BoardAnimator implements MoveInterrupter {
         )
     }
 
-    private seedOn(
-        state: HydratedZertzGameState,
-        coords: AxialCoordinates,
-        legacy: MarbleSeeds
-    ): number {
-        return marbleSeed(state.board.ringAt(coords) ?? { coords }, legacy)
+    private seedOn(state: HydratedZertzGameState, coords: AxialCoordinates): number {
+        return marbleSeed(state.board.ringAt(coords) ?? { coords })
     }
 }

@@ -8,20 +8,20 @@ _Effective {{effectiveDate}}_
 
 ## What we collect and why
 
-| Data                                                                         | Why                                             | Lawful basis (GDPR)  |
-| ---------------------------------------------------------------------------- | ----------------------------------------------- | -------------------- |
-| Username, email address, password (stored only as a hash)                    | Your account and signing in                     | Contract             |
-| Linked Google or Discord account ID                                          | Signing in with that account                    | Contract             |
-| Your browser's time zone and the reminder hours you choose                   | Sending turn reminders at times that suit you   | Contract             |
-| Games you play: moves, results, scores, votes, and when they happened        | Running the games                               | Contract             |
-| Chat messages you send in games                                              | Game chat                                       | Contract             |
-| League and tournament entries and results                                    | Running competitions                            | Contract             |
-| Notification settings: Discord link, browser push subscription               | Telling you when it's your turn                 | Contract             |
-| Bug reports you send, including screenshots and browser details              | Fixing problems you report, and replying to you | Legitimate interests |
-| Reports you send about chat, usernames or game names, with what was reported | Reviewing them and acting on them               | Legitimate interests |
-| Moderation records, such as bans, renames and removed messages               | Enforcing the terms of service                  | Legitimate interests |
-| Server logs, including IP addresses                                          | Security, abuse prevention and fixing faults    | Legitimate interests |
-| Counts of active players, stored as one-way hashes                           | Understanding how the site is used              | Legitimate interests |
+| Data                                                                                                                   | Why                                             | Lawful basis (GDPR)  |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------- |
+| Username, email address, password (stored only as a hash)                                                              | Your account and signing in                     | Contract             |
+| Linked Google or Discord account ID                                                                                    | Signing in with that account                    | Contract             |
+| Your browser's time zone and the reminder hours you choose                                                             | Sending turn reminders at times that suit you   | Contract             |
+| Games you play: moves, results, scores, votes, and when they happened                                                  | Running the games                               | Contract             |
+| Chat messages you send in games                                                                                        | Game chat                                       | Contract             |
+| League and tournament entries and results                                                                              | Running competitions                            | Contract             |
+| Notification settings: Discord link, the Discord channel webhook you connect, Telegram chat, browser push subscription | Telling you when it's your turn                 | Contract             |
+| Bug reports you send, including screenshots and browser details                                                        | Fixing problems you report, and replying to you | Legitimate interests |
+| Reports you send about chat, usernames or game names, with what was reported                                           | Reviewing them and acting on them               | Legitimate interests |
+| Moderation records, such as bans, renames and removed messages                                                         | Enforcing the terms of service                  | Legitimate interests |
+| Server logs, including IP addresses                                                                                    | Security, abuse prevention and fixing faults    | Legitimate interests |
+| Counts of active players, stored as one-way hashes                                                                     | Understanding how the site is used              | Legitimate interests |
 
 > Add any optional features you run, such as time-difference sharing, with its basis (legitimate interests) and how to turn it off.
 

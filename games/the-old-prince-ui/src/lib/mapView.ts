@@ -92,6 +92,7 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     },
     // Souris's and Wellington's track leaves over their tops, so their names curve under the city.
     namesBelow: ['T12', 'D14'],
+    simpleTokenArt: true,
     stations: {
         'branch:CB': { color: '#886bab', label: 'CB', imageUrl: CBToken },
         'branch:SB': { color: '#a44684', label: 'SB', imageUrl: SBToken },

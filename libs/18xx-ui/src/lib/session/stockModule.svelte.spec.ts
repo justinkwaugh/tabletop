@@ -233,6 +233,55 @@ describe('StockModule', () => {
         })
     })
 
+    it('offers a card the starts some price allows, and none while not interactive', () => {
+        const { session } = trading(['StartCompany'])
+        const treasury = { kind: 'company', companyId: TestCompanyId } as const
+        session.state.cash.push({ owner: player, amount: 1000 }, { owner: treasury, amount: 0 })
+        session.state.certificates.push({
+            id: 'president',
+            companyId: TestCompanyId,
+            kind: 'share',
+            shares: 2,
+            president: true,
+            owner: treasury
+        })
+        const rules = {
+            ...session.rules,
+            companyRules: {
+                ...minimalCompanyRules,
+                startMarketSpaces: () => ['0:1'],
+                startTerms: () => ({ price: 240, recipient: treasury, payers: [player] })
+            }
+        }
+        const module = new StockModule({ ...session, rules }, () => {})
+        expect(module.cardStarts(TestCompanyId).map((choice) => choice.request)).toEqual([start])
+        expect(module.cardStarts('other')).toEqual([])
+        expect(
+            new StockModule({ ...session, rules, interactive: false }, () => {}).cardStarts(
+                TestCompanyId
+            )
+        ).toEqual([])
+    })
+
+    it('switching the buyer of a start keeps the home chosen on the map', () => {
+        const { session } = trading(['StartCompany'])
+        const bank = { kind: 'company', companyId: 'UB' } as const
+        const rules = {
+            ...session.rules,
+            companyRules: {
+                ...minimalCompanyRules,
+                startMarketSpaces: () => ['0:1'],
+                startHomes: () => [{ locationId: 'A1', nodeId: 'city', slot: 0, cost: 80 }]
+            }
+        }
+        const module = new StockModule({ ...session, rules }, () => {})
+        module.selectCompanyStart(start)
+        module.chooseHome({ locationId: 'A1', nodeId: 'city' })
+        module.chooseStartBuyer({ ...start, buyer: bank })
+        expect(module.selectedStartCompany?.buyer).toEqual(bank)
+        expect(module.selectedStartHome).toEqual({ locationId: 'A1', nodeId: 'city' })
+    })
+
     it('stages one company per sale and removes it by company', () => {
         const { module } = trading()
         module.selectSale(sale)

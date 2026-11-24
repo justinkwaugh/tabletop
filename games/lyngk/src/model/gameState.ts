@@ -12,7 +12,14 @@ import { LyngkPlayerState, HydratedLyngkPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { LyngkVariant, VARIANT_RULES } from '../definition/config.js'
 import { LyngkBoard, HydratedLyngkBoard, type MovePath } from './board.js'
-import { ACTIVE_COLORS, PieceColor, topOf, type ColorRights } from './pieces.js'
+import {
+    ACTIVE_COLORS,
+    PIECE_COLORS,
+    PieceColor,
+    piecesOfColor,
+    topOf,
+    type ColorRights
+} from './pieces.js'
 
 export enum EndReason {
     StackOfSix = 'StackOfSix',
@@ -131,6 +138,22 @@ export class HydratedLyngkGameState
                 this.board.hasMove(this.rightsOf(playerId, color), this.rules.maxHeight)
             )
         )
+    }
+
+    // The pieces of a colour not yet placed, by number, while the players set the board.
+    piecesLeft(color: PieceColor): number[] {
+        return piecesOfColor(color).filter((piece) => !this.board.onBoard(piece))
+    }
+
+    colorsLeft(): PieceColor[] {
+        return PIECE_COLORS.filter((color) => this.piecesLeft(color).length > 0)
+    }
+
+    // The player who places the first piece when the players set the board.
+    firstPlayerId(): string {
+        const first = this.turnManager.turnOrder[0]
+        assertExists(first, 'The game has a first player')
+        return first
     }
 
     claim(playerId: string, color: PieceColor) {

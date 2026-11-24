@@ -314,6 +314,7 @@
                             class:recessed={fillKind === 'recessed'}
                             role="button"
                             tabindex={crowded ? 0 : -1}
+                            aria-disabled={!crowded}
                             aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
                             title={zone ? marketZoneTitle(zone) : undefined}
                             data-market-space={space.id}

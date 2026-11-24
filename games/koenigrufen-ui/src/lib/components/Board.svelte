@@ -56,7 +56,7 @@
     <div class="seat right">
         <Seat playerId={seats[3]} openRows={narrow.current ? 2 : 1} />
     </div>
-    <div class="center"><TrickArea /></div>
+    <div class="center"><TrickArea captionInside={narrow.current} /></div>
     <div class="middle-talon"><Talon place={TalonPlace.Middle} /></div>
     {#if gameSession.showsHandSummary && gameSession.lastHandResult && closedAfterHand !== handsPlayed}
         <div class="hand-summary">
@@ -94,7 +94,10 @@
 </div>
 
 <style>
+    /* The trick, and the talon in the middle, centre on the room between the top seat (to 153px)
+       and my seat (from 554px). */
     .table {
+        --middle: 353px;
         position: relative;
         width: 1200px;
         height: 860px;
@@ -160,14 +163,16 @@
     .center {
         position: absolute;
         z-index: 2;
-        top: 150px;
+        top: calc(var(--middle) - 150px);
         left: 50%;
         transform: translateX(-50%);
     }
 
+    /* Scaled within the transform, after the centring: the separate `scale` property would apply
+       after `transform` and scale the centring with it, pulling the trick to the left. */
     .portrait .center {
         top: calc(var(--middle) - 150px * var(--trick-scale));
-        scale: var(--trick-scale);
+        transform: translateX(-50%) scale(var(--trick-scale));
         transform-origin: top center;
     }
 
@@ -175,7 +180,7 @@
     .middle-talon {
         position: absolute;
         z-index: 3;
-        top: 300px;
+        top: var(--middle);
         left: 50%;
         transform: translate(-50%, -50%);
     }
@@ -183,7 +188,7 @@
     /* Low enough to clear the side seats on a short table. */
     .portrait .middle-talon {
         top: max(var(--middle), 375px);
-        scale: var(--talon-scale);
+        transform: translate(-50%, -50%) scale(var(--talon-scale));
     }
 
     .hand-summary {

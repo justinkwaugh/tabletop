@@ -1,8 +1,7 @@
 <script lang="ts">
-    import { CompanyToken } from '@tabletop/18xx-ui'
     import { companyLineup } from './companyLineup.js'
     import DraftLineupDialog from './DraftLineupDialog.svelte'
-    import { MapView1846 } from './mapView.js'
+    import LineupTokens from './LineupTokens.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const lineup = $derived(companyLineup(session.gameState, (id) => session.companyName(id)))
@@ -12,14 +11,28 @@
 <button class="setup-entry" aria-haspopup="dialog" onclick={() => (open = true)}>
     <span>Set up for {lineup.playerCount} players</span>
     <small
-        >{#each lineup.corporations as company (company.id)}<span class="token" title={company.name}
-                ><CompanyToken appearance={MapView1846.stations[company.id]} size={16} /></span
-            >{/each}</small
+        ><LineupTokens
+            companies={lineup.corporations}
+            size={16}
+            initials={session.tokenInitials}
+        /></small
     >
-    <small>{lineup.privateNames.join(' · ')}</small>
+    <small class="kept">{lineup.privateNames.join(' · ')}</small>
+    {#if lineup.removedCorporations.length || lineup.removedPrivateNames.length}
+        <small
+            ><em>Removed</em>
+            <LineupTokens
+                companies={lineup.removedCorporations}
+                size={16}
+                removed
+                initials={session.tokenInitials}
+            />
+            {lineup.removedPrivateNames.join(' · ')}</small
+        >
+    {/if}
 </button>
 {#if open}
-    <DraftLineupDialog {lineup} onclose={() => (open = false)} />
+    <DraftLineupDialog {lineup} initials={session.tokenInitials} onclose={() => (open = false)} />
 {/if}
 
 <style>
@@ -49,9 +62,7 @@
         font-size: 0.833em;
         line-height: 1.4em;
     }
-    .token {
-        display: inline-block;
-        margin-right: 2px;
-        vertical-align: middle;
+    small.kept {
+        color: var(--rail-text, #463e35);
     }
 </style>

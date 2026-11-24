@@ -4,8 +4,10 @@ import { draftCompany, isBlank } from './catalog.js'
 import { independentTrainId } from './trains.js'
 import type {
     EighteenFortySixProjectedState,
+    FinalCompanyPass,
     HydratedEighteenFortySixState,
-    Purchase
+    Purchase,
+    Selection
 } from './state.js'
 
 type State = HydratedEighteenFortySixState
@@ -27,8 +29,17 @@ export function priceFor(
     if (isBlank(cardId)) return 0
     const offer = state.draft && 'finalOffer' in state.draft ? state.draft.finalOffer : undefined
     if (offer?.cardId === cardId) return offer.price
+    return facePrice(cardId)
+}
+export function facePrice(cardId: string): number {
     const company = draftCompany(cardId)
     return company.price + company.debt
+}
+export function lowerFinalOffer(offer: Selection): { reducedOffer: Selection; atFloor: boolean } {
+    const floor = draftCompany(offer.cardId).debt
+    assert(offer.price > floor, 'The final company must be taken at its debt floor')
+    offer.price -= 10
+    return { reducedOffer: { ...offer }, atFloor: offer.price === floor }
 }
 export function choicesFor(state: State, playerId: string): string[] {
     if (state.machineState !== 'Drafting' || !state.isActivePlayer(playerId)) return []
@@ -89,7 +100,7 @@ export function chooseCard(state: State, playerId: string, cardId: string): void
     nextDistributionPlayer(state)
     dealPacket(state)
 }
-export function passFinalCompany(state: State, playerId: string): void {
+export function passFinalCompany(state: State, playerId: string): FinalCompanyPass {
     const draft = hiddenDistribution(state)
     assert(
         state.machineState === 'Drafting' && state.isActivePlayer(playerId),
@@ -97,14 +108,14 @@ export function passFinalCompany(state: State, playerId: string): void {
     )
     const offer = draft.finalOffer
     assertExists(offer, 'Passing requires a lone final company')
-    const company = draftCompany(offer.cardId)
-    assert(offer.price > company.debt, 'The final company must be taken at its debt floor')
     participant(state, playerId).packet = []
-    offer.price -= 10
+    const { reducedOffer, atFloor } = lowerFinalOffer(offer)
     nextDistributionPlayer(state)
     const buyer = participant(state, state.activePlayerIds[0])
     buyer.packet = [offer.cardId]
-    if (offer.price === company.debt) chooseCard(state, buyer.playerId, offer.cardId)
+    if (!atFloor) return { reducedOffer }
+    chooseCard(state, buyer.playerId, offer.cardId)
+    return { reducedOffer, purchase: { ...reducedOffer, playerId: buyer.playerId } }
 }
 export function settleDistribution(state: State): Purchase[] {
     const draft = hiddenDistribution(state)

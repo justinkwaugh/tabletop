@@ -1,5 +1,23 @@
 import { expect, test, type Page } from '@playwright/test'
 
+/** Turns the title's published artwork on or off from the table's Display settings. */
+async function setPublishedArtwork(page: Page, on: boolean) {
+    await page.getByRole('button', { name: 'Display', exact: true }).click()
+    const toggle = page.getByRole('switch', { name: 'Published artwork', exact: true })
+    if ((await toggle.getAttribute('aria-checked')) !== String(on)) await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', String(on))
+    await closeDisplay(page)
+}
+
+async function closeDisplay(page: Page) {
+    const modalClose = page.getByRole('button', { name: 'Close display', exact: true })
+    if (await modalClose.isVisible()) await modalClose.click()
+    else await page.getByRole('button', { name: 'Display', exact: true }).click()
+    await expect(page.getByRole('switch', { name: 'Published artwork', exact: true })).toHaveCount(
+        0
+    )
+}
+
 for (const width of [1280, 390]) {
     test(`published board preserves tile selections, history and Undo at ${width}px`, async ({
         page
@@ -10,9 +28,9 @@ for (const width of [1280, 390]) {
         await page.goto('/table')
         const scene = page.locator('.map-scene')
         const hex = page.locator('[data-map-location="K17"]')
-        await page.getByRole('button', { name: 'Use published artwork', exact: true }).waitFor()
+        await page.getByRole('button', { name: 'Display', exact: true }).waitFor()
         const initialPageWidth = await page.evaluate(() => document.documentElement.scrollWidth)
-        await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+        await setPublishedArtwork(page, true)
         await expect(scene).toHaveAttribute('width', '2048')
         await expect(scene).toHaveAttribute('height', '1322')
         await expect(scene).toHaveAttribute('data-presentation', 'published')
@@ -45,12 +63,12 @@ for (const width of [1280, 390]) {
             'transform',
             /translate\(600 /
         )
-        await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
+        await setPublishedArtwork(page, false)
         await expect(scene).toHaveAttribute('data-presentation', 'generic')
         await expect(
             page.getByRole('button', { name: 'Accept track lay', exact: true })
         ).toBeVisible()
-        await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+        await setPublishedArtwork(page, true)
         await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
         await expect(hex).toHaveAttribute('data-placed', 'true')
         await expect(hex.locator('.tile-artwork')).toHaveCount(1)
@@ -66,9 +84,11 @@ for (const width of [1280, 390]) {
             .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
             .toBe(initialPageWidth)
         await page.getByLabel('Game', { exact: true }).selectOption('1889')
+        await page.getByRole('button', { name: 'Display', exact: true }).click()
         await expect(
-            page.getByRole('button', { name: /Use (published artwork|generic presentation)/ })
+            page.getByRole('switch', { name: 'Published artwork', exact: true })
         ).toHaveCount(0)
+        await closeDisplay(page)
         await expect(scene).toHaveAttribute('data-presentation', 'generic')
         expect(errors).toEqual([])
     })
@@ -79,17 +99,17 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
     const publishedTokens = page.locator('image[href*="published/tokens/"]')
-    await page.getByRole('button', { name: 'Use published artwork', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Display', exact: true }).waitFor()
     await expect(publishedTokens).toHaveCount(0)
-    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    await setPublishedArtwork(page, true)
     await expect.poll(() => publishedTokens.count()).toBeGreaterThan(0)
-    await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
+    await setPublishedArtwork(page, false)
     await expect(publishedTokens).toHaveCount(0)
 
     await page.getByLabel('Position', { exact: true }).selectOption('opening')
     const cardImages = page.locator('[data-card-image] img')
     const offers = page.getByRole('region', { name: 'Auction offers' })
-    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    await setPublishedArtwork(page, true)
     const peirLot = offers.locator('button.name', { hasText: 'PEIR' }).first()
     await peirLot.click()
     await expect(cardImages).toHaveCount(1)
@@ -114,7 +134,7 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     const summary = page.getByRole('region', { name: 'Position summary' })
     await expect(summary).toContainText(`offered ${privateName}`)
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
-    await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
+    await setPublishedArtwork(page, false)
     await expect(cardImages).toHaveCount(0)
     await expect(bidding.locator('.private-card h3')).toHaveText(privateName)
     expect(errors).toEqual([])
@@ -135,7 +155,7 @@ async function holdPublishedImages(page: Page, url: RegExp) {
 async function offerPeirShare(page: Page) {
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('opening')
-    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    await setPublishedArtwork(page, true)
     const offers = page.getByRole('region', { name: 'Auction offers' })
     const peirOffer = offers.getByRole('button', { name: /^Offer PEIR / }).first()
     const peirName = (await peirOffer.getAttribute('aria-label'))?.replace(/^Offer /, '')
@@ -170,7 +190,7 @@ test('published train cards name their train until the image arrives', async ({ 
     const releaseCards = await holdPublishedImages(page, /published\/trains\//)
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('trains')
-    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    await setPublishedArtwork(page, true)
     const train = page.locator('[data-depot-train]').first()
     const trainName = (await train.getAttribute('aria-label'))?.split(' for ')[0]
     if (!trainName) throw new Error('The depot offers a train')

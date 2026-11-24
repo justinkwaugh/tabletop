@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { addAxial, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
-import { DIRECTIONS, isPoint } from './geometry.js'
+import { DIRECTIONS, isPoint, POINTS } from './geometry.js'
 import {
     hasRepeatedColor,
     pieceColor,
@@ -60,6 +60,18 @@ export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements
 
     occupied(): AxialCoordinates[] {
         return this.stacks.map((stack) => stack.coords)
+    }
+
+    vacantPoints(): AxialCoordinates[] {
+        return POINTS.filter((coords) => this.stackOn(coords) === undefined)
+    }
+
+    isFull(): boolean {
+        return this.stacks.length === POINTS.length
+    }
+
+    onBoard(piece: number): boolean {
+        return this.stacks.some((stack) => stack.pieces.includes(piece))
     }
 
     // Takes the whole stack off a point.

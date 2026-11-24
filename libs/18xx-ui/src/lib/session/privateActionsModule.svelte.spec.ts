@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import type { TrainPurchaseDetails } from '@tabletop/18xx'
 import {
     PrivateActionsModule,
     type PrivateActionsSession,
     type TitlePrivatePower
 } from './privateActionsModule.svelte.js'
 import { singleChoice } from './stagedSelection.svelte.js'
-import type { CompanyDecision, PrivateTileOption } from './companyDecisionsModule.svelte.js'
+import type {
+    CompanyDecision,
+    PrivateTileOption,
+    PrivateTrainOption
+} from './companyDecisionsModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const Alpha = { privateCompanyId: 'alpha', playerId: 'alex' }
@@ -17,7 +22,8 @@ function privateActions(
     availability = {},
     exchangeOptions: { playerId: string; privateCompanyId: string; certificateId: string }[] = [],
     titlePowers: TitlePrivatePower[] = [],
-    offered?: { privateCompanyId: string; playerId: string }
+    offered?: { privateCompanyId: string; playerId: string },
+    privateTrainOptions: PrivateTrainOption[] = []
 ) {
     let trackSelected = false
     let trackCleared = 0
@@ -27,7 +33,7 @@ function privateActions(
             { ...power, details: tileDetails },
             { ...power, details: tileDetails }
         ]),
-        privateTrainOptions: []
+        privateTrainOptions
     }
     const track = {
         undo: () => {
@@ -278,6 +284,28 @@ describe('PrivateActionsModule', () => {
         expect(module.selection).toBeUndefined()
         expect(module.trackPowerSelection).toBeUndefined()
         expect(module.undo()).toBe(false)
+    })
+
+    it('offers a train private from its Use, which opens the powers list', () => {
+        const train = { privateCompanyId: 'OP', details: {} as TrainPurchaseDetails }
+        const { module } = privateActions([Alpha], {}, {}, [], [], undefined, [train])
+        const listed = { privateCompanyId: 'OP', playerId: 'alex', kind: 'listed' as const }
+        expect(module.powersFor('OP')).toEqual([listed])
+        expect(module.powersFor('alpha')).toEqual([Alpha])
+        expect(module.isChosen(listed)).toBe(false)
+        module.startPower(listed)
+        expect(module.selection).toBe('powers')
+        expect(module.trackPowerSelection).toBeUndefined()
+        expect(module.isChosen(listed)).toBe(true)
+        module.startPower(listed)
+        expect(module.undo()).toBe(true)
+        expect(module.selection).toBeUndefined()
+    })
+
+    it('offers one Use for a private with a tile power and buttons of its own', () => {
+        const train = { privateCompanyId: 'alpha', details: {} as TrainPurchaseDetails }
+        const { module } = privateActions([Alpha], {}, {}, [], [], undefined, [train])
+        expect(module.powersFor('alpha')).toEqual([Alpha])
     })
 
     it('closing leaves private actions and drops their track and company choices', () => {

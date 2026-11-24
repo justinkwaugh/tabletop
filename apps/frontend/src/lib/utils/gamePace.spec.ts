@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameStatus, type Game } from '@tabletop/common'
-import { turnWaitDisplay, waitText } from './gamePace'
+import { lastMovePaceWarning } from './gamePace'
 
 const now = new Date('2026-11-12T12:00:00Z')
 const minutesAgo = (minutes: number) => new Date(now.getTime() - minutes * 60_000)
@@ -24,41 +24,20 @@ function startedGame(overrides: Partial<Game> = {}): Game {
     }
 }
 
-describe('waitText', () => {
-    it('counts minutes up to two hours, hours up to two days, then days', () => {
-        expect(waitText(20_000)).toBe('1 min')
-        expect(waitText(61 * 60_000)).toBe('61 min')
-        expect(waitText(150 * 60_000)).toBe('2 h')
-        expect(waitText(47.5 * 3_600_000)).toBe('47 h')
-        expect(waitText(80 * 3_600_000)).toBe('3 days')
-    })
-})
-
-describe('turnWaitDisplay', () => {
-    it('describes a wait past the pace for the tooltip and screen readers', () => {
-        const game = startedGame({ paceMinutes: 60, turnStartedAt: { a: minutesAgo(4 * 60) } })
-        expect(turnWaitDisplay(game, now)).toEqual({
-            wait: '4 h',
-            pastPace: true,
-            description: '4 h, past the 1 h pace'
-        })
+describe('lastMovePaceWarning', () => {
+    it('is quiet while the last move is within the pace', () => {
+        expect(lastMovePaceWarning(startedGame({ lastActionAt: minutesAgo(60) }), now)).toBe(
+            undefined
+        )
     })
 
-    it('names the Live pace without its duration', () => {
-        const game = startedGame({ paceMinutes: 15, turnStartedAt: { a: minutesAgo(20) } })
-        expect(turnWaitDisplay(game, now)?.description).toBe('20 min, past the Live pace')
+    it('names the pace once the last move is older than it', () => {
+        const game = startedGame({ paceMinutes: 15, lastActionAt: minutesAgo(20) })
+        expect(lastMovePaceWarning(game, now)).toBe('Past the Live pace')
     })
 
-    it('reads a game with no pace as Daily', () => {
-        const game = startedGame({ turnStartedAt: { a: minutesAgo(5 * 60) } })
-        expect(turnWaitDisplay(game, now)).toEqual({
-            wait: '5 h',
-            pastPace: false,
-            description: '5 h'
-        })
-    })
-
-    it('shows nothing when nobody is to move', () => {
-        expect(turnWaitDisplay(startedGame({ activePlayerIds: [] }), now)).toBeUndefined()
+    it('counts from the start when nobody has moved', () => {
+        const game = startedGame({ startedAt: minutesAgo(2 * 1440) })
+        expect(lastMovePaceWarning(game, now)).toBe('Past the 1-day pace')
     })
 })

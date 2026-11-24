@@ -590,7 +590,7 @@
     )
     function ownerPlayerColor(ownerId: string) {
         return ownerId.startsWith('player:')
-            ? session.colors.getPlayerBgColorValue(ownerId.slice(7))
+            ? session.playerColorValue(ownerId.slice(7))
             : undefined
     }
     function poolAlternate(ownerId: string) {
@@ -606,7 +606,7 @@
         const controllerId = portfolioOwners.find((entry) => entry.id === ownerId)?.controllerId
         return (
             ownerPlayerColor(ownerId) ??
-            (controllerId ? session.colors.getPlayerBgColorValue(controllerId) : undefined)
+            (controllerId ? session.playerColorValue(controllerId) : undefined)
         )
     }
     /** A company's stations left of all it has, or a dash for one that has none. */
@@ -954,7 +954,7 @@
                 players={seatOrder.map((playerId) => ({
                     playerId,
                     name: session.getPlayerName(playerId),
-                    color: session.colors.getPlayerBgColorValue(playerId)
+                    color: session.playerColorValue(playerId)
                 }))}
                 appearances={session.mapView.stations}
                 view={period === 'Player income' ? 'Player' : 'Company'}
@@ -1474,7 +1474,7 @@
     .trade-answer .company-buy {
         border-color: var(--rail-solid, #2c4652);
         background: var(--rail-solid, #2c4652);
-        color: #fff;
+        color: var(--rail-solid-text, #fff);
     }
     .trade-answer .company-buy:hover:not(:disabled) {
         filter: brightness(1.15);
@@ -1550,11 +1550,11 @@
         --sheet-cell: var(--rail-surface, #222c37);
         --sheet-label: var(--rail-surface-raised, #2b3744);
         --sheet-pool: var(--sheet-cell);
-        --sheet-market: #1b3d45;
+        --sheet-market: var(--rail-market, #1f343d);
         --sheet-financial: var(--rail-surface-inset, #1b232d);
-        --sheet-sold: #4a2a33;
-        --sheet-rule: #2f3b48;
-        --sheet-divider: #5b6d80;
+        --sheet-sold: var(--rail-sold-this-round, #4a2a33);
+        --sheet-rule: var(--rail-sheet-rule, #2f3b48);
+        --sheet-divider: var(--rail-sheet-divider, #5b6d80);
     }
     .share-cell {
         --cell-fill: var(--sheet-financial);
@@ -1576,13 +1576,17 @@
         --cell-fill: var(--sheet-financial);
     }
     td.player-financial {
-        --cell-fill: color-mix(in srgb, var(--player-color) 15%, var(--sheet-cell));
+        --cell-fill: color-mix(
+            in srgb,
+            var(--player-color) var(--player-tint, 15%),
+            var(--sheet-cell)
+        );
     }
     td.sold {
         --cell-fill: var(--sheet-sold);
     }
     td.value-cell {
-        --cell-fill: color-mix(in srgb, var(--sheet-market) 45%, var(--sheet-cell));
+        --cell-fill: var(--sheet-market);
     }
     td.value-cell.market-zone-tint {
         --cell-fill: var(--market-tint);
@@ -1862,7 +1866,7 @@
     }
     .view-toggle button[aria-pressed='true'] {
         background: var(--rail-solid, #40576b);
-        color: #ffffff;
+        color: var(--rail-solid-text, #ffffff);
         font-weight: 600;
     }
     .period-toggle {
@@ -1927,7 +1931,7 @@
     }
     /* :where() keeps these rules below the section dividers in specificity. */
     tr > :where(* + *:not(.void)) {
-        border-left: 1px solid #ffffff10;
+        border-left: 1px solid var(--sheet-rule);
     }
     thead th:has(> .column-owner-label > .incoming) {
         border-left: 0;

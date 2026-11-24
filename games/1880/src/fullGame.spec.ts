@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { expectReplayableRecord } from '../../../libs/18xx/test/replayableRecord.js'
 import { playOut } from '../test/bot.js'
 import { kit } from '../test/kit.js'
 
@@ -15,4 +16,10 @@ describe('whole games', () => {
         },
         300_000
     )
+
+    it('leaves a record History Navigation can replay', () => {
+        const game = kit.table(4, 1)
+        playOut(game, 1)
+        expectReplayableRecord(game, game.initialState)
+    }, 300_000)
 })

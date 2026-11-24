@@ -249,7 +249,13 @@ export class BoardAnimator implements MoveInterrupter {
                 : kind === 'history'
                   ? this.session.historyPush
                   : undefined
-        const push = inferPush(from.board, to.board, known)
+        // Taking a single piece can leave the boards an undone push would, so a step known to be
+        // something else is never read as a push.
+        const stepped = this.session.steppedAction(from, to)
+        const push =
+            stepped === undefined || isPushPiece(stepped)
+                ? inferPush(from.board, to.board, known)
+                : undefined
         if (push === undefined) {
             for (const piece of from.board.pieces) {
                 if (to.board.pieceAt(piece.coords) === undefined) {

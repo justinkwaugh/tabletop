@@ -23,8 +23,10 @@
     // R-5.4.2 — "any amount … greater than its current value": the tokens held, those under the
     // least bid paid with it and never tappable alone.
     let least = $derived(amounts[0] ?? 0)
-    let held = $derived(amounts[amounts.length - 1] ?? 0)
+    let highestBid = $derived(amounts[amounts.length - 1] ?? 0)
     let picked = $derived(gameSession.bannerAmount ?? least)
+    // R-7.4 — a bid of none, won by Magician's Code alone, leaves no token to tap.
+    let noneToPay = $derived(highestBid === 0)
 </script>
 
 {#if banner}
@@ -41,19 +43,25 @@
             </span>
             <div class="flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-start">
                 <span class="text-sm font-semibold"
-                    ><TokenText text="{bannerName(banner)}: pay how many {token}?" /></span
+                    ><TokenText
+                        text={noneToPay
+                            ? `${bannerName(banner)}: pay no ${token}`
+                            : `${bannerName(banner)}: pay how many ${token}?`}
+                    /></span
                 >
-                <TokenRow
-                    image={secret ? secretToken() : favorToken()}
-                    {held}
-                    addable={held}
-                    {picked}
-                    floor={least}
-                    label={(amount) => `pay ${amount} ${token}`}
-                    ontap={(amount) =>
-                        gameSession.setBannerAmount(tappedCount(picked, amount, least))}
-                    {busy}
-                />
+                {#if !noneToPay}
+                    <TokenRow
+                        image={secret ? secretToken() : favorToken()}
+                        held={highestBid}
+                        addable={highestBid}
+                        {picked}
+                        floor={least}
+                        label={(amount) => `pay ${amount} ${token}`}
+                        ontap={(amount) =>
+                            gameSession.setBannerAmount(tappedCount(picked, amount, least))}
+                        {busy}
+                    />
+                {/if}
             </div>
         </div>
         {#if gameSession.needsFavorStart}

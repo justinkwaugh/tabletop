@@ -9,6 +9,7 @@ import {
     UserStatus,
     weekReminderHours,
     type Game,
+    type TurnReminderChoices,
     type User
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
@@ -21,6 +22,7 @@ import { LocalTaskService } from '../tasks/localTasksService.js'
 import { DefaultNotificationService } from '../notifications/defaultNotificationService.js'
 import { EnvService } from '../env/envService.js'
 import { SyntheticDefinition } from './tests/syntheticGame.js'
+import { reminderPreferences } from './tests/turnReminderPreferences.js'
 import { TURN_REMINDER_DELAYS, TurnReminderTask } from './turnReminders.js'
 
 const HOUR = 60 * 60
@@ -79,6 +81,9 @@ function fixture({
     }))
     vi.spyOn(cache, 'set').mockImplementation(async (key, value) => {
         cached.set(key, value)
+    })
+    vi.spyOn(cache, 'delete').mockImplementation(async (key) => {
+        cached.delete(key)
     })
     const store = new FirestoreGameStore(cache, new Firestore({ projectId: 'turn-reminder-test' }))
     vi.spyOn(store, 'findGameById').mockResolvedValue(structuredClone(game))
@@ -209,12 +214,9 @@ describe('turn reminder chain', () => {
         const { service, cached, chainKey, startChain, queuedReminders, queuedDelays } = fixture({
             recipient: {
                 timeZone: 'America/Chicago',
-                preferences: {
-                    preventWebNotificationPrompt: false,
-                    preferredColorsEnabled: false,
-                    preferredColors: [],
+                preferences: reminderPreferences({
                     reminderHours: weekReminderHours([18, 19, 20, 21])
-                }
+                })
             }
         })
         await service.notifyIsYourTurn(startChain({ reminderIndex: 2 }))
@@ -223,5 +225,60 @@ describe('turn reminder chain', () => {
         expect(next).toEqual(expect.objectContaining({ reminderIndex: 3, delay: 8 * HOUR }))
         expect(queuedDelays()).toEqual([11 * HOUR])
         expect(cached.get(chainKey)).toBe(next.notificationId)
+    })
+
+    describe('with chosen reminders', () => {
+        const chosen = (turnReminders: TurnReminderChoices): Partial<User> => ({
+            preferences: reminderPreferences({ turnReminders })
+        })
+
+        it('queues the next chosen reminder after the switched-off ones would have come', async () => {
+            const { service, startChain, sentReminders, queuedReminders, queuedDelays } = fixture({
+                recipient: chosen({
+                    afterOneHour: false,
+                    afterFiveHours: false,
+                    afterThirteenHours: true,
+                    repeat: 'twiceDaily'
+                })
+            })
+            await service.notifyIsYourTurn(startChain({ reminderIndex: 0 }))
+            expect(sentReminders()).toHaveLength(1)
+            expect(queuedReminders()).toEqual([
+                expect.objectContaining({ reminderIndex: 3, delay: 8 * HOUR })
+            ])
+            expect(queuedDelays()).toEqual([13 * HOUR])
+        })
+
+        it('ends the chain when no later reminder is chosen', async () => {
+            const { service, cached, chainKey, startChain, sentReminders, queuedReminders } =
+                fixture({
+                    recipient: chosen({
+                        afterOneHour: false,
+                        afterFiveHours: false,
+                        afterThirteenHours: false,
+                        repeat: 'none'
+                    })
+                })
+            await service.notifyIsYourTurn(startChain({ reminderIndex: 0 }))
+            expect(sentReminders()).toHaveLength(1)
+            expect(queuedReminders()).toEqual([])
+            expect(cached.has(chainKey)).toBe(false)
+        })
+
+        it('holds back a queued reminder switched off since, and carries on the chain', async () => {
+            const { service, startChain, sentReminders, queuedReminders } = fixture({
+                recipient: chosen({
+                    afterOneHour: false,
+                    afterFiveHours: true,
+                    afterThirteenHours: true,
+                    repeat: 'twiceDaily'
+                })
+            })
+            await service.notifyIsYourTurn(startChain({ reminderIndex: 1 }))
+            expect(sentReminders()).toEqual([])
+            expect(queuedReminders()).toEqual([
+                expect.objectContaining({ reminderIndex: 2, delay: 4 * HOUR })
+            ])
+        })
     })
 })

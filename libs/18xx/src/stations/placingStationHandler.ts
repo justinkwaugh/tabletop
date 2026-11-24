@@ -77,17 +77,9 @@ export class PlacingStationHandler implements MachineStateHandler<
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
-        const operatingCompanyId = nextOperatingCompany(state)
-        assertExists(operatingCompanyId, 'Step entry requires an operating company')
-        if (!state.stationStep) {
-            state.stationStep = {
-                companyId: operatingCompanyId,
-                placedStationIds: [],
-                completed: false
-            }
-        }
+        const step = state.stationStep
+        assertExists(step, 'Placing Station is entered with its station step')
         if (this.mustFinish(state)) {
-            const step = state.stationStep!
             context.addSystemAction(FinishStations, {
                 companyId: step.companyId,
                 ...automaticStepCredit(state, step.companyId)
@@ -100,4 +92,11 @@ export class PlacingStationHandler implements MachineStateHandler<
     ): string {
         return isFinishStations(action) ? this.nextState : context.gameState.machineState
     }
+}
+
+export function startStationStep(state: State): void {
+    if (state.stationStep) return
+    const companyId = nextOperatingCompany(state)
+    assertExists(companyId, 'Step entry requires an operating company')
+    state.stationStep = { companyId, placedStationIds: [], completed: false }
 }

@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, Color } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import type { HydratedCapture } from '../actions/capture.js'
 import { HydratedTzaarGameState } from '../model/gameState.js'
@@ -15,7 +15,7 @@ export function stuckPlayerAfterTurnOf(
 
 // Rule D: White makes the first capture once the board is set.
 export function stuckPlayerAtOpening(state: HydratedTzaarGameState): string | undefined {
-    return stuckPlayerAfterTurnOf(state, state.opponentOf(state.whitePlayerId()))
+    return stuckPlayerAfterTurnOf(state, state.opponentOf(state.playerWith(Color.White)))
 }
 
 // Rules D and E: White's opening capture is the whole turn; any other turn's first capture is
@@ -56,7 +56,7 @@ export function beginPlay(
     state: HydratedTzaarGameState,
     stuckPlayerId: string | undefined
 ): MachineState {
-    return startTurnOf(state, state.whitePlayerId(), stuckPlayerId)
+    return startTurnOf(state, state.playerWith(Color.White), stuckPlayerId)
 }
 
 export function activateCurrentPlayer(state: HydratedTzaarGameState) {

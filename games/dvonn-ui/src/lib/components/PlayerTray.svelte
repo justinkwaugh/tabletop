@@ -5,7 +5,7 @@
         PIECES_PER_PLAYER,
         type HydratedDvonnPlayerState
     } from '@tabletop/dvonn'
-    import { seedKeyOf } from '$lib/board/pieceStyle.js'
+    import { seedKeyOf, toneOf } from '$lib/board/pieceStyle.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_RADIUS, stackBounds, TILT } from '$lib/board/pieceGeometry.js'
     import { controlledTally, inStacks, TALLY_HEIGHT } from '$lib/board/tally.js'
@@ -22,16 +22,16 @@
         session.gameState.result !== undefined &&
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
-    const tone = $derived(session.toneOfPlayer(playerState.playerId))
+    // I set, you choose, before a colour is taken: no colours on the cards, and a note on any
+    // card without pieces to place.
+    const note = $derived(session.cardNote(playerState.playerId))
     const placing = $derived(session.gameState.machineState === MachineState.PlacingPieces)
 
-    // While placing, the pieces still in hand; after, the pieces in stacks the player controls,
+    // While placing, the pieces still in hand, both colours on the setter's card in I set, you
+    // choose; after, the pieces in stacks the player controls,
     // which is the score (rule G2).
-    const count = $derived(
-        placing
-            ? session.piecesInHand(playerState.playerId)
-            : session.gameState.score(playerState.playerId)
-    )
+    const hand = $derived(placing ? session.handOf(playerState.playerId) : [])
+    const count = $derived(placing ? hand.length : session.gameState.score(playerState.playerId))
     const caption = $derived(placing ? 'left' : 'high')
     // Both captions take the wider one's room, so the tally keeps its size when placing ends.
     const CAPTIONS = ['left', 'high']
@@ -40,9 +40,10 @@
     const tally = $derived(
         placing
             ? inStacks(
-                  Array.from({ length: count }, (_, index) => ({
-                      tone,
-                      seedKey: `hand-${playerState.playerId}-${index}`
+                  // Numbered within each colour, so placing one keeps the others' looks.
+                  hand.map((color, index) => ({
+                      tone: toneOf(color),
+                      seedKey: `hand-${playerState.playerId}-${color}-${index - hand.indexOf(color)}`
                   }))
               )
             : controlledTally(session.gameState.board.stacks, playerState.playerId).map((stack) =>
@@ -70,54 +71,64 @@
 <div class="tray" class:active={isActive}>
     <div
         class="flex items-center gap-2 rounded-t-[10px] px-3 py-1 font-semibold"
-        style:background={session.colors.getPlayerBgColorValue(playerState.playerId)}
-        style:color={session.colors.getPlayerTextColorValue(playerState.playerId)}
+        style:background={session.colorsOpen
+            ? 'var(--dvonn-panel-rule)'
+            : session.colors.getPlayerBgColorValue(playerState.playerId)}
+        style:color={session.colorsOpen
+            ? 'var(--dvonn-ink)'
+            : session.colors.getPlayerTextColorValue(playerState.playerId)}
     >
         <span class="truncate text-[17px]">{session.getPlayerName(playerState.playerId)}</span>
         <span class="ms-auto text-[13px] tracking-[0.12em] whitespace-nowrap uppercase">
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
-    <div class="body">
-        <strong>{count}</strong>
-        <span class="caption">
-            {#each CAPTIONS as word (word)}
-                <span class:unseen={word !== caption} aria-hidden={word !== caption}>{word}</span>
-            {/each}
-        </span>
-        {#if tally.length > 0}
-            <svg
-                class="tally"
-                viewBox="{tallyLeft} {bounds.top - 1} {tallyWidth} {tallyHeight}"
-                preserveAspectRatio="xMaxYMid meet"
-                aria-hidden="true"
-            >
-                <defs><PieceDefs {prefix} radius={RADIUS} /></defs>
-                {#each tally as stack, index (index)}
-                    {@const through = throughLens(stack.length, RADIUS)}
-                    <g transform="translate({index * PITCH} 0)">
-                        <ellipse
-                            rx={RADIUS}
-                            ry={RADIUS * TILT}
-                            fill="url(#{prefix}-contact)"
-                            clip-path={through
-                                ? `url(#${prefix}-around-hole-${stack.length})`
-                                : undefined}
-                        ></ellipse>
-                        {#if through}
-                            <path d={through} fill="#000000" fill-opacity={HOLE_FLOOR}></path>
-                        {/if}
-                        <StackShape
-                            {prefix}
-                            tones={stack.map((piece) => piece.tone)}
-                            seedKeys={stack.map((piece) => piece.seedKey)}
-                            radius={RADIUS}
-                        />
-                    </g>
+    {#if note}
+        <p class="note">{note}</p>
+    {:else}
+        <div class="body">
+            <strong>{count}</strong>
+            <span class="caption">
+                {#each CAPTIONS as word (word)}
+                    <span class:unseen={word !== caption} aria-hidden={word !== caption}
+                        >{word}</span
+                    >
                 {/each}
-            </svg>
-        {/if}
-    </div>
+            </span>
+            {#if tally.length > 0}
+                <svg
+                    class="tally"
+                    viewBox="{tallyLeft} {bounds.top - 1} {tallyWidth} {tallyHeight}"
+                    preserveAspectRatio="xMaxYMid meet"
+                    aria-hidden="true"
+                >
+                    <defs><PieceDefs {prefix} radius={RADIUS} /></defs>
+                    {#each tally as stack, index (index)}
+                        {@const through = throughLens(stack.length, RADIUS)}
+                        <g transform="translate({index * PITCH} 0)">
+                            <ellipse
+                                rx={RADIUS}
+                                ry={RADIUS * TILT}
+                                fill="url(#{prefix}-contact)"
+                                clip-path={through
+                                    ? `url(#${prefix}-around-hole-${stack.length})`
+                                    : undefined}
+                            ></ellipse>
+                            {#if through}
+                                <path d={through} fill="#000000" fill-opacity={HOLE_FLOOR}></path>
+                            {/if}
+                            <StackShape
+                                {prefix}
+                                tones={stack.map((piece) => piece.tone)}
+                                seedKeys={stack.map((piece) => piece.seedKey)}
+                                radius={RADIUS}
+                            />
+                        </g>
+                    {/each}
+                </svg>
+            {/if}
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -172,5 +183,11 @@
 
     .caption .unseen {
         visibility: hidden;
+    }
+
+    .note {
+        padding: 10px 12px;
+        font-size: 15px;
+        color: var(--dvonn-ink-quiet);
     }
 </style>

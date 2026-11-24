@@ -22,25 +22,52 @@
         [UserStatus.Deleted]: 'deleted'
     }
 
-    let query = $state('')
+    let {
+        query: searchedQuery,
+        userId,
+        onsearch,
+        onselect
+    }: {
+        query: string
+        userId: string
+        onsearch: (query: string) => void
+        onselect: (userId: string) => void
+    } = $props()
+
+    let query = $derived(searchedQuery)
     let users = $state<User[]>([])
-    let selected = $state<User>()
+    const selected = $derived(users.find((user) => user.id === userId))
     let busy = $state(false)
     let searched = $state(false)
     let error = $state('')
     const requests = new LatestRequest()
 
-    async function search(event: SubmitEvent) {
+    $effect(() => {
+        void load(searchedQuery)
+    })
+
+    function search(event: SubmitEvent) {
         event.preventDefault()
+        const next = query.trim()
+        if (next === searchedQuery) void load(next)
+        else onsearch(next)
+    }
+
+    async function load(searchQuery: string) {
         const current = requests.begin()
-        busy = true
         error = ''
+        const searching = searchQuery !== ''
+        busy = searching
+        if (!searching) {
+            users = []
+            searched = false
+            return
+        }
         try {
-            const results = await api.searchUsers(query)
+            const results = await api.searchUsers(searchQuery)
             if (!current()) return
             users = results
             searched = true
-            selected = results.find((user) => user.id === selected?.id)
         } catch (failure) {
             if (current())
                 error = failure instanceof Error ? failure.message : 'Could not search users'
@@ -51,7 +78,6 @@
 
     function replaceUser(updated: User) {
         users = users.map((user) => (user.id === updated.id ? updated : user))
-        selected = updated
     }
 </script>
 
@@ -88,7 +114,7 @@
                         <button
                             type="button"
                             aria-pressed={selected?.id === user.id}
-                            onclick={() => (selected = user)}
+                            onclick={() => onselect(user.id)}
                             class="flex w-full flex-col gap-0.5 px-4 py-3 text-left hover:bg-gray-50 aria-pressed:bg-blue-50 dark:hover:bg-gray-800/60 dark:aria-pressed:bg-blue-900/30"
                         >
                             <span class="font-medium">{user.username ?? user.id}</span>

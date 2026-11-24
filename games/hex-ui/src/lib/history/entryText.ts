@@ -29,11 +29,12 @@ export function entrySegments(
         case 'swap': {
             const first = colorName(Color.Red)
             const side = first.charAt(0).toUpperCase() + first.slice(1)
+            // Worded to read with a name or with "You": "swapped to Red", never "plays".
             return [
                 text(
                     brief
-                        ? ` swapped and now plays ${side}`
-                        : ` swapped, taking ${side}'s first stone, and now plays ${side}`
+                        ? ` swapped to ${side}`
+                        : ` swapped to ${side}, taking ${side}'s first stone`
                 )
             ]
         }

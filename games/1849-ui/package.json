@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/1849-ui",
-    "version": "1.4.1",
+    "version": "2.2.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",

@@ -25,6 +25,14 @@
         />
         Industrie und Glück
     </label>
+    <label title="Each suit and the trumps from high to low, left to right">
+        <input
+            type="checkbox"
+            checked={gameSession.handHighToLow}
+            onchange={(event) => gameSession.setHandHighToLow(event.currentTarget.checked)}
+        />
+        High → Low
+    </label>
 </div>
 
 <style>

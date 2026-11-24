@@ -19,12 +19,17 @@ import {
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
 import { isPushSubscriptionChangedMessage } from '$lib/network/pushSubscriptionChangedMessage'
 import { applicationServerKeyFromVapid } from '$lib/network/applicationServerKey'
+import { withDeadline } from '$lib/utils/withDeadline'
 import {
     ChannelIdentifier,
     RealtimeEventType,
     type RealtimeConnection,
     type RealtimeEvent
 } from '$lib/network/realtimeConnection'
+
+export type WebNotificationState = NotificationPermission | 'unsupported'
+
+const PUSH_REGISTRATION_TIMEOUT_MS = 15_000
 
 export class NotificationService {
     readonly synchronizesOnSubscribe = true
@@ -211,6 +216,26 @@ export class NotificationService {
         return window.Notification.permission === 'default'
     }
 
+    webNotificationState(): WebNotificationState {
+        if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported'
+        return window.Notification.permission
+    }
+
+    async turnOnWebNotifications(): Promise<WebNotificationState> {
+        if (this.canAskforWebNotificationPermission()) {
+            await window.Notification.requestPermission()
+        }
+        if (this.hasWebNotificationPermission()) {
+            await withDeadline(
+                this.registerPushSubscription(),
+                PUSH_REGISTRATION_TIMEOUT_MS,
+                () => new Error('Push registration did not finish in time')
+            )
+            this.hidePrompt()
+        }
+        return this.webNotificationState()
+    }
+
     shouldShowPrompt() {
         return this.promptShown
     }
@@ -234,25 +259,24 @@ export class NotificationService {
     }
 
     private async subscribePushNotifications() {
+        if (!this.hasWebNotificationPermission()) {
+            console.log('no permission, cannot subscribe to push notifications')
+            return
+        }
         try {
-            const registration = await navigator.serviceWorker.ready
-            const options = {
-                userVisibleOnly: true,
-                applicationServerKey: this.applicationServerKey
-            }
-
-            if (!this.hasWebNotificationPermission()) {
-                console.log('no permission, cannot subscribe to push notifications')
-                return
-            }
-
-            const subscription = await registration.pushManager.subscribe(options)
-
-            // Send subscription to server
-            await this.api.subscribeToPushNotifications(subscription)
+            await this.registerPushSubscription()
         } catch (err) {
             console.log('Error registering for push notifications', err)
         }
+    }
+
+    private async registerPushSubscription() {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: this.applicationServerKey
+        })
+        await this.api.subscribeToPushNotifications(subscription)
     }
 
     private async replacePushSubscription(oldEndpoint?: string) {

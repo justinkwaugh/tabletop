@@ -2,6 +2,8 @@ import { expect, it } from 'vitest'
 import { assert } from '@tabletop/common'
 import { revenueTokenArt } from './revenueTokens.js'
 
+const companiesWithBoomtown = [{ id: 'BT' }]
+
 const marker = (privateCompanyId: 'MPC' | 'BT', locationId: string) => ({
     privateCompanyId,
     companyId: 'IC',
@@ -12,18 +14,20 @@ const marker = (privateCompanyId: 'MPC' | 'BT', locationId: string) => ({
 
 it('puts each placed marker’s token where it stands, covering the icon it replaces', () => {
     const art = revenueTokenArt({
+        companies: companiesWithBoomtown,
         revenueMarkers: [marker('MPC', 'D6'), marker('BT', 'H12')],
         steamboat: { companyId: 'NYC', locationId: 'G19' }
     })
     expect(Object.keys(art).sort()).toEqual(['D6', 'G19', 'H12', 'I1'])
     expect(art.G19['NYC:SC']).toMatchObject({ token: { place: { covers: 'port' } } })
     expect(art.D6['IC:MPC']).toMatchObject({ token: { place: { covers: 'horns' } } })
-    expect(art.H12['IC:BT']).toMatchObject({ token: { place: 'corner' } })
+    expect(art.H12['IC:BT']).toMatchObject({ token: { place: { covers: 'skyline' } } })
 })
 
 it('shows the bonus where the token stands: the Steamboat’s counts the port’s symbols', () => {
     const bonus = (locationId: string) => {
         const art = revenueTokenArt({
+            companies: companiesWithBoomtown,
             revenueMarkers: [],
             steamboat: { companyId: 'IC', locationId }
         })[locationId]['IC:SC']
@@ -35,8 +39,19 @@ it('shows the bonus where the token stands: the Steamboat’s counts the port’
 })
 
 it('hides the horns on the other meat-packing hex once its marker is down, and nowhere before', () => {
-    expect(revenueTokenArt({ revenueMarkers: [] })).toEqual({})
-    const art = revenueTokenArt({ revenueMarkers: [marker('MPC', 'I1')] })
+    expect(revenueTokenArt({ companies: companiesWithBoomtown, revenueMarkers: [] })).toEqual({})
+    const art = revenueTokenArt({
+        companies: companiesWithBoomtown,
+        revenueMarkers: [marker('MPC', 'I1')]
+    })
     expect(art.D6).toEqual({ 'meat-packing': { hidden: true } })
     expect(art.I1['meat-packing']).toBeUndefined()
+})
+
+it('hides Cincinnati’s skyline when setup removed Boomtown or once it closes', () => {
+    const hidden = { H12: { boomtown: { hidden: true } } }
+    expect(revenueTokenArt({ companies: [], revenueMarkers: [] })).toEqual(hidden)
+    expect(
+        revenueTokenArt({ companies: [{ id: 'BT', closed: true }], revenueMarkers: [] })
+    ).toEqual(hidden)
 })

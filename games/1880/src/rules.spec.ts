@@ -4,6 +4,7 @@ import {
     RailwayMapState,
     RouteNetwork,
     TileEdges,
+    TrackConstruction,
     rotateTileFace,
     trainsOwnedBy,
     type RoutePath,
@@ -137,6 +138,62 @@ describe('building (§VIII, §X)', () => {
             state.permits.BCR = 'ABC'
         })
         expect(TrackRules1880.allowance(game.hydrated, 'yellow')).toEqual({ cost: 0 })
+    })
+
+    it('lets a medium city take a city or a town tile first (§X Laying Track)', () => {
+        // JHA's Beijing city faces E9, a medium city holding Beijing's starting section.
+        const game = opened(4, 3)
+        while (holderOf(game, 'BCR:president') === game.player) game.act('FinishStockTurn')
+        startMajor(game, 'JHA')
+        edit(game, (state) => {
+            const home = state.stations.find((station) => station.id === 'JHA:home')
+            assertExists(home, 'JHA has a home station')
+            Object.assign(home, {
+                status: 'placed',
+                position: { locationId: 'F8', nodeId: 'city-2', slot: 0 }
+            })
+            state.trackStep = { companyId: 'JHA', lays: [], completed: false }
+        })
+        const laid = new Set(
+            new TrackConstruction(game.hydrated, TrackRules1880)
+                .choices('E9')
+                .map((choice) => choice.definitionId)
+        )
+        expect(laid).toContain('18xx:57')
+        expect(laid).toContain('1880:8850')
+        expect(laid).not.toContain('18xx:7')
+    })
+
+    it('lets a double medium city take two towns or an OO tile first (§X Laying Track)', () => {
+        // The BCR's home Chengdu faces N4, a double medium city.
+        const game = opened(4, 3)
+        const across = TileEdges.find((edge) => Map1880.across('N4', edge)?.location.id === 'M3')
+        assertExists(across, 'N4 borders M3')
+        layCityFacing(game, 'N4', across)
+        edit(game, (state) => {
+            const home = state.stations.find((station) => station.id === 'BCR:home')
+            assertExists(home, 'The BCR has a home station')
+            Object.assign(home, {
+                status: 'placed',
+                position: { locationId: 'M3', nodeId: 'city', slot: 0 }
+            })
+            state.permits.BCR = 'ABC'
+            const treasury = state.cash.find(
+                (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'BCR'
+            )
+            assertExists(treasury, 'The BCR has a treasury')
+            treasury.amount = 100
+            state.trackStep = { companyId: 'BCR', lays: [], completed: false }
+        })
+        const laid = new Set(
+            new TrackConstruction(game.hydrated, TrackRules1880)
+                .choices('N4')
+                .map((choice) => choice.definitionId)
+        )
+        expect(laid).toContain('1880:235')
+        expect(laid).toContain('1880:8854')
+        expect(laid).not.toContain('18xx:57')
+        expect(laid).not.toContain('1880:8850')
     })
 })
 

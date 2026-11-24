@@ -40,9 +40,6 @@ import { CobourgTrainId, SmallTableSupply1828, TrainDepot1828 } from './trains.j
 /** Starting cash by player count (§4). */
 export const startingCash1828 = startingCashByPlayerCount({ 3: 800, 4: 700, 5: 620 })
 
-/** The bank is unlimited in practice (§2: "~$50,000"); this one never runs out. */
-const BankCash = 1_000_000
-
 /** The PRR share that comes with the Camden & Amboy (§13.2.2.8). */
 export const CamdenShareId = `${PrrId}:share:1`
 
@@ -178,7 +175,8 @@ export function createOpening1828({
             }
         ],
         cash: [
-            { owner: { kind: 'bank' }, amount: BankCash - players.length * capital },
+            // The bank is unlimited in practice (§2: "~$50,000"), so the board shows none.
+            { owner: { kind: 'bank' }, amount: 'unlimited' },
             ...players.map((player) => ({
                 owner: { kind: 'player' as const, playerId: player.playerId },
                 amount: capital

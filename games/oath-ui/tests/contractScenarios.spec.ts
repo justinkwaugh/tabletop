@@ -5967,75 +5967,77 @@ test('scenario 51: an empty bank shows a plain 0 and no favor token', async ({ p
     await expect(page.locator('.bank .token')).toHaveCount(6)
 })
 
-test('scenario 45: the focus views fill the board; Full restores; a zoom by hand clears the choice; an enlarged site zooms the board to its row', async ({
+/** The slot of the first site whose card is uncovered on screen. */
+async function uncoveredSlot(page: Page, selector = '.site .board-card'): Promise<string> {
+    const card = await uncovered(page, selector)
+    const slot = await card.evaluate((el) => el.closest('.site')?.getAttribute('data-slot'))
+    if (!slot) throw Error('The card stands at a site')
+    return slot
+}
+
+/** Enlarges the site at `slot` and chooses "Zoom the board here": the enlarged card closes. */
+async function zoomBoardTo(page: Page, slot: string, within: Locator = page.locator('body')) {
+    await (await uncovered(page, `.site[data-slot="${slot}"] .board-card`)).click()
+    await within.getByRole('button', { name: 'Zoom the board here' }).click()
+    await expect(preview(page)).toHaveCount(0)
+}
+
+test('scenario 45: "Zoom the board here" zooms the board to an enlarged site’s row; choosing it again restores; a zoom by hand clears it', async ({
     page
 }) => {
     await openTable(page, 'setup')
-    const chooser = page.getByRole('group', { name: 'Focus the board' })
-    const site = page.locator('.site .board-card').first()
+    const slot = await uncoveredSlot(page)
+    const site = page.locator(`.site[data-slot="${slot}"] .board-card`)
     const siteWidth = async () => (await site.boundingBox())?.width ?? 0
     await expect.poll(siteWidth).toBeGreaterThan(0)
     await page.waitForTimeout(500)
     const full = await siteWidth()
 
-    await chooser.getByRole('button', { name: 'Cradle' }).click()
-    await expect(chooser.getByRole('button', { name: 'Cradle' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-    )
+    await zoomBoardTo(page, slot)
     await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
-
-    await chooser.getByRole('button', { name: 'Full' }).click()
-    await expect(chooser.getByRole('button', { name: 'Full' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-    )
+    await zoomBoardTo(page, slot)
     await expect.poll(siteWidth).toBeLessThan(full * 1.1)
 
-    await chooser.getByRole('button', { name: 'Banks' }).click()
-    await expect(chooser.getByRole('button', { name: 'Banks' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-    )
+    await zoomBoardTo(page, slot)
+    await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
+    await page.waitForTimeout(500)
+    const zoomed = await siteWidth()
     const board = await page.locator('.scaling-surface').first().boundingBox()
     if (!board) throw Error('The board is on screen')
     await page.mouse.move(board.x + board.width / 2, board.y + board.height / 2)
     await page.mouse.wheel(0, 200)
-    await expect(chooser.locator('[aria-pressed="true"]')).toHaveCount(0)
-
-    await chooser.getByRole('button', { name: 'Full' }).click()
-    await expect.poll(siteWidth).toBeLessThan(full * 1.1)
-    await (await uncovered(page, '.site .board-card')).click()
-    await page.getByRole('button', { name: 'Zoom the board here' }).click()
-    await expect(preview(page)).toHaveCount(0)
+    await expect.poll(siteWidth).toBeLessThan(zoomed * 0.95)
+    // The zoom by hand cleared the site's zoom, so choosing it again zooms in rather than restoring.
+    await zoomBoardTo(page, slot)
     await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
 })
 
-/** Scenario 54: the focus views are one line on the map's top edge on a desktop, and a phone has none. */
-test('scenario 54: the focus views sit in one line along the top of the map on a desktop, and a phone has none', async ({
-    page
-}) => {
-    await openTable(page, 'setup')
-    const chooser = page.getByRole('group', { name: 'Focus the board' })
-    const full = chooser.getByRole('button', { name: 'Full' })
-    const banks = chooser.getByRole('button', { name: 'Banks' })
-    await expect(banks).toBeVisible()
-    const board = await page.locator('.scaling-surface').first().boundingBox()
-    const bar = await chooser.boundingBox()
-    if (!board || !bar) throw Error('The board and its focus views are on screen')
-    expect(bar.y - board.y).toBeLessThan(12)
-    expect(bar.y + bar.height).toBeLessThan(board.y + board.height / 4)
-    expect(
-        Math.abs(((await full.boundingBox())?.y ?? 0) - ((await banks.boundingBox())?.y ?? -100))
-    ).toBeLessThan(2)
-
-    await page.setViewportSize({ width: 390, height: 844 })
-    await expect(chooser).toBeHidden()
-    // At phone width the board sits below the panel; a card is only reachable once it is on screen.
-    await page.locator('.scaling-surface').first().scrollIntoViewIfNeeded()
-    await expect(async () => (await uncovered(page, '.site .board-card')).click()).toPass()
-    await expect(page.getByRole('button', { name: 'Zoom the board here' })).toBeVisible()
-})
+/** Scenario 54: the board has no bar of focus views at any width; an enlarged site still zooms it. */
+for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 375, height: 812 }
+]) {
+    test(`scenario 54: at ${viewport.width} × ${viewport.height} the board has no focus views, and an enlarged site still offers "Zoom the board here"`, async ({
+        page
+    }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'setup')
+        const surface = page.locator('.scaling-surface').first()
+        await surface.scrollIntoViewIfNeeded()
+        await expect(surface.locator('.site').first()).toBeVisible()
+        // Hidden ones count too: a bar kept out of sight on a phone is still a bar.
+        await expect(
+            page.getByRole('group', { name: 'Focus the board', includeHidden: true })
+        ).toHaveCount(0)
+        for (const name of ['Full', 'Cradle', 'Provinces', 'Hinterland', 'Banks']) {
+            await expect(
+                surface.getByRole('button', { name, exact: true, includeHidden: true })
+            ).toHaveCount(0)
+        }
+        await expect(async () => (await uncovered(page, '.site .board-card')).click()).toPass()
+        await expect(page.getByRole('button', { name: 'Zoom the board here' })).toBeVisible()
+    })
+}
 
 /** A box once the board's view has stopped moving: two reads a frame apart agree. */
 async function settledBox(locator: Locator): Promise<Box> {
@@ -6128,7 +6130,7 @@ test.describe('the board’s zoom buttons sit in its bottom-right corner, clear 
     })
 })
 
-test('scenario 45: choosing a focus leaves the staged action, the lit sites and the panel unchanged', async ({
+test('scenario 45: zooming the board to a site leaves the staged action, the lit sites and the panel unchanged', async ({
     page
 }) => {
     await openTable(page, 'actPhase')
@@ -6137,11 +6139,13 @@ test('scenario 45: choosing a focus leaves the staged action, the lit sites and 
     const panelBefore = await grid(page).innerText()
     const offeredBefore = await boardOffers(page).count()
     const stagedBefore = (await call(page, 'tableFacts')).staged
-    const cradle = page
-        .getByRole('group', { name: 'Focus the board' })
-        .getByRole('button', { name: 'Cradle' })
-    await cradle.click()
-    await expect(cradle).toHaveAttribute('aria-pressed', 'true')
+    const slot = await uncoveredSlot(page, '.site .board-card:not(.offered)')
+    const site = page.locator(`.site[data-slot="${slot}"] .board-card`)
+    const before = (await site.boundingBox())?.width ?? 0
+    await zoomBoardTo(page, slot)
+    await expect
+        .poll(async () => (await site.boundingBox())?.width ?? 0)
+        .toBeGreaterThan(before * 1.5)
     expect(await grid(page).innerText()).toBe(panelBefore)
     expect(await boardOffers(page).count()).toBe(offeredBefore)
     expect((await call(page, 'tableFacts')).staged).toBe(stagedBefore)
@@ -6157,17 +6161,22 @@ test('scenario 46: in full screen the panel is docked above the board, Travel is
     await expect(dialog).toHaveCount(1)
     await dialog.locator('.majors button').filter({ hasText: 'Travel' }).click()
     await expect(dialog.getByText('Tap a lit site.', { exact: true })).toBeVisible()
-    const focusCradle = dialog
-        .getByRole('group', { name: 'Focus the board' })
-        .getByRole('button', { name: 'Cradle' })
-    await focusCradle.click()
-    await expect(focusCradle).toHaveAttribute('aria-pressed', 'true')
     await dialog.locator('.board-card:not(.offered)').first().click()
     await expect(dialog.locator('.card-preview')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog.locator('.card-preview')).toHaveCount(0)
     await dialog.locator('.site[data-slot="slot.cradle.1"] .board-card.offered').click()
     await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+
+    // An enlarged site zooms the expanded board too.
+    const slot = await uncoveredSlot(page, 'dialog .site .board-card')
+    const site = dialog.locator(`.site[data-slot="${slot}"] .board-card`)
+    const before = (await site.boundingBox())?.width ?? 0
+    await zoomBoardTo(page, slot, dialog)
+    await expect(dialog).toHaveCount(1)
+    await expect
+        .poll(async () => (await site.boundingBox())?.width ?? 0)
+        .toBeGreaterThan(before * 1.5)
 })
 
 test('scenario 47: Escape closes one layer at a time: the enlarged card or the open goals before full screen, a seat’s card before the seat', async ({
@@ -6249,7 +6258,7 @@ test('scenario 47: a press outside an open seat or the goals closes it and reach
     await expect(destinations).toBeVisible()
 })
 
-test('scenario 48: History View offers no choice; a click enlarges, the seat, the goals and the focus views work; the live menu returns', async ({
+test('scenario 48: History View offers no choice; a click enlarges, the seat and the goals work; the live menu returns', async ({
     page
 }) => {
     await openTable(page, 'setup')
@@ -6271,16 +6280,10 @@ test('scenario 48: History View offers no choice; a click enlarges, the seat, th
     await page.getByRole('button', { name: 'Goals: open the enlarged view' }).click()
     await expect(page.getByRole('dialog', { name: 'Goals' })).toBeVisible()
     await page.keyboard.press('Escape')
-    const cradle = page
-        .getByRole('group', { name: 'Focus the board' })
-        .getByRole('button', { name: 'Cradle' })
-    await cradle.click()
-    await expect(cradle).toHaveAttribute('aria-pressed', 'true')
 
     await page.getByRole('button', { name: 'go to current' }).click()
     await expect(prompt).toBeVisible()
     await expect(boardOffers(page)).toHaveCount(3)
-    await expect(cradle).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('scenario 49: with Observatory declared every non-empty pile is listed and ringed, the world deck beside them without it; a pile’s button searches it', async ({

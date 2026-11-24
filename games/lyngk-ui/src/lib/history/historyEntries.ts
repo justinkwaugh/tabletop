@@ -4,7 +4,7 @@ import {
     type CallGameAction,
     type GameAction
 } from '@tabletop/common'
-import { isClaimColor, isMoveStack, type PieceColor } from '@tabletop/lyngk'
+import { isClaimColor, isMoveStack, isPlacePiece, type PieceColor } from '@tabletop/lyngk'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
 
@@ -23,7 +23,10 @@ export type MoveEntry = Span & {
 
 export type ClaimEntry = Span & { kind: 'claim'; claimed: PieceColor }
 
-export type PlayerEntry = MoveEntry | ClaimEntry
+// A piece put on the board while the players set it.
+export type PlaceEntry = Span & { kind: 'place'; color: PieceColor; coords: AxialCoordinates }
+
+export type PlayerEntry = MoveEntry | ClaimEntry | PlaceEntry
 
 // A call, a concession or a stall ends the game with a system action of its own.
 export type CallEntry = {
@@ -49,6 +52,18 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 firstIndex: index,
                 lastIndex: index,
                 action
+            })
+            return
+        }
+        if (isPlacePiece(action)) {
+            entries.push({
+                kind: 'place',
+                id: action.id,
+                firstIndex: index,
+                lastIndex: index,
+                playerId: action.playerId,
+                color: action.color,
+                coords: action.coords
             })
             return
         }

@@ -14,7 +14,7 @@ import { baseTravelCost } from './travelCost.js'
 import {
     foldSupplyCost,
     resolveModifiers,
-    usableModifiers,
+    singleCardDeclarations,
     type ActionPlan,
     type ModifierUse
 } from './modifiers.js'
@@ -273,10 +273,7 @@ export function legalTravelDestinations(
  */
 function woodDeclarationsToTry(state: HydratedOathGameState, playerId: string): ModifierUse[][] {
     if (!woodTravelTakesCards(state)) return [[]]
-    const cards = usableModifiers(state, playerId, ActionType.Travel).map((power) => [
-        { cardId: power.cardId, powerIndex: power.powerIndex }
-    ])
-    return [[], ...cards]
+    return singleCardDeclarations(state, playerId, ActionType.Travel)
 }
 
 export function canTravel(state: HydratedOathGameState, playerId: string): boolean {

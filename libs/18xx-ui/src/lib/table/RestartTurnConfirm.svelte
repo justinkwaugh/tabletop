@@ -113,6 +113,6 @@
     .go,
     .go:hover:enabled {
         background: var(--rail-solid, #695543);
-        color: #fffaf3;
+        color: var(--rail-solid-text, #fffaf3);
     }
 </style>

@@ -7,6 +7,7 @@
     import { bannerName } from '$lib/model/names.js'
     import { newsWords } from '$lib/model/sinceLastTurnWords.js'
     import type { NewsRow } from '$lib/model/sinceLastTurn.js'
+    import { scrollsOnItsOwn } from '$lib/model/scrollsOnItsOwn.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // What changed for everyone since the seat's last turn, told once at the start of its turn.
@@ -80,7 +81,7 @@
     <div class="since-last-turn">
         <div class="since-last-turn__card" role="dialog" aria-label="Since your last turn">
             <h3 class="since-last-turn__heading">Since your last turn</h3>
-            <ul class="since-last-turn__rows">
+            <ul class="since-last-turn__rows" {@attach scrollsOnItsOwn}>
                 {#each rows as row, i (rowKey(row, i))}
                     {@const words = newsWords(row, viewerId)}
                     <li class="since-last-turn__row" data-news={row.kind}>
@@ -165,6 +166,7 @@
         gap: 8px;
         min-height: 0;
         overflow-y: auto;
+        overscroll-behavior: contain;
     }
     .since-last-turn__row {
         flex: none;

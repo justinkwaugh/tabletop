@@ -13,13 +13,15 @@ function state({
     machineState,
     talonHalves,
     rejectedTalonHalf,
-    kingInTalon = false
+    kingInTalon = false,
+    given = []
 }: {
     contract?: Contract
     machineState: MachineState
     talonHalves?: string[][]
     rejectedTalonHalf?: string[]
     kingInTalon?: boolean
+    given?: string[]
 }): TalonTable {
     return {
         contract: contract === undefined ? undefined : { declarerId: 'c' },
@@ -28,7 +30,8 @@ function state({
         rejectedTalonHalf,
         contractDefinition: () => contractDefinition(contract ?? Contract.Rufer),
         isCalledKingInTalon: () => kingInTalon,
-        turnManager: { turnOrder: ['a', 'b', 'c', 'd'] }
+        turnManager: { turnOrder: ['a', 'b', 'c', 'd'] },
+        tricks: given.map((talonCardId) => ({ talonCardId }))
     }
 }
 
@@ -36,13 +39,14 @@ describe('the talon on the table', () => {
     it('lies face down in the middle until the contract uses it', () => {
         expect(talonViewOf(state({ machineState: MachineState.Bidding }))).toEqual({
             kind: 'stack',
-            place: TalonPlace.Middle
+            place: TalonPlace.Middle,
+            count: 6
         })
         expect(
             talonViewOf(
                 state({ contract: Contract.Solorufer, machineState: MachineState.CallingKing })
             )
-        ).toEqual({ kind: 'stack', place: TalonPlace.Middle })
+        ).toEqual({ kind: 'stack', place: TalonPlace.Middle, count: 6 })
     })
 
     it('shows the halves in the middle for the choice', () => {
@@ -101,8 +105,21 @@ describe('the talon on the table', () => {
             Contract.Bettel,
             Contract.Trischaken
         ]) {
-            expect(playing(waits)).toEqual({ kind: 'stack', place: TalonPlace.Corner })
+            expect(playing(waits)).toEqual({ kind: 'stack', place: TalonPlace.Corner, count: 6 })
         }
+    })
+
+    it('lets a Trischaken talon given by trick go one card at a time', () => {
+        const trischaken = (given: string[]) =>
+            talonViewOf(
+                state({ contract: Contract.Trischaken, machineState: MachineState.Playing, given })
+            )
+        expect(trischaken(['t1', 't2'])).toEqual({
+            kind: 'stack',
+            place: TalonPlace.Corner,
+            count: 4
+        })
+        expect(trischaken(['t1', 't2', 't3', 't4', 't5', 't6'])).toEqual({ kind: 'gone' })
     })
 
     it('has the first opponent after the declarer collect the defenders’ cards', () => {

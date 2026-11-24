@@ -3,6 +3,7 @@ import { MachineState } from './states.js'
 import type { HydratedTzaarGameState } from '../model/gameState.js'
 import { PlacingPiecesStateHandler } from '../stateHandlers/placingPieces.js'
 import { CapturingStateHandler } from '../stateHandlers/capturing.js'
+import { ChoosingColorStateHandler } from '../stateHandlers/choosingColor.js'
 import { SecondMoveStateHandler } from '../stateHandlers/secondMove.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 
@@ -11,6 +12,7 @@ export const TzaarStateHandlers: Record<
     MachineStateHandler<HydratedAction, HydratedTzaarGameState>
 > = {
     [MachineState.PlacingPieces]: new PlacingPiecesStateHandler(),
+    [MachineState.ChoosingColor]: new ChoosingColorStateHandler(),
     [MachineState.Capturing]: new CapturingStateHandler(),
     [MachineState.SecondMove]: new SecondMoveStateHandler(),
     [MachineState.EndOfGame]: new EndOfGameStateHandler()

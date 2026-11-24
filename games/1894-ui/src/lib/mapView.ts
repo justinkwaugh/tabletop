@@ -165,6 +165,7 @@ export const EighteenNinetyFourMapView: MapViewDefinition = {
             }
         }
     },
+    simpleTokenArt: true,
     stations: {
         PLM: { color: '#dda0dd', label: 'PLM', imageUrl: PLMLogo },
         CFOR: { color: '#9c661f', label: 'CFOR', imageUrl: CFORLogo },

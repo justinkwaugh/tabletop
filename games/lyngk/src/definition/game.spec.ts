@@ -1,11 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { assert, GameResult, type AxialCoordinates, type GameAction } from '@tabletop/common'
-import { LyngkVariant, variantFromConfig } from './config.js'
+import {
+    FirstPlayer,
+    firstPlayerFromConfig,
+    LyngkSetup,
+    LyngkVariant,
+    setupFromConfig,
+    variantFromConfig
+} from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { EndReason, HydratedLyngkGameState, type LyngkGameState } from '../model/gameState.js'
 import { POINTS } from '../model/geometry.js'
-import { ACTIVE_COLORS, jokerNumber, PIECE_COUNT, pieceColor, PieceColor } from '../model/pieces.js'
+import {
+    ACTIVE_COLORS,
+    jokerNumber,
+    PIECE_COLORS,
+    PIECE_COUNT,
+    pieceColor,
+    PieceColor
+} from '../model/pieces.js'
+import type { PlacePiece } from '../actions/placePiece.js'
 import type { ClaimColor } from '../actions/claimColor.js'
 import { isMoveStack, type MoveStack } from '../actions/moveStack.js'
 import {
@@ -575,21 +590,161 @@ describe('stack of 6', () => {
     })
 })
 
+describe('setting the board', () => {
+    const placeAction = (
+        game: LyngkGame,
+        playerId: string,
+        coords: AxialCoordinates,
+        color: PieceColor
+    ): PlacePiece => ({ ...base(game, playerId), type: ActionType.PlacePiece, coords, color })
+
+    // Every piece, colour by colour, the jokers last.
+    const kit = PIECE_COLORS.flatMap((color) =>
+        Array.from({ length: color === J ? 3 : 8 }, () => color)
+    )
+
+    function setBoard(game: LyngkGame, placer: (index: number) => string) {
+        let state = start(game)
+        POINTS.forEach((coords, index) => {
+            expect(state.machineState).toBe(MachineState.PlacingPieces)
+            expect(state.activePlayerIds).toEqual([placer(index)])
+            state = execute(game, state, placeAction(game, placer(index), coords, kit[index]))
+        })
+        return state
+    }
+
+    it('starts on an empty board when the players set it', () => {
+        for (const setup of [LyngkSetup.TakeTurns, LyngkSetup.ISetYouStart]) {
+            const state = start(createGame(LyngkVariant.Standard, [A, B], setup))
+            expect(state.board.stacks).toEqual([])
+            expect(state.machineState).toBe(MachineState.PlacingPieces)
+            expect(state.activePlayerIds).toEqual([A])
+        }
+    })
+
+    it('takes turns placing any piece, then the second player moves first', () => {
+        const game = createGame(LyngkVariant.Standard, [A, B], LyngkSetup.TakeTurns)
+        const state = setBoard(game, (index) => (index % 2 === 0 ? A : B))
+        const hydrated = new HydratedLyngkGameState(state)
+        expect(POINTS.map((coords) => hydrated.board.stackAt(coords))).toEqual(
+            kit.map((color) => [color])
+        )
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([B])
+        expect(hydrated.hasMove(B)).toBe(true)
+    })
+
+    it('lets the first player set every piece alone, then the other moves first', () => {
+        const game = createGame(LyngkVariant.Standard, [A, B], LyngkSetup.ISetYouStart)
+        const state = setBoard(game, () => A)
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([B])
+    })
+
+    it('places each numbered piece once, and none of a colour that has run out', () => {
+        const game = createGame(LyngkVariant.Standard, [A, B], LyngkSetup.ISetYouStart)
+        let state = start(game)
+        POINTS.slice(0, 3).forEach((coords) => {
+            state = execute(game, state, placeAction(game, A, coords, J))
+        })
+        expect(state.board.stacks.map((stack) => stack.pieces[0]).map(jokerNumber)).toEqual([
+            0, 1, 2
+        ])
+        rejects(game, state, placeAction(game, A, POINTS[3], J))
+        rejects(game, state, placeAction(game, A, POINTS[0], R))
+        rejects(game, state, placeAction(game, A, { q: 0.5, r: 0 }, R))
+        rejects(game, state, placeAction(game, B, POINTS[3], R))
+    })
+})
+
+describe('choice of first player', () => {
+    const owner = { ownerId: 'u-bob', userIds: { [A]: 'u-alice', [B]: 'u-bob' } }
+    const startUnassigned = (game: LyngkGame) =>
+        engine.startGame(game, { masterSeed: MASTER_SEED }).initialState
+    const firstOf = (state: LyngkGameState) => state.turnManager.turnOrder[0]
+
+    it('gives the first move to the game creator or the opponent when chosen', () => {
+        const creatorFirst = startUnassigned(
+            createGame(LyngkVariant.Standard, [A, B], LyngkSetup.Random, {
+                ...owner,
+                firstPlayer: FirstPlayer.Creator
+            })
+        )
+        expect(creatorFirst.activePlayerIds).toEqual([B])
+        const opponentFirst = startUnassigned(
+            createGame(LyngkVariant.Standard, [A, B], LyngkSetup.Random, {
+                ...owner,
+                firstPlayer: FirstPlayer.Opponent
+            })
+        )
+        expect(opponentFirst.activePlayerIds).toEqual([A])
+    })
+
+    it('has the chosen first player place the first piece when the players set the board', () => {
+        for (const setup of [LyngkSetup.TakeTurns, LyngkSetup.ISetYouStart]) {
+            const state = startUnassigned(
+                createGame(LyngkVariant.Standard, [A, B], setup, {
+                    ...owner,
+                    firstPlayer: FirstPlayer.Creator
+                })
+            )
+            expect(state.machineState).toBe(MachineState.PlacingPieces)
+            expect(state.activePlayerIds).toEqual([B])
+        }
+    })
+
+    it('draws the first player by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [A]: 'u-alice', [B]: 'u-bob' } }
+        for (const options of [
+            { firstPlayer: FirstPlayer.Random },
+            { ...outsider, firstPlayer: FirstPlayer.Creator },
+            { ...outsider, firstPlayer: FirstPlayer.Opponent }
+        ]) {
+            const firsts = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const game = {
+                        ...createGame(LyngkVariant.Standard, [A, B], LyngkSetup.Random, options),
+                        seed
+                    }
+                    const state = engine.startGame(game).initialState
+                    expect(state.activePlayerIds).toEqual([firstOf(state)])
+                    return firstOf(state)
+                })
+            )
+            expect(firsts).toEqual(new Set([A, B]))
+        }
+    })
+})
+
 describe('configuration', () => {
     it('reads a missing variant as Standard and rejects an unknown one', () => {
         expect(variantFromConfig({})).toBe(LyngkVariant.Standard)
         expect(variantFromConfig({ variant: 'StackOfSix' })).toBe(LyngkVariant.StackOfSix)
         expect(() => variantFromConfig({ variant: 'NoSuchVariant' })).toThrow()
     })
+
+    it('reads a missing setup as Random and rejects an unknown one', () => {
+        expect(setupFromConfig({})).toBe(LyngkSetup.Random)
+        expect(setupFromConfig({ setup: 'TakeTurns' })).toBe(LyngkSetup.TakeTurns)
+        expect(() => setupFromConfig({ setup: 'NoSuchSetup' })).toThrow()
+    })
+
+    it('reads a missing first player as Random and rejects an unknown one', () => {
+        expect(firstPlayerFromConfig({})).toBe(FirstPlayer.Random)
+        expect(firstPlayerFromConfig({ firstPlayer: 'Opponent' })).toBe(FirstPlayer.Opponent)
+        expect(() => firstPlayerFromConfig({ firstPlayer: 'NoSuchPlayer' })).toThrow()
+    })
 })
 
 describe('random playouts', () => {
     it.each(
         Object.values(LyngkVariant).flatMap((variant) =>
-            Array.from({ length: 12 }, (_, seed) => [variant, seed] as const)
+            Object.values(LyngkSetup).flatMap((setup) =>
+                Array.from({ length: 6 }, (_, seed) => [variant, setup, seed] as const)
+            )
         )
-    )('%s seed %i plays to a result', (variant, seed) => {
-        const game = createGame(variant)
+    )('%s, %s setup, seed %i plays to a result', (variant, setup, seed) => {
+        const game = createGame(variant, ['alice', 'bob'], setup)
         const finished = playToEnd(game, start(game), seed)
         expect(finished.winningPlayerIds.length).toBeGreaterThan(0)
         expect(finished.endReason).toBeDefined()

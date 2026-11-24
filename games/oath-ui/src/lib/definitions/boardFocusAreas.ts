@@ -1,18 +1,6 @@
 import { mapSlotsFor, type Region } from '@tabletop/oath'
 import type { BoundingBox } from '@tabletop/common'
-import {
-    BOARD_WIDTH,
-    CARD_STRIP_RECTS,
-    DISCARD_RECTS,
-    FAVOR_BANK_CENTERS,
-    FAVOR_BANK_RADIUS,
-    REGIONS,
-    SHARED_FAVOR_CENTER,
-    SITE_SLOT_RECTS,
-    SURFACE_HEIGHT
-} from './boardGeometry.js'
-
-export type FocusView = 'full' | Region | 'banks'
+import { BOARD_WIDTH, CARD_STRIP_RECTS, SITE_SLOT_RECTS, SURFACE_HEIGHT } from './boardGeometry.js'
 
 // Neighbouring regions sit 26 px apart, so the sides stay inside half of that; above and below
 // there is room for the region's title art and a site's chip, which hangs 13 px under its card.
@@ -43,29 +31,7 @@ function present(slotId: string, table: Readonly<Record<string, BoundingBox>>): 
     return rect ? [rect] : []
 }
 
-/** R-2.1.1 — a region's column: its discard pile, its sites and the cards beside them. */
-export function regionFocusRect(region: Region): BoundingBox {
-    const slots = mapSlotsFor(region)
-    return padded(
-        union([
-            DISCARD_RECTS[region],
-            ...slots.flatMap((slotId) => present(slotId, SITE_SLOT_RECTS)),
-            ...slots.flatMap((slotId) => present(slotId, CARD_STRIP_RECTS))
-        ])
-    )
-}
-
-/** R-2.1.3, R-2.1.7 — the six favor banks and the shared one. */
-export function banksFocusRect(): BoundingBox {
-    const discs = [...Object.values(FAVOR_BANK_CENTERS), SHARED_FAVOR_CENTER].map((center) => ({
-        x: center.x - FAVOR_BANK_RADIUS,
-        y: center.y - FAVOR_BANK_RADIUS,
-        width: FAVOR_BANK_RADIUS * 2,
-        height: FAVOR_BANK_RADIUS * 2
-    }))
-    return padded(union(discs))
-}
-
+/** "Zoom the board here" on an enlarged site: its card and the cards beside it. */
 export function siteFocusRect(slotId: string): BoundingBox {
     return padded(
         union([...present(slotId, SITE_SLOT_RECTS), ...present(slotId, CARD_STRIP_RECTS)])
@@ -95,9 +61,3 @@ export function siteRowsFrameRect(slotIds: readonly string[]): BoundingBox {
     )
     return padded(union(Object.values(SITE_SLOT_RECTS).filter((rect) => rows.has(rect.y))))
 }
-
-export function focusRect(view: Exclude<FocusView, 'full'>): BoundingBox {
-    return view === 'banks' ? banksFocusRect() : regionFocusRect(view)
-}
-
-export const FOCUS_REGIONS: readonly Region[] = REGIONS

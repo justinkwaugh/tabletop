@@ -18,7 +18,7 @@ test('player order moves when navigating between recorded turn orders', async ({
             return animate.apply(this, args)
         }
     })
-    await page.getByRole('button', { name: 'goto my last turn', exact: true }).click()
+    await page.getByRole('button', { name: 'go to beginning', exact: true }).click()
     const forward = page.getByRole('button', { name: 'step forwards', exact: true })
     let changed = false
     for (let step = 0; step < 180 && !changed; step++) {

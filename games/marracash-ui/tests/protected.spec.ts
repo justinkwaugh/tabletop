@@ -60,7 +60,7 @@ test('exploring is offered under Concealed Cash only in Host View', async ({ pag
     await viewHistoryAs(page, 'Host View')
     await expect(explore).toBeEnabled()
     await explore.click()
-    await expect(explore.locator('svg').first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'stop exploring' })).toBeVisible()
     expect(errors).toEqual([])
 })
 

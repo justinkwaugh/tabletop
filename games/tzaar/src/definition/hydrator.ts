@@ -4,6 +4,7 @@ import { HydratedPlacePiece, isPlacePiece } from '../actions/placePiece.js'
 import { HydratedCapture, isCapture } from '../actions/capture.js'
 import { HydratedStack, isStack } from '../actions/stack.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedChooseColor, isChooseColor } from '../actions/chooseColor.js'
 
 export class TzaarHydrator implements GameHydrator<TzaarGameState, HydratedTzaarGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -16,6 +17,8 @@ export class TzaarHydrator implements GameHydrator<TzaarGameState, HydratedTzaar
                 return new HydratedStack(data)
             case isPass(data):
                 return new HydratedPass(data)
+            case isChooseColor(data):
+                return new HydratedChooseColor(data)
             default:
                 throw new Error(`Unknown action type ${data.type}`)
         }

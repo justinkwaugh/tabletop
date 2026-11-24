@@ -48,7 +48,9 @@ export const ZertzGameState = Type.Evaluate(
             // A position can come round again only while the pool is empty and no ring leaves the
             // board, so only the turns since then are kept, each as a hash of its position.
             positions: Type.Array(Type.Number()),
-            endReason: Type.Optional(Type.Enum(EndReason))
+            endReason: Type.Optional(Type.Enum(EndReason)),
+            // Set when the game was created with auto-jump for both players.
+            autoJumpForAll: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -76,6 +78,7 @@ export class HydratedZertzGameState
     declare captureChainFrom?: AxialCoordinates
     declare positions: number[]
     declare endReason?: EndReason
+    declare autoJumpForAll?: boolean
 
     constructor(data: ZertzGameState) {
         super(data, ZertzGameStateValidator)
@@ -104,6 +107,16 @@ export class HydratedZertzGameState
     openJumps(): Jump[] {
         const chainFrom = this.captureChainFrom
         return chainFrom === undefined ? this.board.allJumps() : this.board.jumpsFrom(chainFrom)
+    }
+
+    autoJumps(playerId: string): boolean {
+        return this.autoJumpForAll === true || this.getPlayerState(playerId).autoJump === true
+    }
+
+    // The jump an auto-jumping player makes for themselves: the only one open to them.
+    autoJumpFor(playerId: string): Jump | undefined {
+        const jumps = this.openJumps()
+        return jumps.length === 1 && this.autoJumps(playerId) ? jumps[0] : undefined
     }
 
     findOpenJump(from: AxialCoordinates, to: AxialCoordinates): Jump | undefined {

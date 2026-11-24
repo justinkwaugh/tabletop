@@ -35,7 +35,7 @@ import { usableModifiers, type ModifierUse } from '../util/modifiers.js'
 import { PowerChoiceKind } from '../util/powerChoice.js'
 import { legalPowers, reasonCannotUsePower } from '../util/powerDoorway.js'
 import { FALSE_PROPHET_ID } from '../util/revealedVision.js'
-import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
+import { OathRevision } from '../util/revision.js'
 import './index.js'
 
 // Great Spire: "You may swap any number of denizens you draw with random cards from the Dispossessed." Cost: place 1
@@ -154,9 +154,8 @@ function untouched(s: HydratedOathGameState) {
 }
 
 describe('revision 34', () => {
-    it('is EngineFixes29, and current', () => {
+    it('is EngineFixes29', () => {
         expect(OathRevision.EngineFixes29).toBe(34)
-        expect(CURRENT_OATH_REVISION).toBe(OathRevision.EngineFixes29)
     })
 })
 

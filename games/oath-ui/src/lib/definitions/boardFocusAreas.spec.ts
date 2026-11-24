@@ -4,9 +4,6 @@ import { assertExists, type BoundingBox } from '@tabletop/common'
 import {
     BOARD_WIDTH,
     CARD_STRIP_RECTS,
-    DISCARD_RECTS,
-    FAVOR_BANK_CENTERS,
-    SHARED_FAVOR_CENTER,
     SITE_SLOT_RECTS,
     SURFACE_HEIGHT,
     stripLayout,
@@ -14,8 +11,6 @@ import {
 } from './boardGeometry.js'
 import {
     allSitesFrameRect,
-    banksFocusRect,
-    regionFocusRect,
     siteFocusRect,
     siteRowsFrameRect,
     travelFrameRect
@@ -35,54 +30,8 @@ function rectOf(table: Readonly<Record<string, BoundingBox>>, slotId: string): B
 
 const disjoint = (a: BoundingBox, b: BoundingBox) => a.x + a.width <= b.x || b.x + b.width <= a.x
 
-describe('the board focus views (scenario 45)', () => {
-    it('a region holds its discard pile, its sites and the strips beside them', () => {
-        for (const region of [Region.Cradle, Region.Provinces, Region.Hinterland]) {
-            const rect = regionFocusRect(region)
-            expect(contains(rect, DISCARD_RECTS[region])).toBe(true)
-            for (const slotId of mapSlotsFor(region)) {
-                expect(contains(rect, rectOf(SITE_SLOT_RECTS, slotId))).toBe(true)
-                expect(contains(rect, rectOf(CARD_STRIP_RECTS, slotId))).toBe(true)
-            }
-        }
-    })
-
-    it('a region holds every denizen and relic space its strips can lay out, and the chip under its last site', () => {
-        for (const region of [Region.Cradle, Region.Provinces, Region.Hinterland]) {
-            const rect = regionFocusRect(region)
-            for (const slotId of mapSlotsFor(region)) {
-                const full: StripSpace[] = []
-                for (let i = 0; i < 8; i++)
-                    full.push({ kind: i % 3 === 2 ? 'relic' : 'denizen', pickable: false })
-                for (const placed of stripLayout(rectOf(CARD_STRIP_RECTS, slotId), full)) {
-                    expect(contains(rect, placed)).toBe(true)
-                }
-                const site = rectOf(SITE_SLOT_RECTS, slotId)
-                expect(rect.y + rect.height).toBeGreaterThanOrEqual(site.y + site.height + 13)
-            }
-            expect(rect.y).toBeLessThanOrEqual(DISCARD_RECTS[region].y - 20)
-        }
-    })
-
-    it('the three regions sit side by side without overlapping', () => {
-        expect(disjoint(regionFocusRect(Region.Cradle), regionFocusRect(Region.Provinces))).toBe(
-            true
-        )
-        expect(
-            disjoint(regionFocusRect(Region.Provinces), regionFocusRect(Region.Hinterland))
-        ).toBe(true)
-    })
-
-    it('the banks view holds the six banks and the shared one, and no site', () => {
-        const rect = banksFocusRect()
-        for (const center of [...Object.values(FAVOR_BANK_CENTERS), SHARED_FAVOR_CENTER]) {
-            expect(center.x > rect.x && center.x < rect.x + rect.width).toBe(true)
-            expect(center.y > rect.y && center.y < rect.y + rect.height).toBe(true)
-        }
-        expect(rect.height).toBeLessThan(200)
-    })
-
-    it('a site’s row holds its card, every space its strip can lay out and its chip, as a region does', () => {
+describe('Zoom the board here (scenario 45)', () => {
+    it('a site’s row holds its card, every space its strip can lay out and its chip', () => {
         for (const slotId of Object.keys(SITE_SLOT_RECTS)) {
             const rect = siteFocusRect(slotId)
             const full: StripSpace[] = []

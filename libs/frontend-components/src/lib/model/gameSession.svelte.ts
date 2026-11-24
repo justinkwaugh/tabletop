@@ -203,8 +203,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.actions.at(-1)
     })
 
-    // How the game was called, when the state on screen is the call's result
-    gameCall: GameCall | undefined = $derived.by(() => gameCallOf(this.currentAction))
+    // How the game was called, when the state on screen is the call's result. A game opens
+    // before its history loads, so the latest state may have only the game record's call.
+    gameCall: GameCall | undefined = $derived.by(() => {
+        const shownActionCount = this.gameState.actionCount
+        const action = this.currentAction
+        if (action?.index === shownActionCount - 1) return gameCallOf(action)
+        return shownActionCount === this.gameContext.state.actionCount
+            ? this.primaryGame.call
+            : undefined
+    })
 
     currentActionIndex = $derived.by(() => {
         return this.gameState.actionCount - 1

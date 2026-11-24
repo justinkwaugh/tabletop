@@ -6,8 +6,10 @@
     function onKeyDown(event: KeyboardEvent) {
         if (
             !gameSession ||
+            event.defaultPrevented ||
             event.target instanceof HTMLInputElement ||
-            event.target instanceof HTMLTextAreaElement
+            event.target instanceof HTMLTextAreaElement ||
+            event.target instanceof HTMLSelectElement
         ) {
             return
         }

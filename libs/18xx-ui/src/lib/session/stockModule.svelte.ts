@@ -667,6 +667,20 @@ export class StockModule implements LocalSelection {
         this.start.clear()
         this.start.choose('company', request)
     }
+    cardStarts(companyId: string) {
+        if (!this.session.interactive) return []
+        return this.startChoices.filter(
+            (choice) =>
+                choice.request.companyId === companyId &&
+                choice.prices.some((price) => price.result.details)
+        )
+    }
+    chooseStartBuyer(request: CompanyStartStages['company']) {
+        const home = this.selectedStartHome
+        this.selectCompanyStart(request)
+        if (home && this.homePositions.some((position) => sameCenter(position, home)))
+            this.start.choose('home', home)
+    }
     chooseHome(home: HomePosition) {
         this.assertAvailable(this.session.playerId)
         assert(

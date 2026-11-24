@@ -1,12 +1,12 @@
 <script lang="ts">
     import { Card, Hr } from 'flowbite-svelte'
     import { ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
-    import DiscordSignIn, {
-        isEnabled as isDiscordSigninEnabled
-    } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
     import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
+    import TurnRemindersEditor from '$lib/components/TurnRemindersEditor.svelte'
     import EmailNotificationsSetting from '$lib/components/EmailNotificationsSetting.svelte'
+    import WebNotificationsSetting from '$lib/components/WebNotificationsSetting.svelte'
+    import TopicRegistrationSettings from '$lib/components/TopicRegistrationSettings.svelte'
 
     let { authorizationService } = getAppContext()
 
@@ -24,60 +24,26 @@
         <div class="flex flex-col gap-3">
             <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">Turn Notifications</h2>
             <p class="text-sm text-gray-700 dark:text-gray-300">
-                Board Together tells you it's your turn through your web browser and Discord. Turn
-                notifications are never sent by email.
+                BoardTogether tells you it's your turn through your web browser, Discord and
+                Telegram. Turn notifications are never sent by email.
             </p>
         </div>
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Web Notifications</h3>
-            <p class="text-sm text-gray-700 dark:text-gray-300">
-                You can receive notifications from Board Together directly in your web browser. Just
-                accept the permission prompt your browser shows you.
-            </p>
+            <WebNotificationsSetting />
         </div>
 
-        {#if isDiscordSigninEnabled}
-            <Hr class="my-6" />
-            <div class="flex flex-col gap-3">
-                <h3 class="text-xl font-medium text-gray-900 dark:text-white">
-                    Discord Notifications
-                </h3>
-                <p class="text-sm text-gray-700 dark:text-gray-300">
-                    Board Together has a Discord bot that can send you direct notification messages.
-                    No server webhook configuration is needed, and the messages will come to you
-                    regardless of what server you are in.
-                </p>
-                {#if linkedAccountIdsByType.get(ExternalAuthService.Discord)}
-                    <p class="text-sm text-gray-700 dark:text-gray-300">
-                        Add the bot to your Discord account and it will start sending you
-                        notifications right away.
-                    </p>
-                    <div class="flex justify-center py-1">
-                        <DiscordSignIn mode="bot" />
-                    </div>
-                    <div class="text-sm text-gray-700 dark:text-gray-300">
-                        Bot commands:
-                        <ul class="mt-2 rounded-sm bg-gray-200 p-3 dark:bg-gray-700">
-                            <li>
-                                <span class="tracking-wider">/notify</span> - Enable notifications
-                            </li>
-                            <li>
-                                <span class="tracking-wider">/stop</span> - Disable notifications
-                            </li>
-                        </ul>
-                    </div>
-                {:else}
-                    <p class="text-sm text-gray-700 dark:text-gray-300">
-                        First link your Discord account.
-                    </p>
-                    <div class="flex justify-center py-1">
-                        <DiscordSignIn mode="link" />
-                    </div>
-                {/if}
-            </div>
-        {/if}
+        <TopicRegistrationSettings
+            discordLinked={linkedAccountIdsByType.has(ExternalAuthService.Discord)}
+        />
+
+        <Hr class="my-6" />
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Turn Reminders</h3>
+            <TurnRemindersEditor />
+        </div>
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">

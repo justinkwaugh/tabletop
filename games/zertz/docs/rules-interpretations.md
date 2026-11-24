@@ -1,6 +1,6 @@
 # Rules interpretations
 
-Choices made where the [rules](https://www.gipf.com/zertz/rules/rules.html) are silent, where table talk would decide, or where online play needs a firm rule. Tests in `src/definition/game.spec.ts`, `src/model/board.spec.ts` and `src/definition/competition.spec.ts` cover them.
+Choices made where the [rules](https://www.gipf.com/zertz/rules/rules.html) are silent, where table talk would decide, or where online play needs a firm rule. Tests in `src/definition/game.spec.ts`, `src/definition/autoJump.spec.ts`, `src/model/board.spec.ts` and `src/definition/competition.spec.ts` cover them.
 
 ## Setups
 
@@ -21,6 +21,7 @@ Choices made where the [rules](https://www.gipf.com/zertz/rules/rules.html) are 
 - **One jump per action.** Each jump is its own action. While the marble that jumped can jump again it must, and the chain's further jumps are its only legal actions. Undo takes back one jump at a time.
 - **Choosing among captures** is free, as the rules allow, whatever the number of marbles each would take.
 - **A winning jump ends the chain.** The game ends as soon as the mover holds a winning set, even mid-chain.
+- **Auto-jump.** Since a capture is compulsory, a jump that is the only one open to the player is made for them at once when they have auto-jump on: at the start of a turn and at each step of a chain. A choice of jumps is always left to the player. Either player may turn it on or off at any time during the game; the game can also be created with it on for both players, who then cannot turn it off. Turning it on while one jump is open to you makes that jump at once.
 
 ## Isolated groups
 

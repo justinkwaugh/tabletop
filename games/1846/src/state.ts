@@ -53,11 +53,17 @@ export const Selection = Type.Object(
     { cardId: Id, price: Type.Integer({ minimum: 0 }) },
     { additionalProperties: false }
 )
+export type Selection = Type.Static<typeof Selection>
 export const Purchase = Type.Object(
     { ...Selection.properties, playerId: Id },
     { additionalProperties: false }
 )
 export type Purchase = Type.Static<typeof Purchase>
+export const FinalCompanyPass = Type.Object(
+    { reducedOffer: Selection, purchase: Type.Optional(Purchase) },
+    { additionalProperties: false }
+)
+export type FinalCompanyPass = Type.Static<typeof FinalCompanyPass>
 const Participant = Type.Object(
     {
         playerId: Id,

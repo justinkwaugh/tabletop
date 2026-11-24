@@ -153,6 +153,8 @@
             <dt>Notification clients</dt>
             <dd>
                 {now.notificationClients.webPush} web push · {now.notificationClients.discord} Discord
+                · {now.notificationClients.telegram ?? 0} Telegram · {now.notificationClients
+                    .discordWebhook ?? 0} Discord webhook
             </dd>
             {#if latest}
                 <dt>Latest day rolled up</dt>

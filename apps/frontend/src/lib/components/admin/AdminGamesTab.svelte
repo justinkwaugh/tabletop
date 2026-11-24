@@ -4,6 +4,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from '$lib/components/DashboardGameList.svelte'
 
+    let { titleId, onselect }: { titleId: string; onselect: (titleId: string) => void } = $props()
     const { api, libraryService } = getAppContext()
 
     let titles = $derived(
@@ -11,19 +12,22 @@
             a.info.metadata.name.localeCompare(b.info.metadata.name)
         )
     )
-    let titleId = $state('')
     let games = $state<Game[]>([])
     let busy = $state(false)
     let error = $state('')
     const requests = new LatestRequest()
 
+    $effect(() => {
+        void load(titleId)
+    })
+
     async function load(selectedTitleId: string) {
-        titleId = selectedTitleId
         const current = requests.begin()
         games = []
-        if (!selectedTitleId) return
-        busy = true
         error = ''
+        const loading = selectedTitleId !== ''
+        busy = loading
+        if (!loading) return
         try {
             const results = await api.getActiveGamesForTitle(selectedTitleId)
             if (!current()) return
@@ -47,7 +51,7 @@
     <span class="text-gray-600 dark:text-gray-300">Game</span>
     <select
         value={titleId}
-        onchange={(event) => void load(event.currentTarget.value)}
+        onchange={(event) => onselect(event.currentTarget.value)}
         class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
     >
         <option value="">Choose a game</option>
