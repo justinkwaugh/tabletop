@@ -16,7 +16,7 @@ import {
     isChoosePresidencyExchange
 } from '../stock/presidencyExchangeChoice.js'
 import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
-import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
+import { LayingTrackHandler, startTrackStep } from '../construction/layingTrackHandler.js'
 import { trackActions } from '../construction/trackActions.js'
 import { DistributingEarningsHandler } from '../earnings/distributingEarningsHandler.js'
 import { earningsActions } from '../earnings/earningsActions.js'
@@ -67,13 +67,14 @@ import { privateActions } from '../privates/privateActions.js'
 import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
 import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { routeActions } from '../routes/routeActions.js'
-import { RunningTrainsHandler, startsRouteStep } from '../routes/runningTrainsHandler.js'
+import { RunningTrainsHandler, startRouteStep } from '../routes/runningTrainsHandler.js'
+import { startsStep } from './startsStep.js'
 import { InstructedRunsHandler } from '../routes/instructedRunsHandler.js'
 import { runInstructionActions } from '../routes/runInstructionActions.js'
 import { RunInstructionHandler } from '../routes/runInstructionHandler.js'
 import type { RunInstructionStep } from '../routes/runInstructionEvaluation.js'
 import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
-import { PlacingStationHandler } from '../stations/placingStationHandler.js'
+import { PlacingStationHandler, startStationStep } from '../stations/placingStationHandler.js'
 import { StationsWithTrackHandler } from '../stations/stationsWithTrackHandler.js'
 import { stationActions } from '../stations/stationActions.js'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
@@ -530,17 +531,15 @@ export function createEighteenXXRuntime<
                   )
               }
             : {}),
-        RunningTrains: startsRouteStep(
-            followsRunInstructions(
-                'RunningTrains',
-                operatingStep(
-                    operatesReceivership(
+        RunningTrains: followsRunInstructions(
+            'RunningTrains',
+            operatingStep(
+                operatesReceivership(
+                    'RunningTrains',
+                    decides(
                         'RunningTrains',
-                        decides(
-                            'RunningTrains',
-                            allowsCorporateFinance(
-                                new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
-                            )
+                        allowsCorporateFinance(
+                            new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
                         )
                     )
                 )
@@ -678,6 +677,16 @@ export function createEighteenXXRuntime<
             }
         }
     }
+    // Each operating step's record starts before anything its handlers queue on entry.
+    const stepStarts: Partial<Record<string, (state: State) => void>> = {
+        LayingTrack: startTrackStep,
+        PlacingStation: startStationStep,
+        RunningTrains: startRouteStep
+    }
+    const startsOwnStep = (machineState: string, handler: Handler): Handler => {
+        const start = stepStarts[machineState]
+        return start ? startsStep(handler, start) : handler
+    }
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
         Object.entries({
             ...familyStateHandlers,
@@ -685,11 +694,14 @@ export function createEighteenXXRuntime<
             ...options.titleStateHandlers
         }).map(([machineState, handler]) => [
             machineState,
-            observesActions(
+            startsOwnStep(
                 machineState,
-                interrupts(
+                observesActions(
                     machineState,
-                    awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
+                    interrupts(
+                        machineState,
+                        awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
+                    )
                 )
             )
         ])

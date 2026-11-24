@@ -63,11 +63,7 @@ export class LayingTrackHandler implements MachineStateHandler<
             : ['FinishTrack']
     }
     enter(context: MachineContext<State>): void {
-        const state = context.gameState
-        if (state.trackStep) return
-        const companyId = nextOperatingCompany(state)
-        assertExists(companyId, 'Step entry requires an operating company')
-        state.trackStep = { companyId, lays: [], completed: false }
+        assertExists(context.gameState.trackStep, 'Laying Track is entered with its track step')
     }
     onAction(
         action: HydratedLayTile | HydratedFinishTrack,
@@ -75,4 +71,12 @@ export class LayingTrackHandler implements MachineStateHandler<
     ): string {
         return isFinishTrack(action) ? this.nextState : context.gameState.machineState
     }
+}
+
+/** The track step of the company about to lay track, unless it has already begun. */
+export function startTrackStep(state: State): void {
+    if (state.trackStep) return
+    const companyId = nextOperatingCompany(state)
+    assertExists(companyId, 'Step entry requires an operating company')
+    state.trackStep = { companyId, lays: [], completed: false }
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { expectReplayableRecord } from '../../../libs/18xx/test/replayableRecord.js'
 import { playOut } from '../test/bot.js'
 import { kit } from '../test/kit.js'
 import { ScenarioIds1822 } from './scenarioCatalog.js'
@@ -43,4 +44,11 @@ describe('whole games', () => {
         },
         600_000
     )
+
+    // This game reaches destinations as companies enter station placement.
+    it('leaves a record History Navigation can replay', () => {
+        const game = kit.table(4, 4)
+        playOut(game, 4)
+        expectReplayableRecord(game, game.initialState)
+    }, 600_000)
 })

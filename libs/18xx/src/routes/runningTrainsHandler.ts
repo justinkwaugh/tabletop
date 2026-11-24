@@ -68,26 +68,10 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
     }
 }
 
-/**
- * Starts the running step on entry, ahead of everything ``handler`` wraps, so a System Action due
- * first is recorded in a state that loads.
- */
-export function startsRouteStep<Running extends State>(
-    handler: MachineStateHandler<HydratedAction, Running>
-): MachineStateHandler<HydratedAction, Running> {
-    return {
-        isValidAction: (action, context) => handler.isValidAction(action, context),
-        validActionsForPlayer: (playerId, context) =>
-            handler.validActionsForPlayer(playerId, context),
-        enter(context) {
-            const state = context.gameState
-            if (!state.routeStep) {
-                const companyId = nextOperatingCompany(state)
-                assertExists(companyId, 'Step entry requires an operating company')
-                state.routeStep = { companyId }
-            }
-            handler.enter(context)
-        },
-        onAction: (action, context) => handler.onAction(action, context)
-    }
+/** The route step of the company about to run trains, unless it has already begun. */
+export function startRouteStep(state: State): void {
+    if (state.routeStep) return
+    const companyId = nextOperatingCompany(state)
+    assertExists(companyId, 'Step entry requires an operating company')
+    state.routeStep = { companyId }
 }

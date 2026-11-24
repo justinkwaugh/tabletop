@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { expectReplayableRecord } from '../../../libs/18xx/test/replayableRecord.js'
 import { playOut } from '../test/bot.js'
 import { kit } from '../test/kit.js'
 
@@ -15,4 +16,11 @@ describe('whole games', () => {
         },
         180_000
     )
+
+    // This game closes a corporation whose own earnings take its price to zero.
+    it('leaves a record History Navigation can replay', () => {
+        const game = kit.table(5, 3)
+        playOut(game, 3)
+        expectReplayableRecord(game, game.initialState)
+    }, 600_000)
 })
