@@ -1,0 +1,471 @@
+import { canonical } from '@tabletop/feudum/testing'
+import { flushSync } from 'svelte'
+import {
+    ActionSource,
+    assertExists,
+    type Game,
+    type GameAction,
+    GameEngine,
+    GameNotificationAction,
+    type GameState,
+    GameStorage,
+    GameSyncStatus,
+    type HydratedGameState,
+    NotificationCategory,
+    PlayerStatus,
+    type UserPreferences,
+    Visibility
+} from '@tabletop/common'
+import {
+    BridgedContext,
+    GameSession,
+    NotificationChannel,
+    NotificationEventType,
+    createHarnessAppContext,
+    type GameUiDefinition,
+    type HarnessAppContext
+} from '@tabletop/frontend-components'
+import {
+    ActionType,
+    Definition,
+    type FeudumGameState,
+    FeudumRuntime,
+    type Good,
+    HydratedFeudumGameState,
+    MachineState,
+    setupSeat,
+    startingPawnOffers
+} from '@tabletop/feudum'
+import { UiDefinition } from '$lib/definitions/definition.js'
+import { FeudumUiRuntime } from '$lib/definitions/runtime.js'
+import { FeudumGameSession } from '$lib/model/session.svelte.js'
+
+const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
+    info: UiDefinition.info,
+    async runtime() {
+        return {
+            ...FeudumRuntime,
+            sessionClass: GameSession,
+            colorizer: FeudumUiRuntime.colorizer,
+            gameUI: {
+                load: async () => {
+                    throw Error('The session harness does not render a table')
+                },
+                mount: () => {
+                    throw Error('The session harness does not render a table')
+                }
+            }
+        }
+    }
+}
+
+const HARNESS_USER = 'harness-user'
+const SpectatorSeat = 'spectator'
+const HotseatScreen = 'hotseat'
+const MASTER_SEED = '0123456789abcdef0123456789abcdef'
+const engine = new GameEngine(FeudumRuntime)
+
+export async function settled(session: FeudumGameSession) {
+    do {
+        await new Promise((resolve) => setTimeout(resolve))
+    } while (session.busy || session.updatingVisibleState)
+    await session.waitForVisibleTransitionSettled()
+    flushSync()
+}
+
+interface OpenSeat {
+    readonly playerId: string
+    readonly session: FeudumGameSession
+    readonly appContext: HarnessAppContext
+    readonly bridgedContext: BridgedContext
+}
+
+type HostMove = Record<string, unknown> & { type: ActionType }
+
+export class FeudumHost {
+    readonly game: Game
+    state: FeudumGameState
+    actions: GameAction[] = []
+    savedLocally: Parameters<HarnessAppContext['gameService']['saveGameLocally']>[0] | undefined
+    readonly sent = new Map<string, GameAction[]>()
+    edits = 0
+
+    private readonly seats = new Map<string, OpenSeat>()
+    private hostSends = 0
+
+    constructor(numPlayers = 4, names?: readonly string[]) {
+        const game: Game = {
+            ...FeudumRuntime.initializer.initializeGame(
+                {
+                    id: 'feudum-session',
+                    typeId: Definition.info.id,
+                    ownerId: 'owner',
+                    seed: 7,
+                    config: {},
+                    players: Array.from({ length: numPlayers }, (_, index) => ({
+                        id: `p${index + 1}`,
+                        name: names?.[index] ?? `Player ${index + 1}`,
+                        isHuman: true,
+                        status: PlayerStatus.Joined
+                    }))
+                },
+                Definition
+            ),
+            hotseat: false,
+            storage: GameStorage.Remote
+        }
+        const { startedGame, initialState } = engine.startGame(game, {
+            masterSeed: MASTER_SEED,
+            startingPositions: { playerIds: game.players.map(({ id }) => id) }
+        })
+        this.game = startedGame
+        this.state = canonical(initialState)
+    }
+
+    get order(): string[] {
+        return this.state.turnManager.turnOrder
+    }
+
+    get setupSeat(): string {
+        const playerId = setupSeat(this.state)
+        assertExists(playerId, 'A seat is setting up')
+        return playerId
+    }
+
+    edit(change: (state: HydratedFeudumGameState) => void) {
+        this.edits += 1
+        const state = new HydratedFeudumGameState(structuredClone(this.state))
+        change(state)
+        this.state = canonical(state.dehydrate())
+    }
+
+    private perspective(playerId: string): Visibility.Perspective {
+        return playerId === SpectatorSeat ? { kind: 'spectator' } : { kind: 'player', playerId }
+    }
+
+    private gameFor(playerId: string): Game {
+        const { state: _state, ...game } = structuredClone(this.game)
+        return {
+            ...game,
+            activePlayerIds: [...this.state.activePlayerIds],
+            players: game.players.map((player) => {
+                const { userId: _userId, ...seat } = player
+                return player.id === playerId ? { ...seat, userId: HARNESS_USER } : seat
+            })
+        }
+    }
+
+    projected(perspective: Visibility.Perspective) {
+        return Visibility.projectActionHistory({
+            currentState: this.state,
+            actions: this.actions,
+            visibility: FeudumRuntime.visibility,
+            perspective,
+            replay: { game: this.game, runtime: FeudumRuntime }
+        })
+    }
+
+    private history(playerId: string) {
+        return Visibility.projectActionHistory({
+            currentState: this.state,
+            actions: this.actions,
+            visibility: FeudumRuntime.visibility,
+            perspective: this.perspective(playerId),
+            replay: { game: this.game, runtime: FeudumRuntime }
+        })
+    }
+
+    openSpectator(): Promise<FeudumGameSession> {
+        return this.openSeat(SpectatorSeat)
+    }
+
+    async openSeat(playerId: string, preferences?: UserPreferences): Promise<FeudumGameSession> {
+        this.closeSeat(playerId)
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        if (preferences) {
+            const { authorizationService } = appContext
+            const user = authorizationService.getSessionUser()
+            authorizationService.getSessionUser = () => user && { ...user, preferences }
+        }
+        this.serve(appContext, playerId)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: this.game.id
+        })
+        const history = this.history(playerId)
+        const session = new FeudumGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FeudumUiRuntime,
+            game: this.gameFor(playerId),
+            state: history.currentState,
+            actions: [...history.actions]
+        })
+        this.seats.set(playerId, { playerId, session, appContext, bridgedContext })
+        session.listenToGame()
+        await settled(session)
+        return session
+    }
+
+    async openHotseat({ developerHarness = false } = {}): Promise<FeudumGameSession> {
+        this.closeSeat(HotseatScreen)
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        Object.defineProperty(appContext.gameService, 'developerHarness', {
+            value: developerHarness
+        })
+        // The browser's own store: a spec has none, so the screen's save is kept here.
+        appContext.gameService.saveGameLocally = async (saved) => {
+            this.savedLocally = saved
+        }
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: this.game.id
+        })
+        const { state: _state, ...game } = structuredClone(this.game)
+        const session = new FeudumGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FeudumUiRuntime,
+            game: {
+                ...game,
+                activePlayerIds: [...this.state.activePlayerIds],
+                hotseat: true,
+                storage: GameStorage.Local
+            },
+            state: structuredClone(this.state),
+            actions: structuredClone(this.actions)
+        })
+        this.seats.set(HotseatScreen, {
+            playerId: HotseatScreen,
+            session,
+            appContext,
+            bridgedContext
+        })
+        await settled(session)
+        return session
+    }
+
+    private serve(appContext: HarnessAppContext, playerId: string) {
+        Object.assign(appContext.api, {
+            applyAction: async (_game: Game, action: GameAction) => {
+                this.sent.set(playerId, [...(this.sent.get(playerId) ?? []), action])
+                const result = this.execute(action)
+                await this.tellOthers(playerId, result)
+                return {
+                    actions: this.projectResult(result, playerId),
+                    game: this.gameFor(playerId)
+                }
+            },
+            undoAction: async (_game: Game, actionId: string) => {
+                const startIndex = this.undo(actionId)
+                await this.tellOthersOfUndo(playerId, startIndex)
+                return this.replayFor(playerId, startIndex)
+            },
+            checkSync: async (_gameId: string, checksum: number) => ({
+                status:
+                    checksum === this.state.actionChecksum
+                        ? GameSyncStatus.InSync
+                        : GameSyncStatus.OutOfSync,
+                actions: [...this.history(playerId).actions],
+                checksum: this.state.actionChecksum
+            }),
+            getGame: async () => {
+                const history = this.history(playerId)
+                return {
+                    game: { ...this.gameFor(playerId), state: history.currentState },
+                    actions: [...history.actions]
+                }
+            }
+        } satisfies Partial<HarnessAppContext['api']>)
+    }
+
+    private execute(action: GameAction) {
+        const result = engine.executeCanonicalAction({
+            game: this.game,
+            state: this.state,
+            action
+        })
+        this.state = canonical(result.updatedState)
+        this.actions.push(...result.processedActions)
+        return result
+    }
+
+    private projectResult(result: ReturnType<FeudumHost['execute']>, playerId: string) {
+        return Visibility.projectActionResult({
+            result,
+            visibility: FeudumRuntime.visibility,
+            perspective: this.perspective(playerId),
+            replay: { game: this.game, runtime: FeudumRuntime }
+        }).processedActions
+    }
+
+    private undo(actionId: string): number {
+        const position = this.actions.findIndex(({ id }) => id === actionId)
+        const target = this.actions[position]
+        assertExists(target, `The host holds Action ${actionId}`)
+        assertExists(target.index, `Action ${actionId} has an index`)
+        for (const action of this.actions.slice(position).toReversed()) {
+            this.state = canonical(engine.undoProcessedAction({ action, state: this.state }))
+        }
+        this.actions.splice(position)
+        return target.index
+    }
+
+    private replayFor(playerId: string, startIndex: number) {
+        const perspective = this.perspective(playerId)
+        const history = Visibility.projectActionHistory({
+            currentState: this.state,
+            actions: [],
+            startIndex,
+            visibility: FeudumRuntime.visibility,
+            perspective,
+            replay: { game: this.game, runtime: FeudumRuntime }
+        })
+        const actionReplay = { startIndex: history.startIndex, actions: [...history.actions] }
+        return {
+            game: this.gameFor(playerId),
+            redoneActions: [],
+            actionReplay,
+            canonicalReplay: { ...actionReplay, userActions: [] },
+            checksum: this.state.actionChecksum,
+            perspective
+        }
+    }
+
+    private async tellOthers(
+        sender: string | undefined,
+        result: ReturnType<FeudumHost['execute']>
+    ) {
+        for (const { playerId, appContext, session } of this.seats.values()) {
+            if (playerId !== sender) {
+                await appContext.notificationService.emit({
+                    eventType: NotificationEventType.Data,
+                    channel: NotificationChannel.User,
+                    notification: {
+                        id: `added-${this.state.actionCount}-${playerId}`,
+                        type: NotificationCategory.Game,
+                        action: GameNotificationAction.AddProjectedActions,
+                        data: {
+                            game: this.gameFor(playerId),
+                            actions: this.projectResult(result, playerId),
+                            perspective: this.perspective(playerId)
+                        }
+                    }
+                })
+                await settled(session)
+            }
+        }
+    }
+
+    private async tellOthersOfUndo(sender: string, startIndex: number) {
+        for (const { playerId, appContext, session } of this.seats.values()) {
+            if (playerId !== sender) {
+                const { game, actionReplay, checksum, perspective } = this.replayFor(
+                    playerId,
+                    startIndex
+                )
+                await appContext.notificationService.emit({
+                    eventType: NotificationEventType.Data,
+                    channel: NotificationChannel.User,
+                    notification: {
+                        id: `replaced-${this.state.actionCount}-${playerId}`,
+                        type: NotificationCategory.Game,
+                        action: GameNotificationAction.ReplaceProjectedActions,
+                        data: { game, actionReplay, checksum, perspective }
+                    }
+                })
+                await settled(session)
+            }
+        }
+    }
+
+    private hostAction(playerId: string, move: HostMove): GameAction {
+        this.hostSends += 1
+        return {
+            id: `host-${this.hostSends}`,
+            gameId: this.game.id,
+            source: ActionSource.User,
+            playerId,
+            ...move
+        }
+    }
+
+    async send(playerId: string, move: HostMove) {
+        await this.tellOthers(undefined, this.execute(this.hostAction(playerId, move)))
+    }
+
+    sendUnheard(playerId: string, move: HostMove) {
+        this.execute(this.hostAction(playerId, move))
+    }
+
+    async reconcile(playerId: string) {
+        const seat = this.seats.get(playerId)
+        assertExists(seat, `Seat ${playerId} is open`)
+        await seat.appContext.notificationService.emit({
+            eventType: NotificationEventType.Discontinuity,
+            channel: NotificationChannel.User
+        })
+        await settled(seat.session)
+    }
+
+    /** R-1.4.8 Every seat left in the goods step takes these, in setup order. */
+    async playStartingGoods(
+        goodsOf: (playerId: string) => { goods: Good[]; sulfurToBarrel?: boolean } = () => ({
+            goods: ['saltpeter', 'sulfur', 'iron']
+        }),
+        seats = Number.POSITIVE_INFINITY
+    ) {
+        for (let played = 0; played < seats; played += 1) {
+            if (this.state.machineState !== MachineState.ChoosingStartingGoods) {
+                return
+            }
+            const playerId = this.setupSeat
+            await this.send(playerId, {
+                type: ActionType.ChooseStartingGoods,
+                ...goodsOf(playerId)
+            })
+        }
+    }
+
+    /** R-1.4.9 This many seats left in the pawn step place a pawn, each its first offer. */
+    async playStartingPawns(seats = Number.POSITIVE_INFINITY) {
+        for (let played = 0; played < seats; played += 1) {
+            if (this.state.machineState !== MachineState.PlacingStartingPawn) {
+                return
+            }
+            const playerId = this.setupSeat
+            const offers = startingPawnOffers(new HydratedFeudumGameState(this.state), playerId)
+            await this.send(playerId, {
+                type: ActionType.PlaceStartingPawn,
+                character: offers.characters[0].character,
+                spaceId: offers.spaces[0]
+            })
+        }
+    }
+
+    close() {
+        for (const playerId of [...this.seats.keys()]) {
+            this.closeSeat(playerId)
+        }
+    }
+
+    private closeSeat(playerId: string) {
+        const seat = this.seats.get(playerId)
+        if (seat) {
+            seat.session.stopListeningToGame()
+            seat.session.dispose()
+            seat.bridgedContext.dispose()
+            this.seats.delete(playerId)
+        }
+    }
+}

@@ -1,0 +1,81 @@
+<script lang="ts">
+    import type { GuildStandingsView } from '$lib/model/guildStandings.js'
+    import type { SeatPaint } from '$lib/model/seatPaint.js'
+    import {
+        GuildAreas,
+        MapArea,
+        StandingsStrip,
+        StripRailScale,
+        StripRailWidth,
+        standingsStripHeight,
+        stripRailDrawingHeight,
+        westGuild
+    } from '$lib/utils/boardGeometry.js'
+    import GuildRail from './GuildRail.svelte'
+
+    /** Contract, Guild standings: on a desk the six rails stand in one strip under the map. */
+    let {
+        view,
+        paintOf,
+        seats
+    }: {
+        view: GuildStandingsView
+        paintOf: (playerId: string) => SeatPaint
+        seats: number
+    } = $props()
+
+    let rows = $derived(
+        [...view.rows].sort(
+            (a, b) =>
+                Number(westGuild(b.guild)) - Number(westGuild(a.guild)) ||
+                GuildAreas[a.guild].y - GuildAreas[b.guild].y
+        )
+    )
+    let drawingHeight = $derived(stripRailDrawingHeight(seats))
+    let height = $derived(standingsStripHeight(seats))
+</script>
+
+<div
+    class="strip"
+    style="width:{MapArea.width}px;height:{height}px;padding-top:{StandingsStrip.gap}px;gap:{StandingsStrip.gap}px"
+    data-guild-strip
+>
+    {#each rows as row, index (row.guild)}
+        {@const east = !westGuild(row.guild)}
+        <div
+            class="slot"
+            style="width:{StripRailWidth}px;height:{drawingHeight * StripRailScale}px"
+            style:margin-left={east && westGuild(rows[index - 1]?.guild ?? row.guild)
+                ? `${StandingsStrip.divide}px`
+                : undefined}
+            data-guild-rail={row.guild}
+            data-strip-east={east ? '' : undefined}
+        >
+            <div
+                class="drawing"
+                style="width:{StandingsStrip.drawing
+                    .width}px;height:{drawingHeight}px;transform:scale(calc({StripRailScale} * var(--render-zoom, 1)))"
+            >
+                <GuildRail {row} {paintOf} spelled />
+            </div>
+        </div>
+    {/each}
+</div>
+
+<style>
+    .strip {
+        display: flex;
+        box-sizing: border-box;
+        pointer-events: none;
+    }
+
+    .slot {
+        flex: none;
+    }
+
+    /* Safari's 9px text floor: the zoom off, the scale by transform, as in `GuildRails`. */
+    .drawing {
+        zoom: var(--render-unzoom, 1);
+        transform-origin: 0 0;
+    }
+</style>

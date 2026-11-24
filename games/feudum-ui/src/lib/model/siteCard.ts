@@ -1,0 +1,141 @@
+import {
+    type Character,
+    feudumGuildOf,
+    type HydratedFeudumGameState,
+    locationKindOf,
+    type MonsterId,
+    spaced,
+    type SpaceId,
+    titled
+} from '@tabletop/feudum'
+import { spaceLabel } from './cardFlows.js'
+import {
+    abandonedVessels,
+    goodKinds,
+    piecesOn,
+    type AbandonedVessels,
+    type GoodKind
+} from './mapView.js'
+
+export type SiteRole = 'ruler' | 'subject' | 'serf'
+
+export interface SiteSeat {
+    readonly playerId: string
+    readonly name: string
+}
+
+export interface SiteMarker extends SiteSeat {
+    readonly role: SiteRole
+    readonly label: string
+    readonly immune: boolean
+}
+
+export interface SitePawns extends SiteSeat {
+    readonly characters: readonly Character[]
+    readonly drunk: readonly boolean[]
+    readonly label: string
+}
+
+export interface SiteMonster {
+    readonly monster: MonsterId
+    readonly seat?: SiteSeat
+    readonly label: string
+}
+
+export interface SiteCard {
+    readonly spaceId: SpaceId
+    readonly title: string
+    readonly markers: readonly SiteMarker[]
+    readonly pawns: readonly SitePawns[]
+    readonly monsters: readonly SiteMonster[]
+    readonly landscape?: string
+    readonly goods: readonly GoodKind[]
+    readonly vessels: readonly AbandonedVessels[]
+}
+
+const monsterName = (monster: MonsterId) => titled(spaced(monster))
+
+/** R-4.1 What lies and stands on a space: its markers, pawns, monsters, landscape, goods, vessels. */
+export function siteCardOf(
+    state: HydratedFeudumGameState,
+    spaceId: SpaceId,
+    nameOf: (playerId: string) => string
+): SiteCard {
+    const space = state.spaces[spaceId]
+    const kind = locationKindOf(space.location)
+    const feudumGuild = feudumGuildOf(space.location)
+    const place = feudumGuild ? `${feudumGuild} feudum` : kind
+    const markers: SiteMarker[] = []
+    if (space.ruler) {
+        const { playerId } = space.ruler
+        markers.push({
+            role: 'ruler',
+            playerId,
+            name: nameOf(playerId),
+            label: 'Ruler',
+            immune: false
+        })
+        if (space.ruler.subject) {
+            markers.push({
+                role: 'subject',
+                playerId,
+                name: nameOf(playerId),
+                label: 'Subject',
+                immune: space.ruler.subjectImmune === true
+            })
+        }
+    }
+    if (space.serf) {
+        const { playerId } = space.serf
+        markers.push({
+            role: 'serf',
+            playerId,
+            name: nameOf(playerId),
+            label: 'Serf',
+            immune: space.serf.immune === true
+        })
+    }
+    const pieces = piecesOn(state, spaceId)
+    const pawns = state.players.flatMap(({ playerId }): SitePawns[] => {
+        const own = pieces.flatMap((piece) =>
+            piece.kind === 'pawn' && piece.playerId === playerId ? [piece] : []
+        )
+        if (own.length === 0) {
+            return []
+        }
+        const characters = own.map(({ character }) => character)
+        return [
+            {
+                playerId,
+                name: nameOf(playerId),
+                characters,
+                drunk: own.map(({ drunk }) => drunk),
+                label: characters.map(titled).join(', ')
+            }
+        ]
+    })
+    const monsters = pieces.flatMap((piece): SiteMonster[] =>
+        piece.kind === 'monster'
+            ? [
+                  {
+                      monster: piece.monster,
+                      ...(piece.playerId
+                          ? { seat: { playerId: piece.playerId, name: nameOf(piece.playerId) } }
+                          : {}),
+                      label: monsterName(piece.monster)
+                  }
+              ]
+            : []
+    )
+    const landscape = space.landscape ? state.tileLandscapes[space.landscape.tileId] : undefined
+    return {
+        spaceId,
+        title: `${spaceLabel(spaceId)} · ${place}`,
+        markers,
+        pawns,
+        monsters,
+        ...(landscape ? { landscape: `${titled(landscape)} landscape` } : {}),
+        goods: goodKinds(space.goods),
+        vessels: abandonedVessels(space.vessels)
+    }
+}

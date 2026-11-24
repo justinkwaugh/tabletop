@@ -1,0 +1,124 @@
+import * as Type from 'typebox'
+import {
+    ComponentCount,
+    GoodCounts,
+    GuildIdSchema,
+    MonsterIdSchema,
+    PawnNumberSchema,
+    SpaceIdSchema,
+    VesselTypeSchema
+} from './stateSchemas.js'
+
+/** A decision the current card leaves, pending in no order (R-3.2-H3); no follow-up opens another card. */
+export type FollowUp = Type.Static<typeof FollowUp>
+export const FollowUp = Type.Union([
+    /** R-3.10, R-4.4.1 */
+    Type.Object({ kind: Type.Literal('keep-writs') }, { additionalProperties: false }),
+    /** R-4.7 */
+    Type.Object(
+        { kind: Type.Literal('reeve'), guildId: GuildIdSchema },
+        { additionalProperties: false }
+    ),
+    /** R-4.9.1 */
+    Type.Object({ kind: Type.Literal('military') }, { additionalProperties: false }),
+    /** R-3.7.5 */
+    Type.Object({ kind: Type.Literal('voyage') }, { additionalProperties: false }),
+    /** R-3.11.3 */
+    Type.Object({ kind: Type.Literal('inspect-harvest') }, { additionalProperties: false })
+])
+
+export type PieceRef = Type.Static<typeof PieceRef>
+export const PieceRef = Type.Union([
+    Type.Object({
+        kind: Type.Literal('pawn'),
+        playerId: Type.String(),
+        n: PawnNumberSchema
+    }),
+    Type.Object({ kind: Type.Literal('monster'), monsterId: MonsterIdSchema })
+])
+
+export type WritDrawSource = Type.Static<typeof WritDrawSource>
+export const WritDrawSource = Type.Union([
+    Type.Literal('explore'),
+    Type.Literal('shovels'),
+    Type.Literal('pull'),
+    Type.Literal('voyage')
+])
+
+/** R-3.13.2 Which of a player's markers a Starve the People aims at. */
+export type StarveRole = Type.Static<typeof StarveRole>
+export const StarveRole = Type.Union([Type.Literal('subject'), Type.Literal('serf')])
+
+/** R-3.13.1 */
+export type CombatTarget = Type.Static<typeof CombatTarget>
+export const CombatTarget = Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })])
+
+/** R-4.11.2 The sunrays a round can trigger; the game starts on the first. */
+export type TriggeredEpoch = Type.Static<typeof TriggeredEpoch>
+export const TriggeredEpoch = Type.Union([
+    Type.Literal('track.epoch.ii'),
+    Type.Literal('track.epoch.iii'),
+    Type.Literal('track.epoch.iv'),
+    Type.Literal('track.epoch.v')
+])
+
+export type FlowState = Type.Static<typeof FlowState>
+export const FlowState = Type.Object({
+    /** R-3.1-H1 The seats already final, in the order they finalised; the rest may finalise now. */
+    selection: Type.Optional(Type.Object({ finalised: Type.Array(Type.String()) })),
+    /** R-3.2, R-3.3 Whose turn it is lies in the turn manager. */
+    turn: Type.Optional(
+        Type.Object({
+            secondCard: Type.Boolean(),
+            followUps: Type.Array(FollowUp),
+            /** R-4.2.2, R-4.2-H2 Each vessel left on a space this turn, boarded only on a later turn. */
+            vesselsLeft: Type.Optional(
+                Type.Array(Type.Object({ spaceId: SpaceIdSchema, vessel: VesselTypeSchema }))
+            )
+        })
+    ),
+    /** R-3.10, R-4.4.1 The turn seat's draw; the writs are on its row, owner-known. */
+    writDraw: Type.Optional(
+        Type.Object(
+            {
+                drawnCount: ComponentCount,
+                keep: ComponentCount,
+                source: WritDrawSource,
+                shovelsOffered: Type.Boolean()
+            },
+            { additionalProperties: false }
+        )
+    ),
+    /** R-3.11.3 The goods wait here, drawn from the haversack, until the favours are chosen. */
+    harvest: Type.Optional(
+        Type.Object(
+            { spaceId: SpaceIdSchema, drawn: GoodCounts, favours: ComponentCount },
+            { additionalProperties: false }
+        )
+    ),
+    /** R-4.8.1 The turn seat attacks; the defender answers. */
+    combat: Type.Optional(
+        Type.Object(
+            {
+                defenderId: Type.String(),
+                spaceId: SpaceIdSchema,
+                target: CombatTarget,
+                defendFlipped: Type.Boolean()
+            },
+            { additionalProperties: false }
+        )
+    ),
+    /** R-3.13, R-3.14.2 The turn seat starves; the target answers. */
+    starve: Type.Optional(
+        Type.Object(
+            { targetPlayerId: Type.String(), spaceId: SpaceIdSchema, role: StarveRole },
+            { additionalProperties: false }
+        )
+    ),
+    /** R-4.10, R-4.10-H4 In no order: the turn manager orders the seats asked. */
+    nourish: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
+    /** R-4.3.4, R-4.12.3 In no order: the turn manager asks them in turn order. */
+    landscapes: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
+    /** R-4.11-H1 Set at step 4 of the round. */
+    epochTriggered: Type.Optional(TriggeredEpoch)
+})

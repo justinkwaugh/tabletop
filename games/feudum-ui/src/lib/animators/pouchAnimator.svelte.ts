@@ -1,0 +1,93 @@
+import { tick } from 'svelte'
+import { prefersReducedMotion } from 'svelte/motion'
+import type { GameAction } from '@tabletop/common'
+import type { AnimationContext } from '@tabletop/frontend-components'
+import type { HydratedFeudumGameState } from '@tabletop/feudum'
+import type { SeatPouch } from '$lib/model/seatPanel.js'
+
+/** R-3.1-H1 */
+export const PouchTurnSeconds = 0.42
+
+const PouchPerspective = 190
+
+export interface PouchElement {
+    readonly style: Pick<CSSStyleDeclaration, 'removeProperty'>
+}
+
+export interface PouchChange {
+    readonly from?: HydratedFeudumGameState
+    readonly to: HydratedFeudumGameState
+    readonly action?: GameAction
+    readonly animationContext: AnimationContext
+    readonly pouchOf: (state: HydratedFeudumGameState, playerId: string) => SeatPouch
+}
+
+/** R-3.1-H1 The pouches turn face up together when every hand is final. */
+export class PouchAnimator {
+    revealing: ReadonlyMap<string, SeatPouch> = $state.raw(new Map())
+
+    private readonly elements = new Map<string, Set<PouchElement>>()
+    private readonly turning = new Set<PouchElement>()
+    private generation = 0
+
+    constructor(private readonly reduced: () => boolean = () => prefersReducedMotion.current) {}
+
+    readonly pouch = (playerId: string) => (element: PouchElement) => {
+        const views = this.elements.get(playerId) ?? new Set<PouchElement>()
+        views.add(element)
+        this.elements.set(playerId, views)
+        return () => {
+            views.delete(element)
+            this.turning.delete(element)
+        }
+    }
+
+    async onGameStateChange({ from, to, action, animationContext, pouchOf }: PouchChange) {
+        if (!from || !action) {
+            return
+        }
+        const revealed = new Map<string, SeatPouch>()
+        for (const { playerId } of to.players) {
+            const after = pouchOf(to, playerId)
+            if (after.status === 'finalised' && pouchOf(from, playerId).status !== 'finalised') {
+                revealed.set(playerId, after)
+            }
+        }
+        if (revealed.size === 0) {
+            return
+        }
+        const generation = this.generation
+        this.revealing = revealed
+        await tick()
+        if (generation !== this.generation || this.reduced()) {
+            return
+        }
+        const targets = [...revealed.keys()].flatMap((playerId) => [
+            ...(this.elements.get(playerId) ?? [])
+        ])
+        if (targets.length === 0) {
+            return
+        }
+        for (const element of targets) {
+            this.turning.add(element)
+        }
+        // fromTo renders its start at once: edge on from the first drawn frame, never flat first.
+        animationContext.actionTimeline.fromTo(
+            targets,
+            { rotationY: 90, transformPerspective: PouchPerspective },
+            { rotationY: 0, duration: PouchTurnSeconds, ease: 'power1.out' },
+            0
+        )
+    }
+
+    settle() {
+        this.generation += 1
+        for (const element of this.turning) {
+            element.style.removeProperty('transform')
+        }
+        this.turning.clear()
+        if (this.revealing.size > 0) {
+            this.revealing = new Map()
+        }
+    }
+}
