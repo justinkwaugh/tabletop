@@ -11,7 +11,7 @@ import {
     hydrateEighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
-import { BankSize, DraftCompanies, isBlank } from './catalog.js'
+import { BankSize, DraftCompanies, blankCardIds, isBlank, passCardNumber } from './catalog.js'
 import { choicesFor, hiddenDistribution } from './distribution.js'
 
 function money(state: EighteenFortySixProjectedState) {
@@ -68,6 +68,10 @@ describe('1846 setup and distribution', () => {
     it.each([1, 6])('rejects unsupported count %i', (count) =>
         expect(() => start(count)).toThrow('two through five')
     )
+    it('numbers the Pass cards 1 to the player count, as the printed player cards', () => {
+        expect(blankCardIds(5).map(passCardNumber)).toEqual([1, 2, 3, 4, 5])
+        expect(() => passCardNumber('MS')).toThrow()
+    })
     it('rejects non-catalog canonical fields and does not manufacture missing secrets on hydration', () => {
         const { state } = start()
         expect(CanonicalValidator.Check({ ...state, loans: [] })).toBe(false)

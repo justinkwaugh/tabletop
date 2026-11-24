@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { CompanyDescriptions1846, draftCompany, isBlank } from '@tabletop/1846'
+    import { CompanyDescriptions1846, draftCompany, isBlank, passCardNumber } from '@tabletop/1846'
     import { PrivateCard } from '@tabletop/18xx-ui'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let {
@@ -18,10 +18,11 @@
 </script>
 
 {#if isBlank(cardId)}
-    <article class="draft-card blank" aria-label="Pass card">
+    <article class="draft-card blank" aria-label={session.draftCardName(cardId)}>
         <div class="blank-face">
             <strong>Pass</strong>
-            <span>Take no company</span>
+            <span class="pass-number">{passCardNumber(cardId)}</span>
+            <span class="pass-hint">Take no company</span>
         </div>
         <footer>{@render actions()}</footer>
     </article>
@@ -125,7 +126,13 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
-    .blank-face span {
+    .pass-number {
+        font-size: 40px;
+        font-weight: 700;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+    }
+    .pass-hint {
         opacity: 0.7;
     }
     .blank footer {

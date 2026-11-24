@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 
 export type DraftCompany = {
     id: string
@@ -109,10 +109,16 @@ export function draftCompany(id: string): DraftCompany {
     assertExists(company, `Unknown draft company ${id}`)
     return company
 }
+const BlankCardPrefix = 'blank:'
 export function isBlank(id: string): boolean {
-    return id.startsWith('blank:')
+    return id.startsWith(BlankCardPrefix)
 }
 export function blankCardIds(playerCount: number): string[] {
-    return Array.from({ length: playerCount }, (_, index) => `blank:${index + 1}`)
+    return Array.from({ length: playerCount }, (_, index) => `${BlankCardPrefix}${index + 1}`)
+}
+/** Rules glossary: player cards, used as the blanks, are numbered 1-5. */
+export function passCardNumber(id: string): number {
+    assert(isBlank(id), `${id} is not a Pass card`)
+    return Number(id.slice(BlankCardPrefix.length))
 }
 export const BankSize: Readonly<Record<number, number>> = { 2: 7000, 3: 6500, 4: 7500, 5: 9000 }

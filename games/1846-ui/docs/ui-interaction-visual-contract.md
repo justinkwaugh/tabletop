@@ -17,7 +17,8 @@ physical board artwork is claimed for 1846.
   or hiding is local presentation. Choosing a card is one immediate Action. A seat that is
   not choosing sees whom the draft is waiting for. The public final-company offer stays
   visible while personal commitments are covered. Opponents and spectators never see
-  packets or commitments.
+  packets or commitments. Pass cards carry their printed player-card number, on the card
+  and in the seat's picks ("Pass 3"), so a seat can recognise a Pass card it saw before.
 - **Two-player opening.** Opening purchases are public company cards showing price,
   income or independent capitalization and debt, with the actions available now.
 - **Companies in this game.** The hidden draft and the two-player opening both carry a
