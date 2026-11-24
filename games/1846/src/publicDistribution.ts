@@ -18,8 +18,12 @@ import {
     EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { Purchase, Selection, type HydratedEighteenFortySixState } from './state.js'
-import { draftCompany } from './catalog.js'
-import { nextDistributionPlayer, priceFor, purchaseOpeningCompany } from './distribution.js'
+import {
+    lowerFinalOffer,
+    nextDistributionPlayer,
+    priceFor,
+    purchaseOpeningCompany
+} from './distribution.js'
 
 type State = HydratedEighteenFortySixState
 type OpeningStage = Extract<State['draft'], { kind: 'public' }>['stage']
@@ -100,6 +104,11 @@ export const BuyOpeningCompany = Type.Object(
     { additionalProperties: false }
 )
 const BuyValidator = Compile(BuyOpeningCompany)
+export function isBuyOpeningCompany(
+    action: GameAction
+): action is Type.Static<typeof BuyOpeningCompany> {
+    return BuyValidator.Check(action)
+}
 export class BuyOpeningCompanyAction extends HydratableAction<typeof BuyOpeningCompany> {
     declare playerId: string
     declare companyId: string
@@ -158,6 +167,11 @@ export const PassOpeningPurchase = Type.Object(
     { additionalProperties: false }
 )
 const PassValidator = Compile(PassOpeningPurchase)
+export function isPassOpeningPurchase(
+    action: GameAction
+): action is Type.Static<typeof PassOpeningPurchase> {
+    return PassValidator.Check(action)
+}
 export class PassOpeningPurchaseAction extends HydratableAction<typeof PassOpeningPurchase> {
     declare playerId: string
     declare metadata?: Type.Static<typeof PassOpeningPurchase>['metadata']
@@ -179,12 +193,10 @@ export class PassOpeningPurchaseAction extends HydratableAction<typeof PassOpeni
         this.metadata = {}
         if (draft.finalOffer) {
             const offer = draft.finalOffer
-            const floor = draftCompany(offer.cardId).debt
-            assert(offer.price > floor, 'A free company must be taken')
-            offer.price -= 10
-            this.metadata.reducedOffer = { ...offer }
+            const { reducedOffer, atFloor } = lowerFinalOffer(offer)
+            this.metadata.reducedOffer = reducedOffer
             nextDistributionPlayer(state)
-            if (offer.price === floor) {
+            if (atFloor) {
                 const playerId = state.activePlayerIds[0]
                 this.metadata.purchase = { ...offer, playerId }
                 purchaseOpeningCompany(state, playerId, offer)
@@ -242,12 +254,12 @@ export class ResumeOpeningPurchasesAction extends HydratableAction<typeof Resume
 export const publicDistributionActions = (valuationRules: ValuationRules) => [
     defineAction(
         BuyOpeningCompany,
-        (action): action is Type.Static<typeof BuyOpeningCompany> => BuyValidator.Check(action),
+        isBuyOpeningCompany,
         (data) => new BuyOpeningCompanyAction(data, valuationRules)
     ),
     defineAction(
         PassOpeningPurchase,
-        (action): action is Type.Static<typeof PassOpeningPurchase> => PassValidator.Check(action),
+        isPassOpeningPurchase,
         (data) => new PassOpeningPurchaseAction(data, valuationRules)
     ),
     defineAction(

@@ -196,6 +196,10 @@ describe('1846 setup and distribution', () => {
                 'PassFinalCompany',
                 'RevealDraft'
             ])
+            expect(result.processedActions[0].metadata).toEqual({
+                reducedOffer: { cardId: id, price: debt },
+                purchase: { playerId: expectedOwner, cardId: id, price: debt }
+            })
             expect(result.processedActions.at(-1)?.metadata).toMatchObject({
                 roundEnd: roundEnd(
                     hydrateEighteenFortySixState(result.updatedState),
@@ -241,6 +245,22 @@ describe('1846 setup and distribution', () => {
                 .updatedState.actionCount
         ).toBe(1)
     })
+    it('records the lowered price of a passed final company above its floor', () => {
+        const { game, state, engine } = start()
+        hiddenDistribution(state).deck = []
+        hiddenDistribution(state).remainingCount = 1
+        hiddenDistribution(state).finalOffer = { cardId: 'MS', price: 110 }
+        for (const player of hiddenDistribution(state).participants)
+            player.packet = player.playerId === state.activePlayerIds[0] ? ['MS'] : []
+        const { processedActions } = engine.executeCanonicalAction({
+            game,
+            state,
+            action: action(state)
+        })
+        expect(processedActions.map((action) => action.metadata)).toEqual([
+            { reducedOffer: { cardId: 'MS', price: 100 } }
+        ])
+    })
     it('lets the current player buy the last company before it reaches the debt floor', () => {
         const { game, state, engine } = start()
         const playerId = state.activePlayerIds[0]
@@ -257,6 +277,9 @@ describe('1846 setup and distribution', () => {
         expect(revealedPurchases(processedActions)).toEqual([
             { playerId, cardId: 'MS', price: 110 }
         ])
+        expect(processedActions[0].metadata).toEqual({
+            finalCompany: { cardId: 'MS', price: 110 }
+        })
         expect(
             updatedState.cash.find(
                 (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'MS'
