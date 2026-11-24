@@ -39,6 +39,7 @@ for (const browserType of [chromium, firefox]) {
             }).toPass()
             await expect(actions).toHaveAttribute('aria-selected', 'true')
             await expect(actions).toBeFocused()
+            await expect(actions).toHaveCSS('outline-style', 'none')
         })
     })
 
@@ -73,6 +74,7 @@ for (const browserType of [chromium, firefox]) {
             const order = page.getByRole('tab', { name: 'Order', exact: true })
             await expect(order).toHaveAttribute('aria-selected', 'true')
             await expect(order).toBeFocused()
+            await expect(order).toHaveCSS('outline-style', 'solid')
             await page.keyboard.press('ArrowLeft')
             await expect(actions).toHaveAttribute('aria-selected', 'true')
             await expect(page.getByLabel('History position')).toHaveText('live')

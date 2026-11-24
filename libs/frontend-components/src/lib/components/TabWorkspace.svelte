@@ -175,7 +175,7 @@
     let insertBefore: string | undefined = $state()
     let dropTarget: string | undefined = $state()
     let pressedTab: string | undefined
-    let pointerFocusedTab: string | undefined
+    let pointerFocusedTab: string | undefined = $state()
     function pressTab(id: string) {
         pressedTab = id
         setTimeout(() => (pressedTab = undefined))
@@ -460,6 +460,7 @@
                             onclick={() => select(id)}
                             onkeydown={(event) => tabKeys(event, item.pane.id, id)}
                             onpointerdown={() => pressTab(id)}
+                            class:pointer-focused={pointerFocusedTab === id}
                             onfocus={() => focusTab(id)}
                             onblur={() => blurTab(id)}
                             title={splittable
@@ -1086,6 +1087,10 @@
     .divider:hover::after,
     .divider:focus-visible::after {
         background: var(--workspace-focus, #2563eb);
+    }
+    /* Chromium turns :focus-visible on at the first key press after a click. */
+    button.pointer-focused:focus-visible {
+        outline: none;
     }
     button:focus-visible,
     .divider:focus-visible {
