@@ -22,12 +22,12 @@ export function showOnStacks(state: HydratedFeudumGameState, tops: readonly Stac
     })
 }
 
-/** R-3.2 Every seat forfeits what it holds; returns what the last card set off. */
 /** R-4.3.1 */
 export function firstEpochRegions(state: HydratedFeudumGameState): RegionId[] {
     return RegionIds.filter((id) => stackTop(state, id)?.epoch === 1)
 }
 
+/** R-3.2 Every seat forfeits what it holds; returns what the last card set off. */
 export function playOutCards(table: Table): GameAction[] {
     let processed: GameAction[] = []
     while (table.state.machineState === MachineState.PlayingCards) {
