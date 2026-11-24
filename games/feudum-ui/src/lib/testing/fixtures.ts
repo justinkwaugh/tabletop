@@ -1,6 +1,7 @@
 import {
     addPawn,
     buildFeudum,
+    firstEpochRegions,
     giveMonster,
     giveSeal,
     giveTile,
@@ -778,7 +779,7 @@ export const Fixtures = {
             host.edit((state) => {
                 giveSeal(state, seat)
                 const region = townRegion(host)
-                if (stackTop(state, region)?.epoch === 1) {
+                if (firstEpochRegions(state).includes(region)) {
                     removeTopTile(state, region)
                 }
             })

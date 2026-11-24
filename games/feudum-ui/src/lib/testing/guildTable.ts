@@ -3,34 +3,18 @@ import {
     type ActionCardKind,
     type HydratedFeudumGameState,
     knightRows,
-    placeMarker,
-    rowSeat,
-    type SpaceId
+    rowSeat
 } from '@tabletop/feudum'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
-import { atPlayingCards, emptySpace, type TurnTable } from './turnTable.js'
+import { atPlayingCards, type TurnTable } from './turnTable.js'
 import {
     setBarn,
     setCarts,
     setMarket,
     setRowMarkers,
     setScrolls,
-    setVesselsForSale,
-    setFarmGoods,
-    type GoodAmounts
+    setVesselsForSale
 } from '@tabletop/feudum/testing'
-
-/** R-4.6.3 */
-export function ruleFarm(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    amounts: GoodAmounts
-): SpaceId {
-    const spaceId = emptySpace(state, 'farm')
-    placeMarker(state, playerId, spaceId)
-    setFarmGoods(state, spaceId, amounts)
-    return spaceId
-}
 
 /** R-1.4-H1 */
 export function seatRowIndex(state: HydratedFeudumGameState, playerId: string): number {

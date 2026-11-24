@@ -50,7 +50,7 @@ function trading(goods: GoodAmounts, edit?: (state: HydratedFeudumGameState) => 
     let farmSpaceId: SpaceId = 'space.desert.3'
     const guildTable = tableAtGuild((state, seat) => {
         setBeads(state, { rosary: [2, 3], chickens: [] })
-        farmSpaceId = ruleFarm(state, seat, goods)
+        farmSpaceId = ruleFarm(state, seat, spaceOfKind(state, 'farm'), goods)
         state.recomputeRanks(seat)
         edit?.(state)
     })

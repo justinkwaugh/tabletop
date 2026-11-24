@@ -1,6 +1,7 @@
 import {
     giveTile,
     type GoodAmounts,
+    ruleFarm,
     setBarn,
     setBeads,
     setCarts,
@@ -22,8 +23,8 @@ import type {
     ScrollSpaceId,
     SpaceId
 } from '@tabletop/feudum'
-import { type GuildArrange, ruleFarm, seatRowIndex } from './guildTable.js'
-import { returnGoods, ruleTown } from './turnTable.js'
+import { type GuildArrange, seatRowIndex } from './guildTable.js'
+import { emptySpace, returnGoods, ruleTown } from './turnTable.js'
 
 export const AllCarts: GoodAmounts = { wood: 3, iron: 3, food: 3, sulfur: 3, saltpeter: 3 }
 const FullMarket: GoodAmounts = { saltpeter: 3, sulfur: 3, iron: 1, wood: 3, food: 3 }
@@ -141,8 +142,8 @@ export const BenchScenes = {
         guild: 'farmer',
         fn: 'trade',
         arrange: (state, { seat }) => {
-            ruleFarm(state, seat, { food: 4 })
-            ruleFarm(state, seat, { wood: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { wood: 4 })
         }
     },
     knightPush: {

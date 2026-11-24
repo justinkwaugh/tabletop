@@ -14,6 +14,7 @@ import {
     setPawns,
     tableAtGuild
 } from '../testing/guilds.js'
+import { spaceOfKind } from '../testing/improving.js'
 import {
     GuildAction,
     guildActionOffers,
@@ -117,7 +118,7 @@ describe('GuildAction: R-3.16.1 who may perform which function', () => {
         const { table, playerId } = tableAtGuild((state, seat) => {
             setPawns(state, seat, [])
             state.recomputeRanks(seat)
-            ruleFarm(state, seat, { wood: 2 })
+            ruleFarm(state, seat, spaceOfKind(state, 'farm'), { wood: 2 })
         })
         expect(table.hydrated().guilds.tracks.farmer.master?.playerId).not.toBe(playerId)
         const [offer] = guildActionOffers(table.hydrated(), playerId)

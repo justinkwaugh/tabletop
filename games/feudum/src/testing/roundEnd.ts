@@ -1,5 +1,5 @@
 import { assertExists, type GameAction } from '@tabletop/common'
-import { RegionIds, type TileEpoch } from '../data/regionTiles.js'
+import { RegionIds, type RegionId, type TileEpoch } from '../data/regionTiles.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -23,6 +23,11 @@ export function showOnStacks(state: HydratedFeudumGameState, tops: readonly Stac
 }
 
 /** R-3.2 Every seat forfeits what it holds; returns what the last card set off. */
+/** R-4.3.1 */
+export function firstEpochRegions(state: HydratedFeudumGameState): RegionId[] {
+    return RegionIds.filter((id) => stackTop(state, id)?.epoch === 1)
+}
+
 export function playOutCards(table: Table): GameAction[] {
     let processed: GameAction[] = []
     while (table.state.machineState === MachineState.PlayingCards) {

@@ -8,15 +8,13 @@ import {
     MachineState,
     nourishOffer,
     placeMarker,
-    RegionIds,
-    stackTop,
     type SunrayId
 } from '@tabletop/feudum'
 import { assertExists } from '@tabletop/common'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { settled, type FeudumHost } from './sessionHarness.js'
 import { atPlayingCards, emptySpaces } from './turnTable.js'
-import { showOnStacks, type StackShowing } from '@tabletop/feudum/testing'
+import { firstEpochRegions, showOnStacks, type StackShowing } from '@tabletop/feudum/testing'
 
 export interface RoundEndTable {
     readonly host: FeudumHost
@@ -41,7 +39,7 @@ const Triggers: Readonly<
 
 /** R-4.3.4, R-4.12.3 `serf` tends a filled landscape under `ruler`: the dawn asks it to collect. */
 export function tendLandscape(state: HydratedFeudumGameState, ruler: string, serf: string): void {
-    const region = RegionIds.find((id) => stackTop(state, id)?.epoch === 1)
+    const [region] = firstEpochRegions(state)
     assertExists(region, 'A stack shows a first-epoch tile')
     const spaceId = emptySpaces(state, 'farm')[0]
     placeMarker(state, ruler, spaceId)

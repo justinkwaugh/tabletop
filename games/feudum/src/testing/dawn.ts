@@ -2,15 +2,15 @@ import { assertExists, type GameAction } from '@tabletop/common'
 import { nourishOffer } from '../actions/nourish.js'
 import type { SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
-import { RegionIds, type LandscapeKind, type TileId } from '../data/regionTiles.js'
+import type { LandscapeKind, TileId } from '../data/regionTiles.js'
 import { MachineState } from '../definition/states.js'
 import type { Epoch } from '../data/tracks.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { fillLandscape } from '../model/landscapes.js'
 import { placeMarker } from '../model/locationControl.js'
-import { collectTopTile, stackTop } from '../model/regionStacks.js'
+import { collectTopTile } from '../model/regionStacks.js'
 import { collectTileOf, spaceOfKind } from './improving.js'
-import { playOutCards, showOnStacks, type StackShowing } from './roundEnd.js'
+import { firstEpochRegions, playOutCards, showOnStacks, type StackShowing } from './roundEnd.js'
 import { epochAt } from './state.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
@@ -71,7 +71,7 @@ function takeTile(
     if (kind) {
         return collectTileOf(state, playerId, kind)
     }
-    const region = RegionIds.find((id) => stackTop(state, id)?.epoch === 1)
+    const [region] = firstEpochRegions(state)
     assertExists(region, 'R-4.3.1 A first-epoch tile is on top')
     return collectTopTile(state, playerId, region).tile.id
 }

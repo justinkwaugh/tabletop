@@ -1,4 +1,4 @@
-import { regionOf } from '../model/collections.js'
+import { goodsTotal, regionOf } from '../model/collections.js'
 import {
     ActionSource,
     assert,
@@ -403,7 +403,7 @@ function cardTurn(state: HydratedFeudumGameState, playerId: string, progress: Pr
 /** R-3.11.3 The chart's count from what was drawn, whatever comes first. */
 function favoursFrom({ drawn, favours }: ChooseFavoursOffer): GoodCounts {
     const taken = { ...drawn }
-    let spare = Object.values(drawn).reduce((sum, count) => sum + count, 0) - favours
+    let spare = goodsTotal(drawn) - favours
     for (const good of ['sulfur', 'saltpeter', 'iron', 'wood', 'food'] as const) {
         const back = Math.min(spare, taken[good])
         taken[good] -= back

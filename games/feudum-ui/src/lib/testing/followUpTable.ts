@@ -1,4 +1,4 @@
-import { addPawn } from '@tabletop/feudum/testing'
+import { addPawn, firstEpochRegions } from '@tabletop/feudum/testing'
 import {
     collectTopTile,
     fillLandscape,
@@ -6,8 +6,6 @@ import {
     moveConcealedSeal,
     placeMarker,
     queueFollowUp,
-    RegionIds,
-    stackTop,
     type ActionCardKind,
     type DiscFollowUp,
     type HydratedFeudumGameState,
@@ -122,7 +120,7 @@ export async function atCollecting(): Promise<SeatTable & { readonly spaces: rea
     const turn = await atPlayingCards(['move', 'tax', 'guild'])
     const spaces: SpaceId[] = []
     turn.host.edit((state) => {
-        const [first, second] = RegionIds.filter((id) => stackTop(state, id)?.epoch === 1)
+        const [first, second] = firstEpochRegions(state)
         const farms = emptySpaces(state, 'farm')
         for (const [index, region] of [first, second].entries()) {
             const spaceId = farms[index]

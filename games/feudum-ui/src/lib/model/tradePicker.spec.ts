@@ -1,4 +1,5 @@
 import {
+    ruleFarm,
     setBeads,
     setMarket,
     setRowMarkers,
@@ -14,10 +15,10 @@ import {
     type GuildArrange,
     type GuildTable,
     guildTable,
-    ruleFarm,
     seatRowIndex
 } from '$lib/testing/guildTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
+import { emptySpace } from '$lib/testing/turnTable.js'
 import { guildTarget } from './boardOffer.js'
 import type { PanelChoice } from './cardFlows.js'
 import type { FeudumGameSession } from './session.svelte.js'
@@ -153,8 +154,8 @@ describe('Contract, The trade picker: each offer a choice card', () => {
 
     it('R-4.6.3 a Farmer trade keeps the bench and its map pick', async () => {
         const turn = await opened((state, { seat }) => {
-            ruleFarm(state, seat, { food: 4 })
-            ruleFarm(state, seat, { wood: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { wood: 4 })
         }, 'farmer')
         expect(pickerOf(turn)).toBeUndefined()
     })

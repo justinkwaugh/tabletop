@@ -4,6 +4,7 @@ import {
     giveSeal,
     giveTile,
     holdWrit,
+    ruleFarm,
     setBarn,
     setBeads,
     setJourneyman,
@@ -54,12 +55,7 @@ import {
     threePawns,
     type SeatTable
 } from '$lib/testing/followUpTable.js'
-import {
-    type GuildArrange,
-    guildTable,
-    type GuildTable,
-    ruleFarm
-} from '$lib/testing/guildTable.js'
+import { type GuildArrange, guildTable, type GuildTable } from '$lib/testing/guildTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import {
     atPlayingCards,
@@ -1583,7 +1579,10 @@ const Reveals: readonly Reveal[] = [
         reach: async () => {
             const farms: SpaceId[] = []
             const table = await atGuild((state, { seat }) => {
-                farms.push(ruleFarm(state, seat, { food: 4 }), ruleFarm(state, seat, { food: 4 }))
+                farms.push(
+                    ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 }),
+                    ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+                )
                 setBarn(state, { wood: BarnFull })
                 setBeads(state, { rosary: [5, 2], chickens: [3] })
             })

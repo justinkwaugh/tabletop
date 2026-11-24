@@ -396,7 +396,7 @@ export const CardCases: readonly CardCase[] = [
         kind: 'harvest',
         use: 'regular',
         arrange: (state, seat) => {
-            ruleFarm(state, seat, {})
+            ruleFarm(state, seat, spaceOfKind(state, 'farm'), {})
         },
         move: (state, seat) => ({
             type: ActionType.Harvest,
@@ -417,7 +417,7 @@ export const CardCases: readonly CardCase[] = [
         kind: 'harvest',
         use: 'special',
         arrange: (state, seat) => {
-            ruleFarm(state, seat, {})
+            ruleFarm(state, seat, spaceOfKind(state, 'farm'), {})
         },
         move: (state, seat) => ({
             type: ActionType.Harvest,

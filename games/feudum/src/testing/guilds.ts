@@ -16,7 +16,7 @@ import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { chickenBeads } from '../model/guildsState.js'
 import { recordFrom, type GoodCounts } from '../model/stateSchemas.js'
-import { setUp, spaceOfKind } from './improving.js'
+import { setUp } from './improving.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
 export const StandingSpace: SpaceId = 'space.desert.3'
@@ -231,9 +231,9 @@ export function tableAtGuild(
 export function ruleFarm(
     state: HydratedFeudumGameState,
     playerId: string,
+    spaceId: SpaceId,
     amounts: GoodAmounts
 ): SpaceId {
-    const spaceId = spaceOfKind(state, 'farm')
     placeMarker(state, playerId, spaceId)
     setFarmGoods(state, spaceId, amounts)
     return spaceId

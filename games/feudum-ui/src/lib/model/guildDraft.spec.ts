@@ -1,5 +1,6 @@
 import {
     giveTile,
+    ruleFarm,
     setBarn,
     setBeads,
     setCarts,
@@ -32,11 +33,10 @@ import {
     type GuildSeats,
     type GuildTable,
     guildTable,
-    ruleFarm,
     seatRowIndex
 } from '$lib/testing/guildTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
-import { ruleTown } from '$lib/testing/turnTable.js'
+import { emptySpace, ruleTown } from '$lib/testing/turnTable.js'
 import type { BenchChoice, BenchItem, BenchOffer } from './benchOffer.js'
 import { guildTarget, spaceTarget, type BoardTarget } from './boardOffer.js'
 import type { PanelChoice } from './cardFlows.js'
@@ -175,8 +175,8 @@ const Families: readonly Family[] = [
         guildId: 'farmer',
         fn: 'trade',
         arrange: (state, { seat }) => {
-            ruleFarm(state, seat, { food: 4 })
-            ruleFarm(state, seat, { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
         },
         presses: [{ map: 'first' }, { popup: /^4 sent: 0 food/ }],
         params: { takeFood: 0 },
@@ -696,8 +696,8 @@ describe('R-4.6.1 the bench over the board', () => {
 
     it('R-4.6.3 at its header for a map pick it covers nothing, and a guild area still takes no press', async () => {
         const { session } = await table((state, { seat }) => {
-            ruleFarm(state, seat, { food: 4 })
-            ruleFarm(state, seat, { wood: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { wood: 4 })
         })
         await openFunction(session, 'farmer', 'trade')
         expect(session.benchCovers).toBe(false)
@@ -709,8 +709,8 @@ describe('R-4.6.1 the bench over the board', () => {
 
     it('R-4.6.3 a farm’s split keeps it at its header: the popup stands on the map', async () => {
         const { session } = await table((state, { seat }) => {
-            ruleFarm(state, seat, { food: 4 })
-            ruleFarm(state, seat, { wood: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { wood: 4 })
         })
         await openFunction(session, 'farmer', 'trade')
         const target = benchOf(session).map?.at(0)?.target
@@ -837,8 +837,8 @@ describe('S44 R-4.6.3, R-4.2.4 a Knight trade that tames', () => {
 describe('S44 R-4.6.3 a Farmer trade goes to the map', () => {
     it('R-4.6.3 the bench collapses to the farms; a farm’s popup splits; Undo reopens it', async () => {
         const turn = await table((state, { seat }) => {
-            ruleFarm(state, seat, { food: 4 })
-            ruleFarm(state, seat, { wood: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
+            ruleFarm(state, seat, emptySpace(state, 'farm'), { wood: 4 })
         })
         const { session } = turn
         await openFunction(session, 'farmer', 'trade')

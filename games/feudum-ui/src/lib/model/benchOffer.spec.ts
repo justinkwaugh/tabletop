@@ -1,4 +1,5 @@
 import {
+    ruleFarm,
     setBarn,
     setBeads,
     setCarts,
@@ -26,10 +27,9 @@ import {
     type GuildArrange,
     type GuildTable,
     guildTable,
-    ruleFarm,
     seatRowIndex
 } from '$lib/testing/guildTable.js'
-import { ruleTown } from '$lib/testing/turnTable.js'
+import { emptySpace, ruleTown } from '$lib/testing/turnTable.js'
 import type { FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     benchOffer,
@@ -673,7 +673,7 @@ describe('R-4.6.3 a trade that goes to the map', () => {
     it('R-4.6.3 Farmer trade: the ruled farms with goods, the bench collapsed', async () => {
         let farm: SpaceId = StandingSpace
         const turn = await table((state, { seat }) => {
-            farm = ruleFarm(state, seat, { food: 4 })
+            farm = ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
         })
         const offer = offerOf(turn, 'farmer', 'trade')
         expect(offer.collapsed).toBe('Pick a farm.')
@@ -684,7 +684,7 @@ describe('R-4.6.3 a trade that goes to the map', () => {
     it('R-4.6.3 the popup splits the goods sent into food and shillings', async () => {
         let farm: SpaceId = StandingSpace
         const turn = await table((state, { seat }) => {
-            farm = ruleFarm(state, seat, { food: 4 })
+            farm = ruleFarm(state, seat, emptySpace(state, 'farm'), { food: 4 })
         })
         const offer = offerOf(turn, 'farmer', 'trade', { picks: [], farm })
         expect(offer.popup?.choices[0]?.label).toMatch(/^4 sent: 0 food \/ \ds$/)
