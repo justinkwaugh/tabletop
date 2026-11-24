@@ -7,6 +7,7 @@ import {
 import { truncate } from '../../discord/discordFormatting.js'
 import { siteUrl } from '../../site/siteUrl.js'
 import { userNotificationCopy } from './userNotificationCopy.js'
+import { SITE_NAME } from '../../site/siteName.js'
 
 export type DiscordNotificationContext = {
     frontendHost: string
@@ -14,8 +15,6 @@ export type DiscordNotificationContext = {
     thumbnailUrl?: string
     sentAt: Date
 }
-
-const SITE_NAME = 'BoardTogether'
 
 // Discord rejects the whole message when any of these fields is over its limit.
 const Limit = {

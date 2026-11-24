@@ -9,6 +9,7 @@ import {
 } from 'discord-api-types/v10'
 import { truncate } from './discordFormatting.js'
 import { siteUrl } from '../site/siteUrl.js'
+import { SITE_NAME } from '../site/siteName.js'
 
 export type BugReporter = {
     username: string
@@ -45,7 +46,6 @@ export type BugReportDataContext = {
     scenario?: ScenarioAttachment
 }
 
-const SITE_NAME = 'BoardTogether'
 const BUG_COLOR = 0xef4444
 const NOT_STARTED = 'Not started'
 

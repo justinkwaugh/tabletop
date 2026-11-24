@@ -201,7 +201,8 @@ export class SiteStatsService {
             quietFor30Days,
             webPush,
             discord,
-            telegram
+            telegram,
+            discordWebhook
         ] = await Promise.all([
             users.countUsersWithStatus(UserStatus.Active),
             users.countUsersWithStatus(UserStatus.Incomplete),
@@ -215,7 +216,8 @@ export class SiteStatsService {
             quietSince(30),
             subscriptions.countSubscriptionsWithTransport(TransportType.WebPush),
             subscriptions.countSubscriptionsWithTransport(TransportType.Discord),
-            subscriptions.countSubscriptionsWithTransport(TransportType.Telegram)
+            subscriptions.countSubscriptionsWithTransport(TransportType.Telegram),
+            subscriptions.countSubscriptionsWithTransport(TransportType.DiscordWebhook)
         ])
         return {
             asOf: now.getTime(),
@@ -228,7 +230,7 @@ export class SiteStatsService {
                 quietFor7Days,
                 quietFor30Days
             },
-            notificationClients: { webPush, discord, telegram }
+            notificationClients: { webPush, discord, telegram, discordWebhook }
         }
     }
 

@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
+// Frontend 25.8.0 reads this; remove once a frontend reading /notification/registrations is live.
 export default async function (fastify: FastifyInstance) {
     fastify.get(
         '/status',

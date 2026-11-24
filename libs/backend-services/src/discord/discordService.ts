@@ -17,6 +17,8 @@ import { DiscordSubscription } from '../notifications/subscriptions/discordSubsc
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 import { DiscordTransport } from '../notifications/transports/discordTransport.js'
 import { userTopic } from '../notifications/topics.js'
+import { announceTopicRegistrationsChanged } from '../notifications/topicRegistrationsChanged.js'
+import type { NotificationStore } from '../persistence/stores/notificationStore.js'
 
 const TEST_DISCORD_USER_ID = process.env['TEST_DISCORD_USER_ID']
 const NOTIFY_COMMAND_NAME = 'notify'
@@ -28,7 +30,11 @@ export class DiscordService {
     constructor(
         private readonly notificationService: NotificationService,
         private readonly userService: UserService,
-        private readonly discordTransport: DiscordTransport | undefined
+        private readonly discordTransport: DiscordTransport | undefined,
+        private readonly subscriptions: Pick<
+            NotificationStore,
+            'findNotificationSubscriptions' | 'findSubscriptionTopics'
+        >
     ) {
         if (TEST_DISCORD_USER_ID) {
             this.notificationService
@@ -38,6 +44,20 @@ export class DiscordService {
                 })
                 .catch(console.error)
         }
+    }
+
+    get isAvailable(): boolean {
+        return this.discordTransport !== undefined
+    }
+
+    async disconnect(userId: string): Promise<void> {
+        const registered = await this.subscriptions.findNotificationSubscriptions(userTopic(userId))
+        for (const subscription of registered) {
+            if (subscription.transport === TransportType.Discord) {
+                await this.notificationService.unregisterNotificationSubscription(subscription)
+            }
+        }
+        await announceTopicRegistrationsChanged(this.notificationService, [userTopic(userId)])
     }
 
     async handleInteraction(interaction: APIBaseInteraction<InteractionType, unknown>) {
@@ -139,6 +159,7 @@ export class DiscordService {
             subscription: this.subscriptionFor(discordUserId),
             topic: userTopic(user.id)
         })
+        await announceTopicRegistrationsChanged(this.notificationService, [userTopic(user.id)])
         return true
     }
 
@@ -159,9 +180,11 @@ export class DiscordService {
     }
 
     private async unsubscribe(discordUserId: string) {
-        await this.notificationService.unregisterNotificationSubscription(
-            this.subscriptionFor(discordUserId)
-        )
+        const subscription = this.subscriptionFor(discordUserId)
+        const topics = await this.subscriptions.findSubscriptionTopics(subscription)
+        if (topics.length === 0) return
+        await this.notificationService.unregisterNotificationSubscription(subscription)
+        await announceTopicRegistrationsChanged(this.notificationService, topics)
     }
 
     private subscriptionFor(discordUserId: string): DiscordSubscription {

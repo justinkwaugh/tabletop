@@ -38,13 +38,14 @@ import type {
     PendingEmailChange,
     SiteStatsNow,
     SiteStatsReport,
-    UtcDayRange
+    UtcDayRange,
+    DiscordWebhookConnectResult,
+    UserTopicRegistrations
 } from '@tabletop/common'
 import type {
     GameVersionProvider,
     GetGameOptions,
-    RealtimeTokenOptions,
-    TelegramNotificationStatus
+    RealtimeTokenOptions
 } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type {
@@ -472,8 +473,12 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('unsubscribeFromPushNotifications')
     }
 
-    async getTelegramNotificationStatus(): Promise<TelegramNotificationStatus> {
-        return this.fail('getTelegramNotificationStatus')
+    async getTopicRegistrations(): Promise<UserTopicRegistrations> {
+        return this.fail('getTopicRegistrations')
+    }
+
+    async disconnectDiscordBot(): Promise<void> {
+        return this.fail('disconnectDiscordBot')
     }
 
     async createTelegramLink(): Promise<string> {
@@ -482,6 +487,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async disconnectTelegram(): Promise<void> {
         return this.fail('disconnectTelegram')
+    }
+
+    async connectDiscordWebhook(_url: string): Promise<DiscordWebhookConnectResult> {
+        return this.fail('connectDiscordWebhook')
+    }
+
+    async disconnectDiscordWebhook(): Promise<void> {
+        return this.fail('disconnectDiscordWebhook')
     }
 
     async searchUsers(_query: string): Promise<User[]> {

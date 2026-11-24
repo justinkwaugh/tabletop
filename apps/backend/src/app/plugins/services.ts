@@ -14,9 +14,13 @@ import {
     DiscordBotApi,
     DiscordService,
     DiscordTransport,
+    DiscordWebhookApi,
+    DiscordWebhookService,
+    DiscordWebhookTransport,
     TelegramBotApi,
     TelegramService,
     TelegramTransport,
+    TopicRegistrationsService,
     EmailService,
     EnvSecretsService,
     EnvService,
@@ -95,6 +99,8 @@ declare module 'fastify' {
         notificationService: NotificationService
         discordService: DiscordService
         telegramService: TelegramService
+        discordWebhookService: DiscordWebhookService
+        topicRegistrationsService: TopicRegistrationsService
         ablyService: AblyService | undefined
         ssePubSub: PubSubService | undefined
         chatService: ChatService
@@ -120,6 +126,7 @@ declare module 'fastify' {
 
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
+const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const SITE_MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 
@@ -230,7 +237,12 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         notificationService.addTransport(discordTransport)
     }
 
-    const discordService = new DiscordService(notificationService, userService, discordTransport)
+    const discordService = new DiscordService(
+        notificationService,
+        userService,
+        discordTransport,
+        notificationStore
+    )
 
     const telegramBot = useTelegram
         ? {
@@ -243,7 +255,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             new TelegramTransport(
                 { library: libraryService, catalog: catalogService },
                 telegramBot.api,
-                process.env['FRONTEND_HOST'] ?? ''
+                FRONTEND_HOST
             )
         )
     }
@@ -255,7 +267,26 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             linkTokens: redisCacheService
         },
         telegramBot,
-        process.env['FRONTEND_HOST'] ?? ''
+        FRONTEND_HOST
+    )
+
+    const discordWebhookApi = new DiscordWebhookApi()
+    notificationService.addTransport(
+        new DiscordWebhookTransport(
+            { library: libraryService, catalog: catalogService },
+            discordWebhookApi,
+            userService,
+            FRONTEND_HOST
+        )
+    )
+    const discordWebhookService = new DiscordWebhookService(
+        {
+            notifications: notificationService,
+            subscriptions: notificationStore,
+            users: userService,
+            webhooks: discordWebhookApi
+        },
+        FRONTEND_HOST
     )
 
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
@@ -337,7 +368,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             redisCacheService,
             taskService,
             discordTransport,
-            process.env['FRONTEND_HOST'] ?? ''
+            FRONTEND_HOST
         )
     )
     fastify.decorate(
@@ -369,6 +400,14 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
     fastify.decorate('telegramService', telegramService)
+    fastify.decorate('discordWebhookService', discordWebhookService)
+    fastify.decorate(
+        'topicRegistrationsService',
+        new TopicRegistrationsService(notificationStore, {
+            discordBot: discordService.isAvailable,
+            telegram: telegramService.isAvailable
+        })
+    )
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
     fastify.decorate('rateLimitCounter', new RedisRateLimitCounter(redisService.client))
@@ -399,7 +438,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
                   userService,
                   taskService,
                   MODERATION_EMAIL,
-                  process.env['FRONTEND_HOST'] ?? ''
+                  FRONTEND_HOST
               )
             : undefined
     )
@@ -409,7 +448,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             ? new BugReportService(gameService, userService, discordBotApi, {
                   forumChannelId: BUG_REPORT_CHANNEL_ID,
                   dataChannelId: BUG_REPORT_DATA_CHANNEL_ID,
-                  frontendHost: process.env['FRONTEND_HOST'] ?? ''
+                  frontendHost: FRONTEND_HOST
               })
             : undefined
     )

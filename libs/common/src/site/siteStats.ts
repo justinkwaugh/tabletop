@@ -115,8 +115,13 @@ export const SiteStatsNow = Type.Object(
             { additionalProperties: false }
         ),
         notificationClients: Type.Object(
-            // Optional while counts cached before Telegram expire
-            { webPush: Count, discord: Count, telegram: Type.Optional(Count) },
+            // Optional while counts cached before Telegram and Discord webhooks expire
+            {
+                webPush: Count,
+                discord: Count,
+                telegram: Type.Optional(Count),
+                discordWebhook: Type.Optional(Count)
+            },
             { additionalProperties: false }
         )
     },
