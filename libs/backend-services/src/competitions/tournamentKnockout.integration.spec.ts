@@ -30,6 +30,7 @@ import { SyntheticDefinition, SyntheticRuntime } from '../games/tests/syntheticG
 import { TournamentService } from './tournamentService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { tournamentGameId } from '../games/tournamentGames.js'
+import { noGameFollows } from '../games/tests/noGameFollows.js'
 
 class Configurator extends BaseConfigurator {
     schema = Type.Object({ sides: Type.String() }, { additionalProperties: false })
@@ -102,7 +103,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             tasks,
             notifications,
             cache,
-            titles
+            titles,
+            noGameFollows
         )
         const enqueue = vi.fn<TaskService['createPushTask']>(async () => undefined)
         const service = new TournamentService(

@@ -20,6 +20,7 @@ import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { NotificationService } from '../notifications/notificationService.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 const definition = ContinuationDefinition
 const alice: User = { id: 'alice', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
@@ -63,7 +64,8 @@ function fixture() {
         tasks,
         notifications,
         cache,
-        { synthetic: definition }
+        { synthetic: definition },
+        noGameFollows
     )
     return { service, store, firestore, cache }
 }

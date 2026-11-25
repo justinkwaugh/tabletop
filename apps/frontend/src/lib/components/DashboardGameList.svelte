@@ -3,7 +3,15 @@
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
     import GameCard from './GameCard.svelte'
-    let { games, ondelete }: { games: Game[]; ondelete?: (game: Game) => void } = $props()
+    let {
+        games,
+        ondelete,
+        onunfollow
+    }: {
+        games: Game[]
+        ondelete?: (game: Game) => void
+        onunfollow?: (game: Game) => void
+    } = $props()
 
     function measureCard(node: HTMLLIElement) {
         const observer = new ResizeObserver(([entry]) => {
@@ -24,6 +32,7 @@
                 <GameCard
                     {game}
                     {ondelete}
+                    {onunfollow}
                     class="mx-0 mb-0 w-full min-w-0 max-w-none px-4 pt-4 pb-2 border border-gray-700/60 dark:border-gray-700/60 rounded-xl bg-gray-800/50 dark:bg-gray-800/50"
                 />
             </div>

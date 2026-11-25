@@ -42,6 +42,7 @@ function fixture({
         sessions: { revokeAll: vi.fn(async () => undefined) },
         tokens: { cancelAllChallenges: vi.fn(async () => undefined) },
         preferences: { deletePreferences: vi.fn(async () => undefined) },
+        follows: { deleteFollowsForUser: vi.fn(async () => undefined) },
         subscriptions: {
             findNotificationSubscriptions: vi.fn(async (): Promise<NotificationSubscription[]> => [
                 { id: 'push-1', transport: TransportType.Discord, discordUserId: 'd-1' }
@@ -82,6 +83,7 @@ describe('AbandonedSignUps', () => {
         expect(deletion.sessions.revokeAll).toHaveBeenCalledWith('old')
         expect(deletion.tokens.cancelAllChallenges).toHaveBeenCalledWith('old')
         expect(deletion.preferences.deletePreferences).toHaveBeenCalledWith('old')
+        expect(deletion.follows.deleteFollowsForUser).toHaveBeenCalledWith('old')
         expect(deletion.subscriptions.deleteNotificationSubscription).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'push-1' })
         )

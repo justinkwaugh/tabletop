@@ -197,3 +197,7 @@ export type GameNotification =
     | GameReplaceProjectedActionsNotification
     | GameUndoActionNotification
     | GameChatNotification
+
+export function isGameNotification(notification: Notification): notification is GameNotification {
+    return notification.type === NotificationCategory.Game
+}

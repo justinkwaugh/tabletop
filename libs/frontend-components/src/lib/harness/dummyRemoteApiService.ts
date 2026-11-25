@@ -322,6 +322,18 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getMyGames')
     }
 
+    async getFollowedGames(): Promise<Game[]> {
+        return this.fail('getFollowedGames')
+    }
+
+    async followGame(_gameId: string): Promise<void> {
+        return this.fail('followGame')
+    }
+
+    async unfollowGame(_gameId: string): Promise<void> {
+        return this.fail('unfollowGame')
+    }
+
     async getOpenGames(_titleId: string): Promise<Game[]> {
         return this.fail('getOpenGames')
     }

@@ -20,6 +20,7 @@ import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { NotificationService } from '../notifications/notificationService.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 function user(id: string, roles: Role[] = [Role.User]): User {
     return {
@@ -72,9 +73,18 @@ function fixture() {
         hasUserDirectSubscription: unused,
         sendNotification: vi.fn(async () => {})
     }
-    const service = new GameService(store, users, tokens, tasks, notifications, cache, {
-        synthetic: SyntheticDefinition
-    })
+    const service = new GameService(
+        store,
+        users,
+        tokens,
+        tasks,
+        notifications,
+        cache,
+        {
+            synthetic: SyntheticDefinition
+        },
+        noGameFollows
+    )
     const write = vi.spyOn(store, 'createGame').mockImplementation(async (game) => game)
     return { service, store, tasks, notifications, write }
 }

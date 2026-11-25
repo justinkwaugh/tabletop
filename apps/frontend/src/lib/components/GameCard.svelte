@@ -59,6 +59,7 @@
         onstart,
         onjoin,
         ondelete,
+        onunfollow,
         expanded = false,
         class: className = ''
     }: {
@@ -67,6 +68,7 @@
         onjoin?: (game: Game) => void
         onstart?: (game: Game) => void
         ondelete?: (game: Game) => void
+        onunfollow?: (game: Game) => void
         expanded?: boolean | 'always'
         class?: string
     } = $props()
@@ -214,6 +216,11 @@
         event.stopPropagation()
         game = await gameService.joinGame(game.id)
         onjoin?.(game)
+    }
+
+    function unfollowGame(event: Event) {
+        event.stopPropagation()
+        onunfollow?.(game)
     }
 
     async function declineGame(event: Event) {
@@ -668,7 +675,7 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete || canModerate || bgStatsUrl}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || onunfollow || canDelete || canModerate || bgStatsUrl}
                         <Hr class="mt-1 mb-1" />
                         <div
                             class="pt-4 pb-0 flex flex-row flex-wrap gap-y-2 justify-center items-middle text-white"
@@ -720,6 +727,11 @@
                                     'light',
                                     'mx-2 dark:text-gray-200'
                                 )}
+                            {/if}
+                            {#if onunfollow}
+                                <Button size="xs" color="light" class="mx-2" onclick={unfollowGame}
+                                    >Unfollow</Button
+                                >
                             {/if}
                             {#if bgStatsUrl}
                                 <Button

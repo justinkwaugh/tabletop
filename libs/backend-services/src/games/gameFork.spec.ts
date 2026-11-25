@@ -26,6 +26,7 @@ import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { NotificationService } from '../notifications/notificationService.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -275,7 +276,8 @@ function createService(source: ReturnType<typeof createSource>) {
         tasks,
         notifications,
         RedisCacheService.prototype,
-        { [Definition.info.id]: Definition }
+        { [Definition.info.id]: Definition },
+        noGameFollows
     )
     return { service, store, reads, writes, notifications }
 }

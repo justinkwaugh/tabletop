@@ -17,6 +17,7 @@ import { LocalTaskService } from '../tasks/localTasksService.js'
 import { DefaultNotificationService } from '../notifications/defaultNotificationService.js'
 import { SyntheticDefinition, SyntheticRuntime } from './tests/syntheticGame.js'
 import { DEFERRED_TURN_REMINDER_INDEX } from './turnReminders.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 const users: User[] = ['a', 'b', 'c'].map((id) => ({
     id,
@@ -27,7 +28,12 @@ const users: User[] = ['a', 'b', 'c'].map((id) => ({
 }))
 afterEach(() => vi.restoreAllMocks())
 
-function fixture({ isPublic = true, lastSlot = false, ownerId = 'a' } = {}) {
+function fixture({
+    isPublic = true,
+    lastSlot = false,
+    ownerId = 'a',
+    follows = noGameFollows
+} = {}) {
     const stored: Game = {
         id: 'lobby',
         typeId: 'synthetic',
@@ -102,7 +108,8 @@ function fixture({ isPublic = true, lastSlot = false, ownerId = 'a' } = {}) {
         tasks,
         notifications,
         cache,
-        { synthetic: SyntheticDefinition }
+        { synthetic: SyntheticDefinition },
+        follows
     )
     return { service, store, cache, addKeys, notifications, tasks, read: () => stored, initial }
 }
@@ -189,6 +196,49 @@ describe('lobby membership transactions', () => {
         expect(results.map((result) => result.status)).toEqual(['fulfilled', 'rejected'])
         expect(read().players.map((player) => player.userId)).toEqual(['a', 'b'])
         expect(read().status).toBe(GameStatus.WaitingToStart)
+    })
+})
+
+describe('followers of a lobby', () => {
+    function followedBy(...followerIds: string[]) {
+        return {
+            findFollowerIds: vi.fn(async () => followerIds),
+            removeFollow: vi.fn(async () => undefined),
+            deleteFollowsForGame: vi.fn(async () => undefined)
+        }
+    }
+
+    function updateTopics(notifications: DefaultNotificationService): string[] {
+        const update = vi
+            .mocked(notifications.sendNotification)
+            .mock.calls.find(([request]) => request.notification.action === 'update')
+        return update?.[0].topics ?? []
+    }
+
+    it('sends the updated game to followers of an unlisted lobby', async () => {
+        const follows = followedBy('follower')
+        const { service, notifications } = fixture({ isPublic: false, follows })
+        await service.joinGame({ user: users[1], gameId: 'lobby' })
+        expect(updateTopics(notifications)).toEqual(
+            expect.arrayContaining(['user-follower', 'user-a', 'user-b'])
+        )
+    })
+
+    it('stops the joining user following the game', async () => {
+        const follows = followedBy('b')
+        const { service, notifications } = fixture({ isPublic: false, follows })
+        await service.joinGame({ user: users[1], gameId: 'lobby' })
+        expect(follows.removeFollow).toHaveBeenCalledWith({ userId: 'b', gameId: 'lobby' })
+        expect(updateTopics(notifications).filter((topic) => topic === 'user-b')).toHaveLength(1)
+    })
+
+    it('still notifies the players when the follower lookup fails', async () => {
+        const follows = followedBy()
+        follows.findFollowerIds.mockRejectedValue(new Error('cache down'))
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        const { service, notifications } = fixture({ isPublic: false, follows })
+        await service.joinGame({ user: users[1], gameId: 'lobby' })
+        expect(updateTopics(notifications)).toEqual(expect.arrayContaining(['user-a', 'user-b']))
     })
 })
 

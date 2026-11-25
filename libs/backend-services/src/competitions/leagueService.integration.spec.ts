@@ -30,6 +30,7 @@ import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { TournamentService } from './tournamentService.js'
 import { LeagueService } from './leagueService.js'
 import { DERIVED_ID_LENGTH } from './derivedId.js'
+import { noGameFollows } from '../games/tests/noGameFollows.js'
 
 const sevens: LeagueGroupSizes = { groupSize: 7, bottomMinimum: 5, bottomMaximum: 11 }
 
@@ -86,7 +87,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             localTasks,
             notifications,
             cache,
-            { synthetic: definition }
+            { synthetic: definition },
+            noGameFollows
         )
         const enqueue = vi.fn<TaskService['createPushTask']>(async () => undefined)
         let now = Date.now()

@@ -9,6 +9,7 @@ import type { SessionService } from '../sessions/sessionService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { TokenService } from '../tokens/tokenService.js'
 import type { UserStore } from '../persistence/stores/userStore.js'
+import type { GameFollowStore } from '../persistence/stores/gameFollowStore.js'
 import { AccountModerationError } from './errors.js'
 import type { UserService } from './userService.js'
 
@@ -16,6 +17,7 @@ export type AccountDeletionDependencies = {
     sessions: Pick<SessionService, 'revokeAll'>
     tokens: Pick<TokenService, 'cancelAllChallenges'>
     preferences: Pick<UserStore, 'deletePreferences'>
+    follows: Pick<GameFollowStore, 'deleteFollowsForUser'>
     subscriptions: Pick<
         NotificationStore,
         'findNotificationSubscriptions' | 'deleteNotificationSubscription'
@@ -30,6 +32,7 @@ export async function releaseAccountHoldings(
     await deletion.sessions.revokeAll(userId)
     await deletion.tokens.cancelAllChallenges(userId)
     await deletion.preferences.deletePreferences(userId)
+    await deletion.follows.deleteFollowsForUser(userId)
     const subscriptions = await deletion.subscriptions.findNotificationSubscriptions(
         userTopic(userId)
     )

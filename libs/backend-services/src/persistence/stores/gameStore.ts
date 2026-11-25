@@ -94,6 +94,7 @@ export interface GameStore {
         finalScores: Record<string, number>
     }): Promise<boolean>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
+    findGamesById(ids: string[]): Promise<Game[]>
     findUndoActionWindow({
         game,
         actionId,

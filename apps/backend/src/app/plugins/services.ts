@@ -27,6 +27,8 @@ import {
     FirestoreCharityTallyStore,
     FirestoreChatStore,
     FirestoreGameStore,
+    FirestoreGameFollowStore,
+    GameFollowService,
     FirestoreNotificationStore,
     FirestorePreferenceStore,
     FirestoreSessionStore,
@@ -96,6 +98,7 @@ declare module 'fastify' {
         emailService: EmailService
         secretsService: SecretsService
         gameService: GameService
+        gameFollowService: GameFollowService
         notificationService: NotificationService
         discordService: DiscordService
         telegramService: TelegramService
@@ -204,6 +207,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         titleActivity: new ActivityCache(redisService.client, TitleActivityScope),
         seriesActivity: new ActivityCache(redisService.client, SeriesActivityScope)
     })
+    const gameFollowStore = new FirestoreGameFollowStore(redisCacheService, fastify.firestore)
     const gameService = new GameService(
         gameStore,
         userService,
@@ -212,8 +216,10 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         notificationService,
         redisCacheService,
         availableTitles,
+        gameFollowStore,
         new ProjectedHistoryCache(redisService.client)
     )
+    fastify.decorate('gameFollowService', new GameFollowService(gameStore, gameFollowStore))
 
     fastify.decorate(
         'siteStatsService',
@@ -342,6 +348,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         sessions: sessionService,
         tokens: tokenService,
         preferences: userStore,
+        follows: gameFollowStore,
         subscriptions: notificationStore
     }
     fastify.decorate(

@@ -27,6 +27,7 @@ import type { TaskService } from '../tasks/taskService.js'
 import type { NotificationService } from '../notifications/notificationService.js'
 import { userTopic } from '../notifications/topics.js'
 import { SeatHolderUnavailableError } from './errors.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 function account(id: string, status = UserStatus.Active, roles = [Role.User]): User {
     return { id, username: id, email: `${id}@example.com`, status, roles, externalIds: [] }
@@ -49,6 +50,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         let live: ReturnType<typeof cacheFixture>
         let store: FirestoreGameStore
         let service: GameService
+        let follows: typeof noGameFollows
         let sent: { notification: Notification; topics: string[] }[]
         let gameId: string
 
@@ -84,6 +86,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 sendGameStartedEmail: unused
             }
             sent = []
+            follows = { ...noGameFollows, removeFollow: vi.fn(async () => undefined) }
             const notifications: NotificationService = {
                 addTopicTransport: vi.fn(),
                 addTopicListener: unused,
@@ -103,7 +106,8 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 tasks,
                 notifications,
                 live.cache,
-                { [ContinuationDefinition.info.id]: ContinuationDefinition }
+                { [ContinuationDefinition.info.id]: ContinuationDefinition },
+                follows
             )
             const definition = ContinuationDefinition
             const lobby = definition.runtime.initializer.initializeGame(
@@ -193,6 +197,16 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                     })
                 ])
             )
+        })
+
+        it('ends the new holder’s follow of the game', async () => {
+            await service.handOverSeatAsAdministrator({
+                gameId,
+                playerId: 'seat-2',
+                username: 'carol',
+                administrator: admin
+            })
+            expect(follows.removeFollow).toHaveBeenCalledWith({ userId: 'carol', gameId })
         })
 
         it('cancels an open Player Vote', async () => {

@@ -24,6 +24,7 @@ import { EnvService } from '../env/envService.js'
 import { SyntheticDefinition } from './tests/syntheticGame.js'
 import { reminderPreferences } from './tests/turnReminderPreferences.js'
 import { TURN_REMINDER_DELAYS, TurnReminderTask } from './turnReminders.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 const HOUR = 60 * 60
 const LAST_REMINDER_INDEX = TURN_REMINDER_DELAYS.length - 1
@@ -105,7 +106,8 @@ function fixture({
         tasks,
         notifications,
         cache,
-        { synthetic: SyntheticDefinition }
+        { synthetic: SyntheticDefinition },
+        noGameFollows
     )
 
     const chainKey = 'turn-notification-a-turns'

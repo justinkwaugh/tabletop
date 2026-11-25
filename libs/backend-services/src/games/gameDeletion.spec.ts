@@ -9,6 +9,7 @@ import { TokenService } from '../tokens/tokenService.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
 import { DefaultNotificationService } from '../notifications/defaultNotificationService.js'
 import { SyntheticDefinition } from './tests/syntheticGame.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 const owner: User = {
     id: 'owner',
@@ -22,7 +23,11 @@ const admin: User = { ...owner, id: 'admin', username: 'admin', roles: [Role.Use
 
 afterEach(() => vi.restoreAllMocks())
 
-function fixture(read: Partial<Game>, stored: Partial<Game> = read) {
+function fixture(
+    read: Partial<Game>,
+    stored: Partial<Game> = read,
+    follows: typeof noGameFollows = noGameFollows
+) {
     const game: Game = {
         id: 'game',
         typeId: 'synthetic',
@@ -65,7 +70,8 @@ function fixture(read: Partial<Game>, stored: Partial<Game> = read) {
         LocalTaskService.prototype,
         notifications,
         cache,
-        { synthetic: SyntheticDefinition }
+        { synthetic: SyntheticDefinition },
+        follows
     )
     return { service, deleteGame, deleted, game }
 }
@@ -81,6 +87,20 @@ describe('deleting a Hosted Game', () => {
             expect(deleted).toHaveBeenCalledTimes(1)
         }
     )
+
+    it('still deletes the game when removing its follows fails', async () => {
+        const follows = {
+            ...noGameFollows,
+            deleteFollowsForGame: vi.fn(async () => {
+                throw Error('unavailable')
+            })
+        }
+        const { service, deleted, game } = fixture({}, {}, follows)
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        await service.deleteGame(owner, game.id)
+        expect(deleted).toHaveBeenCalledTimes(1)
+        expect(follows.deleteFollowsForGame).toHaveBeenCalledWith(game.id)
+    })
 
     it('refuses to let the Game Owner delete a Finished game', async () => {
         const { service, deleted, game } = fixture({ status: GameStatus.Finished })

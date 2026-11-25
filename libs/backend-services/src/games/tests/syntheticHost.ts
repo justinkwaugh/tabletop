@@ -27,6 +27,7 @@ import { TokenService } from '../../tokens/tokenService.js'
 import { UpdateValidationResult } from '../../persistence/stores/validator.js'
 import type { TaskService } from '../../tasks/taskService.js'
 import type { NotificationService } from '../../notifications/notificationService.js'
+import { noGameFollows } from './noGameFollows.js'
 
 export function syntheticUser(id: string): User {
     return { id, status: UserStatus.Active, roles: [Role.User], externalIds: [] }
@@ -197,7 +198,8 @@ export function createSyntheticHost({ activeSeats = 1, playerIds = ['p1', 'p2', 
         tasks,
         notifications,
         RedisCacheService.prototype,
-        { [Definition.info.id]: Definition }
+        { [Definition.info.id]: Definition },
+        noGameFollows
     )
     const step = (id: string, playerId: string): Step => ({
         id,

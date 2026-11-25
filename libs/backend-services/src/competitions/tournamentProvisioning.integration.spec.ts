@@ -35,6 +35,7 @@ import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { tournamentGameId } from '../games/tournamentGames.js'
 import { DEFERRED_TURN_REMINDER_INDEX } from '../games/turnReminders.js'
+import { noGameFollows } from '../games/tests/noGameFollows.js'
 
 const definition = {
     ...SyntheticDefinition,
@@ -119,7 +120,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 synthetic: definition,
                 scored: scoredDefinition,
                 pointsBehind: pointsBehindDefinition
-            }
+            },
+            noGameFollows
         )
         const enqueue = vi.fn<TaskService['createPushTask']>(async () => undefined)
         const service = new TournamentService(

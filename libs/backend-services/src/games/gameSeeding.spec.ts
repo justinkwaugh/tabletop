@@ -17,6 +17,7 @@ import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { NotificationService } from '../notifications/notificationService.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 const masterSeed = '0123456789abcdef0123456789abcdef'
 const definition = {
@@ -63,7 +64,8 @@ function fixture() {
         tasks,
         notifications,
         cache,
-        { synthetic: definition }
+        { synthetic: definition },
+        noGameFollows
     )
     const game = SyntheticRuntime.initializer.initializeGame(
         {

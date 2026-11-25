@@ -52,9 +52,17 @@
         attachGlobalCssVarFromRect
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
+    import { followFailureMessage } from '$lib/services/followedGames.svelte'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { adminTabPath } from '$lib/utils/adminPaths'
-    import { BellSolid, DownloadOutline, HeartOutline, RefreshOutline } from 'flowbite-svelte-icons'
+    import {
+        BellSolid,
+        BookmarkOutline,
+        BookmarkSolid,
+        DownloadOutline,
+        HeartOutline,
+        RefreshOutline
+    } from 'flowbite-svelte-icons'
     import {
         isInstalledApp,
         pwaInstallPrompt,
@@ -127,6 +135,27 @@
         if (!sessionUser || !session || session.primaryGame.hotseat) return undefined
         return siteGameService.cachedGame(session.primaryGame.id) ?? session.primaryGame
     })
+    const followedGames = getSiteContext().followedGames
+    let followableGame = $derived.by(() => {
+        const game = gameService.currentGameSession?.primaryGame
+        return game && followedGames.canToggle(game) ? game : undefined
+    })
+    let following = $derived(
+        followableGame !== undefined && followedGames.isFollowing(followableGame.id)
+    )
+    $effect(() => {
+        if (gameService.currentGameSession && sessionUser) {
+            followedGames.loadOnce().catch((error) => {
+                console.error('Error loading followed games', error)
+            })
+        }
+    })
+    function toggleFollowing() {
+        if (!followableGame) return
+        followedGames
+            .toggle(followableGame)
+            .catch((error) => toast.error(followFailureMessage(error)))
+    }
     let accountMenuOpen = $state(false)
     let showCallGame = $state(false)
     let showBugReport = $state(false)
@@ -519,6 +548,24 @@
                                             d="M12 4a4 4 0 0 1 3.995 3.8l.005 .2a1 1 0 0 1 .428 .096l3.033 -1.938a1 1 0 1 1 1.078 1.684l-3.015 1.931a7.17 7.17 0 0 1 .476 2.227h3a1 1 0 0 1 0 2h-3v1a6.01 6.01 0 0 1 -.195 1.525l2.708 1.616a1 1 0 1 1 -1.026 1.718l-2.514 -1.501a6.002 6.002 0 0 1 -3.973 2.56v-5.918a1 1 0 0 0 -2 0v5.917a6.002 6.002 0 0 1 -3.973 -2.56l-2.514 1.503a1 1 0 1 1 -1.026 -1.718l2.708 -1.616a6.01 6.01 0 0 1 -.195 -1.526v-1h-3a1 1 0 0 1 0 -2h3.001v-.055a7 7 0 0 1 .474 -2.173l-3.014 -1.93a1 1 0 1 1 1.078 -1.684l3.032 1.939l.024 -.012l.068 -.027l.019 -.005l.016 -.006l.032 -.008l.04 -.013l.034 -.007l.034 -.004l.045 -.008l.015 -.001l.015 -.002l.087 -.004a4 4 0 0 1 4 -4zm0 2a2 2 0 0 0 -2 2h4a2 2 0 0 0 -2 -2z"
                                         ></path>
                                     </svg>
+                                </button>
+                            {/if}
+                            {#if followableGame}
+                                <button
+                                    type="button"
+                                    class="follow-button inline-flex items-center leading-none cursor-pointer {following
+                                        ? 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
+                                        : 'text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}"
+                                    aria-pressed={following}
+                                    title={following ? 'Following' : 'Follow this game'}
+                                    onclick={toggleFollowing}
+                                >
+                                    <span class="sr-only">Follow this game</span>
+                                    {#if following}
+                                        <BookmarkSolid class="h-5 w-5" aria-hidden="true" />
+                                    {:else}
+                                        <BookmarkOutline class="h-5 w-5" aria-hidden="true" />
+                                    {/if}
                                 </button>
                             {/if}
                         </div>
@@ -930,6 +977,7 @@
             gap: 0;
         }
         .mobile-game-header .bug-report-button,
+        .mobile-game-header .follow-button,
         .mobile-game-header .pay-it-forward-icon {
             justify-content: center;
             width: 40px;

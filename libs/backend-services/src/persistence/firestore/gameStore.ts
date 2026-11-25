@@ -2456,7 +2456,7 @@ function storedDate(value: unknown): Date {
     return value.toDate()
 }
 
-const gameConverter = {
+export const gameConverter = {
     toFirestore(game: Game): PartialWithFieldValue<StoredGame> {
         const docData = game as StoredGame
 

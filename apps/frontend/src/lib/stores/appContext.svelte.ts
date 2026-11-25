@@ -9,6 +9,7 @@ import {
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
+import { FollowedGames } from '$lib/services/followedGames.svelte'
 import { LibraryService } from '$lib/services/libraryService.svelte'
 import { ManifestService } from '$lib/services/manifestService'
 import { CatalogService } from '$lib/services/catalogService.svelte'
@@ -36,7 +37,10 @@ const authorizationService = new AuthorizationService(
     () => {
         void libraryService.whenReady()
     },
-    () => gameService.clear()
+    () => {
+        gameService.clear()
+        followedGames.clear()
+    }
 )
 
 const visibilityService = new VisibilityService()
@@ -58,6 +62,7 @@ const notificationService = new NotificationService(
 )
 const chatService = new ChatService(authorizationService, notificationService, api)
 const gameService = new GameService(libraryService, authorizationService, notificationService, api)
+const followedGames = new FollowedGames(authorizationService, notificationService, api)
 const userPreferencesEditor = new UserPreferencesEditor(
     () => authorizationService.getSessionUser(),
     api,
@@ -70,6 +75,7 @@ const appContext: AppContext & {
     authorizationService: AuthorizationService
     notificationService: NotificationService
     gameService: GameService
+    followedGames: FollowedGames
     userPreferencesEditor: UserPreferencesEditor
 } = {
     catalogService: new CatalogService(api),
@@ -78,6 +84,7 @@ const appContext: AppContext & {
     authorizationService,
     notificationService,
     gameService,
+    followedGames,
     chatService: chatService,
     visibilityService,
     userPreferencesEditor,

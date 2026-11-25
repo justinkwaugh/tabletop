@@ -9,10 +9,12 @@ export const load: PageLoad = async ({ url }) => {
             intendedUrl: url
         })
     ) {
-        getAppContext()
-            .gameService.loadGames()
-            .catch((e) => {
-                console.error('Error loading games', e)
-            })
+        const { gameService, followedGames } = getAppContext()
+        gameService.loadGames().catch((e) => {
+            console.error('Error loading games', e)
+        })
+        followedGames.load().catch((e) => {
+            console.error('Error loading followed games', e)
+        })
     }
 }

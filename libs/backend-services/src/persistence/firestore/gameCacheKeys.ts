@@ -73,6 +73,14 @@ export class GameCacheKeys {
         return `bookmark-${gameId}-${playerId}`
     }
 
+    static followedGames(userId: string): string {
+        return `followed-games-${userId}`
+    }
+
+    static gameFollowers(gameId: string): string {
+        return `game-followers-${gameId}`
+    }
+
     static gameWrite(gameId: string): string[] {
         return [this.game(gameId), ...this.stateWrite(gameId)]
     }

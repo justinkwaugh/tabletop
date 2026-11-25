@@ -5,6 +5,13 @@ export function currentDashboardGames(active: Game[], waiting: Game[], userId?: 
     return [...active, ...waiting].toSorted((a, b) => compareGameInvitations(a, b, userId))
 }
 
+export function compareFollowedGames(a: Game, b: Game): number {
+    const finished = (game: Game) => game.status === GameStatus.Finished
+    const latest = (game: Game) =>
+        (game.finishedAt ?? game.lastActionAt ?? game.createdAt).getTime()
+    return Number(finished(a)) - Number(finished(b)) || latest(b) - latest(a)
+}
+
 export function isUsersGameTurn(game: Game, userId?: string): boolean {
     return (
         userId !== undefined &&

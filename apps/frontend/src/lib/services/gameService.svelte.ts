@@ -18,11 +18,8 @@ import {
 import {
     type GameCreationOptions,
     Game,
-    type GameNotification,
     GameNotificationAction,
     GameStatus,
-    Notification,
-    NotificationCategory,
     GameAction,
     GameState,
     type HydratedGameState,
@@ -36,6 +33,7 @@ import {
     gameUserIds,
     isListedOpenGame,
     isListedPublicGame,
+    isGameNotification,
     isYourTurnNotification,
     omitGameState,
     sameSeatAccounts,
@@ -53,6 +51,7 @@ import {
     isWaitingOnUser,
     type UserAwaited
 } from '$lib/utils/dashboardGames'
+import { isNewerGame } from '$lib/utils/gameUpdates'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 import { gamePageDependency } from '$lib/utils/gamePage'
 import { invalidate } from '$app/navigation'
@@ -232,7 +231,7 @@ export class GameService implements GameServiceInterface {
             if (
                 !newest ||
                 change.removed ||
-                (!newest.removed && this.isNewer(change.game, newest.game))
+                (!newest.removed && isNewerGame(change.game, newest.game))
             ) {
                 newestByGame.set(change.game.id, change)
             }
@@ -243,14 +242,10 @@ export class GameService implements GameServiceInterface {
                 continue
             }
             const loaded = this.gamesById.get(game.id) ?? this.localGamesById.get(game.id)
-            if (!loaded || this.isNewer(game, loaded)) {
+            if (!loaded || isNewerGame(game, loaded)) {
                 this.upsertCachedGame(game)
             }
         }
-    }
-
-    private isNewer(game: Game, than: Game): boolean {
-        return (game.updatedAt?.getTime() ?? 0) > (than.updatedAt?.getTime() ?? 0)
     }
 
     private async fetchCurrentGames(
@@ -604,7 +599,7 @@ export class GameService implements GameServiceInterface {
                 await this.loadGames()
                 return
             }
-            if (!this.isGameNotification(notification)) {
+            if (!isGameNotification(notification)) {
                 return
             }
             const game = Value.Convert(Game, notification.data.game) as Game
@@ -631,9 +626,5 @@ export class GameService implements GameServiceInterface {
         const open = this.currentGameSession?.game
         if (open?.id !== game.id || sameSeatAccounts(open.players, game.players)) return
         void invalidate(gamePageDependency(game.id))
-    }
-
-    private isGameNotification(notification: Notification): notification is GameNotification {
-        return notification.type === NotificationCategory.Game
     }
 }

@@ -27,7 +27,9 @@ enum GameServiceError {
     DisallowedAction = 'DisallowedActionError',
     RacedAction = 'RacedActionError',
     HotseatSeatHandover = 'HotseatSeatHandoverError',
-    SeatHolderUnavailable = 'SeatHolderUnavailableError'
+    SeatHolderUnavailable = 'SeatHolderUnavailableError',
+    GameNotFollowable = 'GameNotFollowableError',
+    GameFollowLimitReached = 'GameFollowLimitReachedError'
 }
 
 export class GamePlayerCountInvalidError extends BaseError {
@@ -331,6 +333,26 @@ export class SeatHolderUnavailableError extends BaseError {
             name: GameServiceError.SeatHolderUnavailable,
             message: `${username} is not an active account`,
             metadata: { username }
+        })
+    }
+}
+
+export class GameNotFollowableError extends BaseError {
+    constructor({ id }: { id: string }) {
+        super({
+            name: GameServiceError.GameNotFollowable,
+            message: `The game with id ${id} cannot be followed`,
+            metadata: { id }
+        })
+    }
+}
+
+export class GameFollowLimitReachedError extends BaseError {
+    constructor({ limit }: { limit: number }) {
+        super({
+            name: GameServiceError.GameFollowLimitReached,
+            message: `You can follow at most ${limit} games`,
+            metadata: { limit }
         })
     }
 }

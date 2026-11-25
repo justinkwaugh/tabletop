@@ -49,6 +49,9 @@ test.beforeEach(async ({ page }) => {
     await page.route('**/api/v1/user/self', (route) =>
         route.fulfill({ json: { payload: { user } } })
     )
+    await page.route('**/api/v1/games/followed', (route) =>
+        route.fulfill({ json: { payload: { games: [] } } })
+    )
     await page.route('**/api/v1/games/mine*', (route) => {
         expect(new URL(route.request().url()).searchParams.get('scope')).toBe('current')
         return route.fulfill({
@@ -712,10 +715,8 @@ for (const tab of ['Current', 'History']) {
             await expect(page.getByRole('dialog')).toHaveCount(0)
             await expect(panel.locator('li')).toHaveCount(11)
             await expect(panel).not.toBeFocused()
-            await page.getByRole('button', { name: 'Your turn 11', exact: true }).focus()
-        } else {
-            await page.getByRole('tab', { name: tab }).focus()
         }
+        await page.getByRole('tab', { name: tab }).focus()
         await page.keyboard.press('Tab')
         await expect(panel).not.toBeFocused()
         await expect(panel.locator('button').first()).toBeFocused()
@@ -730,13 +731,40 @@ test('keeps your-turn games marked after refreshing the dashboard', async ({ pag
         })
     )
     await page.goto('/dashboard')
-    await expect(page.getByRole('button', { name: 'Your turn 1', exact: true })).toBeVisible()
+    await expect(page.locator('.dashboard-game-list li')).toHaveCount(2)
     await page.reload()
-    await expect(page.getByRole('button', { name: 'Your turn 1', exact: true })).toBeVisible()
+    await expect(page.locator('.dashboard-game-list li')).toHaveCount(2)
     const mine = page.locator('.dashboard-game-list li').filter({ hasText: 'Table 00' })
     const opponent = page.locator('.dashboard-game-list li').filter({ hasText: 'Table 01' })
     await expect(mine.getByRole('button', { name: 'Your Turn', exact: true })).toBeVisible()
     await expect(opponent.getByRole('button', { name: 'Enter', exact: true })).toBeVisible()
     await mine.getByRole('heading', { name: 'Table 00', exact: true }).click()
     await expect(mine.getByRole('button', { name: 'Take Your Turn', exact: true })).toBeVisible()
+})
+
+test('the Following tab lists followed games and explains how to follow one', async ({ page }) => {
+    const followed: Game = {
+        ...game(50),
+        name: 'Followed table',
+        ownerId: 'someone-else',
+        activePlayerIds: ['p2'],
+        players: game(50).players.filter((player) => player.userId !== user.id)
+    }
+    let games: Game[] = []
+    await page.route('**/api/v1/games/followed', (route) =>
+        route.fulfill({ json: { payload: { games } } })
+    )
+    await page.goto('/dashboard')
+    await page.getByRole('tab', { name: /Following/ }).click()
+    const panel = page.getByRole('tabpanel', { name: /Following/ })
+    await expect(panel).toContainText('Follow games you aren’t playing in to keep them here.')
+    await expect(panel).toContainText('in the top bar.')
+
+    games = [followed]
+    await page.reload()
+    await page.getByRole('tab', { name: /Following/ }).click()
+    await expect(panel.locator('.dashboard-game-list li')).toHaveCount(1)
+    await expect(panel.getByRole('heading', { name: 'Followed table', exact: true })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /Following/ })).toContainText('1')
+    await expect(page.locator('#dashboard-panel-current')).not.toContainText('Followed table')
 })

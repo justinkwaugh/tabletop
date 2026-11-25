@@ -513,6 +513,32 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
+    async getFollowedGames(): Promise<Game[]> {
+        const response = await this.wretch
+            .get('/games/followed')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GamesResponse>()
+
+        return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async followGame(gameId: string): Promise<void> {
+        await this.wretch
+            .post({ gameId }, '/game/follow')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
+    async unfollowGame(gameId: string): Promise<void> {
+        await this.wretch
+            .post({ gameId }, '/game/unfollow')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
     async getMyGameHistory(before?: string): Promise<GameHistoryPage> {
         const params = new URLSearchParams()
         if (before) params.set('before', before)

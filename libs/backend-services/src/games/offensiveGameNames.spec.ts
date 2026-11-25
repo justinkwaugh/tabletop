@@ -9,6 +9,7 @@ import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { NotificationService } from '../notifications/notificationService.js'
+import { noGameFollows } from './tests/noGameFollows.js'
 
 const OFFENSIVE = 'Fuck this game'
 
@@ -66,7 +67,8 @@ function fixture() {
         tasks,
         notifications,
         cache,
-        { synthetic: SyntheticDefinition }
+        { synthetic: SyntheticDefinition },
+        noGameFollows
     )
     vi.spyOn(store, 'createGame').mockImplementation(async (game) => game)
     return { service, store }

@@ -143,4 +143,32 @@ export function gameUserIds(game: Pick<Game, 'players' | 'ownerId' | 'tournament
     return [...new Set(game.tournament ? playerUserIds : [game.ownerId, ...playerUserIds])]
 }
 
+export const GAME_FOLLOW_LIMIT = 50
+
+export function isFollowableGame(game: Pick<Game, 'hotseat' | 'category' | 'storage'>): boolean {
+    return (
+        (game.storage ?? GameStorage.Remote) === GameStorage.Remote &&
+        !game.hotseat &&
+        game.category !== GameCategory.Exploration
+    )
+}
+
+const FOLLOWABLE_STATUSES = [
+    ...getGameStatusesForCategory(GameStatusCategory.Active),
+    ...getGameStatusesForCategory(GameStatusCategory.Completed)
+]
+
+export type FollowEligibility = Pick<
+    Game,
+    'players' | 'ownerId' | 'tournament' | 'hotseat' | 'category' | 'storage' | 'status'
+>
+
+export function canFollowGame(game: FollowEligibility, userId: string): boolean {
+    return (
+        isFollowableGame(game) &&
+        FOLLOWABLE_STATUSES.includes(game.status) &&
+        !gameUserIds(game).includes(userId)
+    )
+}
+
 export const GameValidator = Compile(Game)
