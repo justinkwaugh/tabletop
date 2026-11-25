@@ -10,3 +10,6 @@ round's company auctions use the shared auction panels; a company's home is chos
 highlighted city on the map. The [18xx Playground](../../apps/18xx-playground/README.md) hosts it
 at `/table` and `/maps`; `pnpm --filter @tabletop/1817-ui dev` serves the standalone harness on
 port 4192.
+
+The cover sets the title over Currier & Ives's _American Railroad Scene: Lightning Express Trains
+Leaving the Junction_ (1874, public domain); `tools/cover-art` renders it.

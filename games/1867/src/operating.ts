@@ -78,7 +78,7 @@ export const EarningsRules1867: EarningsRules = minorAndMajorEarnings({
 
 /**
  * In phase 8 a major may upgrade a train: it gives the train in exchange for half its face value
- * off a dearer train from the train yard (AAG §10.10; the Grand Trunk rulebook omitted this rule
+ * off a dearer train from the train yard (RoP §10.10; the Grand Trunk rulebook omitted this rule
  * and the designer confirmed it). An 8 for an 8, or a 5+5E for an 8, is no upgrade.
  */
 function exchangePrice(

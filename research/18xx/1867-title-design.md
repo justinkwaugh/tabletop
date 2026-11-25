@@ -1,13 +1,14 @@
 # 1867: The Railways of Canada — title design
 
 Rules authority: the Grand Trunk Games combined _1861 & 1867_ rulebook (2020), transcribed in
-`/workspace/artassets/1861/grand-trunk/rulebook-rulespal.txt`, read with the designer's rulings.
-The designer (Ian D. Wilson) rules that the original All-Aboard Games 1867 rules are definitive
-where the Grand Trunk text differs (18xx.games issue 9536, 2023); those rules are saved in
-`/workspace/artassets/1867/aag/`. Every ruling found on BoardGameGeek (games 184524, 227143 and 292187) and in the 18xx.games issues is compiled in `/workspace/artassets/1867/rulings.md`
-(55 rulings, 10 open questions); section numbers below are the Grand Trunk rulebook's (GTG).
-The research engine (`g_1867`) supplied hex coordinates, terrain, tile layouts and counts, checked
-against the rulebook and the rulings.
+`/workspace/artassets/1861/grand-trunk/rulebook-rulespal.txt`, read with the designer's rulings. The
+designer (Ian D. Wilson) rules that his original 1867 Rules of Play (v1.0, 5 March 2017; RoP below)
+are definitive where the Grand Trunk text differs (18xx.games issue 9536, 2023); those rules are
+saved in `/workspace/artassets/1867/rules-of-play-2017/`. Every ruling found on BoardGameGeek (games
+184524, 227143 and 292187) and in the 18xx.games issues is compiled in
+`/workspace/artassets/1867/rulings.md` (55 rulings, 10 open questions); section numbers below are
+the Grand Trunk rulebook's (GTG). The research engine (`g_1867`) supplied hex coordinates, terrain,
+tile layouts and counts, checked against the rulebook and the rulings.
 
 Scope: the base game for 2–6 players with the Column Market, and the Grand Trunk optional rules
 that apply to 1867 (§14). Cover: the 1867 half of the Grand Trunk combined box art (the same
@@ -76,30 +77,30 @@ updated. **1861 needs a logic major at its next release.** No other title's cont
 
 From `/workspace/artassets/1867/rulings.md`; the numbers are that file's.
 
-- A1–A2: merger order, the owner's choice of 2026-11-17 for both titles. The player with the
-  most shares directs, even with one, a tie going to the owner of the merging minor earliest in
-  operating order; the director buys first and a larger holding takes over (AAG §12.3, 1861
-  §12.3), not GTG §9.2C's active owner first.
+- A1–A2: merger order, the owner's choice of 2026-11-17 for both titles. The player with the most
+  shares directs, even with one, a tie going to the owner of the merging minor earliest in operating
+  order; the director buys first and a larger holding takes over (RoP §12.3, 1861 §12.3), not GTG
+  §9.2C's active owner first.
 - A6: phase 8 trade-in at 50% of the old train's face value, the new train from the yard, the old
-  one to the bank pool, allowed at the train limit. AAG calls it an upgrade, so the new train must
-  cost more than the old one: an 8 is never traded for another 8 (or a 5+5E for an 8). Only in phase 8 (AAG "In Phase 8 (only)"),
-  so not for the first 8-train.
-- A7, A8: minor homes per city in Toronto and Montreal; majors need an empty hex (never Toronto);
-  a connected empty city only where no unconnected one exists. "Unconnected" (GTG §7.4, AAG §9.3:
+  one to the bank pool, allowed at the train limit. RoP calls it an upgrade, so the new train must
+  cost more than the old one: an 8 is never traded for another 8 (or a 5+5E for an 8). Only in phase
+  8 (RoP "In Phase 8 (only)"), so not for the first 8-train.
+- A7, A8: minor homes per city in Toronto and Montreal; majors need an empty hex (never Toronto); a
+  connected empty city only where no unconnected one exists. "Unconnected" (GTG §7.4, RoP §9.3:
   "cannot trace a legal route to another city") is read as no track to any other revenue centre,
   town and off-board included: a legal route is any two revenue centres, as the 1861 rules forum
   reads it (BGG thread 1051637, uncontradicted by the designer).
 - A9, A10: the CN holds one station a hex, absorbs in operating order, and places its Montreal
-  station only with the grey tile (AAG §7.4), the owner's choice of 2026-11-17 for both titles:
-  not at phase 8 as GTG §8.13 adds. If Montreal never turns grey, the CN has a station there
-  only by taking over a nationalised company's.
+  station only with the grey tile (RoP §7.4), the owner's choice of 2026-11-17 for both titles: not
+  at phase 8 as GTG §8.13 adds. If Montreal never turns grey, the CN has a station there only by
+  taking over a nationalised company's.
 - A13–A18: brown cities take the most exits; Montreal keeps every city's edge connections; the
   yellow triangles and the Granby lock are enforced; Ottawa upgrades as a Y city until its grey O.
 - A22: minor start price half the bid, at most $135; minors never pass $165.
 - A25, B40: privates nationalised at face value; two-letter minors from the start, three-letter
   ones from phase 3.
-- Open question 10 / AAG §10.4: a company whose home hex has no track lays its first tile there.
-  The Grand Trunk text is silent; AAG is definitive (A1). 1861 already does this.
+- Open question 10 / RoP §10.4: a company whose home hex has no track lays its first tile there. The
+  Grand Trunk text is silent; RoP is definitive (A1). 1861 already does this.
 
 ## Questions for the owner
 

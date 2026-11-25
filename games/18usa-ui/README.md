@@ -30,5 +30,6 @@ What the title adds to the shared table:
 menu lists the positions in `src/scenarios` (see its README).
 
 The station tokens in `src/lib/images/logos` are drawn for this package by
-`scripts/generate-logos.mjs`, each company's abbreviation on a disc of its charter colour. The
-cover is the All-Aboard Games box art from BoardGameGeek (thing 219717).
+`scripts/generate-logos.mjs`, each company's abbreviation on a disc of its charter colour. The cover
+sets the title over Frances F. Palmer's _Across the Continent_ (Currier & Ives, 1868, public
+domain); `tools/cover-art` renders it.

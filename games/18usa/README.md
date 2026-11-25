@@ -1,8 +1,8 @@
 # 18USA
 
-`@tabletop/18usa` is the deterministic logic package for 18USA (Edward Reece, Mark Hendrickson
-and Shawn Fox; All-Aboard Games 2022 edition), an 1817 derivative for 2–7 players. It depends
-on `@tabletop/18xx` and `@tabletop/common`; its Game Client is `@tabletop/18usa-ui`.
+`@tabletop/18usa` is the deterministic logic package for 18USA (Edward Reece, Mark Hendrickson and
+Shawn Fox; 2022 edition), an 1817 derivative for 2–7 players. It depends on `@tabletop/18xx` and
+`@tabletop/common`; its Game Client is `@tabletop/18usa-ui`.
 
 The game is set up at random: the privates in play, three of six metropolises, the subsidy tiles
 on the fourteen orange cities and the value tokens on the seven red areas. Companies of 2, 5 and

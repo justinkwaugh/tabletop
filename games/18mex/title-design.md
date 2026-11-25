@@ -1,14 +1,13 @@
 # 18MEX — title design
 
-Rules authority: the rulebook, version 1.63 (17 August 2005), which All-Aboard Games reprinted
-in 2020 without gameplay changes, saved as OCR text in `/workspace/artassets/18mex/rules.txt`
-(Table IV's page is `table-iv-tiles.png`), and the BoardGameGeek rulings for thing 18485
-(62 threads, 508 posts). The rulings are digested, with links, in
-`/workspace/artassets/18mex/rulings.md`; ids below (MG-4, TR-8, …) are that digest's. The
-designer, Mark Derrick, posts as mderrick; his erratum closing the KCM&O when its tile is laid
-overrides Table III (TR-8). The research engine (`g_18_mex`) supplied the hex coordinates, the
-tile manifest's track layouts and the market grid, all checked against the board photo
-(gallery 9272072) and Table IV; the digest's §4 lists where the rules and it differ.
+Rules authority: the rulebook, version 1.63 (17 August 2005), which was reprinted in 2020 without
+gameplay changes, saved as OCR text in `/workspace/artassets/18mex/rules.txt` (Table IV's page is
+`table-iv-tiles.png`), and the BoardGameGeek rulings for thing 18485 (62 threads, 508 posts). The
+rulings are digested, with links, in `/workspace/artassets/18mex/rulings.md`; ids below (MG-4, TR-8,
+…) are that digest's. The designer, Mark Derrick, posts as mderrick; his erratum closing the KCM&O
+when its tile is laid overrides Table III (TR-8). The research engine (`g_18_mex`) supplied the hex
+coordinates, the tile manifest's track layouts and the market grid, all checked against the board
+photo (gallery 9272072) and Table IV; the digest's §4 lists where the rules and it differ.
 
 Scope: the base game for 3–5 players, with the rulebook's four optional rules (8(a)–(d)) as
 game options. Not built: the designer's Baja-Copper Connection variant pack (Compagnie du

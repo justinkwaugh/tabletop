@@ -4,3 +4,6 @@
 logic in `@tabletop/1849` and the shared 18xx table from `@tabletop/18xx-ui`. The map is the
 boardless presentation. `pnpm --filter @tabletop/1849-ui dev` serves the standalone harness on
 port 4211.
+
+The cover sets the title over Thomas Cole's _Mount Etna from Taormina_ (public domain);
+`tools/cover-art` renders it.

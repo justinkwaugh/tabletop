@@ -1,20 +1,19 @@
 # 18USA — title design
 
-Rules authority: the All-Aboard Games 2022 rulebook, saved as text in
-`/workspace/artassets/18usa/rules-rulespal.txt` (RB below; § numbers are its sections). The
-title is an 1817 derivative; 1817's rulebook is alongside it (`rules-1817-rulespal.txt`), and the
-BoardGameGeek forum digest for thing 219717 is in `bgg-all.txt`. The research engine's `g_18_usa`
-(`map.rb`, `entities.rb`, `game.rb`, pinned in `/workspace/research/18xx-2026-09-08`) supplied hex
-coordinates, terrain costs, printed track, revenues, tile track layouts and labels, metropolis
-tile rotations, the market row and the train and phase tables; everything it supplied was checked
-against RB, and every disagreement is listed below. Its procedures and representations are
-evidence only.
+Rules authority: the 2022 rulebook, saved as text in `/workspace/artassets/18usa/rules-rulespal.txt`
+(RB below; § numbers are its sections). The title is an 1817 derivative; 1817's rulebook is
+alongside it (`rules-1817-rulespal.txt`), and the BoardGameGeek forum digest for thing 219717 is in
+`bgg-all.txt`. The research engine's `g_18_usa` (`map.rb`, `entities.rb`, `game.rb`, pinned in
+`/workspace/research/18xx-2026-09-08`) supplied hex coordinates, terrain costs, printed track,
+revenues, tile track layouts and labels, metropolis tile rotations, the market row and the train and
+phase tables; everything it supplied was checked against RB, and every disagreement is listed below.
+Its procedures and representations are evidence only.
 
-Scope: the 2022 rules for 2–7 players with the three variants of §17 as options (1817 trains;
-the $300 start price from phase 5 with its liquidation of companies less than half held; no 60%
-president share limit). Rulings come
-from the BoardGameGeek forum digest `/workspace/artassets/18usa/rulings.md` (ids PR-, TR-, …);
-the designer (Shawn Fox) and All-Aboard Games settle questions RB leaves open.
+Scope: the 2022 rules for 2–7 players with the three variants of §17 as options (1817 trains; the
+$300 start price from phase 5 with its liquidation of companies less than half held; no 60%
+president share limit). Rulings come from the BoardGameGeek forum digest
+`/workspace/artassets/18usa/rulings.md` (ids PR-, TR-, …); the designer (Shawn Fox) and the
+publisher settle questions RB leaves open.
 
 ## Data modules
 
@@ -239,8 +238,8 @@ What differs from 1817, and where it lives:
 
 ### Readings
 
-- **New Orleans uses the B tiles** (AAG errata); **coal tiles upgrade** (§13.1, the table); **phase 8
-  still starts 10-share companies** (designer: the text's line was an accident).
+- **New Orleans uses the B tiles** (publisher's errata); **coal tiles upgrade** (§13.1, the table);
+  **phase 8 still starts 10-share companies** (designer: the text's line was an accident).
 - **P13's saved train counts for the limit**, as RB says; 18xx.games treats it as obsolete.
 - **P25's discount includes Pullmans** (RB "all trains"); open question OQ-4 in the digest.
 - **P19** is modelled as one more stop for the train, its lowest-paying stop unpaid (the city it

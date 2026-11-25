@@ -769,8 +769,8 @@ export class MergerRounds {
 
     /**
      * The player with the most shares directs, even with only one; a tie goes to the owner of
-     * the merging minor earliest in operating order. The designer rules the All-Aboard text
-     * definitive over Grand Trunk's §9.2C (1861 §12.3, 1867 AAG §12.3).
+     * the merging minor earliest in operating order. The designer rules each title's Rules of
+     * Play definitive over Grand Trunk's §9.2C (1861 v2.0 §12.3, 1867 RoP §12.3).
      */
     private firstDirector(
         state: State,

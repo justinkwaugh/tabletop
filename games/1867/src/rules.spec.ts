@@ -134,7 +134,7 @@ describe('1867 track', () => {
 })
 
 describe('1867 home hexes', () => {
-    it('lays a company’s first tile in its home hex while it has no track (AAG §10.4)', () => {
+    it('lays a company’s first tile in its home hex while it has no track (RoP §10.4)', () => {
         const game = operating('AE', { locationId: 'M9', nodeId: 'city' })
         const lay = (locationId: string) => ({
             companyId: 'AE',
@@ -211,7 +211,7 @@ describe('1867 Canadian National', () => {
             TrainRules1867.exchangePrice(game.hydrated, 'CPR', '8', { definitionId: '2+2' })
         ).toBe(700)
     })
-    it('keeps its Montreal station for the grey tile, placing none as phase 8 begins (AAG §7.4)', () => {
+    it('keeps its Montreal station for the grey tile, placing none as phase 8 begins (RoP §7.4)', () => {
         const game = operating('AE', { locationId: 'E17', nodeId: 'city' })
         edit(game, (state) => {
             state.phaseId = '7'
@@ -265,7 +265,7 @@ describe('1867 Canadian National privates', () => {
 })
 
 describe('1867 merger round', () => {
-    // The designer rules the All-Aboard order definitive over GTG §9.2C (AAG §12.3).
+    // The designer rules the order in his Rules of Play (RoP §12.3) definitive over GTG §9.2C.
     it('makes the earliest minor’s owner director on a tie, buying first; a larger holding takes over', () => {
         const game = opened(3)
         const later = game.player
