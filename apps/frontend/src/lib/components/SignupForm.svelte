@@ -7,6 +7,7 @@
     import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
     import RichMessage from '$lib/components/RichMessage.svelte'
     import { m } from '$lib/paraglide/messages'
+    import { getLocale } from '$lib/paraglide/runtime'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import { emailAddress } from '$lib/utils/accountFormValidation'
@@ -47,7 +48,7 @@
         }
         submitting = true
         try {
-            const newUser = await api.createUser(result.data)
+            const newUser = await api.createUser({ ...result.data, seenLocale: getLocale() })
             await authorizationService.onLogin(newUser)
         } catch (error) {
             if (isUsernameNotAllowed(error)) {

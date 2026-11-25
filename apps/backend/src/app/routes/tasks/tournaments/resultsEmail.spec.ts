@@ -59,7 +59,7 @@ describe('tournament results email task', () => {
             definition,
             recipientId: 'user-1',
             url: 'https://example.test/tournaments/event',
-            toEmail: 'alice@example.test'
+            to: { email: 'alice@example.test', locale: 'en' }
         })
     })
 

@@ -13,6 +13,8 @@ import {
     Text,
 } from '@react-email/components'
 import type { CSSProperties, ReactNode } from 'react'
+import { m, type Locale } from '../i18n.js'
+import { RichMessage } from './richMessage.js'
 
 const SITE_URL = 'https://boardtogether.games'
 
@@ -139,6 +141,7 @@ const Wordmark = ({ href }: { href: string }) => (
 )
 
 interface DarkCardEmailProps {
+    locale: Locale
     preview: string
     // Where the wordmark goes; the site's home page when the email has no page of its own.
     wordmarkHref?: string
@@ -150,6 +153,7 @@ interface DarkCardEmailProps {
 }
 
 export const DarkCardEmail = ({
+    locale,
     preview,
     wordmarkHref = SITE_URL,
     eyebrow,
@@ -158,7 +162,7 @@ export const DarkCardEmail = ({
     footer,
     children,
 }: DarkCardEmailProps) => (
-    <Html>
+    <Html lang={locale}>
         <Head>
             <meta name="color-scheme" content="dark" />
             <meta name="supported-color-schemes" content="dark" />
@@ -202,19 +206,20 @@ export const CardButton = ({ href, children }: { href: string; children: ReactNo
     </Section>
 )
 
-export const ButtonFallback = ({ url }: { url: string }) => (
-    <>
-        If the button does not work, open{' '}
-        <Link href={url} style={darkStyles.footerLink}>
-            {url}
-        </Link>
-        .
-    </>
+export const ButtonFallback = ({ url, locale }: { url: string; locale: Locale }) => (
+    <RichMessage
+        parts={m.email_button_fallback.parts({ url }, { locale })}
+        markup={{
+            link: (text) => (
+                <Link href={url} style={darkStyles.footerLink}>
+                    {text}
+                </Link>
+            ),
+        }}
+    />
 )
 
-export const formatNames = (names: string[], whenEmpty: string): string => {
-    if (names.length === 0) return whenEmpty
-    if (names.length === 1) return names[0]
-    if (names.length === 2) return `${names[0]} and ${names[1]}`
-    return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
-}
+export const formatNames = (names: string[], whenEmpty: string, locale: Locale): string =>
+    names.length === 0
+        ? whenEmpty
+        : new Intl.ListFormat(locale, { type: 'conjunction' }).format(names)

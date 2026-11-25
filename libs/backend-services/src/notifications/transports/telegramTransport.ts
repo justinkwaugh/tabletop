@@ -9,6 +9,7 @@ import {
     TransportType
 } from './notificationTransport.js'
 import { telegramNotificationMessage } from './telegramNotificationMessage.js'
+import type { Locale } from '@tabletop/email/i18n'
 
 export class TelegramTransport implements NotificationTransport {
     type = TransportType.Telegram
@@ -21,7 +22,8 @@ export class TelegramTransport implements NotificationTransport {
 
     async sendNotification(
         subscription: TelegramSubscription,
-        notification: Notification
+        notification: Notification,
+        locale: Locale
     ): Promise<NotificationResult> {
         if (!isUserNotification(notification)) {
             return { success: false, unregister: false }
@@ -34,7 +36,8 @@ export class TelegramTransport implements NotificationTransport {
         const result = await this.botApi.sendMessage(
             telegramNotificationMessage(notification, subscription.chatId, {
                 frontendHost: this.frontendHost,
-                gameTitle: catalogEntry?.metadata.name
+                gameTitle: catalogEntry?.metadata.name,
+                locale
             })
         )
         if (result.ok) {

@@ -1214,5 +1214,22 @@
     "pace_relaxed_name": "ゆったり",
     "pace_relaxed_line": "ゆったり · 3日以内",
     "pace_relaxed_summary": "ゆったり · 3日",
-    "pace_relaxed_past_limit": "3日のペースを超過"
+    "pace_relaxed_past_limit": "3日のペースを超過",
+    "push_player_joined_title": "プレイヤーが参加しました！",
+    "push_player_joined_body": "{player}があなたのゲーム「{game}」に参加しました",
+    "push_player_declined_title": "プレイヤーが辞退しました",
+    "push_player_declined_body": "{player}があなたのゲーム「{game}」への参加を辞退しました",
+    "push_game_started_title": "ゲームが始まりました！",
+    "push_game_started_body": "あなたのゲーム「{game}」が始まりました！",
+    "push_invited_title": "ゲームに招待されました！",
+    "push_invited_body": "{owner}のゲーム「{game}」に招待されました",
+    "push_your_turn_title": "あなたの手番です！",
+    "push_your_turn_body": "ゲーム「{game}」であなたの手番です",
+    "push_call_vote_title": "{initiator}がゲームの終了を提案しています",
+    "push_undo_vote_title": "{initiator}が巻き戻しを依頼しています",
+    "push_vote_body": "ゲーム「{game}」で投票してください",
+    "push_took_over_seat_title": "進行中のゲームに参加しました",
+    "push_took_over_seat_body": "{formerHolder}の席を「{game}」で引き継ぎました",
+    "push_lost_seat_title": "席がほかのプレイヤーに引き継がれました",
+    "push_lost_seat_body": "{newHolder}が「{game}」であなたの席を引き継ぎました"
 }

@@ -4,7 +4,7 @@ import { sortedEqualGroups } from '../util/sortedEqualGroups.js'
 import {
     formatTournamentTiebreaks,
     tournamentAveragePlace,
-    tournamentTiebreakDescription,
+    standingsTiebreakRule,
     tournamentGameFinishingPlaces,
     tournamentFinishingPlacesConsistent,
     tournamentFinishingWinners,
@@ -101,10 +101,10 @@ describe('formatTournamentTiebreaks', () => {
     })
 })
 
-describe('tournamentTiebreakDescription', () => {
-    it('explains the rule the rows carry', () => {
-        expect(tournamentTiebreakDescription([{}, { shareOfWinner: 0 }])).toContain('percentage')
-        expect(tournamentTiebreakDescription([{ pointsBehind: 0 }])).toContain('points behind')
-        expect(tournamentTiebreakDescription([{}])).toContain('sum')
+describe('standingsTiebreakRule', () => {
+    it('takes the rule the rows carry', () => {
+        expect(standingsTiebreakRule([{}, { shareOfWinner: 0 }])).toBe('shareOfWinner')
+        expect(standingsTiebreakRule([{ pointsBehind: 0 }])).toBe('pointsBehind')
+        expect(standingsTiebreakRule([{}])).toBeUndefined()
     })
 })

@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify'
 import { Role, UserStatus, type User } from '@tabletop/common'
-import { UserService, type EmailService } from '@tabletop/backend-services'
+import { UserService, type EmailRecipient, type EmailService } from '@tabletop/backend-services'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.hoisted(() => {
@@ -22,17 +22,17 @@ import sendEmailChangeVerification from './sendEmailChangeVerification.js'
 const SECRET = 'SYNTHETIC-AUDIT-SECRET-5d2e'
 const RESET_CHALLENGE = `account-1.${SECRET}`
 
-type Delivery = { kind: 'verification' | 'reset'; token: string; toEmail: string; url?: string }
+type Delivery = { kind: 'verification' | 'reset'; token: string; to: EmailRecipient; url?: string }
 
 class RecordingEmailService implements EmailService {
     readonly deliveries: Delivery[] = []
     failure?: Error
 
-    async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
-        this.deliver({ kind: 'verification', token, toEmail })
+    async sendVerificationEmail(token: string, to: EmailRecipient): Promise<void> {
+        this.deliver({ kind: 'verification', token, to })
     }
-    async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
-        this.deliver({ kind: 'reset', token, url, toEmail })
+    async sendPasswordResetEmail(token: string, url: string, to: EmailRecipient): Promise<void> {
+        this.deliver({ kind: 'reset', token, url, to })
     }
     async sendAccountChangedNotificationEmail(): Promise<void> {}
     async sendGameInvitationEmail(): Promise<void> {}
@@ -54,6 +54,8 @@ function person(): User {
         username: 'Person',
         email: 'person@example.test',
         emailVerified: true,
+        seenLocale: 'de',
+        timeZone: 'Europe/Berlin',
         status: UserStatus.Active,
         roles: [Role.User],
         externalIds: []
@@ -114,7 +116,11 @@ describe('credential email tasks', () => {
         )
         expect(response.statusCode).toBe(200)
         expect(emails.deliveries).toEqual([
-            { kind: 'verification', token: SECRET, toEmail: 'pending@example.test' }
+            {
+                kind: 'verification',
+                token: SECRET,
+                to: { email: 'pending@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
+            }
         ])
         expect(logged()).not.toContain(SECRET)
     })
@@ -136,7 +142,7 @@ describe('credential email tasks', () => {
                 kind: 'reset',
                 token: RESET_CHALLENGE,
                 url: `https://site.test/email/passwordReset/${RESET_CHALLENGE}`,
-                toEmail: 'person@example.test'
+                to: { email: 'person@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
             }
         ])
         expect(logged()).toContain('"userId":"account-1"')

@@ -1,0 +1,284 @@
+{
+    "$schema": "https://inlang.com/schema/inlang-message-format",
+    "email_button_fallback": "Se o botão não funcionar, abra {#link}{url}{/link}.",
+    "email_open_game": "Abrir a partida",
+    "email_unnamed_player": "Um jogador",
+    "email_ordinal": [
+        {
+            "declarations": ["input place"],
+            "selectors": ["place"],
+            "match": {
+                "place=1": "primeiro",
+                "place=2": "segundo",
+                "place=3": "terceiro",
+                "place=4": "quarto",
+                "place=5": "quinto",
+                "place=6": "sexto",
+                "place=7": "sétimo",
+                "place=8": "oitavo",
+                "place=9": "nono",
+                "place=10": "décimo",
+                "place=*": "{place}.º"
+            }
+        }
+    ],
+    "email_standings_champion": "Vencedor",
+    "email_standings_champions": "Vencedores",
+    "email_standings_nobody": "Ninguém",
+    "email_standings_column_player": "Jogador",
+    "email_standings_column_wins": "Vitórias",
+    "email_standings_column_average_place": "Pos. média",
+    "email_standings_column_score": "Pontos",
+    "email_standings_column_tiebreak": "Desempate",
+    "email_standings_placement_scoring": "A classificação é pela posição média (quanto menor, melhor), depois por quem ficou à frente mais vezes nas mesas em que os jogadores empatados jogaram juntos, depois pelo desempate.",
+    "email_standings_tiebreak_points_behind": "O desempate é a média dos pontos de diferença para a maior pontuação nas mesas de cada jogador, em valor negativo, mais um centésimo da sua pontuação final média. Quanto maior, melhor.",
+    "email_standings_tiebreak_share_of_winner": "O desempate é a pontuação final média de cada jogador, em percentagem da maior pontuação final nas suas mesas. Quanto maior, melhor.",
+    "email_standings_tiebreak_score_sum": "O desempate é a soma das pontuações finais de cada jogador nas suas partidas.",
+    "email_verification_subject": "Verifique o seu endereço de e-mail",
+    "email_verification_preview": "O seu código de verificação de e-mail é {code}",
+    "email_verification_heading": "Confirme o seu endereço de e-mail",
+    "email_verification_subline": "Insira este código onde o pediu, para verificar este endereço de e-mail.",
+    "email_verification_footer": "Se não fez este pedido, pode ignorar este e-mail com segurança.",
+    "email_verification_expiry": [
+        {
+            "declarations": ["input minutes"],
+            "selectors": ["minutes"],
+            "match": {
+                "minutes=1": "Este código deixa de funcionar {minutes} minuto depois de ter sido pedido, e só o código mais recente funciona.",
+                "minutes=*": "Este código deixa de funcionar {minutes} minutos depois de ter sido pedido, e só o código mais recente funciona."
+            }
+        }
+    ],
+    "email_password_reset_subject": "Redefina a sua senha",
+    "email_password_reset_heading": "Redefina a sua senha",
+    "email_password_reset_subline": [
+        {
+            "declarations": ["input minutes"],
+            "selectors": ["minutes"],
+            "match": {
+                "minutes=1": "Clique no botão abaixo para escolher uma nova senha. O link deixa de funcionar {minutes} minuto depois de ter sido pedido, e só o link mais recente funciona.",
+                "minutes=*": "Clique no botão abaixo para escolher uma nova senha. O link deixa de funcionar {minutes} minutos depois de ter sido pedido, e só o link mais recente funciona."
+            }
+        }
+    ],
+    "email_password_reset_footer": "Se não pediu a redefinição da senha, pode ignorar este e-mail com segurança.",
+    "email_password_reset_button": "Redefinir senha",
+    "email_account_change_subject": "Alteração na sua conta",
+    "email_account_deleted_preview": "A sua conta do Board Together foi apagada",
+    "email_account_deleted_heading": "A sua conta foi apagada",
+    "email_account_deleted_subline": "A sua conta e os dados associados foram removidos. Nas partidas terminadas, o seu nome aparece como “Deleted player” (jogador apagado). Este é o último e-mail que vamos enviar para este endereço.",
+    "email_account_deleted_footer": "Se não fez este pedido, avise-nos.",
+    "email_account_deleted_detail": "Conta apagada",
+    "email_username_changed_preview": "O seu nome de jogador agora é {username}",
+    "email_username_changed_heading": "O seu nome de jogador foi alterado",
+    "email_username_changed_subline": "Um administrador alterou o seu nome de jogador. Use o novo nome para entrar.",
+    "email_username_changed_footer": "Se tiver dúvidas sobre esta alteração, escreva-nos.",
+    "email_account_email_change_requested_preview": "Em {time}, foi pedida a alteração do seu endereço de e-mail; o seu endereço atual continua ativo até o novo endereço ser verificado",
+    "email_account_email_change_requested_subline": "Foi pedida a alteração do seu endereço de e-mail; o seu endereço atual continua ativo até o novo endereço ser verificado.",
+    "email_account_email_change_requested_detail": "Pedido de alteração do endereço de e-mail",
+    "email_account_password_reset_requested_preview": "Em {time}, foi pedida a redefinição da senha da sua conta",
+    "email_account_password_reset_requested_subline": "Foi pedida a redefinição da senha da sua conta.",
+    "email_account_password_reset_requested_detail": "Pedido de redefinição de senha",
+    "email_account_email_changed_preview": "O seu endereço de e-mail foi alterado em {time}",
+    "email_account_email_changed_subline": "O seu endereço de e-mail foi alterado.",
+    "email_account_email_changed_detail": "Endereço de e-mail alterado",
+    "email_account_password_changed_preview": "A sua senha foi alterada em {time}",
+    "email_account_password_changed_subline": "A sua senha foi alterada.",
+    "email_account_password_changed_detail": "Senha alterada",
+    "email_account_change_heading": "Houve uma alteração na sua conta",
+    "email_account_change_footer": "Se fez a alteração descrita acima, pode ignorar este e-mail com segurança.",
+    "email_account_change_warning": "Se não fez esta alteração, avise-nos imediatamente.",
+    "email_game_invitation_subject": "{owner} enviou um convite para uma partida de {title}",
+    "email_game_invitation_preview": "{owner} enviou um convite para uma partida de {title}",
+    "email_game_invitation_unnamed_owner": "Alguém",
+    "email_game_invitation_heading": "{owner} enviou um convite para jogar",
+    "email_game_invitation_subline": "Aceite o convite e sente-se à mesa. O seu lugar está à espera.",
+    "email_game_invitation_footer": "Se não esperava este convite, pode ignorar este e-mail com segurança.",
+    "email_game_invitation_button": "Entrar na partida",
+    "email_game_end_subject": "Partida terminada: {game} ({title})",
+    "email_game_end_preview_draw": "A sua partida {game} ({title}) terminou em empate.",
+    "email_game_end_preview_stalled": [
+        {
+            "declarations": ["input days"],
+            "selectors": ["days"],
+            "match": {
+                "days=1": "A sua partida {game} ({title}) terminou após {days} dia sem jogadas.",
+                "days=*": "A sua partida {game} ({title}) terminou após {days} dias sem jogadas."
+            }
+        }
+    ],
+    "email_game_end_preview_abandoned": "A sua partida {game} ({title}) foi abandonada.",
+    "email_game_end_preview": "A sua partida {game} ({title}) terminou.",
+    "email_game_end_result_draw": "Empate: {names}",
+    "email_game_end_result_stalled": [
+        {
+            "declarations": ["input days"],
+            "selectors": ["days"],
+            "match": {
+                "days=1": "Ninguém jogou durante {days} dia, por isso a partida terminou sem vencedor",
+                "days=*": "Ninguém jogou durante {days} dias, por isso a partida terminou sem vencedor"
+            }
+        }
+    ],
+    "email_game_end_result_abandoned": "A partida foi abandonada",
+    "email_game_end_result_won": "Vitória de {names}!",
+    "email_game_end_no_winner_names": "alguém",
+    "email_game_end_subline": "A sua partida de {title} terminou.",
+    "email_game_end_footer": "Recebeu este e-mail porque jogou nesta partida no Board Together.",
+    "email_game_end_button": "Rever a partida",
+    "email_game_started_subject": "Partida iniciada: {game} ({title})",
+    "email_game_started_your_turn": "É a sua vez",
+    "email_game_started_waiting": "À espera de {names}",
+    "email_game_started_no_active_names": "outros jogadores",
+    "email_game_started_preview_your_turn": "A partida {game} começou. É a sua vez.",
+    "email_game_started_preview_waiting": "A partida {game} começou. À espera de {names}.",
+    "email_game_started_preview_notifications_off": "A partida {game} começou. Ative as notificações de turno para saber quando é a sua vez.",
+    "email_game_started_eyebrow": "Partida iniciada",
+    "email_game_started_subline": "A sua partida de {#title}{title}{/title} começou.",
+    "email_game_started_footer": "Recebeu este e-mail porque joga nesta partida no Board Together. Pode desativar os e-mails sobre partidas na sua página de notificações.",
+    "email_game_started_warning_heading": "Não vai saber quando é a sua vez",
+    "email_game_started_warning_body": "O Board Together nunca avisa por e-mail que é a sua vez. Avisa pelo navegador ou pelo Discord, e nenhum dos dois está ativado.",
+    "email_game_started_warning_button": "Ativar notificações de turno",
+    "email_game_started_no_players": "Sem jogadores",
+    "email_game_started_turns_set_up": "Vamos avisar quando for a sua vez, pelo navegador ou pelo Discord.",
+    "email_player_removed_subject_left": "Um jogador saiu da partida {game}",
+    "email_player_removed_subject_removed": "Um jogador foi removido da partida {game}",
+    "email_player_removed_preview_left": "{player} saiu da sua partida {game} ({title}).",
+    "email_player_removed_preview_removed": "{player} teve a conta removida e saiu da sua partida {game} ({title}).",
+    "email_player_removed_subline_left": "{player} saiu do Board Together. A sua partida de {title} continua, mas vai parar na vez desse jogador, porque ninguém pode jogar por ele.",
+    "email_player_removed_subline_removed": "{player} teve a conta removida do Board Together. A sua partida de {title} continua, mas vai parar na vez desse jogador, porque ninguém pode jogar por ele.",
+    "email_player_removed_footer": "Recebeu este e-mail porque joga nesta partida no Board Together.",
+    "email_player_removed_end_early": "Pode encerrar a partida mais cedo",
+    "email_player_removed_end_early_detail": [
+        {
+            "declarations": ["input days"],
+            "selectors": ["days"],
+            "match": {
+                "days=1": "Abra a partida e escolha “Encerrar por acordo” no menu da conta. É preciso que a maioria dos jogadores concorde. Caso contrário, a partida termina sem vencedor após {days} dia sem jogadas.",
+                "days=*": "Abra a partida e escolha “Encerrar por acordo” no menu da conta. É preciso que a maioria dos jogadores concorde. Caso contrário, a partida termina sem vencedor após {days} dias sem jogadas."
+            }
+        }
+    ],
+    "email_player_removed_unnamed_player": "Um jogador",
+    "email_tournament_results_subject": "Resultados finais do torneio {tournament}",
+    "email_tournament_results_preview_takes": "O torneio {tournament} terminou. {names} fica em primeiro lugar.",
+    "email_tournament_results_preview_share": "O torneio {tournament} terminou. {names} dividem o primeiro lugar.",
+    "email_tournament_results_eyebrow": "Torneio concluído",
+    "email_tournament_results_subline": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{title} · {count: number} jogador",
+                "count=*": "{title} · {count: number} jogadores"
+            }
+        }
+    ],
+    "email_tournament_results_footer": "Recebeu este e-mail porque jogou neste torneio no Board Together.",
+    "email_tournament_results_shared_champion": "A vitória também é sua. Parabéns!",
+    "email_tournament_results_champion": "A vitória é sua. Parabéns!",
+    "email_tournament_results_finished_average_place": "O seu resultado: {place} lugar, com posição média de {averagePlace}.",
+    "email_tournament_results_finished_wins": [
+        {
+            "declarations": ["input wins"],
+            "selectors": ["wins"],
+            "match": {
+                "wins=1": "O seu resultado: {place} lugar, com {wins: number} vitória.",
+                "wins=*": "O seu resultado: {place} lugar, com {wins: number} vitórias."
+            }
+        }
+    ],
+    "email_tournament_results_standings": "Classificação final",
+    "email_tournament_results_button": "Ver o torneio",
+    "email_league_sign_up_subject_reminder": "{league}: as inscrições fecham em breve",
+    "email_league_sign_up_subject_open": "{league}: inscrições abertas para a Temporada {season}",
+    "email_league_sign_up_preview_reminder": "{league}: as inscrições para a Temporada {season} fecham em breve. Confirme a sua vaga no Nível {level}.",
+    "email_league_sign_up_preview_open": "{league}: as inscrições para a Temporada {season} estão abertas. A sua vaga no Nível {level} está reservada.",
+    "email_league_sign_up_eyebrow_reminder": "As inscrições fecham em breve",
+    "email_league_sign_up_eyebrow_open": "Inscrições abertas",
+    "email_league_sign_up_subline": "{title} · Temporada {season}",
+    "email_league_sign_up_footer": "Recebeu este e-mail porque tem uma vaga reservada nesta liga no Board Together.",
+    "email_league_sign_up_place_unconfirmed": "A sua vaga no Nível {level} ainda não está confirmada",
+    "email_league_sign_up_place_held": "A sua vaga no Nível {level} está reservada",
+    "email_league_sign_up_detail": "Confirme-a até {closes}, quando as inscrições fecham. Uma vaga não confirmada passa para o melhor jogador do nível abaixo.",
+    "email_league_sign_up_button": "Confirmar a sua vaga",
+    "email_league_season_start_subject": "{league}: a Temporada {season} começou",
+    "email_league_season_start_preview": "{league}: a Temporada {season} começou. Está no Grupo {group}.",
+    "email_league_season_start_eyebrow": "A Temporada {season} começou",
+    "email_league_season_start_subline_level": "{title} · Nível {level}",
+    "email_league_season_start_subline_seeding": "{title} · Temporada de nivelamento",
+    "email_league_season_start_footer": "Recebeu este e-mail porque fez a inscrição nesta temporada da liga no Board Together.",
+    "email_league_season_start_group": "Está no Grupo {group}",
+    "email_league_season_start_moved_up": "Subiu para o Nível {level} para ocupar uma vaga deixada por jogadores que não voltaram nesta temporada.",
+    "email_league_season_start_merged": "A liga tem menos jogadores nesta temporada, por isso o nível mais baixo passou a fazer parte do Nível {level}.",
+    "email_league_season_start_moved_down": "A liga ganhou um novo nível nesta temporada, por isso quem ficou nas últimas posições do nível acima, como é o seu caso, começa no Nível {level}.",
+    "email_league_season_start_games": [
+        {
+            "declarations": ["input games"],
+            "selectors": ["games"],
+            "match": {
+                "games=1": "Vai jogar {games: number} partida contra {names}.",
+                "games=*": "Vai jogar {games: number} partidas contra {names}."
+            }
+        }
+    ],
+    "email_league_season_start_no_opponent_names": "o seu grupo",
+    "email_league_season_start_seeding_note": "Os seus resultados definem o seu nível na próxima temporada.",
+    "email_league_season_start_button": "Ver as suas partidas",
+    "email_league_unavailable_account": "Conta indisponível",
+    "email_league_season_results_subject": "{league}: resultados da {season}",
+    "email_league_season_name": "Temporada {season}",
+    "email_league_season_name_seeding": "Temporada de nivelamento",
+    "email_league_season_results_preview": "{league}: {season} concluída.",
+    "email_league_season_results_eyebrow": "{season} concluída",
+    "email_league_season_results_subline": "{title} · Grupo {group}",
+    "email_league_season_results_footer": "Recebeu este e-mail porque jogou nesta temporada da liga no Board Together.",
+    "email_league_season_results_seeded": "O seu resultado: {place} lugar no Grupo {group}. A sua vaga na Temporada {nextSeason} é no Nível {level}.",
+    "email_league_season_results_promoted": "O seu resultado: {place} lugar no Grupo {group}, com subida para o Nível {level}.",
+    "email_league_season_results_relegated": "O seu resultado: {place} lugar no Grupo {group}, com descida para o Nível {level}.",
+    "email_league_season_results_stayed": "O seu resultado: {place} lugar no Grupo {group}, com permanência no Nível {level}.",
+    "email_league_season_results_substitute": "O seu resultado: {place} lugar no Grupo {group}, em substituição de outro jogador. Os substitutos começam a próxima temporada no Nível {level}, o nível mais baixo.",
+    "email_league_season_results_standings": "Classificação final do Grupo {group}",
+    "email_league_season_results_button": "Ver os resultados da temporada",
+    "email_bug_report_forum": "O seu relato está no fórum bug-reports do nosso Discord; ainda não está no servidor? {#invite}Venha dizer olá{/invite}.",
+    "email_bug_report_you_wrote": "O seu relato",
+    "email_bug_report_quote": "“{quote}”",
+    "email_bug_report_back_to_game": "Voltar à sua partida",
+    "email_bug_report_follow_on_discord": "Acompanhar o seu relato no Discord →",
+    "notification_is_your_turn_summary": "É a sua vez na partida {game}",
+    "notification_is_your_turn_heading": "É a sua vez",
+    "notification_is_your_turn_button": "Jogar agora",
+    "notification_game_started_summary": "A partida {game} começou!",
+    "notification_game_started_heading": "A sua partida começou",
+    "notification_open_game_button": "Abrir partida",
+    "notification_open_dashboard_button": "Ver as suas partidas",
+    "notification_was_invited_summary": "{owner} enviou um convite para a partida {game}",
+    "notification_was_invited_heading": "{owner} enviou um convite para jogar",
+    "notification_was_invited_button": "Ver convite",
+    "notification_player_joined_summary": "{player} entrou na partida {game}",
+    "notification_player_joined_heading": "{player} entrou na sua partida",
+    "notification_player_declined_summary": "{player} recusou o convite para a partida {game}",
+    "notification_player_declined_heading": "{player} recusou o seu convite",
+    "notification_call_vote_summary": "{player} pede para encerrar a partida {game}",
+    "notification_call_vote_heading": "{player} pede a todos para encerrar a partida",
+    "notification_undo_vote_summary": "{player} pede para voltar atrás na partida {game}",
+    "notification_undo_vote_heading": "{player} pede a todos para voltar atrás",
+    "notification_vote_button": "Votar",
+    "notification_took_over_seat_summary": "O lugar de {player} na partida {game} agora é seu",
+    "notification_took_over_seat_heading": "O lugar de {player} agora é seu, por decisão de um administrador",
+    "notification_lost_seat_summary": "{player} assumiu o seu lugar na partida {game}",
+    "notification_lost_seat_heading": "Um administrador deu o seu lugar a {player}",
+    "notification_discord_webhook_connected": "O {site} vai publicar aqui as notificações de {username}.",
+    "discord_command_notify_description": "Avisar quando for a sua vez ou chegar um convite para uma partida",
+    "discord_command_stop_description": "Deixar de avisar quando for a sua vez ou chegar um convite para uma partida",
+    "discord_install_welcome": "Tudo pronto! Vou avisar por aqui quando for a sua vez ou quando chegar um convite para uma partida no BoardTogether. Escreva /stop para desativar estas notificações.",
+    "discord_unknown_user": "Por algum motivo, não consegui identificar o seu ID do Discord. Pode tentar novamente?",
+    "discord_not_linked": "Não encontrei no BoardTogether uma conta associada ao seu Discord. Entre no site, abra o seu perfil e associe a sua conta do Discord.",
+    "discord_notify_started": "A partir de agora, vai receber notificações. Escreva /stop para parar.",
+    "discord_notify_stopped": "As notificações vão deixar de ser enviadas.",
+    "telegram_connected_as": "Este chat está conectado à conta {username} do BoardTogether. Vou avisar por aqui quando for a sua vez ou quando chegar um convite para uma partida. Envie /stop para desativar estas mensagens.",
+    "telegram_connected": "Este chat está conectado ao BoardTogether. Vou avisar por aqui quando for a sua vez ou quando chegar um convite para uma partida. Envie /stop para desativar estas mensagens.",
+    "telegram_not_linked": "Este chat não está conectado a nenhuma conta do BoardTogether. Para conectar este chat, abra {url} e clique em Conectar. Cada link funciona uma única vez, durante uma hora.",
+    "telegram_stopped": "Pronto. Vou deixar de enviar mensagens por aqui. Para voltar a ativar as mensagens, abra {url} e clique em Conectar.",
+    "telegram_help": "Só envio notificações do BoardTogether. Envie /stop para desativar as notificações, ou configure-as em {url}."
+}

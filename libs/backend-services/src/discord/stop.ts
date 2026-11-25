@@ -1,10 +1,13 @@
 import { SlashCommandBuilder } from 'discord.js'
+import { baseLocale, m } from '@tabletop/email/i18n'
+import { discordLocalizations } from './commandLocalizations.js'
 import { SlashCommand } from './slashCommand.js'
 
 export const StopCommand: SlashCommand = {
     data: new SlashCommandBuilder()
         .setName('stop')
-        .setDescription('Stop notifying about turns and game invitations'),
+        .setDescription(m.discord_command_stop_description({}, { locale: baseLocale }))
+        .setDescriptionLocalizations(discordLocalizations(m.discord_command_stop_description)),
     toJSON() {
         const data = StopCommand.data.toJSON()
         return {

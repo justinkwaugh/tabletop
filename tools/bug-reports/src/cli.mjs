@@ -602,9 +602,9 @@ async function sendDirectMessage(discord, discordUserId, message) {
     })
 }
 
-// The site keeps the address on the user record, which tools/investigate reads; the main
-// worktree's copy is run because it has the deploy config and key.
-function findEmail(name) {
+// The site keeps the address and language on the user record, which tools/investigate reads; the
+// main worktree's copy is run because it has the deploy config and key.
+function findReporterAccount(name) {
     const cli = path.join(mainWorktreeRoot(), 'tools/investigate/src/cli.mjs')
     let output
     try {
@@ -620,7 +620,7 @@ function findEmail(name) {
         (candidate) => candidate.username === name || candidate.id === name
     )
     if (!user?.email) throw new Error(`no email address on the user ${name}`)
-    return user.email
+    return user
 }
 
 const EMAIL_SETUP =
@@ -629,33 +629,46 @@ const EMAIL_SETUP =
 // The template needs the workspace installed and libs/email built, which only email needs, so it
 // loads here rather than with the tool.
 async function loadEmailTemplate() {
-    const [{ render }, { BugReportUpdate }] = await Promise.all([
+    const [{ render }, { BugReportUpdate, messageLocale }] = await Promise.all([
         import('@react-email/components'),
         import('@tabletop/email')
     ])
-    return { render, BugReportUpdate }
+    return { render, BugReportUpdate, messageLocale }
 }
 
-async function renderEmail(message) {
+// The frame around the milestone copy and the note is in the reporter's language; the copy and
+// the note stay as written.
+async function renderEmail(message, account) {
     try {
-        const { render, BugReportUpdate } = await loadEmailTemplate()
-        return await render(BugReportUpdate(message))
+        const { render, BugReportUpdate, messageLocale } = await loadEmailTemplate()
+        return await render(BugReportUpdate({ ...message, locale: messageLocale(account) }))
     } catch (error) {
         throw new Error(`rendering the email failed (${error.message}); run ${EMAIL_SETUP}`)
+    }
+}
+
+// A preview still renders when the account cannot be read, in English, and says so.
+function previewAccount(name) {
+    try {
+        return findReporterAccount(name)
+    } catch (error) {
+        console.log(`(Email preview in English: ${error.message})`)
+        return undefined
     }
 }
 
 async function sendEmail(name, message) {
     const key = loadSecret('RESEND_API_KEY', RESEND_KEY_FILE)
     if (!key) throw new Error(`no Resend key: set RESEND_API_KEY or create ${RESEND_KEY_FILE}`)
+    const account = findReporterAccount(name)
     const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
             from: EMAIL_FROM,
-            to: [findEmail(name)],
+            to: [account.email],
             subject: message.subject,
-            html: await renderEmail(message),
+            html: await renderEmail(message, account),
             text: message.text
         })
     })
@@ -689,7 +702,7 @@ async function previewNotice(thread, { stage, reporter, message }) {
     console.log(message.text)
     const preview = path.join(postFolder(thread.id), `${stage.replace(/ /g, '-')}-email.html`)
     mkdirSync(path.dirname(preview), { recursive: true })
-    writeFileSync(preview, await renderEmail(message))
+    writeFileSync(preview, await renderEmail(message, previewAccount(reporter.name)))
     console.log(`\nEmail preview: ${preview}`)
 }
 

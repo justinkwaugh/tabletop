@@ -1,6 +1,6 @@
 # Danish (`da`) glossary
 
-For the native speaker reviewing `messages/da.json`.
+For the native speaker reviewing `messages/da.json` (the site and its push notifications) and `libs/email/messages/da.json` (emails, Discord and Telegram).
 
 ## 1. Form of address and tone
 
@@ -8,6 +8,7 @@ For the native speaker reviewing `messages/da.json`.
 - Plain, friendly and short, like the English. No `venligst`: "Please try again" is just `Prøv igen.`
 - Buttons and menu items are imperatives (`Gem`, `Slet`, `Deltag`, `Tilmeld dig`); headings and labels are in sentence case, never title case.
 - Failures are stated from the thing's side, not the user's: `Ligaen kunne ikke indlæses`, `Linket kunne ikke kopieres.`
+- Emails, Discord and Telegram messages and push notifications go to one player and use the same `du`. The bots speak as `jeg` (`Jeg skriver til dig her`), emails as `vi` (`Vi giver dig besked`, `Kontakt os`).
 - Sentences never need a name inflected. Where English has `{name}'s …` the Danish is rephrased (`De uafsluttede spil, som {name} deltager i, …`), and labels that may receive "Dig", a name or "Flere spillere" use a colon (`Tur: {player}`).
 
 ## 2. Terms
@@ -91,7 +92,41 @@ For the native speaker reviewing `messages/da.json`.
 | Terms of Service / Privacy Policy      | Servicevilkår / Privatlivspolitik                   |                                               |
 | My Games / History / Stats             | Mine spil / Historik / Statistik                    |                                               |
 
-Kept untranslated: BoardTogether, Board Together, Tabletop (in page titles), game and series names, Discord, Telegram, Google, GitHub, BG Stats, Tiltify, Gamers Outreach, SpecialEffect, `/stop`, `/notify`, URLs, open source, webhook, bot, lobby.
+### Emails, notifications and bots
+
+| English                                      | Danish                                                    | Note                                                    |
+| -------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
+| verification code / verify, confirm          | bekræftelseskode / bekræft                                | One verb for both                                       |
+| reset your password                          | nulstil din adgangskode                                   |                                                         |
+| a request was made to … / … requested        | der er blevet bedt om at … / anmodning om …               | Verb `bede om`, noun `anmodning`, as on the site        |
+| you can safely ignore this email             | kan du roligt se bort fra denne e-mail                    |                                                         |
+| please contact us                            | kontakt os                                                | No `venligst`                                           |
+| game started / has ended                     | spillet er startet / spillet er afsluttet                 | Subjects: `Spillet er startet: {game} ({title})`        |
+| your {title} game {game} / a game of {title} | dit spil {game} ({title}) / et spil {title}               | Title in parentheses or in apposition, never a compound |
+| ended in a draw / tied / abandoned           | endte uafgjort / spillede uafgjort / afbrudt              |                                                         |
+| the game will stop on their turn             | det går i stå, når det bliver spillerens tur              | Site term `går i stå`; singular "they" is `spilleren`   |
+| end the game early / Call the game (menu)    | afslut spillet før tid / ”Afslut spillet før tid”         | The site's label, quoted; see review note 26            |
+| 1st, 2nd, 3rd (you finished 3rd)             | nummer 1, nummer 2, nummer 3 (`Du sluttede som nummer 3`) | `email_ordinal`; see review note 21                     |
+| takes / share first place                    | tager / deler førstepladsen                               |                                                         |
+| final standings / final results              | slutstilling / endelige resultater                        |                                                         |
+| place is held / held for you                 | plads er reserveret / reserveret til dig                  |                                                         |
+| move up / move down / stay in (a level)      | rykker op til / rykker ned til / bliver på                |                                                         |
+| seeding season                               | seedningssæson                                            |                                                         |
+| turn notifications                           | notifikationer om din tur                                 | As the heading on the notifications page                |
+| tells you / you won't hear                   | giver dig besked / du får ikke besked                     |                                                         |
+| dashboard                                    | Mine spil                                                 | The page's name on the site: `Åbn Mine spil`            |
+| invited you to play                          | har inviteret dig til et spil                             |                                                         |
+| joined / declined to join                    | deltager nu i / har afslået at deltage i                  |                                                         |
+| asks to end / asks to go back (votes)        | beder om at afslutte / beder om at fortryde træk          | See review note 23                                      |
+| vote / view invitation                       | stem / se invitationen                                    |                                                         |
+| {player}'s seat / take over a seat           | pladsen efter {player} / overtage pladsen                 | No genitive on a name                                   |
+| I'll message you here (bot)                  | jeg skriver til dig her                                   |                                                         |
+| type /stop (Discord) / send /stop (Telegram) | skriv /stop / send /stop                                  |                                                         |
+| press Connect                                | tryk på Tilslut                                           | The site's button, capitalised and unquoted             |
+| post notifications (webhook)                 | slå notifikationer op                                     |                                                         |
+| bug report / the bug-reports forum           | fejlrapport / forummet bug-reports                        | The Discord forum's own name is kept                    |
+
+Kept untranslated: BoardTogether, Board Together, Tabletop (in page titles), game and series names, Discord, Telegram, Google, GitHub, BG Stats, Tiltify, Gamers Outreach, SpecialEffect, `/stop`, `/notify`, `/start`, the Discord forum name `bug-reports`, URLs, open source, webhook, bot, lobby.
 
 Quoted in English, inside `”…”`, because that is exactly what players see on the site: the name `”Deleted player 1”`, `”Deleted player 2”`, … that a deleted account's seats get in finished games (it is stored in the game data), and the `”Undo”` button on the game screens (not translated yet). A Danish name would point players at a label they cannot find. `delete_account_summary` adds the gloss `(slettet spiller)`; `delete_account_kept_finished`, in the dialog opened from that same card, quotes the name alone; `games_vote_undo_yourself` says `knappen ”Undo”`, since `fortryde` earlier in the sentence already explains it. See review note 16.
 
@@ -105,6 +140,9 @@ Quoted in English, inside `”…”`, because that is exactly what players see 
 - Compounds are written together (`spilindstillinger`, `turneringsvinder`); a hyphen joins a name or abbreviation (`Discord-konto`, `Webhook-URL`, `open source-sted`).
 - Imperatives of `-ere` verbs take an accent only where the plain form is also a noun: `Kopiér`, `Rapportér`, but `Rediger`, `Annuller`, `Accepter`, `Inviter`. `Én`/`ét` carry an accent as numerals.
 - Numbers: `{count: number}` gives `1.234` where a count can reach the thousands (games played, opponents, season totals). Percentages, dates and times arrive already formatted for Danish (`42 %`, `25. nov.`, `14.30`, `november 2026`); times are introduced with `kl.` and dates with `den` where a sentence needs it. A date that arrives together with its time (`25. nov., 14.00`) is used as it is.
+- Email dates arrive with their time and time zone, and no time-zone word is added. A timestamp arrives as `25. november 2026 kl. 16.30 CET` and is introduced with `den`; a league deadline arrives as `onsdag 25. november kl. 16.30 CET` and is used as it is (`før tilmeldingen lukker {closes}`).
+- Email subjects put the news first: `Spillet er startet: {game} ({title})`, `Resultater fra {season} i {league}`. Labels after `·` are capitalised (`{title} · Sæson {season}`); inside a sentence it is `sæson 2`, `niveau B`, `gruppe B1`.
+- Stand-in names sit where a name would. `Nogen` and `En spiller` are capitalised because every Danish sentence that uses them starts with them; `de andre spillere` and `din gruppe` follow a preposition and are lower case.
 - Abbreviations: `pr.`, `gns.`, `min.`, `t.` (hours), `sek.`
 - Plurals: Danish has `one` and `other`. `spil`, `tegn` and `år` do not inflect, so those messages are plain strings. A plural was added where English needed none: `{count} åbent/åbne`, `tilmeldt/tilmeldte`, `{days} dags/dages tilmelding`.
 
@@ -130,3 +168,18 @@ Quoted in English, inside `”…”`, because that is exactly what players see 
 18. `content_pif_us_charity`, `content_pif_uk_charity` — `Velgørenhed i USA` / `i UK`: short for the chip beside the logo.
 19. `tournaments_schedule_*` — `Spilleplan` for the schedule; board gamers also use the word for a game board. `Turneringsplan` is the alternative.
 20. `auth_invitation_heading` — the English `?...` is dropped: `Vil du deltage i dette spil?`
+
+Emails, notifications and bots (`libs/email/messages/da.json`, and the `push_*` keys here):
+
+21. `email_ordinal` — "3rd" is `nummer 3`, read inside `Du sluttede som {place} …`. The numeral forms `3.` or `3.-pladsen` are the alternatives.
+22. `email_league_season_name`, `email_league_season_name_seeding` — lower case (`sæson 2`, `seedningssæsonen`) because the name lands mid-sentence in the subject and preview. `email_league_season_results_eyebrow` is therefore `Slut på {season}`, not `{season} er afsluttet`, so that the text-only email does not start a line in lower case.
+23. `notification_undo_vote_summary`, `notification_undo_vote_heading`, `push_undo_vote_title` — "asks to go back" is `beder om at fortryde træk`, after the site's `fortryd`. A literal `gå tilbage` could be read as returning to the game.
+24. `email_game_invitation_unnamed_owner` — `Nogen`, capitalised, because the subject, preview and heading all start with the host's name (`{owner} har inviteret dig til et spil {title}`). English has `someone` mid-sentence.
+25. `email_player_removed_subline_left`, `email_player_removed_subline_removed` — "on their turn … for them" became `når det bliver spillerens tur, fordi ingen andre kan tage den`.
+26. `email_player_removed_end_early_detail` — the menu label is quoted, `”Afslut spillet før tid”`, because unquoted it runs into the sentence (`… før tid i kontomenuen`). It must follow `games_call_offer_call` if that label changes (review note 1).
+27. `email_account_email_change_requested_preview` — `{time}` is when the request was made, so it stands with the request (`Der blev bedt om … den {time}; …`), not at the end as in English.
+28. `notification_open_dashboard_button` — `Åbn Mine spil`, the name the page has on the site, for "Open dashboard".
+29. `email_game_end_subject` — rebuilt as `Spillet er afsluttet: {game} ({title})` to match `email_game_started_subject`; a literal "Dit spil {title} {game}" runs the two names together.
+30. `email_unnamed_player` — `En spiller` keeps its capital as a stand-in name, also inside a list (`Alice og En spiller vandt!`) and in a standings row.
+31. `push_player_joined_title` (`En spiller er med!`), `push_took_over_seat_title` (`Du er kommet med i et igangværende spil`) — short titles; check they read naturally on a phone.
+32. `email_bug_report_forum` — keeps the forum's name, `forummet bug-reports`, so players can find it on the server, and splits the English semicolon sentence in two.

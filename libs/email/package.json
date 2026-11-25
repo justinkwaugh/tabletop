@@ -4,24 +4,35 @@
     "private": true,
     "type": "module",
     "exports": {
-        "import": "./esm/index.js",
-        "types": "./index.ts"
+        ".": {
+            "import": "./esm/index.js",
+            "types": "./index.ts"
+        },
+        "./i18n": {
+            "import": "./esm/i18n.js",
+            "types": "./i18n.ts"
+        }
+    },
+    "imports": {
+        "#paraglide/*": "./esm/paraglide/*"
     },
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsgo",
+        "build": "paraglide-js compile --project ./project.inlang --silent && tsgo",
         "lint": "eslint ."
     },
     "dependencies": {
-        "@tabletop/common": "workspace:*",
-        "@react-email/components": "1.0.6"
+        "@react-email/components": "1.0.6",
+        "@tabletop/common": "workspace:*"
     },
     "devDependencies": {
+        "@inlang/paraglide-js": "3.2.2",
+        "@inlang/plugin-message-format": "4.6.2",
+        "@tabletop/eslint-config": "workspace:*",
         "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
         "rimraf": "^6.1.0",
-        "typescript": "5.9.3",
-        "@tabletop/eslint-config": "workspace:*"
+        "typescript": "5.9.3"
     }
 }

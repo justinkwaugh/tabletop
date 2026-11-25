@@ -1,12 +1,12 @@
-import { EmailService } from './emailService.js'
+import { EmailService, type EmailRecipient } from './emailService.js'
 
 export class NullEmailService implements EmailService {
-    async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
-        console.log(`EMAIL NOT CONFIGURED: Verification token: ${token} for email: ${toEmail}`)
+    async sendVerificationEmail(token: string, to: EmailRecipient): Promise<void> {
+        console.log(`EMAIL NOT CONFIGURED: Verification token: ${token} for email: ${to.email}`)
     }
 
-    async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
-        console.log(`EMAIL NOT CONFIGURED: Password reset token: ${token} for email: ${toEmail}`)
+    async sendPasswordResetEmail(token: string, url: string, to: EmailRecipient): Promise<void> {
+        console.log(`EMAIL NOT CONFIGURED: Password reset token: ${token} for email: ${to.email}`)
     }
 
     async sendAccountChangedNotificationEmail(): Promise<void> {

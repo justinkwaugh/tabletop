@@ -238,6 +238,32 @@ describe('TelegramService', () => {
         expect(await service.isConnected('user-1')).toBe(false)
     })
 
+    it('replies in the language Telegram reports for the sender', async () => {
+        const { service, sent } = createService()
+
+        await service.handleUpdate({
+            update_id: 4,
+            message: {
+                chat: { id: 42, type: 'private' },
+                from: { language_code: 'de' },
+                text: 'hallo'
+            }
+        })
+
+        expect(sent.at(-1)?.text).toBe(
+            'Ich verschicke nur Benachrichtigungen von BoardTogether. Schick /stop, um sie abzuschalten, oder verwalte sie auf https://example.com/notifications.'
+        )
+    })
+
+    it("replies in the connected account's language when Telegram reports none", async () => {
+        const { service, sent } = createService({ user: { ...activeUser, seenLocale: 'de' } })
+        await connect(service)
+
+        await service.handleUpdate(privateMessage('hallo'))
+
+        expect(sent.at(-1)?.text).toContain('Ich verschicke nur Benachrichtigungen')
+    })
+
     it('ignores updates it does not understand', async () => {
         const { service, sent } = createService()
         await service.handleUpdate({ nonsense: true })

@@ -1,4 +1,5 @@
-import { canHoldAuthenticatedSession, ExternalAuthService } from '@tabletop/common'
+import { canHoldAuthenticatedSession, ExternalAuthService, type User } from '@tabletop/common'
+import { m, messageLocale, replyLocale, type Locale } from '@tabletop/email/i18n'
 import {
     APIBaseInteraction,
     APIApplicationCommandInteraction,
@@ -23,8 +24,6 @@ import type { NotificationStore } from '../persistence/stores/notificationStore.
 const TEST_DISCORD_USER_ID = process.env['TEST_DISCORD_USER_ID']
 const NOTIFY_COMMAND_NAME = 'notify'
 const STOP_COMMAND_NAME = 'stop'
-const INSTALL_WELCOME_MESSAGE =
-    "You're all set! I'll message you here when it's your turn or you're invited to a game on BoardTogether. Type /stop to turn these notifications off."
 
 export class DiscordService {
     constructor(
@@ -93,87 +92,68 @@ export class DiscordService {
 
     private async handleNotifyCommand(commandInteraction: APIApplicationCommandInteraction) {
         const discordUserId = commandInteraction.user?.id ?? commandInteraction.member?.user?.id
+        const user = discordUserId ? await this.linkedUser(discordUserId) : undefined
+        const locale = replyLocale(user, commandInteraction.locale)
         if (!discordUserId) {
-            return {
-                type: InteractionResponseType.ChannelMessageWithSource,
-                data: {
-                    content: 'For some reason I could not identify your user id.  Try again?',
-                    flags: MessageFlags.Ephemeral
-                }
-            }
+            return this.reply(m.discord_unknown_user({}, { locale }))
+        }
+        if (!user) {
+            return this.reply(m.discord_not_linked({}, { locale }))
         }
 
-        const subscribed = await this.subscribeLinkedUser(discordUserId)
-        if (!subscribed) {
-            return {
-                type: InteractionResponseType.ChannelMessageWithSource,
-                data: {
-                    content:
-                        'Could not find your Discord linked user account on BoardTogether, please login there and go to your profile and link your Discord account.',
-                    flags: MessageFlags.Ephemeral
-                }
-            }
-        }
-
-        return {
-            type: InteractionResponseType.ChannelMessageWithSource,
-            data: {
-                content: 'You will now be notified.  Type /stop to stop notifications.',
-                flags: MessageFlags.Ephemeral
-            }
-        }
+        await this.subscribe(discordUserId, user)
+        return this.reply(m.discord_notify_started({}, { locale }))
     }
 
     private async handleStopCommand(commandInteraction: APIApplicationCommandInteraction) {
         const discordUserId = commandInteraction.user?.id ?? commandInteraction.member?.user?.id
+        const user = discordUserId ? await this.linkedUser(discordUserId) : undefined
+        const locale = replyLocale(user, commandInteraction.locale)
         if (!discordUserId) {
-            return {
-                type: InteractionResponseType.ChannelMessageWithSource,
-                data: {
-                    content: 'For some reason I could not identify your user id.  Try again?',
-                    flags: MessageFlags.Ephemeral
-                }
-            }
+            return this.reply(m.discord_unknown_user({}, { locale }))
         }
 
         await this.unsubscribe(discordUserId)
+        return this.reply(m.discord_notify_stopped({}, { locale }))
+    }
+
+    private reply(content: string) {
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
-            data: {
-                content: 'Notifications will no longer be sent.',
-                flags: MessageFlags.Ephemeral
-            }
+            data: { content, flags: MessageFlags.Ephemeral }
         }
     }
 
-    private async subscribeLinkedUser(discordUserId: string): Promise<boolean> {
+    private async linkedUser(discordUserId: string): Promise<User | undefined> {
         const user = await this.userService.getUserByExternalId(
             discordUserId,
             ExternalAuthService.Discord
         )
-        if (!user || !canHoldAuthenticatedSession(user)) {
-            return false
-        }
+        return user && canHoldAuthenticatedSession(user) ? user : undefined
+    }
 
+    private async subscribe(discordUserId: string, user: User) {
         await this.notificationService.registerNotificationSubscription({
             subscription: this.subscriptionFor(discordUserId),
             topic: userTopic(user.id)
         })
         await announceTopicRegistrationsChanged(this.notificationService, [userTopic(user.id)])
-        return true
     }
 
     private async subscribeNewInstall(discordUserId: string) {
-        const subscribed = await this.subscribeLinkedUser(discordUserId)
-        if (subscribed) {
-            this.sendInstallWelcome(discordUserId)
-        }
+        const user = await this.linkedUser(discordUserId)
+        if (!user) return
+        await this.subscribe(discordUserId, user)
+        this.sendInstallWelcome(discordUserId, messageLocale(user))
     }
 
     // Not awaited: Discord requires a webhook event response within 3 seconds.
-    private sendInstallWelcome(discordUserId: string) {
+    private sendInstallWelcome(discordUserId: string, locale: Locale) {
         this.discordTransport
-            ?.sendMessage({ userId: discordUserId, message: { content: INSTALL_WELCOME_MESSAGE } })
+            ?.sendMessage({
+                userId: discordUserId,
+                message: { content: m.discord_install_welcome({}, { locale }) }
+            })
             .catch((error: unknown) => {
                 console.error('Could not send the Discord install welcome', discordUserId, error)
             })

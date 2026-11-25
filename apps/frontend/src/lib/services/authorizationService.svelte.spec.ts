@@ -6,6 +6,7 @@ import { AuthorizationService } from './authorizationService.svelte.js'
 import { stubLocalStorage, stubSessionStorage } from '$lib/test/localStorageStub'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
 import { signInWithGoogle } from '$lib/utils/googleSignIn'
+import { getLocale } from '$lib/paraglide/runtime'
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
 
@@ -281,5 +282,74 @@ describe('AuthorizationService stored session user', () => {
 
         expect(localStorage.getItem('sessionUser')).toBeNull()
         expect(onSessionUserCleared).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('AuthorizationService seen language', () => {
+    function signedInUser(seenLocale?: string): User {
+        return { ...createUser([Role.User]), timeZone: 'UTC', seenLocale }
+    }
+
+    function loadWithServerUser(serverUser: User) {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'getSelf').mockResolvedValue(serverUser)
+        const report = vi
+            .spyOn(api, 'updateUserSeenLocale')
+            .mockImplementation(async (locale) => ({ ...serverUser, seenLocale: locale }))
+        const service = new AuthorizationService(api, vi.fn(), vi.fn(), vi.fn())
+        return { service, report }
+    }
+
+    it('does not report a page load in the language the server already has', async () => {
+        const { service, report } = loadWithServerUser(signedInUser(getLocale()))
+        await service.initialize()
+
+        expect(report).not.toHaveBeenCalled()
+    })
+
+    it('reports a different language once and keeps the saved user', async () => {
+        const { service, report } = loadWithServerUser(signedInUser())
+        await service.initialize()
+
+        await vi.waitFor(() => expect(service.getSessionUser()?.seenLocale).toBe(getLocale()))
+        expect(report).toHaveBeenCalledTimes(1)
+        expect(report).toHaveBeenCalledWith(getLocale())
+    })
+
+    it('does not report again when a stored user is verified unchanged', async () => {
+        const storedUser = signedInUser(getLocale())
+        new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn(), vi.fn()).setSessionUser(
+            storedUser
+        )
+        const { service, report } = loadWithServerUser(storedUser)
+        await service.initialize()
+        await service.whenSessionVerified()
+
+        expect(report).not.toHaveBeenCalled()
+    })
+
+    it('reports a different language on sign-in', async () => {
+        const api = new TabletopApi()
+        const report = vi
+            .spyOn(api, 'updateUserSeenLocale')
+            .mockImplementation(async (locale) => signedInUser(locale))
+        const service = new AuthorizationService(api, vi.fn(), vi.fn(), vi.fn())
+        await service.onLogin(signedInUser())
+
+        expect(report).toHaveBeenCalledTimes(1)
+        expect(report).toHaveBeenCalledWith(getLocale())
+    })
+
+    it('keeps the session when the report fails', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'getSelf').mockResolvedValue(signedInUser())
+        vi.spyOn(api, 'updateUserSeenLocale').mockRejectedValue(new Error('offline'))
+        const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const service = new AuthorizationService(api, vi.fn(), vi.fn(), vi.fn())
+        await service.initialize()
+
+        await vi.waitFor(() => expect(logged).toHaveBeenCalledTimes(1))
+        expect(service.getSessionUser()?.id).toBe('user-id')
+        logged.mockRestore()
     })
 })

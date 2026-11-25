@@ -1,6 +1,7 @@
 # Italian (`it`) — translation glossary
 
-For native-speaker reviewers of `messages/it.json`.
+For native-speaker reviewers of `messages/it.json` (the site and its push notifications) and
+`libs/email/messages/it.json` (emails, Discord and Telegram messages).
 
 ## 1. Form of address and tone
 
@@ -17,6 +18,13 @@ For native-speaker reviewers of `messages/it.json`.
   _In sostituzione di {name}_, _Di turno: {player}_, _Vittoria: {winners}_.
 - Errors: _Impossibile … . Riprova._ for "Could not…", _Non siamo riusciti a…_ for "We couldn't…".
   Progress labels are nouns: _Salvataggio…_, _Invio…_, _Caricamento…_.
+- **Emails, bot messages and push notifications** address one player with the same `tu` and the same
+  neutral constructions: _{owner} ti invita a giocare_ (not _ti ha invitato_), _{player} ora partecipa
+  alla tua partita_ (not _si è unito_), _Hai chiuso in 2ª posizione_ (not _Sei arrivato_), _Sei tra gli
+  iscritti_ (not _Ti sei iscritto_), _Se questa modifica non l’hai fatta tu_ (not _Se non sei stato tu_),
+  _Questa chat è connessa_ (not _Sei connesso_).
+- The Discord and Telegram bots speak in the first person, also without participles: _Ti scriverò qui_,
+  _Non riesco a identificare…_, _Non trovo un account…_, _Mando solo le notifiche di BoardTogether_.
 
 ## 2. Terms
 
@@ -101,9 +109,30 @@ For native-speaker reviewers of `messages/it.json`.
 | free to play                          | gratis                                                                         |                                                                                  |
 | Terms of Service / Privacy Policy     | Termini di servizio / Informativa sulla privacy                                |                                                                                  |
 | 18xx: companies, shares, track        | compagnie, azioni, binari                                                      |                                                                                  |
+| champion (results emails)             | Vincitore / Vincitori                                                          | as on the tournament page; see review                                            |
+| finished 2nd                          | _Hai chiuso in 2ª posizione_                                                   | feminine ordinal, no article; see section 3                                      |
+| move up / move down / stay (level)    | sali / scendi / resti                                                          | _e sali al Livello {level}_                                                      |
+| seeding season                        | Stagione di piazzamento                                                        |                                                                                  |
+| sign-up closes soon                   | le iscrizioni chiudono a breve                                                 | the reminder goes out two days before                                            |
+| waiting for (players to move)         | _Di turno: {names}_                                                            | not _In attesa di_; see review                                                   |
+| invited you                           | ti invita                                                                      | present tense, so no participle agrees                                           |
+| joined (notification)                 | ora partecipa                                                                  | _{player} ora partecipa alla tua partita_                                        |
+| go back (undo vote, in notifications) | tornare indietro                                                               | short for _tornare a un punto precedente_                                        |
+| end the game early                    | chiudere la partita in anticipo                                                |                                                                                  |
+| take over a seat                      | prendere il posto di                                                           | _Hai preso il posto di {player}_                                                 |
+| removed (a player)                    | _non fa più parte di…: il suo account è stato rimosso_                         | see review                                                                       |
+| dashboard (in a button)               | le tue partite                                                                 | _Apri le tue partite_                                                            |
+| button (in an email)                  | pulsante                                                                       | _Se il pulsante non funziona, apri…_                                             |
+| safely ignore this email              | ignorare tranquillamente questa email                                          |                                                                                  |
+| works for 15 minutes (code, link)     | è valido per 15 minuti dalla richiesta                                         | _e funziona solo il più recente_                                                 |
+| turn notifications                    | notifiche di turno                                                             |                                                                                  |
+| Type /stop / Send /stop               | Digita /stop (Discord) / Invia /stop (Telegram)                                |                                                                                  |
+| score (standings column in emails)    | Punti                                                                          | see review                                                                       |
+| name fallbacks                        | Un giocatore / Qualcuno, qualcuno                                              | capitalised only where the name starts every sentence                            |
 
 Not translated: BoardTogether, Board Together, Tabletop, game titles, Discord, Telegram, Google,
-GitHub, BG Stats, Tiltify, charity names, `/stop`, `/notify`, URLs, Alpha, Beta, Hotseat.
+GitHub, BG Stats, Tiltify, charity names, `/stop`, `/notify`, `/start`, URLs, Alpha, Beta, Hotseat, the
+Discord forum name `bug-reports`.
 
 ## 3. Typography and formatting
 
@@ -120,7 +149,27 @@ GitHub, BG Stats, Tiltify, charity names, `/stop`, `/notify`, URLs, Alpha, Beta,
   `leagues_sign_up_more_needed`.
 - Where one line carries several counts, the label comes first so that nothing has to agree:
   _Concluse: 3 · In corso: 1 · In attesa: 2_, _Iscritti: 5 / 8_, _Posti occupati: 3 su 4_.
-- `{count: number}` is not used: Italian groups digits only from 10.000 and no count here gets that far.
+- Counts use `{count: number}` (as in every language); Italian groups digits only from 10.000, so most counts look unchanged.
+
+Emails and notifications:
+
+- Email subjects put the news first, then a colon and the names, so no name needs a preposition or an
+  article: _Partita iniziata: {game} ({title})_, _Iscrizioni aperte: {league}, Stagione {season}_,
+  _Risultati finali: {tournament}_.
+- In sentences a name stands in apposition, so nothing agrees with it: _La partita {game} è iniziata_,
+  _Il torneo {tournament} si è concluso_, _{league}: la Stagione {season} è iniziata_.
+- Ordinals are feminine, `{place}ª`, and always read _in {place} posizione_. That takes no article, so 8
+  and 11 never need _all’_. `email_ordinal` is a plain string, since the ending doesn't change.
+- A full timestamp follows _il giorno_ (_il giorno 8 novembre 2026 alle ore 10:05 CET_), right on every
+  day of the month. The sign-up deadline starts with the weekday and takes no article: _prima che le
+  iscrizioni chiudano venerdì 23 ottobre alle ore 20:00 CEST_.
+- Where the English formats a number (`{wins: number}`, `{games: number}`, `{count: number}`) the Italian
+  does too, so half wins read _2,5 vittorie_.
+- Name fallbacks: _Qualcuno_ (`email_game_invitation_unnamed_owner`) and _Un giocatore_
+  (`email_player_removed_unnamed_player`) are capitalised because every sentence that takes them starts
+  with the name. _qualcuno_, _gli altri giocatori_ and _il tuo girone_ are lower case because they come
+  mid-sentence.
+- The quoted bug report is set in «…». The Discord command descriptions are 57 and 60 characters long.
 
 ## 4. Please review
 
@@ -183,3 +232,57 @@ Wording to confirm:
 - `games_option_none` — _Nessuno_; the gender of the option it describes is not known.
 - `auth_email_placeholder` — sample address localised to _nome@esempio.com_.
 - `content_landing_loading` — _Sistemiamo i giochi sullo scaffale…_ for "Setting out the games…".
+
+Emails, bot messages and push notifications — source issues:
+
+- `email_account_email_change_requested_preview` — the English ends "until the new address is verified
+  on {time}", but `{time}` is when the request was made. The Italian attaches it to the request.
+- `email_player_removed_end_early_detail` — quotes the menu item «Proponi di chiudere la partita»
+  (`games_call_offer_call`); the two must change together.
+- `telegram_not_linked`, `telegram_stopped` — name the site's _Connetti_ button
+  (`discord_webhook_connect`); they must change together too.
+
+Emails, bot messages and push notifications — term choices with a real alternative:
+
+- `email_standings_champion`, `email_standings_champions` — _Vincitore_ / _Vincitori_, as on the
+  tournament page. The bracket's _Primo posto_ would read as the reader's own group place in the league
+  results email, which names the league champion. The alternative is _Campione_ / _Campioni_.
+- `email_standings_column_score` — _Punti_, so the header fits its narrow column; the tournament page has
+  _Punteggio_.
+- `email_standings_column_average_place` — _Pos. media_ as on the tournament page; _Media_, as in the
+  league tables, would fit the column better.
+- `email_tournament_results_finished_average_place`, `email_tournament_results_finished_wins`,
+  `email_league_season_results_seeded`, `email_league_season_results_promoted`,
+  `email_league_season_results_relegated`, `email_league_season_results_stayed`,
+  `email_league_season_results_substitute` — "You finished {place}" as _Hai chiuso in {place} posizione_.
+- `email_league_season_results_substitute` — "as a substitute" as _in sostituzione di un altro
+  giocatore_, to avoid _come sostituto_ or _sostituta_.
+- `email_player_removed_preview_removed`, `email_player_removed_subline_removed` — "was removed" as _non
+  fa più parte di…: il suo account è stato rimosso_, so that no participle agrees with the player's name.
+- `email_game_started_waiting`, `email_game_started_preview_waiting` — "Waiting for {names}" as _Di
+  turno: {names}_. _In attesa di_ breaks with the fallback _gli altri giocatori_.
+- `notification_undo_vote_summary`, `notification_undo_vote_heading`, `push_undo_vote_title` — "go back"
+  as _tornare indietro_, shorter than the site's _tornare a un punto precedente_.
+- `notification_player_joined_summary`, `notification_player_joined_heading`, `push_player_joined_body` —
+  "joined" as _ora partecipa_, after the site's _partecipa_; the alternative is _si unisce a_.
+- `notification_open_dashboard_button` — _Apri le tue partite_ for "Open dashboard".
+- `telegram_connected_as`, `telegram_connected` — "You're connected" as _Questa chat è connessa…_, to
+  avoid _connesso_ or _connessa_.
+
+Emails, bot messages and push notifications — wording to confirm:
+
+- `email_account_email_change_requested_preview`, `email_account_password_reset_requested_preview`,
+  `email_account_email_changed_preview`, `email_account_password_changed_preview` — _il giorno {time}_
+  rather than _il {time}_.
+- `email_league_sign_up_subject_reminder`, `email_league_sign_up_preview_reminder`,
+  `email_league_sign_up_eyebrow_reminder` — _chiudono a breve_ for "closes soon".
+- `email_unnamed_player` — _Un giocatore_ keeps its capital inside a list (_Vittoria di Un giocatore e
+  Bob!_), as "A Player" does in English.
+- `email_game_started_warning_heading` — _Non saprai quando tocca a te_ for "You won't hear when it's
+  your turn".
+- `email_tournament_results_champion` — _Sei tu. Congratulazioni!_ under the winner's name.
+- `discord_command_notify_description`, `discord_command_stop_description` — imperatives, _Attiva…_ and
+  _Disattiva…_.
+- `push_player_joined_title`, `push_player_declined_title`, `push_invited_title` — noun titles: _Nuovo
+  giocatore!_, _Invito rifiutato_, _Invito a una partita!_.
+- `push_lost_seat_title` — _Il tuo posto è passato a un altro giocatore_.

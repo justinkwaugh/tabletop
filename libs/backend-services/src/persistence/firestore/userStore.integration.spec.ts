@@ -407,5 +407,25 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(updated.status).toBe(UserStatus.Active)
             expect(updatedFields).toEqual([])
         })
+
+        it('stores the language the site showed, from sign-up and when it changes', async () => {
+            const account = await createAccount(UserStatus.Active, { seenLocale: 'fr' })
+            expect(account.seenLocale).toBe('fr')
+
+            const [, unchanged] = await store.updateUser({
+                userId: account.id,
+                fields: { seenLocale: 'fr' }
+            })
+            expect(unchanged).toEqual([])
+
+            const [updated, updatedFields] = await store.updateUser({
+                userId: account.id,
+                fields: { seenLocale: 'de' }
+            })
+            expect(updated.seenLocale).toBe('de')
+            expect(updatedFields).toEqual(['seenLocale', 'updatedAt'])
+            const snapshot = await firestore.collection('users').doc(account.id).get()
+            expect(snapshot.get('seenLocale')).toBe('de')
+        })
     }
 )

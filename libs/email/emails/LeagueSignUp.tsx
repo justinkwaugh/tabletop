@@ -5,6 +5,8 @@ import {
     DarkCardEmail,
     darkStyles as styles,
 } from '../components/darkCard.js'
+import { formatEmailDeadline } from '../components/format.js'
+import { baseLocale, m, type Locale } from '../i18n.js'
 
 export interface LeagueSignUpProps {
     reminder: boolean
@@ -14,17 +16,9 @@ export interface LeagueSignUpProps {
     level: string
     closesAt: number
     url?: string
+    locale: Locale
+    timeZone?: string
 }
-
-const formatLeagueDate = (time: number): string =>
-    `${new Date(time).toLocaleString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: 'UTC',
-    })} UTC`
 
 export const LeagueSignUp = ({
     reminder,
@@ -34,37 +28,47 @@ export const LeagueSignUp = ({
     level,
     closesAt,
     url = ``,
+    locale,
+    timeZone,
 }: LeagueSignUpProps) => {
-    const closes = formatLeagueDate(closesAt)
-    const previewText = reminder
-        ? `Sign-up for ${leagueName} Season ${seasonNumber} closes soon. Confirm your place in Level ${level}.`
-        : `Sign-up for ${leagueName} Season ${seasonNumber} is open. Your place in Level ${level} is held.`
+    const place = { league: leagueName, season: seasonNumber, level }
     return (
         <DarkCardEmail
-            preview={previewText}
+            locale={locale}
+            preview={
+                reminder
+                    ? m.email_league_sign_up_preview_reminder(place, { locale })
+                    : m.email_league_sign_up_preview_open(place, { locale })
+            }
             wordmarkHref={url}
-            eyebrow={reminder ? 'Sign-up closes soon' : 'Sign-up open'}
+            eyebrow={
+                reminder
+                    ? m.email_league_sign_up_eyebrow_reminder({}, { locale })
+                    : m.email_league_sign_up_eyebrow_open({}, { locale })
+            }
             heading={leagueName}
-            subline={`${title} · Season ${seasonNumber}`}
+            subline={m.email_league_sign_up_subline({ title, season: seasonNumber }, { locale })}
             footer={
                 <>
-                    You have a place held in this league on Board Together.{' '}
-                    <ButtonFallback url={url} />
+                    {m.email_league_sign_up_footer({}, { locale })}{' '}
+                    <ButtonFallback url={url} locale={locale} />
                 </>
             }
         >
             <Section style={styles.panel}>
                 <Text style={styles.panelValue}>
                     {reminder
-                        ? `Your place in Level ${level} is not confirmed yet`
-                        : `Your place in Level ${level} is held for you`}
+                        ? m.email_league_sign_up_place_unconfirmed({ level }, { locale })
+                        : m.email_league_sign_up_place_held({ level }, { locale })}
                 </Text>
                 <Text style={styles.panelDetail}>
-                    Confirm it before sign-up closes on {closes}. A place that is not confirmed goes
-                    to the best player from the level below.
+                    {m.email_league_sign_up_detail(
+                        { closes: formatEmailDeadline(closesAt, locale, timeZone) },
+                        { locale },
+                    )}
                 </Text>
             </Section>
-            <CardButton href={url}>Confirm your place</CardButton>
+            <CardButton href={url}>{m.email_league_sign_up_button({}, { locale })}</CardButton>
         </DarkCardEmail>
     )
 }
@@ -77,6 +81,7 @@ LeagueSignUp.PreviewProps = {
     level: 'B',
     closesAt: Date.UTC(2026, 9, 23, 18),
     url: 'https://boardtogether.games/leagues/fresh-fish-league',
+    locale: baseLocale,
 } satisfies LeagueSignUpProps
 
 export default LeagueSignUp

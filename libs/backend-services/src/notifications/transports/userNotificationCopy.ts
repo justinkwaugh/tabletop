@@ -4,6 +4,7 @@ import {
     UserNotification,
     UserNotificationAction
 } from '@tabletop/common'
+import { m, type Locale } from '@tabletop/email/i18n'
 
 export type UserNotificationCopy = {
     summary: string
@@ -26,77 +27,89 @@ const DASHBOARD_PATH = '/dashboard'
 
 export function userNotificationCopy(
     notification: UserNotification,
+    locale: Locale,
     format: UserNotificationNameFormat = PLAIN_NAMES
 ): UserNotificationCopy {
     const path = userNotificationPath(notification)
-    const gameName = format.game(notification.data.game.name, path)
+    const game = format.game(notification.data.game.name, path)
+    const options = { locale }
 
     switch (notification.action) {
         case UserNotificationAction.IsYourTurn:
             return {
-                summary: `It's your turn in ${gameName}`,
-                heading: "It's your turn",
+                summary: m.notification_is_your_turn_summary({ game }, options),
+                heading: m.notification_is_your_turn_heading({}, options),
                 path,
-                buttonLabel: 'Take your turn'
+                buttonLabel: m.notification_is_your_turn_button({}, options)
             }
         case UserNotificationAction.GameStarted:
             return {
-                summary: `${gameName} has begun!`,
-                heading: 'Your game has begun',
+                summary: m.notification_game_started_summary({ game }, options),
+                heading: m.notification_game_started_heading({}, options),
                 path,
-                buttonLabel: 'Open game'
+                buttonLabel: m.notification_open_game_button({}, options)
             }
         case UserNotificationAction.WasInvited: {
-            const owner = notification.data.owner.username
-            assertExists(owner, `Invitation to ${notification.data.game.id} has no owner name`)
+            const ownerName = notification.data.owner.username
+            assertExists(ownerName, `Invitation to ${notification.data.game.id} has no owner name`)
+            const owner = format.person(ownerName)
             return {
-                summary: `${format.person(owner)} invited you to ${gameName}`,
-                heading: `${format.person(owner)} invited you to play`,
+                summary: m.notification_was_invited_summary({ owner, game }, options),
+                heading: m.notification_was_invited_heading({ owner }, options),
                 path,
-                buttonLabel: 'View invitation'
+                buttonLabel: m.notification_was_invited_button({}, options)
             }
         }
-        case UserNotificationAction.PlayerJoined:
+        case UserNotificationAction.PlayerJoined: {
+            const player = format.person(notification.data.player.name)
             return {
-                summary: `${format.person(notification.data.player.name)} joined ${gameName}`,
-                heading: `${format.person(notification.data.player.name)} joined your game`,
+                summary: m.notification_player_joined_summary({ player, game }, options),
+                heading: m.notification_player_joined_heading({ player }, options),
                 path,
-                buttonLabel: 'Open dashboard'
+                buttonLabel: m.notification_open_dashboard_button({}, options)
             }
-        case UserNotificationAction.PlayerDeclined:
+        }
+        case UserNotificationAction.PlayerDeclined: {
+            const player = format.person(notification.data.player.name)
             return {
-                summary: `${format.person(notification.data.player.name)} declined to join ${gameName}`,
-                heading: `${format.person(notification.data.player.name)} declined your invitation`,
+                summary: m.notification_player_declined_summary({ player, game }, options),
+                heading: m.notification_player_declined_heading({ player }, options),
                 path,
-                buttonLabel: 'Open dashboard'
+                buttonLabel: m.notification_open_dashboard_button({}, options)
             }
-        case UserNotificationAction.PlayerVoteRequested:
+        }
+        case UserNotificationAction.PlayerVoteRequested: {
+            const player = format.person(notification.data.initiator.name)
+            const call = notification.data.kind === PlayerVoteKind.Call
             return {
-                summary:
-                    notification.data.kind === PlayerVoteKind.Call
-                        ? `${format.person(notification.data.initiator.name)} asks to end ${gameName}`
-                        : `${format.person(notification.data.initiator.name)} asks to go back in ${gameName}`,
-                heading:
-                    notification.data.kind === PlayerVoteKind.Call
-                        ? `${format.person(notification.data.initiator.name)} asks everyone to end the game`
-                        : `${format.person(notification.data.initiator.name)} asks everyone to go back`,
+                summary: call
+                    ? m.notification_call_vote_summary({ player, game }, options)
+                    : m.notification_undo_vote_summary({ player, game }, options),
+                heading: call
+                    ? m.notification_call_vote_heading({ player }, options)
+                    : m.notification_undo_vote_heading({ player }, options),
                 path,
-                buttonLabel: 'Vote'
+                buttonLabel: m.notification_vote_button({}, options)
             }
-        case UserNotificationAction.TookOverSeat:
+        }
+        case UserNotificationAction.TookOverSeat: {
+            const player = format.person(notification.data.formerHolder.name)
             return {
-                summary: `You've taken over ${format.person(notification.data.formerHolder.name)}'s seat in ${gameName}`,
-                heading: `An administrator gave you ${format.person(notification.data.formerHolder.name)}'s seat`,
+                summary: m.notification_took_over_seat_summary({ player, game }, options),
+                heading: m.notification_took_over_seat_heading({ player }, options),
                 path,
-                buttonLabel: 'Open game'
+                buttonLabel: m.notification_open_game_button({}, options)
             }
-        case UserNotificationAction.LostSeat:
+        }
+        case UserNotificationAction.LostSeat: {
+            const player = format.person(notification.data.newHolder.name)
             return {
-                summary: `${format.person(notification.data.newHolder.name)} has taken over your seat in ${gameName}`,
-                heading: `An administrator gave your seat to ${format.person(notification.data.newHolder.name)}`,
+                summary: m.notification_lost_seat_summary({ player, game }, options),
+                heading: m.notification_lost_seat_heading({ player }, options),
                 path,
-                buttonLabel: 'Open dashboard'
+                buttonLabel: m.notification_open_dashboard_button({}, options)
             }
+        }
     }
 }
 

@@ -1,8 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { assertExists } from '@tabletop/common'
-    import type { MessagePart } from '$lib/paraglide/runtime'
-    import { messageSegments } from '$lib/i18n/messageSegments'
+    import { assertExists, messageSegments, type MessagePart } from '@tabletop/common'
 
     let { parts, markup }: { parts: MessagePart[]; markup: Record<string, Snippet<[string]>> } =
         $props()

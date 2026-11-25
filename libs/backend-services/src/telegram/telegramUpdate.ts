@@ -12,6 +12,7 @@ export const TelegramUpdate = Type.Object({
     message: Type.Optional(
         Type.Object({
             chat: TelegramChat,
+            from: Type.Optional(Type.Object({ language_code: Type.Optional(Type.String()) })),
             text: Type.Optional(Type.String())
         })
     ),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { APIError } from '@tabletop/frontend-components'
 import { PlayerVoteKind } from '@tabletop/common'
-import type { MessagePart } from '$lib/paraglide/runtime'
+import type { MessagePart } from '@tabletop/common'
 import { undoneSummary, voteErrorMessage, voteRequestParts, voteTally } from './playerVoteText.js'
 
 function partsText(parts: MessagePart[]): string {

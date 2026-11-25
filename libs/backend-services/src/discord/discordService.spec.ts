@@ -6,10 +6,14 @@ import {
     type User
 } from '@tabletop/common'
 import {
+    ApplicationCommandType,
     ApplicationIntegrationType,
     ApplicationWebhookEventType,
     ApplicationWebhookType,
+    InteractionType,
+    Locale,
     OAuth2Scopes,
+    type APIBaseInteraction,
     type APIUser,
     type APIWebhookEvent
 } from 'discord-api-types/v10'
@@ -66,6 +70,23 @@ const deauthorizedEvent: APIWebhookEvent = {
         type: ApplicationWebhookEventType.ApplicationDeauthorized,
         timestamp: '2026-09-30T12:00:00.000Z',
         data: { user: discordUser }
+    }
+}
+
+function stopCommand(locale: Locale): APIBaseInteraction<InteractionType, unknown> {
+    return {
+        id: 'interaction-1',
+        application_id: 'app-1',
+        type: InteractionType.ApplicationCommand,
+        data: { id: 'command-1', name: 'stop', type: ApplicationCommandType.ChatInput },
+        user: discordUser,
+        token: 'interaction-token',
+        version: 1,
+        app_permissions: '0',
+        locale,
+        entitlements: [],
+        authorizing_integration_owners: {},
+        attachment_size_limit: 0
     }
 }
 
@@ -186,5 +207,57 @@ describe('DiscordService webhook events', () => {
             expectedSubscription
         )
         expect(notificationService.sendNotification).toHaveBeenCalled()
+    })
+
+    it('replies to a command in the language the person uses Discord in', async () => {
+        const reply = await service.handleInteraction(stopCommand(Locale.German))
+
+        expect(reply).toEqual(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    content: 'Es werden keine Benachrichtigungen mehr gesendet.'
+                })
+            })
+        )
+    })
+
+    it("replies in the linked account's language when Discord reports one the site lacks", async () => {
+        vi.spyOn(userService, 'getUserByExternalId').mockResolvedValue({
+            ...linkedUser,
+            seenLocale: 'de'
+        })
+
+        const reply = await service.handleInteraction(stopCommand(Locale.Korean))
+
+        expect(reply).toEqual(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    content: 'Es werden keine Benachrichtigungen mehr gesendet.'
+                })
+            })
+        )
+    })
+
+    it('replies in the language the account chose over the one Discord reports', async () => {
+        vi.spyOn(userService, 'getUserByExternalId').mockResolvedValue({
+            ...linkedUser,
+            preferences: {
+                preventWebNotificationPrompt: false,
+                preferredColorsEnabled: false,
+                preferredColors: [],
+                locale: 'de'
+            }
+        })
+
+        const reply = await service.handleInteraction(stopCommand(Locale.French))
+
+        expect(reply).toEqual(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    content: 'Es werden keine Benachrichtigungen mehr gesendet.'
+                })
+            })
+        )
+        expect(userService.getUserByExternalId).toHaveBeenCalledOnce()
     })
 })

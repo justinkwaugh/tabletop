@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { UserStatus } from '@tabletop/common'
-import { LeagueEmailTask } from '@tabletop/backend-services'
+import { LeagueEmailTask, emailRecipient } from '@tabletop/backend-services'
 
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] || ''
 const EMAIL_CLAIM_SECONDS = 60 * 86_400
@@ -13,7 +13,8 @@ export default async function (fastify: FastifyInstance) {
             const recipient = await fastify.userService.getUser(request.body.userId)
             if (recipient?.status !== UserStatus.Active || !recipient.email)
                 return { status: 'skipped' }
-            const content = await fastify.leagueService.emailContent(request.body)
+            const to = emailRecipient(recipient.email, recipient)
+            const content = await fastify.leagueService.emailContent(request.body, to.locale)
             if (!content) return { status: 'skipped' }
             const definition = fastify.gameService.getTitle(content.titleId)
             if (!definition) {
@@ -35,7 +36,7 @@ export default async function (fastify: FastifyInstance) {
                 leagueName: content.leagueName,
                 title: definition.info.metadata.name,
                 seasonNumber: content.seasonNumber,
-                toEmail: recipient.email
+                to
             }
             const leagueUrl = `${FRONTEND_HOST}/leagues/${encodeURIComponent(content.leagueId)}`
             try {
@@ -48,7 +49,7 @@ export default async function (fastify: FastifyInstance) {
                         nextLevel: content.nextLevel,
                         ...(content.champion ? { champion: content.champion } : {}),
                         standings: content.standings,
-                        tiebreakDescription: content.tiebreakDescription,
+                        ...(content.tiebreakRule ? { tiebreakRule: content.tiebreakRule } : {}),
                         ...(content.ranksByAveragePlace ? { ranksByAveragePlace: true } : {}),
                         url: `${leagueUrl}?season=${content.seasonNumber}`
                     })

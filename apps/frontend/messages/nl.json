@@ -1657,5 +1657,22 @@
     "pace_relaxed_name": "Rustig",
     "pace_relaxed_line": "Rustig · binnen 3 dagen",
     "pace_relaxed_summary": "Rustig · 3 dagen",
-    "pace_relaxed_past_limit": "Trager dan het tempo van 3 dagen"
+    "pace_relaxed_past_limit": "Trager dan het tempo van 3 dagen",
+    "push_player_joined_title": "Speler doet mee!",
+    "push_player_joined_body": "{player} doet mee aan je spel {game}",
+    "push_player_declined_title": "Uitnodiging afgeslagen",
+    "push_player_declined_body": "{player} heeft de uitnodiging voor je spel {game} afgeslagen",
+    "push_game_started_title": "Het spel is begonnen!",
+    "push_game_started_body": "Je spel {game} is begonnen!",
+    "push_invited_title": "Je bent uitgenodigd voor een spel!",
+    "push_invited_body": "{owner} nodigt je uit voor het spel {game}",
+    "push_your_turn_title": "Jouw beurt!",
+    "push_your_turn_body": "Je bent aan de beurt in het spel {game}",
+    "push_call_vote_title": "{initiator} vraagt om het spel te beëindigen",
+    "push_undo_vote_title": "{initiator} vraagt om terug te gaan",
+    "push_vote_body": "Stem in het spel {game}",
+    "push_took_over_seat_title": "Je doet mee aan een lopend spel",
+    "push_took_over_seat_body": "Je hebt de plek van {formerHolder} in {game} overgenomen",
+    "push_lost_seat_title": "Je plek is aan een andere speler gegeven",
+    "push_lost_seat_body": "{newHolder} heeft je plek in {game} overgenomen"
 }

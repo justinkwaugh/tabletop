@@ -3,7 +3,7 @@
     import { Button, Modal } from 'flowbite-svelte'
     import { UndoOutline } from 'flowbite-svelte-icons'
     import { m } from '$lib/paraglide/messages'
-    import type { MessagePart } from '$lib/paraglide/runtime'
+    import type { MessagePart } from '@tabletop/common'
     import RichMessage from './RichMessage.svelte'
 
     let {

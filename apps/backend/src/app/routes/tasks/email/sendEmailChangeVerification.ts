@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
+import { emailRecipient } from '@tabletop/backend-services'
 import { CredentialEmailRequest, deliverCredentialEmail } from '../../../lib/credentialEmailTask.js'
 
 const EmailChangeVerificationRequest = Type.Object(
@@ -15,8 +16,11 @@ export default async function (fastify: FastifyInstance) {
         async (request, reply) => {
             await deliverCredentialEmail(fastify, request, {
                 kind: 'email-change',
-                deliver: (_accountEmail, token) =>
-                    fastify.emailService.sendVerificationEmail(token, request.body.email)
+                deliver: (account, token) =>
+                    fastify.emailService.sendVerificationEmail(
+                        token,
+                        emailRecipient(request.body.email, account)
+                    )
             })
             await reply.code(200).send()
         }

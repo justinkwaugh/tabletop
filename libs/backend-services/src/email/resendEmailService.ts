@@ -12,12 +12,13 @@ import {
     formatTournamentTiebreaks,
     ranksByAveragePlace,
     formatTournamentAveragePlace,
-    tournamentTiebreakDescription,
+    standingsTiebreakRule,
     User
 } from '@tabletop/common'
 import {
     AccountChangeType,
     EmailService,
+    type EmailRecipient,
     type GameStartedEmail,
     type LeagueSeasonResultsEmail,
     type LeagueSeasonStartEmail,
@@ -78,33 +79,54 @@ export class ResendEmailService implements EmailService {
         return emailService
     }
 
-    async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
+    async sendVerificationEmail(token: string, to: EmailRecipient): Promise<void> {
         const { render, templates } = await this.loadRendering()
+        const { locale } = to
         const emailHTML = await render(
-            templates.EmailVerification({ token, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+            templates.EmailVerification({
+                token,
+                expiresInMinutes: CHALLENGE_LIFETIME_MINUTES,
+                locale
+            })
         )
-        await this.send(toEmail, 'Verify your email address', emailHTML)
+        await this.send(to.email, templates.m.email_verification_subject({}, { locale }), emailHTML)
     }
 
-    async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
+    async sendPasswordResetEmail(token: string, url: string, to: EmailRecipient): Promise<void> {
         const { render, templates } = await this.loadRendering()
+        const { locale } = to
         const emailHTML = await render(
-            templates.PasswordReset({ url, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+            templates.PasswordReset({ url, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES, locale })
         )
-        await this.send(toEmail, 'Reset your password', emailHTML)
+        await this.send(
+            to.email,
+            templates.m.email_password_reset_subject({}, { locale }),
+            emailHTML
+        )
     }
 
     async sendAccountChangedNotificationEmail(
         changeType: AccountChangeType,
         timestamp: Date,
-        toEmail: string,
+        to: EmailRecipient,
         username?: string
     ): Promise<void> {
         const { render, templates } = await this.loadRendering()
+        const { locale, timeZone } = to
         const emailHTML = await render(
-            templates.AccountChangeNotification({ changeType, timestamp, username })
+            templates.AccountChangeNotification({
+                changeType,
+                timestamp,
+                username,
+                locale,
+                timeZone
+            })
         )
-        await this.send(toEmail, 'Account change notification', emailHTML)
+        await this.send(
+            to.email,
+            templates.m.email_account_change_subject({}, { locale }),
+            emailHTML
+        )
     }
 
     async sendGameInvitationEmail({
@@ -112,26 +134,25 @@ export class ResendEmailService implements EmailService {
         game,
         definition,
         url,
-        toEmail
+        to
     }: {
         owner: User
         game: Game
         definition: GameDefinition
         url: string
-        toEmail: string
+        to: EmailRecipient
     }): Promise<void> {
         const { render, templates } = await this.loadRendering()
+        const { locale } = to
+        const ownerName =
+            owner.username ?? templates.m.email_game_invitation_unnamed_owner({}, { locale })
+        const title = definition.info.metadata.name
         const emailHTML = await render(
-            templates.GameInvitation({
-                ownerName: owner.username ?? 'someone',
-                gameName: game.name,
-                title: definition.info.metadata.name,
-                url
-            })
+            templates.GameInvitation({ ownerName, gameName: game.name, title, url, locale })
         )
         await this.send(
-            toEmail,
-            `Join ${owner.username}'s game of ${definition.info.metadata.name}`,
+            to.email,
+            templates.m.email_game_invitation_subject({ owner: ownerName, title }, { locale }),
             emailHTML
         )
     }
@@ -156,30 +177,32 @@ export class ResendEmailService implements EmailService {
         game,
         definition,
         url,
-        toEmail,
+        to,
         deletedAccount
     }: {
         playerName: string
         game: Game
         definition: GameDefinition
         url: string
-        toEmail: string
+        to: EmailRecipient
         deletedAccount: boolean
     }): Promise<void> {
         const { render, templates } = await this.loadRendering()
+        const { locale } = to
         const emailHTML = await render(
             templates.PlayerRemoved({
                 playerName,
                 title: definition.info.metadata.name,
                 gameName: game.name,
                 url,
-                deletedAccount
+                deletedAccount,
+                locale
             })
         )
         const subject = deletedAccount
-            ? `A player left ${game.name}`
-            : `A player was removed from ${game.name}`
-        await this.send(toEmail, subject, emailHTML)
+            ? templates.m.email_player_removed_subject_left({ game: game.name }, { locale })
+            : templates.m.email_player_removed_subject_removed({ game: game.name }, { locale })
+        await this.send(to.email, subject, emailHTML)
     }
 
     async sendGameEndEmail({
@@ -187,13 +210,13 @@ export class ResendEmailService implements EmailService {
         game,
         definition,
         url,
-        toEmail
+        to
     }: {
         winners: User[]
         game: Game
         definition: GameDefinition
         url: string
-        toEmail: string
+        to: EmailRecipient
     }): Promise<void> {
         if (!game.result) {
             console.log('Game result is missing for game end email')
@@ -201,27 +224,40 @@ export class ResendEmailService implements EmailService {
         }
 
         const { render, templates } = await this.loadRendering()
+        const { locale } = to
+        const title = definition.info.metadata.name
         const emailHTML = await render(
             templates.GameEnd({
                 result: game.result,
-                winners: winners.map((w) => w.username || 'A Player'),
+                winners: winners.map(
+                    (w) => w.username || templates.m.email_unnamed_player({}, { locale })
+                ),
                 callKind: game.call?.kind,
                 gameName: game.name,
-                title: definition.info.metadata.name,
-                url
+                title,
+                url,
+                locale
             })
         )
         await this.send(
-            toEmail,
-            `Your game of ${definition.info.metadata.name} ${game.name} has ended`,
+            to.email,
+            templates.m.email_game_end_subject({ title, game: game.name }, { locale }),
             emailHTML
         )
     }
 
-    async sendGameStartedEmail({ toEmail, ...props }: GameStartedEmail): Promise<void> {
+    async sendGameStartedEmail({ to, ...props }: GameStartedEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.GameStarted(props))
-        await this.send(toEmail, `Game started: ${props.gameName} (${props.title})`, emailHTML)
+        const { locale } = to
+        const emailHTML = await render(templates.GameStarted({ ...props, locale }))
+        await this.send(
+            to.email,
+            templates.m.email_game_started_subject(
+                { game: props.gameName, title: props.title },
+                { locale }
+            ),
+            emailHTML
+        )
     }
 
     async sendTournamentResultsEmail({
@@ -229,77 +265,102 @@ export class ResendEmailService implements EmailService {
         definition,
         recipientId,
         url,
-        toEmail
+        to
     }: {
         detail: TournamentDetail
         definition: GameDefinition
         recipientId: string
         url: string
-        toEmail: string
+        to: EmailRecipient
     }): Promise<void> {
         const standings = detail.standings ?? []
         if (detail.tournament.status !== 'finished' || !standings.length) {
             console.log('Tournament results are unavailable for results email')
             return
         }
-        const name = (userId: string) => detail.usernames[userId] ?? 'A Player'
-        const ranked = standings.filter((row) => !row.withdrawn)
-        const tiebreaks = formatTournamentTiebreaks(ranked, 'en-US')
         const { render, templates } = await this.loadRendering()
+        const { locale } = to
+        const name = (userId: string) =>
+            detail.usernames[userId] ?? templates.m.email_unnamed_player({}, { locale })
+        const ranked = standings.filter((row) => !row.withdrawn)
+        const tiebreaks = formatTournamentTiebreaks(ranked, locale)
         const emailHTML = await render(
             templates.TournamentResults({
                 tournamentName: detail.tournament.name,
                 title: definition.info.metadata.name,
                 winners: standings.filter((row) => row.champion).map((row) => name(row.userId)),
-                tiebreakDescription: tournamentTiebreakDescription(standings),
+                tiebreakRule: standingsTiebreakRule(standings),
                 ranksByAveragePlace: ranksByAveragePlace(detail.tournament.rules),
                 standings: ranked.map((row, index) => ({
                     rank: row.rank,
                     name: name(row.playedBy ?? row.userId),
                     wins: row.wins,
                     score: row.score,
-                    averagePlace: formatTournamentAveragePlace(row, 'en-US'),
+                    averagePlace: formatTournamentAveragePlace(row, locale),
                     tiebreak: tiebreaks[index],
                     recipient: (row.playedBy ?? row.userId) === recipientId,
                     champion: row.champion === true
                 })),
-                url
+                url,
+                locale
             })
         )
-        await this.send(toEmail, `Final results for ${detail.tournament.name}`, emailHTML)
+        await this.send(
+            to.email,
+            templates.m.email_tournament_results_subject(
+                { tournament: detail.tournament.name },
+                { locale }
+            ),
+            emailHTML
+        )
     }
 
-    async sendLeagueSignUpEmail({ toEmail, ...props }: LeagueSignUpEmail): Promise<void> {
+    async sendLeagueSignUpEmail({ to, ...props }: LeagueSignUpEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.LeagueSignUp(props))
+        const { locale, timeZone } = to
+        const emailHTML = await render(templates.LeagueSignUp({ ...props, locale, timeZone }))
         await this.send(
-            toEmail,
+            to.email,
             props.reminder
-                ? `Sign-up for ${props.leagueName} closes soon`
-                : `Sign-up for ${props.leagueName} Season ${props.seasonNumber} is open`,
+                ? templates.m.email_league_sign_up_subject_reminder(
+                      { league: props.leagueName },
+                      { locale }
+                  )
+                : templates.m.email_league_sign_up_subject_open(
+                      { league: props.leagueName, season: props.seasonNumber },
+                      { locale }
+                  ),
             emailHTML
         )
     }
 
-    async sendLeagueSeasonStartEmail({ toEmail, ...props }: LeagueSeasonStartEmail): Promise<void> {
+    async sendLeagueSeasonStartEmail({ to, ...props }: LeagueSeasonStartEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.LeagueSeasonStart(props))
+        const { locale } = to
+        const emailHTML = await render(templates.LeagueSeasonStart({ ...props, locale }))
         await this.send(
-            toEmail,
-            `${props.leagueName} Season ${props.seasonNumber} has started`,
+            to.email,
+            templates.m.email_league_season_start_subject(
+                { league: props.leagueName, season: props.seasonNumber },
+                { locale }
+            ),
             emailHTML
         )
     }
 
-    async sendLeagueSeasonResultsEmail({
-        toEmail,
-        ...props
-    }: LeagueSeasonResultsEmail): Promise<void> {
+    async sendLeagueSeasonResultsEmail({ to, ...props }: LeagueSeasonResultsEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.LeagueSeasonResults(props))
+        const { locale } = to
+        const emailHTML = await render(templates.LeagueSeasonResults({ ...props, locale }))
         await this.send(
-            toEmail,
-            `${props.leagueName} ${templates.leagueSeasonResultsName(props)} results`,
+            to.email,
+            templates.m.email_league_season_results_subject(
+                {
+                    league: props.leagueName,
+                    season: templates.leagueSeasonResultsName({ ...props, locale })
+                },
+                { locale }
+            ),
             emailHTML
         )
     }

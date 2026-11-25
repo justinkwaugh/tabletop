@@ -1769,5 +1769,22 @@
     "pace_relaxed_name": "Relajado",
     "pace_relaxed_line": "Relajado · en menos de 3 días",
     "pace_relaxed_summary": "Relajado · 3 días",
-    "pace_relaxed_past_limit": "Fuera del ritmo de 3 días"
+    "pace_relaxed_past_limit": "Fuera del ritmo de 3 días",
+    "push_player_joined_title": "¡Se ha unido un jugador!",
+    "push_player_joined_body": "{player} se ha unido a tu partida {game}",
+    "push_player_declined_title": "Invitación rechazada",
+    "push_player_declined_body": "{player} ha rechazado unirse a tu partida {game}",
+    "push_game_started_title": "¡La partida ha empezado!",
+    "push_game_started_body": "¡Tu partida {game} ha empezado!",
+    "push_invited_title": "¡Te han invitado a una partida!",
+    "push_invited_body": "{owner} te ha invitado a unirte a su partida {game}",
+    "push_your_turn_title": "¡Es tu turno!",
+    "push_your_turn_body": "Es tu turno en la partida {game}",
+    "push_call_vote_title": "{initiator} propone terminar la partida",
+    "push_undo_vote_title": "{initiator} propone deshacer jugadas",
+    "push_vote_body": "Vota en la partida {game}",
+    "push_took_over_seat_title": "Te has unido a una partida en curso",
+    "push_took_over_seat_body": "Has ocupado el asiento de {formerHolder} en {game}",
+    "push_lost_seat_title": "Han dado tu asiento a otro jugador",
+    "push_lost_seat_body": "{newHolder} ha ocupado tu asiento en {game}"
 }

@@ -351,6 +351,9 @@ async function findUser(config, needle) {
             email: data.email,
             status: data.status,
             roles: data.roles,
+            preferences: { locale: data.preferences?.locale },
+            seenLocale: data.seenLocale,
+            timeZone: data.timeZone,
             createdAt: redact(data.createdAt),
             pushTopic: topic.exists
                 ? { clients: clients.length, updatedAt: redact(topic.data().updatedAt) }

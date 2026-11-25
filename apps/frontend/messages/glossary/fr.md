@@ -11,6 +11,7 @@ For France, Belgium, Switzerland and Canada. Source of truth: `messages/en.json`
 - **Names in placeholders**: no « de {name} » / « que {name} » (elision) and no agreement with the name; colon structures instead (« Joueur actif : {player} », « Victoire : {winners} », « Finaliser le forfait : {name} »).
 - **Several counts on one line**: label first, so nothing has to agree (« Terminées : 3 · En cours : 1 · En attente : 2 »).
 - **Errors**: « Impossible de… » for "Could not / Unable to", « Nous n'avons pas pu… » for "We couldn't", « Veuillez réessayer. » for "Please try again."
+- **Emails, bot messages and push notifications**: « vous » as well. An email goes to one player, so nothing may agree with that player: present tense or a noun instead of a participle (« {owner} vous invite à jouer », « Vous montez au niveau {level} », « Invitation à une partie ! »). The Discord and Telegram bots speak in the first person and say « vous » (« Je vous écrirai ici quand ce sera votre tour »).
 
 ## 2. Terms
 
@@ -81,6 +82,34 @@ English "game" covers two French words; every key was translated from its screen
 | held place / returning players               | place réservée / joueurs de la saison précédente                    |                                                                                                    |
 | draft / manage                               | brouillon / gérer                                                   |                                                                                                    |
 
+### Emails, notifications and bots
+
+The emails, the Discord and Telegram notifications and the bot replies are in `libs/email/messages/fr.json` (source: `libs/email/messages/en.json`). The `push_*` browser notifications are in the site file.
+
+| English                                      | French                                                                   | Note                                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| "Game started: …" / "… has ended" (subjects) | Partie commencée : {game} ({title}) / Partie terminée : {game} ({title}) | every subject puts the event first, then a colon and the name: « Inscriptions ouvertes : {league}, saison {season} » |
+| your {title} game {game}                     | votre partie {game} ({title})                                            | no « partie de {title} » (elision); sublines read « {title} : votre partie est terminée. »                           |
+| {owner} invited you to play                  | {owner} vous invite à jouer                                              | subject: « … à jouer à {title} »                                                                                     |
+| Waiting for {names}                          | On attend {names}                                                        | no « en attente de {names} »                                                                                         |
+| {names} won! / {names} tied                  | Victoire : {names} ! / Égalité : {names}                                 | as `library_table_won`                                                                                               |
+| finished 1st, 2nd…                           | au 1er rang, au 2e rang…                                                 | `email_ordinal` gives « 1er », « 2e »; it agrees with « rang », never with the player                                |
+| Champion(s)                                  | Vainqueur(s)                                                             |                                                                                                                      |
+| Wins / Avg place / Tiebreak (table headers)  | Vict. / Rang moy. / Départage                                            | shown in capitals                                                                                                    |
+| Season {n} inside a sentence                 | la saison {n}, la saison de placement                                    | `email_league_season_name` and `…_seeding` are lowercase and always follow « la »                                    |
+| sign-up is open / closes soon                | inscriptions ouvertes / les inscriptions ferment bientôt                 |                                                                                                                      |
+| you can safely ignore this email             | vous pouvez ignorer cet e-mail sans crainte                              |                                                                                                                      |
+| if you did not request this                  | si vous n’êtes pas à l’origine de cette demande                          |                                                                                                                      |
+| end the game early                           | mettre fin à la partie sans attendre                                     | the menu item stays « Arrêter la partie »                                                                            |
+| take over a seat / lose a seat               | remplacer {player} / {player} a repris votre place                       | the administrator's action is « attribuer la place »                                                                 |
+| asks to go back (undo vote)                  | demande à revenir en arrière                                             | short form of « revenir à un moment antérieur »                                                                      |
+| "Open dashboard" (bot button)                | Voir mes parties                                                         | the page is « Mes parties » on the site                                                                              |
+| "Take your turn" (bot button)                | Jouer votre tour                                                         | as on the game card                                                                                                  |
+| I'll message you here                        | Je vous écrirai ici                                                      |                                                                                                                      |
+| turn notifications on / off                  | activer / désactiver                                                     | /stop: « ne plus recevoir »                                                                                          |
+| chat (Telegram)                              | conversation                                                             |                                                                                                                      |
+| press Connect                                | appuyez sur Connecter                                                    | the site's button label                                                                                              |
+
 ## 3. Typography and formatting
 
 - **Narrow no-break space (U+202F)** before `:` `;` `!` `?` and inside « ». The character is literal in the JSON, so use an editor that shows invisible characters.
@@ -92,6 +121,9 @@ English "game" covers two French words; every key was translated from its screen
 - Plurals **turned into one sentence** that needs no agreement: `dashboard_history_all_shown`, `tournaments_detail_knockout_record`, `tournaments_roster_joined` (the validator's "never uses {count}" warning is this one).
 - `{games: number}` and `{count: number}` group thousands in the two stats summaries and in `played_game_count`. Dates, percentages and decimals arrive already formatted.
 - Player ranges read « 2 à 4 joueurs ». The trailing "..." of older headings became « … », and was dropped after a question mark (`auth_invitation_heading`).
+- **Emails, bot messages and push notifications** follow the same rules, U+202F included, even in subject lines and in the two Discord command descriptions, which stay under 100 characters.
+- **Ordinals** (emails only): « 1er », « 2e », « 21e », from `email_ordinal`, always followed by « rang ».
+- **Dates in emails** arrive formatted and take « le »: « a été modifié le {time} », « la clôture des inscriptions, le {closes} » (« le vendredi 23 octobre à 20:00 UTC+2 »).
 
 ## 4. Please review
 
@@ -125,3 +157,20 @@ English "game" covers two French words; every key was translated from its screen
 | `auth_email`, `nav_report_bug` and related                                                                                                                        | « e-mail » and « bug », not « courriel » and « bogue ».                                                                                                                                   |
 | `library_shelf_sign_in_to_play`                                                                                                                                   | « jouer à {name} » cannot contract with a title that starts with « Le » or « Les ».                                                                                                       |
 | `library_series_18xx_description`                                                                                                                                 | « ne fasse rouiller leur flotte »: 18xx players say that trains « rouillent ».                                                                                                            |
+
+### Emails, notifications and bots
+
+| Key(s)                                                                                  | Why                                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `email_ordinal`, `email_tournament_results_finished_*`, `email_league_season_results_*` | « Vous avez terminé au 2e rang », not « terminé 2e », so that « 1er » never has to become « 1re ». France more often says « à la 2e place »; « rang » keeps the site's term.                          |
+| `email_standings_column_wins`                                                           | « Vict. », so the header fits its narrow column; « Victoires », as on the site, would widen the table on phones.                                                                                      |
+| `email_player_removed_preview_removed`, `email_player_removed_subline_removed`          | "Was removed" → « ne participe plus à votre partie », « n’a plus accès à Board Together »: neutral wording instead of « a été retiré(e) ». The subject keeps « Un joueur a été retiré de la partie ». |
+| `email_league_season_name`, `email_league_season_name_seeding`                          | Lowercase (« saison 2 », « saison de placement »): they are only used inside sentences, after « la ».                                                                                                 |
+| `email_game_invitation_subject`, `email_game_invitation_preview`                        | « jouer à {title} »: the same « Le / Les » limit as `library_shelf_sign_in_to_play`.                                                                                                                  |
+| `email_account_email_change_requested_preview`                                          | The date is when the change was requested, so it follows « a été demandé le {time} » instead of ending the sentence as in English.                                                                    |
+| `email_game_end_no_winner_names`, `email_standings_nobody`                              | Fallback names after a colon: « Victoire : quelqu’un ! », « Première place : Personne. » Rare, but stiff.                                                                                             |
+| `email_game_started_subject`, `email_game_started_eyebrow`                              | « Partie commencée », parallel to « Partie terminée ». Alternative: « La partie a commencé ».                                                                                                         |
+| `email_account_deleted_subline`                                                         | "A deleted player" is given as the label players see, « Deleted player » (joueur supprimé), as in `delete_account_summary`.                                                                           |
+| `notification_open_dashboard_button`                                                    | « Voir mes parties »: the site never says « tableau de bord ».                                                                                                                                        |
+| `telegram_connected`, `telegram_connected_as`, `telegram_not_linked`                    | "Chat" → « conversation »; Telegram's own French interface says « échange ». « Cette conversation est connectée… » avoids « Vous êtes connecté(e) ».                                                  |
+| `push_player_joined_title`, `push_player_declined_title`, `push_invited_title`          | Short noun titles: « Nouveau joueur ! », « Invitation refusée », « Invitation à une partie ! ».                                                                                                       |

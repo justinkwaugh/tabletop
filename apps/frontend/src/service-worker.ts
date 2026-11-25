@@ -14,6 +14,10 @@ import {
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
 import { pushSubscriptionChangedMessage } from '$lib/network/pushSubscriptionChangedMessage'
 import { applicationServerKeyFromVapid } from '$lib/network/applicationServerKey'
+import { m } from '$lib/paraglide/messages'
+import { baseLocale, toLocale, type Locale } from '$lib/paraglide/runtime'
+
+type PushNotification = Notification & { locale?: string }
 
 const sw = self as unknown as ServiceWorkerGlobalScope
 
@@ -28,11 +32,12 @@ sw.addEventListener('push', async (event) => {
         return
     }
     try {
-        const pushData = pushEvent.data.json() as Notification
+        const pushData: PushNotification = pushEvent.data.json()
         if (isYourTurnNotification(pushData)) {
             event.waitUntil(forwardToWindows(pushData))
         }
-        const { title, options } = (await generateLocalNotification(pushData)) || {}
+        const locale = toLocale(pushData.locale) ?? baseLocale
+        const { title, options } = (await generateLocalNotification(pushData, locale)) || {}
         if (title && options) {
             event.waitUntil(sw.registration.showNotification(title, options))
         }
@@ -65,32 +70,51 @@ async function focusOrOpenWindow(gameId?: string) {
 }
 
 async function generateLocalNotification(
-    notification: Notification
+    notification: Notification,
+    locale: Locale
 ): Promise<{ title: string; options: NotificationOptions } | undefined> {
     let title: string | undefined
     let options: NotificationOptions | undefined
 
     if (isUserNotification(notification)) {
         if (notification.action === UserNotificationAction.PlayerJoined) {
-            title = `Player joined!`
+            title = m.push_player_joined_title({}, { locale })
             options = {
-                body: `${notification.data.player.name} joined your game ${notification.data.game.name}`
+                body: m.push_player_joined_body(
+                    {
+                        player: notification.data.player.name,
+                        game: notification.data.game.name
+                    },
+                    { locale }
+                )
             }
         } else if (notification.action === UserNotificationAction.PlayerDeclined) {
-            title = `Player declined`
+            title = m.push_player_declined_title({}, { locale })
             options = {
-                body: `${notification.data.player.name} has declined to join your game ${notification.data.game.name}`
+                body: m.push_player_declined_body(
+                    {
+                        player: notification.data.player.name,
+                        game: notification.data.game.name
+                    },
+                    { locale }
+                )
             }
         } else if (notification.action === UserNotificationAction.GameStarted) {
-            title = `Game has started!`
+            title = m.push_game_started_title({}, { locale })
             options = {
-                body: `Your game ${notification.data.game.name} has begun!`,
+                body: m.push_game_started_body({ game: notification.data.game.name }, { locale }),
                 tag: notification.data.game.id
             }
         } else if (notification.action === UserNotificationAction.WasInvited) {
-            title = `You were invited to a game!`
+            title = m.push_invited_title({}, { locale })
             options = {
-                body: `${notification.data.owner.username} invited you to join their game ${notification.data.game.name}`
+                body: m.push_invited_body(
+                    {
+                        owner: notification.data.owner.username,
+                        game: notification.data.game.name
+                    },
+                    { locale }
+                )
             }
         } else if (notification.action === UserNotificationAction.IsYourTurn) {
             // THIS MAKES SAFARI ANGRY
@@ -98,30 +122,43 @@ async function generateLocalNotification(
             // if (windows.some((window) => window.focused && window.visibilityState === 'visible')) {
             //     return
             // }
-            title = `It's your turn!`
+            title = m.push_your_turn_title({}, { locale })
             options = {
-                body: `It's your turn in game ${notification.data.game.name}`,
+                body: m.push_your_turn_body({ game: notification.data.game.name }, { locale }),
                 tag: notification.data.game.id
             }
         } else if (notification.action === UserNotificationAction.PlayerVoteRequested) {
+            const initiator = notification.data.initiator.name
             title =
                 notification.data.kind === PlayerVoteKind.Call
-                    ? `${notification.data.initiator.name} asks to end the game`
-                    : `${notification.data.initiator.name} asks to go back`
+                    ? m.push_call_vote_title({ initiator }, { locale })
+                    : m.push_undo_vote_title({ initiator }, { locale })
             options = {
-                body: `Vote in game ${notification.data.game.name}`,
+                body: m.push_vote_body({ game: notification.data.game.name }, { locale }),
                 tag: notification.data.game.id
             }
         } else if (notification.action === UserNotificationAction.TookOverSeat) {
-            title = `You've joined a game in progress`
+            title = m.push_took_over_seat_title({}, { locale })
             options = {
-                body: `You've taken over ${notification.data.formerHolder.name}'s seat in ${notification.data.game.name}`,
+                body: m.push_took_over_seat_body(
+                    {
+                        formerHolder: notification.data.formerHolder.name,
+                        game: notification.data.game.name
+                    },
+                    { locale }
+                ),
                 tag: notification.data.game.id
             }
         } else if (notification.action === UserNotificationAction.LostSeat) {
-            title = `Your seat was given to another player`
+            title = m.push_lost_seat_title({}, { locale })
             options = {
-                body: `${notification.data.newHolder.name} has taken over your seat in ${notification.data.game.name}`
+                body: m.push_lost_seat_body(
+                    {
+                        newHolder: notification.data.newHolder.name,
+                        game: notification.data.game.name
+                    },
+                    { locale }
+                )
             }
         }
     }

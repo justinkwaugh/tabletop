@@ -8,12 +8,14 @@ import { truncate } from '../../discord/discordFormatting.js'
 import { siteUrl } from '../../site/siteUrl.js'
 import { userNotificationCopy } from './userNotificationCopy.js'
 import { SITE_NAME } from '../../site/siteName.js'
+import type { Locale } from '@tabletop/email/i18n'
 
 export type DiscordNotificationContext = {
     frontendHost: string
     gameTitle?: string
     thumbnailUrl?: string
     sentAt: Date
+    locale: Locale
 }
 
 // Discord rejects the whole message when any of these fields is over its limit.
@@ -38,7 +40,7 @@ export function discordNotificationMessage(
     notification: UserNotification,
     context: DiscordNotificationContext
 ): RESTPostAPIChannelMessageJSONBody {
-    const copy = userNotificationCopy(notification)
+    const copy = userNotificationCopy(notification, context.locale)
     const url = siteUrl(copy.path, context.frontendHost)
 
     return {

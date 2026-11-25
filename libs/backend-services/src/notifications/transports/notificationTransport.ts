@@ -1,4 +1,5 @@
 import { Notification } from '@tabletop/common'
+import type { Locale } from '@tabletop/email/i18n'
 import { NotificationSubscription } from '../subscriptions/notificationSubscription.js'
 
 export enum TransportType {
@@ -17,6 +18,7 @@ export interface NotificationTransport {
     type: TransportType
     sendNotification(
         subscription: NotificationSubscription,
-        notification: Notification
+        notification: Notification,
+        locale: Locale
     ): Promise<NotificationResult>
 }

@@ -15,7 +15,12 @@ const account = (status: UserStatus, username = 'Bob'): User => ({
 })
 
 const tombstone: User = { id: 'bob', status: UserStatus.Deleted, roles: [], externalIds: [] }
-const withEmail: User = { ...account(UserStatus.Active), email: 'bob@example.test' }
+const withEmail: User = {
+    ...account(UserStatus.Active),
+    email: 'bob@example.test',
+    seenLocale: 'de',
+    timeZone: 'Europe/Berlin'
+}
 
 function fixture(stored: User = account(UserStatus.Active)) {
     const users = {
@@ -182,6 +187,8 @@ describe('AccountModeration', () => {
                 })
             )
             expect(tasks.sendAccountChangeNotificationEmail).toHaveBeenCalledWith({
+                locale: 'de',
+                timeZone: 'Europe/Berlin',
                 email: 'bob@example.test',
                 changeType: AccountChangeType.AccountDeleted,
                 timestamp: new Date('2026-11-04T00:00:10Z')

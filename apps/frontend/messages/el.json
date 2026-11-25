@@ -1757,5 +1757,22 @@
     "pace_relaxed_name": "Χαλαρός",
     "pace_relaxed_line": "Χαλαρός · εντός 3 ημερών",
     "pace_relaxed_summary": "Χαλαρός · 3 ημέρες",
-    "pace_relaxed_past_limit": "Εκτός του ρυθμού των 3 ημερών"
+    "pace_relaxed_past_limit": "Εκτός του ρυθμού των 3 ημερών",
+    "push_player_joined_title": "Νέα συμμετοχή!",
+    "push_player_joined_body": "{player} συμμετέχει πλέον στο παιχνίδι σου «{game}»",
+    "push_player_declined_title": "Απόρριψη πρόσκλησης",
+    "push_player_declined_body": "{player} αρνήθηκε να συμμετάσχει στο παιχνίδι σου «{game}»",
+    "push_game_started_title": "Το παιχνίδι ξεκίνησε!",
+    "push_game_started_body": "Το παιχνίδι σου «{game}» ξεκίνησε!",
+    "push_invited_title": "Πρόσκληση σε παιχνίδι!",
+    "push_invited_body": "{owner} σε προσκάλεσε στο παιχνίδι «{game}»",
+    "push_your_turn_title": "Είναι η σειρά σου!",
+    "push_your_turn_body": "Είναι η σειρά σου στο παιχνίδι «{game}»",
+    "push_call_vote_title": "{initiator} ζητά να λήξει το παιχνίδι",
+    "push_undo_vote_title": "{initiator} ζητά αναίρεση",
+    "push_vote_body": "Ψήφισε στο παιχνίδι «{game}»",
+    "push_took_over_seat_title": "Συμμετέχεις σε παιχνίδι σε εξέλιξη",
+    "push_took_over_seat_body": "Πήρες τη θέση του παίκτη {formerHolder} στο παιχνίδι «{game}»",
+    "push_lost_seat_title": "Η θέση σου δόθηκε σε άλλον παίκτη",
+    "push_lost_seat_body": "{newHolder} πήρε τη θέση σου στο παιχνίδι «{game}»"
 }

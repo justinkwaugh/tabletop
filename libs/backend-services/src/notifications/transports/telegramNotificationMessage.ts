@@ -2,10 +2,12 @@ import { UserNotification } from '@tabletop/common'
 import { siteUrl } from '../../site/siteUrl.js'
 import type { TelegramSendMessage } from '../../telegram/telegramBotApi.js'
 import { userNotificationCopy } from './userNotificationCopy.js'
+import type { Locale } from '@tabletop/email/i18n'
 
 export type TelegramNotificationContext = {
     frontendHost: string
     gameTitle?: string
+    locale: Locale
 }
 
 function escapeTelegramHtml(text: string): string {
@@ -21,7 +23,7 @@ export function telegramNotificationMessage(
     chatId: string,
     context: TelegramNotificationContext
 ): TelegramSendMessage {
-    const copy = userNotificationCopy(notification)
+    const copy = userNotificationCopy(notification, context.locale)
     const url = siteUrl(copy.path, context.frontendHost)
     const gameLine = context.gameTitle
         ? `${escapeTelegramHtml(notification.data.game.name)} · ${escapeTelegramHtml(context.gameTitle)}`

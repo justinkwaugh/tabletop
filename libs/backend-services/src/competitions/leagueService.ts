@@ -19,7 +19,7 @@ import {
     formatTournamentTiebreaks,
     ranksByAveragePlace,
     formatTournamentAveragePlace,
-    tournamentTiebreakDescription,
+    standingsTiebreakRule,
     type LeagueFinalPlacement,
     type LeagueGroupStanding,
     type LeagueSeasonGroup,
@@ -37,6 +37,7 @@ import { requireActiveAccount, requireAdministrator, touchRevision } from './com
 import { derivedId } from './derivedId.js'
 import * as Value from 'typebox/value'
 import type { LeagueSeasonResultsProps, LeagueSeasonStartLevel } from '@tabletop/email'
+import { m, type Locale } from '@tabletop/email/i18n'
 import type { NotificationService } from '../notifications/notificationService.js'
 import { sendCompetitionUpdate } from './competitionUpdates.js'
 import type { LeagueChange, LeagueStore } from '../persistence/stores/leagueStore.js'
@@ -85,7 +86,7 @@ export type LeagueEmailContent = {
       }
     | ({ kind: 'seasonResults' } & Omit<
           LeagueSeasonResultsProps,
-          'leagueName' | 'title' | 'seasonNumber' | 'url'
+          'leagueName' | 'title' | 'seasonNumber' | 'url' | 'locale'
       >)
 )
 
@@ -739,13 +740,10 @@ export class LeagueService {
         })
     }
 
-    async emailContent({
-        leagueId,
-        season: number,
-        userId,
-        kind,
-        closesAt
-    }: LeagueEmailTask): Promise<LeagueEmailContent | undefined> {
+    async emailContent(
+        { leagueId, season: number, userId, kind, closesAt }: LeagueEmailTask,
+        locale: Locale
+    ): Promise<LeagueEmailContent | undefined> {
         const [league, season] = await Promise.all([
             this.store.read(leagueId),
             this.store.readSeason(leagueId, number)
@@ -758,7 +756,7 @@ export class LeagueService {
             seasonNumber: season.number
         }
         const held = season.heldPlaces.find((place) => place.userId === userId)
-        if (kind === 'seasonResults') return this.resultsContent(base, season, userId)
+        if (kind === 'seasonResults') return this.resultsContent(base, season, userId, locale)
         if (kind === 'seasonStart') {
             const group = season.groups?.find((value) => value.entrantIds.includes(userId))
             if (!group) return undefined
@@ -770,7 +768,7 @@ export class LeagueService {
                 kind,
                 groupName: group.groupId,
                 ...(season.seeding ? {} : { level: this.startLevel(season, group, held) }),
-                opponents: accounts.map((account) => this.displayName(account)),
+                opponents: accounts.map((account) => this.displayName(account, locale)),
                 gamesEach: season.rules.gamesPerEntrant,
                 tournamentId: group.tournamentId
             }
@@ -792,7 +790,8 @@ export class LeagueService {
     private async resultsContent(
         base: Pick<LeagueEmailContent, 'leagueId' | 'leagueName' | 'titleId' | 'seasonNumber'>,
         season: LeagueSeason,
-        userId: string
+        userId: string,
+        locale: Locale
     ): Promise<LeagueEmailContent | undefined> {
         const placements = season.placements ?? []
         const account = (value: LeagueFinalPlacement) => this.placementAccount(value)
@@ -807,10 +806,12 @@ export class LeagueService {
             : placements
                   .filter((value) => value.level === 0 && !value.substituteId)
                   .sort((a, b) => a.place - b.place)[0]
-        const tiebreaks = formatTournamentTiebreaks(group, 'en-US')
+        const tiebreaks = formatTournamentTiebreaks(group, locale)
         const ids = [...group.map(account), ...(champion ? [champion.userId] : [])]
         const accounts = await this.users.getUsers(ids)
-        const names = new Map(ids.map((id, index) => [id, this.displayName(accounts[index])]))
+        const names = new Map(
+            ids.map((id, index) => [id, this.displayName(accounts[index], locale)])
+        )
         const name = (id: string) => {
             const value = names.get(id)
             assertExists(value, `No name looked up for ${id}`)
@@ -831,14 +832,14 @@ export class LeagueService {
                       nextLevel: leagueLevelName(placement.nextLevel)
                   }),
             ...(champion ? { champion: name(champion.userId) } : {}),
-            tiebreakDescription: tournamentTiebreakDescription(group),
+            tiebreakRule: standingsTiebreakRule(group),
             ...(ranksByAveragePlace(season.rules) ? { ranksByAveragePlace: true } : {}),
             standings: group.map((value, index) => ({
                 rank: value.place,
                 name: name(account(value)),
                 wins: value.wins,
                 score: value.score,
-                averagePlace: formatTournamentAveragePlace(value, 'en-US'),
+                averagePlace: formatTournamentAveragePlace(value, locale),
                 tiebreak: tiebreaks[index],
                 recipient: account(value) === userId
             }))
@@ -850,10 +851,10 @@ export class LeagueService {
         return placement.substituteId ?? placement.userId
     }
 
-    private displayName(account: User | undefined): string {
+    private displayName(account: User | undefined, locale: Locale): string {
         return account?.status === UserStatus.Active && account.username
             ? account.username
-            : 'Unavailable account'
+            : m.email_league_unavailable_account({}, { locale })
     }
 
     private startedGroups(season: LeagueSeason): LeagueSeasonGroup[] {

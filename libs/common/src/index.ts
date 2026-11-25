@@ -102,6 +102,7 @@ export * from './site/notifications/tournamentNotification.js'
 export * from './site/notifications/leagueNotification.js'
 
 export * from './util/assertions.js'
+export * from './util/messageSegments.js'
 export * from './util/freeze.js'
 export * from './util/shuffle.js'
 export * from './util/uuid.js'

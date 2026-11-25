@@ -11,6 +11,7 @@ import {
 import { discordNotificationMessage } from './discordNotificationMessage.js'
 import { DiscordBotApi } from '../../discord/discordBotApi.js'
 import { notificationCatalogEntry } from './notificationCatalogEntry.js'
+import type { Locale } from '@tabletop/email/i18n'
 
 import {
     RESTPostAPIChannelMessageJSONBody,
@@ -32,9 +33,10 @@ export class DiscordTransport implements NotificationTransport {
 
     async sendNotification(
         subscription: DiscordSubscription,
-        notification: Notification
+        notification: Notification,
+        locale: Locale
     ): Promise<NotificationResult> {
-        const message = await this.generateMessage(notification)
+        const message = await this.generateMessage(notification, locale)
         if (!message) {
             return {
                 success: false,
@@ -100,7 +102,8 @@ export class DiscordTransport implements NotificationTransport {
     }
 
     private async generateMessage(
-        notification: Notification
+        notification: Notification,
+        locale: Locale
     ): Promise<RESTPostAPIChannelMessageJSONBody | undefined> {
         if (!isUserNotification(notification)) {
             return
@@ -114,7 +117,8 @@ export class DiscordTransport implements NotificationTransport {
             frontendHost: FRONTEND_HOST,
             gameTitle: catalogEntry?.metadata.name,
             thumbnailUrl: catalogEntry?.thumbnailUrl,
-            sentAt: new Date()
+            sentAt: new Date(),
+            locale
         })
     }
 }

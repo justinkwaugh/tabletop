@@ -1,10 +1,13 @@
 import { SlashCommandBuilder } from 'discord.js'
+import { baseLocale, m } from '@tabletop/email/i18n'
+import { discordLocalizations } from './commandLocalizations.js'
 import { SlashCommand } from './slashCommand.js'
 
 export const NotifyCommand: SlashCommand = {
     data: new SlashCommandBuilder()
         .setName('notify')
-        .setDescription('Notify about turns and game invitations'),
+        .setDescription(m.discord_command_notify_description({}, { locale: baseLocale }))
+        .setDescriptionLocalizations(discordLocalizations(m.discord_command_notify_description)),
     toJSON() {
         const data = NotifyCommand.data.toJSON()
         return {

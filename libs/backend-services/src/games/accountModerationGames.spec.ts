@@ -110,7 +110,8 @@ describe('releaseBannedPlayer', () => {
                     payload: {
                         removedUserId: 'p1',
                         gameId: host.game.id,
-                        toEmail: `${id}@example.test`
+                        toEmail: `${id}@example.test`,
+                        recipientId: id
                     },
                     uniqueName: `player-removed-p1-${host.game.id}-${id}`
                 }))

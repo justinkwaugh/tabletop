@@ -404,19 +404,6 @@ export function standingsTiebreakRule(
     return rows.map(tournamentTiebreakRule).find((rule) => rule !== undefined)
 }
 
-export function tournamentTiebreakDescription(
-    rows: Pick<TournamentScore, 'pointsBehind' | 'shareOfWinner'>[]
-): string {
-    switch (standingsTiebreakRule(rows)) {
-        case 'pointsBehind':
-            return "Tiebreak is the average points behind the top score at each player's tables, as a negative, plus one hundredth of their average final score. Higher is better."
-        case 'shareOfWinner':
-            return "Tiebreak is each player's average final score as a percentage of the top final score at their tables. Higher is better."
-        case undefined:
-            return "Tiebreak is the sum of each player's final scores from their games."
-    }
-}
-
 export const TournamentStanding = Type.Object({
     ...TournamentScore.properties,
     userId: Type.String(),

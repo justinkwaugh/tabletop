@@ -315,12 +315,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
             expect(emails('seasonResults')).toHaveLength(21)
             expect(seeded.season?.resultsEmailedAt).toBeDefined()
-            const seededResult = await leagues.emailContent({
-                leagueId: id,
-                season: 0,
-                userId: users[0].id,
-                kind: 'seasonResults'
-            })
+            const seededResult = await leagues.emailContent(
+                { leagueId: id, season: 0, userId: users[0].id, kind: 'seasonResults' },
+                'en'
+            )
             expect(seededResult).toMatchObject({ kind: 'seasonResults', movement: 'seeded' })
             expect(seededResult && 'champion' in seededResult).toBe(false)
             expect(
@@ -430,7 +428,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 { ...remind, userId: absent, kind: 'signUpReminder' }
             ])
             await expect(
-                leagues.emailContent({ ...remind, userId: vacancyFiller, kind: 'signUpReminder' })
+                leagues.emailContent(
+                    { ...remind, userId: vacancyFiller, kind: 'signUpReminder' },
+                    'en'
+                )
             ).resolves.toBeUndefined()
 
             const movedClose = { ...remind, closesAt: remind.closesAt + 3 * 86_400_000 }
@@ -447,10 +448,13 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 { ...movedClose, userId: absent, kind: 'signUpReminder' }
             ])
             await expect(
-                leagues.emailContent({ ...remind, userId: absent, kind: 'signUpReminder' })
+                leagues.emailContent({ ...remind, userId: absent, kind: 'signUpReminder' }, 'en')
             ).resolves.toBeUndefined()
             await expect(
-                leagues.emailContent({ ...movedClose, userId: absent, kind: 'signUpReminder' })
+                leagues.emailContent(
+                    { ...movedClose, userId: absent, kind: 'signUpReminder' },
+                    'en'
+                )
             ).resolves.toMatchObject({ closesAt: movedClose.closesAt })
 
             now = movedClose.closesAt
@@ -472,12 +476,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 started.groups
                     .flatMap((group) => group.entrantIds)
                     .map(async (userId) => {
-                        const content = await leagues.emailContent({
-                            leagueId: id,
-                            season: 1,
-                            userId,
-                            kind: 'seasonStart'
-                        })
+                        const content = await leagues.emailContent(
+                            { leagueId: id, season: 1, userId, kind: 'seasonStart' },
+                            'en'
+                        )
                         return content?.kind === 'seasonStart' && content.level?.moved === 'up'
                             ? userId
                             : []
@@ -511,12 +513,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             assertExists(winner)
             const lastInB1 = finished.groups[1].standings.at(-1)
             assertExists(lastInB1)
-            const result = await leagues.emailContent({
-                leagueId: id,
-                season: 1,
-                userId: lastInB1.userId,
-                kind: 'seasonResults'
-            })
+            const result = await leagues.emailContent(
+                { leagueId: id, season: 1, userId: lastInB1.userId, kind: 'seasonResults' },
+                'en'
+            )
             expect(result).toMatchObject({
                 kind: 'seasonResults',
                 groupName: 'B1',
@@ -769,12 +769,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(recipients).not.toContain(replaced)
             expect(recipients).not.toContain(leaving)
             await expect(
-                leagues.emailContent({
-                    leagueId: id,
-                    season: 0,
-                    userId: substitute.id,
-                    kind: 'seasonResults'
-                })
+                leagues.emailContent(
+                    { leagueId: id, season: 0, userId: substitute.id, kind: 'seasonResults' },
+                    'en'
+                )
             ).resolves.toMatchObject({ movement: 'substitute', nextLevel: 'B' })
         })
 

@@ -1,4 +1,4 @@
-import { tournamentTiebreakDescription } from '@tabletop/common'
+import type { TiebreakRule } from '@tabletop/common'
 import { ButtonFallback, CardButton, DarkCardEmail } from '../components/darkCard.js'
 import {
     ChampionPanel,
@@ -7,6 +7,7 @@ import {
     StandingsTable,
     type StandingsRow,
 } from '../components/standings.js'
+import { baseLocale, m, type Locale, type Message } from '../i18n.js'
 
 export interface LeagueSeasonResultsProps {
     leagueName: string
@@ -18,9 +19,21 @@ export interface LeagueSeasonResultsProps {
     nextLevel: string
     champion?: string
     standings: StandingsRow[]
-    tiebreakDescription: string
+    tiebreakRule?: TiebreakRule
     ranksByAveragePlace?: boolean
     url?: string
+    locale: Locale
+}
+
+const RESULT_MESSAGES: Record<
+    LeagueSeasonResultsProps['movement'],
+    Message<{ place: string; group: string; level: string; nextSeason: number }>
+> = {
+    seeded: m.email_league_season_results_seeded,
+    promoted: m.email_league_season_results_promoted,
+    relegated: m.email_league_season_results_relegated,
+    stayed: m.email_league_season_results_stayed,
+    substitute: m.email_league_season_results_substitute,
 }
 
 const resultText = ({
@@ -29,27 +42,26 @@ const resultText = ({
     place,
     movement,
     nextLevel,
-}: LeagueSeasonResultsProps): string => {
-    const finished = `You finished ${ordinal(place)} in Group ${groupName}`
-    switch (movement) {
-        case 'seeded':
-            return `${finished}. Your Season ${seasonNumber + 1} place is in Level ${nextLevel}.`
-        case 'promoted':
-            return `${finished} and move up to Level ${nextLevel}.`
-        case 'relegated':
-            return `${finished} and move down to Level ${nextLevel}.`
-        case 'stayed':
-            return `${finished} and stay in Level ${nextLevel}.`
-        case 'substitute':
-            return `${finished} as a substitute. Substitutes start the next season in Level ${nextLevel}, the bottom level.`
-    }
-}
+    locale,
+}: LeagueSeasonResultsProps): string =>
+    RESULT_MESSAGES[movement](
+        {
+            place: ordinal(place, locale),
+            group: groupName,
+            level: nextLevel,
+            nextSeason: seasonNumber + 1,
+        },
+        { locale },
+    )
 
 export const leagueSeasonResultsName = ({
     movement,
     seasonNumber,
-}: Pick<LeagueSeasonResultsProps, 'movement' | 'seasonNumber'>): string =>
-    movement === 'seeded' ? 'Seeding season' : `Season ${seasonNumber}`
+    locale,
+}: Pick<LeagueSeasonResultsProps, 'movement' | 'seasonNumber' | 'locale'>): string =>
+    movement === 'seeded'
+        ? m.email_league_season_name_seeding({}, { locale })
+        : m.email_league_season_name({ season: seasonNumber }, { locale })
 
 export const LeagueSeasonResults = (props: LeagueSeasonResultsProps) => {
     const {
@@ -58,38 +70,46 @@ export const LeagueSeasonResults = (props: LeagueSeasonResultsProps) => {
         groupName,
         champion,
         standings,
-        tiebreakDescription,
+        tiebreakRule,
         ranksByAveragePlace,
         url = ``,
+        locale,
     } = props
     const result = resultText(props)
     const season = leagueSeasonResultsName(props)
     return (
         <DarkCardEmail
-            preview={`${leagueName} ${season} is complete. ${result}`}
+            locale={locale}
+            preview={`${m.email_league_season_results_preview({ league: leagueName, season }, { locale })} ${result}`}
             wordmarkHref={url}
-            eyebrow={`${season} complete`}
+            eyebrow={m.email_league_season_results_eyebrow({ season }, { locale })}
             heading={leagueName}
-            subline={`${title} · Group ${groupName}`}
+            subline={m.email_league_season_results_subline({ title, group: groupName }, { locale })}
             footer={
                 <>
-                    You played in this league season on Board Together. <ButtonFallback url={url} />
+                    {m.email_league_season_results_footer({}, { locale })}{' '}
+                    <ButtonFallback url={url} locale={locale} />
                 </>
             }
         >
             {champion ? (
-                <ChampionPanel winners={[champion]}>{result}</ChampionPanel>
+                <ChampionPanel winners={[champion]} locale={locale}>
+                    {result}
+                </ChampionPanel>
             ) : (
                 <ResultPanel>{result}</ResultPanel>
             )}
             <StandingsTable
-                label={`Group ${groupName} final standings`}
+                label={m.email_league_season_results_standings({ group: groupName }, { locale })}
                 rows={standings}
-                tiebreakDescription={tiebreakDescription}
+                tiebreakRule={tiebreakRule}
                 ranksByAveragePlace={ranksByAveragePlace}
                 starWinner={false}
+                locale={locale}
             />
-            <CardButton href={url}>See the season results</CardButton>
+            <CardButton href={url}>
+                {m.email_league_season_results_button({}, { locale })}
+            </CardButton>
         </DarkCardEmail>
     )
 }
@@ -109,8 +129,9 @@ LeagueSeasonResults.PreviewProps = {
         { rank: 3, name: 'Dave', wins: 1, score: 1, tiebreak: '-4.265', recipient: false },
         { rank: 4, name: 'Erin', wins: 1, score: 1, tiebreak: '-5.553', recipient: false },
     ],
-    tiebreakDescription: tournamentTiebreakDescription([{ pointsBehind: 0 }]),
+    tiebreakRule: 'pointsBehind',
     url: 'https://boardtogether.games/leagues/fresh-fish-league?season=2',
+    locale: baseLocale,
 } satisfies LeagueSeasonResultsProps
 
 export default LeagueSeasonResults

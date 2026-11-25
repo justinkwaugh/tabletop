@@ -1805,5 +1805,22 @@
     "pace_relaxed_name": "Spokojne",
     "pace_relaxed_line": "Spokojne · w ciągu 3 dni",
     "pace_relaxed_summary": "Spokojne · 3 dni",
-    "pace_relaxed_past_limit": "Wolniej niż ustalone tempo (3 dni)"
+    "pace_relaxed_past_limit": "Wolniej niż ustalone tempo (3 dni)",
+    "push_player_joined_title": "Nowy gracz przy stole!",
+    "push_player_joined_body": "{player} dołącza do Twojej gry „{game}”",
+    "push_player_declined_title": "Zaproszenie odrzucone",
+    "push_player_declined_body": "{player} odrzuca zaproszenie do Twojej gry „{game}”",
+    "push_game_started_title": "Gra się rozpoczęła!",
+    "push_game_started_body": "Twoja gra „{game}” się rozpoczęła!",
+    "push_invited_title": "Zaproszenie do gry!",
+    "push_invited_body": "{owner} zaprasza Cię do swojej gry „{game}”",
+    "push_your_turn_title": "Twoja tura!",
+    "push_your_turn_body": "Twoja tura w grze „{game}”",
+    "push_call_vote_title": "{initiator} prosi o zakończenie gry",
+    "push_undo_vote_title": "{initiator} prosi o cofnięcie gry",
+    "push_vote_body": "Zagłosuj w grze „{game}”",
+    "push_took_over_seat_title": "Dołączasz do trwającej gry",
+    "push_took_over_seat_body": "Przejmujesz miejsce gracza {formerHolder} w grze „{game}”",
+    "push_lost_seat_title": "Twoje miejsce przypadło innemu graczowi",
+    "push_lost_seat_body": "{newHolder} przejmuje Twoje miejsce w grze „{game}”"
 }

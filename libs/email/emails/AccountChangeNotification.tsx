@@ -1,14 +1,18 @@
 import { Section, Text } from '@react-email/components'
 import type { CSSProperties } from 'react'
-import { AccountChangeType } from '@tabletop/common'
+import { AccountChangeType, assertExists } from '@tabletop/common'
 import { DarkCardEmail, darkStyles } from '../components/darkCard.js'
+import { formatEmailTimestamp } from '../components/format.js'
+import { baseLocale, m, type Locale, type Message } from '../i18n.js'
 
 export { AccountChangeType } from '@tabletop/common'
 
 interface AccountChangeNotificationProps {
-    changeType: string
+    changeType: AccountChangeType
     timestamp: Date
     username?: string
+    locale: Locale
+    timeZone?: string
 }
 
 const styles = {
@@ -23,38 +27,76 @@ const styles = {
     warningText: { margin: 0, fontSize: '14px', lineHeight: '1.5', color: '#fca5a5' },
 } satisfies Record<string, CSSProperties>
 
-// The server runs in UTC and an email cannot know the reader's time zone, so say UTC outright.
-const formatTimestamp = (timestamp: Date): string =>
-    `${timestamp.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short', timeZone: 'UTC' })} UTC`
+type ReportedChange = Exclude<
+    AccountChangeType,
+    AccountChangeType.AccountDeleted | AccountChangeType.Username
+>
+
+const CHANGE_MESSAGES: Record<
+    ReportedChange,
+    {
+        preview: Message<{ time: string }>
+        subline: Message<object>
+        detail: Message<object>
+    }
+> = {
+    [AccountChangeType.EmailChangeRequested]: {
+        preview: m.email_account_email_change_requested_preview,
+        subline: m.email_account_email_change_requested_subline,
+        detail: m.email_account_email_change_requested_detail,
+    },
+    [AccountChangeType.PasswordReset]: {
+        preview: m.email_account_password_reset_requested_preview,
+        subline: m.email_account_password_reset_requested_subline,
+        detail: m.email_account_password_reset_requested_detail,
+    },
+    [AccountChangeType.Email]: {
+        preview: m.email_account_email_changed_preview,
+        subline: m.email_account_email_changed_subline,
+        detail: m.email_account_email_changed_detail,
+    },
+    [AccountChangeType.Password]: {
+        preview: m.email_account_password_changed_preview,
+        subline: m.email_account_password_changed_subline,
+        detail: m.email_account_password_changed_detail,
+    },
+}
 
 export const AccountChangeNotification = ({
     timestamp,
     changeType,
     username,
+    locale,
+    timeZone,
 }: AccountChangeNotificationProps) => {
-    const when = formatTimestamp(timestamp)
+    const when = formatEmailTimestamp(timestamp, locale, timeZone)
     if (changeType === AccountChangeType.AccountDeleted) {
         return (
             <DarkCardEmail
-                preview="Your Board Together account was deleted"
-                heading="Your account was deleted"
-                subline="Your account and the details tied to it have been removed. Finished games show you as a deleted player. This is the last email we will send to this address."
-                footer="If you did not ask for this, please contact us."
+                locale={locale}
+                preview={m.email_account_deleted_preview({}, { locale })}
+                heading={m.email_account_deleted_heading({}, { locale })}
+                subline={m.email_account_deleted_subline({}, { locale })}
+                footer={m.email_account_deleted_footer({}, { locale })}
             >
                 <Section style={styles.panel}>
-                    <Text style={styles.panelValue}>Account deleted</Text>
+                    <Text style={styles.panelValue}>
+                        {m.email_account_deleted_detail({}, { locale })}
+                    </Text>
                     <Text style={styles.panelDetail}>{when}</Text>
                 </Section>
             </DarkCardEmail>
         )
     }
     if (changeType === AccountChangeType.Username) {
+        assertExists(username, 'A username change email names the new username')
         return (
             <DarkCardEmail
-                preview={`Your username is now ${username}`}
-                heading="Your username was changed"
-                subline="An administrator changed your username. Use the new one to sign in."
-                footer="If you have questions about this change, please contact us."
+                locale={locale}
+                preview={m.email_username_changed_preview({ username }, { locale })}
+                heading={m.email_username_changed_heading({}, { locale })}
+                subline={m.email_username_changed_subline({}, { locale })}
+                footer={m.email_username_changed_footer({}, { locale })}
             >
                 <Section style={styles.panel}>
                     <Text style={styles.panelValue}>{username}</Text>
@@ -63,42 +105,23 @@ export const AccountChangeNotification = ({
             </DarkCardEmail>
         )
     }
-    let change = ''
-    let detailText = ''
-    switch (changeType) {
-        case AccountChangeType.EmailChangeRequested:
-            change =
-                'A request was made to change your email address; your current address remains active until the new address is verified'
-            detailText = 'Email address change requested'
-            break
-        case AccountChangeType.PasswordReset:
-            change = 'A request was made to reset the password for your account'
-            detailText = 'Password reset requested'
-            break
-        case AccountChangeType.Email:
-            change = 'Your email address was changed'
-            detailText = 'Email address changed'
-            break
-        case AccountChangeType.Password:
-            change = 'Your password was changed'
-            detailText = 'Password changed'
-            break
-    }
+    const change = CHANGE_MESSAGES[changeType]
 
     return (
         <DarkCardEmail
-            preview={`${change} on ${when}`}
-            heading="Account change detected"
-            subline={`${change}.`}
-            footer="If you made the change described above, you can safely ignore this email."
+            locale={locale}
+            preview={change.preview({ time: when }, { locale })}
+            heading={m.email_account_change_heading({}, { locale })}
+            subline={change.subline({}, { locale })}
+            footer={m.email_account_change_footer({}, { locale })}
         >
             <Section style={styles.panel}>
-                <Text style={styles.panelValue}>{detailText}</Text>
+                <Text style={styles.panelValue}>{change.detail({}, { locale })}</Text>
                 <Text style={styles.panelDetail}>{when}</Text>
             </Section>
             <Section style={styles.warning}>
                 <Text style={styles.warningText}>
-                    If you did not make this change, please contact us immediately.
+                    {m.email_account_change_warning({}, { locale })}
                 </Text>
             </Section>
         </DarkCardEmail>
@@ -108,6 +131,7 @@ export const AccountChangeNotification = ({
 AccountChangeNotification.PreviewProps = {
     changeType: AccountChangeType.PasswordReset,
     timestamp: new Date(),
+    locale: baseLocale,
 } satisfies AccountChangeNotificationProps
 
 export default AccountChangeNotification

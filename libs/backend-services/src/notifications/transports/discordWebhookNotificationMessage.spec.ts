@@ -20,7 +20,8 @@ describe('discordWebhookNotificationMessage', () => {
             discordWebhookNotificationMessage(turn, {
                 frontendHost: 'https://example.com',
                 gameTitle: '1846',
-                mentionUserId: '99'
+                mentionUserId: '99',
+                locale: 'en'
             })
         ).toEqual({
             username: 'BoardTogether',
@@ -34,7 +35,8 @@ describe('discordWebhookNotificationMessage', () => {
 
     it('mentions no one when the player has not linked Discord', () => {
         const message = discordWebhookNotificationMessage(turn, {
-            frontendHost: 'https://example.com'
+            frontendHost: 'https://example.com',
+            locale: 'en'
         })
         expect(message.content).toBe(
             "It's your turn in [Friday night](https://example.com/game/game-1)"
@@ -54,8 +56,10 @@ describe('discordWebhookNotificationMessage', () => {
             }
         }
         expect(
-            discordWebhookNotificationMessage(invited, { frontendHost: 'https://example.com' })
-                .content
+            discordWebhookNotificationMessage(invited, {
+                frontendHost: 'https://example.com',
+                locale: 'en'
+            }).content
         ).toBe('bob\\_b invited you to [Friday night](https://example.com/dashboard)')
     })
 
@@ -65,7 +69,7 @@ describe('discordWebhookNotificationMessage', () => {
                 ...turn,
                 data: { ...turn.data, game: { ...turn.data.game, name: '**big** [x](y)' } }
             },
-            { frontendHost: 'https://example.com' }
+            { frontendHost: 'https://example.com', locale: 'en' }
         )
         expect(message.content).toBe(
             "It's your turn in [\\*\\*big\\*\\* \\[x\\]\\(y\\)](https://example.com/game/game-1)"

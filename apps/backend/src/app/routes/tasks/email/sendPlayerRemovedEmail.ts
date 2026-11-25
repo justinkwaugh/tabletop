@@ -1,6 +1,12 @@
 import { FastifyInstance } from 'fastify'
 import { GameStatus, UserStatus } from '@tabletop/common'
-import { PlayerRemovedEmailTask, removedPlayerDisplayName } from '@tabletop/backend-services'
+import {
+    PlayerRemovedEmailTask,
+    emailRecipient,
+    removedPlayerDisplayName
+} from '@tabletop/backend-services'
+
+import { emailRecipientAccount } from '../../../lib/emailRecipientAccount.js'
 
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] || ''
 
@@ -9,10 +15,11 @@ export default async function (fastify: FastifyInstance) {
         '/sendPlayerRemovedEmail',
         { schema: { body: PlayerRemovedEmailTask } },
         async function (request, reply) {
-            const { removedUserId, gameId, toEmail } = request.body
-            const [game, removed] = await Promise.all([
+            const { removedUserId, gameId, toEmail, recipientId } = request.body
+            const [game, removed, recipient] = await Promise.all([
                 fastify.gameService.getGame({ gameId }),
-                fastify.userService.getUser(removedUserId)
+                fastify.userService.getUser(removedUserId),
+                emailRecipientAccount(fastify.userService, { userId: recipientId, email: toEmail })
             ])
             const seat = game?.players.find((player) => player.userId === removedUserId)
             const definition = game && fastify.gameService.getTitle(game.typeId)
@@ -22,12 +29,13 @@ export default async function (fastify: FastifyInstance) {
                 definition &&
                 (removed?.status === UserStatus.Inactive || removed?.status === UserStatus.Deleted)
             ) {
+                const to = emailRecipient(toEmail, recipient)
                 await fastify.emailService.sendPlayerRemovedEmail({
-                    playerName: removedPlayerDisplayName(seat.name),
+                    playerName: removedPlayerDisplayName(seat.name, to.locale),
                     game,
                     definition,
                     url: `${FRONTEND_HOST}/game/${gameId}`,
-                    toEmail,
+                    to,
                     deletedAccount: removed.status === UserStatus.Deleted
                 })
             }

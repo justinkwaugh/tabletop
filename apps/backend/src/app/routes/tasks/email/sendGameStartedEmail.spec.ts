@@ -38,6 +38,9 @@ async function send({
         getTitle: vi.fn(() => ({ info: { metadata: { name: 'Fresh Fish' } } }))
     })
     Reflect.set(server, 'notificationService', { hasUserDirectSubscription })
+    Reflect.set(server, 'userService', {
+        getUser: vi.fn(async (id: string) => ({ id, seenLocale: 'de', timeZone: 'Europe/Berlin' }))
+    })
     Reflect.set(server, 'emailService', { sendGameStartedEmail: email })
     await server.register(sendGameStartedEmail)
     const response = await server.inject({
@@ -65,7 +68,7 @@ describe('POST /sendGameStartedEmail', () => {
             turnNotificationsOn: false,
             url: expect.stringContaining('/game/game-1'),
             notificationsUrl: expect.stringContaining('/notifications'),
-            toEmail: 'riley@example.test'
+            to: { email: 'riley@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
         })
     })
 

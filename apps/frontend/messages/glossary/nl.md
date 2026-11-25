@@ -1,6 +1,8 @@
 # Dutch (nl) glossary
 
-For reviewers of `messages/nl.json`. Target: Dutch as read in both the Netherlands and Flanders.
+For reviewers of `messages/nl.json` (the site and its push notifications) and
+`libs/email/messages/nl.json` (emails, Discord and Telegram messages). Target: Dutch as read in
+both the Netherlands and Flanders.
 
 ## 1. Form of address and tone
 
@@ -16,6 +18,12 @@ For reviewers of `messages/nl.json`. Target: Dutch as read in both the Netherlan
 - Headings and labels use sentence case ("Gekoppelde accounts"), not English title case.
 - Where wording differs by region the neutral option was chosen ("chatten" not "kletsen",
   "groep" not "poule", "wedstrijd" not "match").
+- Emails, bot messages and push notifications use the same _je_. Emails speak as _we_, the
+  Discord and Telegram bots as _ik_ ("Ik stuur je hier een bericht").
+- Email subjects drop the leading article and put the key word first ("Spel begonnen: {game}
+  ({title})", "Inschrijving voor {league} sluit binnenkort").
+- "If you did not …, you can …" is a question followed by "Dan …" ("Heb je dit niet aangevraagd?
+  Dan kun je deze e-mail gerust negeren."). "Please contact us" is "Neem dan contact met ons op".
 
 ## 2. Terms
 
@@ -114,6 +122,34 @@ For reviewers of `messages/nl.json`. Target: Dutch as read in both the Netherlan
 | Terms of Service / Privacy Policy     | gebruiksvoorwaarden / privacybeleid      |                                                                    |
 | screenshot, webhook, bot, open source | unchanged                                | Discord's own Dutch terms: privéberichten, vermelden, Integraties. |
 
+### Emails, notifications and bots
+
+| English                           | Dutch                                             | Note                                                                        |
+| --------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| dashboard                         | Mijn spellen                                      | The site never says "dashboard"; the button is "Mijn spellen openen".       |
+| game of {title}, {title} game     | spel {title}, spel {game} ({title})               | Game name first, title in brackets. "Een spel 1830", so 1830 is not a time. |
+| invited you (to play)             | nodigt je uit voor een spel                       | Present tense, inviter first.                                               |
+| It's your turn / Take your turn   | Je bent aan de beurt / Speel je beurt             | Push title: "Jouw beurt!".                                                  |
+| turn notifications                | beurtmeldingen                                    | "Beurtmeldingen aanzetten".                                                 |
+| notifications page                | de pagina Meldingen                               | The site's menu label.                                                      |
+| game started / ended              | spel begonnen / spel afgelopen                    |                                                                             |
+| {names} won / tied                | Gewonnen door {names} / Gelijkspel tussen {names} | No verb, so one name or several both fit.                                   |
+| takes / share first place         | pakt / delen de eerste plaats                     |                                                                             |
+| finished 2nd                      | Je bent 2e geworden                               | Ordinal is "{place}e".                                                      |
+| final standings / final results   | eindstand / einduitslag                           | A season's results are "uitslagen".                                         |
+| Season 2 / Seeding season (names) | Seizoen 2 / Indelingsseizoen                      | Lower case inside a sentence: "seizoen 2 van {league}", "niveau B".         |
+| move up / move down / stay        | promoveert / degradeert / blijft in niveau        |                                                                             |
+| end the game early                | het spel voortijdig beëindigen                    | Menu item quoted as on the site: ‘Spel beëindigen’.                         |
+| go back (undo vote)               | teruggaan naar een eerder moment                  | Push title only: "vraagt om terug te gaan".                                 |
+| vote (button)                     | Stemmen                                           |                                                                             |
+| safely ignore this email          | deze e-mail gerust negeren                        |                                                                             |
+| message (bot) / I'll message you  | bericht / Ik stuur je hier een bericht            |                                                                             |
+| /notify, /stop descriptions       | Meldingen … aanzetten / uitzetten                 | Under Discord's 100 characters.                                             |
+| Connect (site button)             | Verbinden                                         | As on the notifications page.                                               |
+| A Player / Someone / Nobody       | Een speler / Iemand, iemand / Niemand             | Stand-ins for a missing name; see Please review.                            |
+| Unavailable account               | Account niet beschikbaar                          | As on the site.                                                             |
+| bug-reports forum                 | het forum bug-reports                             | The Discord channel's name, left as is.                                     |
+
 ### Labels players see in English
 
 Two labels reach players in English. They are quoted exactly as shown, in ‘…’, with a lower-case
@@ -143,6 +179,11 @@ Dutch gloss in brackets only where the sentence does not already explain the lab
 - Unknown names never take an article or inflection; colon structures where needed
   ("Aan de beurt: {player}", "Statistieken: {name}", "Deelnemers: {roster}").
 - Gender-neutral wording for players ("de invaller", "deze speler", "wie wordt teruggetrokken").
+- Ordinals: "1e", "2e" (`email_ordinal` is the plain string "{place}e").
+- Dates in emails arrive formatted ("vrijdag 27 november om 18:00 CET"); the sentence adds "op".
+- Name lists arrive joined ("Alice, Bob en Carol"); the sentences around them avoid a verb that
+  would have to be singular or plural.
+- A player's quoted text: ‘{quote}’.
 
 ## 4. Please review
 
@@ -196,7 +237,37 @@ Terms with competing usage:
 - `tournaments_schedule_waiting_capacity`, `tournaments_schedule_repeated_groups` — "Wacht tot
   spelers ruimte hebben", "Herhaalde tafelindelingen".
 
-Depends on text outside this file:
+Emails, notifications and bots:
+
+- `email_ordinal` — "1e", "2e"; Flemish readers may prefer "1ste", "2de".
+- `email_game_end_result_won`, `email_game_end_result_draw` — "Gewonnen door {names}!" and
+  "Gelijkspel tussen {names}" instead of a verb; the draw line assumes at least two names.
+- `email_game_invitation_subject`, `email_game_invitation_preview` — "Join {owner}'s game of
+  {title}" became "{owner} nodigt je uit voor een spel {title}".
+- `email_game_invitation_unnamed_owner`, `email_game_end_no_winner_names` — "Iemand" has a capital
+  because it starts the subject and heading; "iemand" is lower case because it follows "door" and
+  "tussen". English has them the other way round.
+- `email_unnamed_player`, `email_player_removed_unnamed_player` — "Een speler" keeps its capital
+  as a stand-in name, also inside a list of names.
+- `email_league_season_results_subject`, `email_league_season_results_preview`,
+  `email_league_season_name_seeding` — "Uitslagen {league} – {season}". The seeding season is the
+  bare label "Indelingsseizoen", so its preview reads "Indelingsseizoen van {league} is afgelopen."
+- `email_account_email_change_requested_preview`, `email_account_password_reset_requested_preview`
+  — the time moved to the front ("Op {time} is gevraagd …"): it is when the request was made.
+- `email_account_deleted_subline` — "als verwijderde speler" describes the seat name, as the
+  English does; the site quotes the label ‘Deleted player’.
+- `email_account_password_reset_requested_detail` — "Wachtwoordreset aangevraagd".
+- `email_standings_column_average_place` — "Gem. plaats" in a 64 px column (English "Avg place").
+- `notification_open_dashboard_button` — "Mijn spellen openen".
+- `notification_undo_vote_heading`, `push_undo_vote_title` — the heading keeps "naar een eerder
+  moment"; the push title drops it for length.
+- `push_your_turn_title`, `push_player_declined_title` — "Jouw beurt!" and "Uitnodiging
+  afgeslagen" (for "Player declined").
+- `telegram_stopped`, `discord_install_welcome` — "Geregeld." for "Done.", "Alles is ingesteld!"
+  for "You're all set!".
+- `email_bug_report_forum` — "Kom even hallo zeggen" for "Come say hi".
+
+Depends on text outside these files:
 
 - `delete_account_summary`, `delete_account_kept_finished` — quote the seat name "Deleted player 1"
   in English, as the game data stores it; the summary adds "(verwijderde speler)", the dialog's
@@ -209,3 +280,13 @@ Depends on text outside this file:
   `tournaments_page_title`, `leagues_detail_page_title_loading` — "· Tabletop" kept as in English.
 - `games_report_owner_anonymous` — "owner" rendered as "host", the word used elsewhere for the same person.
 - `auth_email_placeholder` — "naam@example.com".
+- `email_player_removed_end_early_detail` — quotes the site's menu item `games_call_offer_call`
+  ("Spel beëindigen"). `telegram_not_linked` and `telegram_stopped` name the site's button
+  `discord_webhook_connect` ("Verbinden"), `email_game_started_footer` the page `nav_notifications`
+  ("Meldingen"), and `notification_open_dashboard_button` the page `nav_my_games` ("Mijn spellen").
+- `email_standings_placement_scoring`, `email_standings_tiebreak_points_behind`,
+  `email_standings_tiebreak_share_of_winner`, `email_standings_tiebreak_score_sum` — copies of
+  `tournaments_placement_scoring` and `tournaments_tiebreak_*`; `email_league_unavailable_account`
+  copies `auth_unavailable_account`. Change them together.
+- `email_game_started_warning_body`, `email_game_started_turns_set_up` — name the browser and
+  Discord only, as the English does, although the site also offers Telegram.

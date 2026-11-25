@@ -1,6 +1,6 @@
 # Greek (el) glossary
 
-For the native-speaker reviewer of `messages/el.json`. Modern Greek, monotonic.
+For the native-speaker reviewer of `apps/frontend/messages/el.json` (the site and its push notifications) and `libs/email/messages/el.json` (emails, Discord and Telegram). Modern Greek, monotonic.
 
 ## 1. Form of address and tone
 
@@ -11,6 +11,13 @@ For the native-speaker reviewer of `messages/el.json`. Modern Greek, monotonic.
 - **Sentence case** for headings and labels; English Title Case is not copied.
 - **Gender**: neutral wording where Greek allows it (verb forms such as «Αποσύρθηκε», «Κέρδισε», «Κάνε εσύ την αρχή», «Ναι, σίγουρα»). Role nouns use the generic masculine (Νικητής, Πρωταθλητής, οικοδεσπότης, αναπληρωματικός).
 - **Names in sentences**: a placeholder name never has to be declined. Either a colon or label structure («Αποσύρθηκε: {name}», «Σχεδιασμός: {designer}», «με νικητή: {winner}»), or apposition («Ο παίκτης {name}…», «Ο χρήστης {name}…»), or a bare username before the verb in the compact vote banner («{name} ζητά αναίρεση…»). Game names go in «» after «το παιχνίδι».
+
+### Emails, notifications and bots
+
+- **Same informal singular.** Emails speak as «εμείς», like the site («Θα σε ειδοποιούμε…»). The Discord and Telegram bots speak as «εγώ», as the English does («Θα σου στέλνω μήνυμα εδώ…»), with no gendered form («Όλα έτοιμα!», «Συνδέθηκες ως {username}»).
+- **Names**: where the name is the subject it stands bare before the verb, as in the vote banner («{player} ζητά από όλους αναίρεση», «{owner} σε προσκάλεσε σε παιχνίδι»). The code can put a stand-in there for a missing name («Κάποιος», «Ένας παίκτης»), which «Ο παίκτης {name}» could not take. Elsewhere the name follows a noun («τη θέση του παίκτη {player}», «για τον χρήστη {username}») or a colon, so a list of names needs no verb agreement («Νίκη: {names}», «Αντίπαλοι: {names}», «Πρώτη θέση: {names}»).
+- **Subject lines** put the event first: `Ξεκίνησε το παιχνίδι «{game}» ({title})`, `Άνοιξαν οι δηλώσεις συμμετοχής: {league}, Σεζόν {season}`.
+- **Buttons**: imperatives, as they are links («Άνοιξε το παιχνίδι», «Δες την πρόσκληση», «Ψήφισε»). An action noun where the site has a command of that name («Συμμετοχή στο παιχνίδι», «Επαναφορά κωδικού»).
 
 ## 2. Terms
 
@@ -105,7 +112,34 @@ For the native-speaker reviewer of `messages/el.json`. Modern Greek, monotonic.
 | Discord: direct message / server / mention / Integrations | άμεσο μήνυμα / διακομιστής / αναφέρω / «Ενσωματώσεις» | Discord's own Greek interface         |
 | iOS: Home Screen / Share                                  | οθόνη Αφετηρίας / «Κοινή χρήση»                       | Apple's Greek                         |
 
-Left in English on purpose: BoardTogether, Board Together, Tabletop (page titles), game and charity names, BG Stats, Alpha, Beta, `/stop`, `/notify`.
+### Emails, notifications and bots
+
+| English                                      | Greek                                                                             | Note                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| game started, has begun / has ended          | ξεκίνησε / έληξε                                                                  | «έληξε» covers every ending; «ολοκληρώθηκε» is for a tournament or a season |
+| ended in a draw / was abandoned              | έληξε ισόπαλο / εγκαταλείφθηκε                                                    |                                                                             |
+| open the game / open dashboard               | Άνοιξε το παιχνίδι / Δες τα παιχνίδια σου                                         | the dashboard is the page «Τα παιχνίδια μου»                                |
+| a player joined                              | συμμετέχει πλέον                                                                  | as the site's «Συμμετέχεις πλέον»; push title «Νέα συμμετοχή!»              |
+| declined to join / declined your invitation  | αρνήθηκε να συμμετάσχει / απέρριψε την πρόσκλησή σου                              |                                                                             |
+| asks to end the game / asks to go back       | ζητά να λήξει το παιχνίδι / ζητά αναίρεση                                         | the wording of the vote banner                                              |
+| take over a seat                             | παίρνω τη θέση                                                                    | «Πήρες τη θέση του παίκτη {player}»                                         |
+| end the game early                           | λήγω το παιχνίδι νωρίτερα                                                         | through «Λήξη με συμφωνία» in the «μενού λογαριασμού»                       |
+| verify / confirm (an email address)          | επαληθεύω / επιβεβαιώνω                                                           |                                                                             |
+| reset password / reset link                  | επαναφορά κωδικού πρόσβασης / σύνδεσμος                                           |                                                                             |
+| safely ignore this email                     | μπορείς άφοβα να αγνοήσεις αυτό το email                                          |                                                                             |
+| contact us                                   | επικοινώνησε μαζί μας                                                             |                                                                             |
+| administrator                                | διαχειριστής                                                                      |                                                                             |
+| final standings / champion(s)                | τελική βαθμολογία / πρωταθλητής, πρωταθλητές                                      |                                                                             |
+| finished 2nd                                 | Τερμάτισες στη 2η θέση                                                            | `email_ordinal`, see Typography                                             |
+| seeding season                               | σεζόν αρχικής κατάταξης                                                           |                                                                             |
+| move up / move down / stay (league level)    | ανεβαίνεις / πέφτεις / μένεις                                                     |                                                                             |
+| place held / bottom level                    | η θέση σου κρατιέται / τελευταία κατηγορία                                        |                                                                             |
+| turn on / turn off (notifications, messages) | ενεργοποιώ / απενεργοποιώ                                                         | also the `/notify` and `/stop` descriptions                                 |
+| type /stop (Discord) / send /stop (Telegram) | Γράψε /stop / Στείλε /stop                                                        |                                                                             |
+| chat (Telegram) / user ID                    | συνομιλία / ID χρήστη                                                             |                                                                             |
+| stand-ins for a missing name                 | Ένας παίκτης, Κάποιος, κάποιος παίκτης, Κανείς, τους άλλους παίκτες, ο όμιλός σου | each in the case and capitals of the one sentence that uses it              |
+
+Left in English on purpose: BoardTogether, Board Together, Tabletop (page titles), game and charity names, BG Stats, Alpha, Beta, `/stop`, `/notify`, the Discord forum name `bug-reports`.
 
 ## 3. Typography and formatting
 
@@ -118,6 +152,9 @@ Left in English on purpose: BoardTogether, Board Together, Tabletop (page titles
 - A month arrives in the nominative with its year («Νοέμβριος 2026»), so it follows a colon rather than a preposition: «από: {month}», «πρώτη ολοκλήρωση: {month}».
 - Short time units are abbreviated like the English ones: «πριν από 5 λεπ.», «πριν από 3 ώρ.», «Ξεκινά σε 30 δευτ.», and the pace chip «Γρήγορος · 1 ώρ.». Where the hour stands in the genitive it is written out («εντός 4 ωρών», «του ρυθμού της 1 ώρας»), because «ώρ.» cannot show the case. Days, weeks, months and years are written out.
 - Strings that are lower-case in English because they sit inside a line (player status, the stats facts line, colour names) stay lower-case.
+- **Email labels in capitals.** The labels that the email templates upper-case with CSS are written in capitals without accents: `email_*_eyebrow`, `email_standings_champion(s)`, `email_standings_column_*`, `email_tournament_results_standings`, `email_league_season_results_standings`, `email_bug_report_you_wrote`. Unlike the site, an email is sent marked `lang="en"`, so a mail client would keep the accents («ΠΑΊΚΤΗΣ», «ΤΕΛΙΚΉ ΒΑΘΜΟΛΟΓΊΑ»).
+- **Email dates** arrive whole and end in a time zone, so no «π.μ..» can occur. `{time}` is «1 Νοεμβρίου 2026 στις 9:05 π.μ. EET» and stands in parentheses. `{closes}` is «Παρασκευή 23 Οκτωβρίου στις 9:00 μ.μ. EEST» and follows «έως». Neither takes «στις» or an article, which would not agree with every day.
+- **Ordinals.** `email_ordinal` gives the whole phrase, «στη 2η θέση» or «στην 3η θέση», because the final ν of the article depends on the number (2, 10 and 12–19 drop it). The sentences around it say «Τερμάτισες {place}…».
 
 ## 4. Please review
 
@@ -146,6 +183,23 @@ Terms with more than one defensible Greek form:
 - `content_stats_even_odds`, `content_stats_key_even_odds`, `content_stats_win_rate_meter`: "even odds" as «ίσες πιθανότητες».
 - `games_report_reason_intimate_image`: «Προσωπικές εικόνες που κοινοποιήθηκαν χωρίς συναίνεση».
 - `library_series_18xx_description`: 18xx jargon, «πριν το επόμενο τρένο σκουριάσει τον στόλο τους».
+- `email_game_end_subject`, `email_game_end_preview*`, `email_game_end_subline`: "has ended" as «έληξε», the site's verb for a game that ends by any route. Plainer: «τελείωσε».
+- `email_game_end_result_won`, `email_game_end_result_draw`: «Νίκη: {names}!» and «Ισοπαλία: {names}», as in the site's tables, because one string serves one name or several.
+- `email_game_invitation_*`, `email_player_removed_preview_*`, `email_player_removed_subline_*`, `notification_*`, `push_*`: a bare username opens the sentence («Riley αποχώρησε…»). «Ο παίκτης Riley…» reads better but cannot take the stand-ins «Κάποιος» and «Ένας παίκτης».
+- `notification_player_joined_*`, `push_player_joined_*`: "joined" as «συμμετέχει πλέον». Livelier: «μπήκε στο παιχνίδι σου».
+- `email_game_invitation_button`: «Συμμετοχή στο παιχνίδι», the site's command. As a call to action: «Μπες στο παιχνίδι».
+- `email_game_end_button`: «Δες ξανά το παιχνίδι» for "Revisit the game"; the card label on the site is «Ανασκόπηση».
+- `notification_open_dashboard_button`: «Δες τα παιχνίδια σου». The site has no word for "dashboard".
+- `email_verification_footer`, `email_password_reset_footer`, `email_game_invitation_footer`, `email_account_change_footer`: "safely ignore" as «μπορείς άφοβα να αγνοήσεις». Plainer: «μπορείς απλώς να αγνοήσεις».
+- `email_tournament_results_champion`: «Είσαι εσύ. Συγχαρητήρια!», under the champion's name.
+- `email_game_started_warning_button`: «Ενεργοποίησε τις ειδοποιήσεις», without «για τη σειρά σου», which the panel above the button already says. The full phrase makes a three-line button on a phone.
+- `email_league_season_start_games`: «Παίζεις 4 παιχνίδια. Αντίπαλοι: …» instead of "against …", which would put the names in the genitive.
+- `email_league_season_results_substitute`: «ως αναπληρωματικός», generic masculine said to the reader.
+- `email_ordinal`: the tens are written «20η», «30η», as in everyday use. The strict forms are «20ή», «30ή».
+- `email_bug_report_follow_on_discord`: «Δες την εξέλιξη της αναφοράς σου» for "Follow your report", so that «ακολουθώ» stays for games.
+- `push_took_over_seat_title`: «Συμμετέχεις σε παιχνίδι σε εξέλιξη». Alternative: «Πήρες θέση σε παιχνίδι σε εξέλιξη».
+- `discord_unknown_user`: «ID χρήστη». Alternative: «αναγνωριστικό χρήστη».
+- `discord_command_notify_description`, `discord_command_stop_description`: «Ενεργοποίηση / Απενεργοποίηση ειδοποιήσεων…», 75 and 77 characters of the 100 Discord allows.
 
 Text that depends on something this file does not control:
 
@@ -158,3 +212,11 @@ Text that depends on something this file does not control:
 - `nav_about_us`, `nav_my_games`, `nav_pay_it_forward`: header labels are longer than the English («Σχετικά», «Τα παιχνίδια μου», «Πέρνα το παρακάτω»). «Σχετικά» is also the About page heading; the page title says «Σχετικά με εμάς». Worth a look at widths between 768 and 900 px.
 - `time_ago_minutes`, `time_ago_hours`, `start_countdown_seconds`, `pace_fast_summary`, `pace_brisk_summary`: abbreviations «λεπ.», «ώρ.», «δευτ.».
 - `auth_email_placeholder`: «onoma@example.com».
+- Email labels in capitals (see Typography): if emails are one day sent with their language set, as the site is, these can go back to normal case.
+- `email_league_season_results_eyebrow`: the season name arrives inside it in normal case («Σεζόν 2»), so until then a mail client may show «ΣΕΖΌΝ 2» with its accent.
+- `email_account_email_change_requested_preview`: the English ends "…until the new address is verified on {time}". `{time}` is when the request was made, so the Greek puts it beside the request.
+- `email_account_deleted_subline`: quotes «Deleted player» with a Greek gloss, as `delete_account_summary` does.
+- `email_player_removed_end_early_detail`: «Λήξη με συμφωνία» and «μενού λογαριασμού» must match `games_call_offer_call` and `nav_open_account_menu`.
+- `telegram_not_linked`, `telegram_stopped`: «Σύνδεση» is the site's Connect button, as in `telegram_offer`.
+- `email_bug_report_*`: bug-report emails are for now always sent in English, because their milestone text and note are written in English, so these five strings are not shown yet. `bug-reports` is the forum's name on Discord.
+- `email_game_started_warning_body`, `email_game_started_turns_set_up`: they name the browser and Discord only, like the English, though the site also offers Telegram.

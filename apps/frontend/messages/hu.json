@@ -1215,5 +1215,22 @@
     "pace_relaxed_name": "Ráérős",
     "pace_relaxed_line": "Ráérős · 3 napon belül",
     "pace_relaxed_summary": "Ráérős · 3 nap",
-    "pace_relaxed_past_limit": "Lassabb a 3 napos tempónál"
+    "pace_relaxed_past_limit": "Lassabb a 3 napos tempónál",
+    "push_player_joined_title": "Csatlakozott egy játékos!",
+    "push_player_joined_body": "{player} csatlakozott a játszmádhoz: {game}",
+    "push_player_declined_title": "Meghívó elutasítva",
+    "push_player_declined_body": "{player} elutasította a meghívódat: {game}",
+    "push_game_started_title": "Elkezdődött a játszma!",
+    "push_game_started_body": "Elkezdődött a játszmád: {game}",
+    "push_invited_title": "Meghívtak egy játszmába!",
+    "push_invited_body": "{owner} meghívott a játszmájába: {game}",
+    "push_your_turn_title": "Te jössz!",
+    "push_your_turn_body": "Te jössz ebben a játszmában: {game}",
+    "push_call_vote_title": "{initiator} a játszma befejezését kéri",
+    "push_undo_vote_title": "{initiator} visszavonást kér",
+    "push_vote_body": "Szavazz ebben a játszmában: {game}",
+    "push_took_over_seat_title": "Csatlakoztál egy folyamatban lévő játszmához",
+    "push_took_over_seat_body": "Átvetted {formerHolder} helyét: {game}",
+    "push_lost_seat_title": "A helyedet egy másik játékos kapta meg",
+    "push_lost_seat_body": "{newHolder} átvette a helyedet: {game}"
 }

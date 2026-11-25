@@ -2,6 +2,7 @@ import { ExternalAuthService, isUserNotification, Notification } from '@tabletop
 
 import type { DiscordWebhookApi } from '../../discord/discordWebhookApi.js'
 import type { UserService } from '../../users/userService.js'
+import type { Locale } from '@tabletop/email/i18n'
 import { DiscordWebhookSubscription } from '../subscriptions/discordWebhookSubscription.js'
 import { discordWebhookNotificationMessage } from './discordWebhookNotificationMessage.js'
 import { NotificationCatalog, notificationCatalogEntry } from './notificationCatalogEntry.js'
@@ -23,7 +24,8 @@ export class DiscordWebhookTransport implements NotificationTransport {
 
     async sendNotification(
         subscription: DiscordWebhookSubscription,
-        notification: Notification
+        notification: Notification,
+        locale: Locale
     ): Promise<NotificationResult> {
         if (!isUserNotification(notification)) {
             return { success: false, unregister: false }
@@ -40,7 +42,8 @@ export class DiscordWebhookTransport implements NotificationTransport {
                 gameTitle: catalogEntry?.metadata.name,
                 mentionUserId: user
                     ? this.users.extractExternalId(user, ExternalAuthService.Discord)
-                    : undefined
+                    : undefined,
+                locale
             })
         )
         if (delivery.ok) {

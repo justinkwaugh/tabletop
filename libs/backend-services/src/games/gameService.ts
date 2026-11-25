@@ -1,5 +1,6 @@
 import { lookupTitle, lookupTitles, type TitleLookup } from './titleLookup.js'
 import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
+import { messageLocale } from '@tabletop/email/i18n'
 import { watchTournamentGame } from '../competitions/tournamentStalls.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
@@ -706,7 +707,8 @@ export class GameService {
                 payload: {
                     removedUserId: user.id,
                     gameId: game.id,
-                    toEmail: recipient.email
+                    toEmail: recipient.email,
+                    recipientId: recipient.id
                 } satisfies PlayerRemovedEmailTask,
                 uniqueName: `player-removed-${user.id}-${game.id}-${recipient.id}`
             })
@@ -1386,7 +1388,8 @@ export class GameService {
             userId: owner.id,
             gameId: game.id,
             token,
-            toEmail: user.email
+            toEmail: user.email,
+            inviteeId: user.id
         })
     }
 
@@ -3324,7 +3327,8 @@ export class GameService {
         await this.notificationService.sendNotification({
             notification,
             topics: [topic],
-            channels: [NotificationDistributionMethod.UserDirect]
+            channels: [NotificationDistributionMethod.UserDirect],
+            locale: messageLocale(recipient)
         })
     }
 

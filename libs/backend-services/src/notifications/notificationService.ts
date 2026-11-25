@@ -1,4 +1,5 @@
 import { Notification } from '@tabletop/common'
+import type { Locale } from '@tabletop/email/i18n'
 import { NotificationTransport } from './transports/notificationTransport.js'
 import { NotificationSubscription } from './subscriptions/notificationSubscription.js'
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
@@ -43,10 +44,12 @@ export interface NotificationService {
     sendNotification({
         notification,
         topics,
-        channels
+        channels,
+        locale
     }: {
         notification: Notification
         topics: string[]
         channels: NotificationDistributionMethod[]
+        locale?: Locale
     }): Promise<void>
 }

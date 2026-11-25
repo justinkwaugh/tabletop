@@ -84,6 +84,28 @@ describe('user time zone', () => {
     })
 })
 
+describe('user seen locale', () => {
+    it('stores the language the site showed when it changes', async () => {
+        const { service, updateUser } = fixture({ ...user, seenLocale: 'en' })
+        await expect(service.updateUserSeenLocale('a', 'de')).resolves.toEqual(
+            expect.objectContaining({ seenLocale: 'de' })
+        )
+        expect(updateUser).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({ userId: 'a', fields: { seenLocale: 'de' } })
+        )
+    })
+
+    it('cancels the write when the language is the one already stored', async () => {
+        const stored = { ...user, seenLocale: 'de' }
+        const { service, updateUser } = fixture(stored)
+        await expect(service.updateUserSeenLocale('a', 'de')).resolves.toEqual(stored)
+        const [{ validator, fields }] = updateUser.mock.calls[0]
+        expect(validator?.({ ...stored, createdAt: undefined, updatedAt: undefined }, fields)).toBe(
+            UpdateValidationResult.Cancel
+        )
+    })
+})
+
 describe('external provider authentication', () => {
     function providerFixture(linked?: User, byEmail?: User) {
         const addExternalId = vi.fn<UserStore['addExternalId']>(async ({ userId, externalId }) => ({
@@ -429,6 +451,7 @@ describe('account moderation', () => {
 
             expect(renamed.username).toBe('Fuckface')
             expect(notifications).toHaveBeenCalledExactlyOnceWith({
+                locale: 'en',
                 email: 'a@example.test',
                 changeType: AccountChangeType.Username,
                 timestamp: new Date(5),

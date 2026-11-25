@@ -31,7 +31,9 @@ async function setup(content: LeagueEmailContent | undefined) {
         id: 'user-1',
         username: 'Alice',
         email: 'alice@example.test',
-        status: UserStatus.Active
+        status: UserStatus.Active,
+        preferences: { preventWebNotificationPrompt: false, locale: 'de' },
+        timeZone: 'Europe/Berlin'
     }
     const getUser = vi.fn(async (id: string) => (id === recipient.id ? recipient : undefined))
     const emailContent = vi.fn(async () => content)
@@ -59,6 +61,7 @@ async function setup(content: LeagueEmailContent | undefined) {
     await server.register(leagueEmailRoute)
     return {
         server,
+        emailContent,
         sendLeagueSignUpEmail,
         sendLeagueSeasonStartEmail,
         sendLeagueSeasonResultsEmail,
@@ -98,7 +101,7 @@ describe('league email task', () => {
             level: 'B',
             closesAt: 1_000,
             url: 'https://example.test/leagues/fresh-league',
-            toEmail: 'alice@example.test'
+            to: { email: 'alice@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
         })
     })
 
@@ -118,7 +121,7 @@ describe('league email task', () => {
                 groupName: 'B1',
                 level: { name: 'B', moved: 'up' },
                 url: 'https://example.test/tournaments/group-b1',
-                toEmail: 'alice@example.test'
+                to: { email: 'alice@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
             })
         )
     })
@@ -128,7 +131,7 @@ describe('league email task', () => {
             { rank: 1, name: 'Alice', wins: 3, score: 3, recipient: true },
             { rank: 2, name: 'Bob', wins: 1, score: 1, recipient: false }
         ]
-        const { server, sendLeagueSeasonResultsEmail } = await setup({
+        const { server, emailContent, sendLeagueSeasonResultsEmail } = await setup({
             ...base,
             kind: 'seasonResults',
             groupName: 'B1',
@@ -139,6 +142,7 @@ describe('league email task', () => {
             standings
         })
         await server.inject({ method: 'POST', url: '/email', payload: payload('seasonResults') })
+        expect(emailContent).toHaveBeenCalledWith(payload('seasonResults'), 'de')
         expect(sendLeagueSeasonResultsEmail).toHaveBeenCalledWith({
             leagueName: 'Fresh Fish League',
             title: 'Fresh Fish',
@@ -150,7 +154,7 @@ describe('league email task', () => {
             champion: 'Carol',
             standings,
             url: 'https://example.test/leagues/fresh-league?season=2',
-            toEmail: 'alice@example.test'
+            to: { email: 'alice@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
         })
     })
 

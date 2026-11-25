@@ -1,6 +1,8 @@
 # Polish (pl) — translation glossary
 
-For the native-speaker reviewer of `messages/pl.json`. Source of truth: `messages/en.json`.
+For the native-speaker reviewer of `messages/pl.json` (the site and its push notifications) and
+`libs/email/messages/pl.json` (emails, Discord and Telegram). Source of truth: the `en.json` beside
+each.
 
 ## 1. Form of address and tone
 
@@ -23,6 +25,18 @@ For the native-speaker reviewer of `messages/pl.json`. Source of truth: `message
   → _Spróbuj ponownie_ (no _proszę_).
 - Tone: plain and friendly, no marketing language: _Masz ochotę na partyjkę?_, _Rozkładamy
   gry…_, _Dołóż swoją cegiełkę_.
+- **Emails, push notifications, Discord and Telegram** use the same _ty_ with capitalised pronouns.
+  "You finished / played / signed up / requested" stay gender-free: present tense (_Kończysz
+  turniej na 2. miejscu_, _Awansujesz_, _Przejmujesz miejsce_), a state or noun (_Ten turniej odbył
+  się z Twoim udziałem_, _Jesteś na liście zapisanych_, _Masz zarezerwowane miejsce_), or the
+  origin of the action (_Jeśli ta prośba nie pochodzi od Ciebie_). The bots speak in the first
+  person, also gender-free (_Będę tu do Ciebie pisać_, _nie udało mi się_).
+- In those messages another player's name is the subject of a present-tense verb (_{owner}
+  zaprasza Cię do gry_, _{player} dołącza / odrzuca / prosi / przejmuje / opuszcza_). The stand-ins
+  for a missing name are written for the slot they fill: _Ktoś_ (inviting host) and _Jeden z
+  graczy_ (removed player) open a sentence; _ktoś_, _pozostali gracze_, _pozostali gracze z
+  Twojej grupy_ follow a colon; _Gracz bez nazwy_, _Niedostępne konto_, _Nikt_ sit in lists and
+  table rows.
 
 ## 2. Terms
 
@@ -98,6 +112,33 @@ For the native-speaker reviewer of `messages/pl.json`. Source of truth: `message
 | Alpha / Beta                                 | Alfa / Beta                                                              |                                                                       |
 | Lobby                                        | Lobby                                                                    |                                                                       |
 
+Emails, notifications and bots:
+
+| English                                 | Polish                                                         | Note                                                   |
+| --------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| this email                              | ta wiadomość                                                   | _e-mail_ stays the channel: _E-maile o grach_          |
+| you can safely ignore this email        | możesz spokojnie zignorować tę wiadomość                       |                                                        |
+| a request was made                      | Otrzymaliśmy prośbę o… / Prośba o… wpłynęła: {time}            |                                                        |
+| subject lines                           | Gra rozpoczęta: {game} ({title}) / Zapisy otwarte: {league} –… | status first, name after a colon                       |
+| you finished 2nd                        | Kończysz turniej / sezon na 2. miejscu                         | `email_ordinal` is _{place}._                          |
+| Champion / Champions (email panel)      | Zwycięzca / Zwycięzcy ex aequo                                 | not _1. miejsce_, see review                           |
+| final standings                         | klasyfikacja końcowa                                           |                                                        |
+| seeding season                          | sezon rozstawiający                                            |                                                        |
+| move up / move down / stay (level)      | awansujesz / spadasz / zostajesz                               |                                                        |
+| {names} won! / {names} tied             | Wygrana: {names}! / Remis: {names}                             | no verb, so one or several names fit                   |
+| waiting for {names}                     | Czekamy na ruch: {names}                                       |                                                        |
+| a player left / was removed             | opuszcza / nie gra już, nie ma już dostępu                     | subject: _Jeden z graczy opuścił / został usunięty_    |
+| Call the game (menu item named in mail) | „Zaproponuj zakończenie gry”                                   | quoted exactly as the site's menu item                 |
+| asks to go back (undo vote)             | prosi o cofnięcie gry                                          |                                                        |
+| take over a seat                        | przejąć miejsce                                                | _Przejmujesz miejsce gracza {player}_                  |
+| dashboard (button)                      | Moje gry                                                       | _Otwórz Moje gry_                                      |
+| vote / take your turn / open (buttons)  | Zagłosuj / Rozegraj turę / Otwórz grę                          |                                                        |
+| message you (bot)                       | pisać do Ciebie                                                | _wiadomości_ for Telegram, _powiadomienia_ for Discord |
+| type / send /stop                       | Wpisz /stop (Discord) / Wyślij /stop (Telegram)                |                                                        |
+| Connect (Telegram)                      | Połącz                                                         | the site's button                                      |
+| You wrote (quoted bug report)           | Twoje zgłoszenie                                               |                                                        |
+| push titles                             | Twoja tura! / Nowy gracz przy stole! / Zaproszenie odrzucone   |                                                        |
+
 Left in the original: BoardTogether / Board Together (never inflected), Tabletop, game titles, Google,
 GitHub, BG Stats, Tiltify, Gamers Outreach, SpecialEffect, `/stop`, `/notify`, URLs, _open source_,
 _webhook_, _bot_. Discord, Telegram and GitHub take Polish endings where grammar needs them (_na
@@ -124,11 +165,24 @@ _(usunięty gracz)_; `games_vote_undo_yourself` needs none beside _cofnąć_.
   after a colon or where the abbreviated form reads correctly (_Zamknięcie zapisów: 25 lis,
   14:00_). A month with its year arrives in the nominative (_listopad 2026_), so it follows a
   colon too, never a preposition (_pierwsza: listopad 2026_, not _od listopad 2026_).
-- `{count: number}` is not used: Polish groups digits only from 10 000 up, beyond any count here.
+- `{count: number}` is kept as in English; Polish groups digits only from 10 000 up, so the counts
+  seen here print unchanged.
 - Units: _5 min temu_, _3 godz. temu_, _Start za 5 s_, _w ciągu 4 godz._, _3 dni_.
 - Sentence case throughout (English Title Case labels are not copied). Small all-caps headings
   stay in capitals (_GRACZE_, _WYNIK_).
 - `auth_email_placeholder` is a Polish-style sample address (_nazwa@domena.pl_).
+- Emails and push notifications: a game, tournament or league name inside a sentence stands in
+  „…” after its noun (_Twoja gra „{game}” ({title})_, _Turniej „{tournament}”_, _ligi
+  „{league}”_); after a colon it is bare. A game's title follows _w_ uninflected (_gra w
+  {title}_), as on the site.
+- Discord and Telegram summaries end with _: {game}_ (_Twoja tura: {game}_), because a webhook
+  post passes the title and a link there (_Fresh Fish · [name](link)_).
+- Email dates arrive as _25 listopada 2026 16:30 CET_ and _piątek, 23 października 20:00 CEST_
+  (weekday in the nominative), so they follow a colon: _zostało zmienione: {time}_, _termin:
+  {closes}_.
+- `email_ordinal` is the plain string _{place}._ (Polish has one ordinal category); the sentences
+  put _miejscu_ after it.
+- Discord slash-command descriptions are 52 and 53 characters (limit 100).
 
 ## 4. Please review
 
@@ -146,7 +200,7 @@ _(usunięty gracz)_; `games_vote_undo_yourself` needs none beside _cofnąć_.
 - `pace_*_past_limit` — "Past the 1 h pace" as _Wolniej niż ustalone tempo (1 godz.)_; _Przekroczone tempo_ sounds like playing too fast, _Przekroczony czas na ruch_ like a hard time limit
 - `content_stats_since_month` — the month arrives in the nominative, which _od_ cannot take, so "since {month}" is _pierwsza: listopad 2026_ (the first finished game); alternative _od: listopad 2026_
 - `games_card_explorations_heading` — _EKSPLORACJE_; alternative _ANALIZY_
-- `delete_account_summary`, `delete_account_kept_finished`, `games_vote_undo_yourself` — „Deleted player” / „Deleted player 1” and „Undo” are quoted in English, as players see them today; they become translatable (_Usunięty gracz_, _Cofnij_) once the game data and the game screens are translated
+- `delete_account_summary`, `delete_account_kept_finished`, `games_vote_undo_yourself`, `email_account_deleted_subline` — „Deleted player” / „Deleted player 1” and „Undo” are quoted in English, as players see them today; they become translatable (_Usunięty gracz_, _Cofnij_) once the game data and the game screens are translated
 - `telegram_offer` — Telegram's own button is written _Start_; the Polish Telegram app may label it differently
 - `discord_webhook_instructions`, `discord_webhook_unsupported` — Discord menu names _Integracje_ and _Webhooki_ written from memory of the Polish client
 - `nav_pay_it_forward`, `content_pif_*` — _Podaj dobro dalej_ for "Pay it forward"
@@ -156,3 +210,19 @@ _(usunięty gracz)_; `games_vote_undo_yourself` needs none beside _cofnąć_.
 - `content_landing_welcome` — _Masz ochotę na partyjkę?_ for "Care to play a game?"
 - `auth_invitation_heading` — English "Join this game?..." → _Dołączyć do tej gry?_ without the ellipsis
 - `submit` — one key serves send, save and confirm forms: _Wyślij_
+- `email_standings_champion`, `email_standings_champions`, `email_tournament_results_preview_*`, `email_tournament_results_shared_champion` — _Zwycięzca_ / _Zwycięzcy ex aequo_ / _Dzielisz zwycięstwo_ instead of the site's _1. miejsce_: the league email prints the champion right above the reader's own group place (_na 1. miejscu w grupie B1_)
+- `email_tournament_results_finished_*`, `email_league_season_results_*` — "You finished 2nd" in the present tense (_Kończysz turniej / sezon na 2. miejscu_) to avoid _-łeś/-łaś_
+- `email_player_removed_preview_*`, `email_player_removed_subline_*`, `email_player_removed_unnamed_player` — name first with gender-free verbs: "left" is _opuszcza_, "was removed from Board Together" is _nie ma już dostępu do Board Together_ (the account is blocked, not deleted); fallback _Jeden z graczy_
+- `email_game_end_footer`, `email_tournament_results_footer`, `email_league_season_results_footer` — "You played in this…" as _…toczyła się / odbył się z Twoim udziałem_
+- `email_verification_subline` — "where you requested it" as impersonal _tam, gdzie o niego poproszono_
+- `email_account_*_preview` — the time follows a colon; in `email_account_email_change_requested_preview` it moved next to the request (_Prośba… wpłynęła: {time}_)
+- `email_league_sign_up_detail` — the deadline starts with a nominative weekday, so it follows _termin:_
+- `email_league_season_name_seeding`, `email_league_season_start_subline_seeding` — _Sezon rozstawiający_; the site shows _Sezon 0 · Rozstawienie_
+- `email_league_season_start_moved_up` — _Awansujesz_ for a move up that fills a vacancy, the same verb as an earned promotion
+- `email_game_started_waiting`, `email_game_started_preview_waiting` — "Waiting for {names}" as _Czekamy na ruch: {names}_
+- `email_unnamed_player` — _Gracz bez nazwy_; alternative _Nieznany gracz_
+- `email_bug_report_forum` — the forum's name „bug-reports” left as it is on Discord; `email_bug_report_you_wrote` — _Twoje zgłoszenie_ instead of a gendered _Napisałeś / Napisałaś_
+- `notification_open_dashboard_button` — "dashboard" as the page name _Moje gry_ (_Otwórz Moje gry_); alternative _Przejdź do moich gier_
+- `notification_took_over_seat_heading`, `notification_lost_seat_heading` — _Administrator przydzielił…_ agrees with the noun _administrator_
+- `discord_command_notify_description`, `discord_command_stop_description` — _Włącz / Wyłącz powiadomienia…_ names the effect rather than a literal _Powiadamiaj_
+- `push_player_joined_title`, `push_lost_seat_title` — _Nowy gracz przy stole!_ and _Twoje miejsce przypadło innemu graczowi_, both without a gendered verb

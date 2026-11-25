@@ -5,25 +5,33 @@ import {
     DarkCardEmail,
     darkStyles as styles,
 } from '../components/darkCard.js'
+import { baseLocale, m, type Locale } from '../i18n.js'
 
 interface GameInvitationProps {
     ownerName: string
     title: string
     gameName: string
-    token?: string
-    url?: string
+    url: string
+    locale: Locale
 }
 
-export const GameInvitation = ({ ownerName, title, gameName, url = `` }: GameInvitationProps) => (
+export const GameInvitation = ({
+    ownerName,
+    title,
+    gameName,
+    url,
+    locale,
+}: GameInvitationProps) => (
     <DarkCardEmail
-        preview={`Join ${ownerName}'s game of ${title}`}
+        locale={locale}
+        preview={m.email_game_invitation_preview({ owner: ownerName, title }, { locale })}
         wordmarkHref={url}
-        heading={`${ownerName} invited you to play`}
-        subline="Accept the invite to join the table. Your seat is waiting."
+        heading={m.email_game_invitation_heading({ owner: ownerName }, { locale })}
+        subline={m.email_game_invitation_subline({}, { locale })}
         footer={
             <>
-                If you did not expect this invite, you can safely ignore this email.{' '}
-                <ButtonFallback url={url} />
+                {m.email_game_invitation_footer({}, { locale })}{' '}
+                <ButtonFallback url={url} locale={locale} />
             </>
         }
     >
@@ -31,7 +39,7 @@ export const GameInvitation = ({ ownerName, title, gameName, url = `` }: GameInv
             <Text style={styles.panelValue}>{gameName}</Text>
             <Text style={styles.panelDetail}>{title}</Text>
         </Section>
-        <CardButton href={url}>Join the game</CardButton>
+        <CardButton href={url}>{m.email_game_invitation_button({}, { locale })}</CardButton>
     </DarkCardEmail>
 )
 
@@ -40,6 +48,7 @@ GameInvitation.PreviewProps = {
     title: 'Sol: Last Days of a Star',
     gameName: "Bob's Game of 4D Chess",
     url: 'https://boardtogether.games/game/qidEk1NjzIRBEioOpoCGD',
+    locale: baseLocale,
 } satisfies GameInvitationProps
 
 export default GameInvitation

@@ -21,7 +21,8 @@ describe('telegramNotificationMessage', () => {
         expect(
             telegramNotificationMessage(notification, '42', {
                 frontendHost: 'https://example.com',
-                gameTitle: '1846'
+                gameTitle: '1846',
+                locale: 'en'
             })
         ).toEqual({
             chat_id: '42',
@@ -49,7 +50,8 @@ describe('telegramNotificationMessage', () => {
         }
 
         const message = telegramNotificationMessage(notification, '42', {
-            frontendHost: 'https://example.com'
+            frontendHost: 'https://example.com',
+            locale: 'en'
         })
 
         expect(message.text).toBe(
@@ -58,5 +60,25 @@ describe('telegramNotificationMessage', () => {
         expect(message.reply_markup?.inline_keyboard[0][0].url).toBe(
             'https://example.com/dashboard'
         )
+    })
+
+    it("writes the notification in the player's language", () => {
+        const notification: UserNotification = {
+            id: 'n-3',
+            type: NotificationCategory.User,
+            action: UserNotificationAction.IsYourTurn,
+            data: {
+                user: { id: 'u-1' },
+                game: { id: 'game-1', typeId: '1846', name: 'Freitagabend' }
+            }
+        }
+
+        const message = telegramNotificationMessage(notification, '42', {
+            frontendHost: 'https://example.com',
+            locale: 'de'
+        })
+
+        expect(message.text).toBe('<b>Du bist am Zug</b>\nFreitagabend')
+        expect(message.reply_markup?.inline_keyboard[0][0].text).toBe('Zug machen')
     })
 })

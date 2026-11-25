@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import * as Value from 'typebox/value'
-import { canHoldAuthenticatedSession } from '@tabletop/common'
+import { canHoldAuthenticatedSession, type User } from '@tabletop/common'
+import { m, replyLocale, type Locale } from '@tabletop/email/i18n'
 
 import type { UserService } from '../users/userService.js'
 import type { NotificationStore } from '../persistence/stores/notificationStore.js'
@@ -9,7 +10,7 @@ import type { NotificationService } from '../notifications/notificationService.j
 import { announceTopicRegistrationsChanged } from '../notifications/topicRegistrationsChanged.js'
 import { telegramSubscriptionFor } from '../notifications/subscriptions/telegramSubscription.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
-import { userTopic } from '../notifications/topics.js'
+import { topicUserId, userTopic } from '../notifications/topics.js'
 import { siteUrl } from '../site/siteUrl.js'
 import type { TelegramBotApi } from './telegramBotApi.js'
 import { TelegramUpdate } from './telegramUpdate.js'
@@ -105,22 +106,27 @@ export class TelegramService {
         }
 
         const chatId = String(message.chat.id)
+        const languageCode = message.from?.language_code
         const [command, argument] = message.text.trim().split(/\s+/, 2)
         if (command === '/start') {
-            await this.start(chatId, argument)
-        } else if (command === '/stop') {
+            await this.start(chatId, argument, languageCode)
+            return
+        }
+        const locale = replyLocale(await this.chatAccount(chatId), languageCode)
+        if (command === '/stop') {
             await this.unregisterChat(chatId)
-            await this.reply(chatId, this.stoppedMessage())
+            await this.reply(chatId, this.stoppedMessage(locale))
         } else {
-            await this.reply(chatId, this.helpMessage())
+            await this.reply(chatId, this.helpMessage(locale))
         }
     }
 
-    private async start(chatId: string, token: string | undefined) {
+    private async start(chatId: string, token: string | undefined, languageCode?: string) {
         const userId = token ? await this.redeem(token) : undefined
         const user = userId ? await this.dependencies.users.getUser(userId) : undefined
         if (!user || !canHoldAuthenticatedSession(user)) {
-            await this.reply(chatId, this.notLinkedMessage())
+            const locale = replyLocale(await this.chatAccount(chatId), languageCode)
+            await this.reply(chatId, this.notLinkedMessage(locale))
             return
         }
 
@@ -132,7 +138,18 @@ export class TelegramService {
         await announceTopicRegistrationsChanged(this.dependencies.notifications, [
             userTopic(user.id)
         ])
-        await this.reply(chatId, this.connectedMessage(user.username))
+        await this.reply(
+            chatId,
+            this.connectedMessage(user.username, replyLocale(user, languageCode))
+        )
+    }
+
+    private async chatAccount(chatId: string): Promise<User | undefined> {
+        const topics = await this.dependencies.subscriptions.findSubscriptionTopics(
+            telegramSubscriptionFor(chatId)
+        )
+        const userId = topics.map(topicUserId).find((id) => id !== undefined)
+        return userId ? await this.dependencies.users.getUser(userId) : undefined
     }
 
     private async unregisterChat(chatId: string) {
@@ -191,20 +208,21 @@ export class TelegramService {
         return siteUrl(NOTIFICATIONS_PATH, this.frontendHost)
     }
 
-    private connectedMessage(username: string | undefined): string {
-        const account = username ? ` as ${username}` : ''
-        return `You're connected${account} on BoardTogether. I'll message you here when it's your turn or you're invited to a game. Send /stop to turn these messages off.`
+    private connectedMessage(username: string | undefined, locale: Locale): string {
+        return username
+            ? m.telegram_connected_as({ username }, { locale })
+            : m.telegram_connected({}, { locale })
     }
 
-    private notLinkedMessage(): string {
-        return `This chat isn't connected to a BoardTogether account. To connect it, press Connect on ${this.notificationsUrl()}. Each link works once, for an hour.`
+    private notLinkedMessage(locale: Locale): string {
+        return m.telegram_not_linked({ url: this.notificationsUrl() }, { locale })
     }
 
-    private stoppedMessage(): string {
-        return `Done. I won't message you here any more. To turn messages back on, press Connect on ${this.notificationsUrl()}.`
+    private stoppedMessage(locale: Locale): string {
+        return m.telegram_stopped({ url: this.notificationsUrl() }, { locale })
     }
 
-    private helpMessage(): string {
-        return `I only send BoardTogether notifications. Send /stop to turn them off, or manage them on ${this.notificationsUrl()}.`
+    private helpMessage(locale: Locale): string {
+        return m.telegram_help({ url: this.notificationsUrl() }, { locale })
     }
 }

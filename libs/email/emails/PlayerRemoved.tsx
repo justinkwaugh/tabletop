@@ -6,6 +6,7 @@ import {
     DarkCardEmail,
     darkStyles as styles,
 } from '../components/darkCard.js'
+import { baseLocale, m, type Locale } from '../i18n.js'
 
 interface PlayerRemovedProps {
     playerName: string
@@ -13,6 +14,7 @@ interface PlayerRemovedProps {
     gameName: string
     url?: string
     deletedAccount: boolean
+    locale: Locale
 }
 
 export const PlayerRemoved = ({
@@ -21,29 +23,43 @@ export const PlayerRemoved = ({
     gameName,
     url = ``,
     deletedAccount,
+    locale,
 }: PlayerRemovedProps) => {
-    const departure = deletedAccount ? 'left' : 'was removed from'
+    const departure = { player: playerName, title, game: gameName }
     return (
         <DarkCardEmail
-            preview={`${playerName} ${departure} your ${title} game ${gameName}.`}
+            locale={locale}
+            preview={
+                deletedAccount
+                    ? m.email_player_removed_preview_left(departure, { locale })
+                    : m.email_player_removed_preview_removed(departure, { locale })
+            }
             wordmarkHref={url}
             heading={gameName}
-            subline={`${playerName} ${departure} Board Together. Your game of ${title} continues, but it will stop on their turn because nobody can move for them.`}
+            subline={
+                deletedAccount
+                    ? m.email_player_removed_subline_left(departure, { locale })
+                    : m.email_player_removed_subline_removed(departure, { locale })
+            }
             footer={
                 <>
-                    You are playing in this game on Board Together. <ButtonFallback url={url} />
+                    {m.email_player_removed_footer({}, { locale })}{' '}
+                    <ButtonFallback url={url} locale={locale} />
                 </>
             }
         >
             <Section style={styles.panel}>
-                <Text style={styles.panelValue}>You can end the game early</Text>
+                <Text style={styles.panelValue}>
+                    {m.email_player_removed_end_early({}, { locale })}
+                </Text>
                 <Text style={styles.panelDetail}>
-                    Open the game and choose Call the game from the account menu. A majority of the
-                    players must agree. Otherwise it ends with no winner after{' '}
-                    {STALLED_GAME_END_DAYS} days without a move.
+                    {m.email_player_removed_end_early_detail(
+                        { days: STALLED_GAME_END_DAYS },
+                        { locale },
+                    )}
                 </Text>
             </Section>
-            <CardButton href={url}>Open the game</CardButton>
+            <CardButton href={url}>{m.email_open_game({}, { locale })}</CardButton>
         </DarkCardEmail>
     )
 }
@@ -54,6 +70,7 @@ PlayerRemoved.PreviewProps = {
     gameName: 'Thursday night fish',
     url: 'https://boardtogether.games/game/abc',
     deletedAccount: false,
+    locale: baseLocale,
 } satisfies PlayerRemovedProps
 
 export default PlayerRemoved

@@ -1551,5 +1551,22 @@
     "pace_relaxed_name": "Lugnt",
     "pace_relaxed_line": "Lugnt · inom 3 dagar",
     "pace_relaxed_summary": "Lugnt · 3 dagar",
-    "pace_relaxed_past_limit": "Långsammare än tempot på 3 dagar"
+    "pace_relaxed_past_limit": "Långsammare än tempot på 3 dagar",
+    "push_player_joined_title": "En spelare har gått med!",
+    "push_player_joined_body": "{player} har gått med i ditt parti {game}",
+    "push_player_declined_title": "En spelare har tackat nej",
+    "push_player_declined_body": "{player} har tackat nej till ditt parti {game}",
+    "push_game_started_title": "Partiet har börjat!",
+    "push_game_started_body": "Ditt parti {game} har börjat!",
+    "push_invited_title": "Du är inbjuden till ett parti!",
+    "push_invited_body": "{owner} har bjudit in dig till sitt parti {game}",
+    "push_your_turn_title": "Det är din tur!",
+    "push_your_turn_body": "Det är din tur i partiet {game}",
+    "push_call_vote_title": "{initiator} vill avsluta partiet",
+    "push_undo_vote_title": "{initiator} vill ångra drag",
+    "push_vote_body": "Rösta i partiet {game}",
+    "push_took_over_seat_title": "Du är med i ett pågående parti",
+    "push_took_over_seat_body": "Du har tagit över platsen efter {formerHolder} i {game}",
+    "push_lost_seat_title": "En annan spelare har fått din plats",
+    "push_lost_seat_body": "{newHolder} har tagit över din plats i {game}"
 }

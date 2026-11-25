@@ -39,6 +39,7 @@ export const ContentReport = ({
     reportedAt,
 }: ContentReportProps) => (
     <DarkCardEmail
+        locale="en"
         preview={`${targetLabel} reported: ${reasonLabel}`}
         eyebrow="Content report"
         heading={`${targetLabel}: ${reasonLabel}`}

@@ -2,6 +2,7 @@ import type { ContentReportEmail } from '../moderation/contentReports.js'
 import type { GameEmailTask } from '../games/gameEmails.js'
 import {
     type AccountChangeNotice,
+    type GameInvitationEmailTask,
     CreatePushTaskOptions,
     TaskService,
     type VerificationEmailTask,
@@ -48,12 +49,21 @@ export abstract class BaseTaskService implements TaskService {
         email,
         changeType,
         timestamp,
-        username
+        username,
+        locale,
+        timeZone
     }: AccountChangeNotice) {
         await this.createPushTask({
             queue: 'account-notification-email',
             path: '/email/sendAccountChangedNotificationEmail',
-            payload: { email, changeType, timestamp, ...(username ? { username } : {}) }
+            payload: {
+                email,
+                changeType,
+                timestamp,
+                locale,
+                ...(username ? { username } : {}),
+                ...(timeZone ? { timeZone } : {})
+            }
         })
     }
 
@@ -65,21 +75,11 @@ export abstract class BaseTaskService implements TaskService {
         })
     }
 
-    async sendGameInvitationEmail({
-        userId,
-        gameId,
-        token,
-        toEmail
-    }: {
-        userId: string
-        gameId: string
-        token: string
-        toEmail: string
-    }) {
+    async sendGameInvitationEmail(task: GameInvitationEmailTask) {
         await this.createPushTask({
             queue: 'invitation-email',
             path: '/email/sendGameInvitationEmail',
-            payload: { userId, gameId, token, toEmail }
+            payload: task
         })
     }
 

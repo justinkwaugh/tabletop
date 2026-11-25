@@ -17,6 +17,7 @@ import { userTopic } from '../notifications/topics.js'
 import { discordWebhookConnectedMessage } from '../notifications/transports/discordWebhookNotificationMessage.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 import type { UserService } from '../users/userService.js'
+import { messageLocale } from '@tabletop/email/i18n'
 import {
     type DiscordWebhookApi,
     type DiscordWebhookCredentials,
@@ -113,7 +114,8 @@ export class DiscordWebhookService {
                         mentionUserId: this.dependencies.users.extractExternalId(
                             user,
                             ExternalAuthService.Discord
-                        )
+                        ),
+                        locale: messageLocale(user)
                     },
                     user.username
                 )

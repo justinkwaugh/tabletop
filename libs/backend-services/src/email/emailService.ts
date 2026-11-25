@@ -4,6 +4,7 @@ import type {
     LeagueSeasonStartProps,
     LeagueSignUpProps
 } from '@tabletop/email'
+import { messageLocale, type Locale } from '@tabletop/email/i18n'
 import {
     type AccountChangeType,
     Game,
@@ -15,25 +16,49 @@ import {
 export { AccountChangeType } from '@tabletop/common'
 import type { ContentReportEmail } from '../moderation/contentReports.js'
 
-export type GameStartedEmail = GameStartedProps & {
-    url: string
-    notificationsUrl: string
-    toEmail: string
+export type RecipientLanguage = {
+    locale: Locale
+    timeZone?: string
 }
 
-export type LeagueSignUpEmail = LeagueSignUpProps & { url: string; toEmail: string }
+export type EmailRecipient = RecipientLanguage & { email: string }
 
-export type LeagueSeasonStartEmail = LeagueSeasonStartProps & { url: string; toEmail: string }
+export function recipientLanguage(
+    user: Pick<User, 'preferences' | 'seenLocale' | 'timeZone'> | undefined
+): RecipientLanguage {
+    return {
+        locale: messageLocale(user),
+        ...(user?.timeZone ? { timeZone: user.timeZone } : {})
+    }
+}
 
-export type LeagueSeasonResultsEmail = LeagueSeasonResultsProps & { url: string; toEmail: string }
+export function emailRecipient(
+    email: string,
+    user: Pick<User, 'preferences' | 'seenLocale' | 'timeZone'> | undefined
+): EmailRecipient {
+    return { email, ...recipientLanguage(user) }
+}
+
+type RecipientProps<Props> = Omit<Props, 'locale' | 'timeZone'> & { to: EmailRecipient }
+
+export type GameStartedEmail = RecipientProps<GameStartedProps> & {
+    url: string
+    notificationsUrl: string
+}
+
+export type LeagueSignUpEmail = RecipientProps<LeagueSignUpProps> & { url: string }
+
+export type LeagueSeasonStartEmail = RecipientProps<LeagueSeasonStartProps> & { url: string }
+
+export type LeagueSeasonResultsEmail = RecipientProps<LeagueSeasonResultsProps> & { url: string }
 
 export interface EmailService {
-    sendVerificationEmail(token: string, toEmail: string): Promise<void>
-    sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void>
+    sendVerificationEmail(token: string, to: EmailRecipient): Promise<void>
+    sendPasswordResetEmail(token: string, url: string, to: EmailRecipient): Promise<void>
     sendAccountChangedNotificationEmail(
         changeType: AccountChangeType,
         timestamp: Date,
-        toEmail: string,
+        to: EmailRecipient,
         username?: string
     ): Promise<void>
     sendGameInvitationEmail({
@@ -41,13 +66,13 @@ export interface EmailService {
         game,
         definition,
         url,
-        toEmail
+        to
     }: {
         owner: User
         game: Game
         definition: GameDefinition
         url: string
-        toEmail: string
+        to: EmailRecipient
     }): Promise<void>
     sendContentReportEmail(report: ContentReportEmail): Promise<void>
     sendPlayerRemovedEmail(email: {
@@ -55,7 +80,7 @@ export interface EmailService {
         game: Game
         definition: GameDefinition
         url: string
-        toEmail: string
+        to: EmailRecipient
         deletedAccount: boolean
     }): Promise<void>
     sendGameEndEmail({
@@ -63,13 +88,13 @@ export interface EmailService {
         game,
         definition,
         url,
-        toEmail
+        to
     }: {
         winners: User[]
         game: Game
         definition: GameDefinition
         url: string
-        toEmail: string
+        to: EmailRecipient
     }): Promise<void>
     sendGameStartedEmail(email: GameStartedEmail): Promise<void>
     sendTournamentResultsEmail({
@@ -77,13 +102,13 @@ export interface EmailService {
         definition,
         recipientId,
         url,
-        toEmail
+        to
     }: {
         detail: TournamentDetail
         definition: GameDefinition
         recipientId: string
         url: string
-        toEmail: string
+        to: EmailRecipient
     }): Promise<void>
     sendLeagueSignUpEmail(email: LeagueSignUpEmail): Promise<void>
     sendLeagueSeasonStartEmail(email: LeagueSeasonStartEmail): Promise<void>

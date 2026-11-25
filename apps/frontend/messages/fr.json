@@ -1755,5 +1755,22 @@
     "pace_relaxed_name": "Détendu",
     "pace_relaxed_line": "Détendu · sous 3 jours",
     "pace_relaxed_summary": "Détendu · 3 jours",
-    "pace_relaxed_past_limit": "Rythme de 3 jours dépassé"
+    "pace_relaxed_past_limit": "Rythme de 3 jours dépassé",
+    "push_player_joined_title": "Nouveau joueur !",
+    "push_player_joined_body": "{player} a rejoint votre partie {game}",
+    "push_player_declined_title": "Invitation refusée",
+    "push_player_declined_body": "{player} a refusé de rejoindre votre partie {game}",
+    "push_game_started_title": "La partie a commencé !",
+    "push_game_started_body": "Votre partie {game} a commencé !",
+    "push_invited_title": "Invitation à une partie !",
+    "push_invited_body": "{owner} vous invite à rejoindre sa partie {game}",
+    "push_your_turn_title": "C’est votre tour !",
+    "push_your_turn_body": "C’est votre tour dans la partie {game}",
+    "push_call_vote_title": "{initiator} demande à arrêter la partie",
+    "push_undo_vote_title": "{initiator} demande à revenir en arrière",
+    "push_vote_body": "Votez dans la partie {game}",
+    "push_took_over_seat_title": "Vous rejoignez une partie en cours",
+    "push_took_over_seat_body": "Vous remplacez {formerHolder} dans la partie {game}",
+    "push_lost_seat_title": "Votre place a été attribuée à un autre joueur",
+    "push_lost_seat_body": "{newHolder} a repris votre place dans la partie {game}"
 }

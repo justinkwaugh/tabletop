@@ -214,6 +214,22 @@ export class AuthorizationService {
     private adoptSessionUser(user: User) {
         this.setSessionUser(user)
         void this.fillMissingTimeZone(user)
+        void this.reportSeenLocale(user)
+    }
+
+    private async reportSeenLocale(user: User) {
+        const locale = localeForUser(user)
+        if (user.seenLocale === locale) {
+            return
+        }
+        try {
+            const updatedUser = await this.api.updateUserSeenLocale(locale)
+            if (this.sessionUser?.id === updatedUser.id) {
+                this.setSessionUser(updatedUser)
+            }
+        } catch (error) {
+            console.error('Could not save the language the site showed', error)
+        }
     }
 
     private async fillMissingTimeZone(user: User) {

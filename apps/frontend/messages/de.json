@@ -1592,5 +1592,22 @@
     "pace_relaxed_name": "Entspannt",
     "pace_relaxed_line": "Entspannt · innerhalb von 3 Tagen",
     "pace_relaxed_summary": "Entspannt · 3 Tage",
-    "pace_relaxed_past_limit": "Langsamer als das Tempo von 3 Tagen"
+    "pace_relaxed_past_limit": "Langsamer als das Tempo von 3 Tagen",
+    "push_player_joined_title": "Spieler beigetreten!",
+    "push_player_joined_body": "{player} ist deiner Partie „{game}“ beigetreten",
+    "push_player_declined_title": "Einladung abgelehnt",
+    "push_player_declined_body": "{player} hat die Einladung zu deiner Partie „{game}“ abgelehnt",
+    "push_game_started_title": "Partie gestartet!",
+    "push_game_started_body": "Deine Partie „{game}“ hat begonnen!",
+    "push_invited_title": "Einladung zu einer Partie!",
+    "push_invited_body": "{owner} hat dich zur Partie „{game}“ eingeladen",
+    "push_your_turn_title": "Du bist am Zug!",
+    "push_your_turn_body": "Du bist in der Partie „{game}“ am Zug",
+    "push_call_vote_title": "{initiator} möchte die Partie beenden",
+    "push_undo_vote_title": "{initiator} möchte zu einem früheren Stand zurück",
+    "push_vote_body": "Stimme in der Partie „{game}“ ab",
+    "push_took_over_seat_title": "Du bist einer laufenden Partie beigetreten",
+    "push_took_over_seat_body": "Du hast in der Partie „{game}“ den Platz von {formerHolder} übernommen",
+    "push_lost_seat_title": "Dein Platz ging an einen anderen Spieler",
+    "push_lost_seat_body": "{newHolder} hat in der Partie „{game}“ deinen Platz übernommen"
 }

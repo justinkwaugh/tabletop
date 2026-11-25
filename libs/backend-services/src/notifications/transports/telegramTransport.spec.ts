@@ -33,17 +33,19 @@ function transportAnswering(result: TelegramResult) {
 async function send(result: TelegramResult) {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const { transport } = transportAnswering(result)
-    return transport.sendNotification(telegramSubscriptionFor('42'), turn)
+    return transport.sendNotification(telegramSubscriptionFor('42'), turn, 'en')
 }
 
 describe('TelegramTransport', () => {
     it('sends the message to the subscribed chat', async () => {
         const { transport, sendMessage } = transportAnswering({ ok: true, result: {} })
 
-        expect(await transport.sendNotification(telegramSubscriptionFor('42'), turn)).toEqual({
-            success: true,
-            unregister: false
-        })
+        expect(await transport.sendNotification(telegramSubscriptionFor('42'), turn, 'en')).toEqual(
+            {
+                success: true,
+                unregister: false
+            }
+        )
         expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ chat_id: '42' }))
     })
 

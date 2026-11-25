@@ -1,10 +1,12 @@
 import { Section, Text } from '@react-email/components'
 import type { CSSProperties } from 'react'
 import { DarkCardEmail, darkPalette, darkStyles } from '../components/darkCard.js'
+import { baseLocale, m, type Locale } from '../i18n.js'
 
 interface EmailVerificationProps {
-    token?: string
-    expiresInMinutes?: number
+    token: string
+    expiresInMinutes: number
+    locale: Locale
 }
 
 const styles = {
@@ -19,21 +21,18 @@ const styles = {
     },
 } satisfies Record<string, CSSProperties>
 
-export const EmailVerification = ({
-    token = '',
-    expiresInMinutes = 15,
-}: EmailVerificationProps) => (
+export const EmailVerification = ({ token, expiresInMinutes, locale }: EmailVerificationProps) => (
     <DarkCardEmail
-        preview={`Your email verification code is ${token}`}
-        heading="Confirm your email address"
-        subline="Enter this code where you requested it to verify this email address."
-        footer="If you did not request this, you can safely ignore this email."
+        locale={locale}
+        preview={m.email_verification_preview({ code: token }, { locale })}
+        heading={m.email_verification_heading({}, { locale })}
+        subline={m.email_verification_subline({}, { locale })}
+        footer={m.email_verification_footer({}, { locale })}
     >
         <Section style={{ ...styles.panel, textAlign: 'center' }}>
             <Text style={styles.code}>{token}</Text>
             <Text style={styles.panelDetail}>
-                This code stops working {expiresInMinutes} minutes after it was requested, and only
-                the most recent code works.
+                {m.email_verification_expiry({ minutes: expiresInMinutes }, { locale })}
             </Text>
         </Section>
     </DarkCardEmail>
@@ -42,6 +41,7 @@ export const EmailVerification = ({
 EmailVerification.PreviewProps = {
     token: 'DJZTLX',
     expiresInMinutes: 15,
+    locale: baseLocale,
 } satisfies EmailVerificationProps
 
 export default EmailVerification

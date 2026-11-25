@@ -1,0 +1,284 @@
+{
+    "$schema": "https://inlang.com/schema/inlang-message-format",
+    "email_button_fallback": "Αν το κουμπί δεν λειτουργεί, άνοιξε τον σύνδεσμο {#link}{url}{/link}.",
+    "email_open_game": "Άνοιξε το παιχνίδι",
+    "email_unnamed_player": "Ένας παίκτης",
+    "email_ordinal": [
+        {
+            "declarations": ["input place"],
+            "selectors": ["place"],
+            "match": {
+                "place=2": "στη {place}η θέση",
+                "place=10": "στη {place}η θέση",
+                "place=12": "στη {place}η θέση",
+                "place=13": "στη {place}η θέση",
+                "place=14": "στη {place}η θέση",
+                "place=15": "στη {place}η θέση",
+                "place=16": "στη {place}η θέση",
+                "place=17": "στη {place}η θέση",
+                "place=18": "στη {place}η θέση",
+                "place=19": "στη {place}η θέση",
+                "place=*": "στην {place}η θέση"
+            }
+        }
+    ],
+    "email_standings_champion": "ΠΡΩΤΑΘΛΗΤΗΣ",
+    "email_standings_champions": "ΠΡΩΤΑΘΛΗΤΕΣ",
+    "email_standings_nobody": "Κανείς",
+    "email_standings_column_player": "ΠΑΙΚΤΗΣ",
+    "email_standings_column_wins": "ΝΙΚΕΣ",
+    "email_standings_column_average_place": "ΜΕΣΗ ΘΕΣΗ",
+    "email_standings_column_score": "ΣΚΟΡ",
+    "email_standings_column_tiebreak": "ΙΣΟΒΑΘΜΙΑ",
+    "email_standings_placement_scoring": "Η κατάταξη γίνεται με βάση τη μέση θέση (όσο χαμηλότερη, τόσο καλύτερα), έπειτα με το ποιος τερμάτισε πιο συχνά μπροστά στα τραπέζια όπου έπαιξαν μαζί οι ισόβαθμοι παίκτες και, τέλος, με το κριτήριο ισοβαθμίας.",
+    "email_standings_tiebreak_points_behind": "Το κριτήριο ισοβαθμίας είναι η μέση διαφορά βαθμών από το κορυφαίο σκορ στα τραπέζια κάθε παίκτη, ως αρνητικός αριθμός, συν το ένα εκατοστό του μέσου τελικού σκορ του. Όσο υψηλότερο, τόσο καλύτερα.",
+    "email_standings_tiebreak_share_of_winner": "Το κριτήριο ισοβαθμίας είναι το μέσο τελικό σκορ κάθε παίκτη ως ποσοστό του κορυφαίου τελικού σκορ στα τραπέζια του. Όσο υψηλότερο, τόσο καλύτερα.",
+    "email_standings_tiebreak_score_sum": "Το κριτήριο ισοβαθμίας είναι το άθροισμα των τελικών σκορ κάθε παίκτη στα παιχνίδια του.",
+    "email_verification_subject": "Επαλήθευσε τη διεύθυνση email σου",
+    "email_verification_preview": "Ο κωδικός επαλήθευσης του email σου είναι {code}",
+    "email_verification_heading": "Επιβεβαίωσε τη διεύθυνση email σου",
+    "email_verification_subline": "Πληκτρολόγησε αυτόν τον κωδικό εκεί όπου τον ζήτησες, για να επαληθεύσεις αυτή τη διεύθυνση email.",
+    "email_verification_footer": "Αν δεν το ζήτησες εσύ, μπορείς άφοβα να αγνοήσεις αυτό το email.",
+    "email_verification_expiry": [
+        {
+            "declarations": ["input minutes", "local minutesPlural = minutes: plural"],
+            "selectors": ["minutesPlural"],
+            "match": {
+                "minutesPlural=one": "Αυτός ο κωδικός παύει να ισχύει {minutes} λεπτό αφότου ζητήθηκε και λειτουργεί μόνο ο πιο πρόσφατος κωδικός.",
+                "minutesPlural=other": "Αυτός ο κωδικός παύει να ισχύει {minutes} λεπτά αφότου ζητήθηκε και λειτουργεί μόνο ο πιο πρόσφατος κωδικός."
+            }
+        }
+    ],
+    "email_password_reset_subject": "Επαναφορά κωδικού πρόσβασης",
+    "email_password_reset_heading": "Επαναφορά κωδικού πρόσβασης",
+    "email_password_reset_subline": [
+        {
+            "declarations": ["input minutes", "local minutesPlural = minutes: plural"],
+            "selectors": ["minutesPlural"],
+            "match": {
+                "minutesPlural=one": "Πάτησε το παρακάτω κουμπί για να ορίσεις νέο κωδικό πρόσβασης. Ο σύνδεσμος παύει να ισχύει {minutes} λεπτό αφότου ζητήθηκε και λειτουργεί μόνο ο πιο πρόσφατος σύνδεσμος.",
+                "minutesPlural=other": "Πάτησε το παρακάτω κουμπί για να ορίσεις νέο κωδικό πρόσβασης. Ο σύνδεσμος παύει να ισχύει {minutes} λεπτά αφότου ζητήθηκε και λειτουργεί μόνο ο πιο πρόσφατος σύνδεσμος."
+            }
+        }
+    ],
+    "email_password_reset_footer": "Αν δεν ζήτησες εσύ επαναφορά κωδικού πρόσβασης, μπορείς άφοβα να αγνοήσεις αυτό το email.",
+    "email_password_reset_button": "Επαναφορά κωδικού",
+    "email_account_change_subject": "Αλλαγή στον λογαριασμό σου",
+    "email_account_deleted_preview": "Ο λογαριασμός σου στο Board Together διαγράφηκε",
+    "email_account_deleted_heading": "Ο λογαριασμός σου διαγράφηκε",
+    "email_account_deleted_subline": "Ο λογαριασμός σου και τα στοιχεία που συνδέονταν με αυτόν διαγράφηκαν. Στα ολοκληρωμένα παιχνίδια εμφανίζεσαι με το όνομα «Deleted player» (διαγραμμένος παίκτης). Αυτό είναι το τελευταίο email που θα στείλουμε σε αυτή τη διεύθυνση.",
+    "email_account_deleted_footer": "Αν δεν το ζήτησες εσύ, επικοινώνησε μαζί μας.",
+    "email_account_deleted_detail": "Ο λογαριασμός διαγράφηκε",
+    "email_username_changed_preview": "Το όνομα χρήστη σου είναι πλέον {username}",
+    "email_username_changed_heading": "Το όνομα χρήστη σου άλλαξε",
+    "email_username_changed_subline": "Ένας διαχειριστής άλλαξε το όνομα χρήστη σου. Χρησιμοποίησε το νέο για να συνδεθείς.",
+    "email_username_changed_footer": "Αν έχεις απορίες για αυτή την αλλαγή, επικοινώνησε μαζί μας.",
+    "email_account_email_change_requested_preview": "Ζητήθηκε αλλαγή της διεύθυνσης email σου ({time})· η τρέχουσα διεύθυνσή σου παραμένει ενεργή μέχρι να επαληθευτεί η νέα",
+    "email_account_email_change_requested_subline": "Ζητήθηκε αλλαγή της διεύθυνσης email σου· η τρέχουσα διεύθυνσή σου παραμένει ενεργή μέχρι να επαληθευτεί η νέα.",
+    "email_account_email_change_requested_detail": "Ζητήθηκε αλλαγή διεύθυνσης email",
+    "email_account_password_reset_requested_preview": "Ζητήθηκε επαναφορά του κωδικού πρόσβασης του λογαριασμού σου ({time})",
+    "email_account_password_reset_requested_subline": "Ζητήθηκε επαναφορά του κωδικού πρόσβασης του λογαριασμού σου.",
+    "email_account_password_reset_requested_detail": "Ζητήθηκε επαναφορά κωδικού πρόσβασης",
+    "email_account_email_changed_preview": "Η διεύθυνση email σου άλλαξε ({time})",
+    "email_account_email_changed_subline": "Η διεύθυνση email σου άλλαξε.",
+    "email_account_email_changed_detail": "Η διεύθυνση email άλλαξε",
+    "email_account_password_changed_preview": "Ο κωδικός πρόσβασής σου άλλαξε ({time})",
+    "email_account_password_changed_subline": "Ο κωδικός πρόσβασής σου άλλαξε.",
+    "email_account_password_changed_detail": "Ο κωδικός πρόσβασης άλλαξε",
+    "email_account_change_heading": "Εντοπίστηκε αλλαγή στον λογαριασμό σου",
+    "email_account_change_footer": "Αν την παραπάνω αλλαγή την έκανες εσύ, μπορείς άφοβα να αγνοήσεις αυτό το email.",
+    "email_account_change_warning": "Αν δεν έκανες εσύ αυτή την αλλαγή, επικοινώνησε αμέσως μαζί μας.",
+    "email_game_invitation_subject": "{owner} σε προσκαλεί σε παιχνίδι {title}",
+    "email_game_invitation_preview": "{owner} σε προσκαλεί σε παιχνίδι {title}",
+    "email_game_invitation_unnamed_owner": "Κάποιος",
+    "email_game_invitation_heading": "{owner} σε προσκάλεσε σε παιχνίδι",
+    "email_game_invitation_subline": "Αποδέξου την πρόσκληση για να καθίσεις στο τραπέζι. Η θέση σου σε περιμένει.",
+    "email_game_invitation_footer": "Αν δεν περίμενες αυτή την πρόσκληση, μπορείς άφοβα να αγνοήσεις αυτό το email.",
+    "email_game_invitation_button": "Συμμετοχή στο παιχνίδι",
+    "email_game_end_subject": "Έληξε το παιχνίδι σου «{game}» ({title})",
+    "email_game_end_preview_draw": "Το παιχνίδι σου «{game}» ({title}) έληξε ισόπαλο.",
+    "email_game_end_preview_stalled": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Το παιχνίδι σου «{game}» ({title}) έληξε μετά από {days} ημέρα χωρίς κίνηση.",
+                "daysPlural=other": "Το παιχνίδι σου «{game}» ({title}) έληξε μετά από {days} ημέρες χωρίς κίνηση."
+            }
+        }
+    ],
+    "email_game_end_preview_abandoned": "Το παιχνίδι σου «{game}» ({title}) εγκαταλείφθηκε.",
+    "email_game_end_preview": "Το παιχνίδι σου «{game}» ({title}) έληξε.",
+    "email_game_end_result_draw": "Ισοπαλία: {names}",
+    "email_game_end_result_stalled": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Κανείς δεν έκανε κίνηση επί {days} ημέρα, οπότε το παιχνίδι έληξε χωρίς νικητή",
+                "daysPlural=other": "Κανείς δεν έκανε κίνηση επί {days} ημέρες, οπότε το παιχνίδι έληξε χωρίς νικητή"
+            }
+        }
+    ],
+    "email_game_end_result_abandoned": "Το παιχνίδι εγκαταλείφθηκε",
+    "email_game_end_result_won": "Νίκη: {names}!",
+    "email_game_end_no_winner_names": "κάποιος παίκτης",
+    "email_game_end_subline": "Το παιχνίδι σου {title} έληξε.",
+    "email_game_end_footer": "Έπαιξες σε αυτό το παιχνίδι στο Board Together.",
+    "email_game_end_button": "Δες ξανά το παιχνίδι",
+    "email_game_started_subject": "Ξεκίνησε το παιχνίδι «{game}» ({title})",
+    "email_game_started_your_turn": "Είναι η σειρά σου",
+    "email_game_started_waiting": "Αναμονή για {names}",
+    "email_game_started_no_active_names": "τους άλλους παίκτες",
+    "email_game_started_preview_your_turn": "Το παιχνίδι «{game}» ξεκίνησε. Είναι η σειρά σου.",
+    "email_game_started_preview_waiting": "Το παιχνίδι «{game}» ξεκίνησε. Αναμονή για {names}.",
+    "email_game_started_preview_notifications_off": "Το παιχνίδι «{game}» ξεκίνησε. Ενεργοποίησε τις ειδοποιήσεις για τη σειρά σου, για να ξέρεις πότε παίζεις.",
+    "email_game_started_eyebrow": "ΤΟ ΠΑΙΧΝΙΔΙ ΞΕΚΙΝΗΣΕ",
+    "email_game_started_subline": "Το παιχνίδι σου {#title}{title}{/title} ξεκίνησε.",
+    "email_game_started_footer": "Παίζεις σε αυτό το παιχνίδι στο Board Together. Μπορείς να απενεργοποιήσεις τα email για παιχνίδια από τη σελίδα ειδοποιήσεών σου.",
+    "email_game_started_warning_heading": "Δεν θα μαθαίνεις πότε είναι η σειρά σου",
+    "email_game_started_warning_body": "Το Board Together δεν σου στέλνει ποτέ email για τη σειρά σου. Σε ειδοποιεί μέσω του προγράμματος περιήγησής σου ή του Discord, και δεν έχεις ενεργοποιήσει κανένα από τα δύο.",
+    "email_game_started_warning_button": "Ενεργοποίησε τις ειδοποιήσεις",
+    "email_game_started_no_players": "Κανένας παίκτης",
+    "email_game_started_turns_set_up": "Θα σε ειδοποιούμε για τη σειρά σου μέσω του προγράμματος περιήγησής σου ή του Discord.",
+    "email_player_removed_subject_left": "Ένας παίκτης αποχώρησε από το παιχνίδι «{game}»",
+    "email_player_removed_subject_removed": "Ένας παίκτης αφαιρέθηκε από το παιχνίδι «{game}»",
+    "email_player_removed_preview_left": "{player} αποχώρησε από το παιχνίδι σου «{game}» ({title}).",
+    "email_player_removed_preview_removed": "{player} αφαιρέθηκε από το παιχνίδι σου «{game}» ({title}).",
+    "email_player_removed_subline_left": "{player} αποχώρησε από το Board Together. Το παιχνίδι σου {title} συνεχίζεται, αλλά θα σταματήσει όταν έρθει η σειρά αυτού του παίκτη, γιατί κανείς δεν μπορεί να παίξει στη θέση του.",
+    "email_player_removed_subline_removed": "{player} αφαιρέθηκε από το Board Together. Το παιχνίδι σου {title} συνεχίζεται, αλλά θα σταματήσει όταν έρθει η σειρά αυτού του παίκτη, γιατί κανείς δεν μπορεί να παίξει στη θέση του.",
+    "email_player_removed_footer": "Παίζεις σε αυτό το παιχνίδι στο Board Together.",
+    "email_player_removed_end_early": "Μπορείς να λήξεις το παιχνίδι νωρίτερα",
+    "email_player_removed_end_early_detail": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Άνοιξε το παιχνίδι και διάλεξε «Λήξη με συμφωνία» από το μενού λογαριασμού. Πρέπει να συμφωνήσει η πλειοψηφία των παικτών. Διαφορετικά, το παιχνίδι λήγει χωρίς νικητή μετά από {days} ημέρα χωρίς κίνηση.",
+                "daysPlural=other": "Άνοιξε το παιχνίδι και διάλεξε «Λήξη με συμφωνία» από το μενού λογαριασμού. Πρέπει να συμφωνήσει η πλειοψηφία των παικτών. Διαφορετικά, το παιχνίδι λήγει χωρίς νικητή μετά από {days} ημέρες χωρίς κίνηση."
+            }
+        }
+    ],
+    "email_player_removed_unnamed_player": "Ένας παίκτης",
+    "email_tournament_results_subject": "Τελικά αποτελέσματα: {tournament}",
+    "email_tournament_results_preview_takes": "Το τουρνουά «{tournament}» ολοκληρώθηκε. Πρώτη θέση: {names}.",
+    "email_tournament_results_preview_share": "Το τουρνουά «{tournament}» ολοκληρώθηκε. Μοιράζονται την πρώτη θέση: {names}.",
+    "email_tournament_results_eyebrow": "ΤΟ ΤΟΥΡΝΟΥΑ ΟΛΟΚΛΗΡΩΘΗΚΕ",
+    "email_tournament_results_subline": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{title} · {count: number} παίκτης",
+                "countPlural=other": "{title} · {count: number} παίκτες"
+            }
+        }
+    ],
+    "email_tournament_results_footer": "Έπαιξες σε αυτό το τουρνουά στο Board Together.",
+    "email_tournament_results_shared_champion": "Μοιράζεσαι την κορυφή της βαθμολογίας. Συγχαρητήρια!",
+    "email_tournament_results_champion": "Είσαι εσύ. Συγχαρητήρια!",
+    "email_tournament_results_finished_average_place": "Τερμάτισες {place} με μέση θέση {averagePlace}.",
+    "email_tournament_results_finished_wins": [
+        {
+            "declarations": ["input wins", "local winsPlural = wins: plural"],
+            "selectors": ["winsPlural"],
+            "match": {
+                "winsPlural=one": "Τερμάτισες {place} με {wins: number} νίκη.",
+                "winsPlural=other": "Τερμάτισες {place} με {wins: number} νίκες."
+            }
+        }
+    ],
+    "email_tournament_results_standings": "ΤΕΛΙΚΗ ΒΑΘΜΟΛΟΓΙΑ",
+    "email_tournament_results_button": "Δες το τουρνουά",
+    "email_league_sign_up_subject_reminder": "Κλείνουν σύντομα οι δηλώσεις συμμετοχής: {league}",
+    "email_league_sign_up_subject_open": "Άνοιξαν οι δηλώσεις συμμετοχής: {league}, Σεζόν {season}",
+    "email_league_sign_up_preview_reminder": "Οι δηλώσεις συμμετοχής για τη Σεζόν {season} της λίγκας «{league}» κλείνουν σύντομα. Επιβεβαίωσε τη θέση σου στην Κατηγορία {level}.",
+    "email_league_sign_up_preview_open": "Άνοιξαν οι δηλώσεις συμμετοχής για τη Σεζόν {season} της λίγκας «{league}». Η θέση σου στην Κατηγορία {level} κρατιέται.",
+    "email_league_sign_up_eyebrow_reminder": "ΟΙ ΔΗΛΩΣΕΙΣ ΣΥΜΜΕΤΟΧΗΣ ΚΛΕΙΝΟΥΝ ΣΥΝΤΟΜΑ",
+    "email_league_sign_up_eyebrow_open": "ΔΗΛΩΣΕΙΣ ΣΥΜΜΕΤΟΧΗΣ ΑΝΟΙΧΤΕΣ",
+    "email_league_sign_up_subline": "{title} · Σεζόν {season}",
+    "email_league_sign_up_footer": "Έχεις κρατημένη θέση σε αυτή τη λίγκα στο Board Together.",
+    "email_league_sign_up_place_unconfirmed": "Η θέση σου στην Κατηγορία {level} δεν έχει επιβεβαιωθεί ακόμη",
+    "email_league_sign_up_place_held": "Η θέση σου στην Κατηγορία {level} κρατιέται για σένα",
+    "email_league_sign_up_detail": "Επιβεβαίωσέ την έως {closes}, οπότε κλείνουν οι δηλώσεις συμμετοχής. Μια θέση που δεν επιβεβαιώνεται πηγαίνει στον καλύτερο παίκτη της αμέσως κατώτερης κατηγορίας.",
+    "email_league_sign_up_button": "Επιβεβαίωσε τη θέση σου",
+    "email_league_season_start_subject": "Ξεκίνησε η Σεζόν {season}: {league}",
+    "email_league_season_start_preview": "Η Σεζόν {season} της λίγκας «{league}» ξεκίνησε. Είσαι στον Όμιλο {group}.",
+    "email_league_season_start_eyebrow": "Η ΣΕΖΟΝ {season} ΞΕΚΙΝΗΣΕ",
+    "email_league_season_start_subline_level": "{title} · Κατηγορία {level}",
+    "email_league_season_start_subline_seeding": "{title} · Σεζόν αρχικής κατάταξης",
+    "email_league_season_start_footer": "Δήλωσες συμμετοχή σε αυτή τη σεζόν της λίγκας στο Board Together.",
+    "email_league_season_start_group": "Είσαι στον Όμιλο {group}",
+    "email_league_season_start_moved_up": "Ανέβηκες στην Κατηγορία {level} για να καλύψεις μια θέση που έμεινε κενή, επειδή κάποιοι παίκτες δεν επέστρεψαν αυτή τη σεζόν.",
+    "email_league_season_start_merged": "Η λίγκα έχει λιγότερους παίκτες αυτή τη σεζόν, γι’ αυτό η τελευταία της κατηγορία ενώθηκε με την Κατηγορία {level}.",
+    "email_league_season_start_moved_down": "Η λίγκα απέκτησε μια νέα κατηγορία αυτή τη σεζόν, γι’ αυτό οι τελευταίοι της αμέσως ανώτερης κατηγορίας, μαζί κι εσύ, ξεκινούν από την Κατηγορία {level}.",
+    "email_league_season_start_games": [
+        {
+            "declarations": ["input games", "local gamesPlural = games: plural"],
+            "selectors": ["gamesPlural"],
+            "match": {
+                "gamesPlural=one": "Παίζεις {games: number} παιχνίδι. Αντίπαλοι: {names}.",
+                "gamesPlural=other": "Παίζεις {games: number} παιχνίδια. Αντίπαλοι: {names}."
+            }
+        }
+    ],
+    "email_league_season_start_no_opponent_names": "ο όμιλός σου",
+    "email_league_season_start_seeding_note": "Τα αποτελέσματά σου ορίζουν την κατηγορία σου για την επόμενη σεζόν.",
+    "email_league_season_start_button": "Δες τα παιχνίδια σου",
+    "email_league_unavailable_account": "Μη διαθέσιμος λογαριασμός",
+    "email_league_season_results_subject": "Αποτελέσματα: {league}, {season}",
+    "email_league_season_name": "Σεζόν {season}",
+    "email_league_season_name_seeding": "Σεζόν αρχικής κατάταξης",
+    "email_league_season_results_preview": "Η {season} της λίγκας «{league}» ολοκληρώθηκε.",
+    "email_league_season_results_eyebrow": "Η {season} ΟΛΟΚΛΗΡΩΘΗΚΕ",
+    "email_league_season_results_subline": "{title} · Όμιλος {group}",
+    "email_league_season_results_footer": "Έπαιξες σε αυτή τη σεζόν της λίγκας στο Board Together.",
+    "email_league_season_results_seeded": "Τερμάτισες {place} του Ομίλου {group}. Η θέση σου για τη Σεζόν {nextSeason} είναι στην Κατηγορία {level}.",
+    "email_league_season_results_promoted": "Τερμάτισες {place} του Ομίλου {group} και ανεβαίνεις στην Κατηγορία {level}.",
+    "email_league_season_results_relegated": "Τερμάτισες {place} του Ομίλου {group} και πέφτεις στην Κατηγορία {level}.",
+    "email_league_season_results_stayed": "Τερμάτισες {place} του Ομίλου {group} και μένεις στην Κατηγορία {level}.",
+    "email_league_season_results_substitute": "Τερμάτισες {place} του Ομίλου {group} ως αναπληρωματικός. Οι αναπληρωματικοί ξεκινούν την επόμενη σεζόν από την Κατηγορία {level}, την τελευταία κατηγορία.",
+    "email_league_season_results_standings": "ΤΕΛΙΚΗ ΒΑΘΜΟΛΟΓΙΑ ΟΜΙΛΟΥ {group}",
+    "email_league_season_results_button": "Δες τα αποτελέσματα της σεζόν",
+    "email_bug_report_forum": "Η αναφορά σου βρίσκεται στο φόρουμ bug-reports στο Discord μας· δεν είσαι ακόμη στον διακομιστή; {#invite}Έλα να πεις ένα γεια{/invite}.",
+    "email_bug_report_you_wrote": "ΕΓΡΑΨΕΣ",
+    "email_bug_report_quote": "«{quote}»",
+    "email_bug_report_back_to_game": "Πίσω στο παιχνίδι σου",
+    "email_bug_report_follow_on_discord": "Δες την εξέλιξη της αναφοράς σου στο Discord →",
+    "notification_is_your_turn_summary": "Είναι η σειρά σου στο παιχνίδι «{game}»",
+    "notification_is_your_turn_heading": "Είναι η σειρά σου",
+    "notification_is_your_turn_button": "Παίξε τη σειρά σου",
+    "notification_game_started_summary": "Το παιχνίδι «{game}» ξεκίνησε!",
+    "notification_game_started_heading": "Το παιχνίδι σου ξεκίνησε",
+    "notification_open_game_button": "Άνοιξε το παιχνίδι",
+    "notification_open_dashboard_button": "Δες τα παιχνίδια σου",
+    "notification_was_invited_summary": "{owner} σε προσκάλεσε στο παιχνίδι «{game}»",
+    "notification_was_invited_heading": "{owner} σε προσκάλεσε σε παιχνίδι",
+    "notification_was_invited_button": "Δες την πρόσκληση",
+    "notification_player_joined_summary": "{player} συμμετέχει πλέον στο παιχνίδι «{game}»",
+    "notification_player_joined_heading": "{player} συμμετέχει πλέον στο παιχνίδι σου",
+    "notification_player_declined_summary": "{player} αρνήθηκε να συμμετάσχει στο παιχνίδι «{game}»",
+    "notification_player_declined_heading": "{player} απέρριψε την πρόσκλησή σου",
+    "notification_call_vote_summary": "{player} ζητά να λήξει το παιχνίδι «{game}»",
+    "notification_call_vote_heading": "{player} ζητά από όλους να λήξει το παιχνίδι",
+    "notification_undo_vote_summary": "{player} ζητά αναίρεση στο παιχνίδι «{game}»",
+    "notification_undo_vote_heading": "{player} ζητά από όλους αναίρεση",
+    "notification_vote_button": "Ψήφισε",
+    "notification_took_over_seat_summary": "Πήρες τη θέση του παίκτη {player} στο παιχνίδι «{game}»",
+    "notification_took_over_seat_heading": "Ένας διαχειριστής σού έδωσε τη θέση του παίκτη {player}",
+    "notification_lost_seat_summary": "{player} πήρε τη θέση σου στο παιχνίδι «{game}»",
+    "notification_lost_seat_heading": "Ένας διαχειριστής έδωσε τη θέση σου στον παίκτη {player}",
+    "notification_discord_webhook_connected": "Το {site} θα δημοσιεύει εδώ ειδοποιήσεις για τον χρήστη {username}.",
+    "discord_command_notify_description": "Ενεργοποίηση ειδοποιήσεων για τη σειρά σου και για προσκλήσεις σε παιχνίδια",
+    "discord_command_stop_description": "Απενεργοποίηση ειδοποιήσεων για τη σειρά σου και για προσκλήσεις σε παιχνίδια",
+    "discord_install_welcome": "Όλα έτοιμα! Θα σου στέλνω μήνυμα εδώ όταν είναι η σειρά σου ή όταν σε προσκαλούν σε παιχνίδι στο BoardTogether. Γράψε /stop για να απενεργοποιήσεις αυτές τις ειδοποιήσεις.",
+    "discord_unknown_user": "Για κάποιον λόγο δεν μπόρεσα να εντοπίσω το ID χρήστη σου. Δοκιμάζεις ξανά;",
+    "discord_not_linked": "Δεν βρήκα λογαριασμό στο BoardTogether συνδεδεμένο με το Discord σου. Συνδέσου εκεί, πήγαινε στο προφίλ σου και σύνδεσε τον λογαριασμό σου στο Discord.",
+    "discord_notify_started": "Από τώρα θα λαμβάνεις ειδοποιήσεις. Γράψε /stop για να τις απενεργοποιήσεις.",
+    "discord_notify_stopped": "Δεν θα στέλνονται πλέον ειδοποιήσεις.",
+    "telegram_connected_as": "Συνδέθηκες ως {username} στο BoardTogether. Θα σου στέλνω μήνυμα εδώ όταν είναι η σειρά σου ή όταν σε προσκαλούν σε παιχνίδι. Στείλε /stop για να απενεργοποιήσεις αυτά τα μηνύματα.",
+    "telegram_connected": "Συνδέθηκες στο BoardTogether. Θα σου στέλνω μήνυμα εδώ όταν είναι η σειρά σου ή όταν σε προσκαλούν σε παιχνίδι. Στείλε /stop για να απενεργοποιήσεις αυτά τα μηνύματα.",
+    "telegram_not_linked": "Αυτή η συνομιλία δεν είναι συνδεδεμένη με λογαριασμό στο BoardTogether. Για να τη συνδέσεις, πάτησε «Σύνδεση» στη σελίδα {url}. Κάθε σύνδεσμος λειτουργεί μία φορά, για μία ώρα.",
+    "telegram_stopped": "Έγινε. Δεν θα σου στέλνω πια μηνύματα εδώ. Για να ενεργοποιήσεις ξανά τα μηνύματα, πάτησε «Σύνδεση» στη σελίδα {url}.",
+    "telegram_help": "Στέλνω μόνο ειδοποιήσεις του BoardTogether. Στείλε /stop για να τις απενεργοποιήσεις ή ρύθμισέ τες στη σελίδα {url}."
+}

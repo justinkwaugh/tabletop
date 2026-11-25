@@ -22,7 +22,8 @@ export default async function (fastify: FastifyInstance) {
                 externalIds: [],
                 email: request.body.email.trim(),
                 emailVerified: false,
-                roles: [Role.User]
+                roles: [Role.User],
+                ...(request.body.seenLocale ? { seenLocale: request.body.seenLocale } : {})
             }
 
             const createdUser = await fastify.userService.createUser(

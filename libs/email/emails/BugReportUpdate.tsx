@@ -1,6 +1,8 @@
 import { Link, Section, Text } from '@react-email/components'
 import type { CSSProperties } from 'react'
 import { CardButton, DarkCardEmail, darkPalette, darkStyles } from '../components/darkCard.js'
+import { RichMessage } from '../components/richMessage.js'
+import { baseLocale, m, type Locale } from '../i18n.js'
 
 interface BugReportUpdateProps {
     eyebrow: string
@@ -15,6 +17,7 @@ interface BugReportUpdateProps {
     postUrl: string
     inviteUrl: string
     footer: string
+    locale: Locale
 }
 
 const styles = {
@@ -55,9 +58,11 @@ export const BugReportUpdate = ({
     postUrl,
     inviteUrl,
     footer,
+    locale,
 }: BugReportUpdateProps) => {
     return (
         <DarkCardEmail
+            locale={locale}
             preview={lead}
             wordmarkHref={gameUrl}
             eyebrow={eyebrow}
@@ -65,12 +70,17 @@ export const BugReportUpdate = ({
             subline={game}
             footer={
                 <>
-                    {footer} Your report lives in the bug-reports forum on our Discord; not on the
-                    server yet?{' '}
-                    <Link href={inviteUrl} style={styles.footerLink}>
-                        Come say hi
-                    </Link>
-                    .
+                    {footer}{' '}
+                    <RichMessage
+                        parts={m.email_bug_report_forum.parts({}, { locale })}
+                        markup={{
+                            invite: (text) => (
+                                <Link href={inviteUrl} style={styles.footerLink}>
+                                    {text}
+                                </Link>
+                            ),
+                        }}
+                    />
                 </>
             }
         >
@@ -79,14 +89,22 @@ export const BugReportUpdate = ({
             {closing && <Text style={styles.paragraph}>{closing}</Text>}
 
             <Section style={styles.panel}>
-                <Text style={styles.quoteLabel}>You wrote</Text>
-                <Text style={styles.quoteText}>“{quote}”</Text>
+                <Text style={styles.quoteLabel}>
+                    {m.email_bug_report_you_wrote({}, { locale })}
+                </Text>
+                <Text style={styles.quoteText}>
+                    {m.email_bug_report_quote({ quote }, { locale })}
+                </Text>
             </Section>
 
-            {gameUrl && <CardButton href={gameUrl}>Back to your game</CardButton>}
+            {gameUrl && (
+                <CardButton href={gameUrl}>
+                    {m.email_bug_report_back_to_game({}, { locale })}
+                </CardButton>
+            )}
             <Section style={{ textAlign: 'center', padding: '8px 0 0' }}>
                 <Link href={postUrl} style={styles.secondaryLink}>
-                    Follow your report on Discord →
+                    {m.email_bug_report_follow_on_discord({}, { locale })}
                 </Link>
             </Section>
         </DarkCardEmail>
@@ -105,6 +123,7 @@ BugReportUpdate.PreviewProps = {
     postUrl: 'https://discord.com/channels/1272765028621353041/1560030519620542515',
     inviteUrl: 'https://discord.gg/5ggK5VGGvA',
     footer: 'You reported this bug on BoardTogether.',
+    locale: baseLocale,
 } satisfies BugReportUpdateProps
 
 export default BugReportUpdate

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { BaseError, ErrorCategory } from '@tabletop/common'
+import { BaseError, ErrorCategory, type User } from '@tabletop/common'
 import { concealedCause } from '@tabletop/backend-services'
 
 export type CredentialEmailRequest = Static<typeof CredentialEmailRequest>
@@ -28,7 +28,7 @@ export class EmailDeliveryError extends BaseError {
 // the task's log lines and any delivery failure name only the Account and the kind of email.
 type CredentialEmailDelivery = {
     kind: string
-    deliver: (accountEmail: string, token: string) => Promise<void>
+    deliver: (account: User & { email: string }, token: string) => Promise<void>
 }
 
 export function credentialEmailTask(
@@ -55,7 +55,7 @@ export async function deliverCredentialEmail(
     const { userId, token } = request.body
     request.log.info({ userId, kind }, 'Sending credential email')
     const user = await fastify.userService.getUser(userId)
-    if (!user || !user.email) {
+    if (!user?.email) {
         request.log.error(
             { userId, kind },
             'User not found or missing email address, cannot send credential email'
@@ -63,7 +63,7 @@ export async function deliverCredentialEmail(
         return
     }
     try {
-        await deliver(user.email, token)
+        await deliver({ ...user, email: user.email }, token)
     } catch (error) {
         throw new EmailDeliveryError(kind, concealedCause(error, [token]))
     }

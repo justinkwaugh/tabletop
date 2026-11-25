@@ -11,6 +11,7 @@ import {
 import { SecretsService } from '../../secrets/secretsService.js'
 import webpush, { WebPushError } from 'web-push'
 import crypto from 'crypto'
+import type { Locale } from '@tabletop/email/i18n'
 
 import {
     NotificationResult,
@@ -81,7 +82,8 @@ export class WebPushTransport implements NotificationTransport {
 
     async sendNotification(
         subscription: WebPushSubscription,
-        notification: Notification
+        notification: Notification,
+        locale: Locale
     ): Promise<NotificationResult> {
         const clientData: WebPushSubscriptionClientData = {
             endpoint: subscription.endpoint,
@@ -98,10 +100,14 @@ export class WebPushTransport implements NotificationTransport {
         }
 
         try {
-            await webpush.sendNotification(clientData, JSON.stringify(notification), {
-                agent: this.agent,
-                timeout: WEB_PUSH_SOCKET_TIMEOUT_MS
-            })
+            await webpush.sendNotification(
+                clientData,
+                JSON.stringify({ ...notification, locale }),
+                {
+                    agent: this.agent,
+                    timeout: WEB_PUSH_SOCKET_TIMEOUT_MS
+                }
+            )
             return {
                 success: true,
                 unregister: false

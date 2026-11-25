@@ -1,6 +1,7 @@
 # Swedish (sv) — translation glossary
 
-For the native-speaker reviewer of `messages/sv.json`.
+For the native-speaker reviewer of `messages/sv.json` (the site and its push notifications) and of
+`libs/email/messages/sv.json` (emails, Discord and Telegram messages).
 
 ## 1. Form of address and tone
 
@@ -11,6 +12,13 @@ For the native-speaker reviewer of `messages/sv.json`.
 - "We" (the project) is **vi**: "Vi kunde inte skicka koden."
 - Colloquial but accepted words are used where a native community site would use them: _sajten_,
   _mejla/mejl_, _bugg_, _snacka_, _pingar_.
+- Emails, bot messages and push notifications use the same **du** and the same tone. Emails have no
+  salutation and no sign-off, as in English, and "please contact us" is just **"Kontakta oss …"**.
+- The Discord and Telegram bots speak in the first person, **jag**, as they do in English: "Jag
+  skriver till dig här när det är din tur."
+- A notification tells what has just happened in the perfect tense ("{player} har gått med i ditt
+  parti", "{owner} har bjudit in dig till ett parti"). A request is **vill**, as in the game's own
+  banner ("{player} vill avsluta {game}").
 
 ## 2. Terms
 
@@ -96,6 +104,45 @@ stored in the game data) and the game's ”Undo” button (the game screens are 
 The first mention gets a short Swedish gloss in parentheses where it helps: ”Deleted player”
 (raderad spelare). The Undo sentence needs none, because it already says _ångra_.
 
+### Emails, notifications and bots
+
+The terms above apply unchanged. These are new:
+
+| English                            | Swedish                                 | Note                                                                           |
+| ---------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------ |
+| email (the message)                | mejl                                    | "you can safely ignore this email" → "kan du lugnt bortse från det här mejlet" |
+| request (a code, a link, a change) | begära                                  | "efter att den begärdes", "har begärts"                                        |
+| stops working (a code, a link)     | slutar gälla                            | like the site's "gäller till"                                                  |
+| click the button                   | tryck på knappen                        | _tryck_, as on the site, for mouse and touch alike                             |
+| account change                     | ändring av ditt konto                   | heading: _Kontoändring upptäckt_                                               |
+| invited you to play                | har bjudit in dig till ett parti        | accept the invite → _tacka ja till inbjudan_                                   |
+| a game of {title}                  | **ett parti {title}**                   | "ett parti Fresh Fish", like "ett parti schack"                                |
+| your {title} game {game}           | ditt parti {game} ({title})             | game name first, title in parentheses, also in subjects                        |
+| game started, has begun            | partiet har börjat                      | seasons too: "Säsong 2 i {league} har börjat"                                  |
+| game ended / was abandoned         | partiet är avslutat / partiet avbröts   | stalled: "avslutades efter 30 dagar utan drag"                                 |
+| tied / won (the result line)       | spelade oavgjort / vann                 |                                                                                |
+| open the game / open dashboard     | Öppna partiet / Öppna Mina partier      | the dashboard is the page _Mina partier_                                       |
+| revisit the game                   | Se partiet igen                         |                                                                                |
+| view, see (buttons)                | visa                                    | "Visa inbjudan", "Visa turneringen", "Visa dina partier"                       |
+| vote                               | rösta                                   |                                                                                |
+| asks to end the game               | vill avsluta partiet                    | asks everyone → _frågar alla om partiet ska avslutas_                          |
+| asks to go back                    | **vill ångra drag**                     | asks everyone → _ber alla om att få ångra drag_                                |
+| took over {player}'s seat          | har tagit över platsen efter {player}   | no genitive on the name                                                        |
+| a player left / was removed        | en spelare har lämnat / har tagits bort |                                                                                |
+| end the game early                 | avsluta partiet i förtid                | the menu item itself is quoted: ”Bryt partiet”                                 |
+| final results / final standings    | slutresultat / slutställning            |                                                                                |
+| champion, champions                | mästare                                 | same form in the plural                                                        |
+| takes / share first place          | tar / delar på förstaplatsen            |                                                                                |
+| you finished {place}               | du kom på {place} plats                 | "på 2:a plats", "på 3:e plats"                                                 |
+| Season {n} of a league             | säsong {n} i {league}                   | "Anmälan till säsong 2 i Fresh Fish League"                                    |
+| seeding season                     | seedningssäsong(en)                     |                                                                                |
+| stay (in a level) / bottom level   | stannar kvar / lägsta nivån             |                                                                                |
+| turn notifications                 | aviseringar om din tur                  |                                                                                |
+| turn on / turn off                 | slå på / stänga av                      |                                                                                |
+| message you (the bot)              | skriver till dig                        | Discord "type /stop" → _skriv /stop_; Telegram "send /stop" → _skicka /stop_   |
+| chat / user id                     | chatt / användar-id                     |                                                                                |
+| congratulations                    | grattis                                 |                                                                                |
+
 ## 3. Typography and formatting
 
 - Quotation marks **”…”**. Ellipsis **…** (also where English writes "...").
@@ -120,6 +167,25 @@ The first mention gets a short Swedish gloss in parentheses where it helps: ”D
   "Anmälan stänger 25 nov. 14:00.", "sedan november 2026".
 - Abbreviations: V / O / F, P (poäng), Snitt, Särsk., Ers., P1 / P2 / S in the bracket.
 - UI separators " · ", "→", "←" are unchanged.
+
+In emails, bot messages and push notifications:
+
+- Ordinals are written **1:a, 2:a, 3:e, 4:e … 21:a, 22:a, 23:e** (`email_ordinal`, the ordinal
+  categories `one` / `other`) and always sit in "på {place} plats".
+- Email dates arrive complete, with "kl." and the time zone ("23 oktober 2026 kl. 20:00 CEST",
+  "fredag 23 oktober kl. 20:00 CEST"), and follow the verb directly: "Ditt lösenord ändrades
+  {time}", "innan anmälan stänger {closes}".
+- Email subjects put the news first and the names last: "Partiet har börjat: {game} ({title})",
+  "Partiet är avslutat: {game} ({title})".
+- A stand-in name that always opens its sentence has a capital ("Någon", "En spelare", "Ingen");
+  one used inside a sentence does not ("de andra spelarna", "din grupp"). The sentences are built
+  so that {owner}, {player} and the season name ("Säsong 2", "Seedningssäsongen") come first.
+- The small labels above headings and tables are written in sentence case ("Partiet har börjat",
+  "Slutställning"); the email's styling shows them in capitals.
+- A menu item of several words is quoted (välj ”Bryt partiet” i kontomenyn); a one-word button is
+  not (tryck på Anslut), as on the site.
+- `email_tournament_results_subline` is a plain string, because _spelare_ does not change in the
+  plural.
 
 ## 4. Please review
 
@@ -186,3 +252,60 @@ Style:
   `auth_login_please_login` — the English headings end in "..."; kept as "…".
   `auth_invitation_heading` ("Join this game?...") is "Gå med i partiet?" without it.
 - `auth_email_placeholder` — "namn@example.com".
+
+Emails, bot messages and push notifications (`libs/email/messages/sv.json` and the `push_*` keys):
+
+- `notification_undo_vote_summary`, `notification_undo_vote_heading`, `push_undo_vote_title` — "asks
+  to go back" → "vill ångra drag", the site's word for the feature. Alternative: "vill gå tillbaka".
+- `notification_call_vote_heading` — "asks everyone to end the game" → "frågar alla om partiet ska
+  avslutas", after the site's "Fråga alla om partiet ska avslutas nu?".
+- `notification_open_dashboard_button` — "Öppna Mina partier". Alternative: "Till Mina partier", the
+  site's pattern for links.
+- `email_game_invitation_subject`, `email_game_invitation_preview` — "Join {owner}'s game of
+  {title}" → "{owner} bjuder in dig till ett parti {title}", to avoid a genitive on the name.
+  `email_game_invitation_unnamed_owner` is "Någon" with a capital because it always comes first.
+- `email_game_end_subject` — "Your game of {title} {game} has ended" → "Partiet är avslutat: {game}
+  ({title})", built like the started subject.
+- `email_game_end_preview` and its variants, `email_player_removed_preview_left`,
+  `email_player_removed_preview_removed` — "Your {title} game {game}" → "ditt parti {game}
+  ({title})".
+- `email_game_end_result_draw` — "{names} spelade oavgjort". Alternative: "{names} delade segern",
+  which fits better when two players at a larger table share the win.
+- `email_account_change_subject`, `email_account_change_heading` — "Ändring av ditt konto" /
+  "Kontoändring upptäckt". "Ditt konto har ändrats" was avoided because the same heading covers a
+  change that has only been requested.
+- `email_account_email_changed_detail`, `email_account_password_changed_detail`,
+  `email_account_email_change_requested_detail`, `email_account_password_reset_requested_detail`,
+  `email_account_deleted_detail` — short labels above a date: "E-postadressen ändrad", "Lösenordet
+  ändrat", "Byte av e-postadress begärt", "Återställning av lösenord begärd", "Kontot raderat".
+- `email_ordinal`, `email_tournament_results_finished_wins`,
+  `email_tournament_results_finished_average_place`, `email_league_season_results_promoted` and its
+  siblings — "You finished 2nd" → "Du kom på 2:a plats". "Du slutade tvåa" reads better but cannot
+  be built from a number.
+- `email_standings_column_average_place`, `email_standings_column_tiebreak` — "Snittplac." and
+  "Särskiljning", as in the site's tournament table. "Snitt" and "Särsk." are the shorter forms if
+  the table gets too wide on a phone.
+- `email_league_season_results_subject` — "{season} i {league} – resultat" ("Säsong 2 i Fresh Fish
+  League – resultat"). "Resultat från säsong 2 i …" reads better but needs the season name in lower
+  case, and the same name opens `email_league_season_results_eyebrow`.
+- `email_league_season_name_seeding`, `email_league_season_start_subline_seeding` —
+  "Seedningssäsongen" / "Seedningssäsong" for "Seeding season".
+- `email_player_removed_subline_left`, `email_player_removed_subline_removed` — "their turn … for
+  them" → "den spelarens tur … i spelarens ställe", without "hen".
+- `email_bug_report_forum` — the forum's name "bug-reports" is kept; "our Discord" → "vår Discord".
+- `discord_unknown_user` — "användar-id"; "Try again?" → "Kan du försöka igen?".
+- `discord_command_notify_description`, `discord_command_stop_description` — "Slå på …" / "Stäng av
+  aviseringar om din tur och inbjudningar till partier", 59 and 61 characters (Discord allows 100).
+- `push_took_over_seat_title` — "You've joined a game in progress" → "Du är med i ett pågående parti",
+  like the site's "Du är med i partiet"; an administrator gave the seat, so "gått med" would mislead.
+
+These repeat wording from the site file and must change together with it:
+
+- `email_standings_placement_scoring`, `email_standings_tiebreak_points_behind`,
+  `email_standings_tiebreak_share_of_winner`, `email_standings_tiebreak_score_sum` — the same
+  sentences as `tournaments_placement_scoring` and `tournaments_tiebreak_*`.
+- `email_player_removed_end_early_detail` — quotes the menu item ”Bryt partiet”
+  (`games_call_offer_call`) in "kontomenyn" (`nav_open_account_menu`).
+- `telegram_not_linked`, `telegram_stopped` — name the button "Anslut" (`discord_webhook_connect`).
+- `email_game_started_footer`, `notification_open_dashboard_button` — name the pages "Aviseringar"
+  (`nav_notifications`) and "Mina partier" (`nav_my_games`).

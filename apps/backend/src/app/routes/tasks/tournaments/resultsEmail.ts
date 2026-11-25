@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { TournamentResultsEmailTask } from '@tabletop/backend-services'
+import { TournamentResultsEmailTask, emailRecipient } from '@tabletop/backend-services'
 
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] || ''
 
@@ -27,7 +27,7 @@ export default async function (fastify: FastifyInstance) {
                 definition,
                 recipientId: userId,
                 url: `${FRONTEND_HOST}/tournaments/${encodeURIComponent(tournamentId)}`,
-                toEmail
+                to: emailRecipient(toEmail, recipient)
             })
             return { status: 'ok' }
         }

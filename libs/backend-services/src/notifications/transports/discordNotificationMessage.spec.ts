@@ -23,7 +23,8 @@ describe('discordNotificationMessage', () => {
             frontendHost: 'https://example.com',
             gameTitle: 'Löwenherz',
             thumbnailUrl: '/games/lowenherz/ui/2.5.0/assets/cover.jpg',
-            sentAt
+            sentAt,
+            locale: 'en'
         })
 
         expect(message).toEqual({
@@ -69,7 +70,8 @@ describe('discordNotificationMessage', () => {
 
         const message = discordNotificationMessage(notification, {
             frontendHost: 'https://example.com',
-            sentAt
+            sentAt,
+            locale: 'en'
         })
 
         expect(message.content).toBe('alex invited you to Friday night')
@@ -95,7 +97,8 @@ describe('discordNotificationMessage', () => {
         const message = discordNotificationMessage(notification, {
             frontendHost: 'https://example.com',
             thumbnailUrl: 'https://images.example.org/cover.jpg',
-            sentAt
+            sentAt,
+            locale: 'en'
         })
 
         expect(message.embeds?.[0].thumbnail).toEqual({
@@ -113,7 +116,8 @@ describe('discordNotificationMessage', () => {
 
         const message = discordNotificationMessage(notification, {
             frontendHost: 'https://example.com',
-            sentAt
+            sentAt,
+            locale: 'en'
         })
 
         expect(message.embeds?.[0].title).toBe(`${'x'.repeat(255)}…`)

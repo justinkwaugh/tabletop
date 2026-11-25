@@ -461,6 +461,14 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             }
 
             if (
+                fieldsToUpdate.seenLocale &&
+                existingUser.seenLocale !== fieldsToUpdate.seenLocale
+            ) {
+                updatedUser.seenLocale = fieldsToUpdate.seenLocale
+                updatedFields.push('seenLocale')
+            }
+
+            if (
                 fieldsToUpdate.roles &&
                 (fieldsToUpdate.roles.length !== existingUser.roles.length ||
                     fieldsToUpdate.roles.some((role, index) => role !== existingUser.roles[index]))

@@ -21,6 +21,17 @@ marked **(regional)** below.
   _Inscripción realizada_, _Suplente de {name}_.
 - Sentences with a name placeholder never need the name inflected: _Turno: {player}_,
   _Victoria de {winners}_, _Se retiró a {name}_.
+- **Emails, push notifications, Discord and Telegram** use the same _tú_. The two bots speak in
+  the first person, as in English (_Te escribiré aquí_, _No encontré ninguna cuenta…_).
+- News in an email or a notification is told in the present perfect, like the site's toasts
+  (_{owner} te ha invitado a jugar_, _Tu partida ha empezado_, _Tu cuenta se ha eliminado_)
+  **(regional)**: Latin American readers would also expect the simple past (_te invitó_). A
+  sentence that carries its date takes the simple past in both regions (_Tu contraseña se
+  cambió el {time}_), and so do closed facts about the reader (_Terminaste en el puesto 3_,
+  _Jugaste esta partida_, _Si no lo solicitaste_).
+- In emails and notifications too, nothing agrees with a name or with the reader: _¡Victoria de
+  {names}!_, _Empate: {names}_, _{player} ha quedado fuera de…_ (not _fue retirado_), _Este chat
+  ya está conectado…_ (not _Estás conectado_), _contándote a ti_ (not _tú incluido_).
 
 ## 2. Terms
 
@@ -127,6 +138,57 @@ is shown: the _Ritmo_ column, game cards, the lobby filter.
 | returning players                   | jugadores de la temporada anterior                                   |                                                                         |
 | shape (of a league)                 | estructura                                                           |                                                                         |
 
+### Emails, notifications and bots
+
+These messages are in `libs/email/messages/es.json` (emails, Discord, Telegram) and in the
+`push_*` keys of the site file (browser notifications).
+
+| English                              | Spanish                                               | Note                                                                 |
+| ------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| email (the message)                  | **correo**                                            | _este correo_; the address stays _(dirección de) correo electrónico_ |
+| subject lines                        | _{league}: …_, _Partida iniciada: {game} ({title})_   | The name the reader recognises comes first                           |
+| Game started (label, subject)        | **Partida iniciada**                                  | In a sentence: _{game} ha empezado_                                  |
+| game ended (subject)                 | Partida terminada                                     |                                                                      |
+| you can safely ignore this email     | puedes ignorar este correo sin problema               |                                                                      |
+| please contact us                    | contáctanos                                           |                                                                      |
+| click the button below               | **usa el botón de abajo**                             | Works for mouse and touch; avoids _haz clic_ / _pulsa_               |
+| stops working (code, link)           | deja de funcionar                                     |                                                                      |
+| won, tied (result line)              | _¡Victoria de {names}!_, _Empate: {names}_            | No verb, so one name or several both work                            |
+| left (the game, the site)            | ha salido de (la partida), ha dejado (Board Together) |                                                                      |
+| was removed (a player)               | **ha quedado fuera de**                               | See review list                                                      |
+| end the game early                   | terminar la partida antes de tiempo                   |                                                                      |
+| Call the game (menu entry)           | “Dar por terminada la partida”                        | Quoted as the account menu (_el menú de la cuenta_) shows it         |
+| dashboard                            | **Mis partidas**                                      | The page's name on the site: _Ir a Mis partidas_                     |
+| take your turn (button)              | Jugar tu turno                                        | Same as the game card                                                |
+| open game (button), open the game    | Abrir partida, Abrir la partida                       | Buttons are infinitives, as on the site (_Unirse a la partida_)      |
+| asks to end the game                 | propone terminar la partida                           |                                                                      |
+| asks to go back (undo vote)          | **propone deshacer jugadas**                          | See review list                                                      |
+| take over a seat                     | ocupar el asiento                                     | _Has ocupado el asiento de {player}_                                 |
+| turn notifications                   | notificaciones de turno                               |                                                                      |
+| I'll message you (bot)               | te escribiré                                          | The site says _te escribe_                                           |
+| type /stop, send /stop               | escribe /stop (Discord), envía /stop (Telegram)       |                                                                      |
+| press Connect                        | selecciona Conectar                                   | The button's label on the notifications page                         |
+| post (webhook)                       | publicar                                              |                                                                      |
+| user id                              | ID de usuario                                         | As Discord calls it                                                  |
+| you finished 3rd                     | **terminaste en el puesto 3**                         | `email_ordinal` is the bare number; see typography                   |
+| final standings                      | clasificación final                                   |                                                                      |
+| Wins, Avg place, Score, Tiebreak     | **Vict.**, Prom., Puntos, Desempate                   | Column headers of the results table; measured                        |
+| a held place                         | plaza reservada                                       |                                                                      |
+| Season 2, Seeding season (as a name) | temporada 2, temporada de posicionamiento             | Lowercase: these two only ever sit inside a sentence                 |
+| A Player (no username)               | Jugador sin nombre                                    |                                                                      |
+| Congratulations!                     | ¡Felicidades!                                         | Not _¡Enhorabuena!_ (Spain) or _¡Felicitaciones!_ (Latin America)    |
+| the bug-reports forum                | el foro bug-reports                                   | The channel's name on Discord                                        |
+
+Six messages are stand-ins for a missing name, and each is written for the place its sentences
+give it. Keep that place when rewording:
+
+- start of the sentence: `email_game_invitation_unnamed_owner` (_Alguien_),
+  `email_player_removed_unnamed_player` (_Un jugador_), `email_standings_nobody` (_Nadie_, which
+  also stands alone in the champion panel);
+- after a preposition or a colon: `email_game_end_no_winner_names` (_alguien_),
+  `email_game_started_no_active_names` (_los demás jugadores_),
+  `email_league_season_start_no_opponent_names` (_tu grupo_).
+
 ### Regional choices made on purpose
 
 | Used                          | Avoided              | Why                                        |
@@ -152,6 +214,8 @@ parentheses follows only where the sentence does not already say what the label 
   account's seats in finished games. `delete_account_summary`: _a nombre de “Deleted player”
   (jugador eliminado)_; `delete_account_kept_finished`: _“Deleted player 1” (jugador eliminado 1) y
   así sucesivamente_. The gloss says _eliminado_ because the account action is _Eliminar cuenta_.
+  The email that confirms the deletion says the same (`email_account_deleted_subline`: _apareces
+  como “Deleted player” (jugador eliminado)_).
 - **“Undo”** — the button in the game screens, a part of the site that is not translated yet.
   `games_vote_undo_yourself`: _con el botón “Undo”_. No gloss, as the sentence already says
   _deshacer_; _el botón_ tells the reader what the English word names.
@@ -183,6 +247,16 @@ parentheses follows only where the sentence does not already say what the label 
 - **Short labels were measured** against the fixed-width columns and phone-width tab rows they
   sit in (site font, headless browser): _Part._, _Prom._, _Des._, _Todo_, _Sigo_, _Responder_,
   _Retirada_.
+- The results table in emails has fixed columns (52, 64 and 84 px) with 11 px capitals. Measured
+  the same way: _Vict._ 34 px (_Victorias_, 67 px, does not fit the 52 px column and squeezes
+  the names on a phone), _Prom._ 40 px, _Puntos_ 50 px, _Desempate_ 75 px.
+- **Places in emails** are a number after _puesto_ (_Terminaste en el puesto 3_), so
+  `email_ordinal` is the bare number. It avoids a gendered ordinal about the reader (_3.º_ /
+  _3.ª_) and the short forms _1.er_ / _3.er_ before a noun. A free-standing ordinal would be
+  _3.º_.
+- **Dates and times in emails** arrive formatted (_23 de octubre de 2026 a las 20:00 CEST_,
+  _viernes, 23 de octubre, 20:00 CEST_) and follow _el_; no time-zone word is added.
+- Discord command descriptions are 61 and 64 characters (the limit is 100).
 
 ## 4. Please review
 
@@ -198,6 +272,12 @@ Problems in the source that a translation cannot fix:
 - `games_card_hotseat` — left as _Hotseat_ because the game-creation form (shared components)
   still says "Hotseat". Spanish options once that form is translated: _Pasar y jugar_,
   _Mismo dispositivo_.
+- `email_account_email_change_requested_preview`, `email_account_password_reset_requested_preview`
+  — the English ends "…is verified on {time}" and "…for your account on {time}", but `{time}` is
+  when the request was made. Spanish says so: _El {time} se solicitó…_
+- `email_bug_report_forum` and the other `email_bug_report_*` — the rest of that email (its
+  heading, its text and the first sentence of the footer) is written in English by the
+  bug-report tool and is not in the catalogue, so a Spanish reader gets a mixed email.
 
 Terms with competing usages:
 
@@ -246,7 +326,41 @@ Terms with competing usages:
 - `library_series_18xx_description` — "rusts their fleet" as _oxide su flota_, the calque 18xx
   players use.
 - `tournaments_knockout_champion`, `tournaments_knockout_runner_up` — generic masculine
-  _Campeón_ / _Subcampeón_ shown beside any player's name.
+  _Campeón_ / _Subcampeón_ shown beside any player's name. The results emails do the same
+  (`email_standings_champion`, `email_standings_champions`: _Campeón_, _Campeones_).
+
+Emails, notifications and bots:
+
+- All `email_*`, `notification_*` and `push_*` news sentences — present perfect (_te ha
+  invitado_, _ha empezado_, _se ha unido_) **(regional)**; Latin American alternative: simple
+  past (_te invitó_, _empezó_, _se unió_).
+- `email_player_removed_subject_removed`, `email_player_removed_preview_removed`,
+  `email_player_removed_subline_removed` — "was removed" as _ha quedado fuera de_, because the
+  literal passive agrees with the player (_fue retirado_ / _retirada_). It says less plainly
+  than the English that an administrator did it. Alternative: _Se ha retirado a {player} de…_,
+  which needs the stand-in _Un jugador_ reworded.
+- `notification_undo_vote_summary`, `notification_undo_vote_heading`, `push_undo_vote_title` —
+  "asks to go back" as _propone deshacer jugadas_, with the site's verb for undo. Alternative:
+  _propone volver atrás_.
+- `notification_open_dashboard_button` — "Open dashboard" as _Ir a Mis partidas_, the name the
+  site gives that page.
+- `email_game_started_subject`, `email_game_started_eyebrow` — _Partida iniciada_. Alternative:
+  _Empieza la partida_.
+- `email_tournament_results_finished_average_place`, `email_tournament_results_finished_wins`
+  and the five `email_league_season_results_*` sentences — the place as _en el puesto {place}_
+  with a bare number (`email_ordinal`). Alternative: _en el puesto {place}.º_.
+- `email_league_season_name`, `email_league_season_name_seeding` — lowercase (_temporada 2_,
+  _temporada de posicionamiento_) because the subject, the preview and the heading line all
+  place them mid-sentence (_Fin de la temporada 2_).
+- `email_standings_column_wins` — _Vict._, to fit the column. Alternative: _V_, as in the
+  league tables of the site.
+- `email_unnamed_player` — "A Player" as _Jugador sin nombre_; it replaces a missing username
+  in name lists and in the results table.
+- `discord_command_notify_description`, `discord_command_stop_description` — _Activa_ /
+  _Desactiva las notificaciones de turnos e invitaciones a partidas_ instead of a literal
+  _Notifica_ / _Deja de notificar_.
+- `email_tournament_results_shared_champion`, `email_tournament_results_champion` —
+  _¡Felicidades!_
 
 Labels shortened to fit:
 
@@ -269,3 +383,16 @@ Small liberties:
 - `telegram_offer` — _Iniciar_ is the label of Telegram's Start button in Spanish.
 - `content_landing_load_failed`, `library_series_shelf_load_failed` — "the game shelf" as
   _los juegos_ (_estantería_ / _estante_ / _librero_ differ by region).
+- `email_game_invitation_subject`, `email_game_invitation_preview` — "Join {owner}'s game of
+  {title}" as _{owner} te invita a una partida de {title}_, which avoids _de … de_.
+- `email_game_end_subject` — _Partida terminada: {game} ({title})_, built like the subject of
+  the game-started email.
+- `email_verification_preview` — _Tu código de verificación es {code}_ without "email", so the
+  code shows in the inbox preview.
+- `push_player_declined_title` — "Player declined" as _Invitación rechazada_.
+- `telegram_connected_as`, `telegram_connected` — "You're connected" as _Este chat ya está
+  conectado a la cuenta {username}_ / _a tu cuenta_, like `telegram_not_linked`.
+- `email_league_season_start_moved_up` — present tense (_Subes al nivel {level}… jugadores que
+  no siguen esta temporada_), which sidesteps the regional choice of past tense.
+- `email_league_season_start_merged` — "has joined Level {level}" as _se ha integrado en el
+  nivel {level}_.

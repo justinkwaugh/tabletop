@@ -1,5 +1,8 @@
-import { assert } from '@tabletop/common'
-import type { MessagePart } from '$lib/paraglide/runtime'
+import { assert } from './assertions.js'
+
+export type MessagePart =
+    | { type: 'text'; value: string }
+    | { type: 'markup-start' | 'markup-end' | 'markup-standalone'; name: string }
 
 export type MessageSegment =
     { type: 'text'; text: string } | { type: 'markup'; name: string; text: string }

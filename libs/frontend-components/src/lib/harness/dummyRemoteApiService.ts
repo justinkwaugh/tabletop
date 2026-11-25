@@ -40,7 +40,8 @@ import type {
     SiteStatsReport,
     UtcDayRange,
     DiscordWebhookConnectResult,
-    UserTopicRegistrations
+    UserTopicRegistrations,
+    LocaleTag
 } from '@tabletop/common'
 import type {
     GameVersionProvider,
@@ -266,6 +267,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         _options?: { onlyIfUnset?: boolean }
     ): Promise<User> {
         return this.fail('updateUserTimeZone')
+    }
+
+    async updateUserSeenLocale(_locale: LocaleTag): Promise<User> {
+        return this.fail('updateUserSeenLocale')
     }
 
     async unlinkExternalAccount(_externalId: string): Promise<User> {

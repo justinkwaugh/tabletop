@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { GameEmailTask } from '@tabletop/backend-services'
+import { GameEmailTask, emailRecipient } from '@tabletop/backend-services'
 
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] || ''
 
@@ -10,7 +10,7 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: GameEmailTask }
         },
         async function (request, reply) {
-            const { gameId, toEmail } = request.body
+            const { userId, gameId, toEmail } = request.body
 
             const game = await fastify.gameService.getGame({ gameId })
             if (!game) {
@@ -27,10 +27,10 @@ export default async function (fastify: FastifyInstance) {
             const playersById = new Map(game.players.map((player) => [player.id, player]))
             const winnerUserIds = game.winningPlayerIds
                 .map((playerId) => playersById.get(playerId)?.userId)
-                .filter((userId): userId is string => !!userId)
+                .filter((id): id is string => !!id)
 
-            const winners = await Promise.all(
-                winnerUserIds.map(async (userId) => await fastify.userService.getUser(userId))
+            const [recipient, ...winners] = await Promise.all(
+                [userId, ...winnerUserIds].map((id) => fastify.userService.getUser(id))
             )
             const validWinners = winners.filter((w) => w !== undefined)
 
@@ -40,7 +40,7 @@ export default async function (fastify: FastifyInstance) {
                 game,
                 definition,
                 url,
-                toEmail
+                to: emailRecipient(toEmail, recipient)
             })
 
             await reply.code(200).send()

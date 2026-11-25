@@ -8,6 +8,8 @@ import {
     darkStyles as styles,
     formatNames,
 } from '../components/darkCard.js'
+import { RichMessage } from '../components/richMessage.js'
+import { baseLocale, m, type Locale } from '../i18n.js'
 
 export interface GameStartedProps {
     title: string
@@ -18,6 +20,7 @@ export interface GameStartedProps {
     turnNotificationsOn: boolean
     url?: string
     notificationsUrl?: string
+    locale: Locale
 }
 
 const warning = {
@@ -56,10 +59,33 @@ const turnSetUpNote = {
     textAlign: 'center',
 } satisfies CSSProperties
 
-const turnText = (yourTurn: boolean, activePlayerNames: string[]): string =>
+const activeNames = (activePlayerNames: string[], locale: Locale): string =>
+    formatNames(activePlayerNames, m.email_game_started_no_active_names({}, { locale }), locale)
+
+const turnText = (yourTurn: boolean, activePlayerNames: string[], locale: Locale): string =>
     yourTurn
-        ? "It's your turn"
-        : `Waiting for ${formatNames(activePlayerNames, 'the other players')}`
+        ? m.email_game_started_your_turn({}, { locale })
+        : m.email_game_started_waiting(
+              { names: activeNames(activePlayerNames, locale) },
+              { locale },
+          )
+
+const previewText = (
+    gameName: string,
+    yourTurn: boolean,
+    activePlayerNames: string[],
+    turnNotificationsOn: boolean,
+    locale: Locale,
+): string => {
+    if (!turnNotificationsOn)
+        return m.email_game_started_preview_notifications_off({ game: gameName }, { locale })
+    return yourTurn
+        ? m.email_game_started_preview_your_turn({ game: gameName }, { locale })
+        : m.email_game_started_preview_waiting(
+              { game: gameName, names: activeNames(activePlayerNames, locale) },
+              { locale },
+          )
+}
 
 export const GameStarted = ({
     title,
@@ -70,61 +96,79 @@ export const GameStarted = ({
     turnNotificationsOn,
     url = ``,
     notificationsUrl = ``,
+    locale,
 }: GameStartedProps) => {
-    const turn = turnText(yourTurn, activePlayerNames)
-    const preview = turnNotificationsOn
-        ? `${gameName} has started. ${turn}.`
-        : `${gameName} has started. Turn on turn notifications so you know when to move.`
     return (
         <DarkCardEmail
-            preview={preview}
+            locale={locale}
+            preview={previewText(
+                gameName,
+                yourTurn,
+                activePlayerNames,
+                turnNotificationsOn,
+                locale,
+            )}
             wordmarkHref={url}
-            eyebrow="Game started"
+            eyebrow={m.email_game_started_eyebrow({}, { locale })}
             heading={gameName}
             subline={
-                <>
-                    Your game of{' '}
-                    <span style={{ color: darkPalette.blue, fontWeight: 600 }}>{title}</span> has
-                    started.
-                </>
+                <RichMessage
+                    parts={m.email_game_started_subline.parts({ title }, { locale })}
+                    markup={{
+                        title: (text) => (
+                            <span style={{ color: darkPalette.blue, fontWeight: 600 }}>{text}</span>
+                        ),
+                    }}
+                />
             }
             footer={
                 <>
-                    You're playing in this game on Board Together. You can turn off game emails on
-                    your notifications page.{' '}
-                    <ButtonFallback url={turnNotificationsOn ? url : notificationsUrl} />
+                    {m.email_game_started_footer({}, { locale })}{' '}
+                    <ButtonFallback
+                        url={turnNotificationsOn ? url : notificationsUrl}
+                        locale={locale}
+                    />
                 </>
             }
         >
             {!turnNotificationsOn && (
                 <Section style={warning.panel}>
-                    <Text style={warning.heading}>You won't hear when it's your turn</Text>
+                    <Text style={warning.heading}>
+                        {m.email_game_started_warning_heading({}, { locale })}
+                    </Text>
                     <Text style={warning.body}>
-                        Board Together never emails you about turns. It tells you through your
-                        browser or Discord, and you have neither turned on.
+                        {m.email_game_started_warning_body({}, { locale })}
                     </Text>
                     <Section style={warning.buttonRow}>
                         <Button href={notificationsUrl} style={warning.button}>
-                            Turn on turn notifications
+                            {m.email_game_started_warning_button({}, { locale })}
                         </Button>
                     </Section>
                 </Section>
             )}
             <Section style={styles.panel}>
-                <Text style={styles.panelValue}>{turn}</Text>
-                <Text style={styles.panelDetail}>{formatNames(playerNames, 'No players')}</Text>
+                <Text style={styles.panelValue}>
+                    {turnText(yourTurn, activePlayerNames, locale)}
+                </Text>
+                <Text style={styles.panelDetail}>
+                    {formatNames(
+                        playerNames,
+                        m.email_game_started_no_players({}, { locale }),
+                        locale,
+                    )}
+                </Text>
             </Section>
             {turnNotificationsOn ? (
                 <>
-                    <CardButton href={url}>Open the game</CardButton>
+                    <CardButton href={url}>{m.email_open_game({}, { locale })}</CardButton>
                     <Text style={turnSetUpNote}>
-                        We'll tell you about your turns through your browser or Discord.
+                        {m.email_game_started_turns_set_up({}, { locale })}
                     </Text>
                 </>
             ) : (
                 <Section style={styles.buttonRow}>
                     <Button href={url} style={secondaryButton}>
-                        Open the game
+                        {m.email_open_game({}, { locale })}
                     </Button>
                 </Section>
             )}
@@ -141,6 +185,7 @@ GameStarted.PreviewProps = {
     turnNotificationsOn: false,
     url: 'https://boardtogether.games/game/qidEk1NjzIRBEioOpoCGD',
     notificationsUrl: 'https://boardtogether.games/notifications',
+    locale: baseLocale,
 } satisfies GameStartedProps
 
 export default GameStarted

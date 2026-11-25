@@ -1590,5 +1590,22 @@
     "pace_relaxed_name": "Afslappet",
     "pace_relaxed_line": "Afslappet · inden for 3 dage",
     "pace_relaxed_summary": "Afslappet · 3 dage",
-    "pace_relaxed_past_limit": "Langsommere end tempoet på 3 dage"
+    "pace_relaxed_past_limit": "Langsommere end tempoet på 3 dage",
+    "push_player_joined_title": "En spiller er med!",
+    "push_player_joined_body": "{player} deltager nu i dit spil {game}",
+    "push_player_declined_title": "En spiller har afslået",
+    "push_player_declined_body": "{player} har afslået at deltage i dit spil {game}",
+    "push_game_started_title": "Spillet er startet!",
+    "push_game_started_body": "Dit spil {game} er startet!",
+    "push_invited_title": "Du er inviteret til et spil!",
+    "push_invited_body": "{owner} har inviteret dig til at deltage i spillet {game}",
+    "push_your_turn_title": "Det er din tur!",
+    "push_your_turn_body": "Det er din tur i spillet {game}",
+    "push_call_vote_title": "{initiator} beder om at afslutte spillet",
+    "push_undo_vote_title": "{initiator} beder om at fortryde træk",
+    "push_vote_body": "Stem i spillet {game}",
+    "push_took_over_seat_title": "Du er kommet med i et igangværende spil",
+    "push_took_over_seat_body": "Du har overtaget pladsen efter {formerHolder} i {game}",
+    "push_lost_seat_title": "Din plads er givet til en anden spiller",
+    "push_lost_seat_body": "{newHolder} har overtaget din plads i {game}"
 }

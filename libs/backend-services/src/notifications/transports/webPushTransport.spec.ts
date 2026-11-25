@@ -3,6 +3,7 @@ import http from 'node:http'
 import https from 'node:https'
 import net from 'node:net'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import webpush from 'web-push'
 import {
     BlockedDestinationError,
     UnsupportedWebPushSubscriptionError
@@ -111,7 +112,8 @@ describe('web push transport', () => {
         const transport = new WebPushTransport()
         const result = await transport.sendNotification(
             storedSubscription('https://127.0.0.1:8443/internal'),
-            notification
+            notification,
+            'en'
         )
         expect(result).toEqual({ success: false, unregister: true })
         expect(observed).toHaveLength(0)
@@ -124,7 +126,8 @@ describe('web push transport', () => {
         const stored = storedSubscription(FCM_ENDPOINT)
         const result = await transport.sendNotification(
             { ...stored, keys: { ...stored.keys, p256dh: OFF_CURVE_P256DH } },
-            notification
+            notification,
+            'en'
         )
         expect(result).toEqual({ success: false, unregister: true })
         expect(observed).toHaveLength(0)
@@ -135,7 +138,8 @@ describe('web push transport', () => {
         const transport = new WebPushTransport()
         const result = await transport.sendNotification(
             storedSubscription(FCM_ENDPOINT),
-            notification
+            notification,
+            'en'
         )
         expect(result).toEqual({ success: true, unregister: false })
         expect(observed).toHaveLength(1)
@@ -147,6 +151,18 @@ describe('web push transport', () => {
         })
         expect(observed[0].agent).toBe(transport.agent)
         expect(transport.agent).toBeInstanceOf(PublicInternetHttpsAgent)
+    })
+
+    it('tells the service worker which language to show the notification in', async () => {
+        const send = vi
+            .spyOn(webpush, 'sendNotification')
+            .mockResolvedValue({ statusCode: 201, body: '', headers: {} })
+        await new WebPushTransport().sendNotification(
+            storedSubscription(FCM_ENDPOINT),
+            notification,
+            'de'
+        )
+        expect(JSON.parse(String(send.mock.calls[0][1]))).toEqual({ ...notification, locale: 'de' })
     })
 
     it('fails the attempt without unregistering when the push service resolves to a private address', async () => {
@@ -164,7 +180,8 @@ describe('web push transport', () => {
         const transport = new WebPushTransport(new PublicInternetHttpsAgent({ resolve }))
         const result = await transport.sendNotification(
             storedSubscription(FCM_ENDPOINT),
-            notification
+            notification,
+            'en'
         )
         expect(result).toEqual({ success: false, unregister: false })
         expect(resolve).toHaveBeenCalledWith(

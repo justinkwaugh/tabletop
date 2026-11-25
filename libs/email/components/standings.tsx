@@ -1,6 +1,7 @@
 import { Column, Row, Section, Text } from '@react-email/components'
 import type { CSSProperties, ReactNode } from 'react'
-import { placementScoringDescription } from '@tabletop/common'
+import type { TiebreakRule } from '@tabletop/common'
+import { m, type Locale, type Message } from '../i18n.js'
 import { darkPalette, darkStyles, fontStack, formatNames } from './darkCard.js'
 
 export interface StandingsRow {
@@ -71,8 +72,16 @@ const styles = {
     footnote: { margin: '10px 0 0', fontSize: '12px', lineHeight: '1.5', color: palette.faint },
 } satisfies Record<string, CSSProperties>
 
-const formatScore = (value: number): string =>
-    value.toLocaleString('en-US', { maximumFractionDigits: 3 })
+const formatScore = (value: number, locale: Locale): string =>
+    value.toLocaleString(locale, { maximumFractionDigits: 3 })
+
+const TIEBREAK_DESCRIPTIONS: Record<TiebreakRule, Message<object>> = {
+    pointsBehind: m.email_standings_tiebreak_points_behind,
+    shareOfWinner: m.email_standings_tiebreak_share_of_winner,
+}
+
+const tiebreakDescription = (rule: TiebreakRule | undefined, locale: Locale): string =>
+    (rule ? TIEBREAK_DESCRIPTIONS[rule] : m.email_standings_tiebreak_score_sum)({}, { locale })
 
 const numeric = (align: 'left' | 'right', width?: string): CSSProperties => ({
     width,
@@ -81,32 +90,27 @@ const numeric = (align: 'left' | 'right', width?: string): CSSProperties => ({
     whiteSpace: 'nowrap',
 })
 
-export function ordinal(rank: number): string {
-    const remainder = rank % 100
-    if (remainder >= 11 && remainder <= 13) return `${rank}th`
-    switch (rank % 10) {
-        case 1:
-            return `${rank}st`
-        case 2:
-            return `${rank}nd`
-        case 3:
-            return `${rank}rd`
-        default:
-            return `${rank}th`
-    }
-}
+export const ordinal = (place: number, locale: Locale): string =>
+    m.email_ordinal({ place }, { locale })
 
 export const ChampionPanel = ({
     winners,
+    locale,
     children,
 }: {
     winners: string[]
+    locale: Locale
     children?: ReactNode
 }) => (
     <Section style={styles.panel}>
-        <Text style={styles.championLabel}>{winners.length > 1 ? 'Champions' : 'Champion'}</Text>
+        <Text style={styles.championLabel}>
+            {winners.length > 1
+                ? m.email_standings_champions({}, { locale })
+                : m.email_standings_champion({}, { locale })}
+        </Text>
         <Text style={styles.championName}>
-            <span style={{ color: palette.gold }}>★</span> {formatNames(winners, 'Nobody')}
+            <span style={{ color: palette.gold }}>★</span>{' '}
+            {formatNames(winners, m.email_standings_nobody({}, { locale }), locale)}
         </Text>
         {children && <Text style={styles.placement}>{children}</Text>}
     </Section>
@@ -121,15 +125,17 @@ export const ResultPanel = ({ children }: { children: ReactNode }) => (
 export const StandingsTable = ({
     label,
     rows,
-    tiebreakDescription,
+    tiebreakRule,
     ranksByAveragePlace = false,
     starWinner = true,
+    locale,
 }: {
     label: string
     rows: StandingsRow[]
-    tiebreakDescription: string
+    tiebreakRule?: TiebreakRule
     ranksByAveragePlace?: boolean
     starWinner?: boolean
+    locale: Locale
 }) => {
     const showTiebreak = rows.some((row) => row.tiebreak !== undefined)
     const rowStyle = (row: StandingsRow, last: boolean): CSSProperties => ({
@@ -152,19 +158,27 @@ export const StandingsTable = ({
                         <Text style={styles.headerCell}>#</Text>
                     </Column>
                     <Column style={{ ...numeric('left'), paddingLeft: '8px' }}>
-                        <Text style={styles.headerCell}>Player</Text>
+                        <Text style={styles.headerCell}>
+                            {m.email_standings_column_player({}, { locale })}
+                        </Text>
                     </Column>
                     <Column style={numeric('right', '52px')}>
-                        <Text style={styles.headerCell}>Wins</Text>
+                        <Text style={styles.headerCell}>
+                            {m.email_standings_column_wins({}, { locale })}
+                        </Text>
                     </Column>
                     <Column style={numeric('right', '64px')}>
                         <Text style={styles.headerCell}>
-                            {ranksByAveragePlace ? 'Avg place' : 'Score'}
+                            {ranksByAveragePlace
+                                ? m.email_standings_column_average_place({}, { locale })
+                                : m.email_standings_column_score({}, { locale })}
                         </Text>
                     </Column>
                     {showTiebreak && (
                         <Column style={numeric('right', '84px')}>
-                            <Text style={styles.headerCell}>Tiebreak</Text>
+                            <Text style={styles.headerCell}>
+                                {m.email_standings_column_tiebreak({}, { locale })}
+                            </Text>
                         </Column>
                     )}
                 </Row>
@@ -174,7 +188,9 @@ export const StandingsTable = ({
                         style={rowStyle(row, index === rows.length - 1)}
                     >
                         <Column style={numeric('left', '32px')}>
-                            <Text style={{ ...styles.cell, color: palette.faint }}>{row.rank}</Text>
+                            <Text style={{ ...styles.cell, color: palette.faint }}>
+                                {row.rank.toLocaleString(locale)}
+                            </Text>
                         </Column>
                         <Column style={numeric('left')}>
                             <Text style={nameStyle(row)}>
@@ -185,13 +201,13 @@ export const StandingsTable = ({
                             </Text>
                         </Column>
                         <Column style={numeric('right', '52px')}>
-                            <Text style={styles.cell}>{row.wins}</Text>
+                            <Text style={styles.cell}>{row.wins.toLocaleString(locale)}</Text>
                         </Column>
                         <Column style={numeric('right', '64px')}>
                             <Text style={styles.cell}>
                                 {ranksByAveragePlace
                                     ? (row.averagePlace ?? '—')
-                                    : formatScore(row.score)}
+                                    : formatScore(row.score, locale)}
                             </Text>
                         </Column>
                         {showTiebreak && (
@@ -203,9 +219,13 @@ export const StandingsTable = ({
                 ))}
             </Section>
             {ranksByAveragePlace && (
-                <Text style={styles.footnote}>{placementScoringDescription}</Text>
+                <Text style={styles.footnote}>
+                    {m.email_standings_placement_scoring({}, { locale })}
+                </Text>
             )}
-            {showTiebreak && <Text style={styles.footnote}>{tiebreakDescription}</Text>}
+            {showTiebreak && (
+                <Text style={styles.footnote}>{tiebreakDescription(tiebreakRule, locale)}</Text>
+            )}
         </>
     )
 }

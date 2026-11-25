@@ -6,6 +6,7 @@ import {
     darkStyles as styles,
     formatNames,
 } from '../components/darkCard.js'
+import { baseLocale, m, type Locale, type Message } from '../i18n.js'
 
 export interface LeagueSeasonStartLevel {
     name: string
@@ -21,6 +22,16 @@ export interface LeagueSeasonStartProps {
     opponents: string[]
     gamesEach: number
     url?: string
+    locale: Locale
+}
+
+const MOVED_MESSAGES: Record<
+    NonNullable<LeagueSeasonStartLevel['moved']>,
+    Message<{ level: string }>
+> = {
+    up: m.email_league_season_start_moved_up,
+    merged: m.email_league_season_start_merged,
+    down: m.email_league_season_start_moved_down,
 }
 
 export const LeagueSeasonStart = ({
@@ -32,48 +43,53 @@ export const LeagueSeasonStart = ({
     opponents,
     gamesEach,
     url = ``,
+    locale,
 }: LeagueSeasonStartProps) => {
-    const previewText = `${leagueName} Season ${seasonNumber} has started. You are in Group ${groupName}.`
+    const names = formatNames(
+        opponents,
+        m.email_league_season_start_no_opponent_names({}, { locale }),
+        locale,
+    )
     return (
         <DarkCardEmail
-            preview={previewText}
+            locale={locale}
+            preview={m.email_league_season_start_preview(
+                { league: leagueName, season: seasonNumber, group: groupName },
+                { locale },
+            )}
             wordmarkHref={url}
-            eyebrow={`Season ${seasonNumber} has started`}
+            eyebrow={m.email_league_season_start_eyebrow({ season: seasonNumber }, { locale })}
             heading={leagueName}
-            subline={`${title} · ${level ? `Level ${level.name}` : 'Seeding season'}`}
+            subline={
+                level
+                    ? m.email_league_season_start_subline_level(
+                          { title, level: level.name },
+                          { locale },
+                      )
+                    : m.email_league_season_start_subline_seeding({ title }, { locale })
+            }
             footer={
                 <>
-                    You signed up for this league season on Board Together.{' '}
-                    <ButtonFallback url={url} />
+                    {m.email_league_season_start_footer({}, { locale })}{' '}
+                    <ButtonFallback url={url} locale={locale} />
                 </>
             }
         >
             <Section style={styles.panel}>
-                <Text style={styles.panelValue}>You are in Group {groupName}</Text>
-                {level?.moved === 'up' && (
+                <Text style={styles.panelValue}>
+                    {m.email_league_season_start_group({ group: groupName }, { locale })}
+                </Text>
+                {level?.moved && (
                     <Text style={styles.panelDetail}>
-                        You moved up to Level {level.name} to fill a place left by players who did
-                        not return this season.
-                    </Text>
-                )}
-                {level?.moved === 'merged' && (
-                    <Text style={styles.panelDetail}>
-                        The league has fewer players this season, so its bottom level has joined
-                        Level {level.name}.
-                    </Text>
-                )}
-                {level?.moved === 'down' && (
-                    <Text style={styles.panelDetail}>
-                        The league has grown a new level this season, so the lowest finishers of the
-                        level above, including you, start in Level {level.name}.
+                        {MOVED_MESSAGES[level.moved]({ level: level.name }, { locale })}
                     </Text>
                 )}
                 <Text style={styles.panelDetail}>
-                    You play {gamesEach} games against {formatNames(opponents, 'your group')}.
-                    {!level && ' Your results set your level for the next season.'}
+                    {m.email_league_season_start_games({ games: gamesEach, names }, { locale })}
+                    {!level && ` ${m.email_league_season_start_seeding_note({}, { locale })}`}
                 </Text>
             </Section>
-            <CardButton href={url}>See your games</CardButton>
+            <CardButton href={url}>{m.email_league_season_start_button({}, { locale })}</CardButton>
         </DarkCardEmail>
     )
 }
@@ -87,6 +103,7 @@ LeagueSeasonStart.PreviewProps = {
     opponents: ['Alice', 'Bob', 'Carol', 'Dave', 'Erin', 'Frank'],
     gamesEach: 4,
     url: 'https://boardtogether.games/tournaments/league-group',
+    locale: baseLocale,
 } satisfies LeagueSeasonStartProps
 
 export default LeagueSeasonStart

@@ -63,7 +63,8 @@ import {
     type TournamentScheduleRequest,
     type TournamentDraft,
     type TournamentListQuery,
-    UndoVotePreview
+    UndoVotePreview,
+    type LocaleTag
 } from '@tabletop/common'
 import type {
     AblyTokenRequest,
@@ -426,6 +427,16 @@ export class TabletopApi {
     ): Promise<User> {
         const response = await this.wretch
             .post({ timeZone, onlyIfUnset }, '/user/updateTimeZone')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async updateUserSeenLocale(locale: LocaleTag): Promise<User> {
+        const response = await this.wretch
+            .post({ locale }, '/user/updateSeenLocale')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()

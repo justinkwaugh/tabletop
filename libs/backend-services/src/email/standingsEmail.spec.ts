@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { render } from '@react-email/components'
 import { TournamentResults } from '@tabletop/email'
-import { formatTournamentTiebreaks, tournamentTiebreakDescription } from '@tabletop/common'
+import { formatTournamentTiebreaks, standingsTiebreakRule } from '@tabletop/common'
 
-async function renderedText(rows: Parameters<typeof tournamentTiebreakDescription>[0]) {
+async function renderedText(rows: Parameters<typeof standingsTiebreakRule>[0]) {
     const html = await render(
         TournamentResults({
             tournamentName: 'Mini',
             title: 'Title',
             winners: ['Alice'],
-            tiebreakDescription: tournamentTiebreakDescription(rows),
+            tiebreakRule: standingsTiebreakRule(rows),
             standings: [
                 {
                     rank: 1,
@@ -22,7 +22,8 @@ async function renderedText(rows: Parameters<typeof tournamentTiebreakDescriptio
                     recipient: true
                 }
             ],
-            url: 'https://example.com'
+            url: 'https://example.com',
+            locale: 'en'
         })
     )
     return html.replace(/<[^>]+>/g, ' ').replaceAll('&#x27;', "'")
@@ -57,7 +58,7 @@ describe('results email ranked by average place', () => {
                 tournamentName: 'Mini',
                 title: 'Title',
                 winners: ['Alice'],
-                tiebreakDescription: tournamentTiebreakDescription([{ pointsBehind: 0 }]),
+                tiebreakRule: 'pointsBehind',
                 ranksByAveragePlace: true,
                 standings: [
                     {
@@ -77,7 +78,8 @@ describe('results email ranked by average place', () => {
                         recipient: true
                     }
                 ],
-                url: 'https://example.com'
+                url: 'https://example.com',
+                locale: 'en'
             })
         )
         const text = html.replace(/<[^>]+>/g, ' ')

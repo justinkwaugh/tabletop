@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { GameStatus } from '@tabletop/common'
-import { GameEmailTask, gameStartedSeats } from '@tabletop/backend-services'
+import { GameEmailTask, emailRecipient, gameStartedSeats } from '@tabletop/backend-services'
 
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] || ''
 
@@ -22,8 +22,10 @@ export default async function (fastify: FastifyInstance) {
                 )
                 return reply.code(200).send()
             }
-            const turnNotificationsOn =
-                await fastify.notificationService.hasUserDirectSubscription(userId)
+            const [turnNotificationsOn, recipient] = await Promise.all([
+                fastify.notificationService.hasUserDirectSubscription(userId),
+                fastify.userService.getUser(userId)
+            ])
             await fastify.emailService.sendGameStartedEmail({
                 title: definition.info.metadata.name,
                 gameName: game.name,
@@ -31,7 +33,7 @@ export default async function (fastify: FastifyInstance) {
                 turnNotificationsOn,
                 url: `${FRONTEND_HOST}/game/${gameId}`,
                 notificationsUrl: `${FRONTEND_HOST}/notifications`,
-                toEmail
+                to: emailRecipient(toEmail, recipient)
             })
             return reply.code(200).send()
         }

@@ -58,7 +58,7 @@ describe('DiscordWebhookTransport', () => {
     it('posts to the webhook and mentions the linked Discord account', async () => {
         const { transport, execute } = transportAnswering({ ok: true }, ['discord:99'])
 
-        expect(await transport.sendNotification(subscription, turn)).toEqual({
+        expect(await transport.sendNotification(subscription, turn, 'en')).toEqual({
             success: true,
             unregister: false
         })
@@ -72,7 +72,7 @@ describe('DiscordWebhookTransport', () => {
         vi.spyOn(console, 'error').mockImplementation(() => {})
         const { transport } = transportAnswering({ ok: false, status: 404, gone: true })
 
-        expect(await transport.sendNotification(subscription, turn)).toEqual({
+        expect(await transport.sendNotification(subscription, turn, 'en')).toEqual({
             success: false,
             unregister: true
         })
@@ -82,7 +82,7 @@ describe('DiscordWebhookTransport', () => {
         vi.spyOn(console, 'error').mockImplementation(() => {})
         const { transport } = transportAnswering({ ok: false, status: 429, gone: false })
 
-        expect(await transport.sendNotification(subscription, turn)).toEqual({
+        expect(await transport.sendNotification(subscription, turn, 'en')).toEqual({
             success: false,
             unregister: false
         })

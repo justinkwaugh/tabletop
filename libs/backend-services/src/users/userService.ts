@@ -11,6 +11,7 @@ import {
     sessionGenerationOf,
     User,
     UserPreferences,
+    type LocaleTag,
     UserStatus,
     withAssignedRoles,
     isReservedUsername
@@ -26,7 +27,11 @@ import {
 } from './errors.js'
 import { isOffensiveUsername } from '../moderation/offensiveLanguage.js'
 import { requireSessionEligibleAccount } from './accountEligibility.js'
-import { AccountChangeType } from '../email/emailService.js'
+import {
+    AccountChangeType,
+    recipientLanguage,
+    type RecipientLanguage
+} from '../email/emailService.js'
 import { nanoid } from 'nanoid'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
 import {
@@ -190,6 +195,18 @@ export class UserService {
         return updatedUser
     }
 
+    async updateUserSeenLocale(userId: string, seenLocale: LocaleTag): Promise<User> {
+        const [updatedUser] = await this.userStore.updateUser({
+            userId,
+            fields: { seenLocale },
+            validator: (existingUser) =>
+                existingUser.seenLocale === seenLocale
+                    ? UpdateValidationResult.Cancel
+                    : UpdateValidationResult.Proceed
+        })
+        return updatedUser
+    }
+
     private isKnownTimeZone(timeZone: string): boolean {
         try {
             new Intl.DateTimeFormat('en-US', { timeZone })
@@ -240,7 +257,7 @@ export class UserService {
         if (updatedFields.includes('email') && updatedUser.email) {
             await this.sendVerificationEmail(updatedUser)
             if (originalUser.email) {
-                await this.notifyAccountChange(userId, {
+                await this.notifyAccountChange(updatedUser, {
                     email: originalUser.email,
                     changeType: AccountChangeType.Email,
                     timestamp: updateTimestamp
@@ -248,7 +265,7 @@ export class UserService {
             }
         }
         if (updatedFields.includes('password') && originalUser.email) {
-            await this.notifyAccountChange(userId, {
+            await this.notifyAccountChange(updatedUser, {
                 email: originalUser.email,
                 changeType: AccountChangeType.Password,
                 timestamp: updateTimestamp
@@ -289,7 +306,7 @@ export class UserService {
             token: issued.secret,
             email: newEmail
         })
-        await this.notifyAccountChange(user.id, {
+        await this.notifyAccountChange(user, {
             email: user.email,
             changeType: AccountChangeType.EmailChangeRequested,
             timestamp: new Date()
@@ -341,7 +358,7 @@ export class UserService {
             }
         })
         if (originalUser.email) {
-            await this.notifyAccountChange(updatedUser.id, {
+            await this.notifyAccountChange(updatedUser, {
                 email: originalUser.email,
                 changeType: AccountChangeType.Email,
                 timestamp: updatedUser.updatedAt ?? new Date()
@@ -423,7 +440,7 @@ export class UserService {
             validate: (existingUser) => this.requireChallengeAccount(existingUser, claim),
             participant: this.tokenService.consumeChallenge(secret, claim)
         })
-        await this.notifyAccountChange(userId, {
+        await this.notifyAccountChange(updatedUser, {
             email: claim.email,
             changeType: AccountChangeType.Password,
             timestamp: updatedUser.updatedAt ?? new Date()
@@ -434,14 +451,17 @@ export class UserService {
     // The Account change has committed by the time its Attention Notice is dispatched; the notice
     // is best effort (Notification Delivery), so a failed dispatch is reported, not the operation.
     private async notifyAccountChange(
-        userId: string,
-        notification: AccountChangeNotice
+        account: User,
+        notification: Omit<AccountChangeNotice, keyof RecipientLanguage>
     ): Promise<void> {
         try {
-            await this.taskService.sendAccountChangeNotificationEmail(notification)
+            await this.taskService.sendAccountChangeNotificationEmail({
+                ...notification,
+                ...recipientLanguage(account)
+            })
         } catch (error) {
             console.error('Account change notification was not dispatched', {
-                userId,
+                userId: account.id,
                 changeType: notification.changeType,
                 error: error instanceof Error ? error.name : typeof error
             })
@@ -546,7 +566,7 @@ export class UserService {
             userId: user.id,
             token: formatSetPasswordChallenge({ userId: user.id, secret: issued.secret })
         })
-        await this.notifyAccountChange(user.id, {
+        await this.notifyAccountChange(user, {
             email: user.email,
             changeType: AccountChangeType.PasswordReset,
             timestamp: new Date()
@@ -594,7 +614,7 @@ export class UserService {
             this.removeListedUsername(originalUser.username)
             this.addListedUsernameIfActive(updatedUser)
             if (updatedUser.email) {
-                await this.notifyAccountChange(userId, {
+                await this.notifyAccountChange(updatedUser, {
                     email: updatedUser.email,
                     changeType: AccountChangeType.Username,
                     timestamp: updatedUser.updatedAt ?? new Date(),

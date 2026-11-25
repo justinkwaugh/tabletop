@@ -1675,5 +1675,22 @@
     "pace_relaxed_name": "Relaxed",
     "pace_relaxed_line": "Relaxed · within 3 days",
     "pace_relaxed_summary": "Relaxed · 3 days",
-    "pace_relaxed_past_limit": "Past the 3-day pace"
+    "pace_relaxed_past_limit": "Past the 3-day pace",
+    "push_player_joined_title": "Player joined!",
+    "push_player_joined_body": "{player} joined your game {game}",
+    "push_player_declined_title": "Player declined",
+    "push_player_declined_body": "{player} has declined to join your game {game}",
+    "push_game_started_title": "Game has started!",
+    "push_game_started_body": "Your game {game} has begun!",
+    "push_invited_title": "You were invited to a game!",
+    "push_invited_body": "{owner} invited you to join their game {game}",
+    "push_your_turn_title": "It's your turn!",
+    "push_your_turn_body": "It's your turn in game {game}",
+    "push_call_vote_title": "{initiator} asks to end the game",
+    "push_undo_vote_title": "{initiator} asks to go back",
+    "push_vote_body": "Vote in game {game}",
+    "push_took_over_seat_title": "You've joined a game in progress",
+    "push_took_over_seat_body": "You've taken over {formerHolder}'s seat in {game}",
+    "push_lost_seat_title": "Your seat was given to another player",
+    "push_lost_seat_body": "{newHolder} has taken over your seat in {game}"
 }

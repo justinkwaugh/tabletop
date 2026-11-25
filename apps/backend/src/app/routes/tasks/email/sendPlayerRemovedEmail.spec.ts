@@ -32,8 +32,9 @@ function seatedGame(status: GameStatus, seatName = 'Riley') {
 
 async function send({
     game = seatedGame(GameStatus.Started),
-    removed = banned
-}: { game?: ReturnType<typeof seatedGame>; removed?: User } = {}) {
+    removed = banned,
+    recipientId
+}: { game?: ReturnType<typeof seatedGame>; removed?: User; recipientId?: string } = {}) {
     const server = Fastify()
     const definition = { info: { id: 'freshfish' } }
     const email = vi.fn(async () => undefined)
@@ -41,16 +42,32 @@ async function send({
         getGame: vi.fn(async () => game),
         getTitle: vi.fn(() => definition)
     })
-    Reflect.set(server, 'userService', { getUser: vi.fn(async () => removed) })
+    const recipient: User = {
+        ...banned,
+        id: 'other',
+        status: UserStatus.Active,
+        seenLocale: 'de',
+        timeZone: 'Europe/Berlin'
+    }
+    const getUserByEmail = vi.fn(async () => ({ ...recipient, timeZone: undefined }))
+    Reflect.set(server, 'userService', {
+        getUser: vi.fn(async (id: string) => (id === recipient.id ? recipient : removed)),
+        getUserByEmail
+    })
     Reflect.set(server, 'emailService', { sendPlayerRemovedEmail: email })
     await server.register(sendPlayerRemovedEmail)
     const response = await server.inject({
         method: 'POST',
         url: '/sendPlayerRemovedEmail',
-        payload: { removedUserId: banned.id, gameId: 'game-1', toEmail: 'other@example.test' }
+        payload: {
+            removedUserId: banned.id,
+            gameId: 'game-1',
+            toEmail: 'other@example.test',
+            ...(recipientId ? { recipientId } : {})
+        }
     })
     await server.close()
-    return { response, email, game, definition }
+    return { response, email, game, definition, getUserByEmail }
 }
 
 describe('POST /sendPlayerRemovedEmail', () => {
@@ -64,9 +81,19 @@ describe('POST /sendPlayerRemovedEmail', () => {
             game,
             definition,
             url: expect.stringContaining('/game/game-1'),
-            toEmail: 'other@example.test',
+            to: { email: 'other@example.test', locale: 'de' },
             deletedAccount: false
         })
+    })
+
+    it('writes to a recipient the task names in their language without an address lookup', async () => {
+        const { email, getUserByEmail } = await send({ recipientId: 'other' })
+        expect(email).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({
+                to: { email: 'other@example.test', locale: 'de', timeZone: 'Europe/Berlin' }
+            })
+        )
+        expect(getUserByEmail).not.toHaveBeenCalled()
     })
 
     it('says a player whose account was deleted left the site', async () => {
@@ -82,7 +109,7 @@ describe('POST /sendPlayerRemovedEmail', () => {
     it('never sends an offensive username to the other players', async () => {
         const { email } = await send({ game: seatedGame(GameStatus.Started, 'NiggerMan') })
         expect(email).toHaveBeenCalledExactlyOnceWith(
-            expect.objectContaining({ playerName: 'A player' })
+            expect.objectContaining({ playerName: 'Ein Spieler' })
         )
     })
 

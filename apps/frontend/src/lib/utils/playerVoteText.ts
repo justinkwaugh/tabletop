@@ -8,7 +8,7 @@ import {
     type UndoVotePreview
 } from '@tabletop/common'
 import { m } from '$lib/paraglide/messages'
-import type { MessagePart } from '$lib/paraglide/runtime'
+import type { MessagePart } from '@tabletop/common'
 
 export type VoteRequestForm = 'line' | 'sentence'
 
