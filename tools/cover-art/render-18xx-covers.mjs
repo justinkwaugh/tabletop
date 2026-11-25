@@ -82,6 +82,49 @@ const covers = {
 <div class="abs rule"></div><div class="abs gb">Great Britain</div>
 <div class="credit">Simon Cutforth</div><div class="artist">after J. M. W. Turner<br>Rain, Steam and Speed, 1844</div>`
     },
+    '1833ne': {
+        file: 'File:City of Fall River, Mass. 1877. LOC 75694571.jpg',
+        full: true,
+        crop: { left: 0.50245, right: 0.68627, top: 0.62025, aspect: 1.166 },
+        // paints out the "MOUNT HOPE BAY" label with the water below it
+        retouch: [
+            {
+                from: { left: 0.50245, top: 0.84506, width: 0.18382, height: 0.01664 },
+                to: { left: 0.50245, top: 0.82676 }
+            }
+        ],
+        css: `
+.cover{background:#eee6d0}
+.art{position:absolute;left:0;right:0;top:0;height:440px;background:var(--art) center/cover;border-bottom:1px solid #23364a}
+.num{top:462px;font:900 112px/1 Playfair;font-variant-numeric:lining-nums;color:#23364a}
+.ne{font-size:.62em;letter-spacing:.04em;margin-left:.04em}
+.r1{margin:auto;width:300px;border-top:1px solid #23364a;top:590px}
+.sub{top:602px;font:600 15px Cinzel;letter-spacing:.34em;color:#2a2219;padding-left:.34em}
+.credit{color:#2a2219;bottom:14px}.artist{color:#2a2219;bottom:12px}`,
+        html: `<div class="art"></div><div class="abs num">1833<span class="ne">NE</span></div><div class="abs r1"></div>
+<div class="abs sub">Railroading in New England</div>
+<div class="credit">Tom Lehmann</div><div class="artist">after O. H. Bailey &amp; J. C. Hazen<br>City of Fall River, Mass., 1877</div>`
+    },
+    1846: {
+        file: 'File:American railroad scene- lightning express trains leaving the junction LCCN90708612.jpg',
+        crop: { left: 0.07, right: 0.55, top: 0.36, aspect: 1.5 },
+        css: `
+.cover{background:#f0e8d2}
+.edge{position:absolute;inset:12px;border:2px solid #1d1a17}
+.l1{top:26px;font:400 22px Rye;color:#1d1a17;letter-spacing:.08em}
+.num{top:68px;font:400 150px/1 AlfaSlab;color:#a3231a;letter-spacing:.01em}
+.l2{top:222px;font:700 30px/1 Oswald;letter-spacing:.12em;color:#1d1a17;padding-left:.12em}
+.bar{margin:auto;width:420px;border-top:3px solid #1d1a17}.b1{top:214px}.b2{top:262px}
+.vig{position:absolute;left:70px;right:70px;top:278px;height:244px;background:var(--art) center/cover;filter:grayscale(1) contrast(1.35);mix-blend-mode:multiply;-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 62%,#0000 100%)}
+.cities{top:546px;font:600 13px/1.7 Oswald;letter-spacing:.2em;color:#1d1a17;padding-left:.2em}
+.by{top:562px;font:400 20px Rye;color:#a3231a;letter-spacing:.06em}
+.artist{bottom:24px;right:0;left:0;text-align:center;color:#1d1a17aa}`,
+        html: `<div class="edge"></div><div class="abs l1">— Tom Lehmann’s —</div>
+<div class="abs num">1846</div><div class="abs bar b1"></div><div class="abs l2">THE RACE FOR THE MIDWEST</div><div class="abs bar b2"></div>
+<div class="vig"></div>
+<div class="abs cities">CHICAGO · DETROIT · CLEVELAND · TOLEDO<br>CINCINNATI · ST. LOUIS · PITTSBURGH</div>
+<div class="artist">vignette after Currier &amp; Ives, Lightning Express Trains, 1874</div>`
+    },
     1849: {
         file: 'File:Mount Etna From Taormina, Sicily, Explore Thomas Cole.png',
         crop: { left: 0.47, right: 0.959, top: 0 },
@@ -229,8 +272,8 @@ async function cached(name, url) {
     return path
 }
 
-/** A Commons file scaled to at most 3840 pixels wide. */
-function commonsImage(title) {
+/** A Commons file scaled to at most 3840 pixels wide, or at its original size when `full`. */
+function commonsImage(title, full) {
     return async () => {
         const query = new URLSearchParams({
             action: 'query',
@@ -238,13 +281,13 @@ function commonsImage(title) {
             titles: title,
             prop: 'imageinfo',
             iiprop: 'url',
-            iiurlwidth: '3840'
+            ...(full ? {} : { iiurlwidth: '3840' })
         })
         const json = await (
             await fetchOk(`https://commons.wikimedia.org/w/api.php?${query}`)
         ).json()
         const info = Object.values(json.query.pages)[0].imageinfo[0]
-        return info.thumburl ?? info.url
+        return full ? info.url : (info.thumburl ?? info.url)
     }
 }
 
@@ -256,23 +299,42 @@ async function pdfImage(id, { url, page }) {
     return `${prefix}-000.png`
 }
 
-/** Cuts the cover's window out of its source and returns it as a JPEG data URL. */
-async function art(id, { file, pdf, crop }) {
-    const source = pdf ? await pdfImage(id, pdf) : await cached(`${id}-source`, commonsImage(file))
+/**
+ * Cuts the cover's window out of its source and returns it as a JPEG data URL. A `retouch` copies
+ * a strip of the source (`from`, fractions of the image) over another place (`to`), to paint out a
+ * printed label with the texture beside it.
+ */
+async function art(id, { file, full, pdf, crop, retouch }) {
+    const source = pdf
+        ? await pdfImage(id, pdf)
+        : await cached(`${id}-source`, commonsImage(file, full))
     const [w, h] = execFileSync('identify', ['-format', '%w %h', `${source}[0]`], {
         encoding: 'utf8'
     })
         .split(' ')
         .map(Number)
+    const left = Math.round(crop.left * w)
+    const top = Math.round(crop.top * h)
     const cropWidth = Math.round((crop.right - crop.left) * w)
     const cropHeight = Math.round(cropWidth / (crop.aspect ?? width / height))
-    const geometry = `${cropWidth}x${cropHeight}+${Math.round(crop.left * w)}+${Math.round(crop.top * h)}`
+    const patches = (retouch ?? []).flatMap(({ from, to }) => [
+        '(',
+        '+clone',
+        '-crop',
+        `${Math.round(from.width * w)}x${Math.round(from.height * h)}+${Math.round(from.left * w) - left}+${Math.round(from.top * h) - top}`,
+        '+repage',
+        ')',
+        '-geometry',
+        `+${Math.round(to.left * w) - left}+${Math.round(to.top * h) - top}`,
+        '-composite'
+    ])
     const jpeg = join(cache, `${id}-crop.jpg`)
     execFileSync('convert', [
         `${source}[0]`,
         '-crop',
-        geometry,
+        `${cropWidth}x${cropHeight}+${left}+${top}`,
         '+repage',
+        ...patches,
         '-resize',
         `${width * 2}x`,
         '-quality',
