@@ -4,8 +4,19 @@ export function requiresRecentAuthentication(error: unknown): boolean {
     return error instanceof APIError && error.name === 'RecentAuthenticationRequiredError'
 }
 
+export type SensitiveActionPurpose =
+    | 'change-password'
+    | 'update-profile'
+    | 'change-email'
+    | 'confirm-new-email'
+    | 'delete-account'
+    | 'update-email'
+    | 'complete-profile'
+    | 'link-discord'
+    | 'link-google'
+
 export type PendingSensitiveAction = {
-    description: string
+    purpose: SensitiveActionPurpose
     retry: () => Promise<void>
     requiresUserGesture?: boolean
     prepare?: () => Promise<PreparedSensitiveAction>

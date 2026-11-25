@@ -5,12 +5,7 @@
     import LibraryShelf from '$lib/components/LibraryShelf.svelte'
     import SeriesGames from '$lib/components/series/SeriesGames.svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import {
-        availableSeriesEntries,
-        gameCount,
-        libraryUrl,
-        titleShelfItems
-    } from '$lib/utils/libraryTitles'
+    import { availableSeriesEntries, libraryUrl, titleShelfItems } from '$lib/utils/libraryTitles'
     import {
         parseSeriesFilter,
         seriesFilterSearch,
@@ -19,6 +14,7 @@
         type SeriesView
     } from '$lib/utils/seriesLobby'
     import { nextTabIndex } from '$lib/utils/tabNavigation'
+    import { m } from '$lib/paraglide/messages'
 
     let { data } = $props()
     const { authorizationService, catalogService } = getAppContext()
@@ -32,10 +28,10 @@
     )
     const { tabbed, view } = $derived(seriesPageView(data.series, user !== undefined, filter))
     const tabsId = $props.id()
-    const TABS: { view: SeriesView; label: string }[] = [
-        { view: 'titles', label: 'Titles' },
-        { view: 'lobby', label: 'Lobby' },
-        { view: 'finished', label: 'Finished' }
+    const TABS: { view: SeriesView; label: () => string }[] = [
+        { view: 'titles', label: m.library_titles },
+        { view: 'lobby', label: m.library_series_tab_lobby },
+        { view: 'finished', label: m.library_series_tab_finished }
     ]
 
     function setFilter(next: SeriesFilter) {
@@ -56,21 +52,21 @@
 </script>
 
 <svelte:head>
-    <title>{data.series.name} games — Board Together</title>
+    <title>{m.library_series_page_title({ name: data.series.name })}</title>
 </svelte:head>
 
 <main class="series-page collection-page">
-    <BackLink href={libraryUrl(user)} label="All games" />
+    <BackLink href={libraryUrl(user)} label={m.library_all_games()} />
     <div class="series-heading">
         <h1 class="collection-heading">{data.series.name}</h1>
         {#if titles.length > 0 && view === 'titles'}
-            <span class="series-count">{gameCount(titles.length)}</span>
+            <span class="series-count">{m.title_count({ count: titles.length })}</span>
         {/if}
     </div>
-    <p class="series-description">{data.series.description}</p>
+    <p class="series-description">{data.series.description()}</p>
     {#if titles.length === 0}
         <p role="status" class="series-status">
-            The game shelf couldn’t load. Please refresh to try again.
+            {m.library_series_shelf_load_failed()}
         </p>
     {:else}
         {#if tabbed}
@@ -86,7 +82,7 @@
                         onclick={() => setFilter({ ...filter, view: tab.view })}
                         onkeydown={(event) => moveTab(event, index)}
                     >
-                        {tab.label}
+                        {tab.label()}
                         {#if tab.view === 'titles'}<span class="tab-count">{titles.length}</span
                             >{/if}
                     </button>

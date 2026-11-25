@@ -8,11 +8,11 @@ describe('confirmation ownership', () => {
     it('ignores completion and dismissal from a replaced prompt', async () => {
         const oldRetry = vi.fn()
         const newRetry = vi.fn()
-        reauthentication.request({ description: 'old action', retry: oldRetry })
+        reauthentication.request({ purpose: 'change-password', retry: oldRetry })
         const old = reauthentication.pending
         assertExists(old, 'The old prompt exists')
         reauthentication.cancel()
-        reauthentication.request({ description: 'new action', retry: newRetry })
+        reauthentication.request({ purpose: 'update-profile', retry: newRetry })
         const current = reauthentication.pending
         assertExists(current, 'The replacement prompt exists')
 
@@ -28,7 +28,7 @@ describe('confirmation ownership', () => {
 
     it('cannot resume an unconfirmed or cancelled popup action', async () => {
         const retry = vi.fn()
-        reauthentication.request({ description: 'open Discord', retry, requiresUserGesture: true })
+        reauthentication.request({ purpose: 'link-discord', retry, requiresUserGesture: true })
         const pending = reauthentication.pending
         assertExists(pending, 'The popup action requested confirmation')
         await reauthentication.resume(pending)

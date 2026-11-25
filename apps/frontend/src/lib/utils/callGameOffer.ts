@@ -5,6 +5,7 @@ import {
     isTwoPlayerGame,
     type Game
 } from '@tabletop/common'
+import { m } from '$lib/paraglide/messages'
 
 export type CallGameOffer = {
     concession: boolean
@@ -25,5 +26,8 @@ export function callGameOffer(
     }
     const concession = isTwoPlayerGame(game.players)
     if (!concession && game.vote) return undefined
-    return { concession, label: concession ? 'Concede' : 'Call the game' }
+    return {
+        concession,
+        label: concession ? m.games_call_offer_concede() : m.games_call_offer_call()
+    }
 }

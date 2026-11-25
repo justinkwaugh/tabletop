@@ -12,6 +12,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { accountName } from '$lib/utils/accountName'
     import { UsernameSuggestions } from '$lib/utils/usernameSuggestions.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { detail, onchanged }: { detail: TournamentDetail; onchanged: () => void } = $props()
     const { api } = getAppContext()
@@ -71,7 +72,7 @@
             handovers = {}
             onchanged()
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not replace the player'
+            error = failure instanceof Error ? failure.message : m.tournaments_replace_failed()
         } finally {
             busy = false
         }
@@ -82,23 +83,24 @@
             .then((value) => (schedule = value))
             .catch(
                 (failure) =>
-                    (error = failure instanceof Error ? failure.message : 'Could not load tables')
+                    (error =
+                        failure instanceof Error
+                            ? failure.message
+                            : m.tournaments_tables_load_failed())
             )
     })
 </script>
 
 <section
     class="mt-4 max-w-xl rounded-md border border-gray-200 p-3 dark:border-gray-700"
-    aria-label="Replace a player"
+    aria-label={m.tournaments_replace_heading()}
 >
-    <h2 class="font-tournament text-lg font-semibold">Replace a player</h2>
+    <h2 class="font-tournament text-lg font-semibold">{m.tournaments_replace_heading()}</h2>
     <p class="mt-1 text-xs text-gray-500">
         {#if knockout}
-            A withdrawn player forfeits their match and their opponent goes through. Knockout places
-            take no substitutes.
+            {m.tournaments_replace_knockout_intro()}
         {:else}
-            A substitute takes over the player's place and finishes their games. A withdrawn
-            player's unfinished games don't count for anyone.
+            {m.tournaments_replace_intro()}
         {/if}
     </p>
     {#if error}<p role="alert" class="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>{/if}
@@ -110,7 +112,7 @@
         }}
     >
         <label class="block text-xs"
-            >Player
+            >{m.tournaments_replace_player()}
             <Select
                 size="sm"
                 placeholder=""
@@ -120,7 +122,7 @@
                 disabled={busy}
                 required
             >
-                <option value="">Choose a player</option>
+                <option value="">{m.tournaments_replace_choose_player()}</option>
                 {#each places as entrant (entrant.userId)}
                     <option value={entrant.userId}>{name(tournamentEntrantAccount(entrant))}</option
                     >
@@ -129,43 +131,46 @@
         </label>
         {#if place && finishing}
             <p class="text-xs text-gray-500">
-                {name(playing)} was withdrawn, but {activeTables.length === 1
-                    ? 'a game of theirs is'
-                    : `${activeTables.length} games of theirs are`} still in progress. Finishing the withdrawal
-                ends {activeTables.length === 1 ? 'it' : 'them'}.
+                {m.tournaments_replace_withdrawn_in_progress({
+                    name: name(playing),
+                    count: activeTables.length
+                })}
             </p>
             <button
                 class="rounded bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                disabled={busy}>Finish withdrawing {name(playing)}</button
+                disabled={busy}
+                >{m.tournaments_replace_finish_withdrawing({ name: name(playing) })}</button
             >
         {:else if place}
             {#if !knockout}
                 <fieldset disabled={busy} class="flex gap-4 text-sm">
-                    <legend class="sr-only">Replace with</legend>
+                    <legend class="sr-only">{m.tournaments_replace_with()}</legend>
                     <label class="flex items-center gap-2"
                         ><input
                             type="radio"
                             value="substitute"
                             bind:group={chosenMode}
-                        />Substitute</label
+                        />{m.tournaments_replace_substitute()}</label
                     >
                     <label class="flex items-center gap-2"
                         ><input
                             type="radio"
                             value="withdraw"
                             bind:group={chosenMode}
-                        />Withdraw</label
+                        />{m.tournaments_replace_withdraw()}</label
                     >
                 </fieldset>
             {/if}
             {#if mode === 'substitute'}
-                <label class="block text-xs" for="tournament-substitute">Substitute</label>
+                <label class="block text-xs" for="tournament-substitute"
+                    >{m.tournaments_replace_substitute()}</label
+                >
                 <input
                     id="tournament-substitute"
                     class="block w-56 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800"
                     list="tournament-substitute-matches"
                     autocomplete="off"
-                    placeholder="Username"
+                    placeholder={m.tournaments_replace_username_placeholder()}
                     bind:value={substitute}
                     oninput={() => void suggestions.suggest(substitute, taken)}
                     required
@@ -177,11 +182,15 @@
                 </datalist>
                 {#if activeTables.length}
                     <fieldset disabled={busy} class="space-y-2">
-                        <legend class="mb-1 text-xs text-gray-500">Games in progress</legend>
+                        <legend class="mb-1 text-xs text-gray-500"
+                            >{m.tournaments_replace_games_in_progress()}</legend
+                        >
                         {#each activeTables as tableId (tableId)}
                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                                 <span class="w-20 text-xs text-gray-500"
-                                    >Table {Number(tableId)}</span
+                                    >{m.tournaments_table_number({
+                                        table: Number(tableId)
+                                    })}</span
                                 >
                                 <label class="flex items-center gap-2"
                                     ><input
@@ -190,7 +199,7 @@
                                         checked={(handovers[tableId] ?? 'takeOver') === 'takeOver'}
                                         onchange={() =>
                                             (handovers = { ...handovers, [tableId]: 'takeOver' })}
-                                    />Take over the game</label
+                                    />{m.tournaments_replace_take_over()}</label
                                 >
                                 <label class="flex items-center gap-2"
                                     ><input
@@ -199,7 +208,7 @@
                                         checked={handovers[tableId] === 'restart'}
                                         onchange={() =>
                                             (handovers = { ...handovers, [tableId]: 'restart' })}
-                                    />Restart it</label
+                                    />{m.tournaments_replace_restart()}</label
                                 >
                             </div>
                         {/each}
@@ -207,20 +216,18 @@
                 {/if}
                 <p class="text-xs text-gray-500">
                     {detail.tournament.league
-                        ? `${name(playing)} is dropped. The substitute's place can't move up or down, and they start next season in the bottom level.`
-                        : `${name(playing)} is dropped. The substitute's place can't win the tournament.`}
+                        ? m.tournaments_replace_dropped_league({ name: name(playing) })
+                        : m.tournaments_replace_dropped({ name: name(playing) })}
                 </p>
             {:else if knockout}
                 <p class="text-xs text-gray-500">
-                    {name(playing)}'s unfinished games end and count for nobody, and their opponent
-                    goes through. Matches they already won stand, and they won't be ranked.
+                    {m.tournaments_replace_knockout_withdraw_note({ name: name(playing) })}
                 </p>
             {:else}
                 <p class="text-xs text-gray-500">
-                    {name(playing)}'s unfinished games end and count for nobody. Their finished
-                    results stay, and they won't be ranked{detail.tournament.league
-                        ? ' or have a place next season'
-                        : ''}.
+                    {detail.tournament.league
+                        ? m.tournaments_replace_withdraw_note_league({ name: name(playing) })
+                        : m.tournaments_replace_withdraw_note({ name: name(playing) })}
                 </p>
             {/if}
             <button
@@ -229,7 +236,9 @@
                     ? 'bg-red-600'
                     : 'bg-blue-600'}"
                 disabled={busy || (mode === 'substitute' && !substitute.trim())}
-                >{mode === 'withdraw' ? `Withdraw ${name(playing)}` : 'Substitute'}</button
+                >{mode === 'withdraw'
+                    ? m.tournaments_replace_withdraw_action({ name: name(playing) })
+                    : m.tournaments_replace_substitute_action()}</button
             >
         {/if}
     </form>

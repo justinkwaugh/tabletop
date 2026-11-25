@@ -8,6 +8,8 @@
     } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { placementCorrection, standingsPlaces } from '$lib/utils/tournamentFinishingPlaces'
+    import { m } from '$lib/paraglide/messages'
+    import { accountName } from '$lib/utils/accountName'
 
     let { detail, onchanged }: { detail: TournamentDetail; onchanged: () => void } = $props()
     const { api } = getAppContext()
@@ -53,7 +55,7 @@
             reason = ''
             onchanged()
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not correct result'
+            error = failure instanceof Error ? failure.message : m.tournaments_correction_failed()
         } finally {
             busy = false
         }
@@ -64,19 +66,23 @@
             .then((value) => (schedule = value))
             .catch(
                 (failure) =>
-                    (error = failure instanceof Error ? failure.message : 'Could not load tables')
+                    (error =
+                        failure instanceof Error
+                            ? failure.message
+                            : m.tournaments_tables_load_failed())
             )
     })
 </script>
 
 <section
     class="mt-4 max-w-xl rounded-md border border-gray-200 p-3 dark:border-gray-700"
-    aria-label="Correct tournament credit"
+    aria-label={m.tournaments_correction_heading()}
 >
-    <h2 class="font-tournament text-lg font-semibold">Correct tournament credit</h2>
+    <h2 class="font-tournament text-lg font-semibold">{m.tournaments_correction_heading()}</h2>
     <p class="mt-1 text-xs text-gray-500">
-        {ranksByPlace ? 'Choose every place' : 'Choose the credited winners'}. The played game and
-        its history stay unchanged.
+        {ranksByPlace
+            ? m.tournaments_correction_places_intro()
+            : m.tournaments_correction_winners_intro()}
     </p>
     {#if error}<p role="alert" class="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>{/if}
     <form
@@ -87,7 +93,7 @@
         }}
     >
         <label class="block text-xs"
-            >Table
+            >{m.tournaments_table()}
             <Select
                 size="sm"
                 placeholder=""
@@ -97,16 +103,18 @@
                 disabled={busy}
                 required
             >
-                <option value="">Choose a finished table</option>
+                <option value="">{m.tournaments_correction_choose_table()}</option>
                 {#each schedule?.tables.filter( (table) => finished.includes(table.id) ) ?? [] as table (table.id)}
-                    <option value={table.id}>Table {table.id}</option>
+                    <option value={table.id}
+                        >{m.tournaments_table_number({ table: table.id })}</option
+                    >
                 {/each}
             </Select>
         </label>
         {#if table && ranksByPlace}
             <fieldset disabled={busy} class="space-y-2">
                 <legend class="mb-2 text-xs text-gray-500"
-                    >Places — players given the same number share a place</legend
+                    >{m.tournaments_correction_places_legend()}</legend
                 >
                 {#each seated as id, entrantIndex (entrantIndex)}
                     <label class="flex items-center gap-2 text-sm"
@@ -123,27 +131,28 @@
                             {#each seated as _, place (place)}
                                 <option value={String(place + 1)}>{place + 1}</option>
                             {/each}
-                        </Select>{detail.usernames[id] ?? 'Unavailable account'}</label
+                        </Select>{accountName(detail.usernames, id)}</label
                     >
                 {/each}
             </fieldset>
         {:else if table}
             <fieldset disabled={busy} class="space-y-2">
                 <legend class="mb-2 text-xs text-gray-500"
-                    >Credited winners — choose one or more</legend
+                    >{m.tournaments_correction_winners_legend()}</legend
                 >
                 {#each seated as id, entrantIndex (entrantIndex)}
                     <label class="flex items-center gap-2 text-sm"
-                        ><input type="checkbox" value={id} bind:group={winners} />{detail.usernames[
+                        ><input type="checkbox" value={id} bind:group={winners} />{accountName(
+                            detail.usernames,
                             id
-                        ] ?? 'Unavailable account'}</label
+                        )}</label
                     >
                 {/each}
             </fieldset>
         {/if}
         {#if table}
             <label class="block text-xs"
-                >Reason
+                >{m.tournaments_correction_reason()}
                 <textarea
                     class="mt-1 block w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800"
                     bind:value={reason}
@@ -156,7 +165,7 @@
             <button
                 class="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
                 disabled={busy || !reason.trim() || (ranksByPlace ? !placed : !winners.length)}
-                >Save correction</button
+                >{m.tournaments_correction_save()}</button
             >
         {/if}
     </form>

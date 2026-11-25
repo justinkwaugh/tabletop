@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { Card, Hr } from 'flowbite-svelte'
     import { ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
@@ -22,16 +23,19 @@
 <div class="flex min-h-[calc(100dvh-70px)] flex-col items-center justify-center gap-6 px-2 py-6">
     <Card size="md" class="bg-gray-300 p-4 sm:p-6">
         <div class="flex flex-col gap-3">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">Turn Notifications</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">
+                {m.notifications_turn_heading()}
+            </h2>
             <p class="text-sm text-gray-700 dark:text-gray-300">
-                BoardTogether tells you it's your turn through your web browser, Discord and
-                Telegram. Turn notifications are never sent by email.
+                {m.notifications_turn_intro()}
             </p>
         </div>
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">
-            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Web Notifications</h3>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+                {m.notifications_web_heading()}
+            </h3>
             <WebNotificationsSetting />
         </div>
 
@@ -41,19 +45,25 @@
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">
-            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Turn Reminders</h3>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+                {m.notifications_turn_reminders_heading()}
+            </h3>
             <TurnRemindersEditor />
         </div>
 
         <Hr class="my-6" />
         <div class="flex flex-col gap-3">
-            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Reminder Hours</h3>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+                {m.notifications_reminder_hours_heading()}
+            </h3>
             <ReminderHoursEditor />
         </div>
     </Card>
     <Card size="md" class="bg-gray-300 p-4 sm:p-6">
         <div class="flex flex-col gap-3">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">Email</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">
+                {m.notifications_email_heading()}
+            </h2>
             <EmailNotificationsSetting />
         </div>
     </Card>

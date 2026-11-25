@@ -1,0 +1,1752 @@
+{
+    "$schema": "https://inlang.com/schema/inlang-message-format",
+    "preferences_title": "Preferências",
+    "preferences_language": "Idioma",
+    "language_browser_default": "Padrão do navegador",
+    "preferences_prevent_web_notification_prompt": "Não perguntar sobre notificações web",
+    "preferences_colorblind_palette": "Paleta adaptada ao daltonismo",
+    "preferences_preferred_player_colors": "Cores de jogador preferidas",
+    "preferences_bg_stats": "Enviar partidas para o BG Stats",
+    "preferences_bg_stats_help": "Mostra um link nas suas partidas online terminadas para importar a partida, os jogadores, as pontuações e os vencedores para o app BG Stats. Cada importação é confirmada no BG Stats.",
+    "preferences_save_failed": "Não foi possível salvar as suas preferências. Tente novamente.",
+    "close": "Fechar",
+    "got_it": "Entendido",
+    "loading_game_library": "Carregando a biblioteca de jogos…",
+    "site_updated_refreshing": "O site foi atualizado e é necessário recarregar a página. A página será recarregada em 5 segundos",
+    "site_updated_refresh_when_ready": "O site foi atualizado com novidades ou correções; recarregue a página quando tiver um momento",
+    "nav_about_us": "Sobre nós",
+    "nav_pay_it_forward": "Passe adiante",
+    "nav_report_bug": "Reportar um bug",
+    "nav_follow_game": "Seguir esta partida",
+    "nav_following_game": "Segue esta partida",
+    "nav_my_games": "Minhas partidas",
+    "nav_games": "Partidas",
+    "nav_refresh_to_update": "Recarregar para atualizar",
+    "nav_install_app": "Instalar o BoardTogether",
+    "nav_tournaments_and_leagues": "Torneios e ligas",
+    "nav_open_account_menu": "Abrir menu da conta",
+    "nav_username_not_assigned": "nome de jogador não definido",
+    "nav_next_turn": "Próxima jogada",
+    "nav_log_to_bg_stats": "Enviar para o BG Stats",
+    "nav_profile": "Perfil",
+    "nav_notifications": "Notificações",
+    "nav_report": "Denunciar…",
+    "nav_sign_out": "Sair",
+    "nav_sign_in": "Entrar",
+    "notification_prompt_question": "Receber notificações sobre convites para partidas e avisos de que é a sua vez?",
+    "notification_prompt_icon": "Notificações",
+    "notification_prompt_allow": "Permitir",
+    "notification_prompt_dismissed_title": "Só para avisar…",
+    "notification_prompt_dismissed_body": "Se não quiser voltar a receber esta pergunta sobre notificações, pode configurar isso nas suas preferências.",
+    "notification_prompt_go_to_preferences": "Ir para Preferências",
+    "dashboard_page_title": "Minhas partidas — Board Together",
+    "dashboard_heading": "As suas partidas.",
+    "dashboard_go_to_library": "Ir para a biblioteca",
+    "dashboard_tabs_label": "Minhas partidas",
+    "dashboard_tab_current": "Atuais",
+    "dashboard_tab_following": "Seguidas",
+    "dashboard_tab_history": "Histórico",
+    "dashboard_tab_stats": "Estatísticas",
+    "dashboard_loading_games": "Carregando as suas partidas…",
+    "dashboard_no_games": "Que tal uma partida?",
+    "dashboard_explore_library": "Explore a biblioteca",
+    "dashboard_loading_followed": "Carregando as partidas que segue…",
+    "dashboard_followed_load_failed": "Não foi possível carregar as partidas que segue.",
+    "dashboard_no_followed": "Siga partidas em que não joga: ficam guardadas aqui.",
+    "dashboard_follow_hint": "Abra uma partida a que assiste e use {#bookmark/} na barra superior.",
+    "dashboard_follow_hint_bookmark": "o marcador",
+    "saving": "Salvando…",
+    "submit": "Enviar",
+    "unexpected_error_try_again": "Ocorreu um erro inesperado, tente novamente",
+    "player_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} jogador",
+                "count=*": "{count: number} jogadores"
+            }
+        }
+    ],
+    "player_count_range": "{min}–{max} jogadores",
+    "create_game_heading": "Começar uma partida",
+    "create_game_pick_title": "Escolha um jogo",
+    "create_game_change_title": "Mudar de jogo",
+    "create_game_loading_titles": "Carregando jogos…",
+    "create_game_search_placeholder": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Pesquisar em {count: number} jogo",
+                "count=*": "Pesquisar em {count: number} jogos"
+            }
+        }
+    ],
+    "create_game_search_label": "Pesquisar jogos",
+    "create_game_titles_label": "Jogos",
+    "create_game_open_tables": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} aberta",
+                "count=*": "{count: number} abertas"
+            }
+        }
+    ],
+    "create_game_no_match": "Nenhum jogo corresponde a “{search}”.",
+    "profile_heading": "Edite o seu perfil…",
+    "profile_update_failed": "Falha na atualização",
+    "profile_updated": "Perfil atualizado",
+    "profile_username": "Nome de jogador",
+    "profile_username_placeholder": "escolha um nome de jogador",
+    "profile_username_exists": "Esse nome de jogador já existe",
+    "profile_password": "Senha",
+    "profile_password_placeholder": "pelo menos 12 caracteres",
+    "profile_linked_accounts": "Contas associadas",
+    "profile_unlink": "Desassociar",
+    "profile_sign_out_everywhere_explanation": "Entrou num dispositivo em que deixou de confiar? Saia de todos os dispositivos, incluindo este.",
+    "profile_sign_out_everywhere": "Sair de todos os dispositivos",
+    "profile_sign_out_everywhere_failed": "Não conseguimos confirmar a saída",
+    "profile_sign_out_everywhere_failed_detail": "Outras sessões podem continuar ativas. Tente novamente.",
+    "email_change_heading": "Endereço de e-mail",
+    "email_change_current_address": "Endereço verificado atual:",
+    "email_change_done": "O seu endereço de e-mail foi alterado. As suas outras sessões foram terminadas.",
+    "email_change_enter_code": "Insira o código enviado para {#address}{email}{/address}. O seu e-mail atual continua ativo até verificar o novo endereço.",
+    "email_change_code_label": "Código de verificação",
+    "email_change_verify": "Verificar e alterar e-mail",
+    "email_change_send_new_code": "Enviar novo código",
+    "email_change_cancel": "Cancelar alteração de e-mail",
+    "email_change_new_address": "Novo endereço de e-mail",
+    "email_change_unchanged_until_verified": "O seu e-mail atual e o acesso à conta permanecem inalterados até verificar o novo endereço.",
+    "email_change_send_code": "Enviar código de verificação",
+    "email_change_load_failed": "Não conseguimos carregar a sua alteração de e-mail pendente. Recarregue a página e tente novamente.",
+    "email_change_invalid_address": "Insira um endereço de e-mail válido.",
+    "email_change_address_not_supported": "Esse endereço de e-mail não é suportado. Use outro endereço.",
+    "email_change_address_in_use": "Esse endereço de e-mail já está em uso.",
+    "email_change_send_failed": "Não conseguimos enviar o código. O seu endereço de e-mail atual não foi alterado. Tente novamente.",
+    "email_change_code_invalid": "Esse código está incorreto ou expirou. Use o código mais recente ou envie um novo.",
+    "email_change_address_now_in_use": "Esse endereço de e-mail passou a estar em uso. Cancele e escolha outro endereço.",
+    "email_change_confirm_failed": "Não conseguimos confirmar a alteração. Recarregue a página para verificar o seu endereço de e-mail atual antes de tentar novamente.",
+    "email_change_cancel_failed": "Não conseguimos cancelar a alteração pendente. Tente novamente.",
+    "cancel": "Cancelar",
+    "time_zone": "Fuso horário",
+    "time_zone_save_failed": "Não foi possível salvar o seu fuso horário. Tente novamente.",
+    "time_zone_mismatch": "O seu navegador está configurado para {browserZone}, mas a sua conta usa {accountZone}.",
+    "time_zone_use_browser": "Usar {zone}",
+    "delete_account_heading": "Apagar conta",
+    "delete_account_summary": "Apague definitivamente a sua conta e todos os dados associados. As partidas terminadas mantêm as suas jogadas com o nome “Deleted player” (jogador apagado).",
+    "delete_account_administrator": "Contas de administrador não podem ser apagadas.",
+    "delete_account_start": "Apagar conta…",
+    "delete_account_confirm_title": "Apagar a sua conta?",
+    "delete_account_irreversible": "Esta ação não pode ser desfeita.",
+    "delete_account_removed": "Removido",
+    "delete_account_removed_identity": "O seu nome de jogador, e-mail, senha e a conta do Google ou do Discord associada",
+    "delete_account_removed_settings": "As suas preferências e configurações de notificações; a sua sessão é terminada em todos os dispositivos",
+    "delete_account_removed_games": "As partidas que criou e que ainda não começaram, e os seus lugares nas outras",
+    "delete_account_removed_signups": "As suas inscrições em temporadas de ligas que ainda não começaram",
+    "delete_account_kept": "Mantido, sem o seu nome",
+    "delete_account_kept_finished": "As partidas terminadas e as suas mensagens no chat, exibidas como “Deleted player 1” e assim por diante",
+    "delete_account_kept_in_progress": "As partidas em curso: os outros jogadores podem encerrá-las, e a maioria das partidas de 2 jogadores termina com vitória do adversário",
+    "delete_account_kept_competitions": "Os torneios em que entrou e as temporadas de liga em curso, que um administrador conclui na sua ausência",
+    "delete_account_type_username": "Escreva o seu nome de jogador, {#username}{username}{/username}, para confirmar",
+    "delete_account_failed": "Não conseguimos apagar a sua conta. Tente novamente.",
+    "delete_account_deleting": "Apagando…",
+    "delete_account_confirm": "Apagar a minha conta",
+    "delete_account_done": "A sua conta foi apagada.",
+    "nav_pay_it_forward_tooltip": "Ajude instituições de caridade a levar jogos a mais mesas. Nada vem para nós.",
+    "follow_update_failed": "Não foi possível atualizar as partidas que segue.",
+    "notifications_turn_heading": "Notificações de turno",
+    "notifications_turn_intro": "O BoardTogether avisa que é a sua vez pelo navegador, pelo Discord e pelo Telegram. As notificações de turno nunca são enviadas por e-mail.",
+    "notifications_web_heading": "Notificações web",
+    "notifications_turn_reminders_heading": "Lembretes de turno",
+    "notifications_reminder_hours_heading": "Horas de lembrete",
+    "notifications_email_heading": "E-mail",
+    "reminder_hours_weekdays": "Segunda a sexta",
+    "reminder_hours_weekends": "Sábado e domingo",
+    "reminder_hours_every_day": "Todos os dias",
+    "reminder_hours_intro": "Escolha as horas em que quer receber lembretes de turno. Toque nas horas, ou arraste sobre elas, para marcar ou desmarcar. Os lembretes da primeira hora da sua vez chegam de imediato; os seguintes esperam pela próxima hora selecionada. Sem horas selecionadas, os lembretes chegam a qualquer hora.",
+    "reminder_hours_grid_label": "Horas de lembrete: {days}",
+    "reminder_hours_separate_weekend": "Horas diferentes no fim de semana",
+    "reminder_hours_any_time": "A qualquer hora",
+    "turn_reminders_after_hours": [
+        {
+            "declarations": ["input hours"],
+            "selectors": ["hours"],
+            "match": {
+                "hours=1": "Após {hours} hora",
+                "hours=*": "Após {hours} horas"
+            }
+        }
+    ],
+    "turn_reminders_twice_daily": "Duas vezes por dia",
+    "turn_reminders_daily": "Uma vez por dia",
+    "turn_reminders_no_more": "Mais nenhum",
+    "turn_reminders_intro": "Escolha os lembretes que recebe enquanto é a sua vez. Os lembretes param assim que jogar.",
+    "turn_reminders_turn_begins": "Quando a sua vez começa",
+    "turn_reminders_turn_begins_detail": "Cerca de um minuto depois de passar a ser a sua vez",
+    "turn_reminders_always_sent": "Sempre enviado",
+    "turn_reminders_then": "Depois, durante uma semana no máximo",
+    "turn_reminders_repeat_label": "Repetir lembretes",
+    "turn_reminders_hours_apply": "As Horas de lembrete, abaixo, também se aplicam: a partir do lembrete de 5 horas, cada lembrete espera pela próxima hora selecionada.",
+    "email_notifications_toggle": "Receber e-mails sobre partidas e competições",
+    "email_notifications_detail": "Convites, início e fim de partidas e novidades de ligas e torneios, incluindo lembretes de inscrição. Os e-mails sobre a conta são sempre enviados.",
+    "email_notifications_not_turns": "O e-mail nunca avisa que é a sua vez. Para isso, ative acima as notificações web, do Discord ou do Telegram.",
+    "try_again": "Tentar novamente",
+    "web_notifications_on": "As notificações estão ativadas neste dispositivo.",
+    "web_notifications_each_device": "Ative-as em cada navegador e em cada dispositivo em que quiser receber avisos.",
+    "web_notifications_setting_up": "Configurando as notificações neste dispositivo…",
+    "web_notifications_setup_failed": "O Board Together não conseguiu configurar as notificações neste dispositivo.",
+    "web_notifications_offer": "O Board Together pode avisar que é a sua vez através deste navegador, mesmo com o site fechado. Ative as notificações em cada navegador e em cada dispositivo em que quiser receber avisos.",
+    "web_notifications_turn_on": "Ativar notificações neste dispositivo",
+    "web_notifications_blocked": "Este navegador bloqueia as notificações do Board Together.",
+    "web_notifications_blocked_help": "Permita as notificações nas configurações deste site, normalmente acessíveis pelo ícone ao lado da barra de endereço, e depois recarregue esta página.",
+    "web_notifications_unsupported": "Este navegador não consegue mostrar notificações. Num iPhone ou iPad, adicione o Board Together à Tela de Início pelo menu Compartilhar, depois abra-o a partir daí e volte a esta página.",
+    "topic_registrations_load_failed": "O BoardTogether não conseguiu carregar as suas configurações do Discord e do Telegram.",
+    "notification_channel_disconnect": "Desconectar",
+    "discord_bot_heading": "Notificações pelo Discord",
+    "discord_bot_connected": "O bot do Discord está conectado.",
+    "discord_bot_disconnect_failed": "O BoardTogether não conseguiu desconectar o bot do Discord. Tente novamente.",
+    "discord_bot_connected_detail": "O bot do BoardTogether envia mensagens diretas quando é a sua vez ou quando chega um convite para uma partida. Enviar /stop ao bot também o desativa, e /notify volta a ativá-lo.",
+    "discord_bot_offer": "O BoardTogether tem um bot do Discord que pode enviar mensagens diretas, sejam quais forem os servidores de que faz parte.",
+    "discord_bot_add": "Adicione o bot à sua conta do Discord e as notificações começam a chegar imediatamente. Se o adicionou antes de associar a sua conta, envie /notify ao bot.",
+    "discord_bot_link_first": "Primeiro, associe a sua conta do Discord.",
+    "discord_webhook_heading": "Webhook de canal do Discord",
+    "discord_webhook_invalid_url": "Esse não é um endereço de webhook do Discord. O endereço começa com https://discord.com/api/webhooks/.",
+    "discord_webhook_not_found": "O Discord não tem nenhum webhook nesse endereço. Pode ter sido apagado, ou o endereço pode ter sido redefinido.",
+    "discord_webhook_unsupported": "Esse webhook pertence a um app do Discord e não pode receber estas mensagens. Crie um novo nas configurações de Integrações do canal.",
+    "discord_webhook_failed": "O Discord não aceitou uma mensagem. Tente novamente.",
+    "discord_webhook_mentions_you": "Cada mensagem menciona o seu nome, por isso o Discord envia uma notificação mesmo num canal com outras pessoas.",
+    "discord_webhook_link_to_mention": "Associe a sua conta do Discord e cada mensagem passa a mencionar o seu nome, para que o Discord envie uma notificação mesmo num canal com outras pessoas.",
+    "discord_webhook_posting_named": "As mensagens são publicadas no webhook do Discord {name}.",
+    "discord_webhook_posting": "As mensagens são publicadas no seu webhook do Discord.",
+    "discord_webhook_disconnect_failed": "O BoardTogether não conseguiu desconectar o webhook. Tente novamente.",
+    "discord_webhook_prefer_bot": "Para a maioria dos jogadores, o bot do Discord acima é a melhor opção: envia mensagens diretamente e não exige nenhuma configuração num servidor.",
+    "discord_webhook_instructions": "Se preferir que as notificações sejam publicadas num canal de um servidor do Discord que administra, conecte um webhook. Nas configurações do canal, abra Integrações, depois Webhooks, e crie um webhook. Em seguida, copie o endereço (URL) do webhook e cole-o abaixo.",
+    "discord_webhook_url_label": "URL do webhook",
+    "discord_webhook_connect": "Conectar",
+    "telegram_heading": "Notificações pelo Telegram",
+    "telegram_connected": "O Telegram está conectado.",
+    "telegram_disconnect_failed": "O BoardTogether não conseguiu desconectar o Telegram. Tente novamente.",
+    "telegram_connected_detail": "O bot do BoardTogether envia mensagens por lá quando é a sua vez ou quando chega um convite para uma partida. Enviar /stop ao bot também o desativa.",
+    "telegram_offer": "O BoardTogether tem um bot do Telegram que pode avisar quando é a sua vez. Clique em Conectar e depois em Iniciar (Start) no Telegram.",
+    "telegram_link_failed": "O BoardTogether não conseguiu preparar um link do Telegram.",
+    "discord_sign_in": "Entrar com o Discord",
+    "discord_link": "Associar",
+    "discord_continue": "Continuar com o Discord",
+    "discord_add_bot": "Adicionar bot",
+    "title_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} jogo",
+                "count=*": "{count: number} jogos"
+            }
+        }
+    ],
+    "dashboard_history_load_failed": "Não foi possível carregar o histórico.",
+    "dashboard_history_loading": "Carregando histórico…",
+    "dashboard_history_empty": "As suas partidas terminadas vão aparecer aqui.",
+    "dashboard_history_load_more": "Carregar mais partidas",
+    "dashboard_history_all_shown": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} partida mostrada",
+                "count=*": "Todas as {count: number} partidas mostradas"
+            }
+        }
+    ],
+    "time_ago_just_now": "agora mesmo",
+    "time_ago_minutes": "há {count: number} min",
+    "time_ago_hours": "há {count: number} h",
+    "time_ago_days": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "há {count: number} dia",
+                "count=*": "há {count: number} dias"
+            }
+        }
+    ],
+    "time_ago_weeks": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "há {count: number} semana",
+                "count=*": "há {count: number} semanas"
+            }
+        }
+    ],
+    "time_ago_months": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "há {count: number} mês",
+                "count=*": "há {count: number} meses"
+            }
+        }
+    ],
+    "time_ago_years": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "há {count: number} ano",
+                "count=*": "há {count: number} anos"
+            }
+        }
+    ],
+    "start_countdown_seconds": "Começa em {seconds} s",
+    "start_countdown_starting": "Prestes a começar…",
+    "auth_title_welcome": "Boas-vindas!",
+    "auth_title_create_account": "Criar uma conta",
+    "auth_title_reset_password": "Redefinir senha",
+    "auth_title_password_reset": "Senha redefinida",
+    "auth_page_title_create_account": "Criar uma conta — Board Together",
+    "auth_page_title_reset_password": "Redefinir senha — Board Together",
+    "auth_username": "Nome de jogador",
+    "auth_username_placeholder": "escolha um nome de jogador",
+    "auth_password": "Senha",
+    "auth_new_password": "Nova senha",
+    "auth_email": "E-mail",
+    "auth_email_address": "Endereço de e-mail",
+    "auth_email_placeholder": "nome@exemplo.com",
+    "auth_password_show": "Mostrar senha",
+    "auth_password_hide": "Ocultar senha",
+    "auth_password_min_length_help": "Use pelo menos 12 caracteres.",
+    "auth_username_exists": "Esse nome de jogador já existe",
+    "auth_email_exists": "Esse e-mail já está em uso",
+    "auth_sign_in": "Entrar",
+    "auth_sign_up": "Criar conta",
+    "auth_signing_in": "Entrando…",
+    "auth_back": "Voltar",
+    "auth_back_to_sign_in": "Voltar ao login",
+    "auth_continue": "Continuar",
+    "auth_ok": "OK",
+    "auth_need_account": "Ainda não tem conta? {#signup}Crie uma{/signup}",
+    "auth_have_account": "Já tem conta? {#signin}Entrar{/signin}",
+    "auth_age_confirmation": "Tenho 13 anos ou mais e aceito os {#terms}Termos de Serviço{/terms}. Veja como usamos os seus dados na {#privacy}Política de Privacidade{/privacy}.",
+    "auth_validation_required": "Obrigatório",
+    "auth_validation_invalid_email": "E-mail inválido",
+    "auth_validation_min_length": [
+        {
+            "declarations": ["input length"],
+            "selectors": ["length"],
+            "match": {
+                "length=1": "Este campo não pode ficar vazio",
+                "length=*": "Use pelo menos {length} caracteres"
+            }
+        }
+    ],
+    "auth_validation_age_confirmation": "Confirme que tem 13 anos ou mais para criar uma conta",
+    "auth_challenge_expiry": "É válido até {time}, e só o mais recente funciona.",
+    "auth_unavailable_account": "Conta indisponível",
+    "auth_login_or": "ou",
+    "auth_login_use_username": "Usar nome de jogador e senha",
+    "auth_login_failed": "Não foi possível entrar. Verifique o nome de jogador e a senha e tente novamente.",
+    "auth_login_forgot_password": "Esqueceu a senha?",
+    "auth_login_please_login": "Entre na sua conta…",
+    "auth_signup_failed": "Não conseguimos criar a sua conta. Tente novamente.",
+    "auth_signup_email_help": "Fica privado. Usado apenas para recuperação da conta e notificações.",
+    "auth_signup_creating": "Criando…",
+    "auth_forgot_check_email": "Verifique o seu e-mail",
+    "auth_forgot_link_sent": "Se esse e-mail estiver associado a uma conta, foi enviado um link para redefinir a senha.",
+    "auth_forgot_try_another_email": "Tentar outro e-mail",
+    "auth_forgot_intro": "Vamos enviar por e-mail um link para redefinir a sua senha.",
+    "auth_forgot_send_failed": "Não conseguimos enviar o e-mail de redefinição. Tente novamente.",
+    "auth_forgot_sending": "Enviando…",
+    "auth_forgot_send_link": "Enviar link",
+    "auth_reset_link_rejected": "Este link de redefinição expirou, foi substituído por um mais recente ou já foi usado. Peça um novo abaixo.",
+    "auth_reset_success": "A sua senha foi atualizada. Entre com a nova senha para continuar.",
+    "auth_reset_failed": "Não conseguimos atualizar a sua senha. Tente novamente.",
+    "auth_reset_set_password": "Definir nova senha",
+    "auth_reauth_title": "Confirme a sua identidade",
+    "auth_reauth_action_failed": "A ação confirmada falhou",
+    "auth_reauth_password_rejected": "Essa senha não está correta.",
+    "auth_reauth_failed": "Não conseguimos confirmar a sua identidade. Tente novamente.",
+    "auth_reauth_confirming": "Confirmando…",
+    "auth_reauth_confirm": "Confirmar",
+    "auth_reauth_no_method": "Esta conta não tem senha nem conta associada para fazer a confirmação. Use “Esqueceu a senha?” na página de login para definir uma senha e depois entre novamente.",
+    "auth_reauth_go_to_sign_in": "Ir para o login",
+    "auth_reauth_request_change_password": "Por segurança, confirme a sua identidade antes de alterar a senha.",
+    "auth_reauth_confirmed_change_password": "A sua identidade foi confirmada. Continue para alterar a senha.",
+    "auth_reauth_request_update_profile": "Por segurança, confirme a sua identidade antes de atualizar o perfil.",
+    "auth_reauth_confirmed_update_profile": "A sua identidade foi confirmada. Continue para atualizar o perfil.",
+    "auth_reauth_request_change_email": "Por segurança, confirme a sua identidade antes de alterar o endereço de e-mail.",
+    "auth_reauth_confirmed_change_email": "A sua identidade foi confirmada. Continue para alterar o endereço de e-mail.",
+    "auth_reauth_request_confirm_new_email": "Por segurança, confirme a sua identidade antes de confirmar o novo endereço de e-mail.",
+    "auth_reauth_confirmed_confirm_new_email": "A sua identidade foi confirmada. Continue para confirmar o novo endereço de e-mail.",
+    "auth_reauth_request_delete_account": "Por segurança, confirme a sua identidade antes de apagar a conta.",
+    "auth_reauth_confirmed_delete_account": "A sua identidade foi confirmada. Continue para apagar a conta.",
+    "auth_reauth_request_update_email": "Por segurança, confirme a sua identidade antes de atualizar o endereço de e-mail.",
+    "auth_reauth_confirmed_update_email": "A sua identidade foi confirmada. Continue para atualizar o endereço de e-mail.",
+    "auth_reauth_request_complete_profile": "Por segurança, confirme a sua identidade antes de completar o perfil.",
+    "auth_reauth_confirmed_complete_profile": "A sua identidade foi confirmada. Continue para completar o perfil.",
+    "auth_reauth_request_link_discord": "Por segurança, confirme a sua identidade antes de adicionar o Discord como outra forma de entrar na sua conta.",
+    "auth_reauth_confirmed_link_discord": "A sua identidade foi confirmada. Continue para adicionar o Discord como outra forma de entrar na sua conta.",
+    "auth_reauth_request_link_google": "Por segurança, confirme a sua identidade antes de adicionar o Google como outra forma de entrar na sua conta.",
+    "auth_reauth_confirmed_link_google": "A sua identidade foi confirmada. Continue para adicionar o Google como outra forma de entrar na sua conta.",
+    "auth_google_sign_in_failed": "Falha ao entrar com o Google",
+    "auth_discord_authorization_failed": "A autorização do Discord falhou",
+    "auth_discord_not_completed": "O Discord não concluiu a autorização",
+    "auth_discord_popup_blocked": "O navegador bloqueou a janela do Discord",
+    "auth_discord_start_timeout": "A autorização do Discord não começou a tempo",
+    "auth_discord_abandoned": "A autorização do Discord demorou muito tempo e foi abandonada",
+    "auth_onboarding_signup_deadline": [
+        {
+            "declarations": ["input days"],
+            "selectors": ["days"],
+            "match": {
+                "days=1": "As contas não concluídas são apagadas após {days} dia.",
+                "days=*": "As contas não concluídas são apagadas após {days} dias."
+            }
+        }
+    ],
+    "auth_onboarding_verify_heading": "Verifique o seu e-mail…",
+    "auth_onboarding_complete_heading": "Complete o seu perfil…",
+    "auth_onboarding_oops": "Oops…",
+    "auth_onboarding_unexpected_error": "Ocorreu um erro inesperado. Tente novamente, e esperamos que da próxima vez corra melhor.",
+    "auth_onboarding_verification_failed": "Falha na verificação",
+    "auth_onboarding_verification_failed_detail": "Verifique se inseriu o código mais recente e se não expirou. Cada código é válido por 15 minutos.",
+    "auth_onboarding_email_sent": "E-mail enviado",
+    "auth_onboarding_check_email": "Procure no seu e-mail o novo código de verificação.",
+    "auth_onboarding_token_sent": "Foi enviado um e-mail para {#address}{email}{/address} com um código de verificação. Insira o código abaixo para verificar o seu endereço de e-mail.",
+    "auth_onboarding_send_new_token": "Enviar novo código",
+    "auth_onboarding_email_privacy": "Nunca vamos divulgar o seu e-mail publicamente. É usado apenas para recuperação da conta e notificações.",
+    "auth_invitation_heading": "Entrar nesta partida?…",
+    "auth_invitation_not_found": "O convite expirou ou não foi encontrado",
+    "auth_invitation_wrong_user": "O link do convite não é para esta conta",
+    "auth_invitation_already_declined": "Este convite já foi recusado",
+    "auth_invitation_invalid": "Não foi possível validar o convite",
+    "auth_join_page_title": "Entrar em {name} · Board Together",
+    "auth_join_invitation_page_title": "Convite para partida · Board Together",
+    "auth_join_invitation": "Convite para partida",
+    "auth_join_started_opening": "Esta partida já começou. Vamos abri-la…",
+    "auth_join_finished_opening": "Esta partida já terminou. Vamos abri-la…",
+    "auth_join_failed": "Não foi possível entrar. A partida pode ter mudado; verifique os lugares disponíveis e tente novamente.",
+    "auth_join_unreachable": "Não foi possível carregar a partida. Tente novamente.",
+    "auth_join_seat_summary": [
+        {
+            "declarations": ["input players", "input openSeats"],
+            "selectors": ["players", "openSeats"],
+            "match": {
+                "players=1, openSeats=1": "{players: number} jogador · {openSeats: number} lugar vago",
+                "players=1, openSeats=*": "{players: number} jogador · {openSeats: number} lugares vagos",
+                "players=*, openSeats=1": "{players: number} jogadores · {openSeats: number} lugar vago",
+                "players=*, openSeats=*": "{players: number} jogadores · {openSeats: number} lugares vagos"
+            }
+        }
+    ],
+    "auth_join_game_options": "Opções de jogo",
+    "auth_join_players": "Jogadores",
+    "auth_join_open_seat": "Lugar vago",
+    "auth_join_joined": "Já está nesta partida.",
+    "auth_join_go_to_game": "Ir para a partida",
+    "auth_join_already_started": "Esta partida já começou.",
+    "auth_join_finished": "Esta partida já terminou.",
+    "auth_join_no_open_seats": "Não há lugares vagos nesta partida.",
+    "auth_join_load_failed_heading": "Não foi possível carregar a partida",
+    "auth_join_load_failed_detail": "Verifique a sua internet e tente novamente.",
+    "auth_join_unavailable_heading": "Convite indisponível",
+    "auth_join_unavailable_detail": "Esta partida deixou de existir ou deixou de ser pública.",
+    "auth_join_no_thanks": "Agora não",
+    "auth_join_joining": "Entrando…",
+    "auth_join": "Entrar",
+    "games_card_answer_request": "Responder ao pedido",
+    "games_card_your_turn": "É a sua vez",
+    "games_card_take_your_turn": "Jogar agora",
+    "games_card_result_winner": "Vencedor",
+    "games_card_result_tied": "Empate",
+    "games_card_result_no_winner": "Sem vencedor",
+    "games_card_result_abandoned": "Abandonada",
+    "games_card_stalling": "Sem jogadas",
+    "games_card_ends_in_days": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Termina em {count: number} dia",
+                "count=*": "Termina em {count: number} dias"
+            }
+        }
+    ],
+    "games_card_stalled": "Parada",
+    "games_card_called": "Por acordo",
+    "games_card_conceded": "Desistência",
+    "games_card_finished": "Terminada",
+    "games_card_winner_you_and_others": "Você e outros",
+    "games_card_winners_see_below": "Ver abaixo",
+    "games_card_loading_game": "Carregando a partida",
+    "games_card_cover_alt": "miniatura da capa",
+    "games_card_hosted_by": "por {#host}{name}{/host}",
+    "games_card_tournament": "Torneio",
+    "games_card_join": "Entrar",
+    "games_card_start": "Iniciar",
+    "games_card_edit": "Editar",
+    "games_card_enter": "Abrir",
+    "games_card_watch": "Assistir",
+    "games_card_revisit": "Rever",
+    "games_card_continue": "Continuar",
+    "games_card_waiting_to_start": "À espera{#break/}do início",
+    "games_card_active_player": "Jogador ativo",
+    "games_card_unknown_game": "Jogo desconhecido",
+    "games_card_seat_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} jogador",
+                "count=*": "{count: number} jogadores"
+            }
+        }
+    ],
+    "games_card_pace": "Ritmo",
+    "games_card_mode": "Modo",
+    "games_card_hotseat": "Hotseat",
+    "games_card_stall_deadline": "A partida termina sem vencedor se ninguém jogar até {date}.",
+    "games_card_last_action": "Última ação",
+    "games_card_time_with_pace_warning": "{time}{#hidden}, {warning}{/hidden}",
+    "games_card_open_seats": "Lugares vagos",
+    "games_card_open_seats_none": "Nenhum",
+    "games_card_players_heading": "JOGADORES",
+    "games_card_score_heading": "PONTOS",
+    "games_card_explorations_heading": "EXPLORAÇÕES",
+    "games_card_player_local": "local",
+    "games_card_decline": "Recusar",
+    "games_card_leave": "Sair",
+    "games_card_edit_game": "Editar partida",
+    "games_card_start_game": "Iniciar partida",
+    "games_card_play_game": "Jogar",
+    "games_card_watch_game": "Assistir à partida",
+    "games_card_unfollow": "Deixar de seguir",
+    "games_card_delete": "Apagar",
+    "games_card_hide_details": "Ocultar detalhes da partida",
+    "games_card_show_details": "Mostrar detalhes da partida",
+    "games_player_you": "Você",
+    "games_player_multiple": "Vários jogadores",
+    "games_player_status_host": "anfitrião",
+    "games_player_status_joined": "entrou",
+    "games_player_status_invited": "convite enviado",
+    "games_player_status_declined": "recusou",
+    "games_player_status_open": "vago",
+    "games_option_yes": "Sim",
+    "games_option_no": "Não",
+    "games_option_none": "Nenhum",
+    "games_delete_confirm": "Quer mesmo apagar esta partida?",
+    "games_delete_cannot_undo": "Esta ação não pode ser desfeita.",
+    "games_no_cancel": "Não, cancelar",
+    "games_delete_yes": "Sim, apagar",
+    "games_copy_invite_link": "Copiar link de convite",
+    "games_copy_game_link": "Copiar link da partida",
+    "games_copy_invite_link_for": "Copiar link de convite para a partida {name}",
+    "games_copy_game_link_for": "Copiar link da partida {name}",
+    "games_invite_link_copied": "Link de convite copiado",
+    "games_game_link_copied": "Link da partida copiado",
+    "games_copy_link_failed": "Não foi possível copiar o link. Tente novamente.",
+    "games_tab_title_answer": "Responder ao pedido · {game}",
+    "games_tab_title_turn": "É a sua vez · {game}",
+    "games_vote_undoes_moves": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Desfaz jogadas de {count: number} jogador.",
+                "count=*": "Desfaz jogadas de {count: number} jogadores."
+            }
+        }
+    ],
+    "games_vote_failed_reason": "Não funcionou: {reason}.",
+    "games_vote_failed": "Não funcionou. Tente novamente.",
+    "games_vote_undo_request": "{#player}{name}{/player} pede para desfazer até um ponto anterior",
+    "games_vote_undo_request_undoing": [
+        {
+            "declarations": ["input name", "input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{#player}{name}{/player} pede para desfazer até um ponto anterior, {#detail}anulando jogadas de {count: number} jogador{/detail}",
+                "count=*": "{#player}{name}{/player} pede para desfazer até um ponto anterior, {#detail}anulando jogadas de {count: number} jogadores{/detail}"
+            }
+        }
+    ],
+    "games_vote_call_request_no_winner": "{#player}{name}{/player} pede para encerrar a partida {#detail}sem vencedor{/detail}",
+    "games_vote_call_request_winner": "{#player}{name}{/player} pede para encerrar a partida {#detail}com vitória de {winner}{/detail}",
+    "games_vote_undo_request_sentence": "{#player}{name}{/player} pede para desfazer até um ponto anterior.",
+    "games_vote_undo_request_undoing_sentence": [
+        {
+            "declarations": ["input name", "input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{#player}{name}{/player} pede para desfazer até um ponto anterior, {#detail}anulando jogadas de {count: number} jogador{/detail}.",
+                "count=*": "{#player}{name}{/player} pede para desfazer até um ponto anterior, {#detail}anulando jogadas de {count: number} jogadores{/detail}."
+            }
+        }
+    ],
+    "games_vote_call_request_no_winner_sentence": "{#player}{name}{/player} pede para encerrar a partida {#detail}sem vencedor{/detail}.",
+    "games_vote_call_request_winner_sentence": "{#player}{name}{/player} pede para encerrar a partida {#detail}com vitória de {winner}{/detail}.",
+    "games_vote_tally_agreed": "{approvals: number} de {total: number} a favor",
+    "games_vote_tally_needed": "{approvals: number} de {required: number} necessários",
+    "games_vote_view_that_point": "Ver esse ponto",
+    "games_vote_withdraw": "Retirar",
+    "games_vote_decline": "Recusar",
+    "games_vote_agree": "Concordar",
+    "games_vote_answer_before_playing": "Responda para poder voltar a jogar.",
+    "games_vote_undo_yourself": "Pode desfazer isto diretamente com o botão “Undo”.",
+    "games_vote_ok": "OK",
+    "games_vote_confirm_undo": "Pedir a todos para desfazer até aqui?",
+    "games_vote_send_request": "Enviar pedido",
+    "games_vote_ask_to_undo": "Pedir para desfazer até aqui",
+    "games_vote_notice_answer": "É preciso responder antes de voltar a jogar. Concorde ou recuse no aviso no topo da partida.",
+    "games_call_offer_concede": "Desistir",
+    "games_call_offer_call": "Encerrar por acordo",
+    "games_call_concede_confirm": "Quer mesmo desistir desta partida?",
+    "games_call_cannot_undo": "Esta ação não pode ser desfeita.",
+    "games_call_ask_end": "Pedir a todos para terminar a partida agora?",
+    "games_call_ends_if": "A partida termina se {required: number} dos {total: number} jogadores concordarem, contando com o seu voto.",
+    "games_call_who_wins": "Quem vence?",
+    "games_call_no_winner": "Sem vencedor",
+    "games_call_play_goes_on": "A partida continua enquanto todos votam.",
+    "games_call_yes_concede": "Sim, desisto",
+    "games_call_ask_everyone": "Pedir a todos",
+    "games_bug_report_screenshot_limit": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Cada relato pode incluir até {count: number} imagem.",
+                "count=*": "Cada relato pode incluir até {count: number} imagens."
+            }
+        }
+    ],
+    "games_bug_report_image_unreadable": "Não foi possível ler essa imagem.",
+    "games_bug_report_sent": "Obrigado! O seu relato de bug foi enviado.",
+    "games_bug_report_what_went_wrong": "Qual foi o problema?",
+    "games_bug_report_placeholder": "O que fez, o que aconteceu e o que esperava que acontecesse?",
+    "games_bug_report_screenshot_alt": "Imagem {number}",
+    "games_bug_report_remove_screenshot": "Remover imagem {number}",
+    "games_bug_report_adding": "Adicionando…",
+    "games_bug_report_privacy": "A sua descrição, as imagens, o seu nome de jogador e o seu nome no Discord (se a conta estiver associada), bem como o nome do jogo e o estado da partida, ficam públicos no nosso fórum do Discord. Uma cópia da partida e os dados do seu navegador são enviados apenas para nós, de forma privada.",
+    "games_bug_report_sending": "Enviando…",
+    "games_bug_report_too_large": "Esta partida é muito grande para ser anexada a um relato de bug.",
+    "games_bug_report_rate_limited": "Foram enviados vários relatos há pouco. Tente novamente daqui a alguns minutos.",
+    "games_bug_report_failed": "Não foi possível enviar o seu relato de bug.",
+    "games_bug_report_failed_try_later": "Não foi possível enviar o seu relato de bug. Tente novamente daqui a alguns minutos.",
+    "games_report_title": "Denunciar",
+    "games_report_message_title": "Denunciar mensagem",
+    "games_report_owner_anonymous": "O anfitrião da partida não vai saber quem fez a denúncia. Analisamos todas as denúncias em poucos dias.",
+    "games_report_player_anonymous": "O jogador não vai saber quem fez a denúncia. Analisamos todas as denúncias em poucos dias.",
+    "games_report_named_anonymous": "{name} não vai saber quem fez a denúncia. Analisamos todas as denúncias em poucos dias.",
+    "games_report_sent": "Obrigado. A sua denúncia foi enviada.",
+    "games_report_failed": "Não foi possível enviar a sua denúncia. Tente novamente.",
+    "games_report_what": "O que quer denunciar?",
+    "games_report_game_name": "O nome da partida “{name}”",
+    "games_report_username": "O nome de um jogador",
+    "games_report_player_label": "Jogador",
+    "games_report_choose_player": "Escolha um jogador",
+    "games_report_chat_message": "Uma mensagem do chat",
+    "games_report_message_label": "Mensagem",
+    "games_report_choose_message": "Escolha uma mensagem",
+    "games_report_message_option": "{author}: {text}",
+    "games_report_whats_wrong": "Qual é o problema?",
+    "games_report_anything_else": "Mais alguma coisa que devamos saber? {#optional}(opcional){/optional}",
+    "games_report_send": "Enviar denúncia",
+    "games_page_not_found": "A partida indicada não foi encontrada",
+    "games_page_not_started": "A partida indicada ainda não foi iniciada",
+    "games_page_not_supported": "A partida indicada não é suportada",
+    "games_page_no_longer_available": "A partida indicada deixou de estar disponível",
+    "games_page_load_failed": "Não foi possível carregar a partida",
+    "games_report_reason_bullying": "Bullying ou assédio",
+    "games_report_reason_hate": "Discurso de ódio",
+    "games_report_reason_sexual_content": "Conteúdo sexual",
+    "games_report_reason_self_harm": "Suicídio, automutilação ou distúrbios alimentares",
+    "games_report_reason_intimate_image": "Imagens íntimas divulgadas sem consentimento",
+    "games_report_reason_illegal": "Algo ilegal",
+    "games_report_reason_spam": "Spam ou fraude",
+    "games_report_reason_other": "Outro motivo",
+    "games_report_author_administrator": "Administrador",
+    "games_report_author_unknown": "Jogador desconhecido",
+    "library_page_title": "Biblioteca de jogos — Board Together",
+    "library_all_games": "Todos os jogos",
+    "library_unknown_game": "Jogo desconhecido",
+    "library_maturity_alpha": "Alfa",
+    "library_maturity_beta": "Beta",
+    "library_series_18xx_description": "Jogos ferroviários de negociação de ações e construção de linhas. Comande companhias, invista nas rivais e venda tudo antes que a próxima locomotiva enferruje a frota delas.",
+    "library_series_gipf_project_description": "Os jogos abstratos para dois jogadores de Kris Burm. Peças simples, informação aberta e nenhuma sorte: cada partida é decidida no tabuleiro e pelas escolhas à sua frente.",
+    "library_shelf_view_series": [
+        {
+            "declarations": ["input name", "input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Ver {name}, {count: number} jogo",
+                "count=*": "Ver {name}, {count: number} jogos"
+            }
+        }
+    ],
+    "library_shelf_view_title": "Ver {name}",
+    "library_shelf_view_title_with_maturity": "Ver {name}, {maturity}",
+    "library_shelf_sign_in_to_play": "Entre para jogar {name}",
+    "library_title_page_title": "{name} — Board Together",
+    "library_title_unavailable": "Este jogo não está disponível na sua biblioteca.",
+    "library_title_cover_alt": "Capa da caixa de {name}",
+    "library_title_designed_by": "Criado por {#designer}{designer}{/designer}",
+    "library_title_published_by": "Publicado por {#publisher}{publisher}{/publisher}",
+    "library_title_published_by_seller": "Publicado por {#publisher}{publisher}{/publisher}{#separator/}{#shop}comprar na loja de {publisher}{/shop}",
+    "library_opens_in_new_tab": "(abre numa nova janela)",
+    "library_start_game": "Começar uma partida",
+    "library_start_game_arrow": "Começar uma partida →",
+    "library_title_game_created": "Partida criada. Vai encontrá-la nas suas partidas, mais abaixo.",
+    "library_loading": "Carregando…",
+    "library_loading_games": "Carregando partidas…",
+    "library_games_load_failed": "Não foi possível carregar estas partidas.",
+    "library_games_unavailable": "Estas partidas estão temporariamente indisponíveis.",
+    "library_previous": "Anterior",
+    "library_next": "Seguinte",
+    "library_in_progress": "Em curso",
+    "library_recently_finished": "Terminadas recentemente",
+    "library_title_games_your_games": "As suas partidas",
+    "library_title_games_your_games_empty": "As suas partidas deste jogo vão aparecer aqui.",
+    "library_title_games_open_games": "Partidas abertas",
+    "library_title_games_open_games_empty": "Não há mesas abertas neste momento. Comece uma e convide outras pessoas para entrar.",
+    "library_title_games_in_progress_empty": "Não há partidas públicas deste jogo em curso neste momento.",
+    "library_title_games_recently_finished_empty": "Ainda não terminou nenhuma partida pública deste jogo.",
+    "library_title_games_open_games_pages": "Páginas de partidas abertas",
+    "library_title_games_in_progress_pages": "Páginas de partidas em curso",
+    "library_title_games_recently_finished_pages": "Páginas de partidas terminadas recentemente",
+    "library_title_games_community": "Partidas da comunidade",
+    "library_competitions_heading": "Torneios e ligas",
+    "library_competitions_all_tournaments": "Todos os torneios",
+    "library_competitions_all_leagues": "Todas as ligas",
+    "library_competitions_loading": "Carregando torneios e ligas…",
+    "library_competitions_load_failed_both": "Não foi possível carregar os torneios e as ligas.",
+    "library_competitions_load_failed_tournaments": "Não foi possível carregar os torneios.",
+    "library_competitions_load_failed_leagues": "Não foi possível carregar as ligas.",
+    "library_competitions_none": "Neste momento não há torneios nem ligas deste jogo para mostrar.",
+    "library_competitions_ladder_league": "Liga em escada",
+    "library_competitions_pyramid_league": "Liga em pirâmide",
+    "library_competitions_players_per_game": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} jogador por partida",
+                "count=*": "{count: number} jogadores por partida"
+            }
+        }
+    ],
+    "library_competitions_games_each": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} partida por jogador",
+                "count=*": "{count: number} partidas por jogador"
+            }
+        }
+    ],
+    "library_competitions_joined": "Inscritos: {roster}",
+    "library_competitions_more_tournaments": "Mais torneios",
+    "library_entry_your_turn": "É a sua vez",
+    "library_entry_answer_request": "Responder ao pedido",
+    "library_entry_enter": "Abrir",
+    "library_entry_watch": "Assistir",
+    "library_entry_revisit": "Rever",
+    "library_entry_named": "{action}: {name}",
+    "library_entry_join": "Entrar",
+    "library_entry_join_named": "Entrar na partida {name}",
+    "library_entry_join_failed": "Não foi possível entrar nesta partida. Tente novamente.",
+    "library_entry_joined": "Já entrou",
+    "library_entry_full": "Cheia",
+    "library_table_title": "Jogo",
+    "library_table_name": "Nome",
+    "library_table_seats": "Lugares",
+    "library_table_options": "Opções",
+    "library_table_pace": "Ritmo",
+    "library_table_created": "Criada",
+    "library_table_progress": "Progresso",
+    "library_table_turn": "Vez",
+    "library_table_last_action": "Última ação",
+    "library_table_winner": "Vencedor",
+    "library_table_finished": "Terminada",
+    "library_table_show_details": "Mostrar detalhes de {name}",
+    "library_table_hide_details": "Ocultar detalhes de {name}",
+    "library_table_to_move": "Vez de {player}",
+    "library_table_won": "Vitória de {winners}",
+    "library_table_pace_value": "Ritmo: {pace}",
+    "library_table_seats_taken": "{taken} de {total: number} lugares ocupados",
+    "library_table_game_options": "Opções de jogo",
+    "library_table_game_options_heading": "OPÇÕES DE JOGO",
+    "library_table_players": "Jogadores",
+    "library_table_players_heading": "JOGADORES",
+    "library_table_score_heading": "PONTOS",
+    "library_table_no_winner": "Sem vencedor",
+    "library_table_standard_options": "Padrão",
+    "library_table_option_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} opção",
+                "count=*": "{count: number} opções"
+            }
+        }
+    ],
+    "library_table_host": "anfitrião",
+    "library_pace_daily_or_faster": "Diário ou mais rápido",
+    "library_pace_brisk_or_faster": "Acelerado ou mais rápido",
+    "library_pace_fast_or_faster": "Rápido ou mais rápido",
+    "library_pace_live": "Ao vivo",
+    "library_series_page_title": "Jogos {name} — Board Together",
+    "library_series_unavailable": "Esta série não está disponível na biblioteca.",
+    "library_series_shelf_load_failed": "Não foi possível carregar a estante de jogos. Atualize a página para tentar novamente.",
+    "library_titles": "Jogos",
+    "library_series_tab_lobby": "Lobby",
+    "library_series_tab_finished": "Terminadas",
+    "library_series_players": "Jogadores",
+    "library_series_any": "Qualquer",
+    "library_series_pace": "Ritmo",
+    "library_series_show_more": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Mostrar mais {#count}resta {count: number}{/count}",
+                "count=*": "Mostrar mais {#count}restam {count: number}{/count}"
+            }
+        }
+    ],
+    "library_series_created_listed": "A partida {#game}{name}{/game} está aberta a novos jogadores. Aparece em destaque em “À procura de jogadores”.",
+    "library_series_created_unlisted": "A partida {#game}{name}{/game} foi criada. Vai encontrá-la em {#dashboard}Minhas partidas{/dashboard}.",
+    "library_series_looking_for_players": "À procura de jogadores",
+    "library_series_looking_for_players_label": "Partidas à procura de jogadores",
+    "library_series_no_open_match": "Nenhuma mesa aberta corresponde aos filtros.",
+    "library_series_in_progress_label": "Partidas em curso",
+    "library_series_no_in_progress_match": "Nenhuma partida pública em curso corresponde aos filtros.",
+    "library_series_recently_finished_label": "Partidas terminadas recentemente",
+    "library_series_no_finished_match": "Nenhuma partida pública terminada recentemente corresponde aos filtros.",
+    "library_picker_in_progress": "{count: number} em curso",
+    "library_picker_titles_selected": "Jogos · {count: number}",
+    "library_picker_all_titles": "Todos os jogos",
+    "library_picker_all": "Todos",
+    "library_picker_has_open_tables": "Com mesas abertas",
+    "library_picker_with_games": "Com partidas agora",
+    "library_picker_no_games": "Sem partidas neste momento",
+    "library_picker_clear": "Limpar",
+    "library_picker_show_games": "Mostrar partidas",
+    "library_picker_remove": "Remover {name}",
+    "tournaments_heading_label": "Competições",
+    "tournaments_heading_tournaments": "Torneios",
+    "tournaments_heading_leagues": "Ligas",
+    "tournaments_scoring_knockout": "Cada confronto tem uma partida de cada lado; um confronto empatado vai para uma partida decisiva. Uma partida com vitória dividida conta metade. Abaixo do vencedor, os jogadores são classificados pela fase que alcançaram.",
+    "tournaments_scoring_average_place": "A classificação é pela posição média. Os empates são decididos a favor de quem ficou à frente mais vezes nas mesas em comum e, depois, pelo desempate.",
+    "tournaments_scoring_wins": "Uma vitória vale 1 ponto; numa vitória dividida, o ponto é repartido entre os vencedores.",
+    "tournaments_format_mini": "Mini",
+    "tournaments_format_mini_tournament": "Minitorneio",
+    "tournaments_format_knockout": "Eliminatório",
+    "tournaments_format_knockout_tournament": "Torneio eliminatório",
+    "tournaments_format_multi_stage": "Várias etapas",
+    "tournaments_format_multi_stage_tournament": "Torneio em várias etapas",
+    "tournaments_tag_league": "Liga",
+    "tournaments_tag_league_group": "Grupo de liga",
+    "tournaments_roster_of_capacity": "{count: number} / {capacity: number}",
+    "tournaments_roster_joined": "Inscritos: {roster}",
+    "tournaments_registration_closes_at_start": "As inscrições fecham quando o torneio começar.",
+    "tournaments_registration_assigned": "Os jogadores são atribuídos pela liga.",
+    "tournaments_registration_starts_when_full": [
+        {
+            "declarations": ["input capacity"],
+            "selectors": ["capacity"],
+            "match": {
+                "capacity=1": "Começa quando {capacity: number} jogador tiver entrado",
+                "capacity=*": "Começa quando {capacity: number} jogadores tiverem entrado"
+            }
+        }
+    ],
+    "tournaments_registration_closes_on": [
+        {
+            "declarations": ["input date", "input minimum"],
+            "selectors": ["minimum"],
+            "match": {
+                "minimum=1": "As inscrições fecham em {date}. É necessário pelo menos {minimum: number} jogador.",
+                "minimum=*": "As inscrições fecham em {date}. São necessários pelo menos {minimum: number} jogadores."
+            }
+        }
+    ],
+    "tournaments_registration_closed_on": [
+        {
+            "declarations": ["input date", "input minimum"],
+            "selectors": ["minimum"],
+            "match": {
+                "minimum=1": "As inscrições fecharam em {date}. É necessário pelo menos {minimum: number} jogador.",
+                "minimum=*": "As inscrições fecharam em {date}. São necessários pelo menos {minimum: number} jogadores."
+            }
+        }
+    ],
+    "tournaments_registration_closes_on_capped": [
+        {
+            "declarations": ["input date", "input capacity", "input minimum"],
+            "selectors": ["minimum"],
+            "match": {
+                "minimum=1": "As inscrições fecham em {date}. É necessário pelo menos {minimum: number} jogador; no máximo {capacity: number}.",
+                "minimum=*": "As inscrições fecham em {date}. São necessários pelo menos {minimum: number} jogadores; no máximo {capacity: number}."
+            }
+        }
+    ],
+    "tournaments_registration_closed_on_capped": [
+        {
+            "declarations": ["input date", "input capacity", "input minimum"],
+            "selectors": ["minimum"],
+            "match": {
+                "minimum=1": "As inscrições fecharam em {date}. É necessário pelo menos {minimum: number} jogador; no máximo {capacity: number}.",
+                "minimum=*": "As inscrições fecharam em {date}. São necessários pelo menos {minimum: number} jogadores; no máximo {capacity: number}."
+            }
+        }
+    ],
+    "tournaments_summary_completed": "Concluído",
+    "tournaments_summary_completed_on": "Concluído em {date}",
+    "tournaments_games_finished": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} partida terminada",
+                "count=*": "{count: number} partidas terminadas"
+            }
+        }
+    ],
+    "tournaments_status_scheduling_paused": "Agendamento em pausa",
+    "tournaments_status_start_delayed": "Início atrasado",
+    "tournaments_status_draft": "Rascunho",
+    "tournaments_status_registration_open": "Inscrições abertas",
+    "tournaments_status_registration_closed": "Inscrições fechadas",
+    "tournaments_status_finished": "Terminado",
+    "tournaments_status_in_progress": "Em curso",
+    "tournaments_status_starting": "Prestes a começar…",
+    "tournaments_status_roster_locked": "Jogadores definidos",
+    "tournaments_status_cancelled_undersubscribed": "Cancelado — mínimo de jogadores não atingido",
+    "tournaments_status_cancelled": "Cancelado",
+    "tournaments_knockout_final": "Final",
+    "tournaments_knockout_semi_finals": "Semifinais",
+    "tournaments_knockout_quarter_finals": "Quartas de final",
+    "tournaments_knockout_round": "Fase {round}",
+    "tournaments_knockout_semi_final_match": "Semifinal {match}",
+    "tournaments_knockout_quarter_final_match": "Quartas de final {match}",
+    "tournaments_knockout_round_match": "Fase {round} · Confronto {match}",
+    "tournaments_knockout_game": "Partida {game}",
+    "tournaments_knockout_decider": "Partida decisiva",
+    "tournaments_knockout_decider_numbered": "Partida decisiva {number}",
+    "tournaments_knockout_game_label": "P{game}",
+    "tournaments_knockout_decider_label": "D",
+    "tournaments_knockout_decider_label_numbered": "D{number}",
+    "tournaments_knockout_champion": "Venceu o torneio",
+    "tournaments_knockout_runner_up": "Segundo lugar",
+    "tournaments_knockout_in_final": "Na final",
+    "tournaments_knockout_in_semi_finals": "Nas semifinais",
+    "tournaments_knockout_in_quarter_finals": "Nas quartas de final",
+    "tournaments_knockout_in_round": "Na fase {round}",
+    "tournaments_knockout_out_in_semi_finals": "Caiu nas semifinais",
+    "tournaments_knockout_out_in_quarter_finals": "Caiu nas quartas de final",
+    "tournaments_knockout_out_in_round": "Caiu na fase {round}",
+    "tournaments_bracket_heading": "Eliminatórias",
+    "tournaments_bracket_bye": "Bye",
+    "tournaments_bracket_nobody": "Ninguém",
+    "tournaments_bracket_to_be_decided": "A definir",
+    "tournaments_bracket_game_shared": "{game}: vitória dividida entre {winners}",
+    "tournaments_bracket_game_won": "{game}: vitória de {winners}",
+    "tournaments_bracket_game_in_progress": "{game}: em curso",
+    "tournaments_bracket_game_starting": "{game}: prestes a começar",
+    "tournaments_bracket_walkover": "W.O.",
+    "tournaments_bracket_your_match": "O seu confronto · {match}",
+    "tournaments_bracket_rounds_label": "Fases",
+    "tournaments_bracket_whole": "Todas as fases",
+    "tournaments_bracket_legend": "P1 e P2 são jogadas ao mesmo tempo, uma de cada lado. D é a partida decisiva.",
+    "tournaments_bracket_draw_pending": "O sorteio é feito quando as inscrições fecham.",
+    "tournaments_bracket_load_failed": "Não foi possível carregar as eliminatórias",
+    "tournaments_page_title": "Torneios · Tabletop",
+    "tournaments_tab_mine": "Meus",
+    "tournaments_tab_open": "Abertos",
+    "tournaments_tab_in_progress": "Em curso",
+    "tournaments_tab_completed": "Concluídos",
+    "tournaments_tab_drafts": "Rascunhos",
+    "tournaments_empty_title_filter": "Não há torneios deste jogo nesta lista.",
+    "tournaments_empty_mine": "Os seus torneios vão aparecer aqui quando entrar num torneio.",
+    "tournaments_empty_open": "Neste momento não há torneios com inscrições abertas.",
+    "tournaments_empty_in_progress": "Neste momento não há torneios em curso.",
+    "tournaments_empty_finished": "Ainda não há torneios concluídos.",
+    "tournaments_empty_drafts": "Sem rascunhos. Crie um torneio para começar.",
+    "tournaments_list_load_failed": "Não foi possível carregar os torneios",
+    "tournaments_create_tournament": "Criar torneio",
+    "tournaments_filter_by_game": "Filtrar por jogo",
+    "tournaments_all_games": "Todos os jogos",
+    "tournaments_loading": "Carregando torneios",
+    "tournaments_explore_open": "Explore os torneios abertos →",
+    "tournaments_card_players_per_game": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{#strong}{count: number}{/strong} jogador por partida",
+                "count=*": "{#strong}{count: number}{/strong} jogadores por partida"
+            }
+        }
+    ],
+    "tournaments_card_games_each": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{#strong}{count: number}{/strong} partida por jogador",
+                "count=*": "{#strong}{count: number}{/strong} partidas por jogador"
+            }
+        }
+    ],
+    "tournaments_game_options": "Opções de jogo",
+    "tournaments_next_page": "Página seguinte",
+    "tournaments_detail_page_title": "{name} · Tabletop",
+    "tournaments_detail_tournament": "Torneio",
+    "tournaments_detail_back": "← Torneios",
+    "tournaments_detail_load_failed": "Não foi possível carregar o torneio",
+    "tournaments_detail_update_failed": "Não foi possível atualizar o torneio",
+    "tournaments_detail_rebuild_failed": "Não foi possível recalcular a classificação",
+    "tournaments_detail_confirm_start": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Fechar as inscrições e começar com {count: number} jogador?",
+                "count=*": "Fechar as inscrições e começar com {count: number} jogadores?"
+            }
+        }
+    ],
+    "tournaments_detail_league_group_heading": "{#league}{league}{/league} · Temporada {season} · Grupo {group}",
+    "tournaments_detail_registration_full": "Inscrições esgotadas",
+    "tournaments_detail_join": "Entrar no torneio",
+    "tournaments_detail_close_editor": "Fechar o editor",
+    "tournaments_detail_edit_draft": "Editar rascunho",
+    "tournaments_detail_open_registration": "Abrir inscrições",
+    "tournaments_detail_manage": "Administrar",
+    "tournaments_detail_needs_players": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "É necessário pelo menos {count: number} jogador",
+                "count=*": "São necessários pelo menos {count: number} jogadores"
+            }
+        }
+    ],
+    "tournaments_detail_start_now": "Fechar e começar agora",
+    "tournaments_detail_resume_scheduling": "Retomar agendamento",
+    "tournaments_detail_pause_scheduling": "Pausar agendamento",
+    "tournaments_detail_retry_scheduling": "Tentar agendar novamente",
+    "tournaments_detail_replace_player": "Substituir um jogador",
+    "tournaments_detail_correct_result": "Corrigir resultado",
+    "tournaments_detail_rebuild_standings": "Recalcular classificação",
+    "tournaments_detail_cancel_tournament": "Cancelar torneio",
+    "tournaments_detail_winners": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Vencedor:",
+                "count=*": "Vitória dividida:"
+            }
+        }
+    ],
+    "tournaments_detail_paused_note": "As novas partidas estão em pausa. As partidas já iniciadas podem continuar.",
+    "tournaments_detail_scheduling_error_note": "Algumas partidas estão à espera de começar. O agendamento será tentado de novo automaticamente.",
+    "tournaments_detail_schedule_ready": "Mesas sorteadas. À espera do início das partidas.",
+    "tournaments_detail_awaiting_schedule": "À espera do sorteio das mesas.",
+    "tournaments_detail_edit_draft_label": "Editar rascunho do torneio",
+    "tournaments_detail_players": "Jogadores",
+    "tournaments_detail_be_first": "Seja a primeira pessoa a entrar",
+    "tournaments_detail_name": "Nome",
+    "tournaments_detail_status": "Situação",
+    "tournaments_wins": "Vitórias",
+    "tournaments_detail_avg_place": "Pos. média",
+    "tournaments_average_place": "Posição média",
+    "tournaments_detail_score": "Pontos",
+    "tournaments_detail_tiebreak": "Desempate",
+    "tournaments_detail_action": "Ação",
+    "tournaments_detail_substitute_for_title": "Substitui {name}",
+    "tournaments_detail_substitute_for": "no lugar de {name}",
+    "tournaments_detail_withdrawn": "Saiu",
+    "tournaments_detail_tournament_winner": "Vencedor do torneio",
+    "tournaments_detail_knockout_record": [
+        {
+            "declarations": ["input score", "input active", "input completed"],
+            "selectors": ["completed"],
+            "match": {
+                "completed=1": "{score} de {completed: number} partida vencida · {active: number} em curso",
+                "completed=*": "{score} de {completed: number} partidas vencidas · {active: number} em curso"
+            }
+        }
+    ],
+    "tournaments_detail_game_counts": "Terminadas: {completed: number} · Em curso: {active: number} · À espera: {waiting: number}",
+    "tournaments_detail_leave": "Sair",
+    "tournaments_detail_show_still_in": "Mostrar só os jogadores ainda no torneio",
+    "tournaments_detail_show_knocked_out": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Mostrar o jogador eliminado",
+                "count=*": "Mostrar os {count: number} jogadores eliminados"
+            }
+        }
+    ],
+    "tournaments_detail_no_players": "Ainda não há jogadores.",
+    "tournaments_detail_info": "Informações do torneio",
+    "tournaments_players_per_game": "Jogadores por partida",
+    "tournaments_format": "Formato",
+    "tournaments_detail_games_per_match": "Partidas por confronto",
+    "tournaments_detail_games_per_match_value": "2, ambas ao mesmo tempo; partida decisiva em caso de empate",
+    "tournaments_total_games_per_player": "Total de partidas por jogador",
+    "tournaments_detail_simultaneous_games": "Partidas simultâneas por jogador",
+    "tournaments_detail_stages": "Etapas",
+    "tournaments_detail_decider_options": "Opções da partida decisiva",
+    "tournaments_detail_scoring": "Pontuação",
+    "tournaments_detail_result_corrections": "Correções de resultado ({count: number})",
+    "tournaments_detail_correction": "Mesa {table}: {winners} — {reason}",
+    "tournaments_game_options_standard": "Jogo padrão. Sem opções configuráveis.",
+    "tournaments_seated_option_help": "As partidas de torneio atribuem os lugares, e é o lugar que decide isto.",
+    "tournaments_select_placeholder": "Escolha uma opção",
+    "tournaments_ranking": "Classificação",
+    "tournaments_schedule_preview_failed": "Não foi possível pré-visualizar as mesas",
+    "tournaments_schedule_save_failed": "Não foi possível salvar as mesas",
+    "tournaments_schedule_load_failed": "Não foi possível carregar as mesas",
+    "tournaments_schedule_heading": "Mesas",
+    "tournaments_schedule_preview_heading": "Pré-visualização das mesas",
+    "tournaments_schedule_games_finished": [
+        {
+            "declarations": ["input finished", "input total"],
+            "selectors": ["total"],
+            "match": {
+                "total=1": "{finished: number} / {total: number} partida terminada",
+                "total=*": "{finished: number} / {total: number} partidas terminadas"
+            }
+        }
+    ],
+    "tournaments_schedule_preparing": "Preparando…",
+    "tournaments_schedule_new_draw": "Novo sorteio",
+    "tournaments_schedule_preview": "Pré-visualizar mesas",
+    "tournaments_schedule_save": "Salvar mesas",
+    "tournaments_table": "Mesa",
+    "tournaments_schedule_seat": "Lugar {position}",
+    "tournaments_schedule_progress": "Progresso",
+    "tournaments_schedule_game": "Partida",
+    "tournaments_schedule_void_reason": "Anulada: esta partida não conta",
+    "tournaments_schedule_starting_game": "Esta partida vai começar",
+    "tournaments_schedule_waiting_accounts": "À espera de contas ativas",
+    "tournaments_schedule_waiting_scheduling": "À espera de agendamento",
+    "tournaments_schedule_waiting_capacity": "À espera de jogadores disponíveis",
+    "tournaments_schedule_open_table": "Abrir a mesa {number}",
+    "tournaments_schedule_void": "Anulada",
+    "tournaments_schedule_tournament_win": "Vitória no torneio",
+    "tournaments_schedule_play_table": "Jogar na mesa {number}",
+    "tournaments_schedule_view_table": "Ver a mesa {number}",
+    "tournaments_schedule_play": "Jogar",
+    "tournaments_schedule_view": "Ver",
+    "tournaments_schedule_games_each": "Partidas por jogador",
+    "tournaments_schedule_each_seat": "Cada lugar",
+    "tournaments_schedule_every_pair_meets": "Encontros de cada par",
+    "tournaments_schedule_opponents_meet": "Encontros entre adversários",
+    "tournaments_schedule_repeated_groups": "Grupos repetidos",
+    "tournaments_schedule_previous": "Anterior",
+    "tournaments_schedule_next": "Seguinte",
+    "tournaments_schedule_balanced_note": "As posições iniciais e o número de partidas são iguais para todos. Este sorteio é um candidato equilibrado; outros sorteios podem ter combinações de adversários diferentes.",
+    "tournaments_schedule_roster_locked_note": "A lista de jogadores está fechada. Pré-visualize as mesas e as posições iniciais antes de salvar.",
+    "tournaments_form_titles_load_failed": "Não foi possível carregar os jogos disponíveis para torneios.",
+    "tournaments_form_save_failed": "Não foi possível salvar o torneio",
+    "tournaments_form_edit_heading": "Editar torneio",
+    "tournaments_form_name": "Nome",
+    "tournaments_form_name_placeholder": "Escolha um nome para o seu torneio",
+    "tournaments_form_knockout_help": "Um contra um: quem perde um confronto é eliminado. Cada confronto tem uma partida de cada lado, com uma partida decisiva em caso de empate.",
+    "tournaments_form_mini_help": "Os jogadores disputam um número fixo de partidas e são classificados por pontos.",
+    "tournaments_form_game": "Jogo",
+    "tournaments_form_game_placeholder": "Escolha um jogo",
+    "tournaments_form_loading_titles": "Carregando jogos…",
+    "tournaments_form_titles_unavailable": "Os jogos não estão disponíveis.",
+    "tournaments_form_decider": "Partida decisiva",
+    "tournaments_form_decider_help": "Um confronto empatado é resolvido por uma terceira partida com estas opções. Os lugares não são atribuídos, por isso é a preparação do próprio jogo que decide quem joga de cada lado.",
+    "tournaments_form_registration_closes": "As inscrições fecham",
+    "tournaments_form_when_full": "Quando o torneio encher",
+    "tournaments_form_on_date": "Numa data definida",
+    "tournaments_form_closing_date": "Data de encerramento",
+    "tournaments_form_local_time": "Usa a sua hora local.",
+    "tournaments_form_advanced": "Avançado",
+    "tournaments_form_at_same_time": "Ao mesmo tempo",
+    "tournaments_form_roster_size": "Número de jogadores",
+    "tournaments_form_starts_after_full": "Começa um minuto depois de o torneio encher.",
+    "tournaments_form_minimum_players": "Mínimo de jogadores",
+    "tournaments_form_cancels_below_minimum": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "É cancelado se entrar menos de {count: number} jogador.",
+                "count=*": "É cancelado se entrarem menos de {count: number} jogadores."
+            }
+        }
+    ],
+    "tournaments_form_limit_roster": "Limitar o número de jogadores",
+    "tournaments_form_maximum_players": "Máximo de jogadores",
+    "tournaments_form_description_optional": "Descrição {#optional}(opcional){/optional}",
+    "tournaments_form_description": "Descrição",
+    "tournaments_form_save_draft": "Salvar rascunho",
+    "tournaments_form_create_draft": "Criar rascunho",
+    "tournaments_replace_failed": "Não foi possível substituir o jogador",
+    "tournaments_tables_load_failed": "Não foi possível carregar as mesas",
+    "tournaments_replace_heading": "Substituir um jogador",
+    "tournaments_replace_knockout_intro": "Um jogador retirado perde o confronto e o adversário avança. As vagas de um torneio eliminatório não aceitam substitutos.",
+    "tournaments_replace_intro": "Um substituto assume a vaga do jogador e termina as partidas dele. As partidas não terminadas de um jogador retirado não contam para ninguém.",
+    "tournaments_replace_player": "Jogador",
+    "tournaments_replace_choose_player": "Escolha um jogador",
+    "tournaments_replace_withdrawn_in_progress": [
+        {
+            "declarations": ["input name", "input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "A retirada de {name} foi feita, mas uma partida ainda está em curso. Concluir a retirada encerra essa partida.",
+                "count=*": "A retirada de {name} foi feita, mas {count: number} partidas ainda estão em curso. Concluir a retirada encerra essas partidas."
+            }
+        }
+    ],
+    "tournaments_replace_finish_withdrawing": "Concluir a retirada de {name}",
+    "tournaments_replace_with": "Substituir por",
+    "tournaments_replace_substitute": "Substituto",
+    "tournaments_replace_withdraw": "Ninguém (retirar)",
+    "tournaments_replace_username_placeholder": "Nome de jogador",
+    "tournaments_replace_games_in_progress": "Partidas em curso",
+    "tournaments_table_number": "Mesa {table}",
+    "tournaments_replace_take_over": "Assumir a partida",
+    "tournaments_replace_restart": "Recomeçar a partida",
+    "tournaments_replace_dropped_league": "{name} sai da competição. A vaga do substituto não pode subir nem descer, e o substituto começa a próxima temporada no nível mais baixo.",
+    "tournaments_replace_dropped": "{name} sai do torneio. A vaga do substituto não pode vencer o torneio.",
+    "tournaments_replace_knockout_withdraw_note": "As partidas não terminadas de {name} são encerradas e não contam para ninguém, e o adversário avança. Os confrontos já vencidos por {name} continuam válidos, e {name} não entra na classificação.",
+    "tournaments_replace_withdraw_note": "As partidas não terminadas de {name} são encerradas e não contam para ninguém. Os resultados das partidas já terminadas continuam válidos, e {name} não entra na classificação.",
+    "tournaments_replace_withdraw_note_league": "As partidas não terminadas de {name} são encerradas e não contam para ninguém. Os resultados das partidas já terminadas continuam válidos, e {name} não entra na classificação nem terá vaga na próxima temporada.",
+    "tournaments_replace_substitute_action": "Substituir",
+    "tournaments_replace_withdraw_action": "Retirar {name}",
+    "tournaments_correction_failed": "Não foi possível corrigir o resultado",
+    "tournaments_correction_heading": "Corrigir resultado para o torneio",
+    "tournaments_correction_places_intro": "Escolha todas as posições. A partida jogada e o seu histórico permanecem inalterados.",
+    "tournaments_correction_winners_intro": "Escolha os vencedores que contam para o torneio. A partida jogada e o seu histórico permanecem inalterados.",
+    "tournaments_correction_choose_table": "Escolha uma mesa terminada",
+    "tournaments_correction_places_legend": "Posições — jogadores com o mesmo número dividem a posição",
+    "tournaments_correction_winners_legend": "Vencedores para o torneio — escolha um ou mais",
+    "tournaments_correction_reason": "Motivo",
+    "tournaments_correction_save": "Salvar correção",
+    "tournaments_placement_scoring": "A classificação é pela posição média (quanto menor, melhor), depois por quem ficou à frente mais vezes nas mesas em que os jogadores empatados jogaram juntos, depois pelo desempate.",
+    "tournaments_tiebreak_points_behind": "O desempate é a média dos pontos de diferença para a maior pontuação nas mesas de cada jogador, em valor negativo, mais um centésimo da sua pontuação final média. Quanto maior, melhor.",
+    "tournaments_tiebreak_share_of_winner": "O desempate é a pontuação final média de cada jogador, em percentagem da maior pontuação final nas suas mesas. Quanto maior, melhor.",
+    "tournaments_tiebreak_score_sum": "O desempate é a soma das pontuações finais de cada jogador nas suas partidas.",
+    "leagues_page_title": "Ligas · Tabletop",
+    "leagues_detail_page_title": "{name} · Tabletop",
+    "leagues_detail_page_title_loading": "Liga · Tabletop",
+    "leagues_back_to_leagues": "← Ligas",
+    "leagues_create_league": "Criar liga",
+    "leagues_list_load_failed": "Não foi possível carregar as ligas",
+    "leagues_list_empty": "Ainda não há ligas.",
+    "leagues_list_card_format": [
+        {
+            "declarations": ["input tableSize", "input gamesPerEntrant", "input groupSize"],
+            "selectors": ["gamesPerEntrant"],
+            "match": {
+                "gamesPerEntrant=1": "{tableSize} jogadores por partida · {gamesPerEntrant} partida por jogador · grupos de {groupSize}",
+                "gamesPerEntrant=*": "{tableSize} jogadores por partida · {gamesPerEntrant} partidas por jogador · grupos de {groupSize}"
+            }
+        }
+    ],
+    "leagues_shape_pyramid": "Pirâmide",
+    "leagues_shape_ladder": "Escada",
+    "leagues_status_not_open": "Ainda não abriu",
+    "leagues_status_waiting_for_players": "À espera de mais jogadores",
+    "leagues_status_sign_up_open": "Inscrições abertas",
+    "leagues_status_sign_up_closed": "Inscrições fechadas",
+    "leagues_status_starting": "Prestes a começar…",
+    "leagues_status_in_progress": "Em curso",
+    "leagues_status_finished": "Terminada",
+    "leagues_status_cancelled": "Cancelada",
+    "leagues_status_draft": "Rascunho",
+    "leagues_level": "Nível {level}",
+    "leagues_season_name": "Temporada {number}",
+    "leagues_season_name_seeding": "Temporada {number} · Nivelamento",
+    "leagues_season_with_status": "{season} · {status}",
+    "leagues_closing_now": "Fecham agora",
+    "leagues_closes_in_minutes": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Fecham em {count: number} minuto",
+                "count=*": "Fecham em {count: number} minutos"
+            }
+        }
+    ],
+    "leagues_closes_in_hours": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Fecham em {count: number} hora",
+                "count=*": "Fecham em {count: number} horas"
+            }
+        }
+    ],
+    "leagues_closes_in_days": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Fecham em {count: number} dia",
+                "count=*": "Fecham em {count: number} dias"
+            }
+        }
+    ],
+    "leagues_my_place_signed_up": "Inscrição feita",
+    "leagues_my_place_held": "A sua vaga no Nível {level} está reservada. Confirme-a para jogar.",
+    "leagues_my_place_in_group": "Está no Grupo {group}",
+    "leagues_roster_signed_up": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} inscrito",
+                "count=*": "{count: number} inscritos"
+            }
+        }
+    ],
+    "leagues_roster_needed": "{count: number} de {minimum: number} necessários",
+    "leagues_load_failed": "Não foi possível carregar a liga",
+    "leagues_update_sign_up_failed": "Não foi possível atualizar as inscrições",
+    "leagues_preview_failed": "Não foi possível pré-visualizar os grupos",
+    "leagues_save_sign_up_policy_failed": "Não foi possível salvar as configurações de inscrição",
+    "leagues_cancel_season_failed": "Não foi possível cancelar a temporada",
+    "leagues_sign_up_failed": "Não foi possível fazer a inscrição",
+    "leagues_withdraw_failed": "Não foi possível cancelar a inscrição",
+    "leagues_format_heading": "Formato",
+    "leagues_detail_games_finished": "{#count}{finished: number}{/count} de {total: number} partidas terminadas",
+    "leagues_detail_games_finished_label": "Partidas da temporada terminadas",
+    "leagues_progress_in_progress": "Em curso",
+    "leagues_detail_active_games": "{count: number} em curso",
+    "leagues_detail_seasons_label": "Temporadas",
+    "leagues_detail_edit_draft_label": "Editar rascunho da liga",
+    "leagues_detail_preview_label": "Pré-visualização dos grupos",
+    "leagues_detail_preview_too_few": "Há poucos jogadores inscritos para preencher dois níveis.",
+    "leagues_detail_preview_intro": "Os grupos que se formariam se as inscrições fechassem agora com estes jogadores.",
+    "leagues_group_name": "Grupo {group}",
+    "leagues_detail_season_groups_label": "Grupos da Temporada {number}",
+    "leagues_detail_seeding_letters": "As letras mostram o nível de cada jogador na Temporada {number}, com base nas posições em todos os grupos.",
+    "leagues_detail_movement_legend": "{#promoted/} sobe de nível {#relegated/} desce de nível na Temporada {number}",
+    "leagues_detail_cancelled": "A Temporada {number} foi cancelada durante as inscrições.",
+    "leagues_detail_cancelled_current": "A Temporada {number} foi cancelada durante as inscrições. A próxima temporada começa quando um administrador a abrir.",
+    "leagues_detail_not_opened": "A Temporada 0 ainda não foi aberta.",
+    "leagues_format_game": "Jogo",
+    "leagues_format_shape": "Estrutura",
+    "leagues_format_shape_pyramid": "Pirâmide: os vencedores dos grupos sobem, os dois últimos descem",
+    "leagues_format_shape_ladder": "Escada: os dois primeiros sobem, os dois últimos descem",
+    "leagues_format_groups": "Grupos",
+    "leagues_format_groups_detail": "{groupSize} jogadores; de {bottomMinimum} a {bottomMaximum} no nível mais baixo",
+    "leagues_format_games": "Partidas",
+    "leagues_format_games_detail": "{gamesPerEntrant} por jogador, {tableSize} jogadores por partida",
+    "leagues_format_ranking": "Classificação",
+    "leagues_format_at_once": "Ao mesmo tempo",
+    "leagues_format_at_once_detail": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Até {count: number} partida",
+                "count=*": "Até {count: number} partidas"
+            }
+        }
+    ],
+    "leagues_between_seasons": "Entre temporadas",
+    "leagues_format_sign_up_automatic": [
+        {
+            "declarations": ["input days"],
+            "selectors": ["days"],
+            "match": {
+                "days=1": "Inscrições de {days} dia, abertas automaticamente",
+                "days=*": "Inscrições de {days} dias, abertas automaticamente"
+            }
+        }
+    ],
+    "leagues_format_sign_up_by_administrator": [
+        {
+            "declarations": ["input days"],
+            "selectors": ["days"],
+            "match": {
+                "days=1": "Inscrições de {days} dia, abertas por um administrador",
+                "days=*": "Inscrições de {days} dias, abertas por um administrador"
+            }
+        }
+    ],
+    "leagues_group_results_link": "Resultados →",
+    "leagues_group_games_link": "Partidas →",
+    "leagues_group_games_finished_label": "Partidas terminadas do Grupo {group}",
+    "leagues_group_finished_of_total": "{finished: number} de {total: number} partidas",
+    "leagues_group_place": "Posição",
+    "leagues_group_name_column": "Nome",
+    "leagues_group_wins": "Vitórias",
+    "leagues_group_wins_abbr": "V",
+    "leagues_group_average_place": "Posição média. A classificação é pela posição média (quanto menor, melhor), depois por quem ficou à frente mais vezes nas mesas em que os jogadores empatados jogaram juntos, depois pelo desempate.",
+    "leagues_group_average_place_abbr": "Méd.",
+    "leagues_group_points": "Pontos",
+    "leagues_group_points_abbr": "Pts",
+    "leagues_group_games_column": "Partidas",
+    "leagues_group_tiebreak_abbr": "Des.",
+    "leagues_group_withdrew": "{name} saiu",
+    "leagues_group_substitute": "Substitui {name}. Esta vaga não sobe nem desce.",
+    "leagues_group_substitute_abbr": "Sub",
+    "leagues_group_next_level": "Nível {level} na próxima temporada",
+    "leagues_group_promoted": "Sobe de nível",
+    "leagues_group_relegated": "Desce de nível",
+    "leagues_group_games_summary": "Terminadas: {finished: number} · Em curso: {active: number} · À espera: {waiting: number}",
+    "leagues_group_games_summary_with_void": "Terminadas: {finished: number} · Em curso: {active: number} · À espera: {waiting: number} · Anuladas: {voided: number}",
+    "leagues_form_edit_heading": "Editar liga",
+    "leagues_form_titles_load_failed": "Não foi possível carregar os jogos disponíveis para ligas.",
+    "leagues_form_save_failed": "Não foi possível salvar a liga",
+    "leagues_form_name": "Nome",
+    "leagues_form_name_placeholder": "Escolha um nome para a sua liga",
+    "leagues_form_game_placeholder": "Escolha um jogo",
+    "leagues_form_loading_titles": "Carregando jogos…",
+    "leagues_form_shape_label": "Estrutura da liga",
+    "leagues_form_pyramid_help": "Cada nível tem o dobro dos grupos do nível acima. Os vencedores dos grupos sobem; os dois últimos descem.",
+    "leagues_form_ladder_help": "Um grupo por nível. Os dois primeiros sobem; os dois últimos descem.",
+    "leagues_form_players_per_game": "Jogadores por partida",
+    "leagues_opens_automatically": "Abrir as próximas inscrições quando uma temporada terminar",
+    "leagues_form_sign_up_days": "Duração das inscrições (dias)",
+    "leagues_form_sign_up_days_help": "Neste período, os jogadores da temporada anterior confirmam as suas vagas. Os grupos começam quando as inscrições fecham.",
+    "leagues_form_advanced": "Avançado",
+    "leagues_form_games_per_player": "Partidas por jogador",
+    "leagues_form_concurrency": "Ao mesmo tempo",
+    "leagues_form_group_sizes": "Grupos de {groupSize}; os grupos do nível mais baixo têm de {bottomMinimum} a {bottomMaximum} jogadores.",
+    "leagues_form_description_optional": "Descrição {#optional}(opcional){/optional}",
+    "leagues_form_description": "Descrição",
+    "leagues_form_save_draft": "Salvar rascunho",
+    "leagues_form_create_draft": "Criar rascunho",
+    "leagues_manage": "Administrar",
+    "leagues_manage_open_season": "Abrir a Temporada {number}",
+    "leagues_manage_move_close": "Alterar o encerramento",
+    "leagues_manage_close_editor": "Fechar o editor",
+    "leagues_manage_edit_draft": "Editar rascunho",
+    "leagues_manage_sign_up_closes": "Encerramento das inscrições {#hint}(na sua hora local){/hint}",
+    "leagues_manage_preview_groups": "Pré-visualizar grupos",
+    "leagues_manage_cancel_season_confirm": "Cancelar a Temporada {number}? As inscrições terminam sem iniciar nenhum grupo. Depois, pode abrir a próxima temporada.",
+    "leagues_manage_cancel_season": "Cancelar temporada",
+    "leagues_manage_sign_up_lasts": "As inscrições duram {#days/} dias",
+    "leagues_manage_save": "Salvar",
+    "leagues_sign_up_seeding_explanation": "A Temporada {number} é de nivelamento. Todos jogam em grupos sorteados, e os resultados definem o nível de cada jogador na Temporada {nextNumber}.",
+    "leagues_sign_up_held_explanation": "As vagas dos jogadores da temporada anterior ficam reservadas. Confirme a sua antes do encerramento das inscrições; uma vaga não confirmada passa para o melhor jogador do nível abaixo. Os novos jogadores começam no nível mais baixo ou ocupam vagas que nenhum jogador anterior possa ocupar.",
+    "leagues_sign_up_not_confirmed": "Ainda sem confirmação",
+    "leagues_sign_up_count_signed_up": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{#count}{count: number}{/count} inscrito",
+                "count=*": "{#count}{count: number}{/count} inscritos"
+            }
+        }
+    ],
+    "leagues_sign_up_count_confirmed_or_signed_up": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{#count}{count: number}{/count} confirmado ou inscrito",
+                "count=*": "{#count}{count: number}{/count} confirmados ou inscritos"
+            }
+        }
+    ],
+    "leagues_sign_up_needed_to_start": "mínimo para começar: {count: number}",
+    "leagues_sign_up_progress_label": "Jogadores em relação ao mínimo",
+    "leagues_sign_up_enough": "Já há jogadores suficientes para começar. Mais jogadores são bem-vindos.",
+    "leagues_sign_up_more_needed": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Falta {count: number} jogador.",
+                "count=*": "Faltam {count: number} jogadores."
+            }
+        }
+    ],
+    "leagues_sign_up_waiting_for_administrator": "Os grupos começam quando um administrador definir uma nova data de encerramento.",
+    "leagues_sign_up_groups_start_at_close": "Os grupos são sorteados e começam quando as inscrições fecham.",
+    "leagues_sign_up_place_confirmed": "A sua vaga no Nível {level} está confirmada",
+    "leagues_sign_up_withdraw": "Cancelar inscrição",
+    "leagues_sign_up_confirm_place": "Confirmar a sua vaga",
+    "leagues_sign_up": "Inscrever-se",
+    "leagues_sign_up_place_held": "A sua vaga no Nível {level} fica reservada até as inscrições fecharem.",
+    "leagues_sign_up_level_confirmed": "· confirmados: {confirmed} de {total: number}",
+    "leagues_sign_up_new_players": "Novos jogadores",
+    "leagues_sign_up_players": "Jogadores",
+    "leagues_sign_up_no_one_yet": "Ainda ninguém. Faça a primeira inscrição.",
+    "leagues_sign_up_previous_results": "Veja os {#link}resultados da Temporada {number}{/link}.",
+    "content_time_zone_option": "{zone} ({offset})",
+    "content_stats_all_games": "Todos os jogos",
+    "content_stats_all_badge": "Tudo",
+    "content_stats_different_games": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} jogo diferente",
+                "count=*": "{count: number} jogos diferentes"
+            }
+        }
+    ],
+    "content_stats_since_month": "desde {month}",
+    "content_stats_load_failed": "Não foi possível carregar as estatísticas.",
+    "content_stats_loading": "Carregando estatísticas…",
+    "content_stats_empty": "As suas estatísticas vão aparecer aqui quando terminar uma partida.",
+    "content_stats_by_game": "Estatísticas por jogo",
+    "content_stats_show_for": "Mostrar estatísticas de",
+    "content_stats_scope_option": [
+        {
+            "declarations": ["input name", "input games", "input rate"],
+            "selectors": ["games"],
+            "match": {
+                "games=1": "{name} — {games: number} partida, {rate}",
+                "games=*": "{name} — {games: number} partidas, {rate}"
+            }
+        }
+    ],
+    "content_stats_scope_summary": [
+        {
+            "declarations": ["input games", "input record"],
+            "selectors": ["games"],
+            "match": {
+                "games=1": "{games: number} partida · {record}",
+                "games=*": "{games: number} partidas · {record}"
+            }
+        }
+    ],
+    "content_stats_opponent_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} adversário",
+                "count=*": "{count: number} adversários"
+            }
+        }
+    ],
+    "content_stats_first_finished": "primeira terminada em {month}",
+    "content_stats_last_finished": "última terminada {time}",
+    "content_stats_average_under_a_day": "menos de um dia por partida, em média",
+    "content_stats_average_days": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} dia por partida, em média",
+                "count=*": "{count: number} dias por partida, em média"
+            }
+        }
+    ],
+    "content_stats_best_score": "melhor pontuação: {score: number}",
+    "content_stats_tournament_tables": [
+        {
+            "declarations": ["input count", "input wins"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} mesa de torneio ({wins: number} com vitória)",
+                "count=*": "{count: number} mesas de torneio ({wins: number} com vitória)"
+            }
+        }
+    ],
+    "content_stats_sheet_label": "Estatísticas: {name}",
+    "content_stats_games_finished": "partidas terminadas",
+    "content_stats_won_tied_lost": "vitórias–empates–derrotas",
+    "content_stats_win_rate": "taxa de vitórias",
+    "content_stats_even_odds": "probabilidades iguais: {rate}",
+    "content_stats_best_win_streak": "melhor sequência de vitórias",
+    "content_stats_current_win_streak": "atualmente: {count: number}",
+    "content_stats_average_finish": "posição final média",
+    "content_stats_at_table_size": "em mesas de {count} jogadores",
+    "content_stats_win_rate_by_player_count": "Taxa de vitórias por número de jogadores",
+    "content_stats_key_your_win_rate": "A sua taxa de vitórias",
+    "content_stats_key_even_odds": "Probabilidades iguais numa mesa desse tamanho",
+    "content_stats_last_games": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Última partida",
+                "count=*": "Últimas {count: number} partidas"
+            }
+        }
+    ],
+    "content_stats_outcome_letter_won": "V",
+    "content_stats_outcome_letter_tied": "E",
+    "content_stats_outcome_letter_lost": "D",
+    "content_stats_outcome_won": "vitória",
+    "content_stats_outcome_tied": "empate",
+    "content_stats_outcome_lost": "derrota",
+    "content_stats_key_newest_right": "mais recentes à direita",
+    "content_stats_results_oldest_first": "Resultados, do mais antigo ao mais recente",
+    "content_stats_games_per_month": "Partidas terminadas por mês",
+    "content_stats_most_played_opponents": "Adversários mais frequentes",
+    "content_stats_opponent": "Adversário",
+    "content_stats_games": "Partidas",
+    "content_stats_you_won": "Você venceu",
+    "content_stats_they_won": "Adv. venceu",
+    "content_stats_month_tooltip": [
+        {
+            "declarations": ["input month", "input games", "input wonOrTied"],
+            "selectors": ["games"],
+            "match": {
+                "games=1": "{month}: {games: number} terminada, {wonOrTied: number} com vitória ou empate",
+                "games=*": "{month}: {games: number} terminadas, {wonOrTied: number} com vitória ou empate"
+            }
+        }
+    ],
+    "content_stats_won_or_tied": "Vitória ou empate",
+    "content_stats_lost": "Derrota",
+    "content_stats_month": "Mês",
+    "content_stats_finished": "Terminadas",
+    "content_stats_win_rate_meter": "Taxa de vitórias {rate}, probabilidades iguais {evenOdds}",
+    "content_stats_key_won": "{letter}: vitória",
+    "content_stats_key_tied": "{letter}: empate",
+    "content_stats_key_lost": "{letter}: derrota",
+    "content_legal_privacy_title": "Política de Privacidade",
+    "content_legal_terms_title": "Termos de Serviço",
+    "content_legal_privacy_page_title": "Política de Privacidade — Board Together",
+    "content_legal_terms_page_title": "Termos de Serviço — Board Together",
+    "content_legal_privacy_unpublished": "Este site ainda não publicou uma política de privacidade.",
+    "content_legal_terms_unpublished": "Este site ainda não publicou os termos de serviço.",
+    "content_legal_links_label": "Informações legais",
+    "content_legal_links_privacy": "Privacidade",
+    "content_legal_links_terms": "Termos",
+    "content_footer_free_to_play": "Jogar é grátis, sempre.",
+    "content_principles_label": "O projeto",
+    "content_principles_free": "Jogar é {#strong}sempre{/strong} grátis.",
+    "content_principles_open_source": "Código {#strong}totalmente{/strong} aberto.",
+    "content_color_order_label": "Cores de jogador preferidas",
+    "content_color_order_swatch": "{color}, {position} de {total: number}",
+    "content_color_order_hint": "arraste, ou use as setas do teclado, para reordenar",
+    "content_color_red": "vermelho",
+    "content_color_orange": "laranja",
+    "content_color_yellow": "amarelo",
+    "content_color_green": "verde",
+    "content_color_blue": "azul",
+    "content_color_purple": "roxo",
+    "content_color_pink": "rosa",
+    "content_color_brown": "marrom",
+    "content_color_gray": "cinza",
+    "content_color_black": "preto",
+    "content_color_white": "branco",
+    "content_landing_page_title": "Board Together — Jogos de tabuleiro online",
+    "content_landing_page_description": "Jogue jogos de tabuleiro online com amigos, no seu ritmo. Explore os jogos do Board Together. Grátis para jogar e com código totalmente aberto.",
+    "content_landing_welcome": "Que tal jogar{#br/}uma {#highlight}partida?{/highlight}",
+    "content_landing_intro": "Traga os amigos.{#br/}Faça as suas jogadas no seu ritmo.",
+    "content_landing_take_a_seat": "Sente-se à mesa",
+    "content_landing_explore_games": "Explore os jogos",
+    "content_landing_small_print": "Jogar é {#strong}sempre{/strong} grátis. Código totalmente aberto. Sem gorjetas, mas pode {#payItForward}passar adiante →{/payItForward}",
+    "content_landing_heading_signed_in": "O que quer jogar?",
+    "content_landing_heading": "Encontre o seu próximo jogo.",
+    "content_landing_library_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} jogo na biblioteca",
+                "count=*": "{count: number} jogos na biblioteca"
+            }
+        }
+    ],
+    "content_landing_loading": "Os jogos já vão para a mesa…",
+    "content_landing_load_failed": "Não foi possível carregar a estante de jogos. Atualize a página para tentar novamente.",
+    "content_landing_show_fewer": "Mostrar menos jogos",
+    "content_landing_see_all": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "Ver {count: number} jogo",
+                "count=*": "Ver todos os {count: number} jogos"
+            }
+        }
+    ],
+    "content_about_page_title": "Sobre nós — Board Together",
+    "content_about_page_description": "O Board Together é um espaço gratuito e de código aberto para jogar jogos de tabuleiro online com amigos. Junte-se à conversa ou ajude a criar o próximo jogo.",
+    "content_about_lead": "O {#wordmark/} é um lugar para jogar jogos de tabuleiro online com amigos.",
+    "content_about_welcome": "Esperamos que goste de jogar aqui. Se tiver sugestões ou comentários, adoraríamos ouvir.",
+    "content_about_talk_heading": "Vamos conversar",
+    "content_about_talk_body": "Tem uma dúvida, uma ideia ou um jogo que não se comporta como devia? Venha conversar no nosso Discord. Elogios e reclamações também são bem-vindos.",
+    "content_about_join_discord": "Junte-se a nós no Discord",
+    "content_opens_in_new_tab": "(abre numa nova janela)",
+    "content_about_contribute_heading": "Dê uma mão",
+    "content_about_contribute_body": "Quer contribuir? Conheça o projeto Tabletop no GitHub. Há muitas formas de ajudar, escrevendo código ou não.",
+    "content_about_contributions_label": "Formas de contribuir",
+    "content_about_contribution_design": "Design e arte",
+    "content_about_contribution_code": "Correções de bugs e novas funcionalidades",
+    "content_about_contribution_games": "Novos jogos",
+    "content_about_contribution_ideas": "Ideias e feedback",
+    "content_about_explore_github": "Explore o projeto no GitHub",
+    "content_about_pay_it_forward_body": "Não queremos doações pessoais. Se jogar aqui valeu a pena, ajude a levar jogos a quem precisa deles.",
+    "content_about_see_charities": "Conheça as instituições",
+    "content_pif_gamers_outreach_purpose": "Jogos para crianças em hospitais",
+    "content_pif_gamers_outreach_description": "Constrói carrinhos de jogos de padrão hospitalar e entrega esses carrinhos a crianças internadas que não podem sair do quarto. Mais de 350 hospitais até agora.",
+    "content_pif_us_charity": "Dos EUA",
+    "content_pif_special_effect_purpose": "Jogos para pessoas com deficiência",
+    "content_pif_special_effect_description": "Terapeutas ocupacionais e especialistas em jogos preparam equipamentos adaptados, incluindo jogos controlados pelo olhar, para que pessoas com deficiência física possam jogar os jogos de que gostam.",
+    "content_pif_uk_charity": "Do Reino Unido",
+    "content_pif_raised_for": "{amount} para {charity}",
+    "content_pif_raised_by_players": "arrecadado pelos jogadores do BoardTogether",
+    "content_pif_page_title": "Passe adiante — Board Together",
+    "content_pif_page_description": "O BoardTogether é gratuito e não quer doações pessoais. Se gostou de jogar, ajude a levar jogos a quem precisa deles através da Gamers Outreach ou da SpecialEffect.",
+    "content_pif_heading": "Passe adiante.",
+    "content_back_to_library": "Voltar à biblioteca",
+    "content_pif_lead": "O {#wordmark/} é gratuito, e queremos que continue assim.",
+    "content_pif_no_donations": "Não queremos doações pessoais.",
+    "content_pif_bills_are_ours": "As contas são nossas, e nada do que doar a partir desta página vem para nós.",
+    "content_pif_pass_it_on": "Em vez disso, faça o bem circular.",
+    "content_pif_pass_it_on_body": "Se os jogos daqui valeram a pena, ajude a levar jogos a quem precisa deles. As instituições de caridade ligadas a jogos de tabuleiro são poucas e quase todas pequenas; por isso recorremos ao nosso irmão mais velho, os jogos digitais.",
+    "content_pif_pass_it_on_wide": "Estas duas instituições, já bem estabelecidas, levam jogos a quem não consegue chegar a eles com facilidade: crianças presas a um quarto de hospital e jogadores que dependem de equipamentos adaptados.",
+    "content_pif_charities_label": "Instituições de caridade",
+    "content_pif_give_to": "Doar para {charity}",
+    "content_pif_opens_campaign": "Abre a campanha do BoardTogether em tiltify.com.",
+    "content_pif_opens_donation_page": "Abre a página de doações da instituição em {host}.",
+    "content_pif_raised_so_far": "Arrecadado até agora",
+    "content_pif_other_charities": "Se nenhuma destas duas for a sua escolha, doe para a instituição da sua preferência. Também é passar adiante.",
+    "content_pif_receives_nothing": "O BoardTogether não recebe nada por estes links.",
+    "nav_game_heading_beta": "BETA: {name}",
+    "nav_game_heading_alpha": "ALFA: {name}",
+    "played_game_count": [
+        {
+            "declarations": ["input count"],
+            "selectors": ["count"],
+            "match": {
+                "count=1": "{count: number} partida",
+                "count=*": "{count: number} partidas"
+            }
+        }
+    ],
+    "pace_live_name": "Ao vivo",
+    "pace_live_past_limit": "Ritmo ao vivo ultrapassado",
+    "pace_fast_name": "Rápido",
+    "pace_fast_line": "Rápido · até 1 h",
+    "pace_fast_summary": "Rápido · 1 h",
+    "pace_fast_past_limit": "Ritmo de 1 h ultrapassado",
+    "pace_brisk_name": "Acelerado",
+    "pace_brisk_line": "Acelerado · até 4 h",
+    "pace_brisk_summary": "Acelerado · 4 h",
+    "pace_brisk_past_limit": "Ritmo de 4 h ultrapassado",
+    "pace_daily_name": "Diário",
+    "pace_daily_line": "Diário · até 1 dia",
+    "pace_daily_past_limit": "Ritmo de 1 dia ultrapassado",
+    "pace_relaxed_name": "Tranquilo",
+    "pace_relaxed_line": "Tranquilo · até 3 dias",
+    "pace_relaxed_summary": "Tranquilo · 3 dias",
+    "pace_relaxed_past_limit": "Ritmo de 3 dias ultrapassado"
+}

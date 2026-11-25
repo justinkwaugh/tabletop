@@ -4,6 +4,7 @@
     import { copyTextToClipboard } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { gameShareLink, type GameShareLink } from '$lib/utils/gameLinks'
+    import { m } from '$lib/paraglide/messages'
 
     let { game, namesGame = false }: { game: Game; namesGame?: boolean } = $props()
     const shareLink = $derived(gameShareLink(game))
@@ -12,10 +13,22 @@
         event.stopPropagation()
         try {
             await copyTextToClipboard(new URL(link.path, window.location.origin).href)
-            toast.success(link.kind === 'invite' ? 'Invite link copied' : 'Game link copied')
+            toast.success(
+                link.kind === 'invite' ? m.games_invite_link_copied() : m.games_game_link_copied()
+            )
         } catch {
-            toast.error('Unable to copy the link. Please try again.')
+            toast.error(m.games_copy_link_failed())
         }
+    }
+
+    function copyLabel(link: GameShareLink): string {
+        return link.kind === 'invite' ? m.games_copy_invite_link() : m.games_copy_game_link()
+    }
+
+    function namedCopyLabel(link: GameShareLink): string {
+        return link.kind === 'invite'
+            ? m.games_copy_invite_link_for({ name: game.name })
+            : m.games_copy_game_link_for({ name: game.name })
     }
 </script>
 
@@ -23,10 +36,8 @@
     {@const link = shareLink}
     <button
         type="button"
-        aria-label={namesGame
-            ? `Copy ${link.kind} link for ${game.name}`
-            : `Copy ${link.kind} link`}
-        title={`Copy ${link.kind} link`}
+        aria-label={namesGame ? namedCopyLabel(link) : copyLabel(link)}
+        title={copyLabel(link)}
         class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         onclick={(event) => copyLink(event, link)}
     >

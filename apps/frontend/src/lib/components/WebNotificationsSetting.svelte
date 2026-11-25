@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { onMount } from 'svelte'
     import { Button, Spinner } from 'flowbite-svelte'
     import { BellActiveSolid, CheckCircleSolid } from 'flowbite-svelte-icons'
@@ -31,43 +32,40 @@
 {#if setup === 'on'}
     <p class="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
         <CheckCircleSolid class="h-5 w-5 shrink-0 text-green-600 dark:text-green-500" />
-        Notifications are on for this device.
+        {m.web_notifications_on()}
     </p>
     <p class="text-sm text-gray-700 dark:text-gray-300">
-        Turn them on in each browser and on each device you want to hear from.
+        {m.web_notifications_each_device()}
     </p>
 {:else if setup === 'registering'}
     <p class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <Spinner size="4" />
-        Setting up notifications for this device…
+        {m.web_notifications_setting_up()}
     </p>
 {:else if setup === 'default' || setup === 'failed'}
     {#if setup === 'failed'}
         <p class="text-sm font-medium text-gray-900 dark:text-white">
-            Board Together couldn't set up notifications for this device.
+            {m.web_notifications_setup_failed()}
         </p>
     {/if}
     <p class="text-sm text-gray-700 dark:text-gray-300">
-        Board Together can tell you it's your turn through this browser, even when the site is
-        closed. Turn them on in each browser and on each device you want to hear from.
+        {m.web_notifications_offer()}
     </p>
     <div class="flex justify-center py-1">
         <Button color="blue" onclick={turnOn}>
             <BellActiveSolid class="me-2 h-4 w-4" />
-            {setup === 'failed' ? 'Try again' : 'Turn on notifications on this device'}
+            {setup === 'failed' ? m.try_again() : m.web_notifications_turn_on()}
         </Button>
     </div>
 {:else if setup === 'denied'}
     <p class="text-sm font-medium text-gray-900 dark:text-white">
-        This browser is blocking notifications from Board Together.
+        {m.web_notifications_blocked()}
     </p>
     <p class="text-sm text-gray-700 dark:text-gray-300">
-        Allow notifications in this site's settings, usually behind the icon beside the address bar,
-        then reload this page.
+        {m.web_notifications_blocked_help()}
     </p>
 {:else}
     <p class="text-sm text-gray-700 dark:text-gray-300">
-        This browser can't show notifications. On an iPhone or iPad, add Board Together to your Home
-        Screen from the Share menu, then open it from there and come back to this page.
+        {m.web_notifications_unsupported()}
     </p>
 {/if}

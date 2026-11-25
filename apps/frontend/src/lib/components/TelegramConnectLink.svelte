@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { onMount } from 'svelte'
     import { Button } from 'flowbite-svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
@@ -47,8 +48,8 @@
 {:else if link.kind === 'failed'}
     <div class="flex items-center justify-between gap-3">
         <p class="text-sm font-medium text-gray-900 dark:text-white">
-            BoardTogether couldn't prepare a Telegram link.
+            {m.telegram_link_failed()}
         </p>
-        <Button color="blue" size="xs" onclick={fetchLink}>Try again</Button>
+        <Button color="blue" size="xs" onclick={fetchLink}>{m.try_again()}</Button>
     </div>
 {/if}

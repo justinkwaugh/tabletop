@@ -18,6 +18,8 @@
         tournamentStatusText,
         tournamentStatusColor
     } from '$lib/utils/tournamentPresentation'
+    import { m } from '$lib/paraglide/messages'
+    import RichMessage from '$lib/components/RichMessage.svelte'
 
     let { data } = $props()
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
@@ -38,14 +40,16 @@
         finished: 'border-red-500 text-red-700 dark:text-red-400',
         draft: 'border-red-500 text-red-700 dark:text-red-400'
     }
-    const standardTabs: { scope: TournamentListQuery['scope']; label: string }[] = [
-        { scope: 'mine', label: 'Mine' },
-        { scope: 'open', label: 'Open' },
-        { scope: 'inProgress', label: 'In progress' },
-        { scope: 'finished', label: 'Completed' }
+    const standardTabs: { scope: TournamentListQuery['scope']; label: () => string }[] = [
+        { scope: 'mine', label: m.tournaments_tab_mine },
+        { scope: 'open', label: m.tournaments_tab_open },
+        { scope: 'inProgress', label: m.tournaments_tab_in_progress },
+        { scope: 'finished', label: m.tournaments_tab_completed }
     ]
     let tabs = $derived(
-        isAdmin ? [...standardTabs, { scope: 'draft' as const, label: 'Drafts' }] : standardTabs
+        isAdmin
+            ? [...standardTabs, { scope: 'draft' as const, label: m.tournaments_tab_drafts }]
+            : standardTabs
     )
     let tournaments = $state<Tournament[]>([])
     let cursor = $state<string>()
@@ -56,16 +60,16 @@
     let now = $state(Date.now())
     let emptyText = $derived(
         titleId
-            ? 'No tournaments match this game in this tab.'
+            ? m.tournaments_empty_title_filter()
             : scope === 'mine'
-              ? 'Your tournaments will appear here when you join one.'
+              ? m.tournaments_empty_mine()
               : scope === 'open'
-                ? 'No tournaments are open for registration right now.'
+                ? m.tournaments_empty_open()
                 : scope === 'inProgress'
-                  ? 'No tournaments are in progress right now.'
+                  ? m.tournaments_empty_in_progress()
                   : scope === 'finished'
-                    ? 'No completed tournaments yet.'
-                    : 'No drafts. Create a tournament to get started.'
+                    ? m.tournaments_empty_finished()
+                    : m.tournaments_empty_drafts()
     )
 
     async function refresh(after = pageStart) {
@@ -92,7 +96,8 @@
             cursor = result.nextCursor
         } catch (failure) {
             if (current())
-                error = failure instanceof Error ? failure.message : 'Could not load tournaments'
+                error =
+                    failure instanceof Error ? failure.message : m.tournaments_list_load_failed()
         } finally {
             if (current()) busy = false
         }
@@ -137,15 +142,17 @@
     })
 </script>
 
-<svelte:head><title>Tournaments · Tabletop</title></svelte:head>
+{#snippet emphasis(text: string)}<span class="font-medium">{text}</span>{/snippet}
+
+<svelte:head><title>{m.tournaments_page_title()}</title></svelte:head>
 <main class="collection-page pb-10 text-gray-900 dark:text-gray-100">
     <header class="collection-header flex items-center gap-3">
         <CompetitionHeading current="tournaments" />
         {#if isAdmin}
             <button
                 onclick={() => (creating = true)}
-                aria-label="Create tournament"
-                title="Create tournament"
+                aria-label={m.tournaments_create_tournament()}
+                title={m.tournaments_create_tournament()}
                 class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
             >
                 <svg
@@ -165,7 +172,7 @@
     >
         <div
             role="tablist"
-            aria-label="Tournaments"
+            aria-label={m.tournaments_heading_tournaments()}
             class="collection-tabs order-2 w-full sm:order-1 sm:w-auto"
         >
             {#each tabs as tab, index (tab.scope)}
@@ -180,20 +187,20 @@
                     class="collection-tab {scope === tab.scope
                         ? selectedTabClasses[tab.scope]
                         : 'border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
-                    >{tab.label}</button
+                    >{tab.label()}</button
                 >
             {/each}
         </div>
         <button
             id="tournament-game-filter"
             type="button"
-            aria-label="Filter by game"
+            aria-label={m.tournaments_filter_by_game()}
             aria-expanded={gameMenuOpen}
             class="order-1 flex w-full items-center justify-between gap-3 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 sm:order-2 sm:w-52"
         >
             <span class="truncate"
                 >{titles.find((title) => title.info.id === titleId)?.info.metadata.name ??
-                    'All games'}</span
+                    m.tournaments_all_games()}</span
             >
             <svg
                 class="size-3 shrink-0"
@@ -212,7 +219,7 @@
             class="max-h-80 w-60 overflow-y-auto"
         >
             <DropdownGroup class="py-1">
-                {#each [{ id: '', name: 'All games' }, ...titles.map( (title) => ({ id: title.info.id, name: title.info.metadata.name }) )] as option (option.id)}
+                {#each [{ id: '', name: m.tournaments_all_games() }, ...titles.map( (title) => ({ id: title.info.id, name: title.info.metadata.name }) )] as option (option.id)}
                     <DropdownItem
                         class="flex w-full items-center justify-between gap-3 text-left text-xs"
                         onclick={() => {
@@ -242,7 +249,7 @@
             </p>{/if}
         {#if busy && !tournaments.length}
             <div class="pending-results flex justify-center py-10" role="status">
-                <span class="sr-only">Loading tournaments</span>
+                <span class="sr-only">{m.tournaments_loading()}</span>
                 <span
                     aria-hidden="true"
                     class="size-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 dark:border-gray-700 dark:border-t-gray-400 motion-reduce:animate-none"
@@ -255,7 +262,7 @@
                 {#if scope === 'mine'}<button
                         onclick={() => selectTab('open')}
                         class="mt-3 text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
-                        >Explore open tournaments →</button
+                        >{m.tournaments_explore_open()}</button
                     >{/if}
             </div>
         {/if}
@@ -280,7 +287,10 @@
                             ></span>{tournamentStatusText(tournament, now)}</span
                         >
                         <span class="text-gray-500 dark:text-gray-400"
-                            >{tournamentRosterText(tournament)} joined</span
+                            >{m.tournaments_roster_joined({
+                                count: tournament.entrants.length,
+                                roster: tournamentRosterText(tournament)
+                            })}</span
                         >
                     </div>
                     <div class="flex items-center gap-3">
@@ -316,17 +326,24 @@
                         </div>
                     </div>
                     <p class="mt-2 text-xs leading-4 text-gray-600 dark:text-gray-300">
-                        <span class="font-medium">{tournament.rules.tableSize}</span> players per
-                        game
+                        <RichMessage
+                            parts={m.tournaments_card_players_per_game.parts({
+                                count: tournament.rules.tableSize
+                            })}
+                            markup={{ strong: emphasis }}
+                        />
                         <span class="mx-1 text-gray-400 dark:text-gray-600">·</span>
-                        <span class="font-medium"
-                            >{tournament.format.stages[0].gamesPerEntrant}</span
-                        > games each
+                        <RichMessage
+                            parts={m.tournaments_card_games_each.parts({
+                                count: tournament.format.stages[0].gamesPerEntrant
+                            })}
+                            markup={{ strong: emphasis }}
+                        />
                     </p>
                     {#if options.length}
                         <div class="pt-2 flex flex-col text-xs text-gray-400">
                             <Hr class="mt-1 mb-1" />
-                            <dl aria-label="Game options">
+                            <dl aria-label={m.tournaments_game_options()}>
                                 {#each options as option, i (i)}
                                     <div class="flex justify-between gap-3">
                                         <dt>{option.name}</dt>
@@ -348,7 +365,7 @@
         {#if cursor}<button
                 class="mt-5 rounded-full border border-gray-300 px-4 py-2 text-sm dark:border-gray-600"
                 disabled={busy}
-                onclick={() => refresh(cursor)}>Next page</button
+                onclick={() => refresh(cursor)}>{m.tournaments_next_page()}</button
             >{/if}
     </div>
 </main>
@@ -361,7 +378,7 @@
         class="w-full"
         outsideclose
         dismissable={false}
-        aria-label="Create tournament"
+        aria-label={m.tournaments_create_tournament()}
     >
         <TournamentForm
             oncancel={() => (creating = false)}

@@ -1,0 +1,1761 @@
+{
+    "$schema": "https://inlang.com/schema/inlang-message-format",
+    "preferences_title": "Προτιμήσεις",
+    "preferences_language": "Γλώσσα",
+    "language_browser_default": "Προεπιλογή προγράμματος περιήγησης",
+    "preferences_prevent_web_notification_prompt": "Να μην ερωτώμαι για ειδοποιήσεις στο πρόγραμμα περιήγησης",
+    "preferences_colorblind_palette": "Παλέτα για αχρωματοψία",
+    "preferences_preferred_player_colors": "Προτιμώμενα χρώματα παίκτη",
+    "preferences_bg_stats": "Καταγραφή παρτίδων στο BG Stats",
+    "preferences_bg_stats_help": "Εμφανίζει στα ολοκληρωμένα online παιχνίδια σου έναν σύνδεσμο για την εισαγωγή του παιχνιδιού, των παικτών, των σκορ και των νικητών στην εφαρμογή BG Stats. Κάθε εισαγωγή την επιβεβαιώνεις μέσα στο BG Stats.",
+    "preferences_save_failed": "Οι προτιμήσεις σου δεν αποθηκεύτηκαν. Δοκίμασε ξανά.",
+    "close": "Κλείσιμο",
+    "got_it": "Κατάλαβα",
+    "loading_game_library": "Φόρτωση βιβλιοθήκης παιχνιδιών…",
+    "site_updated_refreshing": "Ο ιστότοπος ενημερώθηκε και χρειάζεται ανανέωση της σελίδας. Ανανέωση σε 5 δευτερόλεπτα",
+    "site_updated_refresh_when_ready": "Ο ιστότοπος ενημερώθηκε με νέες λειτουργίες ή διορθώσεις· ανανέωσε τη σελίδα όταν βρεις λίγο χρόνο",
+    "nav_about_us": "Σχετικά",
+    "nav_pay_it_forward": "Πέρνα το παρακάτω",
+    "nav_report_bug": "Αναφορά σφάλματος",
+    "nav_follow_game": "Ακολούθησε αυτό το παιχνίδι",
+    "nav_following_game": "Το ακολουθείς",
+    "nav_my_games": "Τα παιχνίδια μου",
+    "nav_games": "Παιχνίδια",
+    "nav_refresh_to_update": "Ανανέωσε για ενημέρωση",
+    "nav_install_app": "Εγκατάσταση του BoardTogether",
+    "nav_tournaments_and_leagues": "Τουρνουά και λίγκες",
+    "nav_open_account_menu": "Άνοιγμα μενού λογαριασμού",
+    "nav_username_not_assigned": "δεν έχει οριστεί όνομα χρήστη",
+    "nav_next_turn": "Επόμενη σειρά μου",
+    "nav_log_to_bg_stats": "Καταγραφή στο BG Stats",
+    "nav_profile": "Προφίλ",
+    "nav_notifications": "Ειδοποιήσεις",
+    "nav_report": "Αναφορά…",
+    "nav_sign_out": "Αποσύνδεση",
+    "nav_sign_in": "Σύνδεση",
+    "notification_prompt_question": "Θέλεις να λαμβάνεις ειδοποιήσεις για προσκλήσεις σε παιχνίδια και για το πότε είναι η σειρά σου;",
+    "notification_prompt_icon": "Ειδοποιήσεις",
+    "notification_prompt_allow": "Ναι, θέλω",
+    "notification_prompt_dismissed_title": "Για να ξέρεις…",
+    "notification_prompt_dismissed_body": "Αν δεν θέλεις να ερωτάσαι ξανά για τις ειδοποιήσεις, μπορείς να το ρυθμίσεις στις προτιμήσεις σου.",
+    "notification_prompt_go_to_preferences": "Πήγαινε στις προτιμήσεις",
+    "dashboard_page_title": "Τα παιχνίδια μου — Board Together",
+    "dashboard_heading": "Τα παιχνίδια σου.",
+    "dashboard_go_to_library": "Πήγαινε στη βιβλιοθήκη",
+    "dashboard_tabs_label": "Τα παιχνίδια μου",
+    "dashboard_tab_current": "Τρέχοντα",
+    "dashboard_tab_following": "Ακολουθώ",
+    "dashboard_tab_history": "Ιστορικό",
+    "dashboard_tab_stats": "Στατιστικά",
+    "dashboard_loading_games": "Φόρτωση των παιχνιδιών σου…",
+    "dashboard_no_games": "Πάμε για ένα παιχνίδι;",
+    "dashboard_explore_library": "Εξερεύνησε τη βιβλιοθήκη",
+    "dashboard_loading_followed": "Φόρτωση των παιχνιδιών που ακολουθείς…",
+    "dashboard_followed_load_failed": "Τα παιχνίδια που ακολουθείς δεν φορτώθηκαν.",
+    "dashboard_no_followed": "Ακολούθησε παιχνίδια στα οποία δεν παίζεις, για να τα έχεις εδώ.",
+    "dashboard_follow_hint": "Άνοιξε ένα παιχνίδι που παρακολουθείς και πάτησε {#bookmark/} στην επάνω γραμμή.",
+    "dashboard_follow_hint_bookmark": "τον σελιδοδείκτη",
+    "saving": "Αποθήκευση…",
+    "submit": "Υποβολή",
+    "unexpected_error_try_again": "Παρουσιάστηκε ένα απρόσμενο σφάλμα, δοκίμασε ξανά",
+    "player_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} παίκτης",
+                "countPlural=other": "{count: number} παίκτες"
+            }
+        }
+    ],
+    "player_count_range": "{min}–{max} παίκτες",
+    "create_game_heading": "Ξεκίνα ένα παιχνίδι",
+    "create_game_pick_title": "Διάλεξε τίτλο",
+    "create_game_change_title": "Αλλαγή τίτλου",
+    "create_game_loading_titles": "Φόρτωση τίτλων…",
+    "create_game_search_placeholder": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Αναζήτηση σε {count: number} τίτλο",
+                "countPlural=other": "Αναζήτηση σε {count: number} τίτλους"
+            }
+        }
+    ],
+    "create_game_search_label": "Αναζήτηση τίτλων",
+    "create_game_titles_label": "Τίτλοι",
+    "create_game_open_tables": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} ανοιχτό",
+                "countPlural=other": "{count: number} ανοιχτά"
+            }
+        }
+    ],
+    "create_game_no_match": "Κανένας τίτλος δεν ταιριάζει με το «{search}».",
+    "profile_heading": "Επεξεργάσου το προφίλ σου…",
+    "profile_update_failed": "Η ενημέρωση απέτυχε",
+    "profile_updated": "Το προφίλ ενημερώθηκε",
+    "profile_username": "Όνομα χρήστη",
+    "profile_username_placeholder": "διάλεξε όνομα χρήστη",
+    "profile_username_exists": "Το όνομα χρήστη υπάρχει ήδη",
+    "profile_password": "Κωδικός πρόσβασης",
+    "profile_password_placeholder": "τουλάχιστον 12 χαρακτήρες",
+    "profile_linked_accounts": "Συνδεδεμένοι λογαριασμοί",
+    "profile_unlink": "Κατάργηση σύνδεσης",
+    "profile_sign_out_everywhere_explanation": "Έχεις συνδεθεί κάπου που δεν εμπιστεύεσαι πια; Αποσυνδέσου από όλες τις συσκευές, μαζί και από αυτήν.",
+    "profile_sign_out_everywhere": "Αποσύνδεση από παντού",
+    "profile_sign_out_everywhere_failed": "Δεν μπορέσαμε να επιβεβαιώσουμε την αποσύνδεση",
+    "profile_sign_out_everywhere_failed_detail": "Άλλες συνεδρίες μπορεί να είναι ακόμη ενεργές. Δοκίμασε ξανά.",
+    "email_change_heading": "Διεύθυνση email",
+    "email_change_current_address": "Τρέχουσα επαληθευμένη διεύθυνση:",
+    "email_change_done": "Η διεύθυνση email σου άλλαξε. Αποσυνδέθηκες από τις άλλες συνεδρίες σου.",
+    "email_change_enter_code": "Πληκτρολόγησε τον κωδικό που στάλθηκε στη διεύθυνση {#address}{email}{/address}. Το τρέχον email σου παραμένει ενεργό μέχρι να επαληθεύσεις τη νέα διεύθυνση.",
+    "email_change_code_label": "Κωδικός επαλήθευσης",
+    "email_change_verify": "Επαλήθευση και αλλαγή email",
+    "email_change_send_new_code": "Αποστολή νέου κωδικού",
+    "email_change_cancel": "Ακύρωση αλλαγής email",
+    "email_change_new_address": "Νέα διεύθυνση email",
+    "email_change_unchanged_until_verified": "Το τρέχον email σου και η πρόσβαση στον λογαριασμό σου δεν αλλάζουν μέχρι να επαληθεύσεις τη νέα διεύθυνση.",
+    "email_change_send_code": "Αποστολή κωδικού επαλήθευσης",
+    "email_change_load_failed": "Δεν μπορέσαμε να φορτώσουμε την εκκρεμή αλλαγή email. Φόρτωσε ξανά τη σελίδα και δοκίμασε πάλι.",
+    "email_change_invalid_address": "Πληκτρολόγησε μια έγκυρη διεύθυνση email.",
+    "email_change_address_not_supported": "Αυτή η διεύθυνση email δεν υποστηρίζεται. Χρησιμοποίησε μια άλλη διεύθυνση.",
+    "email_change_address_in_use": "Αυτή η διεύθυνση email χρησιμοποιείται ήδη.",
+    "email_change_send_failed": "Δεν μπορέσαμε να στείλουμε τον κωδικό. Η τρέχουσα διεύθυνση email σου δεν άλλαξε. Δοκίμασε ξανά.",
+    "email_change_code_invalid": "Ο κωδικός είναι λανθασμένος ή έχει λήξει. Χρησιμοποίησε τον πιο πρόσφατο κωδικό ή ζήτησε νέο.",
+    "email_change_address_now_in_use": "Αυτή η διεύθυνση email χρησιμοποιείται πλέον από άλλον. Ακύρωσε την αλλαγή και διάλεξε άλλη διεύθυνση.",
+    "email_change_confirm_failed": "Δεν μπορέσαμε να επιβεβαιώσουμε την αλλαγή. Φόρτωσε ξανά τη σελίδα για να δεις την τρέχουσα διεύθυνση email σου πριν δοκιμάσεις πάλι.",
+    "email_change_cancel_failed": "Δεν μπορέσαμε να ακυρώσουμε την εκκρεμή αλλαγή. Δοκίμασε ξανά.",
+    "cancel": "Ακύρωση",
+    "time_zone": "Ζώνη ώρας",
+    "time_zone_save_failed": "Η ζώνη ώρας σου δεν αποθηκεύτηκε. Δοκίμασε ξανά.",
+    "time_zone_mismatch": "Το πρόγραμμα περιήγησής σου έχει ζώνη ώρας {browserZone}, ενώ ο λογαριασμός σου χρησιμοποιεί {accountZone}.",
+    "time_zone_use_browser": "Χρήση ζώνης {zone}",
+    "delete_account_heading": "Διαγραφή λογαριασμού",
+    "delete_account_summary": "Διάγραψε οριστικά τον λογαριασμό σου και ό,τι συνδέεται με αυτόν. Στα ολοκληρωμένα παιχνίδια, οι κινήσεις σου παραμένουν με το όνομα «Deleted player» (διαγραμμένος παίκτης).",
+    "delete_account_administrator": "Οι λογαριασμοί διαχειριστών δεν μπορούν να διαγραφούν.",
+    "delete_account_start": "Διαγραφή λογαριασμού…",
+    "delete_account_confirm_title": "Διαγραφή του λογαριασμού σου;",
+    "delete_account_irreversible": "Αυτό δεν αναιρείται.",
+    "delete_account_removed": "Διαγράφονται",
+    "delete_account_removed_identity": "Το όνομα χρήστη, το email, ο κωδικός πρόσβασης και ο συνδεδεμένος λογαριασμός σου Google ή Discord",
+    "delete_account_removed_settings": "Οι προτιμήσεις και οι ρυθμίσεις ειδοποιήσεών σου· αποσυνδέεσαι από παντού",
+    "delete_account_removed_games": "Τα παιχνίδια που δημιούργησες και δεν έχουν ξεκινήσει, καθώς και οι θέσεις σου σε άλλα",
+    "delete_account_removed_signups": "Οι δηλώσεις συμμετοχής σου σε σεζόν λιγκών που δεν έχουν ξεκινήσει",
+    "delete_account_kept": "Παραμένουν, χωρίς το όνομά σου",
+    "delete_account_kept_finished": "Τα ολοκληρωμένα παιχνίδια και τα μηνύματά σου στη συνομιλία, που εμφανίζονται ως «Deleted player 1» και ούτω καθεξής",
+    "delete_account_kept_in_progress": "Τα παιχνίδια σε εξέλιξη: οι άλλοι παίκτες μπορούν να τα λήξουν, ενώ τα περισσότερα παιχνίδια 2 παικτών λήγουν με νίκη του αντιπάλου σου",
+    "delete_account_kept_competitions": "Τα τουρνουά στα οποία συμμετέχεις και οι σεζόν λιγκών που βρίσκονται σε εξέλιξη, τα οποία ένας διαχειριστής ολοκληρώνει χωρίς εσένα",
+    "delete_account_type_username": "Πληκτρολόγησε το όνομα χρήστη σου, {#username}{username}{/username}, για επιβεβαίωση",
+    "delete_account_failed": "Δεν μπορέσαμε να διαγράψουμε τον λογαριασμό σου. Δοκίμασε ξανά.",
+    "delete_account_deleting": "Διαγραφή…",
+    "delete_account_confirm": "Διαγραφή του λογαριασμού μου",
+    "delete_account_done": "Ο λογαριασμός σου διαγράφηκε.",
+    "nav_pay_it_forward_tooltip": "Βοήθησε φιλανθρωπικές οργανώσεις να φέρουν παιχνίδια σε περισσότερα τραπέζια. Σε εμάς δεν έρχεται τίποτα.",
+    "follow_update_failed": "Τα παιχνίδια που ακολουθείς δεν ενημερώθηκαν.",
+    "notifications_turn_heading": "Ειδοποιήσεις για τη σειρά σου",
+    "notifications_turn_intro": "Το BoardTogether σε ειδοποιεί ότι είναι η σειρά σου μέσω του προγράμματος περιήγησής σου, του Discord και του Telegram. Οι ειδοποιήσεις για τη σειρά σου δεν στέλνονται ποτέ με email.",
+    "notifications_web_heading": "Ειδοποιήσεις στο πρόγραμμα περιήγησης",
+    "notifications_turn_reminders_heading": "Υπενθυμίσεις για τη σειρά σου",
+    "notifications_reminder_hours_heading": "Ώρες υπενθύμισης",
+    "notifications_email_heading": "Email",
+    "reminder_hours_weekdays": "Δευτέρα έως Παρασκευή",
+    "reminder_hours_weekends": "Σάββατο και Κυριακή",
+    "reminder_hours_every_day": "Κάθε μέρα",
+    "reminder_hours_intro": "Διάλεξε τις ώρες που θέλεις να λαμβάνεις υπενθυμίσεις για τη σειρά σου. Πάτησε ή σύρε πάνω στις ώρες για να τις ενεργοποιήσεις ή να τις απενεργοποιήσεις. Οι υπενθυμίσεις της πρώτης ώρας της σειράς σου έρχονται αμέσως· οι επόμενες περιμένουν την επόμενη επιλεγμένη ώρα σου. Αν δεν επιλέξεις καμία ώρα, οι υπενθυμίσεις έρχονται οποιαδήποτε στιγμή.",
+    "reminder_hours_grid_label": "Ώρες υπενθύμισης: {days}",
+    "reminder_hours_separate_weekend": "Διαφορετικές ώρες τα Σαββατοκύριακα",
+    "reminder_hours_any_time": "Οποιαδήποτε ώρα",
+    "turn_reminders_after_hours": [
+        {
+            "declarations": ["input hours", "local hoursPlural = hours: plural"],
+            "selectors": ["hoursPlural"],
+            "match": {
+                "hoursPlural=one": "Μετά από {hours} ώρα",
+                "hoursPlural=other": "Μετά από {hours} ώρες"
+            }
+        }
+    ],
+    "turn_reminders_twice_daily": "Δύο φορές την ημέρα",
+    "turn_reminders_daily": "Μία φορά την ημέρα",
+    "turn_reminders_no_more": "Καμία άλλη",
+    "turn_reminders_intro": "Διάλεξε ποιες υπενθυμίσεις θα λαμβάνεις όσο είναι η σειρά σου. Οι υπενθυμίσεις σταματούν μόλις παίξεις.",
+    "turn_reminders_turn_begins": "Όταν αρχίζει η σειρά σου",
+    "turn_reminders_turn_begins_detail": "Περίπου ένα λεπτό αφότου έρθει η σειρά σου",
+    "turn_reminders_always_sent": "Στέλνεται πάντα",
+    "turn_reminders_then": "Έπειτα, για έως και μία εβδομάδα",
+    "turn_reminders_repeat_label": "Επανάληψη υπενθυμίσεων",
+    "turn_reminders_hours_apply": "Οι «Ώρες υπενθύμισης» παρακάτω εξακολουθούν να ισχύουν: οι υπενθυμίσεις από τις 5 ώρες και μετά περιμένουν την επόμενη επιλεγμένη ώρα σου.",
+    "email_notifications_toggle": "Να λαμβάνω email για παιχνίδια και διοργανώσεις",
+    "email_notifications_detail": "Προσκλήσεις, έναρξη και λήξη παιχνιδιών, καθώς και νέα από λίγκες και τουρνουά, μαζί με υπενθυμίσεις για δηλώσεις συμμετοχής. Τα email που αφορούν τον λογαριασμό σου στέλνονται πάντα.",
+    "email_notifications_not_turns": "Με email δεν ειδοποιείσαι ποτέ ότι είναι η σειρά σου. Γι’ αυτό, ενεργοποίησε παραπάνω τις ειδοποιήσεις στο πρόγραμμα περιήγησης, στο Discord ή στο Telegram.",
+    "try_again": "Δοκίμασε ξανά",
+    "web_notifications_on": "Οι ειδοποιήσεις είναι ενεργές σε αυτή τη συσκευή.",
+    "web_notifications_each_device": "Ενεργοποίησέ τες σε κάθε πρόγραμμα περιήγησης και σε κάθε συσκευή όπου θέλεις να λαμβάνεις ειδοποιήσεις.",
+    "web_notifications_setting_up": "Ρύθμιση ειδοποιήσεων για αυτή τη συσκευή…",
+    "web_notifications_setup_failed": "Το Board Together δεν μπόρεσε να ρυθμίσει τις ειδοποιήσεις για αυτή τη συσκευή.",
+    "web_notifications_offer": "Το Board Together μπορεί να σε ειδοποιεί ότι είναι η σειρά σου μέσω αυτού του προγράμματος περιήγησης, ακόμη κι όταν ο ιστότοπος είναι κλειστός. Ενεργοποίησε τις ειδοποιήσεις σε κάθε πρόγραμμα περιήγησης και σε κάθε συσκευή όπου θέλεις να τις λαμβάνεις.",
+    "web_notifications_turn_on": "Ενεργοποίηση ειδοποιήσεων σε αυτή τη συσκευή",
+    "web_notifications_blocked": "Αυτό το πρόγραμμα περιήγησης αποκλείει τις ειδοποιήσεις από το Board Together.",
+    "web_notifications_blocked_help": "Επίτρεψε τις ειδοποιήσεις στις ρυθμίσεις αυτού του ιστότοπου (συνήθως από το εικονίδιο δίπλα στη γραμμή διευθύνσεων) και μετά φόρτωσε ξανά αυτή τη σελίδα.",
+    "web_notifications_unsupported": "Αυτό το πρόγραμμα περιήγησης δεν μπορεί να εμφανίσει ειδοποιήσεις. Σε iPhone ή iPad, πρόσθεσε το Board Together στην οθόνη Αφετηρίας από το μενού «Κοινή χρήση», άνοιξέ το από εκεί και γύρισε σε αυτή τη σελίδα.",
+    "topic_registrations_load_failed": "Το BoardTogether δεν μπόρεσε να φορτώσει τις ρυθμίσεις σου για το Discord και το Telegram.",
+    "notification_channel_disconnect": "Αποσύνδεση",
+    "discord_bot_heading": "Ειδοποιήσεις στο Discord",
+    "discord_bot_connected": "Το bot του Discord είναι συνδεδεμένο.",
+    "discord_bot_disconnect_failed": "Το BoardTogether δεν μπόρεσε να αποσυνδέσει το bot του Discord. Δοκίμασε ξανά.",
+    "discord_bot_connected_detail": "Το bot του BoardTogether σού στέλνει άμεσα μηνύματα όταν είναι η σειρά σου ή όταν σε προσκαλούν σε παιχνίδι. Μπορείς να το απενεργοποιήσεις και στέλνοντάς του /stop, ενώ με /notify το ενεργοποιείς ξανά.",
+    "discord_bot_offer": "Το BoardTogether έχει ένα bot στο Discord που μπορεί να σου στέλνει άμεσα μηνύματα, σε όποιους διακομιστές κι αν βρίσκεσαι.",
+    "discord_bot_add": "Πρόσθεσε το bot στον λογαριασμό σου στο Discord και θα αρχίσει αμέσως να σου στέλνει ειδοποιήσεις. Αν το πρόσθεσες πριν συνδέσεις τον λογαριασμό σου, στείλε του /notify.",
+    "discord_bot_link_first": "Πρώτα σύνδεσε τον λογαριασμό σου στο Discord.",
+    "discord_webhook_heading": "Webhook καναλιού Discord",
+    "discord_webhook_invalid_url": "Αυτό δεν είναι URL webhook του Discord. Ένα τέτοιο URL αρχίζει με https://discord.com/api/webhooks/.",
+    "discord_webhook_not_found": "Το Discord δεν έχει webhook σε αυτό το URL. Ίσως διαγράφηκε ή έγινε επαναφορά του URL του.",
+    "discord_webhook_unsupported": "Αυτό το webhook ανήκει σε εφαρμογή του Discord και δεν μπορεί να δεχτεί αυτά τα μηνύματα. Δημιούργησε ένα νέο στις ρυθμίσεις «Ενσωματώσεις» του καναλιού.",
+    "discord_webhook_failed": "Το Discord δεν δέχτηκε το μήνυμά μας. Δοκίμασε ξανά.",
+    "discord_webhook_mentions_you": "Κάθε μήνυμα σε αναφέρει, ώστε το Discord να σε ειδοποιεί ακόμη και σε κοινόχρηστο κανάλι.",
+    "discord_webhook_link_to_mention": "Σύνδεσε τον λογαριασμό σου στο Discord και κάθε μήνυμα θα σε αναφέρει, ώστε το Discord να σε ειδοποιεί ακόμη και σε κοινόχρηστο κανάλι.",
+    "discord_webhook_posting_named": "Οι ειδοποιήσεις δημοσιεύονται στο webhook «{name}» του Discord.",
+    "discord_webhook_posting": "Οι ειδοποιήσεις δημοσιεύονται στο webhook σου στο Discord.",
+    "discord_webhook_disconnect_failed": "Το BoardTogether δεν μπόρεσε να αποσυνδέσει το webhook. Δοκίμασε ξανά.",
+    "discord_webhook_prefer_bot": "Για τους περισσότερους παίκτες, το bot του Discord παραπάνω είναι η καλύτερη επιλογή: σου στέλνει μηνύματα απευθείας και δεν χρειάζεται καμία ρύθμιση σε διακομιστή.",
+    "discord_webhook_instructions": "Αν προτιμάς οι ειδοποιήσεις σου να δημοσιεύονται σε κανάλι ενός διακομιστή Discord που διαχειρίζεσαι, σύνδεσε ένα webhook. Στις ρυθμίσεις του καναλιού, άνοιξε τις «Ενσωματώσεις», μετά τα «Webhooks» και δημιούργησε ένα webhook. Έπειτα αντίγραψε το URL του και επικόλλησέ το παρακάτω.",
+    "discord_webhook_url_label": "URL του webhook",
+    "discord_webhook_connect": "Σύνδεση",
+    "telegram_heading": "Ειδοποιήσεις στο Telegram",
+    "telegram_connected": "Το Telegram είναι συνδεδεμένο.",
+    "telegram_disconnect_failed": "Το BoardTogether δεν μπόρεσε να αποσυνδέσει το Telegram. Δοκίμασε ξανά.",
+    "telegram_connected_detail": "Το bot του BoardTogether σού στέλνει μήνυμα εκεί όταν είναι η σειρά σου ή όταν σε προσκαλούν σε παιχνίδι. Μπορείς να το απενεργοποιήσεις και στέλνοντάς του /stop.",
+    "telegram_offer": "Το BoardTogether έχει ένα bot στο Telegram που μπορεί να σου στέλνει μήνυμα όταν είναι η σειρά σου. Πάτησε «Σύνδεση» και μετά «Έναρξη» (Start) στο Telegram.",
+    "telegram_link_failed": "Το BoardTogether δεν μπόρεσε να ετοιμάσει σύνδεσμο για το Telegram.",
+    "discord_sign_in": "Σύνδεση με Discord",
+    "discord_link": "Σύνδεση λογαριασμού",
+    "discord_continue": "Συνέχεια με Discord",
+    "discord_add_bot": "Προσθήκη bot",
+    "title_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} παιχνίδι",
+                "countPlural=other": "{count: number} παιχνίδια"
+            }
+        }
+    ],
+    "dashboard_history_load_failed": "Το ιστορικό δεν φορτώθηκε.",
+    "dashboard_history_loading": "Φόρτωση ιστορικού…",
+    "dashboard_history_empty": "Εδώ θα εμφανίζονται τα ολοκληρωμένα παιχνίδια σου.",
+    "dashboard_history_load_more": "Περισσότερα παιχνίδια",
+    "dashboard_history_all_shown": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Εμφανίζεται το {count: number} παιχνίδι",
+                "countPlural=other": "Εμφανίζονται και τα {count: number} παιχνίδια"
+            }
+        }
+    ],
+    "time_ago_just_now": "μόλις τώρα",
+    "time_ago_minutes": "πριν από {count: number} λεπ.",
+    "time_ago_hours": "πριν από {count: number} ώρ.",
+    "time_ago_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "πριν από {count: number} ημέρα",
+                "countPlural=other": "πριν από {count: number} ημέρες"
+            }
+        }
+    ],
+    "time_ago_weeks": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "πριν από {count: number} εβδομάδα",
+                "countPlural=other": "πριν από {count: number} εβδομάδες"
+            }
+        }
+    ],
+    "time_ago_months": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "πριν από {count: number} μήνα",
+                "countPlural=other": "πριν από {count: number} μήνες"
+            }
+        }
+    ],
+    "time_ago_years": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "πριν από {count: number} χρόνο",
+                "countPlural=other": "πριν από {count: number} χρόνια"
+            }
+        }
+    ],
+    "start_countdown_seconds": "Ξεκινά σε {seconds} δευτ.",
+    "start_countdown_starting": "Ξεκινά…",
+    "auth_title_welcome": "Καλώς ήρθες!",
+    "auth_title_create_account": "Δημιουργία λογαριασμού",
+    "auth_title_reset_password": "Επαναφορά κωδικού πρόσβασης",
+    "auth_title_password_reset": "Ο κωδικός πρόσβασης άλλαξε",
+    "auth_page_title_create_account": "Δημιουργία λογαριασμού — Board Together",
+    "auth_page_title_reset_password": "Επαναφορά κωδικού πρόσβασης — Board Together",
+    "auth_username": "Όνομα χρήστη",
+    "auth_username_placeholder": "διάλεξε όνομα χρήστη",
+    "auth_password": "Κωδικός πρόσβασης",
+    "auth_new_password": "Νέος κωδικός πρόσβασης",
+    "auth_email": "Email",
+    "auth_email_address": "Διεύθυνση email",
+    "auth_email_placeholder": "onoma@example.com",
+    "auth_password_show": "Εμφάνιση κωδικού πρόσβασης",
+    "auth_password_hide": "Απόκρυψη κωδικού πρόσβασης",
+    "auth_password_min_length_help": "Χρησιμοποίησε τουλάχιστον 12 χαρακτήρες.",
+    "auth_username_exists": "Το όνομα χρήστη υπάρχει ήδη",
+    "auth_email_exists": "Το email υπάρχει ήδη",
+    "auth_sign_in": "Σύνδεση",
+    "auth_sign_up": "Εγγραφή",
+    "auth_signing_in": "Σύνδεση…",
+    "auth_back": "Πίσω",
+    "auth_back_to_sign_in": "Πίσω στη σύνδεση",
+    "auth_continue": "Συνέχεια",
+    "auth_ok": "Εντάξει",
+    "auth_need_account": "Δεν έχεις λογαριασμό; {#signup}Κάνε εγγραφή{/signup}",
+    "auth_have_account": "Έχεις ήδη λογαριασμό; {#signin}Συνδέσου{/signin}",
+    "auth_age_confirmation": "Είμαι τουλάχιστον 13 ετών και αποδέχομαι τους {#terms}Όρους Χρήσης{/terms}. Δες πώς χρησιμοποιούμε τα δεδομένα σου στην {#privacy}Πολιτική Απορρήτου{/privacy}.",
+    "auth_validation_required": "Υποχρεωτικό",
+    "auth_validation_invalid_email": "Μη έγκυρο email",
+    "auth_validation_min_length": [
+        {
+            "declarations": ["input length", "local lengthPlural = length: plural"],
+            "selectors": ["lengthPlural"],
+            "match": {
+                "lengthPlural=one": "Απαιτείται τουλάχιστον {length} χαρακτήρας",
+                "lengthPlural=other": "Απαιτούνται τουλάχιστον {length} χαρακτήρες"
+            }
+        }
+    ],
+    "auth_validation_age_confirmation": "Επιβεβαίωσε ότι είσαι τουλάχιστον 13 ετών για να δημιουργήσεις λογαριασμό",
+    "auth_challenge_expiry": "Ισχύει έως τις {time} και λειτουργεί μόνο ο πιο πρόσφατος.",
+    "auth_unavailable_account": "Μη διαθέσιμος λογαριασμός",
+    "auth_login_or": "ή",
+    "auth_login_use_username": "Σύνδεση με όνομα χρήστη / κωδικό",
+    "auth_login_failed": "Η σύνδεση απέτυχε. Έλεγξε το όνομα χρήστη και τον κωδικό πρόσβασής σου και δοκίμασε ξανά.",
+    "auth_login_forgot_password": "Ξέχασες τον κωδικό σου;",
+    "auth_login_please_login": "Συνδέσου…",
+    "auth_signup_failed": "Δεν μπορέσαμε να δημιουργήσουμε τον λογαριασμό σου. Δοκίμασε ξανά.",
+    "auth_signup_email_help": "Παραμένει ιδιωτικό. Χρησιμοποιείται μόνο για ανάκτηση λογαριασμού και ειδοποιήσεις.",
+    "auth_signup_creating": "Δημιουργία…",
+    "auth_forgot_check_email": "Έλεγξε το email σου",
+    "auth_forgot_link_sent": "Αν αυτό το email αντιστοιχεί σε λογαριασμό, στείλαμε εκεί έναν σύνδεσμο επαναφοράς.",
+    "auth_forgot_try_another_email": "Δοκίμασε άλλο email",
+    "auth_forgot_intro": "Θα σου στείλουμε με email έναν σύνδεσμο για να επαναφέρεις τον κωδικό πρόσβασής σου.",
+    "auth_forgot_send_failed": "Δεν μπορέσαμε να στείλουμε το email επαναφοράς. Δοκίμασε ξανά.",
+    "auth_forgot_sending": "Αποστολή…",
+    "auth_forgot_send_link": "Αποστολή συνδέσμου επαναφοράς",
+    "auth_reset_link_rejected": "Αυτός ο σύνδεσμος επαναφοράς έχει λήξει, αντικαταστάθηκε από νεότερο ή έχει ήδη χρησιμοποιηθεί. Ζήτησε νέο παρακάτω.",
+    "auth_reset_success": "Ο κωδικός πρόσβασής σου ενημερώθηκε. Συνδέσου με αυτόν για να συνεχίσεις.",
+    "auth_reset_failed": "Δεν μπορέσαμε να ενημερώσουμε τον κωδικό πρόσβασής σου. Δοκίμασε ξανά.",
+    "auth_reset_set_password": "Ορισμός νέου κωδικού",
+    "auth_reauth_title": "Επιβεβαίωσε ότι είσαι εσύ",
+    "auth_reauth_action_failed": "Η ενέργεια που επιβεβαίωσες απέτυχε",
+    "auth_reauth_password_rejected": "Αυτός ο κωδικός πρόσβασης δεν έγινε δεκτός.",
+    "auth_reauth_failed": "Δεν μπορέσαμε να επιβεβαιώσουμε την ταυτότητά σου. Δοκίμασε ξανά.",
+    "auth_reauth_confirming": "Επιβεβαίωση…",
+    "auth_reauth_confirm": "Επιβεβαίωση",
+    "auth_reauth_no_method": "Αυτός ο λογαριασμός δεν έχει κωδικό πρόσβασης ούτε συνδεδεμένο λογαριασμό για την επιβεβαίωση. Χρησιμοποίησε το «Ξέχασες τον κωδικό σου;» στη σελίδα σύνδεσης για να ορίσεις κωδικό και μετά συνδέσου ξανά.",
+    "auth_reauth_go_to_sign_in": "Πήγαινε στη σύνδεση",
+    "auth_reauth_request_change_password": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν αλλάξεις τον κωδικό πρόσβασής σου.",
+    "auth_reauth_confirmed_change_password": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να αλλάξεις τον κωδικό πρόσβασής σου.",
+    "auth_reauth_request_update_profile": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν ενημερώσεις το προφίλ σου.",
+    "auth_reauth_confirmed_update_profile": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να ενημερώσεις το προφίλ σου.",
+    "auth_reauth_request_change_email": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν αλλάξεις τη διεύθυνση email σου.",
+    "auth_reauth_confirmed_change_email": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να αλλάξεις τη διεύθυνση email σου.",
+    "auth_reauth_request_confirm_new_email": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν επιβεβαιώσεις τη νέα διεύθυνση email σου.",
+    "auth_reauth_confirmed_confirm_new_email": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να επιβεβαιώσεις τη νέα διεύθυνση email σου.",
+    "auth_reauth_request_delete_account": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν διαγράψεις τον λογαριασμό σου.",
+    "auth_reauth_confirmed_delete_account": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να διαγράψεις τον λογαριασμό σου.",
+    "auth_reauth_request_update_email": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν ενημερώσεις τη διεύθυνση email σου.",
+    "auth_reauth_confirmed_update_email": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να ενημερώσεις τη διεύθυνση email σου.",
+    "auth_reauth_request_complete_profile": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν ολοκληρώσεις το προφίλ σου.",
+    "auth_reauth_confirmed_complete_profile": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να ολοκληρώσεις το προφίλ σου.",
+    "auth_reauth_request_link_discord": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν προσθέσεις το Discord ως έναν ακόμη τρόπο σύνδεσης στον λογαριασμό σου.",
+    "auth_reauth_confirmed_link_discord": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να προσθέσεις το Discord ως έναν ακόμη τρόπο σύνδεσης στον λογαριασμό σου.",
+    "auth_reauth_request_link_google": "Για την ασφάλειά σου, επιβεβαίωσε ότι είσαι εσύ πριν προσθέσεις το Google ως έναν ακόμη τρόπο σύνδεσης στον λογαριασμό σου.",
+    "auth_reauth_confirmed_link_google": "Η ταυτότητά σου επιβεβαιώθηκε. Συνέχισε για να προσθέσεις το Google ως έναν ακόμη τρόπο σύνδεσης στον λογαριασμό σου.",
+    "auth_google_sign_in_failed": "Η σύνδεση με Google απέτυχε",
+    "auth_discord_authorization_failed": "Η εξουσιοδότηση του Discord απέτυχε",
+    "auth_discord_not_completed": "Το Discord δεν ολοκλήρωσε την εξουσιοδότηση",
+    "auth_discord_popup_blocked": "Το πρόγραμμα περιήγησης απέκλεισε το παράθυρο του Discord",
+    "auth_discord_start_timeout": "Η εξουσιοδότηση του Discord δεν ξεκίνησε εγκαίρως",
+    "auth_discord_abandoned": "Η εξουσιοδότηση του Discord άργησε πολύ και ακυρώθηκε",
+    "auth_onboarding_signup_deadline": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Οι εγγραφές που δεν ολοκληρώνονται διαγράφονται μετά από {days} ημέρα.",
+                "daysPlural=other": "Οι εγγραφές που δεν ολοκληρώνονται διαγράφονται μετά από {days} ημέρες."
+            }
+        }
+    ],
+    "auth_onboarding_verify_heading": "Επαλήθευσε το email σου…",
+    "auth_onboarding_complete_heading": "Ολοκλήρωσε το προφίλ σου…",
+    "auth_onboarding_oops": "Ωχ…",
+    "auth_onboarding_unexpected_error": "Παρουσιάστηκε ένα απρόσμενο σφάλμα. Δοκίμασε ξανά και ελπίζουμε την επόμενη φορά να πάει καλύτερα.",
+    "auth_onboarding_verification_failed": "Η επαλήθευση απέτυχε",
+    "auth_onboarding_verification_failed_detail": "Βεβαιώσου ότι πληκτρολόγησες τον πιο πρόσφατο κωδικό και ότι δεν έχει λήξει. Κάθε κωδικός ισχύει για 15 λεπτά.",
+    "auth_onboarding_email_sent": "Το email στάλθηκε",
+    "auth_onboarding_check_email": "Έλεγξε το email σου για τον νέο κωδικό επαλήθευσης.",
+    "auth_onboarding_token_sent": "Στάλθηκε ένα email στη διεύθυνση {#address}{email}{/address} με έναν κωδικό επαλήθευσης. Πληκτρολόγησε τον κωδικό παρακάτω για να επαληθεύσεις τη διεύθυνση email σου.",
+    "auth_onboarding_send_new_token": "Αποστολή νέου κωδικού",
+    "auth_onboarding_email_privacy": "Δεν θα κοινοποιήσουμε ποτέ δημόσια το email σου. Χρησιμοποιείται μόνο για ανάκτηση λογαριασμού και ειδοποιήσεις.",
+    "auth_invitation_heading": "Συμμετοχή σε αυτό το παιχνίδι;",
+    "auth_invitation_not_found": "Η πρόσκληση έχει λήξει ή δεν βρέθηκε",
+    "auth_invitation_wrong_user": "Ο σύνδεσμος πρόσκλησης δεν είναι για αυτόν τον χρήστη",
+    "auth_invitation_already_declined": "Έχεις ήδη απορρίψει την πρόσκληση",
+    "auth_invitation_invalid": "Δεν ήταν δυνατή η επικύρωση της πρόσκλησης",
+    "auth_join_page_title": "Συμμετοχή: {name} · Board Together",
+    "auth_join_invitation_page_title": "Πρόσκληση σε παιχνίδι · Board Together",
+    "auth_join_invitation": "Πρόσκληση σε παιχνίδι",
+    "auth_join_started_opening": "Αυτό το παιχνίδι έχει ήδη ξεκινήσει. Άνοιγμα του παιχνιδιού…",
+    "auth_join_finished_opening": "Αυτό το παιχνίδι έχει ολοκληρωθεί. Άνοιγμα του παιχνιδιού…",
+    "auth_join_failed": "Η συμμετοχή απέτυχε. Το παιχνίδι μπορεί να έχει αλλάξει· έλεγξε τις διαθέσιμες θέσεις και δοκίμασε ξανά.",
+    "auth_join_unreachable": "Δεν ήταν δυνατή η επικοινωνία με το παιχνίδι. Δοκίμασε ξανά.",
+    "auth_join_seat_summary": [
+        {
+            "declarations": [
+                "input players",
+                "input openSeats",
+                "local playersPlural = players: plural",
+                "local openSeatsPlural = openSeats: plural"
+            ],
+            "selectors": ["playersPlural", "openSeatsPlural"],
+            "match": {
+                "playersPlural=one, openSeatsPlural=one": "{players: number} παίκτης · {openSeats: number} ελεύθερη θέση",
+                "playersPlural=one, openSeatsPlural=other": "{players: number} παίκτης · {openSeats: number} ελεύθερες θέσεις",
+                "playersPlural=other, openSeatsPlural=one": "{players: number} παίκτες · {openSeats: number} ελεύθερη θέση",
+                "playersPlural=other, openSeatsPlural=other": "{players: number} παίκτες · {openSeats: number} ελεύθερες θέσεις"
+            }
+        }
+    ],
+    "auth_join_game_options": "Επιλογές παιχνιδιού",
+    "auth_join_players": "Παίκτες",
+    "auth_join_open_seat": "Ελεύθερη θέση",
+    "auth_join_joined": "Συμμετέχεις πλέον σε αυτό το παιχνίδι.",
+    "auth_join_go_to_game": "Πήγαινε στο παιχνίδι",
+    "auth_join_already_started": "Αυτό το παιχνίδι έχει ήδη ξεκινήσει.",
+    "auth_join_finished": "Αυτό το παιχνίδι έχει ολοκληρωθεί.",
+    "auth_join_no_open_seats": "Δεν υπάρχουν ελεύθερες θέσεις σε αυτό το παιχνίδι.",
+    "auth_join_load_failed_heading": "Το παιχνίδι δεν φορτώθηκε",
+    "auth_join_load_failed_detail": "Έλεγξε τη σύνδεσή σου και δοκίμασε ξανά.",
+    "auth_join_unavailable_heading": "Η πρόσκληση δεν είναι διαθέσιμη",
+    "auth_join_unavailable_detail": "Αυτό το παιχνίδι δεν υπάρχει πια ή δεν είναι πλέον δημόσιο.",
+    "auth_join_no_thanks": "Όχι, ευχαριστώ",
+    "auth_join_joining": "Συμμετοχή…",
+    "auth_join": "Συμμετοχή",
+    "games_card_answer_request": "Απάντηση σε αίτημα",
+    "games_card_your_turn": "Η σειρά σου",
+    "games_card_take_your_turn": "Παίξε τη σειρά σου",
+    "games_card_result_winner": "Νικητής",
+    "games_card_result_tied": "Ισοπαλία",
+    "games_card_result_no_winner": "Χωρίς νικητή",
+    "games_card_result_abandoned": "Εγκαταλείφθηκε",
+    "games_card_stalling": "Βαλτώνει",
+    "games_card_ends_in_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Λήγει σε {count: number} ημέρα",
+                "countPlural=other": "Λήγει σε {count: number} ημέρες"
+            }
+        }
+    ],
+    "games_card_stalled": "Βάλτωσε",
+    "games_card_called": "Λήξη με συμφωνία",
+    "games_card_conceded": "Παραίτηση",
+    "games_card_finished": "Ολοκληρώθηκε",
+    "games_card_winner_you_and_others": "Εσύ και άλλοι",
+    "games_card_winners_see_below": "Δες παρακάτω",
+    "games_card_loading_game": "Φόρτωση παιχνιδιού",
+    "games_card_cover_alt": "μικρογραφία εξωφύλλου",
+    "games_card_hosted_by": "από {#host}{name}{/host}",
+    "games_card_tournament": "Τουρνουά",
+    "games_card_join": "Συμμετοχή",
+    "games_card_start": "Έναρξη",
+    "games_card_edit": "Επεξεργασία",
+    "games_card_enter": "Άνοιγμα",
+    "games_card_watch": "Παρακολούθηση",
+    "games_card_revisit": "Ανασκόπηση",
+    "games_card_continue": "Συνέχεια",
+    "games_card_waiting_to_start": "Αναμονή{#break/}για έναρξη",
+    "games_card_active_player": "Ενεργός παίκτης",
+    "games_card_unknown_game": "Άγνωστο παιχνίδι",
+    "games_card_seat_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} θέση",
+                "countPlural=other": "{count: number} θέσεις"
+            }
+        }
+    ],
+    "games_card_pace": "Ρυθμός",
+    "games_card_mode": "Λειτουργία",
+    "games_card_hotseat": "Hotseat",
+    "games_card_stall_deadline": "Το παιχνίδι λήγει χωρίς νικητή αν κανείς δεν κάνει κίνηση έως {date}.",
+    "games_card_last_action": "Τελευταία κίνηση",
+    "games_card_time_with_pace_warning": "{time}{#hidden}, {warning}{/hidden}",
+    "games_card_open_seats": "Ελεύθερες θέσεις",
+    "games_card_open_seats_none": "Καμία",
+    "games_card_players_heading": "ΠΑΙΚΤΕΣ",
+    "games_card_score_heading": "ΣΚΟΡ",
+    "games_card_explorations_heading": "ΕΞΕΡΕΥΝΗΣΕΙΣ",
+    "games_card_player_local": "τοπικά",
+    "games_card_decline": "Απόρριψη",
+    "games_card_leave": "Αποχώρηση",
+    "games_card_edit_game": "Επεξεργασία παιχνιδιού",
+    "games_card_start_game": "Έναρξη παιχνιδιού",
+    "games_card_play_game": "Άνοιγμα παιχνιδιού",
+    "games_card_watch_game": "Παρακολούθηση παιχνιδιού",
+    "games_card_unfollow": "Άρση ακολούθησης",
+    "games_card_delete": "Διαγραφή",
+    "games_card_hide_details": "Απόκρυψη λεπτομερειών παιχνιδιού",
+    "games_card_show_details": "Εμφάνιση λεπτομερειών παιχνιδιού",
+    "games_player_you": "Εσύ",
+    "games_player_multiple": "Πολλοί παίκτες",
+    "games_player_status_host": "οικοδεσπότης",
+    "games_player_status_joined": "συμμετέχει",
+    "games_player_status_invited": "προσκλήθηκε",
+    "games_player_status_declined": "αρνήθηκε",
+    "games_player_status_open": "ελεύθερη",
+    "games_option_yes": "Ναι",
+    "games_option_no": "Όχι",
+    "games_option_none": "Κανένα",
+    "games_delete_confirm": "Σίγουρα θέλεις να διαγράψεις αυτό το παιχνίδι;",
+    "games_delete_cannot_undo": "Αυτή η ενέργεια δεν αναιρείται.",
+    "games_no_cancel": "Όχι, ακύρωση",
+    "games_delete_yes": "Ναι, σίγουρα",
+    "games_copy_invite_link": "Αντιγραφή συνδέσμου πρόσκλησης",
+    "games_copy_game_link": "Αντιγραφή συνδέσμου παιχνιδιού",
+    "games_copy_invite_link_for": "Αντιγραφή συνδέσμου πρόσκλησης για το παιχνίδι «{name}»",
+    "games_copy_game_link_for": "Αντιγραφή συνδέσμου για το παιχνίδι «{name}»",
+    "games_invite_link_copied": "Ο σύνδεσμος πρόσκλησης αντιγράφηκε",
+    "games_game_link_copied": "Ο σύνδεσμος του παιχνιδιού αντιγράφηκε",
+    "games_copy_link_failed": "Δεν ήταν δυνατή η αντιγραφή του συνδέσμου. Δοκίμασε ξανά.",
+    "games_tab_title_answer": "Απάντηση σε αίτημα · {game}",
+    "games_tab_title_turn": "Η σειρά σου · {game}",
+    "games_vote_undoes_moves": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Αναιρεί κινήσεις {count: number} παίκτη.",
+                "countPlural=other": "Αναιρεί κινήσεις {count: number} παικτών."
+            }
+        }
+    ],
+    "games_vote_failed_reason": "Δεν πέτυχε: {reason}.",
+    "games_vote_failed": "Δεν πέτυχε. Δοκίμασε ξανά.",
+    "games_vote_undo_request": "{#player}{name}{/player} ζητά αναίρεση μέχρι ένα προηγούμενο σημείο",
+    "games_vote_undo_request_undoing": [
+        {
+            "declarations": ["input name", "input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#player}{name}{/player} ζητά αναίρεση μέχρι ένα προηγούμενο σημείο {#detail}αναιρούνται κινήσεις {count: number} παίκτη{/detail}",
+                "countPlural=other": "{#player}{name}{/player} ζητά αναίρεση μέχρι ένα προηγούμενο σημείο {#detail}αναιρούνται κινήσεις {count: number} παικτών{/detail}"
+            }
+        }
+    ],
+    "games_vote_call_request_no_winner": "{#player}{name}{/player} ζητά να λήξει το παιχνίδι {#detail}χωρίς νικητή{/detail}",
+    "games_vote_call_request_winner": "{#player}{name}{/player} ζητά να λήξει το παιχνίδι {#detail}με νικητή: {winner}{/detail}",
+    "games_vote_undo_request_sentence": "{#player}{name}{/player} ζητά αναίρεση μέχρι ένα προηγούμενο σημείο.",
+    "games_vote_undo_request_undoing_sentence": [
+        {
+            "declarations": ["input name", "input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#player}{name}{/player} ζητά αναίρεση μέχρι ένα προηγούμενο σημείο {#detail}αναιρούνται κινήσεις {count: number} παίκτη{/detail}.",
+                "countPlural=other": "{#player}{name}{/player} ζητά αναίρεση μέχρι ένα προηγούμενο σημείο {#detail}αναιρούνται κινήσεις {count: number} παικτών{/detail}."
+            }
+        }
+    ],
+    "games_vote_call_request_no_winner_sentence": "{#player}{name}{/player} ζητά να λήξει το παιχνίδι {#detail}χωρίς νικητή{/detail}.",
+    "games_vote_call_request_winner_sentence": "{#player}{name}{/player} ζητά να λήξει το παιχνίδι {#detail}με νικητή: {winner}{/detail}.",
+    "games_vote_tally_agreed": "Συμφώνησαν {approvals: number} από {total: number}",
+    "games_vote_tally_needed": "{approvals: number} από τους {required: number} που χρειάζονται",
+    "games_vote_view_that_point": "Δες εκείνο το σημείο",
+    "games_vote_withdraw": "Απόσυρση",
+    "games_vote_decline": "Αρνούμαι",
+    "games_vote_agree": "Συμφωνώ",
+    "games_vote_answer_before_playing": "Απάντησε για να μπορέσεις να παίξεις ξανά.",
+    "games_vote_undo_yourself": "Αυτό μπορείς να το αναιρέσεις εσύ, με το κουμπί αναίρεσης (Undo).",
+    "games_vote_ok": "Εντάξει",
+    "games_vote_confirm_undo": "Να ζητήσεις από όλους αναίρεση μέχρι εδώ;",
+    "games_vote_send_request": "Αποστολή αιτήματος",
+    "games_vote_ask_to_undo": "Ζήτα αναίρεση μέχρι εδώ",
+    "games_vote_notice_answer": "Πρέπει να απαντήσεις για να μπορέσεις να παίξεις ξανά. Συμφώνησε ή αρνήσου στο μπάνερ στο πάνω μέρος του παιχνιδιού.",
+    "games_call_offer_concede": "Παραίτηση",
+    "games_call_offer_call": "Λήξη με συμφωνία",
+    "games_call_concede_confirm": "Σίγουρα θέλεις να παραιτηθείς από αυτό το παιχνίδι;",
+    "games_call_cannot_undo": "Αυτό δεν αναιρείται.",
+    "games_call_ask_end": "Να ζητήσεις από όλους να λήξει τώρα το παιχνίδι;",
+    "games_call_ends_if": "Λήγει αν συμφωνήσουν {required: number} από τους {total: number} παίκτες, μαζί με εσένα.",
+    "games_call_who_wins": "Ποιος κερδίζει;",
+    "games_call_no_winner": "Χωρίς νικητή",
+    "games_call_play_goes_on": "Όσο διαρκεί η ψηφοφορία, το παιχνίδι συνεχίζεται κανονικά.",
+    "games_call_yes_concede": "Ναι, παραιτούμαι",
+    "games_call_ask_everyone": "Ρώτα όλους",
+    "games_bug_report_screenshot_limit": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Μια αναφορά μπορεί να περιέχει έως {count: number} στιγμιότυπο οθόνης.",
+                "countPlural=other": "Μια αναφορά μπορεί να περιέχει έως {count: number} στιγμιότυπα οθόνης."
+            }
+        }
+    ],
+    "games_bug_report_image_unreadable": "Δεν μπορέσαμε να διαβάσουμε αυτή την εικόνα.",
+    "games_bug_report_sent": "Ευχαριστούμε! Η αναφορά σφάλματος στάλθηκε.",
+    "games_bug_report_what_went_wrong": "Τι πήγε στραβά;",
+    "games_bug_report_placeholder": "Τι έκανες, τι συνέβη και τι περίμενες να συμβεί;",
+    "games_bug_report_screenshot_alt": "Στιγμιότυπο οθόνης {number}",
+    "games_bug_report_remove_screenshot": "Αφαίρεση στιγμιότυπου οθόνης {number}",
+    "games_bug_report_adding": "Προσθήκη…",
+    "games_bug_report_privacy": "Η περιγραφή σου, τα στιγμιότυπα οθόνης, το όνομα χρήστη και το όνομά σου στο Discord (αν έχεις συνδέσει λογαριασμό), καθώς και ο τίτλος και η κατάσταση του παιχνιδιού, αναρτώνται δημόσια στο φόρουμ μας στο Discord. Ένα αντίγραφο του παιχνιδιού και τα στοιχεία του προγράμματος περιήγησής σου φτάνουν σε εμάς ιδιωτικά.",
+    "games_bug_report_sending": "Αποστολή…",
+    "games_bug_report_too_large": "Αυτό το παιχνίδι είναι πολύ μεγάλο για να επισυναφθεί σε αναφορά σφάλματος.",
+    "games_bug_report_rate_limited": "Έστειλες αρκετές αναφορές μέσα σε λίγη ώρα. Δοκίμασε ξανά σε λίγα λεπτά.",
+    "games_bug_report_failed": "Η αναφορά σφάλματος δεν στάλθηκε.",
+    "games_bug_report_failed_try_later": "Η αναφορά σφάλματος δεν στάλθηκε. Δοκίμασε ξανά σε λίγα λεπτά.",
+    "games_report_title": "Αναφορά",
+    "games_report_message_title": "Αναφορά μηνύματος",
+    "games_report_owner_anonymous": "Ο οικοδεσπότης του παιχνιδιού δεν θα μάθει ποιος έκανε την αναφορά. Εξετάζουμε κάθε αναφορά μέσα σε λίγες ημέρες.",
+    "games_report_player_anonymous": "Ο παίκτης δεν θα μάθει ποιος έκανε την αναφορά. Εξετάζουμε κάθε αναφορά μέσα σε λίγες ημέρες.",
+    "games_report_named_anonymous": "Ο χρήστης {name} δεν θα μάθει ποιος έκανε την αναφορά. Εξετάζουμε κάθε αναφορά μέσα σε λίγες ημέρες.",
+    "games_report_sent": "Ευχαριστούμε. Η αναφορά σου στάλθηκε.",
+    "games_report_failed": "Η αναφορά σου δεν στάλθηκε. Δοκίμασε ξανά.",
+    "games_report_what": "Τι αναφέρεις;",
+    "games_report_game_name": "Το όνομα του παιχνιδιού «{name}»",
+    "games_report_username": "Το όνομα χρήστη ενός παίκτη",
+    "games_report_player_label": "Παίκτης",
+    "games_report_choose_player": "Διάλεξε παίκτη",
+    "games_report_chat_message": "Ένα μήνυμα στη συνομιλία",
+    "games_report_message_label": "Μήνυμα",
+    "games_report_choose_message": "Διάλεξε μήνυμα",
+    "games_report_message_option": "{author}: {text}",
+    "games_report_whats_wrong": "Ποιο είναι το πρόβλημα;",
+    "games_report_anything_else": "Κάτι άλλο που πρέπει να ξέρουμε; {#optional}(προαιρετικά){/optional}",
+    "games_report_send": "Αποστολή αναφοράς",
+    "games_page_not_found": "Το παιχνίδι δεν βρέθηκε",
+    "games_page_not_started": "Το παιχνίδι δεν έχει ξεκινήσει ακόμη",
+    "games_page_not_supported": "Το παιχνίδι δεν υποστηρίζεται",
+    "games_page_no_longer_available": "Το παιχνίδι δεν είναι πλέον διαθέσιμο",
+    "games_page_load_failed": "Το παιχνίδι δεν φορτώθηκε",
+    "games_report_reason_bullying": "Εκφοβισμός ή παρενόχληση",
+    "games_report_reason_hate": "Ρητορική μίσους",
+    "games_report_reason_sexual_content": "Σεξουαλικό περιεχόμενο",
+    "games_report_reason_self_harm": "Αυτοκτονία, αυτοτραυματισμός ή διατροφικές διαταραχές",
+    "games_report_reason_intimate_image": "Προσωπικές εικόνες που κοινοποιήθηκαν χωρίς συναίνεση",
+    "games_report_reason_illegal": "Κάτι παράνομο",
+    "games_report_reason_spam": "Spam ή απάτη",
+    "games_report_reason_other": "Κάτι άλλο",
+    "games_report_author_administrator": "Διαχειριστής",
+    "games_report_author_unknown": "Άγνωστος παίκτης",
+    "library_page_title": "Βιβλιοθήκη παιχνιδιών — Board Together",
+    "library_all_games": "Όλα τα παιχνίδια",
+    "library_unknown_game": "Άγνωστο παιχνίδι",
+    "library_maturity_alpha": "Alpha",
+    "library_maturity_beta": "Beta",
+    "library_series_18xx_description": "Σιδηροδρομικά παιχνίδια με αγοραπωλησίες μετοχών και χάραξη γραμμών. Διεύθυνε εταιρείες, αγόρασε μετοχές των αντιπάλων σου και ξεπούλα πριν το επόμενο τρένο σκουριάσει τον στόλο τους.",
+    "library_series_gipf_project_description": "Τα αφηρημένα παιχνίδια στρατηγικής του Kris Burm για δύο παίκτες. Απλά πιόνια, ανοιχτή πληροφορία και καθόλου τύχη: κάθε παιχνίδι κρίνεται πάνω στο ταμπλό και στις επιλογές που έχεις μπροστά σου.",
+    "library_shelf_view_series": [
+        {
+            "declarations": ["input name", "input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Προβολή: {name}, {count: number} παιχνίδι",
+                "countPlural=other": "Προβολή: {name}, {count: number} παιχνίδια"
+            }
+        }
+    ],
+    "library_shelf_view_title": "Προβολή: {name}",
+    "library_shelf_view_title_with_maturity": "Προβολή: {name}, {maturity}",
+    "library_shelf_sign_in_to_play": "Συνδέσου για να παίξεις {name}",
+    "library_title_page_title": "{name} — Board Together",
+    "library_title_unavailable": "Αυτό το παιχνίδι δεν είναι διαθέσιμο στη βιβλιοθήκη σου.",
+    "library_title_cover_alt": "Εξώφυλλο κουτιού: {name}",
+    "library_title_designed_by": "Σχεδιασμός: {#designer}{designer}{/designer}",
+    "library_title_published_by": "Έκδοση: {#publisher}{publisher}{/publisher}",
+    "library_title_published_by_seller": "Έκδοση: {#publisher}{publisher}{/publisher}{#separator/}{#shop}αγόρασέ το από {publisher}{/shop}",
+    "library_opens_in_new_tab": "(ανοίγει σε νέα καρτέλα)",
+    "library_start_game": "Ξεκίνα ένα παιχνίδι",
+    "library_start_game_arrow": "Ξεκίνα ένα παιχνίδι →",
+    "library_title_game_created": "Το παιχνίδι δημιουργήθηκε. Θα το βρεις παρακάτω, στα παιχνίδια σου.",
+    "library_loading": "Φόρτωση…",
+    "library_loading_games": "Φόρτωση παιχνιδιών…",
+    "library_games_load_failed": "Αυτά τα παιχνίδια δεν φορτώθηκαν.",
+    "library_games_unavailable": "Αυτά τα παιχνίδια δεν είναι προσωρινά διαθέσιμα.",
+    "library_previous": "Προηγούμενη",
+    "library_next": "Επόμενη",
+    "library_in_progress": "Σε εξέλιξη",
+    "library_recently_finished": "Ολοκληρώθηκαν πρόσφατα",
+    "library_title_games_your_games": "Τα παιχνίδια σου",
+    "library_title_games_your_games_empty": "Εδώ θα εμφανίζονται τα παιχνίδια σου με αυτόν τον τίτλο.",
+    "library_title_games_open_games": "Ανοιχτά παιχνίδια",
+    "library_title_games_open_games_empty": "Κανένα ανοιχτό τραπέζι αυτή τη στιγμή. Άνοιξε ένα και προσκάλεσε κι άλλους να έρθουν.",
+    "library_title_games_in_progress_empty": "Αυτή τη στιγμή δεν παίζεται κανένα δημόσιο παιχνίδι με αυτόν τον τίτλο.",
+    "library_title_games_recently_finished_empty": "Κανένα δημόσιο παιχνίδι με αυτόν τον τίτλο δεν έχει ολοκληρωθεί ακόμη.",
+    "library_title_games_open_games_pages": "Σελίδες ανοιχτών παιχνιδιών",
+    "library_title_games_in_progress_pages": "Σελίδες παιχνιδιών σε εξέλιξη",
+    "library_title_games_recently_finished_pages": "Σελίδες παιχνιδιών που ολοκληρώθηκαν πρόσφατα",
+    "library_title_games_community": "Παιχνίδια της κοινότητας",
+    "library_competitions_heading": "Τουρνουά και λίγκες",
+    "library_competitions_all_tournaments": "Όλα τα τουρνουά",
+    "library_competitions_all_leagues": "Όλες οι λίγκες",
+    "library_competitions_loading": "Φόρτωση τουρνουά και λιγκών…",
+    "library_competitions_load_failed_both": "Τα τουρνουά και οι λίγκες δεν φορτώθηκαν.",
+    "library_competitions_load_failed_tournaments": "Τα τουρνουά δεν φορτώθηκαν.",
+    "library_competitions_load_failed_leagues": "Οι λίγκες δεν φορτώθηκαν.",
+    "library_competitions_none": "Αυτή τη στιγμή δεν υπάρχουν τουρνουά ή λίγκες για αυτό το παιχνίδι.",
+    "library_competitions_ladder_league": "Λίγκα σκάλας",
+    "library_competitions_pyramid_league": "Λίγκα πυραμίδας",
+    "library_competitions_players_per_game": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} παίκτης ανά παιχνίδι",
+                "countPlural=other": "{count: number} παίκτες ανά παιχνίδι"
+            }
+        }
+    ],
+    "library_competitions_games_each": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} παιχνίδι ανά παίκτη",
+                "countPlural=other": "{count: number} παιχνίδια ανά παίκτη"
+            }
+        }
+    ],
+    "library_competitions_joined": "Συμμετοχές: {roster}",
+    "library_competitions_more_tournaments": "Περισσότερα τουρνουά",
+    "library_entry_your_turn": "Η σειρά σου",
+    "library_entry_answer_request": "Απάντηση σε αίτημα",
+    "library_entry_enter": "Άνοιγμα",
+    "library_entry_watch": "Παρακολούθηση",
+    "library_entry_revisit": "Ανασκόπηση",
+    "library_entry_named": "{action}: {name}",
+    "library_entry_join": "Συμμετοχή",
+    "library_entry_join_named": "Συμμετοχή στο παιχνίδι «{name}»",
+    "library_entry_join_failed": "Η συμμετοχή σε αυτό το παιχνίδι απέτυχε. Δοκίμασε ξανά.",
+    "library_entry_joined": "Συμμετέχεις",
+    "library_entry_full": "Γεμάτο",
+    "library_table_title": "Τίτλος",
+    "library_table_name": "Όνομα",
+    "library_table_seats": "Θέσεις",
+    "library_table_options": "Επιλογές",
+    "library_table_pace": "Ρυθμός",
+    "library_table_created": "Δημιουργήθηκε",
+    "library_table_progress": "Πρόοδος",
+    "library_table_turn": "Σειρά",
+    "library_table_last_action": "Τελευταία κίνηση",
+    "library_table_winner": "Νικητής",
+    "library_table_finished": "Ολοκληρώθηκε",
+    "library_table_show_details": "Εμφάνιση λεπτομερειών για το παιχνίδι «{name}»",
+    "library_table_hide_details": "Απόκρυψη λεπτομερειών για το παιχνίδι «{name}»",
+    "library_table_to_move": "Σειρά: {player}",
+    "library_table_won": "Νίκη: {winners}",
+    "library_table_pace_value": "Ρυθμός: {pace}",
+    "library_table_seats_taken": "Πιασμένες {taken} από {total: number} θέσεις",
+    "library_table_game_options": "Επιλογές παιχνιδιού",
+    "library_table_game_options_heading": "ΕΠΙΛΟΓΕΣ ΠΑΙΧΝΙΔΙΟΥ",
+    "library_table_players": "Παίκτες",
+    "library_table_players_heading": "ΠΑΙΚΤΕΣ",
+    "library_table_score_heading": "ΣΚΟΡ",
+    "library_table_no_winner": "Χωρίς νικητή",
+    "library_table_standard_options": "Κανονικές",
+    "library_table_option_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} επιλογή",
+                "countPlural=other": "{count: number} επιλογές"
+            }
+        }
+    ],
+    "library_table_host": "οικοδεσπότης",
+    "library_pace_daily_or_faster": "Ημερήσιος ή ταχύτερος",
+    "library_pace_brisk_or_faster": "Γοργός ή ταχύτερος",
+    "library_pace_fast_or_faster": "Γρήγορος ή ταχύτερος",
+    "library_pace_live": "Ζωντανά",
+    "library_series_page_title": "Παιχνίδια {name} — Board Together",
+    "library_series_unavailable": "Αυτή η σειρά παιχνιδιών δεν είναι διαθέσιμη στη βιβλιοθήκη.",
+    "library_series_shelf_load_failed": "Το ράφι με τα παιχνίδια δεν φορτώθηκε. Ανανέωσε τη σελίδα για να δοκιμάσεις ξανά.",
+    "library_titles": "Τίτλοι",
+    "library_series_tab_lobby": "Λόμπι",
+    "library_series_tab_finished": "Ολοκληρωμένα",
+    "library_series_players": "Παίκτες",
+    "library_series_any": "Αδιάφορο",
+    "library_series_pace": "Ρυθμός",
+    "library_series_show_more": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Εμφάνιση περισσότερων {#count}απομένει {count: number}{/count}",
+                "countPlural=other": "Εμφάνιση περισσότερων {#count}απομένουν {count: number}{/count}"
+            }
+        }
+    ],
+    "library_series_created_listed": "Το παιχνίδι {#game}{name}{/game} είναι ανοιχτό για παίκτες. Είναι επισημασμένο στην ενότητα «Ζητούνται παίκτες».",
+    "library_series_created_unlisted": "Το παιχνίδι {#game}{name}{/game} δημιουργήθηκε. Θα το βρεις στη σελίδα {#dashboard}Τα παιχνίδια μου{/dashboard}.",
+    "library_series_looking_for_players": "Ζητούνται παίκτες",
+    "library_series_looking_for_players_label": "Παιχνίδια που ζητούν παίκτες",
+    "library_series_no_open_match": "Κανένα ανοιχτό τραπέζι δεν ταιριάζει.",
+    "library_series_in_progress_label": "Παιχνίδια σε εξέλιξη",
+    "library_series_no_in_progress_match": "Κανένα δημόσιο παιχνίδι σε εξέλιξη δεν ταιριάζει.",
+    "library_series_recently_finished_label": "Παιχνίδια που ολοκληρώθηκαν πρόσφατα",
+    "library_series_no_finished_match": "Κανένα δημόσιο παιχνίδι που ολοκληρώθηκε πρόσφατα δεν ταιριάζει.",
+    "library_picker_in_progress": "{count: number} σε εξέλιξη",
+    "library_picker_titles_selected": "Τίτλοι · {count: number}",
+    "library_picker_all_titles": "Όλοι οι τίτλοι",
+    "library_picker_all": "Όλοι",
+    "library_picker_has_open_tables": "Με ανοιχτά τραπέζια",
+    "library_picker_with_games": "Με παιχνίδια τώρα",
+    "library_picker_no_games": "Χωρίς παιχνίδια αυτή τη στιγμή",
+    "library_picker_clear": "Καθαρισμός",
+    "library_picker_show_games": "Εμφάνιση παιχνιδιών",
+    "library_picker_remove": "Αφαίρεση: {name}",
+    "tournaments_heading_label": "Διοργανώσεις",
+    "tournaments_heading_tournaments": "Τουρνουά",
+    "tournaments_heading_leagues": "Λίγκες",
+    "tournaments_scoring_knockout": "Κάθε αγώνας είναι ένα παιχνίδι από κάθε πλευρά· αν οι νίκες μοιραστούν, ο αγώνας κρίνεται σε μπαράζ. Ένα μοιρασμένο παιχνίδι μετράει μισό. Κάτω από τον νικητή, οι παίκτες κατατάσσονται ανάλογα με τον γύρο όπου έφτασαν.",
+    "tournaments_scoring_average_place": "Η κατάταξη γίνεται με βάση τη μέση θέση. Στις ισοβαθμίες προηγείται όποιος τερμάτισε πιο συχνά μπροστά στα κοινά τραπέζια και έπειτα μετράει το κριτήριο ισοβαθμίας.",
+    "tournaments_scoring_wins": "Η νίκη δίνει 1 βαθμό· αν οι νικητές είναι περισσότεροι, τον μοιράζονται.",
+    "tournaments_format_mini": "Μίνι",
+    "tournaments_format_mini_tournament": "Μίνι τουρνουά",
+    "tournaments_format_knockout": "Νοκ άουτ",
+    "tournaments_format_knockout_tournament": "Τουρνουά νοκ άουτ",
+    "tournaments_format_multi_stage": "Πολλών φάσεων",
+    "tournaments_format_multi_stage_tournament": "Τουρνουά πολλών φάσεων",
+    "tournaments_tag_league": "Λίγκα",
+    "tournaments_tag_league_group": "Όμιλος λίγκας",
+    "tournaments_roster_of_capacity": "{count: number} / {capacity: number}",
+    "tournaments_roster_joined": [
+        {
+            "declarations": ["input roster", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{roster} συμμετοχή",
+                "countPlural=other": "{roster} συμμετοχές"
+            }
+        }
+    ],
+    "tournaments_registration_closes_at_start": "Οι δηλώσεις συμμετοχής κλείνουν όταν ξεκινήσει το τουρνουά.",
+    "tournaments_registration_assigned": "Οι παίκτες ορίζονται από τη λίγκα.",
+    "tournaments_registration_starts_when_full": [
+        {
+            "declarations": ["input capacity", "local capacityPlural = capacity: plural"],
+            "selectors": ["capacityPlural"],
+            "match": {
+                "capacityPlural=one": "Ξεκινά όταν συμμετάσχει {capacity: number} παίκτης",
+                "capacityPlural=other": "Ξεκινά όταν συμμετάσχουν {capacity: number} παίκτες"
+            }
+        }
+    ],
+    "tournaments_registration_closes_on": [
+        {
+            "declarations": ["input date", "local minimumPlural = minimum: plural"],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Λήξη δηλώσεων συμμετοχής: {date} — απαιτείται τουλάχιστον {minimum: number} παίκτης.",
+                "minimumPlural=other": "Λήξη δηλώσεων συμμετοχής: {date} — απαιτούνται τουλάχιστον {minimum: number} παίκτες."
+            }
+        }
+    ],
+    "tournaments_registration_closed_on": [
+        {
+            "declarations": ["input date", "local minimumPlural = minimum: plural"],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Οι δηλώσεις συμμετοχής έκλεισαν: {date} — απαιτείται τουλάχιστον {minimum: number} παίκτης.",
+                "minimumPlural=other": "Οι δηλώσεις συμμετοχής έκλεισαν: {date} — απαιτούνται τουλάχιστον {minimum: number} παίκτες."
+            }
+        }
+    ],
+    "tournaments_registration_closes_on_capped": [
+        {
+            "declarations": [
+                "input date",
+                "input capacity",
+                "local minimumPlural = minimum: plural"
+            ],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Λήξη δηλώσεων συμμετοχής: {date} — απαιτείται τουλάχιστον {minimum: number} παίκτης· έως {capacity: number}.",
+                "minimumPlural=other": "Λήξη δηλώσεων συμμετοχής: {date} — απαιτούνται τουλάχιστον {minimum: number} παίκτες· έως {capacity: number}."
+            }
+        }
+    ],
+    "tournaments_registration_closed_on_capped": [
+        {
+            "declarations": [
+                "input date",
+                "input capacity",
+                "local minimumPlural = minimum: plural"
+            ],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Οι δηλώσεις συμμετοχής έκλεισαν: {date} — απαιτείται τουλάχιστον {minimum: number} παίκτης· έως {capacity: number}.",
+                "minimumPlural=other": "Οι δηλώσεις συμμετοχής έκλεισαν: {date} — απαιτούνται τουλάχιστον {minimum: number} παίκτες· έως {capacity: number}."
+            }
+        }
+    ],
+    "tournaments_summary_completed": "Ολοκληρώθηκε",
+    "tournaments_summary_completed_on": "Ολοκληρώθηκε: {date}",
+    "tournaments_games_finished": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Ολοκληρώθηκε {count: number} παιχνίδι",
+                "countPlural=other": "Ολοκληρώθηκαν {count: number} παιχνίδια"
+            }
+        }
+    ],
+    "tournaments_status_scheduling_paused": "Προγραμματισμός σε παύση",
+    "tournaments_status_start_delayed": "Καθυστέρηση έναρξης",
+    "tournaments_status_draft": "Πρόχειρο",
+    "tournaments_status_registration_open": "Δηλώσεις συμμετοχής ανοιχτές",
+    "tournaments_status_registration_closed": "Δηλώσεις συμμετοχής κλειστές",
+    "tournaments_status_finished": "Ολοκληρώθηκε",
+    "tournaments_status_in_progress": "Σε εξέλιξη",
+    "tournaments_status_starting": "Ξεκινά…",
+    "tournaments_status_roster_locked": "Οι συμμετοχές κλείδωσαν",
+    "tournaments_status_cancelled_undersubscribed": "Ακυρώθηκε — δεν συμπληρώθηκαν οι ελάχιστες συμμετοχές",
+    "tournaments_status_cancelled": "Ακυρώθηκε",
+    "tournaments_knockout_final": "Τελικός",
+    "tournaments_knockout_semi_finals": "Ημιτελικοί",
+    "tournaments_knockout_quarter_finals": "Προημιτελικοί",
+    "tournaments_knockout_round": "Γύρος {round}",
+    "tournaments_knockout_semi_final_match": "Ημιτελικός {match}",
+    "tournaments_knockout_quarter_final_match": "Προημιτελικός {match}",
+    "tournaments_knockout_round_match": "Γύρος {round} · Αγώνας {match}",
+    "tournaments_knockout_game": "Παιχνίδι {game}",
+    "tournaments_knockout_decider": "Μπαράζ",
+    "tournaments_knockout_decider_numbered": "Μπαράζ {number}",
+    "tournaments_knockout_game_label": "Π{game}",
+    "tournaments_knockout_decider_label": "Μ",
+    "tournaments_knockout_decider_label_numbered": "Μ{number}",
+    "tournaments_knockout_champion": "Πρωταθλητής",
+    "tournaments_knockout_runner_up": "Φιναλίστ",
+    "tournaments_knockout_in_final": "Στον τελικό",
+    "tournaments_knockout_in_semi_finals": "Στους ημιτελικούς",
+    "tournaments_knockout_in_quarter_finals": "Στους προημιτελικούς",
+    "tournaments_knockout_in_round": "Στον γύρο {round}",
+    "tournaments_knockout_out_in_semi_finals": "Αποκλείστηκε στους ημιτελικούς",
+    "tournaments_knockout_out_in_quarter_finals": "Αποκλείστηκε στους προημιτελικούς",
+    "tournaments_knockout_out_in_round": "Αποκλείστηκε στον γύρο {round}",
+    "tournaments_bracket_heading": "Ταμπλό",
+    "tournaments_bracket_bye": "Χωρίς αντίπαλο",
+    "tournaments_bracket_nobody": "Κανείς",
+    "tournaments_bracket_to_be_decided": "Θα κριθεί",
+    "tournaments_bracket_game_shared": "{game}: μοιρασμένη νίκη ({winners})",
+    "tournaments_bracket_game_won": "{game}: νίκη ({winners})",
+    "tournaments_bracket_game_in_progress": "{game}: σε εξέλιξη",
+    "tournaments_bracket_game_starting": "{game}: ξεκινά",
+    "tournaments_bracket_walkover": "Άνευ αγώνα",
+    "tournaments_bracket_your_match": "Ο αγώνας σου · {match}",
+    "tournaments_bracket_rounds_label": "Γύροι",
+    "tournaments_bracket_whole": "Ολόκληρο το ταμπλό",
+    "tournaments_bracket_legend": "Τα Π1 και Π2 παίζονται ταυτόχρονα, ένα από κάθε πλευρά. Το Μ είναι το μπαράζ.",
+    "tournaments_bracket_draw_pending": "Η κλήρωση γίνεται όταν κλείσουν οι δηλώσεις συμμετοχής.",
+    "tournaments_bracket_load_failed": "Το ταμπλό δεν φορτώθηκε",
+    "tournaments_page_title": "Τουρνουά · Tabletop",
+    "tournaments_tab_mine": "Δικά μου",
+    "tournaments_tab_open": "Ανοιχτά",
+    "tournaments_tab_in_progress": "Σε εξέλιξη",
+    "tournaments_tab_completed": "Ολοκληρωμένα",
+    "tournaments_tab_drafts": "Πρόχειρα",
+    "tournaments_empty_title_filter": "Σε αυτή την καρτέλα δεν υπάρχουν τουρνουά για αυτό το παιχνίδι.",
+    "tournaments_empty_mine": "Τα τουρνουά σου θα εμφανίζονται εδώ όταν δηλώσεις συμμετοχή σε κάποιο.",
+    "tournaments_empty_open": "Αυτή τη στιγμή κανένα τουρνουά δεν δέχεται δηλώσεις συμμετοχής.",
+    "tournaments_empty_in_progress": "Αυτή τη στιγμή δεν υπάρχει κανένα τουρνουά σε εξέλιξη.",
+    "tournaments_empty_finished": "Κανένα ολοκληρωμένο τουρνουά ακόμη.",
+    "tournaments_empty_drafts": "Κανένα πρόχειρο. Δημιούργησε ένα τουρνουά για να ξεκινήσεις.",
+    "tournaments_list_load_failed": "Τα τουρνουά δεν φορτώθηκαν",
+    "tournaments_create_tournament": "Δημιουργία τουρνουά",
+    "tournaments_filter_by_game": "Φιλτράρισμα ανά παιχνίδι",
+    "tournaments_all_games": "Όλα τα παιχνίδια",
+    "tournaments_loading": "Φόρτωση τουρνουά",
+    "tournaments_explore_open": "Δες τα ανοιχτά τουρνουά →",
+    "tournaments_card_players_per_game": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#strong}{count: number}{/strong} παίκτης ανά παιχνίδι",
+                "countPlural=other": "{#strong}{count: number}{/strong} παίκτες ανά παιχνίδι"
+            }
+        }
+    ],
+    "tournaments_card_games_each": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#strong}{count: number}{/strong} παιχνίδι ανά παίκτη",
+                "countPlural=other": "{#strong}{count: number}{/strong} παιχνίδια ανά παίκτη"
+            }
+        }
+    ],
+    "tournaments_game_options": "Επιλογές παιχνιδιού",
+    "tournaments_next_page": "Επόμενη σελίδα",
+    "tournaments_detail_page_title": "{name} · Tabletop",
+    "tournaments_detail_tournament": "Τουρνουά",
+    "tournaments_detail_back": "← Τουρνουά",
+    "tournaments_detail_load_failed": "Το τουρνουά δεν φορτώθηκε",
+    "tournaments_detail_update_failed": "Το τουρνουά δεν ενημερώθηκε",
+    "tournaments_detail_rebuild_failed": "Ο επανυπολογισμός της βαθμολογίας απέτυχε",
+    "tournaments_detail_confirm_start": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Να κλείσουν οι δηλώσεις συμμετοχής και να ξεκινήσει το τουρνουά με {count: number} παίκτη;",
+                "countPlural=other": "Να κλείσουν οι δηλώσεις συμμετοχής και να ξεκινήσει το τουρνουά με {count: number} παίκτες;"
+            }
+        }
+    ],
+    "tournaments_detail_league_group_heading": "{#league}{league}{/league} · Σεζόν {season} · Όμιλος {group}",
+    "tournaments_detail_registration_full": "Οι θέσεις συμπληρώθηκαν",
+    "tournaments_detail_join": "Συμμετοχή στο τουρνουά",
+    "tournaments_detail_close_editor": "Κλείσιμο επεξεργασίας",
+    "tournaments_detail_edit_draft": "Επεξεργασία πρόχειρου",
+    "tournaments_detail_open_registration": "Άνοιγμα δηλώσεων συμμετοχής",
+    "tournaments_detail_manage": "Διαχείριση",
+    "tournaments_detail_needs_players": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Χρειάζεται τουλάχιστον {count: number} παίκτης",
+                "countPlural=other": "Χρειάζονται τουλάχιστον {count: number} παίκτες"
+            }
+        }
+    ],
+    "tournaments_detail_start_now": "Κλείσιμο και έναρξη τώρα",
+    "tournaments_detail_resume_scheduling": "Συνέχιση προγραμματισμού",
+    "tournaments_detail_pause_scheduling": "Παύση προγραμματισμού",
+    "tournaments_detail_retry_scheduling": "Επανάληψη προγραμματισμού",
+    "tournaments_detail_replace_player": "Αντικατάσταση παίκτη",
+    "tournaments_detail_correct_result": "Διόρθωση αποτελέσματος",
+    "tournaments_detail_rebuild_standings": "Επανυπολογισμός βαθμολογίας",
+    "tournaments_detail_cancel_tournament": "Ακύρωση τουρνουά",
+    "tournaments_detail_winners": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Νικητής:",
+                "countPlural=other": "Μοιράζονται τη νίκη:"
+            }
+        }
+    ],
+    "tournaments_detail_paused_note": "Η έναρξη νέων παιχνιδιών είναι σε παύση. Τα παιχνίδια που έχουν ήδη ξεκινήσει μπορούν να συνεχιστούν.",
+    "tournaments_detail_scheduling_error_note": "Κάποια παιχνίδια περιμένουν να ξεκινήσουν. Ο προγραμματισμός θα επαναληφθεί αυτόματα.",
+    "tournaments_detail_schedule_ready": "Το πρόγραμμα είναι έτοιμο. Αναμονή για την έναρξη των παιχνιδιών.",
+    "tournaments_detail_awaiting_schedule": "Αναμονή για τον προγραμματισμό των παιχνιδιών.",
+    "tournaments_detail_edit_draft_label": "Επεξεργασία πρόχειρου τουρνουά",
+    "tournaments_detail_players": "Παίκτες",
+    "tournaments_detail_be_first": "Κάνε εσύ την αρχή",
+    "tournaments_detail_name": "Όνομα",
+    "tournaments_detail_status": "Κατάσταση",
+    "tournaments_wins": "Νίκες",
+    "tournaments_detail_avg_place": "Μέση θέση",
+    "tournaments_average_place": "Μέση θέση",
+    "tournaments_detail_score": "Σκορ",
+    "tournaments_detail_tiebreak": "Ισοβαθμία",
+    "tournaments_detail_action": "Ενέργεια",
+    "tournaments_detail_substitute_for_title": "Αναπληρώνει τον χρήστη {name}",
+    "tournaments_detail_substitute_for": "αντί για {name}",
+    "tournaments_detail_withdrawn": "Αποσύρθηκε",
+    "tournaments_detail_tournament_winner": "Νικητής του τουρνουά",
+    "tournaments_detail_knockout_record": [
+        {
+            "declarations": [
+                "input score",
+                "input active",
+                "local completedPlural = completed: plural"
+            ],
+            "selectors": ["completedPlural"],
+            "match": {
+                "completedPlural=one": "Νίκες: {score} σε {completed: number} παιχνίδι · ενεργά: {active: number}",
+                "completedPlural=other": "Νίκες: {score} σε {completed: number} παιχνίδια · ενεργά: {active: number}"
+            }
+        }
+    ],
+    "tournaments_detail_game_counts": "Ολοκληρώθηκαν: {completed: number} · Ενεργά: {active: number} · Σε αναμονή: {waiting: number}",
+    "tournaments_detail_leave": "Αποχώρηση",
+    "tournaments_detail_show_still_in": "Εμφάνιση μόνο όσων συνεχίζουν",
+    "tournaments_detail_show_knocked_out": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Εμφάνιση του {count: number} παίκτη που αποκλείστηκε",
+                "countPlural=other": "Εμφάνιση των {count: number} παικτών που αποκλείστηκαν"
+            }
+        }
+    ],
+    "tournaments_detail_no_players": "Κανένας παίκτης ακόμη.",
+    "tournaments_detail_info": "Πληροφορίες τουρνουά",
+    "tournaments_players_per_game": "Παίκτες ανά παιχνίδι",
+    "tournaments_format": "Μορφή",
+    "tournaments_detail_games_per_match": "Παιχνίδια ανά αγώνα",
+    "tournaments_detail_games_per_match_value": "2, ταυτόχρονα· μπαράζ αν μοιραστούν οι νίκες",
+    "tournaments_total_games_per_player": "Σύνολο παιχνιδιών ανά παίκτη",
+    "tournaments_detail_simultaneous_games": "Ταυτόχρονα παιχνίδια ανά παίκτη",
+    "tournaments_detail_stages": "Φάσεις",
+    "tournaments_detail_decider_options": "Επιλογές μπαράζ",
+    "tournaments_detail_scoring": "Βαθμολόγηση",
+    "tournaments_detail_result_corrections": "Διορθώσεις αποτελεσμάτων ({count: number})",
+    "tournaments_detail_correction": "Τραπέζι {table}: {winners} — {reason}",
+    "tournaments_game_options_standard": "Κανονικό παιχνίδι. Δεν υπάρχουν επιλογές προς ρύθμιση.",
+    "tournaments_seated_option_help": "Στα παιχνίδια τουρνουά οι θέσεις ορίζονται αυτόματα και αυτό το καθορίζει η θέση.",
+    "tournaments_select_placeholder": "Διάλεξε μια επιλογή",
+    "tournaments_ranking": "Κατάταξη",
+    "tournaments_schedule_preview_failed": "Η προεπισκόπηση του προγράμματος απέτυχε",
+    "tournaments_schedule_save_failed": "Το πρόγραμμα δεν αποθηκεύτηκε",
+    "tournaments_schedule_load_failed": "Το πρόγραμμα δεν φορτώθηκε",
+    "tournaments_schedule_heading": "Πρόγραμμα",
+    "tournaments_schedule_preview_heading": "Προεπισκόπηση προγράμματος",
+    "tournaments_schedule_games_finished": [
+        {
+            "declarations": ["input finished", "local totalPlural = total: plural"],
+            "selectors": ["totalPlural"],
+            "match": {
+                "totalPlural=one": "Ολοκληρώθηκαν: {finished: number} / {total: number} παιχνίδι",
+                "totalPlural=other": "Ολοκληρώθηκαν: {finished: number} / {total: number} παιχνίδια"
+            }
+        }
+    ],
+    "tournaments_schedule_preparing": "Προετοιμασία…",
+    "tournaments_schedule_new_draw": "Νέα κλήρωση",
+    "tournaments_schedule_preview": "Προεπισκόπηση προγράμματος",
+    "tournaments_schedule_save": "Αποθήκευση προγράμματος",
+    "tournaments_table": "Τραπέζι",
+    "tournaments_schedule_seat": "Θέση {position}",
+    "tournaments_schedule_progress": "Πρόοδος",
+    "tournaments_schedule_game": "Παιχνίδι",
+    "tournaments_schedule_void_reason": "Άκυρο: αυτό το παιχνίδι δεν μετράει",
+    "tournaments_schedule_starting_game": "Το παιχνίδι ξεκινά",
+    "tournaments_schedule_waiting_accounts": "Αναμονή για ενεργούς λογαριασμούς",
+    "tournaments_schedule_waiting_scheduling": "Αναμονή για προγραμματισμό",
+    "tournaments_schedule_waiting_capacity": "Αναμονή για διαθεσιμότητα παικτών",
+    "tournaments_schedule_open_table": "Άνοιγμα τραπεζιού {number}",
+    "tournaments_schedule_void": "Άκυρο",
+    "tournaments_schedule_tournament_win": "Νίκη στο τουρνουά",
+    "tournaments_schedule_play_table": "Παίξε στο τραπέζι {number}",
+    "tournaments_schedule_view_table": "Προβολή τραπεζιού {number}",
+    "tournaments_schedule_play": "Παίξε",
+    "tournaments_schedule_view": "Προβολή",
+    "tournaments_schedule_games_each": "Παιχνίδια ανά παίκτη",
+    "tournaments_schedule_each_seat": "Κάθε θέση",
+    "tournaments_schedule_every_pair_meets": "Κάθε ζευγάρι συναντιέται",
+    "tournaments_schedule_opponents_meet": "Οι αντίπαλοι συναντιούνται",
+    "tournaments_schedule_repeated_groups": "Επαναλαμβανόμενες συνθέσεις",
+    "tournaments_schedule_previous": "Προηγούμενη",
+    "tournaments_schedule_next": "Επόμενη",
+    "tournaments_schedule_balanced_note": "Οι θέσεις εκκίνησης και ο αριθμός παιχνιδιών είναι ίσα για όλους. Αυτή η κλήρωση είναι μια ισορροπημένη πρόταση· άλλες κληρώσεις μπορεί να φέρουν αντιμέτωπους διαφορετικούς αντιπάλους.",
+    "tournaments_schedule_roster_locked_note": "Οι συμμετοχές έχουν κλειδώσει. Δες σε προεπισκόπηση τα τραπέζια και τις θέσεις εκκίνησης πριν αποθηκεύσεις.",
+    "tournaments_form_titles_load_failed": "Τα παιχνίδια που είναι διαθέσιμα για τουρνουά δεν φορτώθηκαν.",
+    "tournaments_form_save_failed": "Το τουρνουά δεν αποθηκεύτηκε",
+    "tournaments_form_edit_heading": "Επεξεργασία τουρνουά",
+    "tournaments_form_name": "Όνομα",
+    "tournaments_form_name_placeholder": "Διάλεξε ένα όνομα για το τουρνουά σου",
+    "tournaments_form_knockout_help": "Ένας εναντίον ενός: όποιος χάσει έναν αγώνα αποκλείεται. Κάθε αγώνας είναι ένα παιχνίδι από κάθε πλευρά, με μπαράζ αν μοιραστούν οι νίκες.",
+    "tournaments_form_mini_help": "Οι παίκτες παίζουν έναν καθορισμένο αριθμό παιχνιδιών και κατατάσσονται με βάση τους βαθμούς.",
+    "tournaments_form_game": "Παιχνίδι",
+    "tournaments_form_game_placeholder": "Διάλεξε παιχνίδι",
+    "tournaments_form_loading_titles": "Φόρτωση τίτλων παιχνιδιών…",
+    "tournaments_form_titles_unavailable": "Οι τίτλοι παιχνιδιών δεν είναι διαθέσιμοι.",
+    "tournaments_form_decider": "Μπαράζ",
+    "tournaments_form_decider_help": "Ένας αγώνας με μοιρασμένες νίκες κρίνεται σε τρίτο παιχνίδι με αυτές τις επιλογές. Οι θέσεις του δεν ορίζονται εκ των προτέρων, οπότε το ποιος παίζει ποια πλευρά το καθορίζει το ίδιο το στήσιμο του παιχνιδιού.",
+    "tournaments_form_registration_closes": "Λήξη δηλώσεων συμμετοχής",
+    "tournaments_form_when_full": "Όταν γεμίσει το τουρνουά",
+    "tournaments_form_on_date": "Σε συγκεκριμένη ημερομηνία",
+    "tournaments_form_closing_date": "Ημερομηνία λήξης",
+    "tournaments_form_local_time": "Με βάση την τοπική σου ώρα.",
+    "tournaments_form_advanced": "Σύνθετες ρυθμίσεις",
+    "tournaments_form_at_same_time": "Ταυτόχρονα παιχνίδια",
+    "tournaments_form_roster_size": "Αριθμός συμμετεχόντων",
+    "tournaments_form_starts_after_full": "Ξεκινά ένα λεπτό αφότου συμπληρωθούν οι συμμετοχές.",
+    "tournaments_form_minimum_players": "Ελάχιστοι παίκτες",
+    "tournaments_form_cancels_below_minimum": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Ακυρώνεται αν δεν συμμετάσχει τουλάχιστον {count: number} παίκτης.",
+                "countPlural=other": "Ακυρώνεται αν συμμετάσχουν λιγότεροι από {count: number} παίκτες."
+            }
+        }
+    ],
+    "tournaments_form_limit_roster": "Όριο στον αριθμό συμμετεχόντων",
+    "tournaments_form_maximum_players": "Μέγιστοι παίκτες",
+    "tournaments_form_description_optional": "Περιγραφή {#optional}(προαιρετικά){/optional}",
+    "tournaments_form_description": "Περιγραφή",
+    "tournaments_form_save_draft": "Αποθήκευση πρόχειρου",
+    "tournaments_form_create_draft": "Δημιουργία πρόχειρου",
+    "tournaments_replace_failed": "Η αντικατάσταση του παίκτη απέτυχε",
+    "tournaments_tables_load_failed": "Τα τραπέζια δεν φορτώθηκαν",
+    "tournaments_replace_heading": "Αντικατάσταση παίκτη",
+    "tournaments_replace_knockout_intro": "Ένας παίκτης που αποσύρεται χάνει τον αγώνα του και ο αντίπαλός του προκρίνεται. Στο νοκ άουτ οι θέσεις δεν δέχονται αναπληρωματικούς.",
+    "tournaments_replace_intro": "Ο αναπληρωματικός παίρνει τη θέση του παίκτη και ολοκληρώνει τα παιχνίδια του. Τα ανολοκλήρωτα παιχνίδια ενός παίκτη που αποσύρεται δεν μετράνε για κανέναν.",
+    "tournaments_replace_player": "Παίκτης",
+    "tournaments_replace_choose_player": "Διάλεξε παίκτη",
+    "tournaments_replace_withdrawn_in_progress": [
+        {
+            "declarations": ["input name", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Ο παίκτης {name} έχει αποσυρθεί, αλλά ένα παιχνίδι του είναι ακόμη σε εξέλιξη. Με την ολοκλήρωση της απόσυρσης, το παιχνίδι αυτό θα λήξει.",
+                "countPlural=other": "Ο παίκτης {name} έχει αποσυρθεί, αλλά {count: number} παιχνίδια του είναι ακόμη σε εξέλιξη. Με την ολοκλήρωση της απόσυρσης, τα παιχνίδια αυτά θα λήξουν."
+            }
+        }
+    ],
+    "tournaments_replace_finish_withdrawing": "Ολοκλήρωση απόσυρσης: {name}",
+    "tournaments_replace_with": "Τρόπος αντικατάστασης",
+    "tournaments_replace_substitute": "Αναπληρωματικός",
+    "tournaments_replace_withdraw": "Απόσυρση",
+    "tournaments_replace_username_placeholder": "Όνομα χρήστη",
+    "tournaments_replace_games_in_progress": "Παιχνίδια σε εξέλιξη",
+    "tournaments_table_number": "Τραπέζι {table}",
+    "tournaments_replace_take_over": "Ανάληψη του παιχνιδιού",
+    "tournaments_replace_restart": "Επανεκκίνηση",
+    "tournaments_replace_dropped_league": "Ο παίκτης {name} αφαιρείται. Η θέση του αναπληρωματικού δεν μπορεί να ανέβει ή να πέσει κατηγορία και ο ίδιος ξεκινά την επόμενη σεζόν από την τελευταία κατηγορία.",
+    "tournaments_replace_dropped": "Ο παίκτης {name} αφαιρείται. Η θέση του αναπληρωματικού δεν μπορεί να κερδίσει το τουρνουά.",
+    "tournaments_replace_knockout_withdraw_note": "Τα ανολοκλήρωτα παιχνίδια του παίκτη {name} λήγουν και δεν μετράνε για κανέναν, ενώ ο αντίπαλός του προκρίνεται. Οι αγώνες που έχει ήδη κερδίσει ισχύουν, αλλά ο ίδιος δεν θα καταταγεί.",
+    "tournaments_replace_withdraw_note": "Τα ανολοκλήρωτα παιχνίδια του παίκτη {name} λήγουν και δεν μετράνε για κανέναν. Τα αποτελέσματα των ολοκληρωμένων παιχνιδιών του παραμένουν, αλλά ο ίδιος δεν θα καταταγεί.",
+    "tournaments_replace_withdraw_note_league": "Τα ανολοκλήρωτα παιχνίδια του παίκτη {name} λήγουν και δεν μετράνε για κανέναν. Τα αποτελέσματα των ολοκληρωμένων παιχνιδιών του παραμένουν, αλλά ο ίδιος δεν θα καταταγεί ούτε θα έχει θέση την επόμενη σεζόν.",
+    "tournaments_replace_substitute_action": "Αντικατάσταση",
+    "tournaments_replace_withdraw_action": "Απόσυρση: {name}",
+    "tournaments_correction_failed": "Η διόρθωση του αποτελέσματος απέτυχε",
+    "tournaments_correction_heading": "Διόρθωση αποτελέσματος τουρνουά",
+    "tournaments_correction_places_intro": "Όρισε όλες τις θέσεις. Το παιχνίδι που παίχτηκε και το ιστορικό του μένουν ως έχουν.",
+    "tournaments_correction_winners_intro": "Διάλεξε τους νικητές που θα προσμετρηθούν. Το παιχνίδι που παίχτηκε και το ιστορικό του μένουν ως έχουν.",
+    "tournaments_correction_choose_table": "Διάλεξε ένα ολοκληρωμένο τραπέζι",
+    "tournaments_correction_places_legend": "Θέσεις — οι παίκτες με τον ίδιο αριθμό μοιράζονται τη θέση",
+    "tournaments_correction_winners_legend": "Νικητές που προσμετρώνται — διάλεξε έναν ή περισσότερους",
+    "tournaments_correction_reason": "Αιτιολογία",
+    "tournaments_correction_save": "Αποθήκευση διόρθωσης",
+    "tournaments_placement_scoring": "Η κατάταξη γίνεται με βάση τη μέση θέση (όσο χαμηλότερη, τόσο καλύτερα), έπειτα με το ποιος τερμάτισε πιο συχνά μπροστά στα τραπέζια όπου έπαιξαν μαζί οι ισόβαθμοι παίκτες και, τέλος, με το κριτήριο ισοβαθμίας.",
+    "tournaments_tiebreak_points_behind": "Το κριτήριο ισοβαθμίας είναι η μέση διαφορά βαθμών από το κορυφαίο σκορ στα τραπέζια κάθε παίκτη, ως αρνητικός αριθμός, συν το ένα εκατοστό του μέσου τελικού σκορ του. Όσο υψηλότερο, τόσο καλύτερα.",
+    "tournaments_tiebreak_share_of_winner": "Το κριτήριο ισοβαθμίας είναι το μέσο τελικό σκορ κάθε παίκτη ως ποσοστό του κορυφαίου τελικού σκορ στα τραπέζια του. Όσο υψηλότερο, τόσο καλύτερα.",
+    "tournaments_tiebreak_score_sum": "Το κριτήριο ισοβαθμίας είναι το άθροισμα των τελικών σκορ κάθε παίκτη στα παιχνίδια του.",
+    "leagues_page_title": "Λίγκες · Tabletop",
+    "leagues_detail_page_title": "{name} · Tabletop",
+    "leagues_detail_page_title_loading": "Λίγκα · Tabletop",
+    "leagues_back_to_leagues": "← Λίγκες",
+    "leagues_create_league": "Δημιουργία λίγκας",
+    "leagues_list_load_failed": "Οι λίγκες δεν φορτώθηκαν",
+    "leagues_list_empty": "Καμία λίγκα ακόμη.",
+    "leagues_list_card_format": [
+        {
+            "declarations": [
+                "input tableSize",
+                "input gamesPerEntrant",
+                "input groupSize",
+                "local gamesPlural = gamesPerEntrant: plural"
+            ],
+            "selectors": ["gamesPlural"],
+            "match": {
+                "gamesPlural=one": "{tableSize} παίκτες ανά παιχνίδι · {gamesPerEntrant} παιχνίδι ανά παίκτη · όμιλοι των {groupSize}",
+                "gamesPlural=other": "{tableSize} παίκτες ανά παιχνίδι · {gamesPerEntrant} παιχνίδια ανά παίκτη · όμιλοι των {groupSize}"
+            }
+        }
+    ],
+    "leagues_shape_pyramid": "Πυραμίδα",
+    "leagues_shape_ladder": "Σκάλα",
+    "leagues_status_not_open": "Δεν έχει ανοίξει ακόμη",
+    "leagues_status_waiting_for_players": "Αναμονή για περισσότερους παίκτες",
+    "leagues_status_sign_up_open": "Δηλώσεις συμμετοχής ανοιχτές",
+    "leagues_status_sign_up_closed": "Δηλώσεις συμμετοχής κλειστές",
+    "leagues_status_starting": "Ξεκινά…",
+    "leagues_status_in_progress": "Σε εξέλιξη",
+    "leagues_status_finished": "Ολοκληρώθηκε",
+    "leagues_status_cancelled": "Ακυρώθηκε",
+    "leagues_status_draft": "Πρόχειρο",
+    "leagues_level": "Κατηγορία {level}",
+    "leagues_season_name": "Σεζόν {number}",
+    "leagues_season_name_seeding": "Σεζόν {number} · Αρχική κατάταξη",
+    "leagues_season_with_status": "{season} · {status}",
+    "leagues_closing_now": "Κλείνει τώρα",
+    "leagues_closes_in_minutes": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Κλείνει σε {count: number} λεπτό",
+                "countPlural=other": "Κλείνει σε {count: number} λεπτά"
+            }
+        }
+    ],
+    "leagues_closes_in_hours": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Κλείνει σε {count: number} ώρα",
+                "countPlural=other": "Κλείνει σε {count: number} ώρες"
+            }
+        }
+    ],
+    "leagues_closes_in_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Κλείνει σε {count: number} ημέρα",
+                "countPlural=other": "Κλείνει σε {count: number} ημέρες"
+            }
+        }
+    ],
+    "leagues_my_place_signed_up": "Έχεις δηλώσει συμμετοχή",
+    "leagues_my_place_held": "Η θέση σου στην Κατηγορία {level} κρατιέται. Επιβεβαίωσέ την για να παίξεις.",
+    "leagues_my_place_in_group": "Είσαι στον Όμιλο {group}",
+    "leagues_roster_signed_up": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} συμμετοχή",
+                "countPlural=other": "{count: number} συμμετοχές"
+            }
+        }
+    ],
+    "leagues_roster_needed": "{count: number} από τους {minimum: number} που χρειάζονται",
+    "leagues_load_failed": "Η λίγκα δεν φορτώθηκε",
+    "leagues_update_sign_up_failed": "Οι δηλώσεις συμμετοχής δεν ενημερώθηκαν",
+    "leagues_preview_failed": "Η προεπισκόπηση των ομίλων απέτυχε",
+    "leagues_save_sign_up_policy_failed": "Οι ρυθμίσεις των δηλώσεων συμμετοχής δεν αποθηκεύτηκαν",
+    "leagues_cancel_season_failed": "Η ακύρωση της σεζόν απέτυχε",
+    "leagues_sign_up_failed": "Η δήλωση συμμετοχής απέτυχε",
+    "leagues_withdraw_failed": "Η απόσυρση απέτυχε",
+    "leagues_format_heading": "Μορφή",
+    "leagues_detail_games_finished": "Ολοκληρώθηκαν {#count}{finished: number}{/count} από {total: number} παιχνίδια",
+    "leagues_detail_games_finished_label": "Ολοκληρωμένα παιχνίδια της σεζόν",
+    "leagues_progress_in_progress": "Σε εξέλιξη",
+    "leagues_detail_active_games": "{count: number} σε εξέλιξη",
+    "leagues_detail_seasons_label": "Σεζόν",
+    "leagues_detail_edit_draft_label": "Επεξεργασία πρόχειρου λίγκας",
+    "leagues_detail_preview_label": "Προεπισκόπηση ομίλων",
+    "leagues_detail_preview_too_few": "Δεν έχουν δηλώσει συμμετοχή αρκετοί παίκτες για να γεμίσουν δύο κατηγορίες.",
+    "leagues_detail_preview_intro": "Οι όμιλοι, αν οι δηλώσεις συμμετοχής έκλειναν τώρα με αυτούς τους παίκτες.",
+    "leagues_group_name": "Όμιλος {group}",
+    "leagues_detail_season_groups_label": "Όμιλοι της Σεζόν {number}",
+    "leagues_detail_seeding_letters": "Τα γράμματα δείχνουν την κατηγορία κάθε παίκτη για τη Σεζόν {number}, με βάση τις θέσεις σε όλους τους ομίλους.",
+    "leagues_detail_movement_legend": "{#promoted/} άνοδος {#relegated/} υποβιβασμός για τη Σεζόν {number}",
+    "leagues_detail_cancelled": "Η Σεζόν {number} ακυρώθηκε κατά τη διάρκεια των δηλώσεων συμμετοχής.",
+    "leagues_detail_cancelled_current": "Η Σεζόν {number} ακυρώθηκε κατά τη διάρκεια των δηλώσεων συμμετοχής. Η επόμενη σεζόν ανοίγει όταν την ανοίξει ένας διαχειριστής.",
+    "leagues_detail_not_opened": "Η Σεζόν 0 δεν έχει ανοίξει ακόμη.",
+    "leagues_format_game": "Παιχνίδι",
+    "leagues_format_shape": "Δομή",
+    "leagues_format_shape_pyramid": "Πυραμίδα: οι νικητές των ομίλων ανεβαίνουν, οι δύο τελευταίοι πέφτουν",
+    "leagues_format_shape_ladder": "Σκάλα: οι δύο πρώτοι ανεβαίνουν, οι δύο τελευταίοι πέφτουν",
+    "leagues_format_groups": "Όμιλοι",
+    "leagues_format_groups_detail": "{groupSize} παίκτες· {bottomMinimum} έως {bottomMaximum} στην τελευταία κατηγορία",
+    "leagues_format_games": "Παιχνίδια",
+    "leagues_format_games_detail": "{gamesPerEntrant} ανά παίκτη, {tableSize} παίκτες ανά παιχνίδι",
+    "leagues_format_ranking": "Κατάταξη",
+    "leagues_format_at_once": "Ταυτόχρονα",
+    "leagues_format_at_once_detail": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Έως {count: number} παιχνίδι",
+                "countPlural=other": "Έως {count: number} παιχνίδια"
+            }
+        }
+    ],
+    "leagues_between_seasons": "Ανάμεσα στις σεζόν",
+    "leagues_format_sign_up_automatic": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Δηλώσεις συμμετοχής για {days} ημέρα, ανοίγουν αυτόματα",
+                "daysPlural=other": "Δηλώσεις συμμετοχής για {days} ημέρες, ανοίγουν αυτόματα"
+            }
+        }
+    ],
+    "leagues_format_sign_up_by_administrator": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Δηλώσεις συμμετοχής για {days} ημέρα, τις ανοίγει διαχειριστής",
+                "daysPlural=other": "Δηλώσεις συμμετοχής για {days} ημέρες, τις ανοίγει διαχειριστής"
+            }
+        }
+    ],
+    "leagues_group_results_link": "Αποτελέσματα →",
+    "leagues_group_games_link": "Παιχνίδια →",
+    "leagues_group_games_finished_label": "Ολοκληρωμένα παιχνίδια του Ομίλου {group}",
+    "leagues_group_finished_of_total": "{finished: number} από {total: number} παιχνίδια",
+    "leagues_group_place": "Θέση",
+    "leagues_group_name_column": "Όνομα",
+    "leagues_group_wins": "Νίκες",
+    "leagues_group_wins_abbr": "Ν",
+    "leagues_group_average_place": "Μέση θέση. Η κατάταξη γίνεται με βάση τη μέση θέση (όσο χαμηλότερη, τόσο καλύτερα), έπειτα με το ποιος τερμάτισε πιο συχνά μπροστά στα τραπέζια όπου έπαιξαν μαζί οι ισόβαθμοι παίκτες και, τέλος, με το κριτήριο ισοβαθμίας.",
+    "leagues_group_average_place_abbr": "Μ.Ο.",
+    "leagues_group_points": "Βαθμοί",
+    "leagues_group_points_abbr": "Βαθ.",
+    "leagues_group_games_column": "Παιχνίδια",
+    "leagues_group_tiebreak_abbr": "Ισοβ.",
+    "leagues_group_withdrew": "Αποσύρθηκε: {name}",
+    "leagues_group_substitute": "Παίζει στη θέση του χρήστη {name}. Αυτή η θέση δεν ανεβαίνει ούτε πέφτει κατηγορία.",
+    "leagues_group_substitute_abbr": "Αναπλ.",
+    "leagues_group_next_level": "Κατηγορία {level} την επόμενη σεζόν",
+    "leagues_group_promoted": "Άνοδος",
+    "leagues_group_relegated": "Υποβιβασμός",
+    "leagues_group_games_summary": "Ολοκληρώθηκαν: {finished: number} · Σε εξέλιξη: {active: number} · Σε αναμονή: {waiting: number}",
+    "leagues_group_games_summary_with_void": "Ολοκληρώθηκαν: {finished: number} · Σε εξέλιξη: {active: number} · Σε αναμονή: {waiting: number} · Άκυρα: {voided: number}",
+    "leagues_form_edit_heading": "Επεξεργασία λίγκας",
+    "leagues_form_titles_load_failed": "Τα παιχνίδια που είναι διαθέσιμα για λίγκες δεν φορτώθηκαν.",
+    "leagues_form_save_failed": "Η λίγκα δεν αποθηκεύτηκε",
+    "leagues_form_name": "Όνομα",
+    "leagues_form_name_placeholder": "Διάλεξε ένα όνομα για τη λίγκα σου",
+    "leagues_form_game_placeholder": "Διάλεξε παιχνίδι",
+    "leagues_form_loading_titles": "Φόρτωση τίτλων παιχνιδιών…",
+    "leagues_form_shape_label": "Δομή λίγκας",
+    "leagues_form_pyramid_help": "Κάθε κατηγορία έχει διπλάσιους ομίλους από την αμέσως ανώτερη. Οι νικητές των ομίλων ανεβαίνουν· οι δύο τελευταίοι πέφτουν.",
+    "leagues_form_ladder_help": "Ένας όμιλος ανά κατηγορία. Οι δύο πρώτοι ανεβαίνουν· οι δύο τελευταίοι πέφτουν.",
+    "leagues_form_players_per_game": "Παίκτες ανά παιχνίδι",
+    "leagues_opens_automatically": "Άνοιγμα των επόμενων δηλώσεων συμμετοχής όταν τελειώνει μια σεζόν",
+    "leagues_form_sign_up_days": "Διάρκεια δηλώσεων συμμετοχής (ημέρες)",
+    "leagues_form_sign_up_days_help": "Σε αυτό το διάστημα, οι παίκτες που επιστρέφουν επιβεβαιώνουν τη θέση τους. Οι όμιλοι ξεκινούν όταν λήξει.",
+    "leagues_form_advanced": "Σύνθετες ρυθμίσεις",
+    "leagues_form_games_per_player": "Παιχνίδια ανά παίκτη",
+    "leagues_form_concurrency": "Ταυτόχρονα παιχνίδια",
+    "leagues_form_group_sizes": "Όμιλοι των {groupSize}· οι όμιλοι της τελευταίας κατηγορίας έχουν {bottomMinimum} έως {bottomMaximum} παίκτες.",
+    "leagues_form_description_optional": "Περιγραφή {#optional}(προαιρετικά){/optional}",
+    "leagues_form_description": "Περιγραφή",
+    "leagues_form_save_draft": "Αποθήκευση πρόχειρου",
+    "leagues_form_create_draft": "Δημιουργία πρόχειρου",
+    "leagues_manage": "Διαχείριση",
+    "leagues_manage_open_season": "Άνοιγμα Σεζόν {number}",
+    "leagues_manage_move_close": "Μετάθεση λήξης δηλώσεων",
+    "leagues_manage_close_editor": "Κλείσιμο επεξεργασίας",
+    "leagues_manage_edit_draft": "Επεξεργασία πρόχειρου",
+    "leagues_manage_sign_up_closes": "Λήξη δηλώσεων συμμετοχής {#hint}(στην τοπική σου ώρα){/hint}",
+    "leagues_manage_preview_groups": "Προεπισκόπηση ομίλων",
+    "leagues_manage_cancel_season_confirm": "Ακύρωση της Σεζόν {number}; Οι δηλώσεις συμμετοχής της λήγουν χωρίς να ξεκινήσει κανένας όμιλος. Μετά μπορείς να ανοίξεις την επόμενη σεζόν.",
+    "leagues_manage_cancel_season": "Ακύρωση σεζόν",
+    "leagues_manage_sign_up_lasts": "Οι δηλώσεις συμμετοχής διαρκούν {#days/} ημέρες",
+    "leagues_manage_save": "Αποθήκευση",
+    "leagues_sign_up_seeding_explanation": "Η Σεζόν {number} είναι η σεζόν αρχικής κατάταξης της λίγκας. Όλοι παίζουν σε ομίλους που βγαίνουν με κλήρωση και τα αποτελέσματα ορίζουν την κατηγορία κάθε παίκτη για τη Σεζόν {nextNumber}.",
+    "leagues_sign_up_held_explanation": "Οι θέσεις των παικτών που επιστρέφουν κρατιούνται. Επιβεβαίωσε τη δική σου πριν κλείσουν οι δηλώσεις συμμετοχής· μια θέση που δεν επιβεβαιώνεται πηγαίνει στον καλύτερο παίκτη της αμέσως κατώτερης κατηγορίας. Οι νέοι παίκτες ξεκινούν από την τελευταία κατηγορία ή καλύπτουν θέσεις που δεν μπορεί να πάρει κανένας παίκτης που επιστρέφει.",
+    "leagues_sign_up_not_confirmed": "Δεν έχει επιβεβαιωθεί ακόμη",
+    "leagues_sign_up_count_signed_up": "Δήλωσαν συμμετοχή: {#count}{count: number}{/count}",
+    "leagues_sign_up_count_confirmed_or_signed_up": "Επιβεβαίωσαν ή δήλωσαν συμμετοχή: {#count}{count: number}{/count}",
+    "leagues_sign_up_needed_to_start": "Χρειάζονται {count: number} για να ξεκινήσει",
+    "leagues_sign_up_progress_label": "Παίκτες προς το ελάχιστο όριο",
+    "leagues_sign_up_enough": "Αρκετοί για να ξεκινήσει. Περισσότεροι παίκτες είναι ευπρόσδεκτοι.",
+    "leagues_sign_up_more_needed": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Χρειάζεται ακόμη {count: number}.",
+                "countPlural=other": "Χρειάζονται ακόμη {count: number}."
+            }
+        }
+    ],
+    "leagues_sign_up_waiting_for_administrator": "Οι όμιλοι ξεκινούν μόλις ένας διαχειριστής ορίσει νέα ημερομηνία λήξης.",
+    "leagues_sign_up_groups_start_at_close": "Η κλήρωση και η έναρξη των ομίλων γίνονται όταν κλείσουν οι δηλώσεις συμμετοχής.",
+    "leagues_sign_up_place_confirmed": "Η θέση σου στην Κατηγορία {level} επιβεβαιώθηκε",
+    "leagues_sign_up_withdraw": "Απόσυρση",
+    "leagues_sign_up_confirm_place": "Επιβεβαίωσε τη θέση σου",
+    "leagues_sign_up": "Δήλωσε συμμετοχή",
+    "leagues_sign_up_place_held": "Η θέση σου στην Κατηγορία {level} κρατιέται μέχρι να κλείσουν οι δηλώσεις συμμετοχής.",
+    "leagues_sign_up_level_confirmed": "· επιβεβαιώθηκαν {confirmed} από {total: number}",
+    "leagues_sign_up_new_players": "Νέοι παίκτες",
+    "leagues_sign_up_players": "Παίκτες",
+    "leagues_sign_up_no_one_yet": "Κανείς ακόμη. Κάνε εσύ την αρχή.",
+    "leagues_sign_up_previous_results": "Δες τα {#link}αποτελέσματα της Σεζόν {number}{/link}.",
+    "content_time_zone_option": "{zone} ({offset})",
+    "content_stats_all_games": "Όλα τα παιχνίδια",
+    "content_stats_all_badge": "Όλα",
+    "content_stats_different_games": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} διαφορετικό παιχνίδι",
+                "countPlural=other": "{count: number} διαφορετικά παιχνίδια"
+            }
+        }
+    ],
+    "content_stats_since_month": "από: {month}",
+    "content_stats_load_failed": "Τα στατιστικά δεν φορτώθηκαν.",
+    "content_stats_loading": "Φόρτωση στατιστικών…",
+    "content_stats_empty": "Τα στατιστικά σου θα εμφανιστούν εδώ μόλις ολοκληρώσεις ένα παιχνίδι.",
+    "content_stats_by_game": "Στατιστικά ανά παιχνίδι",
+    "content_stats_show_for": "Εμφάνιση στατιστικών για",
+    "content_stats_scope_option": [
+        {
+            "declarations": [
+                "input name",
+                "input games",
+                "input rate",
+                "local gamesPlural = games: plural"
+            ],
+            "selectors": ["gamesPlural"],
+            "match": {
+                "gamesPlural=one": "{name} — {games: number} παιχνίδι, {rate}",
+                "gamesPlural=other": "{name} — {games: number} παιχνίδια, {rate}"
+            }
+        }
+    ],
+    "content_stats_scope_summary": [
+        {
+            "declarations": ["input games", "input record", "local gamesPlural = games: plural"],
+            "selectors": ["gamesPlural"],
+            "match": {
+                "gamesPlural=one": "{games: number} παιχνίδι · {record}",
+                "gamesPlural=other": "{games: number} παιχνίδια · {record}"
+            }
+        }
+    ],
+    "content_stats_opponent_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} αντίπαλος",
+                "countPlural=other": "{count: number} αντίπαλοι"
+            }
+        }
+    ],
+    "content_stats_first_finished": "πρώτη ολοκλήρωση: {month}",
+    "content_stats_last_finished": "τελευταία ολοκλήρωση: {time}",
+    "content_stats_average_under_a_day": "κάτω από μία ημέρα ανά παιχνίδι κατά μέσο όρο",
+    "content_stats_average_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} ημέρα ανά παιχνίδι κατά μέσο όρο",
+                "countPlural=other": "{count: number} ημέρες ανά παιχνίδι κατά μέσο όρο"
+            }
+        }
+    ],
+    "content_stats_best_score": "καλύτερο σκορ: {score: number}",
+    "content_stats_tournament_tables": [
+        {
+            "declarations": ["input count", "input wins", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} τραπέζι τουρνουά, νίκες: {wins: number}",
+                "countPlural=other": "{count: number} τραπέζια τουρνουά, νίκες: {wins: number}"
+            }
+        }
+    ],
+    "content_stats_sheet_label": "Στατιστικά: {name}",
+    "content_stats_games_finished": "ολοκληρωμένα παιχνίδια",
+    "content_stats_won_tied_lost": "νίκες–ισοπαλίες–ήττες",
+    "content_stats_win_rate": "ποσοστό νικών",
+    "content_stats_even_odds": "ίσες πιθανότητες: {rate}",
+    "content_stats_best_win_streak": "καλύτερο σερί νικών",
+    "content_stats_current_win_streak": "τώρα: {count: number}",
+    "content_stats_average_finish": "μέση θέση",
+    "content_stats_at_table_size": "σε τραπέζια {count} παικτών",
+    "content_stats_win_rate_by_player_count": "Ποσοστό νικών ανά αριθμό παικτών",
+    "content_stats_key_your_win_rate": "Το ποσοστό νικών σου",
+    "content_stats_key_even_odds": "Ίσες πιθανότητες για αυτό το μέγεθος τραπεζιού",
+    "content_stats_last_games": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Τελευταίο {count: number} παιχνίδι",
+                "countPlural=other": "Τελευταία {count: number} παιχνίδια"
+            }
+        }
+    ],
+    "content_stats_outcome_letter_won": "Ν",
+    "content_stats_outcome_letter_tied": "Ι",
+    "content_stats_outcome_letter_lost": "Η",
+    "content_stats_outcome_won": "νίκη",
+    "content_stats_outcome_tied": "ισοπαλία",
+    "content_stats_outcome_lost": "ήττα",
+    "content_stats_key_newest_right": "το πιο πρόσφατο δεξιά",
+    "content_stats_results_oldest_first": "Αποτελέσματα, από το παλαιότερο",
+    "content_stats_games_per_month": "Ολοκληρωμένα παιχνίδια ανά μήνα",
+    "content_stats_most_played_opponents": "Συχνότεροι αντίπαλοι",
+    "content_stats_opponent": "Αντίπαλος",
+    "content_stats_games": "Παιχνίδια",
+    "content_stats_you_won": "Κέρδισες",
+    "content_stats_they_won": "Κέρδισε",
+    "content_stats_month_tooltip": "{month}: ολοκληρώθηκαν {games: number}, νίκες ή ισοπαλίες {wonOrTied: number}",
+    "content_stats_won_or_tied": "Νίκες ή ισοπαλίες",
+    "content_stats_lost": "Ήττες",
+    "content_stats_month": "Μήνας",
+    "content_stats_finished": "Ολοκληρωμένα",
+    "content_stats_win_rate_meter": "Ποσοστό νικών {rate}, ίσες πιθανότητες {evenOdds}",
+    "content_stats_key_won": "{letter} νίκη",
+    "content_stats_key_tied": "{letter} ισοπαλία",
+    "content_stats_key_lost": "{letter} ήττα",
+    "content_legal_privacy_title": "Πολιτική Απορρήτου",
+    "content_legal_terms_title": "Όροι Χρήσης",
+    "content_legal_privacy_page_title": "Πολιτική Απορρήτου — Board Together",
+    "content_legal_terms_page_title": "Όροι Χρήσης — Board Together",
+    "content_legal_privacy_unpublished": "Αυτός ο ιστότοπος δεν έχει δημοσιεύσει ακόμη πολιτική απορρήτου.",
+    "content_legal_terms_unpublished": "Αυτός ο ιστότοπος δεν έχει δημοσιεύσει ακόμη όρους χρήσης.",
+    "content_legal_links_label": "Νομικά",
+    "content_legal_links_privacy": "Απόρρητο",
+    "content_legal_links_terms": "Όροι",
+    "content_footer_free_to_play": "Παίζεις δωρεάν, πάντα.",
+    "content_principles_label": "Το έργο",
+    "content_principles_free": "{#strong}Πάντα{/strong} δωρεάν.",
+    "content_principles_open_source": "{#strong}Εξ ολοκλήρου{/strong} ανοιχτού κώδικα.",
+    "content_color_order_label": "Προτιμώμενα χρώματα παίκτη",
+    "content_color_order_swatch": "{color}, {position} από {total: number}",
+    "content_color_order_hint": "σύρε ή χρησιμοποίησε τα πλήκτρα με τα βέλη για να αλλάξεις τη σειρά",
+    "content_color_red": "κόκκινο",
+    "content_color_orange": "πορτοκαλί",
+    "content_color_yellow": "κίτρινο",
+    "content_color_green": "πράσινο",
+    "content_color_blue": "μπλε",
+    "content_color_purple": "μοβ",
+    "content_color_pink": "ροζ",
+    "content_color_brown": "καφέ",
+    "content_color_gray": "γκρι",
+    "content_color_black": "μαύρο",
+    "content_color_white": "λευκό",
+    "content_landing_page_title": "Board Together — Παίξε επιτραπέζια παιχνίδια online",
+    "content_landing_page_description": "Παίξε επιτραπέζια παιχνίδια online με φίλους, με τον δικό σου ρυθμό. Εξερεύνησε τα παιχνίδια του Board Together. Δωρεάν και εξ ολοκλήρου ανοιχτού κώδικα.",
+    "content_landing_welcome": "Παίζουμε{#br/}ένα {#highlight}παιχνίδι;{/highlight}",
+    "content_landing_intro": "Φέρε τους φίλους σου.{#br/}Παίξε τη σειρά σου με τον δικό σου ρυθμό.",
+    "content_landing_take_a_seat": "Πάρε θέση",
+    "content_landing_explore_games": "Εξερεύνησε τα παιχνίδια",
+    "content_landing_small_print": "{#strong}Πάντα{/strong} δωρεάν. Εξ ολοκλήρου ανοιχτού κώδικα. Κουμπαρά δεν έχουμε, αλλά μπορείς να {#payItForward}περάσεις το καλό παρακάτω →{/payItForward}",
+    "content_landing_heading_signed_in": "Τι θα ήθελες να παίξεις;",
+    "content_landing_heading": "Βρες το επόμενο παιχνίδι σου.",
+    "content_landing_library_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} παιχνίδι στη βιβλιοθήκη",
+                "countPlural=other": "{count: number} παιχνίδια στη βιβλιοθήκη"
+            }
+        }
+    ],
+    "content_landing_loading": "Στήνουμε τα παιχνίδια…",
+    "content_landing_load_failed": "Το ράφι με τα παιχνίδια δεν φορτώθηκε. Ανανέωσε τη σελίδα για να δοκιμάσεις ξανά.",
+    "content_landing_show_fewer": "Δες λιγότερα παιχνίδια",
+    "content_landing_see_all": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Δες το {count: number} παιχνίδι",
+                "countPlural=other": "Δες και τα {count: number} παιχνίδια"
+            }
+        }
+    ],
+    "content_about_page_title": "Σχετικά με εμάς — Board Together",
+    "content_about_page_description": "Το Board Together είναι ένας δωρεάν χώρος ανοιχτού κώδικα για να παίζεις επιτραπέζια παιχνίδια online με φίλους. Μπες στην κουβέντα ή βοήθησε να φτιαχτεί το επόμενο παιχνίδι.",
+    "content_about_lead": "Το {#wordmark/} είναι ένας χώρος για να παίζεις επιτραπέζια παιχνίδια online με φίλους.",
+    "content_about_welcome": "Ελπίζουμε να απολαμβάνεις τα παιχνίδια σου εδώ. Αν έχεις σχόλια, θα χαρούμε πολύ να τα ακούσουμε.",
+    "content_about_talk_heading": "Μίλησέ μας",
+    "content_about_talk_body": "Έχεις μια απορία, μια ιδέα ή ένα παιχνίδι που κάνει τα δικά του; Έλα να τα πούμε στο Discord. Τα καλά λόγια και τα παράπονα είναι επίσης ευπρόσδεκτα.",
+    "content_about_join_discord": "Έλα μαζί μας στο Discord",
+    "content_opens_in_new_tab": "(ανοίγει σε νέα καρτέλα)",
+    "content_about_contribute_heading": "Βάλε ένα χεράκι",
+    "content_about_contribute_body": "Θέλεις να συνεισφέρεις; Ρίξε μια ματιά στο έργο Tabletop στο GitHub. Υπάρχουν πολλοί τρόποι να βοηθήσεις, είτε γράφεις κώδικα είτε όχι.",
+    "content_about_contributions_label": "Τρόποι συνεισφοράς",
+    "content_about_contribution_design": "Σχεδιασμός και εικαστικά",
+    "content_about_contribution_code": "Διορθώσεις σφαλμάτων και νέες λειτουργίες",
+    "content_about_contribution_games": "Νέα παιχνίδια",
+    "content_about_contribution_ideas": "Ιδέες και σχόλια",
+    "content_about_explore_github": "Εξερεύνησε το έργο στο GitHub",
+    "content_about_pay_it_forward_body": "Δεν θέλουμε δωρεές για εμάς. Αν το παιχνίδι εδώ άξιζε κάτι για σένα, βοήθησε να φτάσουν παιχνίδια σε ανθρώπους που τα έχουν ανάγκη.",
+    "content_about_see_charities": "Δες τις φιλανθρωπικές οργανώσεις",
+    "content_pif_gamers_outreach_purpose": "Παιχνίδι για παιδιά σε νοσοκομεία",
+    "content_pif_gamers_outreach_description": "Κατασκευάζει τροχήλατους σταθμούς παιχνιδιού με ιατρικές προδιαγραφές και τους φέρνει σε παιδιά που νοσηλεύονται και δεν μπορούν να βγουν από το δωμάτιό τους. Πάνω από 350 νοσοκομεία μέχρι σήμερα.",
+    "content_pif_us_charity": "Αμερικανική οργάνωση",
+    "content_pif_special_effect_purpose": "Παιχνίδι για άτομα με αναπηρία",
+    "content_pif_special_effect_description": "Εργοθεραπευτές και ειδικοί στα βιντεοπαιχνίδια στήνουν προσαρμοσμένα χειριστήρια και συστήματα ελέγχου με το βλέμμα, ώστε άτομα με σωματική αναπηρία να παίζουν τα παιχνίδια που αγαπούν.",
+    "content_pif_uk_charity": "Βρετανική οργάνωση",
+    "content_pif_raised_for": "{amount} για {charity}",
+    "content_pif_raised_by_players": "συγκεντρώθηκαν από παίκτες του BoardTogether",
+    "content_pif_page_title": "Πέρνα το καλό παρακάτω — Board Together",
+    "content_pif_page_description": "Το BoardTogether είναι δωρεάν και δεν θέλει δωρεές για το ίδιο. Αν σου άρεσε να παίζεις εδώ, βοήθησε να φτάσουν παιχνίδια σε ανθρώπους που τα έχουν ανάγκη, μέσω του Gamers Outreach ή του SpecialEffect.",
+    "content_pif_heading": "Πέρνα το καλό παρακάτω.",
+    "content_back_to_library": "Πίσω στη βιβλιοθήκη",
+    "content_pif_lead": "Το {#wordmark/} είναι δωρεάν και σκοπεύουμε να μείνει έτσι.",
+    "content_pif_no_donations": "Δεν θέλουμε δωρεές για εμάς.",
+    "content_pif_bills_are_ours": "Οι λογαριασμοί είναι δική μας υπόθεση και τίποτα απ’ όσα δώσεις μέσω αυτής της σελίδας δεν έρχεται σε εμάς.",
+    "content_pif_pass_it_on": "Καλύτερα, πέρνα το παρακάτω.",
+    "content_pif_pass_it_on_body": "Αν τα παιχνίδια εδώ άξιζαν κάτι για σένα, βοήθησε να φτάσουν παιχνίδια σε ανθρώπους που τα έχουν ανάγκη. Οι φιλανθρωπικές οργανώσεις για επιτραπέζια είναι λίγες και κυρίως μικρές, γι’ αυτό στραφήκαμε στον μεγάλο μας αδελφό, τα βιντεοπαιχνίδια.",
+    "content_pif_pass_it_on_wide": "Αυτές οι δύο καταξιωμένες οργανώσεις φέρνουν το παιχνίδι σε ανθρώπους που δεν έχουν εύκολη πρόσβαση σε αυτό: παιδιά καθηλωμένα σε δωμάτια νοσοκομείων και παίκτες που χρειάζονται προσαρμοσμένα χειριστήρια.",
+    "content_pif_charities_label": "Φιλανθρωπικές οργανώσεις",
+    "content_pif_give_to": "Δωρεά στο {charity}",
+    "content_pif_opens_campaign": "Ανοίγει την καμπάνια του BoardTogether στο tiltify.com.",
+    "content_pif_opens_donation_page": "Ανοίγει τη σελίδα δωρεών της οργάνωσης στο {host}.",
+    "content_pif_raised_so_far": "Έχουν συγκεντρωθεί μέχρι τώρα",
+    "content_pif_other_charities": "Αν αυτές οι δύο δεν σου ταιριάζουν, δώσε στη δική σου αγαπημένη οργάνωση. Κι έτσι περνάς το καλό παρακάτω.",
+    "content_pif_receives_nothing": "Το BoardTogether δεν λαμβάνει τίποτα από αυτούς τους συνδέσμους.",
+    "nav_game_heading_beta": "BETA: {name}",
+    "nav_game_heading_alpha": "ALPHA: {name}",
+    "played_game_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} παιχνίδι",
+                "countPlural=other": "{count: number} παιχνίδια"
+            }
+        }
+    ],
+    "pace_live_name": "Ζωντανά",
+    "pace_live_past_limit": "Εκτός του ρυθμού «Ζωντανά»",
+    "pace_fast_name": "Γρήγορος",
+    "pace_fast_line": "Γρήγορος · εντός 1 ώρας",
+    "pace_fast_summary": "Γρήγορος · 1 ώρ.",
+    "pace_fast_past_limit": "Εκτός του ρυθμού της 1 ώρας",
+    "pace_brisk_name": "Γοργός",
+    "pace_brisk_line": "Γοργός · εντός 4 ωρών",
+    "pace_brisk_summary": "Γοργός · 4 ώρ.",
+    "pace_brisk_past_limit": "Εκτός του ρυθμού των 4 ωρών",
+    "pace_daily_name": "Ημερήσιος",
+    "pace_daily_line": "Ημερήσιος · εντός 1 ημέρας",
+    "pace_daily_past_limit": "Εκτός του ρυθμού της 1 ημέρας",
+    "pace_relaxed_name": "Χαλαρός",
+    "pace_relaxed_line": "Χαλαρός · εντός 3 ημερών",
+    "pace_relaxed_summary": "Χαλαρός · 3 ημέρες",
+    "pace_relaxed_past_limit": "Εκτός του ρυθμού των 3 ημερών"
+}

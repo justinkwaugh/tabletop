@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { siteMessages } from './messagesPlugin.js'
 import { defineProject, mergeConfig } from 'vitest/config'
 import { VitestConfig, projectRoot } from '@tabletop/vitest-config'
 
@@ -8,7 +9,7 @@ import { VitestConfig, projectRoot } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         root: projectRoot(import.meta.url),
-        plugins: [svelte()],
+        plugins: [siteMessages(), svelte()],
         test: { exclude: ['**/*.client.spec.ts'] },
         resolve: {
             alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) }

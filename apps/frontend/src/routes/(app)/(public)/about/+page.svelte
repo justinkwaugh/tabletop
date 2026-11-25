@@ -4,31 +4,30 @@
     import ProjectPrinciples from '$lib/components/project/ProjectPrinciples.svelte'
     import Wordmark from '$lib/components/project/Wordmark.svelte'
     import LegalLinks from '$lib/components/project/LegalLinks.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
 </script>
 
+{#snippet wordmark()}<Wordmark />{/snippet}
+
 <svelte:head>
-    <title>About us — Board Together</title>
-    <meta
-        name="description"
-        content="Board Together is a free, open source place to play board games online with friends. Join the conversation or help build the next game."
-    />
+    <title>{m.content_about_page_title()}</title>
+    <meta name="description" content={m.content_about_page_description()} />
 </svelte:head>
 
 <main class="about-page collection-page">
     <header class="page-heading collection-header">
-        <h1 class="collection-heading">About us</h1>
-        <LibraryLink label="Go to the library" />
+        <h1 class="collection-heading">{m.nav_about_us()}</h1>
+        <LibraryLink label={m.dashboard_go_to_library()} />
     </header>
 
     <div class="introduction">
         <div class="intro-copy">
             <p class="lead">
-                <Wordmark />
-                is a place to play board games online with friends.
+                <RichMessage parts={m.content_about_lead.parts()} markup={{ wordmark }} />
             </p>
             <p class="welcome">
-                We hope you’ve been enjoying your games here. If you have feedback, we’d love to
-                hear it.
+                {m.content_about_welcome()}
             </p>
         </div>
         <ProjectPrinciples />
@@ -38,11 +37,10 @@
         <section class="community-card" aria-labelledby="conversation-heading">
             <div class="card-heading">
                 <DiscordSolid class="h-7 w-7 shrink-0" />
-                <h2 id="conversation-heading">Talk to us</h2>
+                <h2 id="conversation-heading">{m.content_about_talk_heading()}</h2>
             </div>
             <p>
-                Have a question, an idea, or a game that isn’t behaving? Come chat with us on
-                Discord. Compliments and complaints are welcome, too.
+                {m.content_about_talk_body()}
             </p>
             <a
                 class="community-link"
@@ -50,25 +48,25 @@
                 target="_blank"
                 rel="noreferrer"
             >
-                Join us on Discord <ArrowRightOutline class="h-4 w-4" />
-                <span class="sr-only">(opens in a new tab)</span>
+                {m.content_about_join_discord()}
+                <ArrowRightOutline class="h-4 w-4" />
+                <span class="sr-only">{m.content_opens_in_new_tab()}</span>
             </a>
         </section>
 
         <section class="community-card" aria-labelledby="contribute-heading">
             <div class="card-heading">
                 <GithubSolid class="h-7 w-7 shrink-0" />
-                <h2 id="contribute-heading">Lend a hand</h2>
+                <h2 id="contribute-heading">{m.content_about_contribute_heading()}</h2>
             </div>
             <p>
-                Want to contribute? Take a look at the Tabletop project on GitHub. There are plenty
-                of ways to help, with or without writing code.
+                {m.content_about_contribute_body()}
             </p>
-            <ul class="contributions" aria-label="Ways to contribute">
-                <li>Design &amp; artwork</li>
-                <li>Bug fixes &amp; features</li>
-                <li>New games</li>
-                <li>Ideas &amp; feedback</li>
+            <ul class="contributions" aria-label={m.content_about_contributions_label()}>
+                <li>{m.content_about_contribution_design()}</li>
+                <li>{m.content_about_contribution_code()}</li>
+                <li>{m.content_about_contribution_games()}</li>
+                <li>{m.content_about_contribution_ideas()}</li>
             </ul>
             <a
                 class="community-link"
@@ -76,22 +74,23 @@
                 target="_blank"
                 rel="noreferrer"
             >
-                Explore the project on GitHub <ArrowRightOutline class="h-4 w-4" />
-                <span class="sr-only">(opens in a new tab)</span>
+                {m.content_about_explore_github()}
+                <ArrowRightOutline class="h-4 w-4" />
+                <span class="sr-only">{m.content_opens_in_new_tab()}</span>
             </a>
         </section>
 
         <section class="community-card" aria-labelledby="pay-it-forward-heading">
             <div class="card-heading">
                 <HeartSolid class="h-7 w-7 shrink-0" />
-                <h2 id="pay-it-forward-heading">Pay it forward</h2>
+                <h2 id="pay-it-forward-heading">{m.nav_pay_it_forward()}</h2>
             </div>
             <p>
-                We don’t want personal donations. If playing here has been worth something to you,
-                help bring games to people who need them.
+                {m.content_about_pay_it_forward_body()}
             </p>
             <a class="community-link" href="/pay-it-forward">
-                See the charities <ArrowRightOutline class="h-4 w-4" />
+                {m.content_about_see_charities()}
+                <ArrowRightOutline class="h-4 w-4" />
             </a>
         </section>
     </div>

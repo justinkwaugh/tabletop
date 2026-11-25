@@ -7,6 +7,8 @@
     import SeriesGameTable from './SeriesGameTable.svelte'
     import SeriesTitlePicker from './SeriesTitlePicker.svelte'
     import CreateGameModal from '$lib/components/CreateGameModal.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
     import type { LibrarySeries } from '$lib/utils/libraryTitles'
     import { activityLoadFailure } from '$lib/utils/activityLoad'
     import {
@@ -127,17 +129,18 @@
     />
     <div class="filter-end">
         {#if seatOptions.length > 1 || filter.seats !== undefined}
-            <div class="players" role="group" aria-label="Players">
-                <span class="players-label" aria-hidden="true">Players</span>
+            <div class="players" role="group" aria-label={m.library_series_players()}>
+                <span class="players-label" aria-hidden="true">{m.library_series_players()}</span>
                 <div class="segments">
                     <button
                         aria-pressed={filter.seats === undefined}
-                        onclick={() => changeFilter({ seats: undefined })}>Any</button
+                        onclick={() => changeFilter({ seats: undefined })}
+                        >{m.library_series_any()}</button
                     >
                     {#each seatOptions as seats (seats)}
                         <button
                             aria-pressed={filter.seats === seats}
-                            aria-label={`${seats} players`}
+                            aria-label={m.player_count({ count: seats })}
                             onclick={() => changeFilter({ seats })}>{seats}</button
                         >
                     {/each}
@@ -146,21 +149,21 @@
         {/if}
         {#if filter.view === 'lobby'}
             <label class="pace">
-                <span class="players-label">Pace</span>
+                <span class="players-label">{m.library_series_pace()}</span>
                 <select
                     value={filter.pace ?? ''}
                     onchange={(event) => changePace(event.currentTarget.value)}
                 >
-                    <option value="">Any</option>
+                    <option value="">{m.library_series_any()}</option>
                     {#each PACE_FILTERS as option (option.pace)}
-                        <option value={option.pace}>{option.label}</option>
+                        <option value={option.pace}>{option.label()}</option>
                     {/each}
                 </select>
             </label>
         {/if}
         {#if filter.view === 'lobby'}
             <button class="start" onclick={startGame}
-                ><PlusOutline class="h-4 w-4" />Start a game</button
+                ><PlusOutline class="h-4 w-4" />{m.library_start_game()}</button
             >
         {/if}
     </div>
@@ -174,24 +177,31 @@
     oncreated={onCreated}
 />
 
+{#snippet moreCount(text: string)}<span class="more-count">{text}</span>{/snippet}
+{#snippet createdName(text: string)}<b>{text}</b>{/snippet}
+{#snippet dashboardLink(text: string)}<a href="/dashboard">{text}</a>{/snippet}
+
 {#snippet pager()}
     {#if pagedTotal > shown}
         <button class="more" onclick={() => (shown += PAGE_SIZE)}
-            >Show more <span class="more-count">{pagedTotal - shown} left</span></button
+            ><RichMessage
+                parts={m.library_series_show_more.parts({ count: pagedTotal - shown })}
+                markup={{ count: moreCount }}
+            /></button
         >
     {/if}
 {/snippet}
 
 {#if loadState === 'loading'}
-    <p class="empty" role="status">Loading games…</p>
+    <p class="empty" role="status">{m.library_loading_games()}</p>
 {:else if loadState !== 'ready'}
     <div class="empty" role="alert">
         <p>
             {loadState === 'unavailable'
-                ? 'These games are temporarily unavailable.'
-                : 'These games couldn’t load.'}
+                ? m.library_games_unavailable()
+                : m.library_games_load_failed()}
         </p>
-        <button onclick={load}>Try again</button>
+        <button onclick={load}>{m.try_again()}</button>
     </div>
 {:else if filter.view === 'lobby'}
     {#if createdGame && createdNote}
@@ -199,57 +209,62 @@
             <CheckOutline class="h-4 w-4 shrink-0" />
             <span>
                 {#if createdNote === 'listed'}
-                    <b>{createdGame.name}</b> is open for players. It’s highlighted in Looking for players.
+                    <RichMessage
+                        parts={m.library_series_created_listed.parts({ name: createdGame.name })}
+                        markup={{ game: createdName }}
+                    />
                 {:else}
-                    <b>{createdGame.name}</b> is created. You’ll find it in
-                    <a href="/dashboard">My Games</a>.
+                    <RichMessage
+                        parts={m.library_series_created_unlisted.parts({ name: createdGame.name })}
+                        markup={{ game: createdName, dashboard: dashboardLink }}
+                    />
                 {/if}
             </span>
         </p>
     {/if}
     <div class="sections">
-        <TitleSection title="Looking for players" count={visibleOpen.length}>
+        <TitleSection title={m.library_series_looking_for_players()} count={visibleOpen.length}>
             {#if visibleOpen.length > 0}
                 <SeriesGameTable
                     kind="open"
                     games={visibleOpen}
                     {titlesById}
-                    label="Games looking for players"
+                    label={m.library_series_looking_for_players_label()}
                     highlightId={createdGame?.id}
                 />
             {:else}
                 <div class="empty compact">
-                    <p>No open tables match.</p>
-                    <button onclick={startGame}>Start a game →</button>
+                    <p>{m.library_series_no_open_match()}</p>
+                    <button onclick={startGame}>{m.library_start_game_arrow()}</button>
                 </div>
             {/if}
         </TitleSection>
-        <TitleSection title="In progress" count={visibleInProgress.length}>
+        <TitleSection title={m.library_in_progress()} count={visibleInProgress.length}>
             {#if visibleInProgress.length > 0}
                 <SeriesGameTable
                     kind="inProgress"
                     games={paged}
                     {titlesById}
-                    label="Games in progress"
+                    label={m.library_series_in_progress_label()}
                 />
                 {@render pager()}
             {:else}
-                <p class="empty compact">No public games in progress match.</p>
+                <p class="empty compact">{m.library_series_no_in_progress_match()}</p>
             {/if}
         </TitleSection>
     </div>
 {:else}
-    <TitleSection title="Recently finished" count={visibleFinished.length}>
+    <TitleSection title={m.library_recently_finished()} count={visibleFinished.length}>
         {#if visibleFinished.length > 0}
             <SeriesGameTable
                 kind="finished"
                 games={paged}
                 {titlesById}
-                label="Recently finished games"
+                label={m.library_series_recently_finished_label()}
             />
             {@render pager()}
         {:else}
-            <p class="empty compact">No recently finished public games match.</p>
+            <p class="empty compact">{m.library_series_no_finished_match()}</p>
         {/if}
     </TitleSection>
 {/if}

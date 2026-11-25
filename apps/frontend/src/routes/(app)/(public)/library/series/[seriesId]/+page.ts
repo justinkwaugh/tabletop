@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit'
 import { getAppContext } from '$lib/stores/appContext.svelte'
 import { availableSeriesEntries, librarySeriesById } from '$lib/utils/libraryTitles'
+import { m } from '$lib/paraglide/messages'
 import type { PageLoad } from './$types'
 
 export const load: PageLoad = async ({ params }) => {
@@ -14,7 +15,7 @@ export const load: PageLoad = async ({ params }) => {
             availableSeriesEntries(entries, series, authorizationService.getSessionUser())
                 .length === 0)
     ) {
-        error(404, 'This series is not available in the library.')
+        error(404, m.library_series_unavailable())
     }
     return { series }
 }

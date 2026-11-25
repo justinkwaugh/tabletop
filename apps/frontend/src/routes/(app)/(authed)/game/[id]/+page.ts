@@ -3,6 +3,7 @@ import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
 import { BridgedContext } from '@tabletop/frontend-components'
 import { gamePageDependency } from '$lib/utils/gamePage.js'
+import { m } from '$lib/paraglide/messages'
 import type { PageLoad } from './$types.js'
 
 export const load: PageLoad = async ({ params, url, depends }) => {
@@ -24,17 +25,17 @@ export const load: PageLoad = async ({ params, url, depends }) => {
             includeActions: false
         })
         if (!game) {
-            error(404, 'The specified game was not found')
+            error(404, m.games_page_not_found())
         }
 
         if (!game.state) {
-            error(409, 'The specified game has not been started')
+            error(409, m.games_page_not_started())
         }
 
         await appContext.libraryService.whenReady()
         const definition = appContext.libraryService.getTitle(game.typeId)
         if (!definition) {
-            error(404, 'The specified game is not supported')
+            error(404, m.games_page_not_supported())
         }
 
         const runtime = await definition.runtime()
@@ -44,7 +45,7 @@ export const load: PageLoad = async ({ params, url, depends }) => {
             game = complete.game
             actions = complete.actions
             historyComplete = complete.historyComplete
-            if (!game?.state) error(409, 'The specified game is no longer available')
+            if (!game?.state) error(409, m.games_page_no_longer_available())
         }
 
         const bridgedContext = new BridgedContext({
@@ -73,6 +74,6 @@ export const load: PageLoad = async ({ params, url, depends }) => {
             throw e
         }
         console.error(e)
-        error(500, 'Unable to load the game')
+        error(500, m.games_page_load_failed())
     }
 }

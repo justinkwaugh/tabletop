@@ -12,7 +12,7 @@ const defaultPreferences: UserPreferences = {
 export class UserPreferencesEditor {
     private pending: Partial<UserPreferences> = $state({})
     values: UserPreferences = $derived({ ...this.savedPreferences(), ...this.pending })
-    private saving = false
+    private saving: Promise<boolean> | undefined
     private unsaved = false
     private saveTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -24,25 +24,39 @@ export class UserPreferencesEditor {
     ) {}
 
     update(change: Partial<UserPreferences>) {
+        this.stage(change)
+        this.saveTimer = setTimeout(() => void this.flush(), SAVE_DELAY_MS)
+    }
+
+    updateNow(change: Partial<UserPreferences>): Promise<boolean> {
+        this.stage(change)
+        return this.flush()
+    }
+
+    private stage(change: Partial<UserPreferences>) {
         Object.assign(this.pending, change)
         this.unsaved = true
         clearTimeout(this.saveTimer)
-        this.saveTimer = setTimeout(() => void this.flush(), SAVE_DELAY_MS)
     }
 
     private savedPreferences(): UserPreferences {
         return this.sessionUser()?.preferences ?? defaultPreferences
     }
 
-    private async flush() {
-        if (this.saving) return
-        this.saving = true
+    private flush(): Promise<boolean> {
+        this.saving ??= this.saveUntilCurrent().finally(() => {
+            this.saving = undefined
+        })
+        return this.saving
+    }
+
+    private async saveUntilCurrent(): Promise<boolean> {
         while (this.unsaved) {
             this.unsaved = false
             const user = this.sessionUser()
             if (!user) {
                 this.pending = {}
-                break
+                return false
             }
             const preferences = $state.snapshot({ ...this.savedPreferences(), ...this.pending })
             try {
@@ -55,8 +69,9 @@ export class UserPreferencesEditor {
                 this.unsaved = false
                 this.pending = {}
                 this.onFailed()
+                return false
             }
         }
-        this.saving = false
+        return true
     }
 }

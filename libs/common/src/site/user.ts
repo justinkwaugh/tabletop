@@ -91,7 +91,8 @@ export const UserPreferences = Type.Object({
     bgStatsEnabled: Type.Optional(Type.Boolean()),
     reminderHours: Type.Optional(ReminderHours),
     turnReminders: Type.Optional(TurnReminderChoices),
-    gameAndCompetitionEmails: Type.Optional(Type.Boolean())
+    gameAndCompetitionEmails: Type.Optional(Type.Boolean()),
+    locale: Type.Optional(Type.String({ pattern: '^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$' }))
 })
 
 export function turnReminderChoices(preferences: UserPreferences | undefined): TurnReminderChoices {

@@ -12,7 +12,6 @@ vi.mock('@tabletop/frontend-components', () => ({
 import { APIError } from '@tabletop/frontend-components'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
 import {
-    GOOGLE_LINK_DESCRIPTION,
     signInWithGoogle,
     type GoogleSignInApi,
     type GoogleSignInMode,
@@ -49,7 +48,7 @@ beforeEach(() => reauthentication.cancel())
 describe('confirming identity with Google', () => {
     it('reports a refused proof, keeps the pending action, and completes once a linked account is used', async () => {
         reauthentication.request({
-            description: 'link your Discord account',
+            purpose: 'link-discord',
             retry: async () => {}
         })
         const { api, oncomplete, report, run } = flow('reauthenticate')
@@ -59,7 +58,7 @@ describe('confirming identity with Google', () => {
         await run('other-account-token')
         expect(report).toHaveBeenCalledWith(REFUSED)
         expect(oncomplete).not.toHaveBeenCalled()
-        expect(reauthentication.pending?.description).toBe('link your Discord account')
+        expect(reauthentication.pending?.purpose).toBe('link-discord')
 
         await run('holder-token')
         expect(api.reauthenticateGoogle).toHaveBeenLastCalledWith('holder-token')
@@ -78,7 +77,7 @@ describe('linking a Google account', () => {
             })
         )
         await run('token')
-        expect(reauthentication.pending?.description).toBe(GOOGLE_LINK_DESCRIPTION)
+        expect(reauthentication.pending?.purpose).toBe('link-google')
         expect(session.setSessionUser).not.toHaveBeenCalled()
         expect(report).not.toHaveBeenCalled()
 

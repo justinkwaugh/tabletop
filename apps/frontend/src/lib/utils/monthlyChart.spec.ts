@@ -45,6 +45,6 @@ describe('monthly games chart', () => {
         expect(chart.gridlines.map((line) => line.value)).toEqual([0, 50, 100, 150])
         const labels = chart.columns.flatMap((column) => column.label ?? [])
         expect(labels).toHaveLength(5)
-        expect(labels.at(-1)).toBe('Dec 26')
+        expect(labels.at(-1)).toBe('Dec 2026')
     })
 })

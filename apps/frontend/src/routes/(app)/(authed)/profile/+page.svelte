@@ -16,13 +16,13 @@
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
     import EmailChange from '$lib/components/EmailChange.svelte'
     import DeleteAccountCard from '$lib/components/DeleteAccountCard.svelte'
-    import { minLengthMessage, requiredMessage } from '$lib/utils/accountFormValidation'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
     import {
         reauthentication,
         requiresRecentAuthentication
     } from '$lib/stores/reauthentication.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { authorizationService, api } = getAppContext()
 
@@ -52,8 +52,13 @@
     let password: string | undefined = $state(undefined)
 
     const updateProfileSchema = zfd.formData({
-        username: zfd.text(z.string(requiredMessage)),
-        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional())
+        username: zfd.text(z.string(m.auth_validation_required())),
+        password: zfd.text(
+            z
+                .string()
+                .min(12, m.auth_validation_min_length({ length: 12 }))
+                .optional()
+        )
     })
 
     function togglePassword() {
@@ -87,7 +92,7 @@
             return
         }
         await reauthentication.run({
-            description: data.password ? 'change your password' : 'update your profile',
+            purpose: data.password ? 'change-password' : 'update-profile',
             retry: () => save(data)
         })
     }
@@ -105,12 +110,12 @@
                 errors.username = [e.message]
             } else if (isAlreadyExists(e)) {
                 if (e.message.includes('username')) {
-                    errors.username = ['Username already exists']
+                    errors.username = [m.profile_username_exists()]
                 } else {
-                    errorMessage = 'An unexpected error occurred, please try again'
+                    errorMessage = m.unexpected_error_try_again()
                 }
             } else {
-                errorMessage = 'An unexpected error occurred, please try again'
+                errorMessage = m.unexpected_error_try_again()
             }
         } finally {
             submitting = false
@@ -140,24 +145,26 @@
 <div class="min-h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6 py-6">
     <Card class="bg-gray-300 p-4 sm:p-6">
         <form class="flex flex-col space-y-6" action="/" onsubmit={submit}>
-            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Edit your profile...</h3>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+                {m.profile_heading()}
+            </h3>
             {#if errorMessage}
                 <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
-                    <span class="font-bold text-lg">Update Failed</span><br />
+                    <span class="font-bold text-lg">{m.profile_update_failed()}</span><br />
                     {errorMessage}
                 </Alert>
             {/if}
             {#if success}
                 <Alert class="dark:bg-green-200 dark:text-green-700 my-4">
-                    <span class="font-bold text-lg">Profile Updated</span><br />
+                    <span class="font-bold text-lg">{m.profile_updated()}</span><br />
                 </Alert>
             {/if}
-            <Label class="mb-2">Username</Label>
+            <Label class="mb-2">{m.profile_username()}</Label>
             <Input
                 bind:value={username}
                 type="text"
                 name="username"
-                placeholder="choose a username"
+                placeholder={m.profile_username_placeholder()}
                 required
             />
             {#if errors?.username}
@@ -167,13 +174,13 @@
                     >
                 {/each}
             {/if}
-            <Label class="mb-2">Password</Label>
+            <Label class="mb-2">{m.profile_password()}</Label>
             <Input
                 bind:value={password}
                 oninput={trim}
                 type={passwordToggle ? 'text' : 'password'}
                 name="password"
-                placeholder="at least 12 characters"
+                placeholder={m.profile_password_placeholder()}
             >
                 {#snippet right()}
                     <button type="button" onclick={togglePassword} class="pointer-events-auto">
@@ -192,7 +199,7 @@
                     >
                 {/each}
             {/if}
-            <Label class="mb-2">Linked Accounts</Label>
+            <Label class="mb-2">{m.profile_linked_accounts()}</Label>
             <div class="rounded-lg border-gray-600 border p-4">
                 {#if isGoogleSigninEnabled}
                     <div class="flex flex-row justify-between items-end mb-2 h-[44px]">
@@ -210,7 +217,7 @@
                                     unlink(linkedAccountIdsByType.get(ExternalAuthService.Google)!)
                                 }}
                                 color="light"
-                                size="xs">Unlink</Button
+                                size="xs">{m.profile_unlink()}</Button
                             >
                         {:else}
                             <GoogleSignIn mode="link" />
@@ -233,7 +240,7 @@
                                     unlink(linkedAccountIdsByType.get(ExternalAuthService.Discord)!)
                                 }}
                                 color="light"
-                                size="xs">Unlink</Button
+                                size="xs">{m.profile_unlink()}</Button
                             >
                         {:else}
                             <DiscordSignIn mode="link" />
@@ -243,7 +250,7 @@
             </div>
             <div class="flex justify-end">
                 <Button type="submit" disabled={submitting}
-                    >{submitting ? 'Saving…' : 'Submit'}</Button
+                    >{submitting ? m.saving() : m.submit()}</Button
                 >
             </div>
         </form>
@@ -253,17 +260,17 @@
         </div>
         <div class="mt-6 flex items-center justify-between gap-4">
             <P class="text-sm text-gray-700 dark:text-gray-400"
-                >Signed in somewhere you no longer trust? Sign out of every device, including this
-                one.</P
+                >{m.profile_sign_out_everywhere_explanation()}</P
             >
             <Button color="alternative" size="sm" onclick={logoutEverywhere}
-                >Sign out everywhere</Button
+                >{m.profile_sign_out_everywhere()}</Button
             >
         </div>
         {#if logoutEverywhereFailed}
             <Alert class="dark:bg-red-200 dark:text-red-700 mt-4">
-                <span class="font-bold text-lg">We could not confirm the sign-out</span><br />
-                Other sessions may still be active. Please try again.
+                <span class="font-bold text-lg">{m.profile_sign_out_everywhere_failed()}</span><br
+                />
+                {m.profile_sign_out_everywhere_failed_detail()}
             </Alert>
         {/if}
     </Card>

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameOutcome } from '@tabletop/common'
 import {
-    countOf,
     formatAverage,
     formatRate,
     formatRecord,
@@ -17,8 +16,6 @@ describe('game stats presentation', () => {
     it('formats rates, records, and counts', () => {
         expect(formatRate(0.465)).toBe('47%')
         expect(formatRecord({ wins: 45, ties: 3, losses: 52 })).toBe('45–3–52')
-        expect(countOf(1, 'opponent')).toBe('1 opponent')
-        expect(countOf(4, 'opponent')).toBe('4 opponents')
         expect(formatAverage(2)).toBe('2')
         expect(formatAverage(1.94)).toBe('1.9')
     })
@@ -26,10 +23,10 @@ describe('game stats presentation', () => {
     it('lists every month from the first through the last, across years', () => {
         const months = monthsThrough(month(2025, 11), month(2026, 2))
         expect(months.map((index) => monthName(index, 'short'))).toEqual([
-            'Nov 25',
-            'Dec 25',
-            'Jan 26',
-            'Feb 26'
+            'Nov 2025',
+            'Dec 2025',
+            'Jan 2026',
+            'Feb 2026'
         ])
         expect(monthsThrough(month(2026, 3), month(2026, 3))).toEqual([month(2026, 3)])
         expect(monthsThrough(month(2026, 3), month(2026, 2))).toEqual([])

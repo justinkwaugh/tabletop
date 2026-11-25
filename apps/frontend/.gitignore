@@ -12,3 +12,7 @@ vite.config.ts.timestamp-*
 
 # Deployment-specific legal documents (privacy.md, terms.md); see docs/legal/README.md
 /legal
+
+# Generated from messages/en.json by messagesPlugin.ts
+/messages/en-XA.json
+/project.inlang/cache

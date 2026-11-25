@@ -6,6 +6,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { playerCountText, titleMaturityLabel } from '$lib/utils/libraryTitles'
     import { titleMatchesSearch, type TitleGameCounts } from '$lib/utils/seriesLobby'
+    import { m } from '$lib/paraglide/messages'
 
     type Title = GameUiDefinition<GameState, HydratedGameState>
 
@@ -51,7 +52,9 @@
     <div class="step" {@attach focusStep}>
         <div class="heading">
             {#if titles.length > 1}
-                <button class="change" onclick={changeTitle}>← Change title</button>
+                <button class="change" onclick={changeTitle}
+                    >← {m.create_game_change_title()}</button
+                >
             {/if}
             <div class="picked">
                 <img src={picked.info.thumbnailUrl} alt="" />
@@ -65,21 +68,21 @@
 {:else}
     <div class="step list-step" {@attach focusStep}>
         <div class="heading">
-            <h3 tabindex="-1">Start a game</h3>
-            <p class="subheading">Pick a title</p>
+            <h3 tabindex="-1">{m.create_game_heading()}</h3>
+            <p class="subheading">{m.create_game_pick_title()}</p>
         </div>
         {#if libraryService.loading}
-            <p class="status" role="status">Loading titles…</p>
+            <p class="status" role="status">{m.create_game_loading_titles()}</p>
         {:else}
             <input
                 class="search"
                 type="search"
-                placeholder={`Search ${titles.length} titles`}
-                aria-label="Search titles"
+                placeholder={m.create_game_search_placeholder({ count: titles.length })}
+                aria-label={m.create_game_search_label()}
                 bind:value={search}
             />
             <div class="titles" style:--title-count={titles.length}>
-                <ul aria-label="Titles">
+                <ul aria-label={m.create_game_titles_label()}>
                     {#each matching as title (title.info.id)}
                         {@const metadata = title.info.metadata}
                         {@const maturity = titleMaturityLabel(metadata)}
@@ -94,7 +97,7 @@
                                         >{/if}</span
                                 >
                                 {#if openTables > 0}<span class="open-tables"
-                                        >{openTables} open</span
+                                        >{m.create_game_open_tables({ count: openTables })}</span
                                     >{/if}
                                 <span class="chevron" aria-hidden="true">›</span>
                             </button>
@@ -102,7 +105,7 @@
                     {/each}
                 </ul>
                 {#if matching.length === 0}
-                    <p class="status">No title matches “{search.trim()}”.</p>
+                    <p class="status">{m.create_game_no_match({ search: search.trim() })}</p>
                 {/if}
             </div>
         {/if}

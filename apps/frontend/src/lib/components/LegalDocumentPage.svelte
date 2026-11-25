@@ -1,22 +1,39 @@
 <script lang="ts">
     import documents from 'virtual:legal-documents'
     import LibraryLink from '$lib/components/project/LibraryLink.svelte'
-    import { LEGAL_DOCUMENT_NAMES, type LegalDocumentKind } from '$lib/legal/legalDocumentKinds.js'
+    import type { LegalDocumentKind } from '$lib/legal/legalDocumentKinds.js'
+    import { m } from '$lib/paraglide/messages'
 
     let { kind }: { kind: LegalDocumentKind } = $props()
 
-    let names = $derived(LEGAL_DOCUMENT_NAMES[kind])
+    const NAMES: Record<
+        LegalDocumentKind,
+        { title: () => string; pageTitle: () => string; unpublished: () => string }
+    > = {
+        privacy: {
+            title: m.content_legal_privacy_title,
+            pageTitle: m.content_legal_privacy_page_title,
+            unpublished: m.content_legal_privacy_unpublished
+        },
+        terms: {
+            title: m.content_legal_terms_title,
+            pageTitle: m.content_legal_terms_page_title,
+            unpublished: m.content_legal_terms_unpublished
+        }
+    }
+
+    let names = $derived(NAMES[kind])
     let html = $derived(documents[kind])
 </script>
 
 <svelte:head>
-    <title>{names.title} — Board Together</title>
+    <title>{names.pageTitle()}</title>
 </svelte:head>
 
 <main class="legal-page collection-page">
     <header class="page-heading collection-header">
-        <h1 class="collection-heading">{names.title}</h1>
-        <LibraryLink label="Go to the library" />
+        <h1 class="collection-heading">{names.title()}</h1>
+        <LibraryLink label={m.dashboard_go_to_library()} />
     </header>
     {#if html}
         <article class="legal-document">
@@ -25,7 +42,7 @@
             {@html html}
         </article>
     {:else}
-        <p class="unpublished">This site hasn't published {names.unpublished} yet.</p>
+        <p class="unpublished">{names.unpublished()}</p>
     {/if}
 </main>
 

@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { APIError } from '@tabletop/frontend-components'
 import { PlayerVoteKind } from '@tabletop/common'
-import {
-    callWinnerDetail,
-    undoneDetail,
-    undoneSummary,
-    voteDetail,
-    voteErrorMessage,
-    voteRequest,
-    voteTally
-} from './playerVoteText.js'
+import type { MessagePart } from '$lib/paraglide/runtime'
+import { undoneSummary, voteErrorMessage, voteRequestParts, voteTally } from './playerVoteText.js'
+
+function partsText(parts: MessagePart[]): string {
+    return parts.map((part) => (part.type === 'text' ? part.value : '')).join('')
+}
 
 const preview = {
     targetActionId: 'a',
@@ -21,22 +18,6 @@ const preview = {
 describe('playerVoteText', () => {
     it('summarises what going back undoes', () => {
         expect(undoneSummary(preview)).toBe('Undoes moves by 2 players.')
-        expect(undoneDetail(preview)).toBe('moves by 2 players')
-    })
-
-    it('says what a vote asks for', () => {
-        const ballot = { id: 'v', initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'] }
-        expect(
-            voteRequest({
-                ...ballot,
-                kind: PlayerVoteKind.Undo,
-                targetActionId: 'a',
-                targetActionIndex: 4
-            })
-        ).toBe('is asking to undo to an earlier point')
-        expect(voteRequest({ ...ballot, kind: PlayerVoteKind.Call, decliningPlayerIds: [] })).toBe(
-            'is asking to end the game'
-        )
     })
 
     it('shows the server’s reason for a refused vote', () => {
@@ -49,7 +30,7 @@ describe('playerVoteText', () => {
         expect(voteErrorMessage(new Error('offline'))).toBe('That did not work. Please try again.')
     })
 
-    it('details an undo once its preview arrives, and a call by its winner', () => {
+    it('says what a vote asks for, detailing an undo once its preview arrives', () => {
         const ballot = { id: 'v', initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'] }
         const undo = {
             ...ballot,
@@ -58,25 +39,42 @@ describe('playerVoteText', () => {
             targetActionIndex: 4
         } as const
         const name = (playerId: string) => (playerId === 'p2' ? 'Ann' : 'Bob')
-        expect(voteDetail(undo, undefined, name)).toBeUndefined()
-        expect(voteDetail(undo, preview, name)).toBe('undoing moves by 2 players')
-        expect(
-            voteDetail(
-                {
-                    ...ballot,
-                    kind: PlayerVoteKind.Call,
-                    decliningPlayerIds: [],
-                    declaredWinnerId: 'p2'
-                },
-                undefined,
-                name
-            )
-        ).toBe('with Ann as the winner')
+        expect(partsText(voteRequestParts(undo, undefined, name, 'line'))).toBe(
+            'Bob is asking to undo to an earlier point'
+        )
+        expect(partsText(voteRequestParts(undo, preview, name, 'sentence'))).toBe(
+            'Bob is asking to undo to an earlier point undoing moves by 2 players.'
+        )
     })
 
     it('names the winner a call declares', () => {
-        expect(callWinnerDetail(undefined)).toBe('with no winner')
-        expect(callWinnerDetail('Ann')).toBe('with Ann as the winner')
+        const ballot = { id: 'v', initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'] }
+        const name = (playerId: string) => (playerId === 'p2' ? 'Ann' : 'Bob')
+        expect(
+            partsText(
+                voteRequestParts(
+                    { ...ballot, kind: PlayerVoteKind.Call, decliningPlayerIds: [] },
+                    undefined,
+                    name,
+                    'line'
+                )
+            )
+        ).toBe('Bob is asking to end the game with no winner')
+        expect(
+            partsText(
+                voteRequestParts(
+                    {
+                        ...ballot,
+                        kind: PlayerVoteKind.Call,
+                        decliningPlayerIds: [],
+                        declaredWinnerId: 'p2'
+                    },
+                    undefined,
+                    name,
+                    'line'
+                )
+            )
+        ).toBe('Bob is asking to end the game with Ann as the winner')
     })
 
     it('counts agreement against everyone for undo and the majority for a call', () => {

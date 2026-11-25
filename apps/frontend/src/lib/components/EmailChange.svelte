@@ -9,6 +9,8 @@
         reauthentication,
         requiresRecentAuthentication
     } from '$lib/stores/reauthentication.svelte'
+    import { m } from '$lib/paraglide/messages'
+    import RichMessage from '$lib/components/RichMessage.svelte'
 
     const { api, authorizationService } = getAppContext()
     const formAccountId = authorizationService.getSessionUser()?.id
@@ -29,9 +31,7 @@
                 if (mounted && user?.id === formAccountId) pending = value
             })
             .catch(() => {
-                if (mounted)
-                    error =
-                        'We could not load your pending email change. Please reload and try again.'
+                if (mounted) error = m.email_change_load_failed()
             })
             .finally(() => {
                 if (mounted) loading = false
@@ -46,7 +46,7 @@
         if (busy) return
         const result = emailAddress().safeParse(email)
         if (!result.success) {
-            error = result.error.issues[0]?.message ?? 'Enter a valid email address.'
+            error = result.error.issues[0]?.message ?? m.email_change_invalid_address()
             return
         }
         await sendCode(result.data)
@@ -56,7 +56,7 @@
         error = ''
         changed = false
         await reauthentication.run({
-            description: 'change your email address',
+            purpose: 'change-email',
             retry: async () => {
                 busy = true
                 try {
@@ -67,13 +67,11 @@
                 } catch (failure) {
                     if (requiresRecentAuthentication(failure)) throw failure
                     if (failure instanceof Error && failure.name === 'InvalidIDError') {
-                        error =
-                            'That email address is not supported. Please use a different address.'
+                        error = m.email_change_address_not_supported()
                     } else if (failure instanceof Error && failure.name === 'AlreadyExistsError') {
-                        error = 'That email address is already in use.'
+                        error = m.email_change_address_in_use()
                     } else {
-                        error =
-                            'We could not send the code. Your current email address is unchanged. Please try again.'
+                        error = m.email_change_send_failed()
                     }
                 } finally {
                     busy = false
@@ -89,7 +87,7 @@
         const submittedCode = code.trim()
         error = ''
         await reauthentication.run({
-            description: 'confirm your new email address',
+            purpose: 'confirm-new-email',
             retry: async () => {
                 busy = true
                 try {
@@ -103,14 +101,11 @@
                 } catch (failure) {
                     if (requiresRecentAuthentication(failure)) throw failure
                     if (failure instanceof Error && failure.name === 'InvalidChallengeError') {
-                        error =
-                            'That code is incorrect or has expired. Use the latest code, or send a new one.'
+                        error = m.email_change_code_invalid()
                     } else if (failure instanceof Error && failure.name === 'AlreadyExistsError') {
-                        error =
-                            'That email address is now in use. Cancel and choose a different address.'
+                        error = m.email_change_address_now_in_use()
                     } else {
-                        error =
-                            'We could not confirm the change. Please reload to check your current email address before trying again.'
+                        error = m.email_change_confirm_failed()
                     }
                 } finally {
                     busy = false
@@ -127,33 +122,35 @@
             pending = undefined
             code = ''
         } catch {
-            error = 'We could not cancel the pending change. Please try again.'
+            error = m.email_change_cancel_failed()
         } finally {
             busy = false
         }
     }
 </script>
 
+{#snippet strong(text: string)}<strong>{text}</strong>{/snippet}
+
 <section
     class="mt-6 border-t border-gray-400 dark:border-gray-600 pt-6 space-y-4"
-    aria-label="Email address"
+    aria-label={m.email_change_heading()}
 >
-    <h3 class="text-xl font-medium text-gray-900 dark:text-white">Email address</h3>
-    <P>Current verified address: <strong>{user?.email}</strong></P>
+    <h3 class="text-xl font-medium text-gray-900 dark:text-white">{m.email_change_heading()}</h3>
+    <P>{m.email_change_current_address()} <strong>{user?.email}</strong></P>
     {#if changed}
-        <Alert color="green"
-            >Your email address has been changed. Your other sessions have been signed out.</Alert
-        >
+        <Alert color="green">{m.email_change_done()}</Alert>
     {/if}
     {#if error}<Alert color="red">{error}</Alert>{/if}
     {#if pending}
-        <P
-            >Enter the code sent to <strong>{pending.email}</strong>. Your current email stays
-            active until you verify the new address.</P
-        >
+        <P>
+            <RichMessage
+                parts={m.email_change_enter_code.parts({ email: pending.email })}
+                markup={{ address: strong }}
+            />
+        </P>
         <Helper>{challengeExpiryText(pending.expiresAt)}</Helper>
         <form class="space-y-4" onsubmit={confirm}>
-            <Label for="email-change-code">Verification code</Label>
+            <Label for="email-change-code">{m.email_change_code_label()}</Label>
             <Input
                 id="email-change-code"
                 name="emailChangeCode"
@@ -162,32 +159,29 @@
                 required
             />
             <div class="flex flex-wrap gap-2">
-                <Button type="submit" disabled={busy}>Verify and change email</Button>
+                <Button type="submit" disabled={busy}>{m.email_change_verify()}</Button>
                 <Button
                     type="button"
                     color="light"
                     disabled={busy}
                     onclick={() => {
                         if (pending) void sendCode(pending.email)
-                    }}>Send new code</Button
+                    }}>{m.email_change_send_new_code()}</Button
                 >
                 <Button type="button" color="alternative" disabled={busy} onclick={cancel}
-                    >Cancel email change</Button
+                    >{m.email_change_cancel()}</Button
                 >
             </div>
         </form>
     {:else}
         <form class="space-y-4" onsubmit={submit}>
-            <Label for="new-email">New email address</Label>
+            <Label for="new-email">{m.email_change_new_address()}</Label>
             <Input id="new-email" name="email" type="email" bind:value={email} required />
-            <Helper
-                >Your current email and account access stay unchanged until you verify the new
-                address.</Helper
-            >
+            <Helper>{m.email_change_unchanged_until_verified()}</Helper>
             <Button
                 type="submit"
                 disabled={loading || busy || normalizeEmailAddress(email) === user?.email}
-                >Send verification code</Button
+                >{m.email_change_send_code()}</Button
             >
         </form>
     {/if}

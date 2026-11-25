@@ -6,6 +6,7 @@ import {
     type DiscordAuthorizationStart,
     type TabletopApiPublic
 } from '@tabletop/frontend-components'
+import { m } from '$lib/paraglide/messages'
 import { tabChannel } from './tabChannel'
 import { withDeadline } from './withDeadline'
 
@@ -140,7 +141,7 @@ export async function prepareDiscordLink(
     return withDeadline(
         api.beginDiscordAuthorization('link'),
         POPUP_START_TIMEOUT_MS,
-        () => new DiscordAuthorizationError('The Discord authorization could not start in time')
+        () => new DiscordAuthorizationError(m.auth_discord_start_timeout())
     )
 }
 
@@ -149,9 +150,7 @@ function openPopup(
 ): Promise<DiscordAuthorizationOutcome> {
     const popup = window.open('about:blank', 'Discord Authorization', popupFeatures())
     if (!popup) {
-        return Promise.reject(
-            new DiscordAuthorizationError('The browser blocked the Discord window')
-        )
+        return Promise.reject(new DiscordAuthorizationError(m.auth_discord_popup_blocked()))
     }
     return new Promise((resolve, reject) => {
         new PopupAttempt(popup, resolve, reject).start(begin)
@@ -177,7 +176,7 @@ class PopupAttempt {
     ) {
         this.closeWatch = setInterval(() => this.noticeClose(), POPUP_CLOSE_WATCH_MS)
         this.startWait = setTimeout(
-            () => this.closeAndAbandon('The Discord authorization could not start in time'),
+            () => this.closeAndAbandon(m.auth_discord_start_timeout()),
             POPUP_START_TIMEOUT_MS
         )
     }
@@ -204,7 +203,7 @@ class PopupAttempt {
             }
         })
         this.lifetime = setTimeout(
-            () => this.closeAndAbandon('The Discord authorization took too long and was abandoned'),
+            () => this.closeAndAbandon(m.auth_discord_abandoned()),
             started.expiresInSeconds * 1000
         )
         this.navigated = true
@@ -287,9 +286,7 @@ export async function completeDiscordAuthorization({
             outcome: 'error',
             error: {
                 name: DiscordAuthorizationError.name,
-                message:
-                    url.searchParams.get('error_description') ??
-                    'Discord did not complete the authorization'
+                message: url.searchParams.get('error_description') ?? m.auth_discord_not_completed()
             }
         })
         return
@@ -301,7 +298,7 @@ export async function completeDiscordAuthorization({
             state,
             purpose,
             outcome: 'error',
-            error: failureOf(error, 'Discord authorization failed')
+            error: failureOf(error, m.auth_discord_authorization_failed())
         })
     }
 }

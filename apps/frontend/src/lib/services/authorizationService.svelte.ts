@@ -9,6 +9,7 @@ import {
 } from '$lib/utils/loginContinuation'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 import { browserTimeZone } from '$lib/utils/timeZones'
+import { localeForUser, pageShowsLocaleOf, startPageLocale } from '$lib/i18n/locale'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
 /**
@@ -48,7 +49,8 @@ export class AuthorizationService {
     constructor(
         private api: TabletopApi,
         private readonly onSessionUserSet: () => void,
-        private readonly onSessionUserCleared: () => void
+        private readonly onSessionUserCleared: () => void,
+        private readonly onSignedIn: (user: User) => void
     ) {}
 
     public async initialize(): Promise<void> {
@@ -57,6 +59,7 @@ export class AuthorizationService {
         }
 
         const storedUser = readStoredValue(AuthorizationService.storageKey, User)
+        startPageLocale(storedUser)
         if (storedUser) {
             this.setSessionUser(storedUser)
             this.initialized = true
@@ -139,27 +142,49 @@ export class AuthorizationService {
         this.onSessionUserCleared()
     }
 
+    public endExpiredSession() {
+        this.clearSessionUser()
+        this.reloadUnlessPageShowsLocaleOf(undefined)
+    }
+
     public async onLogin(user: User) {
         reauthentication.cancel()
         this.adoptSessionUser(user)
+        this.onSignedIn(user)
 
         if (user.status === UserStatus.Incomplete) {
-            await goto('/onboarding')
+            await this.navigateAs(user, '/onboarding')
             return
         }
-        await goto(takeLoginContinuation() ?? '/library')
+        await this.navigateAs(user, takeLoginContinuation() ?? '/library')
     }
 
     public async logout() {
         // Forget the user before the session ends so a request it refuses never reads as an expiry
         this.forgetSessionUser()
         await this.api.logout()
-        await goto('/')
+        await this.navigateAs(undefined, '/')
     }
 
     public async onLogout() {
         this.forgetSessionUser()
-        await goto('/')
+        await this.navigateAs(undefined, '/')
+    }
+
+    private async navigateAs(user: User | undefined, path: string) {
+        if (pageShowsLocaleOf(user)) {
+            await goto(path)
+        } else {
+            window.location.assign(path)
+        }
+    }
+
+    // A reload shows the language of the stored user, so reloading when it could not be stored would loop.
+    private reloadUnlessPageShowsLocaleOf(user: User | undefined) {
+        const storedUser = readStoredValue(AuthorizationService.storageKey, User)
+        if (!pageShowsLocaleOf(user) && localeForUser(storedUser) === localeForUser(user)) {
+            window.location.reload()
+        }
     }
 
     private forgetSessionUser() {
@@ -171,6 +196,7 @@ export class AuthorizationService {
         const sessionUser = await this.fetchSessionUser()
         if (sessionUser) {
             this.adoptSessionUser(sessionUser)
+            this.reloadUnlessPageShowsLocaleOf(sessionUser)
         }
     }
 
@@ -181,6 +207,7 @@ export class AuthorizationService {
         } else {
             this.clearSessionUser()
         }
+        this.reloadUnlessPageShowsLocaleOf(sessionUser)
         return sessionUser?.id !== storedUser.id || sessionUser.status !== storedUser.status
     }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Input, Label, Toggle, Helper } from 'flowbite-svelte'
     import TournamentSelect from './TournamentSelect.svelte'
+    import { m } from '$lib/paraglide/messages'
     import {
         ConfigOptionType,
         listOptionDescription,
@@ -32,7 +33,7 @@
                 <Label for={`${idPrefix}-${option.id}`} class="mb-2">{option.name}</Label>
                 <Input id={`${idPrefix}-${option.id}`} value={option.seatedValue} disabled />
                 <Helper class="mt-1 text-[.65rem] leading-tight"
-                    >Tournament games assign seats, and the seat decides this.</Helper
+                    >{m.tournaments_seated_option_help()}</Helper
                 >
             {:else if option.type === ConfigOptionType.Boolean}
                 <Toggle

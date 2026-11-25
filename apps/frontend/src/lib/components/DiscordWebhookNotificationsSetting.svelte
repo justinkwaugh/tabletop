@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { Button, Input, Label, Spinner } from 'flowbite-svelte'
     import { DiscordWebhookConnectResult, type DiscordWebhookConnection } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
@@ -20,13 +21,10 @@
         Exclude<DiscordWebhookConnectResult, DiscordWebhookConnectResult.Connected>,
         string
     > = {
-        [DiscordWebhookConnectResult.InvalidUrl]:
-            "That isn't a Discord webhook URL. It starts with https://discord.com/api/webhooks/.",
-        [DiscordWebhookConnectResult.NotFound]:
-            'Discord has no webhook at that URL. It may have been deleted, or its URL reset.',
-        [DiscordWebhookConnectResult.Unsupported]:
-            "That webhook belongs to a Discord app and can't take these messages. Create a new one in the channel's Integrations settings.",
-        [DiscordWebhookConnectResult.Failed]: "Discord didn't accept a message. Please try again."
+        [DiscordWebhookConnectResult.InvalidUrl]: m.discord_webhook_invalid_url(),
+        [DiscordWebhookConnectResult.NotFound]: m.discord_webhook_not_found(),
+        [DiscordWebhookConnectResult.Unsupported]: m.discord_webhook_unsupported(),
+        [DiscordWebhookConnectResult.Failed]: m.discord_webhook_failed()
     }
 
     const { api } = getAppContext()
@@ -64,22 +62,23 @@
 {#snippet mentionNote()}
     <p class="text-sm text-gray-700 dark:text-gray-300">
         {#if discordLinked}
-            Each message mentions you, so Discord pings you even in a shared channel.
+            {m.discord_webhook_mentions_you()}
         {:else}
-            Link your Discord account and each message will mention you, so Discord pings you even
-            in a shared channel.
+            {m.discord_webhook_link_to_mention()}
         {/if}
     </p>
 {/snippet}
 
 <div class="flex flex-col gap-3">
-    <h3 class="text-xl font-medium text-gray-900 dark:text-white">Discord Channel Webhook</h3>
+    <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+        {m.discord_webhook_heading()}
+    </h3>
     {#if webhook}
         <ConnectedNotificationChannel
             status={webhook.name
-                ? `Posting to the Discord webhook ${webhook.name}.`
-                : 'Posting to your Discord webhook.'}
-            subject="the webhook"
+                ? m.discord_webhook_posting_named({ name: webhook.name })
+                : m.discord_webhook_posting()}
+            disconnectFailedMessage={m.discord_webhook_disconnect_failed()}
             {disconnect}
         >
             {@render mentionNote()}
@@ -87,18 +86,15 @@
     {:else}
         {#if botOffered}
             <p class="text-sm text-gray-700 dark:text-gray-300">
-                For most players the Discord bot above is the better choice: it messages you
-                directly and needs nothing set up on a server.
+                {m.discord_webhook_prefer_bot()}
             </p>
         {/if}
         <p class="text-sm text-gray-700 dark:text-gray-300">
-            If you'd rather have your notifications posted in a channel on a Discord server you
-            manage, connect a webhook instead. In the channel's settings, open Integrations, then
-            Webhooks, and create a webhook. Then copy its URL and paste it below.
+            {m.discord_webhook_instructions()}
         </p>
         {@render mentionNote()}
         <form class="flex flex-col gap-2" onsubmit={connect}>
-            <Label for={`${id}-url`} class="sr-only">Webhook URL</Label>
+            <Label for={`${id}-url`} class="sr-only">{m.discord_webhook_url_label()}</Label>
             <div class="flex gap-2">
                 <Input
                     id={`${id}-url`}
@@ -110,7 +106,7 @@
                 />
                 <Button color="blue" type="submit" class="shrink-0" disabled={connecting}>
                     {#if connecting}<Spinner size="4" class="me-2" />{/if}
-                    Connect
+                    {m.discord_webhook_connect()}
                 </Button>
             </div>
             {#if connectFailure}

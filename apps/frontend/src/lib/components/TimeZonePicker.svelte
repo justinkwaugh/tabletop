@@ -3,6 +3,7 @@
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '@tabletop/frontend-components'
     import { browserTimeZone, timeZoneName, timeZoneOptions } from '$lib/utils/timeZones'
+    import { m } from '$lib/paraglide/messages'
 
     const { authorizationService, api } = getAppContext()
 
@@ -18,7 +19,7 @@
             authorizationService.setSessionUser(await api.updateUserTimeZone(zone))
         } catch (error) {
             console.error('Could not save time zone', error)
-            toast.error('Could not save your time zone. Please try again.')
+            toast.error(m.time_zone_save_failed())
         } finally {
             saving = false
         }
@@ -26,7 +27,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-    <Label for="time-zone">Time zone</Label>
+    <Label for="time-zone">{m.time_zone()}</Label>
     <Select
         id="time-zone"
         size="sm"
@@ -44,12 +45,13 @@
             class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-600 p-3 text-sm text-gray-700 dark:text-gray-300"
         >
             <span>
-                Your browser is set to {timeZoneName(browserZone)}, but your account uses {timeZoneName(
-                    user.timeZone
-                )}.
+                {m.time_zone_mismatch({
+                    browserZone: timeZoneName(browserZone),
+                    accountZone: timeZoneName(user.timeZone)
+                })}
             </span>
             <Button size="xs" disabled={saving} onclick={() => void save(browserZone)}
-                >Use {timeZoneName(browserZone)}</Button
+                >{m.time_zone_use_browser({ zone: timeZoneName(browserZone) })}</Button
             >
         </div>
     {/if}

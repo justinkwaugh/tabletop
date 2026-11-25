@@ -2,7 +2,7 @@
     import { everyCompetition, listenForCompetitionChanges } from '$lib/services/competitionUpdates'
     import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
-    import type { LeagueListEntry, Tournament } from '@tabletop/common'
+    import type { LeagueListEntry, LeagueShape, Tournament } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { loadTitleTournaments } from '$lib/services/titleTournaments'
     import {
@@ -15,12 +15,12 @@
         leagueListStatusText,
         leagueMyPlaceText,
         leagueRosterText,
-        leagueShapeText,
         leagueShowsSignUpDeadline,
         sortLeaguesByName
     } from '$lib/utils/leaguePresentation'
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { ArrowRightOutline } from 'flowbite-svelte-icons'
+    import { m } from '$lib/paraglide/messages'
 
     let { titleId }: { titleId: string } = $props()
     const { api, notificationService } = getAppContext()
@@ -55,8 +55,17 @@
     }
 
     const failedText = $derived(
-        failed && leaguesFailed ? 'Tournaments and leagues' : failed ? 'Tournaments' : 'Leagues'
+        failed && leaguesFailed
+            ? m.library_competitions_load_failed_both()
+            : failed
+              ? m.library_competitions_load_failed_tournaments()
+              : m.library_competitions_load_failed_leagues()
     )
+
+    const LEAGUE_SHAPE_LABELS: Record<LeagueShape, () => string> = {
+        ladder: m.library_competitions_ladder_league,
+        pyramid: m.library_competitions_pyramid_league
+    }
 
     function retry() {
         if (failed) void load()
@@ -100,7 +109,7 @@
 </script>
 
 <TitleSection
-    title="Tournaments and Leagues"
+    title={m.library_competitions_heading()}
     count={!busy && !failed && !cursor && !leaguesBusy && !leaguesFailed
         ? tournaments.length + leagues.length
         : undefined}
@@ -108,18 +117,20 @@
     {#snippet action()}
         <div class="browse-links">
             <a class="browse" href={`/tournaments?titleId=${encodeURIComponent(titleId)}`}
-                >All tournaments <ArrowRightOutline class="h-4 w-4" /></a
-            ><a class="browse" href="/leagues">All leagues <ArrowRightOutline class="h-4 w-4" /></a>
+                >{m.library_competitions_all_tournaments()} <ArrowRightOutline class="h-4 w-4" /></a
+            ><a class="browse" href="/leagues"
+                >{m.library_competitions_all_leagues()} <ArrowRightOutline class="h-4 w-4" /></a
+            >
         </div>
     {/snippet}
     {#if (busy || leaguesBusy) && !tournaments.length && !leagues.length}
-        <p class="empty" role="status">Loading tournaments and leagues…</p>
+        <p class="empty" role="status">{m.library_competitions_loading()}</p>
     {:else if failed || leaguesFailed}
         <p class="empty" role="alert">
-            {failedText} couldn’t load. <button onclick={retry}>Try again</button>
+            {failedText} <button onclick={retry}>{m.try_again()}</button>
         </p>
     {:else if !tournaments.length && !leagues.length}
-        <p class="empty">No tournaments or leagues to show for this game right now.</p>
+        <p class="empty">{m.library_competitions_none()}</p>
     {/if}
     <div class="competitions">
         {#each leagues as entry (entry.league.id)}
@@ -138,8 +149,11 @@
                 {/if}
                 <div class="details">
                     <span
-                        >{leagueShapeText(league.shape)} league · {league.rules.tableSize} players per
-                        game · {league.rules.gamesPerEntrant} games each</span
+                        >{LEAGUE_SHAPE_LABELS[league.shape]()} · {m.library_competitions_players_per_game(
+                            { count: league.rules.tableSize }
+                        )} · {m.library_competitions_games_each({
+                            count: league.rules.gamesPerEntrant
+                        })}</span
                     ><ArrowRightOutline class="h-5 w-5 shrink-0" />
                 </div>
             </a>
@@ -148,22 +162,27 @@
             <a class="competition" href={`/tournaments/${tournament.id}`}>
                 <div class="status-row">
                     <span>{tournamentStatusText(tournament, now)}</span><span class="roster"
-                        >{tournamentRosterText(tournament)} joined</span
+                        >{m.library_competitions_joined({
+                            roster: tournamentRosterText(tournament)
+                        })}</span
                     >
                 </div>
                 <h3>{tournament.name}</h3>
                 <p>{tournamentSummaryText(tournament, now)}</p>
                 <div class="details">
                     <span
-                        >{tournament.rules.tableSize} players per game · {tournament.format
-                            .stages[0].gamesPerEntrant} games each</span
+                        >{m.library_competitions_players_per_game({
+                            count: tournament.rules.tableSize
+                        })} · {m.library_competitions_games_each({
+                            count: tournament.format.stages[0].gamesPerEntrant
+                        })}</span
                     ><ArrowRightOutline class="h-5 w-5 shrink-0" />
                 </div>
             </a>
         {/each}
     </div>
     {#if cursor && !failed}<button class="load-more" disabled={busy} onclick={() => load(cursor)}
-            >{busy ? 'Loading…' : 'More tournaments'}</button
+            >{busy ? m.library_loading() : m.library_competitions_more_tournaments()}</button
         >{/if}
 </TitleSection>
 

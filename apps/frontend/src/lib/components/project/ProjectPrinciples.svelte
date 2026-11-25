@@ -1,6 +1,13 @@
-<ul class="principles" aria-label="The project">
-    <li><strong>Always</strong> free to play.</li>
-    <li><strong>Fully</strong> open source.</li>
+<script lang="ts">
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
+</script>
+
+{#snippet strong(text: string)}<strong>{text}</strong>{/snippet}
+
+<ul class="principles" aria-label={m.content_principles_label()}>
+    <li><RichMessage parts={m.content_principles_free.parts()} markup={{ strong }} /></li>
+    <li><RichMessage parts={m.content_principles_open_source.parts()} markup={{ strong }} /></li>
 </ul>
 
 <style>

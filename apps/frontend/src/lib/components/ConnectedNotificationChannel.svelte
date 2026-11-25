@@ -1,16 +1,17 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import type { Snippet } from 'svelte'
     import { Button, Spinner } from 'flowbite-svelte'
     import { CheckCircleSolid } from 'flowbite-svelte-icons'
 
     let {
         status,
-        subject,
+        disconnectFailedMessage,
         disconnect,
         children
     }: {
         status: string
-        subject: string
+        disconnectFailedMessage: string
         disconnect: () => Promise<void>
         children?: Snippet
     } = $props()
@@ -24,7 +25,7 @@
         try {
             await disconnect()
         } catch (error) {
-            console.error(`Could not disconnect ${subject}`, error)
+            console.error('Could not disconnect a notification channel', error)
             disconnectFailed = true
         } finally {
             disconnecting = false
@@ -46,11 +47,11 @@
         onclick={pressDisconnect}
     >
         {#if disconnecting}<Spinner size="4" class="me-2" />{/if}
-        Disconnect
+        {m.notification_channel_disconnect()}
     </Button>
 </div>
 {#if disconnectFailed}
     <p class="text-sm text-red-700 dark:text-red-400">
-        BoardTogether couldn't disconnect {subject}. Please try again.
+        {disconnectFailedMessage}
     </p>
 {/if}

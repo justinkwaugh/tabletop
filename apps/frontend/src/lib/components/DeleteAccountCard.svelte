@@ -9,6 +9,8 @@
         reauthentication,
         requiresRecentAuthentication
     } from '$lib/stores/reauthentication.svelte'
+    import { m } from '$lib/paraglide/messages'
+    import RichMessage from '$lib/components/RichMessage.svelte'
 
     const { authorizationService, api } = getAppContext()
     const confirmationId = $props.id()
@@ -33,7 +35,7 @@
         event.preventDefault()
         if (deleting) return
         failed = false
-        await reauthentication.run({ description: 'delete your account', retry: remove })
+        await reauthentication.run({ purpose: 'delete-account', retry: remove })
     }
 
     async function remove() {
@@ -49,61 +51,63 @@
         }
         open = false
         broadcastLogout()
-        toast.success('Your account has been deleted.')
+        toast.success(m.delete_account_done())
         await authorizationService.onLogout()
     }
 </script>
 
+{#snippet emphasis(text: string)}<span class="font-semibold">{text}</span>{/snippet}
+
 <Card class="bg-gray-300 p-4 sm:p-6">
     <div class="flex flex-col gap-3">
-        <h3 class="text-xl font-medium text-gray-900 dark:text-white">Delete account</h3>
+        <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+            {m.delete_account_heading()}
+        </h3>
         <p class="text-sm text-gray-700 dark:text-gray-300">
-            Permanently delete your account and everything tied to it. Finished games keep your
-            moves under "Deleted player".
+            {m.delete_account_summary()}
         </p>
         {#if administrator}
             <p class="text-sm text-gray-700 dark:text-gray-300">
-                Administrator accounts can't be deleted.
+                {m.delete_account_administrator()}
             </p>
         {:else}
             <div>
-                <Button color="red" outline size="sm" onclick={start}>Delete account…</Button>
+                <Button color="red" outline size="sm" onclick={start}
+                    >{m.delete_account_start()}</Button
+                >
             </div>
         {/if}
     </div>
 </Card>
 
-<Modal bind:open title="Delete your account?" size="sm" autoclose={false} outsideclose>
+<Modal bind:open title={m.delete_account_confirm_title()} size="sm" autoclose={false} outsideclose>
     <form class="flex flex-col gap-4 text-sm" onsubmit={confirmDeletion}>
-        <p class="text-gray-700 dark:text-gray-300">This can't be undone.</p>
+        <p class="text-gray-700 dark:text-gray-300">{m.delete_account_irreversible()}</p>
         <div>
-            <p class="font-semibold text-gray-900 dark:text-gray-100">Removed</p>
+            <p class="font-semibold text-gray-900 dark:text-gray-100">
+                {m.delete_account_removed()}
+            </p>
             <ul class="mt-1 list-disc space-y-1 pl-5 text-gray-700 dark:text-gray-300">
-                <li>Your username, email, password and linked Google or Discord account</li>
-                <li>Your preferences and notification settings; you're signed out everywhere</li>
-                <li>Games you created that haven't started, and your seats in others</li>
-                <li>Your sign-ups for league seasons that haven't started</li>
+                <li>{m.delete_account_removed_identity()}</li>
+                <li>{m.delete_account_removed_settings()}</li>
+                <li>{m.delete_account_removed_games()}</li>
+                <li>{m.delete_account_removed_signups()}</li>
             </ul>
         </div>
         <div>
-            <p class="font-semibold text-gray-900 dark:text-gray-100">Kept, without your name</p>
+            <p class="font-semibold text-gray-900 dark:text-gray-100">{m.delete_account_kept()}</p>
             <ul class="mt-1 list-disc space-y-1 pl-5 text-gray-700 dark:text-gray-300">
-                <li>
-                    Finished games and your chat messages, shown as "Deleted player 1" and so on
-                </li>
-                <li>
-                    Games in progress: the other players can end them, and most 2-player games end
-                    as a win for your opponent
-                </li>
-                <li>
-                    Tournaments you've entered and league seasons under way, which an administrator
-                    finishes without you
-                </li>
+                <li>{m.delete_account_kept_finished()}</li>
+                <li>{m.delete_account_kept_in_progress()}</li>
+                <li>{m.delete_account_kept_competitions()}</li>
             </ul>
         </div>
         <div>
             <Label for={confirmationId} class="mb-2">
-                Type your username, <span class="font-semibold">{username}</span>, to confirm
+                <RichMessage
+                    parts={m.delete_account_type_username.parts({ username })}
+                    markup={{ username: emphasis }}
+                />
             </Label>
             <Input
                 id={confirmationId}
@@ -115,13 +119,13 @@
         </div>
         {#if failed}
             <Alert color="red" class="dark:bg-red-200 dark:text-red-700" role="alert">
-                We couldn't delete your account. Please try again.
+                {m.delete_account_failed()}
             </Alert>
         {/if}
         <div class="flex justify-end gap-2">
-            <Button color="alternative" onclick={() => (open = false)}>Cancel</Button>
+            <Button color="alternative" onclick={() => (open = false)}>{m.cancel()}</Button>
             <Button type="submit" color="red" disabled={!confirmed || deleting}>
-                {deleting ? 'Deleting…' : 'Delete my account'}
+                {deleting ? m.delete_account_deleting() : m.delete_account_confirm()}
             </Button>
         </div>
     </form>

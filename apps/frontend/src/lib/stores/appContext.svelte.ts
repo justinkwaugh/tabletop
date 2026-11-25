@@ -21,11 +21,13 @@ import { RelayConnection } from '$lib/network/relayConnection'
 import { closedWhileHidden, type RealtimeConnection } from '$lib/network/realtimeConnection'
 import { UserPreferencesEditor } from '$lib/services/userPreferencesEditor.svelte'
 import { toast } from 'svelte-sonner'
+import { m } from '$lib/paraglide/messages'
+import { carryDeviceLocaleToAccount } from '$lib/i18n/locale'
 const api = new TabletopApi(
     PUBLIC_API_HOST,
     PUBLIC_SSE_HOST,
     FRONTEND_VERSION,
-    () => authorizationService.clearSessionUser(),
+    () => authorizationService.endExpiredSession(),
     (): boolean => authorizationService.getSessionUser() !== undefined
 )
 console.log('Initialized API with frontend version:', FRONTEND_VERSION)
@@ -40,7 +42,12 @@ const authorizationService = new AuthorizationService(
     () => {
         gameService.clear()
         followedGames.clear()
-    }
+    },
+    (user) =>
+        carryDeviceLocaleToAccount(
+            user,
+            (locale) => void userPreferencesEditor.updateNow({ locale })
+        )
 )
 
 const visibilityService = new VisibilityService()
@@ -67,7 +74,7 @@ const userPreferencesEditor = new UserPreferencesEditor(
     () => authorizationService.getSessionUser(),
     api,
     (user) => authorizationService.setSessionUser(user),
-    () => toast.error('Could not save your preferences. Please try again.')
+    () => toast.error(m.preferences_save_failed())
 )
 
 const appContext: AppContext & {

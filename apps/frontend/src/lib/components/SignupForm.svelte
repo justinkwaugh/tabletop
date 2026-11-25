@@ -5,13 +5,11 @@
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
     import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
-    import {
-        ageConfirmationMessage,
-        emailAddress,
-        minLengthMessage
-    } from '$lib/utils/accountFormValidation'
+    import { emailAddress } from '$lib/utils/accountFormValidation'
 
     let { onsignin }: { onsignin?: () => void } = $props()
     const { authorizationService, api } = getAppContext()
@@ -25,10 +23,16 @@
     let ageConfirmed = $state(false)
 
     const createUserSchema = z.object({
-        username: z.string().trim().min(1, minLengthMessage(1)),
-        password: z.string().trim().min(12, minLengthMessage(12)),
+        username: z
+            .string()
+            .trim()
+            .min(1, m.auth_validation_min_length({ length: 1 })),
+        password: z
+            .string()
+            .trim()
+            .min(12, m.auth_validation_min_length({ length: 12 })),
         email: z.string().trim().pipe(emailAddress()),
-        ageConfirmed: z.literal(true, { error: ageConfirmationMessage })
+        ageConfirmed: z.literal(true, { error: m.auth_validation_age_confirmation() })
     })
 
     async function submit(event: SubmitEvent) {
@@ -50,9 +54,9 @@
                 errors.username = [error.message]
             } else if (isAlreadyExists(error)) {
                 if (error.message.includes('username')) {
-                    errors.username = ['Username already exists']
+                    errors.username = [m.auth_username_exists()]
                 } else if (error.message.includes('email')) {
-                    errors.email = ['Email already exists']
+                    errors.email = [m.auth_email_exists()]
                 } else {
                     unexpectedError = true
                 }
@@ -65,15 +69,18 @@
     }
 </script>
 
+{#snippet signinLink(text: string)}<AuthLink href="/login" onactivate={onsignin}>{text}</AuthLink
+    >{/snippet}
+
 {#if unexpectedError}
     <Alert color="red" class="mb-4" role="alert">
-        We couldn’t create your account. Please try again.
+        {m.auth_signup_failed()}
     </Alert>
 {/if}
 
 <form class="flex flex-col gap-4" onsubmit={submit} {@attach focusFirstInput}>
     <div>
-        <Label for={`${id}-username`} class="mb-2">Username</Label>
+        <Label for={`${id}-username`} class="mb-2">{m.auth_username()}</Label>
         <Input
             class="auth-input"
             id={`${id}-username`}
@@ -92,7 +99,7 @@
         {/if}
     </div>
     <div>
-        <Label for={`${id}-password`} class="mb-2">Password</Label>
+        <Label for={`${id}-password`} class="mb-2">{m.auth_password()}</Label>
         <PasswordInput
             id={`${id}-password`}
             bind:value={password}
@@ -102,11 +109,11 @@
             describedby={`${id}-password-help`}
         />
         <Helper id={`${id}-password-help`} color={errors.password ? 'red' : 'gray'} class="mt-2">
-            {errors.password ? errors.password.join('. ') : 'Use at least 12 characters.'}
+            {errors.password ? errors.password.join('. ') : m.auth_password_min_length_help()}
         </Helper>
     </div>
     <div>
-        <Label for={`${id}-email`} class="mb-2">Email</Label>
+        <Label for={`${id}-email`} class="mb-2">{m.auth_email()}</Label>
         <Input
             class="auth-input"
             id={`${id}-email`}
@@ -123,17 +130,17 @@
             {#if errors.email}
                 <span role="alert">{errors.email.join('. ')}</span>
             {:else}
-                Kept private. Used only for account recovery and notifications.
+                {m.auth_signup_email_help()}
             {/if}
         </Helper>
     </div>
     <AgeConfirmation bind:checked={ageConfirmed} errors={errors.ageConfirmed} />
     <div class="flex items-center justify-between gap-4 mt-4">
         <p class="auth-secondary text-sm text-gray-600 dark:text-gray-300">
-            Have an account? <AuthLink href="/login" onactivate={onsignin}>Sign in</AuthLink>
+            <RichMessage parts={m.auth_have_account.parts()} markup={{ signin: signinLink }} />
         </p>
         <Button color="blue" type="submit" class="shrink-0" disabled={submitting}>
-            {submitting ? 'Creating…' : 'Sign up'}
+            {submitting ? m.auth_signup_creating() : m.auth_sign_up()}
         </Button>
     </div>
 </form>

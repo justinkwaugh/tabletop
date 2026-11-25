@@ -3,11 +3,14 @@
     import { goto } from '$app/navigation'
     import UsernameLoginForm from '$lib/components/UsernameLoginForm.svelte'
     import { hasSocialLogin } from '$lib/components/LoginPanel.svelte'
+    import { m } from '$lib/paraglide/messages'
 </script>
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center px-4">
     <Card class="p-4 sm:p-6 w-full max-w-sm">
-        <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">Please login...</h1>
+        <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
+            {m.auth_login_please_login()}
+        </h1>
         <UsernameLoginForm onback={hasSocialLogin ? () => goto('/login') : undefined} />
     </Card>
 </div>

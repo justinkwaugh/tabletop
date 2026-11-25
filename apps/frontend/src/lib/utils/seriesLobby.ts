@@ -9,6 +9,7 @@ import {
     type GameMetadata,
     type Player
 } from '@tabletop/common'
+import { m } from '$lib/paraglide/messages'
 import { hasPendingGameInvitation } from './gameInvitation'
 import { awaitedFromUserNonHotseat, type UserAwaited } from './dashboardGames'
 import type { DisplayedGameOption } from './gameOptions'
@@ -30,11 +31,11 @@ export type SeriesFilter = {
     pace?: GamePace
 }
 
-export const PACE_FILTERS: readonly { pace: GamePace; label: string }[] = [
-    { pace: GamePace.Daily, label: 'Daily or faster' },
-    { pace: GamePace.Brisk, label: 'Brisk or faster' },
-    { pace: GamePace.Fast, label: 'Fast or faster' },
-    { pace: GamePace.Live, label: 'Live' }
+export const PACE_FILTERS: readonly { pace: GamePace; label: () => string }[] = [
+    { pace: GamePace.Daily, label: m.library_pace_daily_or_faster },
+    { pace: GamePace.Brisk, label: m.library_pace_brisk_or_faster },
+    { pace: GamePace.Fast, label: m.library_pace_fast_or_faster },
+    { pace: GamePace.Live, label: m.library_pace_live }
 ]
 
 export type TitleGameCounts = { open: number; inProgress: number }
@@ -188,12 +189,14 @@ export function lobbyEntry(game: Game, userId: string | undefined): LobbyEntry {
 
 export function winnerText(game: Game): string {
     const winners = game.players.filter((player) => game.winningPlayerIds.includes(player.id))
-    return winners.length > 0 ? winners.map((player) => player.name).join(', ') : 'No winner'
+    return winners.length > 0
+        ? winners.map((player) => player.name).join(', ')
+        : m.library_table_no_winner()
 }
 
 export function optionsSummary(options: DisplayedGameOption[]): string {
-    if (options.length === 0) return 'Standard'
-    if (options.length > 1) return `${options.length} options`
+    if (options.length === 0) return m.library_table_standard_options()
+    if (options.length > 1) return m.library_table_option_count({ count: options.length })
     const [option] = options
     return option.enabledFlag ? option.name : `${option.name}: ${option.value}`
 }
@@ -223,7 +226,7 @@ function panelNote(game: Game, player: Player, finalScores: Game['finalScores'] 
         return String(finalScores[player.id] ?? '—')
     }
     if (game.status === GameStatus.Started) {
-        return player.userId === game.ownerId ? 'host' : ''
+        return player.userId === game.ownerId ? m.library_table_host() : ''
     }
     return playerStatusDisplay(player, game.ownerId)
 }

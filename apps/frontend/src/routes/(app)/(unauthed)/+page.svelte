@@ -1,13 +1,11 @@
 <script lang="ts">
     import LandingPage from '$lib/components/LandingPage.svelte'
+    import { m } from '$lib/paraglide/messages'
 </script>
 
 <svelte:head>
-    <title>Board Together — Play board games online</title>
-    <meta
-        name="description"
-        content="Play board games online with friends, at your own pace. Explore the games on Board Together. Free to play and fully open source."
-    />
+    <title>{m.content_landing_page_title()}</title>
+    <meta name="description" content={m.content_landing_page_description()} />
 </svelte:head>
 
 <LandingPage />

@@ -9,6 +9,7 @@
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { nextTabIndex } from '$lib/utils/tabNavigation'
     import { activityLoadFailure } from '$lib/utils/activityLoad'
+    import { m } from '$lib/paraglide/messages'
 
     const PAGE_SIZE = 4
 
@@ -27,16 +28,19 @@
         inProgress: 0,
         recentlyFinished: 0
     })
-    const activityTabs: { scope: ActivityScope; title: string; empty: string }[] = [
+    type Label = () => string
+    const activityTabs: { scope: ActivityScope; title: Label; empty: Label; pages: Label }[] = [
         {
             scope: 'inProgress',
-            title: 'In progress',
-            empty: 'No public games of this title are being played right now.'
+            title: m.library_in_progress,
+            empty: m.library_title_games_in_progress_empty,
+            pages: m.library_title_games_in_progress_pages
         },
         {
             scope: 'recentlyFinished',
-            title: 'Recently finished',
-            empty: 'No public games of this title have finished yet.'
+            title: m.library_recently_finished,
+            empty: m.library_title_games_recently_finished_empty,
+            pages: m.library_title_games_recently_finished_pages
         }
     ]
     const tabsId = $props.id()
@@ -55,12 +59,16 @@
         ).filter((game) => game.typeId === titleId)
     )
     let openGames = $derived(gameService.openGamesByTitleId.get(titleId) ?? [])
-    const sections: { scope: Scope; title: string; empty: string }[] = [
-        { scope: 'mine', title: 'Your games', empty: 'Your games of this title will appear here.' },
+    const sections: { scope: Scope; title: Label; empty: Label }[] = [
+        {
+            scope: 'mine',
+            title: m.library_title_games_your_games,
+            empty: m.library_title_games_your_games_empty
+        },
         {
             scope: 'open',
-            title: 'Open games',
-            empty: 'No open tables right now. Start one and invite others to join.'
+            title: m.library_title_games_open_games,
+            empty: m.library_title_games_open_games_empty
         }
     ]
 
@@ -123,21 +131,22 @@
     {@const visibleGames =
         scope === 'mine' ? games : games.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)}
     {#if states[scope] === 'loading'}
-        <p class="empty" role="status">Loading games…</p>
+        <p class="empty" role="status">{m.library_loading_games()}</p>
     {:else if states[scope] === 'error'}
         <div class="empty" role="alert">
-            <p>These games couldn’t load.</p>
-            <button onclick={() => load(scope)}>Try again</button>
+            <p>{m.library_games_load_failed()}</p>
+            <button onclick={() => load(scope)}>{m.try_again()}</button>
         </div>
     {:else if states[scope] === 'unavailable'}
         <div class="empty" role="status">
-            <p>These games are temporarily unavailable.</p>
-            <button onclick={() => load(scope)}>Try again</button>
+            <p>{m.library_games_unavailable()}</p>
+            <button onclick={() => load(scope)}>{m.try_again()}</button>
         </div>
     {:else if games.length === 0}
         <div class="empty" class:compact={scope === 'mine'}>
             <p>{empty}</p>
-            {#if scope === 'open'}<button onclick={oncreate}>Start a game →</button>{/if}
+            {#if scope === 'open'}<button onclick={oncreate}>{m.library_start_game_arrow()}</button
+                >{/if}
         </div>
     {:else}
         <div class="game-list" class:public-list={scope === 'public'}>
@@ -156,19 +165,21 @@
         {#if scope !== 'mine' && games.length > PAGE_SIZE}
             <nav
                 class="game-pagination"
-                aria-label={scope === 'open' ? 'Open games pages' : `${selectedTab.title} pages`}
+                aria-label={scope === 'open'
+                    ? m.library_title_games_open_games_pages()
+                    : selectedTab.pages()}
             >
                 <button
                     aria-disabled={page === 0}
                     onclick={() => {
                         if (page > 0) pages[pageScope] = page - 1
-                    }}>Previous</button
+                    }}>{m.library_previous()}</button
                 >
                 <button
                     aria-disabled={page === lastPage}
                     onclick={() => {
                         if (page < lastPage) pages[pageScope] = page + 1
-                    }}>Next</button
+                    }}>{m.library_next()}</button
                 >
             </nav>
         {/if}
@@ -178,15 +189,19 @@
 <div class="game-sections">
     {#each sections as section (section.scope)}
         <TitleSection
-            title={section.title}
+            title={section.title()}
             count={states[section.scope] === 'ready' ? gamesFor(section.scope).length : undefined}
         >
-            {@render gameContent(section.scope, section.empty)}
+            {@render gameContent(section.scope, section.empty())}
         </TitleSection>
     {/each}
     <div class="public-games">
-        <TitleSection title="Community games">
-            <div class="collection-tabs activity-tabs" role="tablist" aria-label="Community games">
+        <TitleSection title={m.library_title_games_community()}>
+            <div
+                class="collection-tabs activity-tabs"
+                role="tablist"
+                aria-label={m.library_title_games_community()}
+            >
                 {#each activityTabs as tab, index (tab.scope)}
                     <button
                         class="collection-tab"
@@ -198,7 +213,7 @@
                         onclick={() => (chosenTab = tab)}
                         onkeydown={(event) => moveActivityTab(event, index)}
                     >
-                        {tab.title}
+                        {tab.title()}
                         {#if states.public === 'ready'}
                             <span class="tab-count">{activity[tab.scope].length}</span>
                         {/if}
@@ -211,7 +226,7 @@
                 aria-labelledby={`${tabsId}-${selectedTab.scope}`}
                 tabindex="0"
             >
-                {@render gameContent('public', selectedTab.empty)}
+                {@render gameContent('public', selectedTab.empty())}
             </div>
         </TitleSection>
     </div>

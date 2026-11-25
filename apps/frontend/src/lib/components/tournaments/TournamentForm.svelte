@@ -31,6 +31,8 @@
     import { onMount, untrack } from 'svelte'
     import { CompetitionGameChoice } from './competitionGameChoice.svelte'
     import { nanoid } from 'nanoid'
+    import { m } from '$lib/paraglide/messages'
+    import RichMessage from '../RichMessage.svelte'
 
     let {
         tournament,
@@ -102,9 +104,7 @@
         knockout ? game.titles.filter((item) => headToHead(item.info.metadata)) : game.titles
     )
 
-    onMount(() =>
-        game.loadEligibleTitles(api, 'Could not load the games available for tournaments.')
-    )
+    onMount(() => game.loadEligibleTitles(api, m.tournaments_form_titles_load_failed()))
 
     function selectTitle(selectedTitleId: string) {
         const selected = game.select(selectedTitleId)
@@ -204,20 +204,22 @@
                 : await api.createTournament(id, draft)
             onsaved(saved)
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not save the tournament'
+            error = failure instanceof Error ? failure.message : m.tournaments_form_save_failed()
         } finally {
             busy = false
         }
     }
 </script>
 
+{#snippet small(text: string)}<span class="text-xs">{text}</span>{/snippet}
+
 <div class="mb-5 flex items-center gap-3">
     <h1 class="font-tournament text-2xl font-semibold text-gray-900 dark:text-gray-200">
-        {tournament ? 'Edit tournament' : 'Create tournament'}
+        {tournament ? m.tournaments_form_edit_heading() : m.tournaments_create_tournament()}
     </h1>
     <span
         class="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] text-gray-500 dark:border-gray-600 dark:text-gray-400"
-        >{knockout ? 'Knockout' : 'Mini'}</span
+        >{knockout ? m.tournaments_format_knockout() : m.tournaments_format_mini()}</span
     >
 </div>
 <form
@@ -229,40 +231,40 @@
 >
     <fieldset disabled={disabled || busy} class="space-y-4 disabled:opacity-60">
         <div>
-            <Label for="tournament-name" class="mb-2">Name</Label>
+            <Label for="tournament-name" class="mb-2">{m.tournaments_form_name()}</Label>
             <Input
                 id="tournament-name"
                 bind:value={name}
-                placeholder="Choose a name for your tournament"
+                placeholder={m.tournaments_form_name_placeholder()}
                 required
                 maxlength={120}
             />
         </div>
         <div>
-            <Label class="mb-2">Format</Label>
-            <ButtonGroup aria-label="Format">
-                {#each [['mini', 'Mini'], ['knockout', 'Knockout']] as const as [kind, label] (kind)}
+            <Label class="mb-2">{m.tournaments_format()}</Label>
+            <ButtonGroup aria-label={m.tournaments_format()}>
+                {#each [['mini', m.tournaments_format_mini], ['knockout', m.tournaments_format_knockout]] as const as [kind, label] (kind)}
                     <RadioButton
                         value={kind}
                         bind:group={formatKind}
                         onchange={() => selectFormat(kind)}
                         checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
-                        >{label}</RadioButton
+                        >{label()}</RadioButton
                     >
                 {/each}
             </ButtonGroup>
             <Helper class="mt-1 text-xs"
                 >{knockout
-                    ? 'Head to head: losing a match knocks a player out. Each match is one game from each side, with a decider if it is split.'
-                    : 'Players play a fixed number of games and are ranked on points.'}</Helper
+                    ? m.tournaments_form_knockout_help()
+                    : m.tournaments_form_mini_help()}</Helper
             >
         </div>
         <div>
-            <Label for="tournament-game" class="mb-2">Game</Label>
+            <Label for="tournament-game" class="mb-2">{m.tournaments_form_game()}</Label>
             <TournamentSelect
                 id="tournament-game"
                 value={game.titleId}
-                placeholder="Choose a game"
+                placeholder={m.tournaments_form_game_placeholder()}
                 options={titles.map((item) => ({
                     value: item.info.id,
                     name: item.info.metadata.name
@@ -271,15 +273,15 @@
             />
             {#if game.titlesError}<Helper color="red" class="mt-1">{game.titlesError}</Helper
                 >{:else if libraryService.loading || !game.eligibleTitleIds}<Helper class="mt-1"
-                    >Loading game titles…</Helper
+                    >{m.tournaments_form_loading_titles()}</Helper
                 >{:else if !titles.length}<Helper color="red" class="mt-1"
-                    >Game titles are unavailable.</Helper
+                    >{m.tournaments_form_titles_unavailable()}</Helper
                 >{/if}
         </div>
         {#if title && !knockout}
             <div>
-                <Label class="mb-2">Players per game</Label>
-                <ButtonGroup aria-label="Players per game">
+                <Label class="mb-2">{m.tournaments_players_per_game()}</Label>
+                <ButtonGroup aria-label={m.tournaments_players_per_game()}>
                     {#each range(title.info.metadata.minPlayers, title.info.metadata.maxPlayers - title.info.metadata.minPlayers + 1) as count (count)}
                         <RadioButton
                             value={count}
@@ -306,11 +308,10 @@
         {#if knockout && title?.info.configurator?.options.length}
             <Hr class="my-4" />
             <div>
-                <h3 class="text-sm font-medium text-gray-900 dark:text-white">Decider</h3>
-                <Helper class="mt-1 mb-3 text-xs"
-                    >A split match is settled by a third game with these options. Its seats aren't
-                    assigned, so the game's own setup decides who plays which side.</Helper
-                >
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                    {m.tournaments_form_decider()}
+                </h3>
+                <Helper class="mt-1 mb-3 text-xs">{m.tournaments_form_decider_help()}</Helper>
                 <GameConfigFields
                     idPrefix="tournament-decider-option"
                     seated={false}
@@ -322,37 +323,43 @@
         {/if}
         <Hr class="my-4" />
         <div>
-            <Label for="tournament-registration" class="mb-2">Registration closes</Label>
+            <Label for="tournament-registration" class="mb-2"
+                >{m.tournaments_form_registration_closes()}</Label
+            >
             <TournamentSelect
                 id="tournament-registration"
                 value={registrationKind}
                 options={[
-                    { value: 'whenFull', name: 'When the tournament fills' },
-                    { value: 'deadline', name: 'On a specified date' }
+                    { value: 'whenFull', name: m.tournaments_form_when_full() },
+                    { value: 'deadline', name: m.tournaments_form_on_date() }
                 ] as const}
                 onchange={(value) => (registrationKind = value)}
             />
         </div>
         {#if registrationKind === 'deadline'}
             <div>
-                <Label for="tournament-deadline" class="mb-2">Closing date</Label>
+                <Label for="tournament-deadline" class="mb-2"
+                    >{m.tournaments_form_closing_date()}</Label
+                >
                 <Input
                     id="tournament-deadline"
                     type="datetime-local"
                     bind:value={deadline}
                     required
                 />
-                <Helper class="mt-1 text-xs">Uses your local time.</Helper>
+                <Helper class="mt-1 text-xs">{m.tournaments_form_local_time()}</Helper>
             </div>
         {/if}
         <details>
             <summary class="cursor-pointer text-sm text-gray-500 dark:text-gray-400"
-                >Advanced</summary
+                >{m.tournaments_form_advanced()}</summary
             >
             <div class="mt-4 space-y-4">
                 <div class="grid grid-cols-2 gap-4" class:hidden={knockout}>
                     <div>
-                        <Label for="tournament-games" class="mb-2">Total games per player</Label>
+                        <Label for="tournament-games" class="mb-2"
+                            >{m.tournaments_total_games_per_player()}</Label
+                        >
                         <Input
                             id="tournament-games"
                             type="number"
@@ -364,7 +371,9 @@
                         />
                     </div>
                     <div>
-                        <Label for="tournament-concurrency" class="mb-2">At the same time</Label>
+                        <Label for="tournament-concurrency" class="mb-2"
+                            >{m.tournaments_form_at_same_time()}</Label
+                        >
                         <Input
                             id="tournament-concurrency"
                             type="number"
@@ -377,7 +386,9 @@
                 </div>
                 {#if registrationKind === 'whenFull'}
                     <div>
-                        <Label for="tournament-capacity" class="mb-2">Roster size</Label>
+                        <Label for="tournament-capacity" class="mb-2"
+                            >{m.tournaments_form_roster_size()}</Label
+                        >
                         <Input
                             id="tournament-capacity"
                             type="number"
@@ -387,12 +398,14 @@
                             required
                         />
                         <Helper class="mt-1 text-xs"
-                            >Starts one minute after the roster fills.</Helper
+                            >{m.tournaments_form_starts_after_full()}</Helper
                         >
                     </div>
                 {:else}
                     <div>
-                        <Label for="tournament-minimum" class="mb-2">Minimum players</Label>
+                        <Label for="tournament-minimum" class="mb-2"
+                            >{m.tournaments_form_minimum_players()}</Label
+                        >
                         <Input
                             id="tournament-minimum"
                             type="number"
@@ -402,13 +415,17 @@
                             required
                         />
                         <Helper class="mt-1 text-xs"
-                            >Cancels if fewer than {minimumEntrants} players join.</Helper
+                            >{m.tournaments_form_cancels_below_minimum({
+                                count: minimumEntrants
+                            })}</Helper
                         >
                     </div>
-                    <Toggle bind:checked={capped}>Limit roster size</Toggle>
+                    <Toggle bind:checked={capped}>{m.tournaments_form_limit_roster()}</Toggle>
                     {#if capped}
                         <div>
-                            <Label for="tournament-capacity" class="mb-2">Maximum players</Label>
+                            <Label for="tournament-capacity" class="mb-2"
+                                >{m.tournaments_form_maximum_players()}</Label
+                            >
                             <Input
                                 id="tournament-capacity"
                                 type="number"
@@ -424,9 +441,14 @@
         </details>
         <details>
             <summary class="cursor-pointer text-sm text-gray-500 dark:text-gray-400"
-                >Description <span class="text-xs">(optional)</span></summary
+                ><RichMessage
+                    parts={m.tournaments_form_description_optional.parts()}
+                    markup={{ optional: small }}
+                /></summary
             >
-            <Label for="tournament-description" class="sr-only">Description</Label>
+            <Label for="tournament-description" class="sr-only"
+                >{m.tournaments_form_description()}</Label
+            >
             <Textarea
                 id="tournament-description"
                 class="mt-2"
@@ -437,9 +459,13 @@
         </details>
         {#if error}<Helper color="red" role="alert">{error}</Helper>{/if}
         <div class="flex items-center justify-between pt-2">
-            <Button color="light" type="button" onclick={oncancel}>Cancel</Button>
+            <Button color="light" type="button" onclick={oncancel}>{m.cancel()}</Button>
             <Button type="submit" disabled={!game.titleId}
-                >{busy ? 'Saving…' : tournament ? 'Save draft' : 'Create draft'}</Button
+                >{busy
+                    ? m.saving()
+                    : tournament
+                      ? m.tournaments_form_save_draft()
+                      : m.tournaments_form_create_draft()}</Button
             >
         </div>
     </fieldset>

@@ -6,6 +6,7 @@
         type PickerTitle,
         type TitleGameCounts
     } from '$lib/utils/seriesLobby'
+    import { m } from '$lib/paraglide/messages'
 
     let {
         titles,
@@ -71,9 +72,11 @@
         <img src={entry.thumbnailUrl} alt="" />
         <span class="option-name">{entry.metadata.name}</span>
         <span class="option-counts">
-            {#if counts.open > 0}<b>{counts.open} open</b>{/if}
+            {#if counts.open > 0}<b>{m.create_game_open_tables({ count: counts.open })}</b>{/if}
             {#if counts.open > 0 && counts.inProgress > 0}<span aria-hidden="true"> · </span>{/if}
-            {#if counts.inProgress > 0}{counts.inProgress} in progress{/if}
+            {#if counts.inProgress > 0}{m.library_picker_in_progress({
+                    count: counts.inProgress
+                })}{/if}
         </span>
     </label>
 {/snippet}
@@ -87,53 +90,63 @@
         aria-controls={`${id}-panel`}
         onclick={() => (open ? close() : (open = true))}
     >
-        {selected.length > 0 ? `Titles · ${selected.length}` : 'All titles'}
+        {selected.length > 0
+            ? m.library_picker_titles_selected({ count: selected.length })
+            : m.library_picker_all_titles()}
         <span class="caret" aria-hidden="true">▾</span>
     </button>
     {#if open}
         <div class="scrim" aria-hidden="true"></div>
-        <div bind:this={panel} id={`${id}-panel`} class="panel" role="dialog" aria-label="Titles">
+        <div
+            bind:this={panel}
+            id={`${id}-panel`}
+            class="panel"
+            role="dialog"
+            aria-label={m.library_titles()}
+        >
             <div class="sheet-heading">
-                <span>Titles</span>
+                <span>{m.library_titles()}</span>
             </div>
             <input
                 class="search"
                 type="search"
-                placeholder={`Search ${titles.length} titles`}
-                aria-label="Search titles"
+                placeholder={m.create_game_search_placeholder({ count: titles.length })}
+                aria-label={m.create_game_search_label()}
                 bind:value={search}
                 {@attach focusSearch}
             />
             <div class="presets">
                 <button aria-pressed={selected.length === 0} onclick={() => onchange([])}
-                    >All</button
+                    >{m.library_picker_all()}</button
                 >
                 {#if withOpenTables.length > 0}
-                    <button onclick={() => onchange(withOpenTables)}>Has open tables</button>
+                    <button onclick={() => onchange(withOpenTables)}
+                        >{m.library_picker_has_open_tables()}</button
+                    >
                 {/if}
             </div>
             <div class="options">
                 {#if groups.active.length > 0}
-                    <p class="group">With games now</p>
+                    <p class="group">{m.library_picker_with_games()}</p>
                     {#each groups.active as title (title.entry.id)}{@render titleOption(
                             title
                         )}{/each}
                 {/if}
                 {#if groups.quiet.length > 0}
-                    <p class="group">No games right now</p>
+                    <p class="group">{m.library_picker_no_games()}</p>
                     {#each groups.quiet as title (title.entry.id)}{@render titleOption(
                             title
                         )}{/each}
                 {/if}
                 {#if groups.active.length + groups.quiet.length === 0}
-                    <p class="no-match">No title matches “{search.trim()}”.</p>
+                    <p class="no-match">{m.create_game_no_match({ search: search.trim() })}</p>
                 {/if}
             </div>
             <div class="footer">
                 <button class="clear" disabled={selected.length === 0} onclick={() => onchange([])}
-                    >Clear</button
+                    >{m.library_picker_clear()}</button
                 >
-                <button class="done" onclick={close}>Show games</button>
+                <button class="done" onclick={close}>{m.library_picker_show_games()}</button>
             </div>
         </div>
     {/if}
@@ -142,13 +155,14 @@
     <span class="chip">
         <img src={title.thumbnailUrl} alt="" />
         {shortTitleName(title.metadata)}
-        <button aria-label={`Remove ${title.metadata.name}`} onclick={() => toggleTitle(title.id)}
-            >✕</button
+        <button
+            aria-label={m.library_picker_remove({ name: title.metadata.name })}
+            onclick={() => toggleTitle(title.id)}>✕</button
         >
     </span>
 {/each}
 {#if selected.length > 1}
-    <button class="clear-chips" onclick={() => onchange([])}>Clear</button>
+    <button class="clear-chips" onclick={() => onchange([])}>{m.library_picker_clear()}</button>
 {/if}
 
 <style>

@@ -7,44 +7,53 @@ import {
     type PlayerVote,
     type UndoVotePreview
 } from '@tabletop/common'
-import { countOf } from './gameStats'
+import { m } from '$lib/paraglide/messages'
+import type { MessagePart } from '$lib/paraglide/runtime'
 
-export function undoneDetail(preview: UndoVotePreview): string {
-    return `moves by ${countOf(preview.affectedPlayerIds.length, 'player')}`
+export type VoteRequestForm = 'line' | 'sentence'
+
+const VOTE_REQUEST_MESSAGES = {
+    line: {
+        undo: m.games_vote_undo_request,
+        undoing: m.games_vote_undo_request_undoing,
+        noWinner: m.games_vote_call_request_no_winner,
+        winner: m.games_vote_call_request_winner
+    },
+    sentence: {
+        undo: m.games_vote_undo_request_sentence,
+        undoing: m.games_vote_undo_request_undoing_sentence,
+        noWinner: m.games_vote_call_request_no_winner_sentence,
+        winner: m.games_vote_call_request_winner_sentence
+    }
 }
 
 export function undoneSummary(preview: UndoVotePreview): string {
-    return `Undoes ${undoneDetail(preview)}.`
+    return m.games_vote_undoes_moves({ count: preview.affectedPlayerIds.length })
 }
 
 export function voteErrorMessage(error: unknown): string {
     const reason = error instanceof APIError ? error.metadata['reason'] : undefined
     return typeof reason === 'string'
-        ? `That didn't work: ${reason}.`
-        : 'That did not work. Please try again.'
+        ? m.games_vote_failed_reason({ reason })
+        : m.games_vote_failed()
 }
 
-export function voteRequest(vote: PlayerVote): string {
-    return vote.kind === PlayerVoteKind.Undo
-        ? 'is asking to undo to an earlier point'
-        : 'is asking to end the game'
-}
-
-export function voteDetail(
+export function voteRequestParts(
     vote: PlayerVote,
     undoPreview: UndoVotePreview | undefined,
-    playerName: (playerId: string) => string
-): string | undefined {
+    playerName: (playerId: string) => string,
+    form: VoteRequestForm
+): MessagePart[] {
+    const messages = VOTE_REQUEST_MESSAGES[form]
+    const name = playerName(vote.initiatorPlayerId)
     if (vote.kind === PlayerVoteKind.Undo) {
-        return undoPreview && `undoing ${undoneDetail(undoPreview)}`
+        return undoPreview
+            ? messages.undoing.parts({ name, count: undoPreview.affectedPlayerIds.length })
+            : messages.undo.parts({ name })
     }
-    return callWinnerDetail(
-        vote.declaredWinnerId === undefined ? undefined : playerName(vote.declaredWinnerId)
-    )
-}
-
-export function callWinnerDetail(winnerName: string | undefined): string {
-    return winnerName === undefined ? 'with no winner' : `with ${winnerName} as the winner`
+    return vote.declaredWinnerId === undefined
+        ? messages.noWinner.parts({ name })
+        : messages.winner.parts({ name, winner: playerName(vote.declaredWinnerId) })
 }
 
 export function voteTally(
@@ -53,6 +62,6 @@ export function voteTally(
 ): string {
     const approvals = vote.approvingPlayerIds.length
     return vote.kind === PlayerVoteKind.Undo
-        ? `${approvals} of ${votingPlayers(players).length} agreed`
-        : `${approvals} of ${requiredCallApprovals(players)} needed`
+        ? m.games_vote_tally_agreed({ approvals, total: votingPlayers(players).length })
+        : m.games_vote_tally_needed({ approvals, required: requiredCallApprovals(players) })
 }

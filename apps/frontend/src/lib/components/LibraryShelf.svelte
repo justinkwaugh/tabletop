@@ -4,8 +4,8 @@
     import LibraryTile from '$lib/components/LibraryTile.svelte'
     import SeriesCoverCycle from '$lib/components/SeriesCoverCycle.svelte'
     import { getLoginModal } from '$lib/stores/loginModal'
+    import { m } from '$lib/paraglide/messages'
     import {
-        gameCount,
         playerCountText,
         seriesUrl,
         titleMaturityLabel,
@@ -23,14 +23,17 @@
             {#if item.kind === 'series'}
                 <LibraryTile
                     action={{ href: seriesUrl(item.series) }}
-                    label={`View ${item.series.name}, ${gameCount(item.titles.length)}`}
+                    label={m.library_shelf_view_series({
+                        name: item.series.name,
+                        count: item.titles.length
+                    })}
                     name={item.series.name}
                 >
                     {#snippet cover(engaged)}
                         <SeriesCoverCycle titles={item.titles} paused={engaged} />
                     {/snippet}
                     {#snippet caption()}
-                        {gameCount(item.titles.length)}
+                        {m.title_count({ count: item.titles.length })}
                     {/snippet}
                 </LibraryTile>
             {:else}
@@ -40,9 +43,14 @@
                     action={signedIn
                         ? { href: `/library/${title.id}` }
                         : { onclick: openLoginModal }}
-                    label={signedIn
-                        ? `View ${title.metadata.name}${maturityLabel ? `, ${maturityLabel}` : ''}`
-                        : `Sign in to play ${title.metadata.name}`}
+                    label={!signedIn
+                        ? m.library_shelf_sign_in_to_play({ name: title.metadata.name })
+                        : maturityLabel
+                          ? m.library_shelf_view_title_with_maturity({
+                                name: title.metadata.name,
+                                maturity: maturityLabel
+                            })
+                          : m.library_shelf_view_title({ name: title.metadata.name })}
                     name={title.metadata.name}
                 >
                     {#snippet cover()}

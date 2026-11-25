@@ -21,9 +21,10 @@ import { SvelteMap } from 'svelte/reactivity'
 import type { NotificationService } from './notificationService.svelte'
 import { compareFollowedGames } from '$lib/utils/dashboardGames'
 import { isNewerGame } from '$lib/utils/gameUpdates'
+import { m } from '$lib/paraglide/messages'
 
 export function followFailureMessage(error: unknown): string {
-    return error instanceof APIError ? error.message : 'Could not update the games you follow.'
+    return error instanceof APIError ? error.message : m.follow_update_failed()
 }
 
 export class FollowedGames {

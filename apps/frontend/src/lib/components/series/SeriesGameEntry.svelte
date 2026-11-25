@@ -3,17 +3,18 @@
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import type { LobbyEntry } from '$lib/utils/seriesLobby'
+    import { m } from '$lib/paraglide/messages'
 
     let { game, entry }: { game: Game; entry: LobbyEntry } = $props()
     const { gameService } = getAppContext()
     let joining = $state(false)
 
-    const LABELS: Record<Exclude<LobbyEntry, 'join' | 'joined' | 'full'>, string> = {
-        yourTurn: 'Your Turn',
-        answerRequest: 'Answer Request',
-        enter: 'Enter',
-        watch: 'Watch',
-        revisit: 'Revisit'
+    const LABELS: Record<Exclude<LobbyEntry, 'join' | 'joined' | 'full'>, () => string> = {
+        yourTurn: m.library_entry_your_turn,
+        answerRequest: m.library_entry_answer_request,
+        enter: m.library_entry_enter,
+        watch: m.library_entry_watch,
+        revisit: m.library_entry_revisit
     }
 
     async function join() {
@@ -21,7 +22,7 @@
         try {
             await gameService.joinGame(game.id)
         } catch {
-            toast.error('Unable to join this game. Please try again.')
+            toast.error(m.library_entry_join_failed())
         } finally {
             joining = false
         }
@@ -33,14 +34,19 @@
         class="entry join"
         disabled={joining}
         aria-busy={joining}
-        aria-label={`Join ${game.name}`}
-        onclick={join}>Join</button
+        aria-label={m.library_entry_join_named({ name: game.name })}
+        onclick={join}>{m.library_entry_join()}</button
     >
 {:else if entry === 'joined' || entry === 'full'}
-    <span class="joined">{entry === 'joined' ? 'Joined' : 'Full'}</span>
+    <span class="joined"
+        >{entry === 'joined' ? m.library_entry_joined() : m.library_entry_full()}</span
+    >
 {:else}
-    <a class="entry {entry}" href={`/game/${game.id}`} aria-label={`${LABELS[entry]}: ${game.name}`}
-        >{LABELS[entry]}</a
+    <a
+        class="entry {entry}"
+        href={`/game/${game.id}`}
+        aria-label={m.library_entry_named({ action: LABELS[entry](), name: game.name })}
+        >{LABELS[entry]()}</a
     >
 {/if}
 

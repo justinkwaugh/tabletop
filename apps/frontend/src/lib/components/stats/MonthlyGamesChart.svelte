@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { countOf, monthName, type MonthIndex, type MonthlyGames } from '$lib/utils/gameStats'
+    import { m } from '$lib/paraglide/messages'
+    import { monthName, type MonthIndex, type MonthlyGames } from '$lib/utils/gameStats'
     import { monthlyChart } from '$lib/utils/monthlyChart'
     import ChartDataTable from './ChartDataTable.svelte'
     import ChartHoverSlots from './ChartHoverSlots.svelte'
@@ -58,24 +59,27 @@
                 y={hovered.topY}
                 trailing={hovered.centerX > width / 2}
             >
-                {monthName(hovered.month, 'long')}: {hovered.games} finished, {hovered.wonOrTied} won
-                or tied
+                {m.content_stats_month_tooltip({
+                    month: monthName(hovered.month, 'long'),
+                    games: hovered.games,
+                    wonOrTied: hovered.wonOrTied
+                })}
             </ChartTooltip>
         {/if}
     {/if}
 </div>
 <ChartKey
     entries={[
-        { label: 'Won or tied', color: 'var(--stats-mark)' },
-        { label: 'Lost', color: 'var(--color-gray-600)' }
+        { label: m.content_stats_won_or_tied(), color: 'var(--stats-mark)' },
+        { label: m.content_stats_lost(), color: 'var(--color-gray-600)' }
     ]}
 />
 <ChartDataTable
-    caption="Games finished per month"
-    headers={['Month', 'Finished', 'Won or tied']}
+    caption={m.content_stats_games_per_month()}
+    headers={[m.content_stats_month(), m.content_stats_finished(), m.content_stats_won_or_tied()]}
     rows={monthlyGames.map((entry) => [
         monthName(entry.month, 'long'),
-        countOf(entry.games, 'game'),
+        m.played_game_count({ count: entry.games }),
         String(entry.wonOrTied)
     ])}
 />

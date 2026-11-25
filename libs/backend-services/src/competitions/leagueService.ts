@@ -838,7 +838,7 @@ export class LeagueService {
                 name: name(account(value)),
                 wins: value.wins,
                 score: value.score,
-                averagePlace: formatTournamentAveragePlace(value),
+                averagePlace: formatTournamentAveragePlace(value, 'en-US'),
                 tiebreak: tiebreaks[index],
                 recipient: account(value) === userId
             }))

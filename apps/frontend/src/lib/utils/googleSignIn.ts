@@ -1,6 +1,7 @@
 import type { TabletopApiPublic } from '@tabletop/frontend-components'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
+import { m } from '$lib/paraglide/messages'
 
 export type GoogleSignInMode = 'login' | 'link' | 'reauthenticate'
 export type GoogleSignInApi = Pick<
@@ -8,8 +9,6 @@ export type GoogleSignInApi = Pick<
     'loginGoogle' | 'linkGoogle' | 'reauthenticateGoogle'
 >
 export type GoogleSignInSession = Pick<AuthorizationService, 'onLogin' | 'setSessionUser'>
-
-export const GOOGLE_LINK_DESCRIPTION = 'add Google as another way to sign in to your account'
 
 export async function signInWithGoogle({
     credential,
@@ -33,7 +32,7 @@ export async function signInWithGoogle({
                 break
             case 'link':
                 await reauthentication.run({
-                    description: GOOGLE_LINK_DESCRIPTION,
+                    purpose: 'link-google',
                     retry: async () => {
                         session.setSessionUser(await api.linkGoogle(credential))
                         oncomplete?.()
@@ -46,6 +45,6 @@ export async function signInWithGoogle({
                 break
         }
     } catch (error) {
-        report(error instanceof Error ? error.message : 'Google sign-in failed')
+        report(error instanceof Error ? error.message : m.auth_google_sign_in_failed())
     }
 }

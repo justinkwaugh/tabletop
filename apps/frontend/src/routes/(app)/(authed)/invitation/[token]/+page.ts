@@ -4,6 +4,7 @@ import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
 import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
 import { toast } from 'svelte-sonner'
+import { m } from '$lib/paraglide/messages'
 
 export async function load({ params, url }) {
     console.log('Invitation page load', url)
@@ -24,13 +25,13 @@ export async function load({ params, url }) {
         if (e instanceof APIError) {
             if (e.name === 'InvitationNotFound') {
                 onceMounted(() => {
-                    toast.error('The invitation was expired or not found')
+                    toast.error(m.auth_invitation_not_found())
                 })
                 await goto('/dashboard')
                 return
             } else if (e.name === 'Unauthorized') {
                 onceMounted(() => {
-                    toast.error('The invitation link is not for this user')
+                    toast.error(m.auth_invitation_wrong_user())
                 })
                 await goto('/dashboard')
                 return
@@ -40,7 +41,7 @@ export async function load({ params, url }) {
                 return
             } else if (e.name === 'UserAlreadyDeclinedError') {
                 onceMounted(() => {
-                    toast.error('You have already declined the invitation')
+                    toast.error(m.auth_invitation_already_declined())
                 })
                 await goto('/dashboard')
                 return
@@ -48,7 +49,7 @@ export async function load({ params, url }) {
         }
 
         onceMounted(() => {
-            toast.error('Unable to validate the invitation')
+            toast.error(m.auth_invitation_invalid())
         })
         await goto('/dashboard')
     }

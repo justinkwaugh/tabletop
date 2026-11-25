@@ -23,6 +23,8 @@
     import LeagueManageMenu from './LeagueManageMenu.svelte'
     import LeagueForm from './LeagueForm.svelte'
     import LeagueGroupTable from './LeagueGroupTable.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { id, season: seasonNumber }: { id: string; season?: number } = $props()
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
@@ -69,17 +71,17 @@
             }
         } catch (failure) {
             if (current())
-                loadError = failure instanceof Error ? failure.message : 'Could not load league'
+                loadError = failure instanceof Error ? failure.message : m.leagues_load_failed()
         }
     }
 
-    async function run(action: () => Promise<unknown>, failureText: string) {
+    async function run(action: () => Promise<unknown>, failureText: () => string) {
         busy = true
         actionError = ''
         try {
             await action()
         } catch (failure) {
-            actionError = failure instanceof Error ? failure.message : failureText
+            actionError = failure instanceof Error ? failure.message : failureText()
         } finally {
             await refresh()
             busy = false
@@ -90,14 +92,14 @@
         preview = undefined
         return run(
             () => api.scheduleLeagueSignUp(id, operation, closesAt),
-            'Could not update sign-up'
+            m.leagues_update_sign_up_failed
         )
     }
 
     async function loadPreview() {
         await run(async () => {
             preview = (await api.previewLeagueAllocation(id)).groups
-        }, 'Could not preview the groups')
+        }, m.leagues_preview_failed)
     }
 
     onMount(() => {
@@ -119,14 +121,25 @@
     })
 </script>
 
-<svelte:head><title>{league?.name ?? 'League'} · Tabletop</title></svelte:head>
+{#snippet finishedCount(text: string)}<span class="text-lg font-semibold tabular-nums">{text}</span
+    >{/snippet}
+{#snippet promotedMark()}<span class="text-green-700 dark:text-green-400">▲</span>{/snippet}
+{#snippet relegatedMark()}<span class="ml-2 text-red-600 dark:text-red-400">▼</span>{/snippet}
+
+<svelte:head
+    ><title
+        >{league
+            ? m.leagues_detail_page_title({ name: league.name })
+            : m.leagues_detail_page_title_loading()}</title
+    ></svelte:head
+>
 <main
     class="mx-auto max-w-7xl px-4 pb-10 pt-4 text-gray-900 dark:text-gray-100 sm:px-6 sm:pt-5"
     aria-busy={!detail && !loadError}
 >
     <a
         class="text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-        href="/leagues">← Leagues</a
+        href="/leagues">{m.leagues_back_to_leagues()}</a
     >
     {#each [loadError, actionError, season?.error ?? ''].filter(Boolean) as message, i (i)}
         <p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{message}</p>
@@ -165,7 +178,8 @@
                                 <details class="relative">
                                     <summary
                                         class="flex cursor-pointer list-none items-center gap-0.5 text-xs text-blue-700 hover:text-blue-500 dark:text-blue-300"
-                                        >Format <svg
+                                        >{m.leagues_format_heading()}
+                                        <svg
                                             aria-hidden="true"
                                             class="size-3"
                                             viewBox="0 0 16 16"
@@ -195,10 +209,12 @@
                         >
                             <span class="size-1.5 rounded-full bg-current" aria-hidden="true"
                             ></span>
-                            {season ? `Season ${season.number} · ` : ''}{leagueSeasonStatusText(
-                                season,
-                                now
-                            )}
+                            {season
+                                ? m.leagues_season_with_status({
+                                      season: m.leagues_season_name({ number: season.number }),
+                                      status: leagueSeasonStatusText(season, now)
+                                  })
+                                : leagueSeasonStatusText(season, now)}
                         </p>
                     </div>
                 </div>
@@ -206,15 +222,18 @@
                     {#if season && (season.status === 'inProgress' || season.status === 'starting') && seasonProgress.total}
                         <div class="w-full sm:w-60 sm:text-right">
                             <p class="text-sm">
-                                <span class="text-lg font-semibold tabular-nums"
-                                    >{seasonProgress.finished}</span
-                                >
-                                of {seasonProgress.total} games finished
+                                <RichMessage
+                                    parts={m.leagues_detail_games_finished.parts({
+                                        finished: seasonProgress.finished,
+                                        total: seasonProgress.total
+                                    })}
+                                    markup={{ count: finishedCount }}
+                                />
                             </p>
                             <div
                                 class="mt-1 flex h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
                                 role="progressbar"
-                                aria-label="Season games finished"
+                                aria-label={m.leagues_detail_games_finished_label()}
                                 aria-valuemin={0}
                                 aria-valuemax={seasonProgress.total}
                                 aria-valuenow={seasonProgress.finished}
@@ -225,12 +244,12 @@
                                 ></div>
                                 <div
                                     class="h-full bg-blue-300 dark:bg-blue-800"
-                                    title="In progress"
+                                    title={m.leagues_progress_in_progress()}
                                     style:width={`${(seasonProgress.activeProgress / seasonProgress.total) * 100}%`}
                                 ></div>
                             </div>
                             <p class="mt-1 text-xs text-gray-500">
-                                {seasonProgress.active} in progress
+                                {m.leagues_detail_active_games({ count: seasonProgress.active })}
                             </p>
                         </div>
                     {/if}
@@ -246,12 +265,12 @@
                             onsignuppolicy={(policy) =>
                                 run(
                                     () => api.updateLeagueSignUpPolicy(id, policy),
-                                    'Could not save the sign-up settings'
+                                    m.leagues_save_sign_up_policy_failed
                                 )}
                             oncancel={() =>
                                 run(
                                     () => api.cancelLeagueSeason(id),
-                                    'Could not cancel the season'
+                                    m.leagues_cancel_season_failed
                                 )}
                         />
                     {/if}
@@ -265,7 +284,10 @@
             {#if league.currentSeason !== undefined && league.currentSeason > 0}
                 <div class="mt-3 flex flex-wrap items-center gap-1.5">
                     {#if league.currentSeason !== undefined && league.currentSeason > 0}
-                        <nav aria-label="Seasons" class="flex flex-wrap gap-1.5">
+                        <nav
+                            aria-label={m.leagues_detail_seasons_label()}
+                            class="flex flex-wrap gap-1.5"
+                        >
                             {#each range(0, league.currentSeason + 1) as number (number)}
                                 <a
                                     href={number === league.currentSeason
@@ -276,7 +298,7 @@
                                     season?.number
                                         ? 'border-blue-500 text-blue-700 dark:text-blue-300'
                                         : 'border-gray-300 text-gray-500 hover:text-gray-900 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-100'}"
-                                    >Season {number}</a
+                                    >{m.leagues_season_name({ number })}</a
                                 >
                             {/each}
                         </nav>
@@ -287,7 +309,7 @@
 
         {#if isAdmin && league.status === 'draft' && editingDraft}
             <section
-                aria-label="Edit league draft"
+                aria-label={m.leagues_detail_edit_draft_label()}
                 class="mt-4 max-w-2xl rounded-md border border-gray-200 p-4 dark:border-gray-700"
             >
                 {#key league.revision}
@@ -306,19 +328,21 @@
 
         {#if isAdmin && preview !== undefined}
             <section
-                aria-label="Group preview"
+                aria-label={m.leagues_detail_preview_label()}
                 class="mt-3 rounded-md border border-dashed border-gray-300 p-3 text-xs dark:border-gray-600"
             >
                 {#if preview === null}
-                    <p>Too few players have signed up to fill two levels.</p>
+                    <p>{m.leagues_detail_preview_too_few()}</p>
                 {:else}
                     <p class="mb-2 text-gray-500">
-                        The groups if sign-up closed now with these players.
+                        {m.leagues_detail_preview_intro()}
                     </p>
                     <div class="grid gap-3 sm:grid-cols-3">
                         {#each preview as group (group.groupId)}
                             <div>
-                                <p class="font-medium">Group {group.groupId}</p>
+                                <p class="font-medium">
+                                    {m.leagues_group_name({ group: group.groupId })}
+                                </p>
                                 <p class="text-gray-500">
                                     {group.entrantIds.map(username).join(', ')}
                                 </p>
@@ -339,25 +363,30 @@
                     userId={user?.id}
                     {now}
                     {busy}
-                    onsignup={() => run(() => api.actOnLeague(id, 'signUp'), 'Could not sign up')}
+                    onsignup={() =>
+                        run(() => api.actOnLeague(id, 'signUp'), m.leagues_sign_up_failed)}
                     onwithdraw={() =>
-                        run(() => api.actOnLeague(id, 'withdraw'), 'Could not withdraw')}
+                        run(() => api.actOnLeague(id, 'withdraw'), m.leagues_withdraw_failed)}
                 />
                 {@render format()}
             </div>
         {:else if season && detail.groups.length}
-            <section aria-label={`Season ${season.number} groups`} class="mt-5">
+            <section
+                aria-label={m.leagues_detail_season_groups_label({ number: season.number })}
+                class="mt-5"
+            >
                 {#if season.status === 'finished' && season.seeding}
                     <p class="mb-3 text-xs text-gray-500">
-                        Letters show each player's level for Season {season.number + 1}, from places
-                        across all groups.
+                        {m.leagues_detail_seeding_letters({ number: season.number + 1 })}
                     </p>
                 {:else if season.status === 'finished'}
                     <p class="mb-3 text-xs text-gray-500">
-                        <span class="text-green-700 dark:text-green-400">▲</span> promoted
-                        <span class="ml-2 text-red-600 dark:text-red-400">▼</span> relegated for
-                        Season
-                        {season.number + 1}
+                        <RichMessage
+                            parts={m.leagues_detail_movement_legend.parts({
+                                number: season.number + 1
+                            })}
+                            markup={{ promoted: promotedMark, relegated: relegatedMark }}
+                        />
                     </p>
                 {/if}
                 <div class="space-y-5">
@@ -391,12 +420,12 @@
             </section>
         {:else if season?.status === 'cancelled'}
             <p class="mt-5 text-sm text-gray-500">
-                Season {season.number} was cancelled during sign-up.{isCurrent
-                    ? ' The next season opens when an administrator opens it.'
-                    : ''}
+                {isCurrent
+                    ? m.leagues_detail_cancelled_current({ number: season.number })
+                    : m.leagues_detail_cancelled({ number: season.number })}
             </p>
         {:else if !season}
-            <p class="mt-5 text-sm text-gray-500">Season 0 has not opened yet.</p>
+            <p class="mt-5 text-sm text-gray-500">{m.leagues_detail_not_opened()}</p>
         {/if}
     {/if}
 </main>

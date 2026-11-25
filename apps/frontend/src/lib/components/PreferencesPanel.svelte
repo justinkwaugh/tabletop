@@ -4,6 +4,8 @@
     import { ColorblindColorizer, DefaultColorizer } from '@tabletop/frontend-components'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import PreferredColorOrder from '$lib/components/PreferredColorOrder.svelte'
+    import LanguagePicker from '$lib/components/LanguagePicker.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     const { userPreferencesEditor: editor } = getAppContext()
     const preferences = $derived(editor.values)
@@ -19,23 +21,24 @@
 </script>
 
 <div class="flex flex-col space-y-6">
+    <LanguagePicker />
     <Toggle
         checked={preferences.preventWebNotificationPrompt}
         onchange={(event) =>
             editor.update({ preventWebNotificationPrompt: event.currentTarget.checked })}
-        >Prevent Web Notifications Prompt</Toggle
+        >{m.preferences_prevent_web_notification_prompt()}</Toggle
     >
     <Toggle
         checked={preferences.colorBlindPalette ?? false}
         onchange={(event) => editor.update({ colorBlindPalette: event.currentTarget.checked })}
-        >Colorblind Friendly Palette</Toggle
+        >{m.preferences_colorblind_palette()}</Toggle
     >
     <div>
         <Toggle
             checked={preferences.preferredColorsEnabled}
             onchange={(event) =>
                 editor.update({ preferredColorsEnabled: event.currentTarget.checked })}
-            >Preferred Player Colors</Toggle
+            >{m.preferences_preferred_player_colors()}</Toggle
         >
 
         {#if preferences.preferredColorsEnabled}
@@ -52,11 +55,10 @@
         <Toggle
             checked={preferences.bgStatsEnabled ?? false}
             onchange={(event) => editor.update({ bgStatsEnabled: event.currentTarget.checked })}
-            >Log plays to BG Stats</Toggle
+            >{m.preferences_bg_stats()}</Toggle
         >
         <Helper class="mt-2" color="gray">
-            Show a link on your completed online games to import the game, players, scores, and
-            winners into the BG Stats app. You confirm each import in BG Stats.
+            {m.preferences_bg_stats_help()}
         </Helper>
     </div>
 </div>

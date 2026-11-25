@@ -10,13 +10,12 @@
         type Game,
         type GameCatalogEntry
     } from '@tabletop/common'
-    import { GAME_PACE_LABELS } from '@tabletop/frontend-components'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import GameProgressBar from '$lib/components/GameProgressBar.svelte'
     import SeriesGameEntry from './SeriesGameEntry.svelte'
     import CopyGameLinkButton from '$lib/components/CopyGameLinkButton.svelte'
     import { minuteClock, timeSince } from '$lib/utils/clock.svelte'
-    import { lastMovePaceWarning } from '$lib/utils/gamePace'
+    import { lastMovePaceWarning, paceTexts } from '$lib/utils/gamePace'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { activePlayerText } from '$lib/utils/player'
@@ -28,6 +27,7 @@
         takenSeats,
         winnerText
     } from '$lib/utils/seriesLobby'
+    import { m } from '$lib/paraglide/messages'
 
     type Kind = 'open' | 'inProgress' | 'finished'
 
@@ -49,36 +49,36 @@
     const panelIdPrefix = $props.id()
     const expanded = new SvelteSet<string>()
 
-    type Heading = { area: string; label: string }
+    type Heading = { area: string; label: () => string }
 
     const HEADINGS: Record<Kind, Heading[]> = {
         open: [
-            { area: 'title', label: 'Title' },
-            { area: 'name', label: 'Name' },
-            { area: 'seats', label: 'Seats' },
-            { area: 'options', label: 'Options' },
-            { area: 'pace', label: 'Pace' },
-            { area: 'age', label: 'Created' }
+            { area: 'title', label: m.library_table_title },
+            { area: 'name', label: m.library_table_name },
+            { area: 'seats', label: m.library_table_seats },
+            { area: 'options', label: m.library_table_options },
+            { area: 'pace', label: m.library_table_pace },
+            { area: 'age', label: m.library_table_created }
         ],
         inProgress: [
-            { area: 'title', label: 'Title' },
-            { area: 'name', label: 'Name' },
-            { area: 'progress', label: 'Progress' },
-            { area: 'options', label: 'Options' },
-            { area: 'pace', label: 'Pace' },
-            { area: 'onmove', label: 'Turn' },
-            { area: 'age', label: 'Last action' }
+            { area: 'title', label: m.library_table_title },
+            { area: 'name', label: m.library_table_name },
+            { area: 'progress', label: m.library_table_progress },
+            { area: 'options', label: m.library_table_options },
+            { area: 'pace', label: m.library_table_pace },
+            { area: 'onmove', label: m.library_table_turn },
+            { area: 'age', label: m.library_table_last_action }
         ],
         finished: [
-            { area: 'title', label: 'Title' },
-            { area: 'name', label: 'Name' },
-            { area: 'winner', label: 'Winner' },
-            { area: 'options', label: 'Options' },
-            { area: 'age', label: 'Finished' }
+            { area: 'title', label: m.library_table_title },
+            { area: 'name', label: m.library_table_name },
+            { area: 'winner', label: m.library_table_winner },
+            { area: 'options', label: m.library_table_options },
+            { area: 'age', label: m.library_table_finished }
         ]
     }
 
-    const ageLabel = $derived(HEADINGS[kind].find((heading) => heading.area === 'age')?.label)
+    const ageLabel = $derived(HEADINGS[kind].find((heading) => heading.area === 'age')?.label())
 
     // Undefined until the title loads, so a game with options never shows as Standard.
     function options(game: Game) {
@@ -108,7 +108,7 @@
     <div class="row heading" aria-hidden="true">
         {#each HEADINGS[kind] as heading (heading.area)}<span
                 data-area={heading.area}
-                style:grid-area={heading.area}>{heading.label}</span
+                style:grid-area={heading.area}>{heading.label()}</span
             >{/each}
     </div>
     <ul>
@@ -131,7 +131,9 @@
                         class="chevron"
                         aria-expanded={isOpen}
                         aria-controls={isOpen ? panelId : undefined}
-                        aria-label={`${isOpen ? 'Hide' : 'Show'} details for ${game.name}`}
+                        aria-label={isOpen
+                            ? m.library_table_hide_details({ name: game.name })
+                            : m.library_table_show_details({ name: game.name })}
                         onclick={() => toggle(game.id)}
                         ><ChevronRightOutline class="h-3.5 w-3.5" aria-hidden="true" /></button
                     >
@@ -141,20 +143,25 @@
                         <span class="title">{title ? shortTitleName(title.metadata) : ''}</span>
                         {#if onMove}
                             <span class="onmove"
-                                >{onMove}<span class="phone-only">{' to move'}</span></span
+                                ><span class="wide-only">{onMove}</span><span class="phone-only"
+                                    >{m.library_table_to_move({ player: onMove })}</span
+                                ></span
                             >
                         {:else if kind === 'finished'}
+                            {@const winners = winnerText(game)}
                             <span class="winner"
-                                >{winnerText(game)}{#if game.winningPlayerIds.length > 0}<span
-                                        class="phone-only">{' won'}</span
-                                    >{/if}</span
+                                >{#if game.winningPlayerIds.length > 0}<span class="wide-only"
+                                        >{winners}</span
+                                    ><span class="phone-only"
+                                        >{m.library_table_won({ winners })}</span
+                                    >{:else}{winners}{/if}</span
                             >
                         {/if}
-                        {#if kind !== 'finished'}<span
-                                class="pace"
-                                class:live={pace.pace === GamePace.Live}
-                                >{GAME_PACE_LABELS[pace.pace].name}<span class="phone-only"
-                                    >{' pace'}</span
+                        {#if kind !== 'finished'}{@const paceName = paceTexts(
+                                pace.pace
+                            ).name()}<span class="pace" class:live={pace.pace === GamePace.Live}
+                                ><span class="wide-only">{paceName}</span><span class="phone-only"
+                                    >{m.library_table_pace_value({ pace: paceName })}</span
                                 ></span
                             >{/if}
                     </span>
@@ -169,7 +176,10 @@
                     {#if kind === 'open'}
                         <span
                             class="seats"
-                            aria-label={`${takenSeats(game)} of ${game.players.length} seats taken`}
+                            aria-label={m.library_table_seats_taken({
+                                taken: takenSeats(game),
+                                total: game.players.length
+                            })}
                         >
                             <span class="dots" aria-hidden="true"
                                 >{#each game.players as player (player.id)}<i
@@ -193,8 +203,10 @@
                     <div class="panel" id={panelId} transition:slide={{ duration: 150 }}>
                         <div class="panel-blocks">
                             {#if gameOptions && gameOptions.length > 0}
-                                <section class="block" aria-label="Game options">
-                                    <div class="block-heading"><span>GAME OPTIONS</span></div>
+                                <section class="block" aria-label={m.library_table_game_options()}>
+                                    <div class="block-heading">
+                                        <span>{m.library_table_game_options_heading()}</span>
+                                    </div>
                                     <dl>
                                         {#each gameOptions as option (option.name)}<div
                                                 class="line option"
@@ -205,9 +217,10 @@
                                     </dl>
                                 </section>
                             {/if}
-                            <section class="block" aria-label="Players">
+                            <section class="block" aria-label={m.library_table_players()}>
                                 <div class="block-heading">
-                                    <span>PLAYERS</span>{#if scores}<span>SCORE</span>{/if}
+                                    <span>{m.library_table_players_heading()}</span
+                                    >{#if scores}<span>{m.library_table_score_heading()}</span>{/if}
                                 </div>
                                 <ul>
                                     {#each panelPlayers(game, scores) as player (player.id)}<li
@@ -550,6 +563,9 @@
         .meta > span,
         .phone-only {
             display: inline;
+        }
+        .wide-only {
+            display: none;
         }
         .options,
         .age {

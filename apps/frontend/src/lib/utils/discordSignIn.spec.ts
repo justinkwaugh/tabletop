@@ -20,7 +20,7 @@ import {
     type DiscordAuthorizationResult
 } from './discordAuthorization'
 import type { DiscordAuthorizationStart } from '@tabletop/frontend-components'
-import { DISCORD_LINK_DESCRIPTION, signInWithDiscord } from './discordSignIn'
+import { signInWithDiscord } from './discordSignIn'
 
 const user: User = {
     id: 'account-1',
@@ -103,7 +103,7 @@ describe('closing the Discord window', () => {
         async (purpose) => {
             const { oncomplete, report, run } = flow(purpose)
             if (purpose === 'reauthenticate') {
-                reauthentication.request({ description: 'add Google', retry: vi.fn() })
+                reauthentication.request({ purpose: 'link-google', retry: vi.fn() })
             }
             const confirmation = reauthentication.pending
             const pending = run()
@@ -175,7 +175,7 @@ describe('a button with no completion callback', () => {
             }
         })
         await first
-        expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+        expect(reauthentication.pending?.purpose).toBe('link-discord')
         expect(report).not.toHaveBeenCalled()
 
         const confirmation = reauthentication.pending
@@ -250,7 +250,7 @@ describe('linking a Discord account', () => {
             await reauthentication.resume(ready)
             expect(window.open).not.toHaveBeenCalled()
             expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(2)
-            expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+            expect(reauthentication.pending?.purpose).toBe('link-discord')
             expect(reauthentication.confirmed).toBe(false)
             expect(report).not.toHaveBeenCalled()
         } finally {
@@ -273,7 +273,7 @@ describe('linking a Discord account', () => {
             error: { name: 'RecentAuthenticationRequiredError', message: 'Confirm again' }
         })
         await continuing
-        expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+        expect(reauthentication.pending?.purpose).toBe('link-discord')
         expect(reauthentication.confirmed).toBe(false)
         expect(report).not.toHaveBeenCalled()
     })
@@ -361,7 +361,7 @@ describe('linking a Discord account', () => {
             }
         })
         await first
-        expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+        expect(reauthentication.pending?.purpose).toBe('link-discord')
         expect(oncomplete).not.toHaveBeenCalled()
         expect(report).not.toHaveBeenCalled()
 
@@ -387,7 +387,7 @@ describe('linking a Discord account', () => {
         const { api, oncomplete, report, run } = flow('link')
         api.beginDiscordAuthorization.mockRejectedValueOnce(recentAuthenticationRequired())
         await run()
-        expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+        expect(reauthentication.pending?.purpose).toBe('link-discord')
         expect(window.open).not.toHaveBeenCalled()
         expect(popup.location.href).toBe('about:blank')
         expect(oncomplete).not.toHaveBeenCalled()

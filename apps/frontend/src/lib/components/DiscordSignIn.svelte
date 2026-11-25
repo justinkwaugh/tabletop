@@ -6,6 +6,7 @@
 </script>
 
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '@tabletop/frontend-components'
     import {
@@ -25,10 +26,10 @@
     const { api } = getAppContext()
     let submitting = $state(false)
     const labels: Record<DiscordSignInMode, string> = {
-        login: 'Login with Discord',
-        link: 'Link',
-        reauthenticate: 'Continue with Discord',
-        bot: 'Add Bot'
+        login: m.discord_sign_in(),
+        link: m.discord_link(),
+        reauthenticate: m.discord_continue(),
+        bot: m.discord_add_bot()
     }
 
     function addBot() {

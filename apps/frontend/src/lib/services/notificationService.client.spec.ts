@@ -110,7 +110,7 @@ function createService(user: User | undefined, relayStatsAvailable = false) {
         disconnect: vi.fn()
     }
     const api = new TabletopApi()
-    const authorizationService = new AuthorizationService(api, vi.fn(), vi.fn())
+    const authorizationService = new AuthorizationService(api, vi.fn(), vi.fn(), vi.fn())
     if (user) authorizationService.setSessionUser(user)
     const visibility = new VisibilityStub()
     const service = new NotificationService(

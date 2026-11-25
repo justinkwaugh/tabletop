@@ -15,11 +15,56 @@
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
     import {
         reauthentication,
-        type PendingSensitiveAction
+        type PendingSensitiveAction,
+        type SensitiveActionPurpose
     } from '$lib/stores/reauthentication.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { action }: { action: PendingSensitiveAction } = $props()
     const initiatingAction = untrack(() => action)
+
+    const explanations: Record<
+        SensitiveActionPurpose,
+        { request: () => string; confirmed: () => string }
+    > = {
+        'change-password': {
+            request: m.auth_reauth_request_change_password,
+            confirmed: m.auth_reauth_confirmed_change_password
+        },
+        'update-profile': {
+            request: m.auth_reauth_request_update_profile,
+            confirmed: m.auth_reauth_confirmed_update_profile
+        },
+        'change-email': {
+            request: m.auth_reauth_request_change_email,
+            confirmed: m.auth_reauth_confirmed_change_email
+        },
+        'confirm-new-email': {
+            request: m.auth_reauth_request_confirm_new_email,
+            confirmed: m.auth_reauth_confirmed_confirm_new_email
+        },
+        'delete-account': {
+            request: m.auth_reauth_request_delete_account,
+            confirmed: m.auth_reauth_confirmed_delete_account
+        },
+        'update-email': {
+            request: m.auth_reauth_request_update_email,
+            confirmed: m.auth_reauth_confirmed_update_email
+        },
+        'complete-profile': {
+            request: m.auth_reauth_request_complete_profile,
+            confirmed: m.auth_reauth_confirmed_complete_profile
+        },
+        'link-discord': {
+            request: m.auth_reauth_request_link_discord,
+            confirmed: m.auth_reauth_confirmed_link_discord
+        },
+        'link-google': {
+            request: m.auth_reauth_request_link_google,
+            confirmed: m.auth_reauth_confirmed_link_google
+        }
+    }
+    const explanation = explanations[initiatingAction.purpose]
 
     const { authorizationService, api } = getAppContext()
     const id = $props.id()
@@ -45,7 +90,7 @@
         try {
             await reauthentication.complete(initiatingAction)
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'The confirmed action failed')
+            toast.error(error instanceof Error ? error.message : m.auth_reauth_action_failed())
         }
     }
 
@@ -59,7 +104,7 @@
         try {
             await reauthentication.resume(initiatingAction)
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'The confirmed action failed')
+            toast.error(error instanceof Error ? error.message : m.auth_reauth_action_failed())
         }
     }
 
@@ -73,14 +118,14 @@
             await confirmed()
         } catch (error) {
             if (error instanceof APIError && error.name === 'ReauthenticationFailedError') {
-                failure = 'That password was not accepted.'
+                failure = m.auth_reauth_password_rejected()
             } else if (
                 error instanceof APIError &&
                 error.name === 'ReauthenticationRateLimitError'
             ) {
                 failure = error.message
             } else {
-                failure = 'We could not confirm your identity. Please try again.'
+                failure = m.auth_reauth_failed()
             }
         } finally {
             submitting = false
@@ -88,16 +133,16 @@
     }
 </script>
 
-<AuthModal bind:open title="Confirm it's you" variant="form" oncancel={cancel}>
+<AuthModal bind:open title={m.auth_reauth_title()} variant="form" oncancel={cancel}>
     {#if reauthentication.confirmed}
         <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
-            Your identity is confirmed. Continue to {initiatingAction.description}.
+            {explanation.confirmed()}
         </P>
-        <Button color="blue" type="button" onclick={resume}>Continue</Button>
-        <Button color="light" type="button" onclick={cancel}>Cancel</Button>
+        <Button color="blue" type="button" onclick={resume}>{m.auth_continue()}</Button>
+        <Button color="light" type="button" onclick={cancel}>{m.cancel()}</Button>
     {:else}
         <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
-            For your security, confirm it's you before you {initiatingAction.description}.
+            {explanation.request()}
         </P>
         {#if failure}
             <Alert color="red" class="mb-4" role="alert">{failure}</Alert>
@@ -110,7 +155,7 @@
                     {@attach focusFirstInput}
                 >
                     <div>
-                        <Label for={`${id}-password`} class="mb-2">Password</Label>
+                        <Label for={`${id}-password`} class="mb-2">{m.auth_password()}</Label>
                         <PasswordInput
                             id={`${id}-password`}
                             bind:value={password}
@@ -118,7 +163,7 @@
                         />
                     </div>
                     <Button color="blue" type="submit" disabled={submitting}>
-                        {submitting ? 'Confirming…' : 'Confirm'}
+                        {submitting ? m.auth_reauth_confirming() : m.auth_reauth_confirm()}
                     </Button>
                 </form>
             {/if}
@@ -130,12 +175,13 @@
             {/if}
             {#if !canUsePassword && !canUseGoogle && !canUseDiscord}
                 <P class="text-sm text-gray-600 dark:text-gray-300">
-                    This account has no password or linked account to confirm with. Use Forgot
-                    password on the sign-in page to set one, then sign in again.
+                    {m.auth_reauth_no_method()}
                 </P>
-                <Button color="light" href="/login/username" onclick={cancel}>Go to sign in</Button>
+                <Button color="light" href="/login/username" onclick={cancel}
+                    >{m.auth_reauth_go_to_sign_in()}</Button
+                >
             {/if}
-            <Button color="light" type="button" onclick={cancel}>Cancel</Button>
+            <Button color="light" type="button" onclick={cancel}>{m.cancel()}</Button>
         </div>
     {/if}
 </AuthModal>

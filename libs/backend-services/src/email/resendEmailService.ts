@@ -258,7 +258,7 @@ export class ResendEmailService implements EmailService {
                     name: name(row.playedBy ?? row.userId),
                     wins: row.wins,
                     score: row.score,
-                    averagePlace: formatTournamentAveragePlace(row),
+                    averagePlace: formatTournamentAveragePlace(row, 'en-US'),
                     tiebreak: tiebreaks[index],
                     recipient: (row.playedBy ?? row.userId) === recipientId,
                     champion: row.champion === true

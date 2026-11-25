@@ -4,6 +4,7 @@
 </script>
 
 <script lang="ts">
+    import { getLocale } from '$lib/paraglide/runtime'
     import { onMount } from 'svelte'
     import { toast } from 'svelte-sonner'
     import { isLibraryLoaded, markLibraryLoaded } from '$lib/stores/libraryLoaded.svelte'
@@ -57,7 +58,8 @@
                     mode === 'login' ? 'signin_with' : mode === 'link' ? 'signin' : 'continue_with',
                 shape: 'pill',
                 logo_alignment: 'left',
-                width: targetWidth
+                width: targetWidth,
+                locale: getLocale()
             })
         }
     })

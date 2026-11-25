@@ -1,8 +1,9 @@
 <script lang="ts">
     import { tick } from 'svelte'
     import { flip } from 'svelte/animate'
-    import type { Color } from '@tabletop/common'
+    import { Color } from '@tabletop/common'
     import { moveToIndex } from '@tabletop/frontend-components'
+    import { m } from '$lib/paraglide/messages'
 
     let {
         colors,
@@ -13,6 +14,20 @@
         swatchClass: (color: Color) => string
         onchange: (colors: Color[]) => void
     } = $props()
+
+    const COLOR_NAMES: Record<Color, () => string> = {
+        [Color.Red]: m.content_color_red,
+        [Color.Orange]: m.content_color_orange,
+        [Color.Yellow]: m.content_color_yellow,
+        [Color.Green]: m.content_color_green,
+        [Color.Blue]: m.content_color_blue,
+        [Color.Purple]: m.content_color_purple,
+        [Color.Pink]: m.content_color_pink,
+        [Color.Brown]: m.content_color_brown,
+        [Color.Gray]: m.content_color_gray,
+        [Color.Black]: m.content_color_black,
+        [Color.White]: m.content_color_white
+    }
 
     const hintId = $props.id()
     let row: HTMLDivElement
@@ -73,7 +88,7 @@
     <div
         bind:this={row}
         role="group"
-        aria-label="Preferred player colours"
+        aria-label={m.content_color_order_label()}
         aria-describedby={hintId}
         class="relative flex select-none flex-row items-center justify-center gap-1"
         onpointermove={continueDrag}
@@ -85,7 +100,11 @@
             <button
                 bind:this={swatches[color]}
                 type="button"
-                aria-label={`${color}, ${i + 1} of ${colors.length}`}
+                aria-label={m.content_color_order_swatch({
+                    color: COLOR_NAMES[color](),
+                    position: i + 1,
+                    total: colors.length
+                })}
                 onpointerdown={(event) => startDrag(event, color)}
                 onkeydown={(event) => moveWithKeys(event, color, i)}
                 animate:flip={{ duration: 100 }}
@@ -97,7 +116,7 @@
         {/each}
     </div>
     <p id={hintId} class="mt-2 text-xs font-medium text-gray-400">
-        drag, or use the arrow keys, to reorder
+        {m.content_color_order_hint()}
     </p>
 </div>
 

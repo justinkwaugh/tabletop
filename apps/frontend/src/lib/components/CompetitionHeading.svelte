@@ -1,13 +1,15 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
+
     const sections = [
-        { id: 'tournaments', label: 'Tournaments', href: '/tournaments' },
-        { id: 'leagues', label: 'Leagues', href: '/leagues' }
+        { id: 'tournaments', label: m.tournaments_heading_tournaments, href: '/tournaments' },
+        { id: 'leagues', label: m.tournaments_heading_leagues, href: '/leagues' }
     ] as const
 
     let { current }: { current: (typeof sections)[number]['id'] } = $props()
 </script>
 
-<nav aria-label="Competitions" class="flex items-baseline gap-3.5 sm:gap-6">
+<nav aria-label={m.tournaments_heading_label()} class="flex items-baseline gap-3.5 sm:gap-6">
     {#each sections as section, index (section.id)}
         {#if index > 0}
             <span
@@ -16,12 +18,12 @@
             ></span>
         {/if}
         {#if section.id === current}
-            <h1 class="competition-option collection-heading">{section.label}</h1>
+            <h1 class="competition-option collection-heading">{section.label()}</h1>
         {:else}
             <a
                 href={section.href}
                 class="competition-option collection-heading text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
-                >{section.label}</a
+                >{section.label()}</a
             >
         {/if}
     {/each}

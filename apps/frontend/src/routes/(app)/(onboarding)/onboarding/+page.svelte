@@ -5,11 +5,12 @@
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
-    import { ageConfirmationMessage } from '$lib/utils/accountFormValidation'
     import {
         reauthentication,
         requiresRecentAuthentication
     } from '$lib/stores/reauthentication.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { authorizationService, api } = getAppContext()
 
@@ -32,7 +33,7 @@
         email = email?.trim()
         errors = {}
         if (user && !user.ageConfirmedAt && !ageConfirmed) {
-            errors.ageConfirmed = [ageConfirmationMessage]
+            errors.ageConfirmed = [m.auth_validation_age_confirmation()]
             return
         }
 
@@ -42,7 +43,7 @@
             ageConfirmed: ageConfirmed ? true : undefined
         }
         await reauthentication.run({
-            description: email ? 'update your email address' : 'complete your profile',
+            purpose: email ? 'update-email' : 'complete-profile',
             retry: () => saveProfile(payload)
         })
     }
@@ -64,9 +65,9 @@
                 errors.username = [e.message]
             } else if (isAlreadyExists(e)) {
                 if (e.message.includes('username')) {
-                    errors.username = ['Username already exists']
+                    errors.username = [m.auth_username_exists()]
                 } else if (e.message.includes('email')) {
-                    errors.email = ['Email already exists']
+                    errors.email = [m.auth_email_exists()]
                 } else {
                     unexpectedError = true
                 }
@@ -115,43 +116,46 @@
 {#snippet signUpDeadline()}
     {#if neverActivated}
         <P class="text-sm mt-4 text-gray-500 dark:text-gray-400"
-            >Unfinished sign-ups are deleted after {ABANDONED_SIGN_UP_DAYS} days.</P
+            >{m.auth_onboarding_signup_deadline({ days: ABANDONED_SIGN_UP_DAYS })}</P
         >
     {/if}
 {/snippet}
+
+{#snippet address(text: string)}<span class="dark:text-orange-300"><strong>{text}</strong></span
+    >{/snippet}
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
     {#if user && user.email && !user.emailVerified}
         <Card class="p-4 sm:p-6">
             <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300">
-                Verify your email...
+                {m.auth_onboarding_verify_heading()}
             </h1>
             <Hr class="my-4" />
             {#if unexpectedError}
                 <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
-                    <span class="font-bold text-lg">Oops...</span><br />
-                    An unexpected error occurred. Please try again and hopefully it will be better next
-                    time.
+                    <span class="font-bold text-lg">{m.auth_onboarding_oops()}</span><br />
+                    {m.auth_onboarding_unexpected_error()}
                 </Alert>
             {/if}
             {#if verificationError}
                 <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
-                    <span class="font-bold text-lg">Verification Failed</span><br />
-                    Please check that you entered the most recent code and that it has not expired. A
-                    code works for 15 minutes.
+                    <span class="font-bold text-lg">{m.auth_onboarding_verification_failed()}</span
+                    ><br />
+                    {m.auth_onboarding_verification_failed_detail()}
                 </Alert>
             {/if}
             {#if newEmailSent}
                 <Alert class="dark:bg-green-200 dark:text-green-700 mb-4">
-                    <span class="font-bold text-lg">Email Sent</span><br />
-                    Please check your email for a new verification code.
+                    <span class="font-bold text-lg">{m.auth_onboarding_email_sent()}</span><br />
+                    {m.auth_onboarding_check_email()}
                     {#if codeExpiresAt}{challengeExpiryText(codeExpiresAt)}{/if}
                 </Alert>
             {/if}
             <P class="dark:text-gray-300"
-                >An email has been sent to <span class="dark:text-orange-300"
-                    ><strong>{user.email}</strong></span
-                > with a verification token. Please enter the token below to verify your email address.</P
+                ><RichMessage
+                    parts={m.auth_onboarding_token_sent.parts({ email: user.email })}
+                    markup={{ address }}
+                /></P
             >
             <form class="flex flex-col space-y-6 mt-4" action="/" onsubmit={verifyEmail}>
                 <Input
@@ -163,8 +167,9 @@
                     required
                 />
                 <div class="flex flex-row justify-between">
-                    <Button onclick={sendVerificationEmail} color="light">Send New Token</Button
-                    ><Button type="submit">Submit</Button>
+                    <Button onclick={sendVerificationEmail} color="light"
+                        >{m.auth_onboarding_send_new_token()}</Button
+                    ><Button type="submit">{m.submit()}</Button>
                 </div>
             </form>
             {@render signUpDeadline()}
@@ -172,24 +177,23 @@
     {:else}
         <Card class="p-4 sm:p-6">
             <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
-                Complete your profile...
+                {m.auth_onboarding_complete_heading()}
             </h1>
             {#if unexpectedError}
                 <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
-                    <span class="font-bold text-lg">Oops...</span><br />
-                    An unexpected error occurred. Please try again and hopefully it will be better next
-                    time.
+                    <span class="font-bold text-lg">{m.auth_onboarding_oops()}</span><br />
+                    {m.auth_onboarding_unexpected_error()}
                 </Alert>
             {/if}
             <form class="flex flex-col space-y-6" action="/" onsubmit={updateUser}>
                 {#if user && !user.username}
-                    <Label class="mb-2">Username</Label>
+                    <Label class="mb-2">{m.auth_username()}</Label>
                     <Input
                         bind:value={username}
                         oninput={trim}
                         type="text"
                         name="username"
-                        placeholder="choose a username"
+                        placeholder={m.auth_username_placeholder()}
                         required
                     />
                     {#if errors?.username}
@@ -201,13 +205,13 @@
                     {/if}
                 {/if}
                 {#if user && !user.email}
-                    <Label class="mb-2">Email</Label>
+                    <Label class="mb-2">{m.auth_email()}</Label>
                     <Input
                         bind:value={email}
                         oninput={trim}
                         type="email"
                         name="email"
-                        placeholder="name@company.com"
+                        placeholder={m.auth_email_placeholder()}
                         required
                     />
                     {#if errors?.email}
@@ -218,14 +222,15 @@
                         {/each}
                     {/if}
                     <Helper class="text-sm mt-2">
-                        We’ll never share your email publicly. It is only used for account recovery
-                        and notifications.
+                        {m.auth_onboarding_email_privacy()}
                     </Helper>
                 {/if}
                 {#if user && !user.ageConfirmedAt}
                     <AgeConfirmation bind:checked={ageConfirmed} errors={errors.ageConfirmed} />
                 {/if}
-                <div class="flex justify-end"><Button type="submit" class="">Submit</Button></div>
+                <div class="flex justify-end">
+                    <Button type="submit" class="">{m.submit()}</Button>
+                </div>
             </form>
             {@render signUpDeadline()}
         </Card>

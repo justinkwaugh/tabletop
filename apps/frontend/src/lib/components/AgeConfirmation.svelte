@@ -1,9 +1,15 @@
 <script lang="ts">
     import { Checkbox, Helper } from 'flowbite-svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { checked = $bindable(false), errors }: { checked?: boolean; errors?: string[] } = $props()
     const id = $props.id()
 </script>
+
+{#snippet terms(text: string)}<a href="/terms" target="_blank" rel="noreferrer">{text}</a>{/snippet}
+{#snippet privacy(text: string)}<a href="/privacy" target="_blank" rel="noreferrer">{text}</a
+    >{/snippet}
 
 <div>
     <Checkbox
@@ -15,10 +21,7 @@
         aria-describedby={errors ? `${id}-age-error` : undefined}
     >
         <span>
-            I'm 13 or older and agree to the
-            <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a>. See how we use
-            your data in the
-            <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+            <RichMessage parts={m.auth_age_confirmation.parts()} markup={{ terms, privacy }} />
         </span>
     </Checkbox>
     {#if errors}

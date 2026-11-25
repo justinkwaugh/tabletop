@@ -1,5 +1,6 @@
 import type { DiscordAuthorizationPurpose } from '@tabletop/frontend-components'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
+import { m } from '$lib/paraglide/messages'
 import {
     openDiscordAuthorization,
     openPreparedDiscordAuthorization,
@@ -8,8 +9,6 @@ import {
     type DiscordAuthorizationOutcome,
     type DiscordAuthorizationSuccess
 } from './discordAuthorization'
-
-export const DISCORD_LINK_DESCRIPTION = 'add Discord as another way to sign in to your account'
 
 export async function signInWithDiscord({
     purpose,
@@ -31,7 +30,7 @@ export async function signInWithDiscord({
     try {
         if (purpose === 'link') {
             await reauthentication.run({
-                description: DISCORD_LINK_DESCRIPTION,
+                purpose: 'link-discord',
                 retry: attempt,
                 requiresUserGesture: true,
                 prepare: async () => {
@@ -50,6 +49,6 @@ export async function signInWithDiscord({
             await attempt()
         }
     } catch (error) {
-        report(error instanceof Error ? error.message : 'Discord authorization failed')
+        report(error instanceof Error ? error.message : m.auth_discord_authorization_failed())
     }
 }

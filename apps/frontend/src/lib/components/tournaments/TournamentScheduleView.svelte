@@ -3,6 +3,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { accountName } from '$lib/utils/accountName'
     import GameProgressBar from '../GameProgressBar.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     import {
         generateSeed,
@@ -63,7 +64,8 @@
             preview = { schedule, revision }
             page = 0
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not preview schedule'
+            error =
+                failure instanceof Error ? failure.message : m.tournaments_schedule_preview_failed()
         } finally {
             busy = false
         }
@@ -81,7 +83,8 @@
             })
             onsaved()
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not save schedule'
+            error =
+                failure instanceof Error ? failure.message : m.tournaments_schedule_save_failed()
         } finally {
             busy = false
         }
@@ -92,7 +95,10 @@
             .getTournamentSchedule(detail.tournament.id)
             .then((value) => (saved = value))
             .catch((failure) => {
-                error = failure instanceof Error ? failure.message : 'Could not load schedule'
+                error =
+                    failure instanceof Error
+                        ? failure.message
+                        : m.tournaments_schedule_load_failed()
             })
     })
 </script>
@@ -100,27 +106,31 @@
 <section aria-labelledby="schedule-heading">
     <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 id="schedule-heading" class="font-tournament text-lg font-semibold">
-            Schedule{schedule && !saved ? ' preview' : ''}
+            {schedule && !saved
+                ? m.tournaments_schedule_preview_heading()
+                : m.tournaments_schedule_heading()}
         </h2>
         {#if detail.tournament.stages[0]?.standings && schedule}
             <p class="text-xs text-gray-500">
-                {detail.tournament.stages[0].dispatch?.finished.length ?? 0} / {schedule.tables
-                    .length} games finished
+                {m.tournaments_schedule_games_finished({
+                    finished: detail.tournament.stages[0].dispatch?.finished.length ?? 0,
+                    total: schedule.tables.length
+                })}
             </p>
         {/if}
         {#if isAdmin && !detail.tournament.stages[0]?.scheduleId && detail.tournament.status === 'locked'}
             <div class="flex gap-2">
                 <button class="schedule-action" disabled={busy} onclick={generate}
                     >{busy && !schedule
-                        ? 'Preparing…'
+                        ? m.tournaments_schedule_preparing()
                         : schedule
-                          ? 'New draw'
-                          : 'Preview schedule'}</button
+                          ? m.tournaments_schedule_new_draw()
+                          : m.tournaments_schedule_preview()}</button
                 >
                 {#if schedule}<button
                         class="schedule-action bg-blue-600 text-white"
                         disabled={busy}
-                        onclick={commit}>Save schedule</button
+                        onclick={commit}>{m.tournaments_schedule_save()}</button
                     >{/if}
             </div>
         {/if}
@@ -133,13 +143,18 @@
                     ><tr>
                         <th
                             class="sticky left-0 z-10 bg-gray-50 px-3 py-2 font-normal dark:bg-gray-800"
-                            >Table</th
+                            >{m.tournaments_table()}</th
                         >
                         {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position (position)}<th
-                                class="px-3 py-2 font-normal whitespace-nowrap">Seat {position}</th
+                                class="px-3 py-2 font-normal whitespace-nowrap"
+                                >{m.tournaments_schedule_seat({ position })}</th
                             >{/each}
-                        {#if hasProgress}<th class="px-3 py-2 font-normal">Progress</th>{/if}
-                        <th class="w-0 p-0"><span class="sr-only">Game</span></th>
+                        {#if hasProgress}<th class="px-3 py-2 font-normal"
+                                >{m.tournaments_schedule_progress()}</th
+                            >{/if}
+                        <th class="w-0 p-0"
+                            ><span class="sr-only">{m.tournaments_schedule_game()}</span></th
+                        >
                     </tr></thead
                 >
                 <tbody
@@ -156,16 +171,16 @@
                         {@const href = game ? `/game/${game.gameId}` : undefined}
                         {@const dispatch = detail.tournament.stages[0]?.dispatch}
                         {@const waiting = voided
-                            ? "Void: this game doesn't count"
+                            ? m.tournaments_schedule_void_reason()
                             : detail.tournament.paused
-                              ? 'Scheduling paused'
+                              ? m.tournaments_status_scheduling_paused()
                               : dispatch?.reserved.includes(table.id)
-                                ? 'Starting this game'
+                                ? m.tournaments_schedule_starting_game()
                                 : seated.some((id) => !detail.usernames[id])
-                                  ? 'Waiting for active accounts'
+                                  ? m.tournaments_schedule_waiting_accounts()
                                   : detail.tournament.nextTaskAt !== undefined || !dispatch
-                                    ? 'Waiting to be scheduled'
-                                    : 'Waiting for player capacity'}
+                                    ? m.tournaments_schedule_waiting_scheduling()
+                                    : m.tournaments_schedule_waiting_capacity()}
                         <tr
                             title={game && !voided ? undefined : waiting}
                             class="group border-t border-gray-200/60 dark:border-gray-700/50 {game
@@ -182,14 +197,15 @@
                                 {#if href}<a
                                         class="block px-3 py-2"
                                         {href}
-                                        aria-label={`Open table ${page * 20 + index + 1}`}
-                                        >{page * 20 + index + 1}</a
+                                        aria-label={m.tournaments_schedule_open_table({
+                                            number: page * 20 + index + 1
+                                        })}>{page * 20 + index + 1}</a
                                     >{:else}<span class="block px-3 py-2"
                                         >{page * 20 + index + 1}</span
                                     >{/if}
                                 {#if voided}<span
                                         class="block px-3 pb-1.5 -mt-1.5 text-[10px] text-gray-500"
-                                        >Void</span
+                                        >{m.tournaments_schedule_void()}</span
                                     >{/if}
                             </td>
                             {#each seated as entrant, entrantIndex (entrantIndex)}
@@ -202,8 +218,8 @@
                                     >
                                     {#if game?.winningUserIds?.includes(entrant)}<span
                                             class="text-amber-600 dark:text-amber-400"
-                                            aria-label="Tournament win"
-                                            title="Tournament win">★</span
+                                            aria-label={m.tournaments_schedule_tournament_win()}
+                                            title={m.tournaments_schedule_tournament_win()}>★</span
                                         >{/if}
                                 {/snippet}
                                 <td>
@@ -230,8 +246,16 @@
                                             ? 'bg-[color-mix(in_srgb,var(--color-gray-50),black_5%)] text-orange-700 dark:bg-[color-mix(in_srgb,var(--color-gray-800),black_20%)] dark:text-orange-300'
                                             : 'bg-gray-50 text-green-700 dark:bg-gray-800 dark:text-green-400'}"
                                         href={`/game/${game.gameId}`}
-                                        aria-label={`${isMine && !finished ? 'Play' : 'View'} table ${page * 20 + index + 1}`}
-                                        >{isMine && !finished ? 'Play' : 'View'}
+                                        aria-label={isMine && !finished
+                                            ? m.tournaments_schedule_play_table({
+                                                  number: page * 20 + index + 1
+                                              })
+                                            : m.tournaments_schedule_view_table({
+                                                  number: page * 20 + index + 1
+                                              })}
+                                        >{isMine && !finished
+                                            ? m.tournaments_schedule_play()
+                                            : m.tournaments_schedule_view()}
                                         <span aria-hidden="true">→</span></a
                                     >{/if}
                             </td>
@@ -241,26 +265,36 @@
         </div>
         <footer class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
             <p>
-                <span class="text-gray-500 dark:text-gray-400">Games each</span>
+                <span class="text-gray-500 dark:text-gray-400"
+                    >{m.tournaments_schedule_games_each()}</span
+                >
                 {schedule.gamesPerEntrant}
             </p>
             <p>
-                <span class="text-gray-500 dark:text-gray-400">Each seat</span>
+                <span class="text-gray-500 dark:text-gray-400"
+                    >{m.tournaments_schedule_each_seat()}</span
+                >
                 {schedule.gamesPerEntrant / schedule.tableSize}×
             </p>
             <p>
                 {#if schedule.quality.opponentCounts.length === 1}
-                    <span class="text-gray-500 dark:text-gray-400">Every pair meets</span>
+                    <span class="text-gray-500 dark:text-gray-400"
+                        >{m.tournaments_schedule_every_pair_meets()}</span
+                    >
                     {schedule.quality.opponentCounts[0].games}×
                 {:else}
-                    <span class="text-gray-500 dark:text-gray-400">Opponents meet</span>
+                    <span class="text-gray-500 dark:text-gray-400"
+                        >{m.tournaments_schedule_opponents_meet()}</span
+                    >
                     {schedule.quality.opponentCounts[0].games}–{schedule.quality.opponentCounts.at(
                         -1
                     )?.games}×
                 {/if}
             </p>
             <p>
-                <span class="text-gray-500 dark:text-gray-400">Repeated groups</span>
+                <span class="text-gray-500 dark:text-gray-400"
+                    >{m.tournaments_schedule_repeated_groups()}</span
+                >
                 {schedule.quality.repeatedTables}
             </p>
         </footer>
@@ -268,22 +302,21 @@
                 class="mt-2 flex items-center justify-end gap-3 text-xs"
             >
                 <button class="schedule-action" disabled={page === 0} onclick={() => page--}
-                    >Previous</button
+                    >{m.tournaments_schedule_previous()}</button
                 >
                 <span>{page + 1} / {Math.ceil(schedule.tables.length / 20)}</span>
                 <button
                     class="schedule-action"
                     disabled={(page + 1) * 20 >= schedule.tables.length}
-                    onclick={() => page++}>Next</button
+                    onclick={() => page++}>{m.tournaments_schedule_next()}</button
                 >
             </div>{/if}
         {#if !saved}<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Starting positions and game counts are equal. This draw is a balanced candidate;
-                other draws may have different opponent matchups.
+                {m.tournaments_schedule_balanced_note()}
             </p>{/if}
     {:else if !detail.tournament.stages[0]?.scheduleId}
         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            The roster is locked. Preview the tables and starting positions before saving.
+            {m.tournaments_schedule_roster_locked_note()}
         </p>
     {/if}
 </section>

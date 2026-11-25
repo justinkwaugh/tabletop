@@ -10,6 +10,8 @@
     import TitleCompetitions from '$lib/components/TitleCompetitions.svelte'
     import BackLink from '$lib/components/BackLink.svelte'
     import CreateGameModal from '$lib/components/CreateGameModal.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
     import {
         playerCountText,
         seriesUrl,
@@ -32,18 +34,22 @@
     }
 </script>
 
-<svelte:head><title>{metadata.name} — Board Together</title></svelte:head>
+<svelte:head><title>{m.library_title_page_title({ name: metadata.name })}</title></svelte:head>
+
+{#snippet credit(text: string)}<span>{text}</span>{/snippet}
+{#snippet separator()}<span class="separator">·</span>{/snippet}
+{#snippet newTabNote()}<span class="sr-only">{m.library_opens_in_new_tab()}</span>{/snippet}
 
 <main class="title-page collection-page">
     <BackLink
         href={series ? seriesUrl(series) : '/library'}
-        label={series ? series.name : 'All games'}
+        label={series ? series.name : m.library_all_games()}
     />
     <section class="title-intro" aria-labelledby="title-heading">
         <div class="title-cover">
             <img
                 src={title.info.thumbnailUrl}
-                alt={`${metadata.name} box cover`}
+                alt={m.library_title_cover_alt({ name: metadata.name })}
                 fetchpriority="high"
                 data-game-cover={title.info.id}
             />
@@ -58,32 +64,51 @@
                     >{/if}
             </div>
             <h1 id="title-heading">{metadata.name}</h1>
-            <p class="credits">Designed by <span>{metadata.designer}</span></p>
+            <p class="credits">
+                <RichMessage
+                    parts={m.library_title_designed_by.parts({ designer: metadata.designer })}
+                    markup={{ designer: credit }}
+                />
+            </p>
             {#if metadata.publisher}
                 {@const publisher = metadata.publisher}
+                {#snippet publisherLink(text: string)}<a
+                        href={publisher.url}
+                        target="_blank"
+                        rel="noopener noreferrer">{text}{@render newTabNote()}</a
+                    >{/snippet}
+                {#snippet shopLink(text: string)}<a
+                        href={publisher.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >{text}<ArrowUpRightFromSquareOutline
+                            class="ml-1 inline h-3.5 w-3.5 align-[-2px]"
+                        />{@render newTabNote()}</a
+                    >{/snippet}
                 <p class="credits publisher">
-                    Published by
-                    {#if publisher.sellsGame}<span>{publisher.name}</span><span class="separator"
-                            >·</span
-                        ><a href={publisher.url} target="_blank" rel="noopener noreferrer"
-                            >buy it from {publisher.name}<ArrowUpRightFromSquareOutline
-                                class="ml-1 inline h-3.5 w-3.5 align-[-2px]"
-                            /><span class="sr-only">(opens in a new tab)</span></a
-                        >{:else}<a href={publisher.url} target="_blank" rel="noopener noreferrer"
-                            >{publisher.name}<span class="sr-only">(opens in a new tab)</span></a
-                        >{/if}
+                    {#if publisher.sellsGame}<RichMessage
+                            parts={m.library_title_published_by_seller.parts({
+                                publisher: publisher.name
+                            })}
+                            markup={{ publisher: credit, separator, shop: shopLink }}
+                        />{:else}<RichMessage
+                            parts={m.library_title_published_by.parts({
+                                publisher: publisher.name
+                            })}
+                            markup={{ publisher: publisherLink }}
+                        />{/if}
                 </p>
             {/if}
             <div class="description">
                 {#each paragraphs as paragraph, index (index)}<p>{paragraph}</p>{/each}
             </div>
             <button class="start-game" onclick={() => (creating = true)}
-                >Start a game <ArrowRightOutline class="h-4 w-4" /></button
+                >{m.library_start_game()} <ArrowRightOutline class="h-4 w-4" /></button
             >
         </div>
     </section>
     {#if created}<p class="created" role="status">
-            Game created. You’ll find it in your games below.
+            {m.library_title_game_created()}
         </p>{/if}
     <div class="activity">
         <TitleGames

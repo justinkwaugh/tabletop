@@ -6,6 +6,7 @@
     import LandingPage from '$lib/components/LandingPage.svelte'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import ForgotPasswordForm from '$lib/components/ForgotPasswordForm.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     const { api, authorizationService } = getAppContext()
     let { data } = $props()
@@ -48,39 +49,38 @@
 </script>
 
 <svelte:head>
-    <title>Reset password — Board Together</title>
+    <title>{m.auth_page_title_reset_password()}</title>
 </svelte:head>
 
 <LandingPage />
 <AuthModal
     bind:open
-    title={resetSuccess ? 'Password reset' : 'Reset password'}
-    label="Reset password"
+    title={resetSuccess ? m.auth_title_password_reset() : m.auth_title_reset_password()}
+    label={m.auth_title_reset_password()}
     variant="form"
     oncancel={close}
 >
     {#if linkRejected}
         <Alert color="red" class="mb-4" role="alert">
-            This reset link has expired, was replaced by a newer one, or has already been used.
-            Request a new one below.
+            {m.auth_reset_link_rejected()}
         </Alert>
         <ForgotPasswordForm onback={() => goto('/login/username')} />
     {:else if resetSuccess}
         <p role="status" tabindex="-1" {@attach (node) => node.focus()}>
-            Your password has been updated. Sign in with it to continue.
+            {m.auth_reset_success()}
         </p>
         <div class="flex justify-end mt-8">
-            <Button color="blue" onclick={() => goto('/login/username')}>Sign in</Button>
+            <Button color="blue" onclick={() => goto('/login/username')}>{m.auth_sign_in()}</Button>
         </div>
     {:else}
         {#if resetFailed}
             <Alert color="red" class="mb-4" role="alert">
-                We couldn’t update your password. Please try again.
+                {m.auth_reset_failed()}
             </Alert>
         {/if}
         <form class="flex flex-col gap-4" onsubmit={submit}>
             <div>
-                <Label for={`${id}-password`} class="mb-2">New password</Label>
+                <Label for={`${id}-password`} class="mb-2">{m.auth_new_password()}</Label>
                 <PasswordInput
                     id={`${id}-password`}
                     bind:value={password}
@@ -94,12 +94,12 @@
                     class="mt-2"
                     color={passwordError ? 'red' : 'gray'}
                 >
-                    Use at least 12 characters.
+                    {m.auth_password_min_length_help()}
                 </Helper>
             </div>
             <div class="flex justify-end mt-4">
                 <Button color="blue" type="submit" disabled={submitting}>
-                    {submitting ? 'Saving…' : 'Set new password'}
+                    {submitting ? m.saving() : m.auth_reset_set_password()}
                 </Button>
             </div>
         </form>

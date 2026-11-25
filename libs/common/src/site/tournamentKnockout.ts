@@ -105,22 +105,31 @@ export function knockoutRoundCount(slots: readonly unknown[]): number {
     return Math.log2(slots.length)
 }
 
-export function knockoutRoundName(round: number, rounds: number): string {
-    if (round === rounds) return 'Final'
-    if (round === rounds - 1) return 'Semi-finals'
-    if (round === rounds - 2) return 'Quarter-finals'
-    return `Round ${round}`
+export type KnockoutStage = 'final' | 'semiFinals' | 'quarterFinals' | 'numbered'
+
+export function knockoutStage(round: number, rounds: number): KnockoutStage {
+    if (round === rounds) return 'final'
+    if (round === rounds - 1) return 'semiFinals'
+    if (round === rounds - 2) return 'quarterFinals'
+    return 'numbered'
 }
 
-/** A Game's short label in a Match: G1, G2, then D for the Decider and D2 on. */
-export function knockoutGameLabel(game: number): string {
-    if (game <= KNOCKOUT_MATCH_GAMES) return `G${game}`
-    return game === KNOCKOUT_MATCH_GAMES + 1 ? 'D' : `D${game - KNOCKOUT_MATCH_GAMES}`
+export type KnockoutGameSlot = { kind: 'game' | 'decider'; number: number }
+
+export function knockoutGameSlot(game: number): KnockoutGameSlot {
+    return game <= KNOCKOUT_MATCH_GAMES
+        ? { kind: 'game', number: game }
+        : { kind: 'decider', number: game - KNOCKOUT_MATCH_GAMES }
+}
+
+const GAME_SLOT_NAMES: Record<KnockoutGameSlot['kind'], (number: number) => string> = {
+    game: (number) => `Game ${number}`,
+    decider: (number) => (number === 1 ? 'Decider' : `Decider ${number}`)
 }
 
 export function knockoutGameName(game: number): string {
-    if (game <= KNOCKOUT_MATCH_GAMES) return `Game ${game}`
-    return game === KNOCKOUT_MATCH_GAMES + 1 ? 'Decider' : `Decider ${game - KNOCKOUT_MATCH_GAMES}`
+    const slot = knockoutGameSlot(game)
+    return GAME_SLOT_NAMES[slot.kind](slot.number)
 }
 
 export function knockoutDecider(match: Pick<TournamentMatchGame, 'game'>): boolean {
@@ -135,12 +144,17 @@ export function knockoutMatchName(
     match: Pick<TournamentMatchGame, 'round' | 'index'>,
     rounds: number
 ): string {
-    const round = knockoutRoundName(match.round, rounds)
-    if (match.round === rounds) return round
-    // Semi-finals → Semi-final 1; numbered rounds keep their name and number the Match.
-    return round.endsWith('s')
-        ? `${round.slice(0, -1)} ${match.index + 1}`
-        : `${round} · Match ${match.index + 1}`
+    const number = match.index + 1
+    switch (knockoutStage(match.round, rounds)) {
+        case 'final':
+            return 'Final'
+        case 'semiFinals':
+            return `Semi-final ${number}`
+        case 'quarterFinals':
+            return `Quarter-final ${number}`
+        case 'numbered':
+            return `Round ${match.round} · Match ${number}`
+    }
 }
 
 /**

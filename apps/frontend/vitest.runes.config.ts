@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { siteMessages } from './messagesPlugin.js'
 import { defineProject } from 'vitest/config'
 import { projectRoot } from '@tabletop/vitest-config'
 
@@ -8,7 +9,7 @@ import { projectRoot } from '@tabletop/vitest-config'
 // directory and so breaks this project when Vitest runs from the repo root.
 export default defineProject({
     root: projectRoot(import.meta.url),
-    plugins: [svelte({ hot: false })],
+    plugins: [siteMessages(), svelte({ hot: false })],
     resolve: {
         conditions: ['browser'],
         alias: {

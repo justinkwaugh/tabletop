@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { Toggle } from 'flowbite-svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
@@ -22,10 +23,10 @@
     const groups: { key: HoursGroup; name: string }[] = $derived(
         separateWeekend
             ? [
-                  { key: 'weekday', name: 'Monday to Friday' },
-                  { key: 'weekend', name: 'Saturday and Sunday' }
+                  { key: 'weekday', name: m.reminder_hours_weekdays() },
+                  { key: 'weekend', name: m.reminder_hours_weekends() }
               ]
-            : [{ key: 'weekday', name: 'Every day' }]
+            : [{ key: 'weekday', name: m.reminder_hours_every_day() }]
     )
 
     function save(form: ReminderHoursForm) {
@@ -54,9 +55,7 @@
 
 <div class="flex flex-col gap-4">
     <p class="text-sm text-gray-700 dark:text-gray-300">
-        Pick the hours you'd like for turn reminders. Tap or drag across hours to toggle them.
-        Reminders in the first hour of your turn come right away; later ones wait for your next
-        selected hour. With no hours selected, reminders come at any time.
+        {m.reminder_hours_intro()}
     </p>
     {#each groups as group (group.key)}
         <div class="flex flex-col gap-2">
@@ -67,7 +66,7 @@
                 >
             </div>
             <ReminderHourGrid
-                label={`${group.name} reminder hours`}
+                label={m.reminder_hours_grid_label({ days: group.name })}
                 hours={shown[group.key]}
                 onchange={(hours) => setHours(group.key, hours)}
             />
@@ -76,7 +75,7 @@
     <Toggle
         checked={separateWeekend}
         onchange={(event) => (event.currentTarget.checked ? showWeekend() : hideWeekend())}
-        >Different hours on weekends</Toggle
+        >{m.reminder_hours_separate_weekend()}</Toggle
     >
     <TimeZonePicker />
 </div>

@@ -3,16 +3,16 @@
     import { toast } from 'svelte-sonner'
     import {
         CONTENT_REPORT_DETAILS_MAX_LENGTH,
-        CONTENT_REPORT_REASON_LABELS,
         ContentReportReason,
         ContentReportTargetKind,
-        conversationMessageAuthorName,
         type ContentReportTarget,
         type Game,
         type GameChatMessage
     } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import { contentReport, type ContentReportOpening } from '$lib/stores/contentReport.svelte'
+    import { m } from '$lib/paraglide/messages'
+    import RichMessage from './RichMessage.svelte'
 
     let {
         opening,
@@ -22,6 +22,24 @@
 
     const { api, authorizationService } = getAppContext()
     const reasons = Object.values(ContentReportReason)
+    const REASON_LABELS: Record<ContentReportReason, () => string> = {
+        [ContentReportReason.Bullying]: m.games_report_reason_bullying,
+        [ContentReportReason.Hate]: m.games_report_reason_hate,
+        [ContentReportReason.SexualContent]: m.games_report_reason_sexual_content,
+        [ContentReportReason.SelfHarm]: m.games_report_reason_self_harm,
+        [ContentReportReason.IntimateImage]: m.games_report_reason_intimate_image,
+        [ContentReportReason.Illegal]: m.games_report_reason_illegal,
+        [ContentReportReason.Spam]: m.games_report_reason_spam,
+        [ContentReportReason.Other]: m.games_report_reason_other
+    }
+
+    function authorName(message: Pick<GameChatMessage, 'playerId' | 'admin'>): string {
+        if (message.admin) return m.games_report_author_administrator()
+        return (
+            game.players.find((player) => player.id === message.playerId)?.name ??
+            m.games_report_author_unknown()
+        )
+    }
 
     let fromMessage = $derived(opening.message)
     let kind: ContentReportTargetKind = $state(ContentReportTargetKind.GameName)
@@ -41,19 +59,30 @@
     )
     let reportableMessages = $derived(
         messages
-            .filter((m) => !m.redacted && !m.admin && !myPlayerIds.has(m.playerId ?? ''))
+            .filter(
+                (message) =>
+                    !message.redacted && !message.admin && !myPlayerIds.has(message.playerId ?? '')
+            )
             .toSorted((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     )
 
-    let reportedName = $derived.by(() => {
-        if (fromMessage) return conversationMessageAuthorName(game, fromMessage)
-        if (kind === ContentReportTargetKind.GameName) return "The game's owner"
+    let anonymityNotice = $derived.by(() => {
+        if (fromMessage) return playerAnonymityNotice(authorName(fromMessage))
+        if (kind === ContentReportTargetKind.GameName) return m.games_report_owner_anonymous()
         if (kind === ContentReportTargetKind.Username) {
-            return game.players.find((player) => player.id === playerId)?.name ?? 'The player'
+            return playerAnonymityNotice(
+                game.players.find((player) => player.id === playerId)?.name
+            )
         }
-        const message = reportableMessages.find((m) => m.id === messageId)
-        return message ? conversationMessageAuthorName(game, message) : 'The player'
+        const message = reportableMessages.find((candidate) => candidate.id === messageId)
+        return playerAnonymityNotice(message && authorName(message))
     })
+
+    function playerAnonymityNotice(name: string | undefined): string {
+        return name === undefined
+            ? m.games_report_player_anonymous()
+            : m.games_report_named_anonymous({ name })
+    }
 
     let target: ContentReportTarget | undefined = $derived.by(() => {
         if (fromMessage) {
@@ -84,17 +113,19 @@
                 ...(trimmed ? { details: trimmed } : {})
             })
             contentReport.close()
-            toast.success('Thanks. Your report was sent.')
+            toast.success(m.games_report_sent())
         } catch (error) {
             failure =
-                error instanceof Error && error.message
-                    ? error.message
-                    : 'Your report could not be sent. Try again.'
+                error instanceof Error && error.message ? error.message : m.games_report_failed()
         } finally {
             sending = false
         }
     }
 </script>
+
+{#snippet optionalNote(text: string)}<span class="font-normal text-gray-500 dark:text-gray-400"
+        >{text}</span
+    >{/snippet}
 
 <form class="flex flex-col gap-4 text-sm" onsubmit={send}>
     {#if fromMessage}
@@ -102,25 +133,29 @@
             class="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
         >
             <p class="text-xs text-gray-500 dark:text-gray-400">
-                {conversationMessageAuthorName(game, fromMessage)}
+                {authorName(fromMessage)}
             </p>
             <p class="whitespace-pre-wrap text-gray-900 dark:text-gray-200">{fromMessage.text}</p>
         </div>
     {:else}
         <fieldset class="flex flex-col gap-2">
             <legend class="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-                What are you reporting?
+                {m.games_report_what()}
             </legend>
             <Radio name="report-kind" bind:group={kind} value={ContentReportTargetKind.GameName}
-                >The game name “{game.name}”</Radio
+                >{m.games_report_game_name({ name: game.name })}</Radio
             >
             {#if otherPlayers.length > 0}
                 <Radio name="report-kind" bind:group={kind} value={ContentReportTargetKind.Username}
-                    >A player's username</Radio
+                    >{m.games_report_username()}</Radio
                 >
                 {#if kind === ContentReportTargetKind.Username}
-                    <Select bind:value={playerId} class="ml-6 w-auto" aria-label="Player">
-                        <option value="" disabled>Choose a player</option>
+                    <Select
+                        bind:value={playerId}
+                        class="ml-6 w-auto"
+                        aria-label={m.games_report_player_label()}
+                    >
+                        <option value="" disabled>{m.games_report_choose_player()}</option>
                         {#each otherPlayers as player (player.id)}
                             <option value={player.id}>{player.name}</option>
                         {/each}
@@ -131,16 +166,22 @@
                 <Radio
                     name="report-kind"
                     bind:group={kind}
-                    value={ContentReportTargetKind.ConversationMessage}>A chat message</Radio
+                    value={ContentReportTargetKind.ConversationMessage}
+                    >{m.games_report_chat_message()}</Radio
                 >
                 {#if kind === ContentReportTargetKind.ConversationMessage}
-                    <Select bind:value={messageId} class="ml-6 w-auto" aria-label="Message">
-                        <option value="" disabled>Choose a message</option>
+                    <Select
+                        bind:value={messageId}
+                        class="ml-6 w-auto"
+                        aria-label={m.games_report_message_label()}
+                    >
+                        <option value="" disabled>{m.games_report_choose_message()}</option>
                         {#each reportableMessages as message (message.id)}
                             <option value={message.id}
-                                >{conversationMessageAuthorName(game, message)}: {excerpt(
-                                    message.text
-                                )}</option
+                                >{m.games_report_message_option({
+                                    author: authorName(message),
+                                    text: excerpt(message.text)
+                                })}</option
                             >
                         {/each}
                     </Select>
@@ -151,20 +192,21 @@
 
     <fieldset class="flex flex-col gap-2">
         <legend class="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-            What's wrong with it?
+            {m.games_report_whats_wrong()}
         </legend>
         {#each reasons as option (option)}
             <Radio name="report-reason" bind:group={reason} value={option}
-                >{CONTENT_REPORT_REASON_LABELS[option]}</Radio
+                >{REASON_LABELS[option]()}</Radio
             >
         {/each}
     </fieldset>
 
     <label class="flex flex-col gap-2">
         <span class="font-semibold text-gray-900 dark:text-gray-100"
-            >Anything else we should know? <span
-                class="font-normal text-gray-500 dark:text-gray-400">(optional)</span
-            ></span
+            ><RichMessage
+                parts={m.games_report_anything_else.parts()}
+                markup={{ optional: optionalNote }}
+            /></span
         >
         <Textarea
             bind:value={details}
@@ -175,7 +217,7 @@
     </label>
 
     <p class="text-xs text-gray-500 dark:text-gray-400">
-        {reportedName} won't be told who reported this. We look at every report within a few days.
+        {anonymityNotice}
     </p>
 
     {#if failure}
@@ -184,8 +226,10 @@
 
     <div class="flex justify-end gap-2">
         <Button color="alternative" type="button" onclick={() => contentReport.close()}
-            >Cancel</Button
+            >{m.cancel()}</Button
         >
-        <Button type="submit" disabled={!target || !reason || sending}>Send report</Button>
+        <Button type="submit" disabled={!target || !reason || sending}
+            >{m.games_report_send()}</Button
+        >
     </div>
 </form>

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import type { BotRegistration } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import ConnectedNotificationChannel from '$lib/components/ConnectedNotificationChannel.svelte'
@@ -18,22 +19,22 @@
 </script>
 
 <div class="flex flex-col gap-3">
-    <h3 class="text-xl font-medium text-gray-900 dark:text-white">Telegram Notifications</h3>
+    <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+        {m.telegram_heading()}
+    </h3>
     {#if registration.connected}
         <ConnectedNotificationChannel
-            status="Telegram is connected."
-            subject="Telegram"
+            status={m.telegram_connected()}
+            disconnectFailedMessage={m.telegram_disconnect_failed()}
             {disconnect}
         >
             <p class="text-sm text-gray-700 dark:text-gray-300">
-                The BoardTogether bot messages you there when it's your turn or you're invited to a
-                game. Sending /stop to the bot turns it off too.
+                {m.telegram_connected_detail()}
             </p>
         </ConnectedNotificationChannel>
     {:else}
         <p class="text-sm text-gray-700 dark:text-gray-300">
-            BoardTogether has a Telegram bot that can message you when it's your turn. Press
-            Connect, then press Start in Telegram.
+            {m.telegram_offer()}
         </p>
         <TelegramConnectLink />
     {/if}

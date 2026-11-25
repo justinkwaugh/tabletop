@@ -17,6 +17,7 @@
         screenshotFromImage,
         type Screenshot
     } from '$lib/utils/screenshot'
+    import { m } from '$lib/paraglide/messages'
 
     let {
         open = $bindable(),
@@ -45,7 +46,9 @@
         const images = clipboard ? pastedImages(clipboard.types, clipboard.files) : []
         const openSlots = BUG_REPORT_SCREENSHOT_MAX_COUNT - screenshots.length - pendingScreenshots
         if (images.length > openSlots) {
-            toast.info(`A report can include up to ${BUG_REPORT_SCREENSHOT_MAX_COUNT} screenshots.`)
+            toast.info(
+                m.games_bug_report_screenshot_limit({ count: BUG_REPORT_SCREENSHOT_MAX_COUNT })
+            )
         }
         const accepted = images.slice(0, openSlots)
         pendingScreenshots += accepted.length
@@ -59,7 +62,7 @@
                 screenshots = [...screenshots, screenshot]
             } catch (error) {
                 console.error('Could not read the pasted image', error)
-                toast.error('Could not read that image.')
+                toast.error(m.games_bug_report_image_unreadable())
             } finally {
                 pendingScreenshots -= 1
             }
@@ -98,7 +101,7 @@
             description = ''
             clearScreenshots()
             open = false
-            toast.success('Thanks! Your bug report was sent.')
+            toast.success(m.games_bug_report_sent())
         } catch (error) {
             console.error('Could not send the bug report', error)
             toast.error(bugReportFailureMessage(error))
@@ -108,16 +111,16 @@
     }
 </script>
 
-<Modal bind:open title="Report a bug" size="sm" outsideclose autoclose={false}>
+<Modal bind:open title={m.nav_report_bug()} size="sm" outsideclose autoclose={false}>
     <form class="flex flex-col gap-3" onsubmit={submit}>
-        <Label for="bug-report-description">What went wrong?</Label>
+        <Label for="bug-report-description">{m.games_bug_report_what_went_wrong()}</Label>
         <Textarea
             id="bug-report-description"
             class="w-full"
             bind:value={description}
             maxlength={BUG_REPORT_DESCRIPTION_MAX_LENGTH}
             rows={6}
-            placeholder="What did you do, what happened, and what did you expect to happen?"
+            placeholder={m.games_bug_report_placeholder()}
             onpaste={pasteScreenshots}
         />
         {#if screenshots.length > 0 || pendingScreenshots > 0}
@@ -126,13 +129,13 @@
                     <div class="relative">
                         <img
                             src={screenshot.previewUrl}
-                            alt="Screenshot {index + 1}"
+                            alt={m.games_bug_report_screenshot_alt({ number: index + 1 })}
                             class="h-16 w-auto rounded border border-gray-300 dark:border-gray-600"
                         />
                         <button
                             type="button"
                             class="absolute -top-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-700 text-sm leading-none text-white hover:bg-gray-900"
-                            aria-label="Remove screenshot {index + 1}"
+                            aria-label={m.games_bug_report_remove_screenshot({ number: index + 1 })}
                             onclick={() => removeScreenshot(screenshot)}>×</button
                         >
                     </div>
@@ -141,23 +144,19 @@
                     <div
                         class="flex h-16 w-24 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-gray-600"
                     >
-                        Adding…
+                        {m.games_bug_report_adding()}
                     </div>
                 {/if}
             </div>
         {/if}
         <Helper class="flex justify-between gap-4">
-            <span>
-                Your description, screenshots, username and Discord handle (if you've linked one),
-                and the game's title and status, are posted publicly in our Discord forum. A copy of
-                the game and your browser details come to us privately.
-            </span>
+            <span>{m.games_bug_report_privacy()}</span>
             <span class="shrink-0">{description.length}/{BUG_REPORT_DESCRIPTION_MAX_LENGTH}</span>
         </Helper>
         <div class="flex justify-end gap-2 pt-2">
-            <Button color="light" type="button" onclick={() => (open = false)}>Cancel</Button>
+            <Button color="light" type="button" onclick={() => (open = false)}>{m.cancel()}</Button>
             <Button type="submit" color="blue" disabled={!canSubmit}
-                >{submitting ? 'Sending…' : 'Submit'}</Button
+                >{submitting ? m.games_bug_report_sending() : m.submit()}</Button
             >
         </div>
     </form>

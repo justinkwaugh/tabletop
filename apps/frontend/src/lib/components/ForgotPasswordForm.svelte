@@ -3,6 +3,7 @@
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import { getAppContext, trim } from '@tabletop/frontend-components'
+    import { m } from '$lib/paraglide/messages'
 
     let { onback }: { onback: () => void } = $props()
     const { api } = getAppContext()
@@ -31,34 +32,34 @@
 
 {#if sent}
     <div tabindex="-1" role="status" {@attach (node) => node.focus()}>
-        <p class="font-medium text-lg mb-2">Check your email</p>
+        <p class="font-medium text-lg mb-2">{m.auth_forgot_check_email()}</p>
         <p class="text-gray-600 dark:text-gray-300">
-            If that email is associated with an account, we’ve sent a password reset link.
+            {m.auth_forgot_link_sent()}
             {#if expiresAt}{challengeExpiryText(expiresAt)}{/if}
         </p>
     </div>
     <div class="flex flex-wrap items-center justify-between gap-4 mt-8">
         <button
             class="auth-secondary text-sm text-gray-600 hover:underline dark:text-gray-300"
-            onclick={onback}>Back to sign in</button
+            onclick={onback}>{m.auth_back_to_sign_in()}</button
         >
         <button
             class="text-sm font-medium hover:underline dark:text-orange-300"
-            onclick={() => (sent = false)}>Try another email</button
+            onclick={() => (sent = false)}>{m.auth_forgot_try_another_email()}</button
         >
     </div>
 {:else}
     <p class="text-gray-600 dark:text-gray-300 mb-5">
-        We’ll email you a link to reset your password.
+        {m.auth_forgot_intro()}
     </p>
     {#if failed}
         <Alert color="red" class="mb-4" role="alert">
-            We couldn’t send the reset email. Please try again.
+            {m.auth_forgot_send_failed()}
         </Alert>
     {/if}
     <form class="flex flex-col gap-4" onsubmit={submit} {@attach focusFirstInput}>
         <div>
-            <Label for={`${id}-email`} class="mb-2">Email address</Label>
+            <Label for={`${id}-email`} class="mb-2">{m.auth_email_address()}</Label>
             <Input
                 class="auth-input"
                 id={`${id}-email`}
@@ -74,7 +75,7 @@
             <button
                 type="button"
                 class="auth-secondary text-left text-sm text-gray-600 hover:underline dark:text-gray-300"
-                onclick={onback}>Back to sign in</button
+                onclick={onback}>{m.auth_back_to_sign_in()}</button
             >
             <Button
                 color="blue"
@@ -82,7 +83,7 @@
                 class="shrink-0 whitespace-nowrap"
                 disabled={submitting}
             >
-                {submitting ? 'Sending…' : 'Send reset link'}
+                {submitting ? m.auth_forgot_sending() : m.auth_forgot_send_link()}
             </Button>
         </div>
     </form>

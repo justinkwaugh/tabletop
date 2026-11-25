@@ -127,3 +127,50 @@ it('leaves the saved colour order alone when reordering fails', async () => {
     expect(session.user.preferences?.preferredColors).toEqual([Color.Red, Color.Blue])
     expect(editor.values.preferredColors).toEqual([Color.Red, Color.Blue])
 })
+
+it('saves at once without waiting for the pause, and settles when the save does', async () => {
+    const { editor, requests, session } = fixture()
+    editor.update({ colorBlindPalette: true })
+    let settled = false
+    const saving = editor.updateNow({ locale: 'de' }).then((saved) => {
+        settled = true
+        return saved
+    })
+    expect(requests.map((request) => request.preferences)).toEqual([
+        { ...preferences, colorBlindPalette: true, locale: 'de' }
+    ])
+    await Promise.resolve()
+    expect(settled).toBe(false)
+
+    requests[0].result.resolve({ ...user, preferences: requests[0].preferences })
+    expect(await saving).toBe(true)
+    expect(session.user.preferences?.locale).toBe('de')
+    vi.advanceTimersByTime(500)
+    expect(requests).toHaveLength(1)
+})
+
+it('waits for a save already in flight before settling an immediate save', async () => {
+    const { editor, requests, session } = fixture()
+    editor.update({ colorBlindPalette: true })
+    vi.advanceTimersByTime(500)
+    const saving = editor.updateNow({ locale: 'de' })
+    expect(requests).toHaveLength(1)
+
+    requests[0].result.resolve({ ...user, preferences: requests[0].preferences })
+    await vi.waitFor(() => expect(requests).toHaveLength(2))
+    requests[1].result.resolve({ ...user, preferences: requests[1].preferences })
+    await saving
+    expect(session.user.preferences).toEqual({
+        ...preferences,
+        colorBlindPalette: true,
+        locale: 'de'
+    })
+})
+
+it('reports an immediate save that failed', async () => {
+    const { editor, requests, onFailed } = fixture()
+    const saving = editor.updateNow({ locale: 'de' })
+    requests[0].result.reject(new Error('offline'))
+    expect(await saving).toBe(false)
+    expect(onFailed).toHaveBeenCalledOnce()
+})

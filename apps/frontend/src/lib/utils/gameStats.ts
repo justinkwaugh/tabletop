@@ -4,6 +4,7 @@ import {
     type CountedGame,
     type GameStatsSummary
 } from '@tabletop/common'
+import { getLocale } from '$lib/paraglide/runtime'
 import { browserTimeZone } from './timeZones.js'
 
 export type MonthIndex = number
@@ -31,7 +32,10 @@ const MONTHS_PER_YEAR = 12
 export const localMonth = monthIn(browserTimeZone())
 
 export function formatRate(rate: number): string {
-    return `${Math.round(rate * 100)}%`
+    return new Intl.NumberFormat(getLocale(), {
+        style: 'percent',
+        maximumFractionDigits: 0
+    }).format(rate)
 }
 
 export function formatRecord(summary: Pick<GameStatsSummary, 'wins' | 'ties' | 'losses'>): string {
@@ -39,11 +43,12 @@ export function formatRecord(summary: Pick<GameStatsSummary, 'wins' | 'ties' | '
 }
 
 export function formatAverage(value: number): string {
-    return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
-
-export function countOf(count: number, noun: string): string {
-    return `${count} ${count === 1 ? noun : `${noun}s`}`
+    const fractionDigits = Number.isInteger(value) ? 0 : 1
+    return new Intl.NumberFormat(getLocale(), {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+        useGrouping: false
+    }).format(value)
 }
 
 export function monthIn(timeZone: string): (time: number) => MonthIndex {
@@ -66,9 +71,9 @@ export function monthName(month: MonthIndex, style: 'short' | 'long'): string {
     const date = new Date(
         Date.UTC(Math.floor(month / MONTHS_PER_YEAR), month % MONTHS_PER_YEAR, 15)
     )
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(getLocale(), {
         month: style,
-        year: style === 'long' ? 'numeric' : '2-digit',
+        year: 'numeric',
         timeZone: 'UTC'
     })
 }

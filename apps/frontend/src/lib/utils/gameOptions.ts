@@ -5,6 +5,7 @@ import {
     type GameConfigOptions,
     type GameConfigurator
 } from '@tabletop/common'
+import { m } from '$lib/paraglide/messages'
 
 export type DisplayedGameOption = {
     name: string
@@ -35,10 +36,10 @@ export function configuredGameOptions(
                 selected ??
                 (typeof value === 'boolean'
                     ? value
-                        ? 'Yes'
-                        : 'No'
+                        ? m.games_option_yes()
+                        : m.games_option_no()
                     : value === null
-                      ? 'None'
+                      ? m.games_option_none()
                       : String(value)),
             enabledFlag: value === true
         }

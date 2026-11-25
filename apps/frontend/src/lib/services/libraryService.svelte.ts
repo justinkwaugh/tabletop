@@ -3,6 +3,7 @@ import { GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { ManifestService } from './manifestService.js'
 import { availableLibraryTitles } from '$lib/utils/libraryTitles.js'
 import { gameUiEntryUrl } from '$lib/utils/gameUiEntryUrl.js'
+import { m } from '$lib/paraglide/messages'
 
 export class LibraryService {
     titlesById: Record<string, GameUiDefinition<GameState, HydratedGameState>> = $state({})
@@ -31,7 +32,7 @@ export class LibraryService {
     }
 
     getNameForTitle(id: string): string {
-        return this.titlesById[id]?.info.metadata.name ?? 'Unknown Game'
+        return this.titlesById[id]?.info.metadata.name ?? m.library_unknown_game()
     }
 
     getThumbnailForTitle(id: string): string {

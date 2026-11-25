@@ -1,7 +1,9 @@
 <script lang="ts">
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { availableCatalogEntries, gameCount, libraryShelfItems } from '$lib/utils/libraryTitles'
+    import { availableCatalogEntries, libraryShelfItems } from '$lib/utils/libraryTitles'
     import LibraryShelf from '$lib/components/LibraryShelf.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
     import { getLoginModal } from '$lib/stores/loginModal'
     import { ArrowRightOutline, ArrowDownOutline } from 'flowbite-svelte-icons'
     import PayItForwardFooter from '$lib/components/project/PayItForwardFooter.svelte'
@@ -29,25 +31,42 @@
     )
 </script>
 
+{#snippet lineBreak()}<br />{/snippet}
+{#snippet highlight(text: string)}<span>{text}</span>{/snippet}
+{#snippet strong(text: string)}<strong>{text}</strong>{/snippet}
+{#snippet payItForward(text: string)}<a href="/pay-it-forward">{text}</a>{/snippet}
+
 <main class="landing collection-page" class:signed-in={signedIn}>
     {#if !signedIn}
         <section class="hero" aria-labelledby="welcome-heading">
             <div class="introduction">
-                <h1 id="welcome-heading">Care to play<br />a <span>game?</span></h1>
+                <h1 id="welcome-heading">
+                    <RichMessage
+                        parts={m.content_landing_welcome.parts()}
+                        markup={{ br: lineBreak, highlight }}
+                    />
+                </h1>
                 <p class="intro-copy">
-                    Bring your friends.<br />Take your turns at your own pace.
+                    <RichMessage
+                        parts={m.content_landing_intro.parts()}
+                        markup={{ br: lineBreak }}
+                    />
                 </p>
                 <div class="actions">
                     <button class="primary-action" onclick={openLoginModal}>
-                        Take a seat <ArrowRightOutline class="h-5 w-5" />
+                        {m.content_landing_take_a_seat()}
+                        <ArrowRightOutline class="h-5 w-5" />
                     </button>
                     <a class="browse-action" href="#games">
-                        Explore the games <ArrowDownOutline class="h-4 w-4" />
+                        {m.content_landing_explore_games()}
+                        <ArrowDownOutline class="h-4 w-4" />
                     </a>
                 </div>
                 <p class="small-print">
-                    <strong>Always</strong> free to play. Fully open source. No tip jar, but you can
-                    <a href="/pay-it-forward">pay it forward →</a>
+                    <RichMessage
+                        parts={m.content_landing_small_print.parts()}
+                        markup={{ strong, payItForward }}
+                    />
                 </p>
             </div>
 
@@ -76,12 +95,14 @@
                         id="games-heading"
                         class="collection-heading"
                     >
-                        {signedIn ? 'What would you like to play?' : 'Find your next game.'}
+                        {signedIn
+                            ? m.content_landing_heading_signed_in()
+                            : m.content_landing_heading()}
                     </svelte:element>
                 </div>
                 {#if !catalogService.loading && titles.length > 0}
                     <span class="library-note" aria-live="polite"
-                        >{gameCount(titles.length)} in the library</span
+                        >{m.content_landing_library_count({ count: titles.length })}</span
                     >
                 {/if}
             </div>
@@ -94,10 +115,10 @@
                 }}
             >
                 {#if catalogService.loading}
-                    <p role="status" class="library-status">Setting out the games…</p>
+                    <p role="status" class="library-status">{m.content_landing_loading()}</p>
                 {:else if titles.length === 0}
                     <p role="status" class="library-status">
-                        The game shelf couldn’t load. Please refresh to try again.
+                        {m.content_landing_load_failed()}
                     </p>
                 {:else}
                     <LibraryShelf id="game-shelf" items={visibleShelfItems} {signedIn} />
@@ -108,7 +129,9 @@
                             aria-controls="game-shelf"
                             onclick={() => (showAllGames = !showAllGames)}
                         >
-                            {showAllGames ? 'Show fewer games' : `See all ${titles.length} games`}
+                            {showAllGames
+                                ? m.content_landing_show_fewer()
+                                : m.content_landing_see_all({ count: titles.length })}
                             <ArrowDownOutline
                                 class={showAllGames ? 'h-4 w-4 rotate-180' : 'h-4 w-4'}
                             />

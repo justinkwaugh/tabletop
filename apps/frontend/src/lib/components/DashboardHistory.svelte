@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { gameCount } from '$lib/utils/libraryTitles'
+    import { m } from '$lib/paraglide/messages'
     import { onMount } from 'svelte'
     import { GameCategory, type Game } from '@tabletop/common'
     import { changesFinishedGames, listenForGameListChanges } from '$lib/services/gameListUpdates'
@@ -87,19 +87,20 @@
         {#if visible.length}<DashboardGameList games={visible} ondelete={removeGame} />{/if}
         {#if failed}
             <p class="message" role="alert">
-                History couldn’t load. <button onclick={loadGames}>Try again</button>
+                {m.dashboard_history_load_failed()}
+                <button onclick={loadGames}>{m.try_again()}</button>
             </p>
         {:else if busy}
-            <p class="message" role="status">Loading history…</p>
+            <p class="message" role="status">{m.dashboard_history_loading()}</p>
         {:else if !visible.length}
-            <p class="message">Your finished games will appear here.</p>
+            <p class="message">{m.dashboard_history_empty()}</p>
         {/if}
         {#if !failed && !busy && (!exhausted || finished.length > visibleLimit)}
-            <button class="load-more" onclick={loadMore}>Load more games</button>
+            <button class="load-more" onclick={loadMore}>{m.dashboard_history_load_more()}</button>
         {/if}
         {#if exhausted && visible.length && finished.length <= visibleLimit}
             <p class="end">
-                All {gameCount(finished.length)} shown
+                {m.dashboard_history_all_shown({ count: finished.length })}
             </p>
         {/if}
     </div>

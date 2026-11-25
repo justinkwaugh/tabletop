@@ -2,17 +2,18 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { restoreDefaultFavicon, showTurnFavicon } from '$lib/utils/favicon'
     import type { UserAwaited } from '$lib/utils/dashboardGames'
+    import { m } from '$lib/paraglide/messages'
 
     let { gameId, gameName }: { gameId: string; gameName: string } = $props()
 
     const { gameService } = getAppContext()
-    const AWAITED_TITLES: Record<UserAwaited, string> = {
-        answer: 'Answer request',
-        turn: 'Your turn'
+    const AWAITED_TITLES: Record<UserAwaited, (inputs: { game: string }) => string> = {
+        answer: m.games_tab_title_answer,
+        turn: m.games_tab_title_turn
     }
 
     const awaited = $derived(gameService.awaitedFromSessionUser(gameId))
-    const title = $derived(awaited ? `${AWAITED_TITLES[awaited]} · ${gameName}` : gameName)
+    const title = $derived(awaited ? AWAITED_TITLES[awaited]({ game: gameName }) : gameName)
 
     $effect(() => {
         document.title = title

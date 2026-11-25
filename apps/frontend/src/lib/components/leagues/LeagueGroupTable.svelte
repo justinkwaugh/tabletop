@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { leagueLevelText } from '$lib/utils/leaguePresentation'
+    import { m } from '$lib/paraglide/messages'
     import { accountName } from '$lib/utils/accountName'
     import {
+        standingScoreText,
         tournamentAveragePlaceText,
+        tournamentTiebreakDescriptionText,
         tournamentTiebreakTexts
     } from '$lib/utils/tournamentPresentation'
     import {
-        placementScoringDescription,
-        tournamentTiebreakDescription,
         leagueLevelName,
         type LeagueGroupDetail,
         type LeagueGroupStanding
@@ -27,10 +27,13 @@
         userId?: string
     } = $props()
     let showTiebreak = $derived(group.standings.some((row) => row.tiebreak !== undefined))
-    let tiebreakDescription = $derived(tournamentTiebreakDescription(group.standings))
+    let tiebreakDescription = $derived(tournamentTiebreakDescriptionText(group.standings))
     let tiebreakTexts = $derived(tournamentTiebreakTexts(group.standings))
     const share = (games: number) => (group.totalGames ? (games / group.totalGames) * 100 : 0)
-    const movementLabel = { promoted: 'Promoted', relegated: 'Relegated' }
+    const movementLabel = {
+        promoted: m.leagues_group_promoted,
+        relegated: m.leagues_group_relegated
+    }
 
     function gameStates(row: LeagueGroupStanding) {
         const voided = row.voided ?? 0
@@ -48,10 +51,10 @@
     function gamesTitle(row: LeagueGroupStanding) {
         const voided = row.voided ?? 0
         const waiting = gamesPerEntrant - row.completed - row.active - voided
-        return [
-            `${row.completed} finished · ${row.active} in progress · ${waiting} waiting`,
-            ...(voided ? [`${voided} void`] : [])
-        ].join(' · ')
+        const counts = { finished: row.completed, active: row.active, waiting }
+        return voided
+            ? m.leagues_group_games_summary_with_void({ ...counts, voided })
+            : m.leagues_group_games_summary(counts)
     }
 </script>
 
@@ -61,19 +64,21 @@
 >
     <div class="mb-2 flex items-baseline justify-between gap-3">
         <h3 id={`group-${group.groupId}`} class="font-tournament text-lg font-semibold">
-            Group {group.groupId}
+            {m.leagues_group_name({ group: group.groupId })}
         </h3>
         <a
             href={`/tournaments/${group.tournamentId}`}
             class="text-xs text-blue-700 hover:text-blue-500 dark:text-blue-300"
-            >{group.tournamentStatus === 'finished' ? 'Results' : 'Games'} →</a
+            >{group.tournamentStatus === 'finished'
+                ? m.leagues_group_results_link()
+                : m.leagues_group_games_link()}</a
         >
     </div>
     <div class="mb-2 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
         <div
             class="flex h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
             role="progressbar"
-            aria-label={`Group ${group.groupId} games finished`}
+            aria-label={m.leagues_group_games_finished_label({ group: group.groupId })}
             aria-valuemin={0}
             aria-valuemax={group.totalGames}
             aria-valuenow={group.finishedGames}
@@ -86,32 +91,46 @@
             ></div>
             <div
                 class="h-full bg-blue-300 dark:bg-blue-800"
-                title="In progress"
+                title={m.leagues_progress_in_progress()}
                 style:width={`${share(group.activeProgress ?? 0)}%`}
             ></div>
         </div>
-        <span class="tabular-nums">{group.finishedGames} of {group.totalGames} games</span>
+        <span class="tabular-nums"
+            >{m.leagues_group_finished_of_total({
+                finished: group.finishedGames,
+                total: group.totalGames
+            })}</span
+        >
     </div>
     <table class="w-full table-fixed text-left text-sm">
         <thead
             class="border-b border-gray-200 text-xs text-gray-500 dark:border-gray-700/60 dark:text-gray-400"
         >
             <tr>
-                <th class="w-5 pb-1.5 font-normal"><span class="sr-only">Place</span></th>
-                <th class="pb-1.5 font-normal">Name</th>
+                <th class="w-5 pb-1.5 font-normal"
+                    ><span class="sr-only">{m.leagues_group_place()}</span></th
+                >
+                <th class="pb-1.5 font-normal">{m.leagues_group_name_column()}</th>
                 <th class="w-7 pb-1.5 text-right font-normal"
-                    ><abbr class="no-underline" title="Wins">W</abbr></th
+                    ><abbr class="no-underline" title={m.leagues_group_wins()}
+                        >{m.leagues_group_wins_abbr()}</abbr
+                    ></th
                 >
                 <th class="w-11 pb-1.5 text-right font-normal"
                     >{#if ranksByAveragePlace}<abbr
                             class="no-underline"
-                            title={`Average place. ${placementScoringDescription}`}>Avg</abbr
-                        >{:else}<abbr class="no-underline" title="Points">Pts</abbr>{/if}</th
+                            title={m.leagues_group_average_place()}
+                            >{m.leagues_group_average_place_abbr()}</abbr
+                        >{:else}<abbr class="no-underline" title={m.leagues_group_points()}
+                            >{m.leagues_group_points_abbr()}</abbr
+                        >{/if}</th
                 >
-                <th class="w-12 pb-1.5 text-right font-normal">Games</th>
+                <th class="w-12 pb-1.5 text-right font-normal">{m.leagues_group_games_column()}</th>
                 {#if showTiebreak}
                     <th class="w-16 pb-1.5 text-right font-normal"
-                        ><abbr class="no-underline" title={tiebreakDescription}>TB</abbr></th
+                        ><abbr class="no-underline" title={tiebreakDescription}
+                            >{m.leagues_group_tiebreak_abbr()}</abbr
+                        ></th
                     >
                 {/if}
             </tr>
@@ -130,29 +149,33 @@
                                     ? 'text-orange-700 dark:text-orange-300'
                                     : ''} {row.withdrawn ? 'line-through' : ''}"
                                 title={row.withdrawn
-                                    ? `${accountName(usernames, account)} withdrew`
+                                    ? m.leagues_group_withdrew({
+                                          name: accountName(usernames, account)
+                                      })
                                     : accountName(usernames, account)}
                                 >{accountName(usernames, account)}</span
                             >
                             {#if row.playedBy}
                                 <span
                                     class="shrink-0 rounded bg-gray-100 px-1 text-[0.65rem] leading-4 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                                    title={`Substitute for ${accountName(usernames, row.userId)}. This place doesn't move up or down.`}
-                                    >Sub</span
+                                    title={m.leagues_group_substitute({
+                                        name: accountName(usernames, row.userId)
+                                    })}>{m.leagues_group_substitute_abbr()}</span
                                 >
                             {:else if row.movement === 'seeded' && row.nextLevel !== undefined}
                                 <span
                                     class="shrink-0 rounded bg-gray-100 px-1 text-[0.65rem] leading-4 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                                    title={`${leagueLevelText(row.nextLevel)} next season`}
-                                    >{leagueLevelName(row.nextLevel)}</span
+                                    title={m.leagues_group_next_level({
+                                        level: leagueLevelName(row.nextLevel)
+                                    })}>{leagueLevelName(row.nextLevel)}</span
                                 >
                             {:else if row.movement === 'promoted' || row.movement === 'relegated'}
                                 <span
                                     class="shrink-0 text-xs {row.movement === 'promoted'
                                         ? 'text-green-700 dark:text-green-400'
                                         : 'text-red-600 dark:text-red-400'}"
-                                    title={movementLabel[row.movement]}
-                                    aria-label={movementLabel[row.movement]}
+                                    title={movementLabel[row.movement]()}
+                                    aria-label={movementLabel[row.movement]()}
                                     >{row.movement === 'promoted' ? '▲' : '▼'}</span
                                 >
                             {/if}
@@ -162,9 +185,7 @@
                     <td class="py-1.5 text-right tabular-nums"
                         >{ranksByAveragePlace
                             ? tournamentAveragePlaceText(row)
-                            : Number.isInteger(row.score)
-                              ? row.score
-                              : row.score.toFixed(2)}</td
+                            : standingScoreText(row.score)}</td
                     >
                     <td class="py-1.5 text-right" title={gamesTitle(row)}>
                         <span class="inline-flex gap-0.5" aria-label={gamesTitle(row)}>

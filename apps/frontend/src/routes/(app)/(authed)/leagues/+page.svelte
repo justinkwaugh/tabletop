@@ -18,6 +18,7 @@
         leagueShowsSignUpDeadline,
         sortLeaguesByName
     } from '$lib/utils/leaguePresentation'
+    import { m } from '$lib/paraglide/messages'
 
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let isAdmin = $derived(authorizationService.getSessionUser()?.roles.includes(Role.Admin))
@@ -44,7 +45,7 @@
             }
         } catch (failure) {
             if (current())
-                error = failure instanceof Error ? failure.message : 'Could not load leagues'
+                error = failure instanceof Error ? failure.message : m.leagues_list_load_failed()
         } finally {
             if (current()) busy = false
         }
@@ -64,15 +65,15 @@
     })
 </script>
 
-<svelte:head><title>Leagues · Tabletop</title></svelte:head>
+<svelte:head><title>{m.leagues_page_title()}</title></svelte:head>
 <main class="collection-page pb-10 text-gray-900 dark:text-gray-100">
     <header class="collection-header flex items-center gap-3">
         <CompetitionHeading current="leagues" />
         {#if isAdmin}
             <button
                 onclick={() => (creating = true)}
-                aria-label="Create league"
-                title="Create league"
+                aria-label={m.leagues_create_league()}
+                title={m.leagues_create_league()}
                 class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
             >
                 <svg
@@ -93,7 +94,7 @@
             </p>{/if}
         {#if !busy && !error && !leagues.length}
             <div class="rounded-xl bg-gray-50 px-6 py-14 text-center dark:bg-gray-800/30">
-                <p class="text-sm text-gray-500 dark:text-gray-400">No leagues yet.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{m.leagues_list_empty()}</p>
             </div>
         {/if}
         <div class="columns-1 gap-3 sm:columns-2">
@@ -174,8 +175,11 @@
                         {/if}
                     {/if}
                     <p class="mt-3 text-[11px] text-gray-500">
-                        {league.rules.tableSize} players per game · {league.rules.gamesPerEntrant} games
-                        each · groups of {league.rules.sizes.groupSize}
+                        {m.leagues_list_card_format({
+                            tableSize: league.rules.tableSize,
+                            gamesPerEntrant: league.rules.gamesPerEntrant,
+                            groupSize: league.rules.sizes.groupSize
+                        })}
                     </p>
                 </a>
             {/each}
@@ -191,7 +195,7 @@
         class="w-full"
         outsideclose
         dismissable={false}
-        aria-label="Create league"
+        aria-label={m.leagues_create_league()}
     >
         <LeagueForm
             oncancel={() => (creating = false)}

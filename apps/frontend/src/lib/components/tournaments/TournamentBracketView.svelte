@@ -4,18 +4,20 @@
     import {
         KNOCKOUT_ROUND_VIEW_ABOVE,
         knockoutCurrentMatch,
-        knockoutCurrentRound
+        knockoutCurrentRound,
+        knockoutGameLabelText,
+        knockoutGameText,
+        knockoutMatchText,
+        knockoutRoundText
     } from '$lib/utils/knockoutView'
-    import {
-        knockoutGameLabel,
-        knockoutGameName,
-        knockoutMatchName,
-        knockoutRoundName,
-        type KnockoutBracket,
-        type KnockoutMatch,
-        type KnockoutMatchGame,
-        type KnockoutSide,
-        type TournamentDetail
+    import { m } from '$lib/paraglide/messages'
+    import { getLocale } from '$lib/paraglide/runtime'
+    import type {
+        KnockoutBracket,
+        KnockoutMatch,
+        KnockoutMatchGame,
+        KnockoutSide,
+        TournamentDetail
     } from '@tabletop/common'
 
     let { detail, bracket }: { detail: TournamentDetail; bracket?: KnockoutBracket } = $props()
@@ -34,8 +36,9 @@
 
     function sideText(match: KnockoutMatch, side: KnockoutSide): string {
         if (side) return name(side)
-        if (side === null) return match.round === 1 ? 'Bye' : 'Nobody'
-        return 'To be decided'
+        if (side === null)
+            return match.round === 1 ? m.tournaments_bracket_bye() : m.tournaments_bracket_nobody()
+        return m.tournaments_bracket_to_be_decided()
     }
 
     function scoreText(match: KnockoutMatch, position: number): string {
@@ -48,18 +51,31 @@
     function gameState(game: KnockoutMatchGame) {
         const tableId = game.table?.id
         const link = tableId ? gamesByTable.get(tableId) : undefined
-        const label = knockoutGameName(game.game)
+        const label = knockoutGameText(game.game)
         if (game.winnerIds) {
-            const winners = game.winnerIds.map(name).join(' and ')
+            const winners = new Intl.ListFormat(getLocale(), { type: 'conjunction' }).format(
+                game.winnerIds.map(name)
+            )
             return {
                 href: link && `/game/${link.gameId}`,
                 state: 'finished',
-                title: `${label}: ${game.winnerIds.length > 1 ? `shared by ${winners}` : `won by ${winners}`}`
+                title:
+                    game.winnerIds.length > 1
+                        ? m.tournaments_bracket_game_shared({ game: label, winners })
+                        : m.tournaments_bracket_game_won({ game: label, winners })
             }
         }
         if (link)
-            return { href: `/game/${link.gameId}`, state: 'active', title: `${label}: in progress` }
-        return { href: undefined, state: 'waiting', title: `${label}: starting` }
+            return {
+                href: `/game/${link.gameId}`,
+                state: 'active',
+                title: m.tournaments_bracket_game_in_progress({ game: label })
+            }
+        return {
+            href: undefined,
+            state: 'waiting',
+            title: m.tournaments_bracket_game_starting({ game: label })
+        }
     }
 
     const sideClass = (match: KnockoutMatch, side: KnockoutSide) => {
@@ -80,15 +96,17 @@
         {@const state = gameState(game)}
         {#if state.href}
             <a href={state.href} title={state.title} class="game-chip {state.state}"
-                >{long ? knockoutGameName(game.game) : knockoutGameLabel(game.game)}</a
+                >{long ? knockoutGameText(game.game) : knockoutGameLabelText(game.game)}</a
             >
         {:else}
             <span title={state.title} class="game-chip {state.state}"
-                >{long ? knockoutGameName(game.game) : knockoutGameLabel(game.game)}</span
+                >{long ? knockoutGameText(game.game) : knockoutGameLabelText(game.game)}</span
             >
         {/if}
     {/each}
-    {#if match.decidedBy === 'walkover'}<span class="text-[10px] text-gray-500">Walkover</span>{/if}
+    {#if match.decidedBy === 'walkover'}<span class="text-[10px] text-gray-500"
+            >{m.tournaments_bracket_walkover()}</span
+        >{/if}
 {/snippet}
 
 {#snippet matchRow(match: KnockoutMatch, label: string, withChips = true)}
@@ -151,9 +169,11 @@
 
 <section aria-labelledby="bracket-heading">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="bracket-heading" class="font-tournament text-lg font-semibold">Bracket</h2>
+        <h2 id="bracket-heading" class="font-tournament text-lg font-semibold">
+            {m.tournaments_bracket_heading()}
+        </h2>
         {#if bracket}<p class="text-xs text-gray-500">
-                {stage?.dispatch?.finished.length ?? 0} games finished
+                {m.tournaments_games_finished({ count: stage?.dispatch?.finished.length ?? 0 })}
             </p>{/if}
     </div>
     {#if bracket}
@@ -162,7 +182,9 @@
                 class="mt-3 max-w-xl rounded-md border border-orange-400/70 bg-gray-50 dark:bg-gray-800"
             >
                 <p class="px-2.5 pt-2 text-[11px] font-medium text-orange-700 dark:text-orange-300">
-                    Your match · {knockoutMatchName(myMatch, rounds)}
+                    {m.tournaments_bracket_your_match({
+                        match: knockoutMatchText(myMatch, rounds)
+                    })}
                 </p>
                 {@render matchRow(myMatch, '', false)}
                 {#if myMatch.games.length}
@@ -175,7 +197,7 @@
         {#if large}
             <div
                 role="tablist"
-                aria-label="Rounds"
+                aria-label={m.tournaments_bracket_rounds_label()}
                 class="mt-3 flex gap-1 overflow-x-auto border-b border-gray-200 text-xs dark:border-gray-700"
             >
                 {#each bracket.rounds as matches, index (index)}
@@ -184,7 +206,7 @@
                         aria-selected={view === index + 1}
                         class="round-tab"
                         onclick={() => (chosen = index + 1)}
-                        >{knockoutRoundName(index + 1, rounds)}
+                        >{knockoutRoundText(index + 1, rounds)}
                         <span class="text-gray-500">{matches.length}</span></button
                     >
                 {/each}
@@ -192,7 +214,7 @@
                     role="tab"
                     aria-selected={view === 'all'}
                     class="round-tab ml-auto"
-                    onclick={() => (chosen = 'all')}>Whole bracket</button
+                    onclick={() => (chosen = 'all')}>{m.tournaments_bracket_whole()}</button
                 >
             </div>
         {/if}
@@ -210,7 +232,7 @@
                     {#each bracket.rounds as matches, roundIndex (roundIndex)}
                         <div class="flex w-48 flex-col">
                             <h3 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                                {knockoutRoundName(roundIndex + 1, rounds)}
+                                {knockoutRoundText(roundIndex + 1, rounds)}
                             </h3>
                             <ol class="flex flex-1 flex-col justify-around gap-2">
                                 {#each matches as match (match.index)}
@@ -223,11 +245,11 @@
             </div>
         {/if}
         <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-            G1 and G2 are played at the same time, one from each side. D is the decider.
+            {m.tournaments_bracket_legend()}
         </p>
     {:else if !stage?.scheduleId}
         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            The draw is made when registration closes.
+            {m.tournaments_bracket_draw_pending()}
         </p>
     {/if}
 </section>

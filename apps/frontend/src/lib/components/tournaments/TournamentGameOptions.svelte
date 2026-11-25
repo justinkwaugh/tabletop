@@ -1,10 +1,11 @@
 <script lang="ts">
     import type { GameConfig, GameConfigurator } from '@tabletop/common'
     import { configuredGameOptions } from '$lib/utils/gameOptions'
+    import { m } from '$lib/paraglide/messages'
     let {
         config,
         configurator,
-        heading = 'Game options',
+        heading = m.tournaments_game_options(),
         seated = true
     }: {
         config: GameConfig
@@ -26,6 +27,6 @@
                 </div>{/each}
         </dl>
     {:else}<p class="text-xs text-gray-500 dark:text-gray-400">
-            Standard game. No configurable options.
+            {m.tournaments_game_options_standard()}
         </p>{/if}
 </section>

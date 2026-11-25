@@ -2,6 +2,7 @@
     import { ButtonGroup, Helper, Label, RadioButton } from 'flowbite-svelte'
     import type { CompetitionGameChoice } from './competitionGameChoice.svelte'
     import { tournamentScoringText } from '$lib/utils/tournamentPresentation'
+    import { m } from '$lib/paraglide/messages'
 
     let { game }: { game: CompetitionGameChoice } = $props()
     const checked =
@@ -9,13 +10,13 @@
 </script>
 
 <div>
-    <Label class="mb-2">Ranking</Label>
-    <ButtonGroup aria-label="Ranking">
+    <Label class="mb-2">{m.tournaments_ranking()}</Label>
+    <ButtonGroup aria-label={m.tournaments_ranking()}>
         <RadioButton value="splitWinsV1" bind:group={game.chosenScoring} checkedClass={checked}
-            >Wins</RadioButton
+            >{m.tournaments_wins()}</RadioButton
         >
         <RadioButton value="placementV1" bind:group={game.chosenScoring} checkedClass={checked}
-            >Average place</RadioButton
+            >{m.tournaments_average_place()}</RadioButton
         >
     </ButtonGroup>
     <Helper class="mt-1 text-xs">{tournamentScoringText(game)}</Helper>

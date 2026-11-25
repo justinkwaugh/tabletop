@@ -3,6 +3,7 @@
     import type { Game, GameChatMessage } from '@tabletop/common'
     import { contentReport } from '$lib/stores/contentReport.svelte'
     import ReportContentForm from './ReportContentForm.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let { game, messages }: { game: Game; messages: GameChatMessage[] } = $props()
 </script>
@@ -14,7 +15,7 @@
             if (!isOpen) contentReport.close()
         }
     }
-    title={contentReport.current?.message ? 'Report message' : 'Report'}
+    title={contentReport.current?.message ? m.games_report_message_title() : m.games_report_title()}
     size="sm"
     autoclose={false}
     outsideclose

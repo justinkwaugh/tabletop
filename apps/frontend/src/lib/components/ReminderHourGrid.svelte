@@ -1,5 +1,11 @@
 <script lang="ts">
-    import { hourLabel, hourName, withHour, withHourRange } from '$lib/utils/reminderHours'
+    import {
+        halfDayName,
+        hourLabel,
+        hourName,
+        withHour,
+        withHourRange
+    } from '$lib/utils/reminderHours'
 
     let {
         hours,
@@ -7,10 +13,11 @@
         onchange
     }: { hours: number[]; label: string; onchange: (hours: number[]) => void } = $props()
 
-    const HALF_DAYS = [
-        { name: 'AM', hours: Array.from({ length: 12 }, (_, index) => index) },
-        { name: 'PM', hours: Array.from({ length: 12 }, (_, index) => index + 12) }
-    ]
+    const HALF_DAYS = [0, 12].map((start) => ({
+        start,
+        name: halfDayName(start),
+        hours: Array.from({ length: 12 }, (_, index) => start + index)
+    }))
 
     type HourDrag = { anchor: number; current: number; selected: boolean }
 
@@ -76,7 +83,7 @@
     onpointerup={finishDrag}
     onpointercancel={finishDrag}
 >
-    {#each HALF_DAYS as halfDay (halfDay.name)}
+    {#each HALF_DAYS as halfDay (halfDay.start)}
         <div class="flex items-center gap-1">
             <span class="w-8 shrink-0 text-xs text-gray-600 dark:text-gray-400">{halfDay.name}</span
             >

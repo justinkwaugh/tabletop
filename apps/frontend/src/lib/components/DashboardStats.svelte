@@ -3,8 +3,8 @@
     import type { UserGameStats } from '@tabletop/common'
     import { changesFinishedGames, listenForGameListChanges } from '$lib/services/gameListUpdates'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { m } from '$lib/paraglide/messages'
     import {
-        countOf,
         formatRate,
         formatRecord,
         localMonth,
@@ -29,8 +29,8 @@
         return [
             {
                 kind: 'all',
-                name: 'All games',
-                gamesNote: countOf(titles.length, 'different game'),
+                name: m.content_stats_all_games(),
+                gamesNote: m.content_stats_different_games({ count: titles.length }),
                 summary: total,
                 monthlyGames: monthlyGames(countedGames, localMonth)
             },
@@ -39,7 +39,9 @@
                 titleId,
                 name: libraryService.getNameForTitle(titleId),
                 thumbnailUrl: libraryService.getThumbnailForTitle(titleId),
-                gamesNote: `since ${monthName(localMonth(summary.firstFinishedAt), 'short')}`,
+                gamesNote: m.content_stats_since_month({
+                    month: monthName(localMonth(summary.firstFinishedAt), 'long')
+                }),
                 summary,
                 bestScore,
                 monthlyGames: monthlyGames(
@@ -96,25 +98,27 @@
 <div class="stats">
     {#if failed && !stats}
         <p class="message" role="alert">
-            Stats couldn’t load. <button onclick={load}>Try again</button>
+            {m.content_stats_load_failed()} <button onclick={load}>{m.try_again()}</button>
         </p>
     {:else if !stats}
-        <p class="message" role="status">Loading stats…</p>
+        <p class="message" role="status">{m.content_stats_loading()}</p>
     {:else if !selected}
-        <p class="message">Your stats will appear here once you finish a game.</p>
+        <p class="message">{m.content_stats_empty()}</p>
     {:else}
         <div class="split">
-            <nav class="rail" aria-label="Stats by game">
+            <nav class="rail" aria-label={m.content_stats_by_game()}>
                 <select
-                    aria-label="Show stats for"
+                    aria-label={m.content_stats_show_for()}
                     value={selectValue(selected)}
                     onchange={(event) => select(event.currentTarget.value)}
                 >
                     {#each scopes as scope (selectValue(scope))}
                         <option value={selectValue(scope)}>
-                            {scope.name} — {scope.summary.games} played, {formatRate(
-                                scope.summary.winRate
-                            )}
+                            {m.content_stats_scope_option({
+                                name: scope.name,
+                                games: scope.summary.games,
+                                rate: formatRate(scope.summary.winRate)
+                            })}
                         </option>
                     {/each}
                 </select>
@@ -127,7 +131,9 @@
                                 onclick={() => select(selectValue(scope))}
                             >
                                 {#if scope.kind === 'all'}
-                                    <span class="mark all" aria-hidden="true">All</span>
+                                    <span class="mark all" aria-hidden="true"
+                                        >{m.content_stats_all_badge()}</span
+                                    >
                                 {:else if scope.thumbnailUrl}
                                     <img class="mark" src={scope.thumbnailUrl} alt="" />
                                 {:else}
@@ -136,7 +142,10 @@
                                 <span class="name">
                                     {scope.name}
                                     <small>
-                                        {scope.summary.games} played · {formatRecord(scope.summary)}
+                                        {m.content_stats_scope_summary({
+                                            games: scope.summary.games,
+                                            record: formatRecord(scope.summary)
+                                        })}
                                     </small>
                                 </span>
                                 <span class="rate">{formatRate(scope.summary.winRate)}</span>

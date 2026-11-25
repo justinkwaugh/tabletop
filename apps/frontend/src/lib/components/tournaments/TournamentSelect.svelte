@@ -1,11 +1,12 @@
 <script lang="ts" generics="T extends string">
     import { Dropdown, DropdownGroup, DropdownItem, type SelectOptionType } from 'flowbite-svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let {
         id,
         value,
         options,
-        placeholder = 'Choose an option',
+        placeholder = m.tournaments_select_placeholder(),
         onchange
     }: {
         id: string

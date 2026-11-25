@@ -3,6 +3,7 @@
     import GameCard from '$lib/components/GameCard.svelte'
     import type { Game } from '@tabletop/common'
     import { goto } from '$app/navigation'
+    import { m } from '$lib/paraglide/messages'
 
     let { data }: { data: { game: Game } } = $props()
 
@@ -17,7 +18,7 @@
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center">
     <Card>
         <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
-            Join this game?...
+            {m.auth_invitation_heading()}
         </h1>
         <div class="flex flex-col items-center">
             {#if invitationGame}

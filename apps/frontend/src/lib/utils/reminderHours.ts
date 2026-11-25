@@ -1,4 +1,6 @@
-import { weekReminderHours, type ReminderHours } from '@tabletop/common'
+import { assertExists, weekReminderHours, type ReminderHours } from '@tabletop/common'
+import { m } from '$lib/paraglide/messages'
+import { getLocale } from '$lib/paraglide/runtime'
 
 export type ReminderHoursForm = {
     weekday: number[]
@@ -47,7 +49,7 @@ export function withHourRange(
 
 export function reminderHoursSummary(sortedHours: number[]): string {
     if (sortedHours.length === 0 || sortedHours.length === HOURS_PER_DAY) {
-        return 'Any time'
+        return m.reminder_hours_any_time()
     }
     return hourRanges(sortedHours)
         .map(([start, end]) => `${hourName(start)}–${hourName(end)}`)
@@ -55,11 +57,34 @@ export function reminderHoursSummary(sortedHours: number[]): string {
 }
 
 export function hourLabel(hour: number): string {
-    return String(hour % 12 === 0 ? 12 : hour % 12)
+    return hourPart(hourParts(hour, { hour: 'numeric' }), 'hour')
 }
 
 export function hourName(hour: number): string {
-    return `${hourLabel(hour)} ${hour % HOURS_PER_DAY < 12 ? 'am' : 'pm'}`
+    const locale = getLocale()
+    return hourParts(hour, { hour: 'numeric' })
+        .map((part) => {
+            if (part.type === 'dayPeriod') return part.value.toLocaleLowerCase(locale)
+            if (part.type === 'literal') return part.value.replace(/\s/gu, ' ')
+            return part.value
+        })
+        .join('')
+}
+
+export function halfDayName(hour: number): string {
+    return hourPart(hourParts(hour, { hour: 'numeric', hourCycle: 'h12' }), 'dayPeriod')
+}
+
+function hourParts(hour: number, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatPart[] {
+    return new Intl.DateTimeFormat(getLocale(), { ...options, timeZone: 'UTC' }).formatToParts(
+        Date.UTC(2000, 0, 1, hour)
+    )
+}
+
+function hourPart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
+    const part = parts.find((candidate) => candidate.type === type)
+    assertExists(part, `Formatted hour has no ${type}`)
+    return part.value
 }
 
 function hourRanges(sortedHours: number[]): [number, number][] {

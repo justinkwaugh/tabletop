@@ -1,6 +1,10 @@
-<nav class="legal-links" aria-label="Legal">
-    <a href="/privacy">Privacy</a>
-    <a href="/terms">Terms</a>
+<script lang="ts">
+    import { m } from '$lib/paraglide/messages'
+</script>
+
+<nav class="legal-links" aria-label={m.content_legal_links_label()}>
+    <a href="/privacy">{m.content_legal_links_privacy()}</a>
+    <a href="/terms">{m.content_legal_links_terms()}</a>
 </nav>
 
 <style>

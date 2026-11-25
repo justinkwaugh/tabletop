@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { onMount } from 'svelte'
     import { Button, Hr } from 'flowbite-svelte'
     import type { UserTopicRegistrations } from '@tabletop/common'
@@ -66,8 +67,8 @@
     <Hr class="my-6" />
     <div class="flex items-center justify-between gap-3">
         <p class="text-sm font-medium text-gray-900 dark:text-white">
-            BoardTogether couldn't load your Discord and Telegram settings.
+            {m.topic_registrations_load_failed()}
         </p>
-        <Button color="blue" size="xs" onclick={load}>Try again</Button>
+        <Button color="blue" size="xs" onclick={load}>{m.try_again()}</Button>
     </div>
 {/if}

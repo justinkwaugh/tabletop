@@ -31,6 +31,7 @@
     import { bgStatsPlayUrl } from '$lib/utils/bgStats'
     import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
+    import LanguageMenu from '$lib/components/LanguageMenu.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
     import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
@@ -55,6 +56,7 @@
     import { followFailureMessage } from '$lib/services/followedGames.svelte'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { adminTabPath } from '$lib/utils/adminPaths'
+    import { m } from '$lib/paraglide/messages'
     import {
         BellSolid,
         BookmarkOutline,
@@ -68,6 +70,14 @@
         pwaInstallPrompt,
         registerPwaInstallPrompt
     } from '$lib/stores/pwaInstallPrompt.svelte.js'
+
+    const PRERELEASE_GAME_HEADINGS: Record<
+        Exclude<GameVisibility, GameVisibility.Public>,
+        (inputs: { name: string }) => string
+    > = {
+        [GameVisibility.Beta]: m.nav_game_heading_beta,
+        [GameVisibility.Alpha]: m.nav_game_heading_alpha
+    }
 
     let {
         api,
@@ -328,7 +338,7 @@
 
     function createGame() {
         if (loading) {
-            toast.info('Loading game library...')
+            toast.info(m.loading_game_library())
             return
         }
         showCreateGameModel = true
@@ -381,15 +391,12 @@
             case VersionChange.Rollback:
                 console.log('Major upgrade detected')
                 onceMounted(() => {
-                    toast.warning(
-                        'The site has been updated and requires a page refresh.  Refreshing in 5 seconds',
-                        {
-                            duration: Number.POSITIVE_INFINITY,
-                            classes: {
-                                closeButton: 'hidden'
-                            }
+                    toast.warning(m.site_updated_refreshing(), {
+                        duration: Number.POSITIVE_INFINITY,
+                        classes: {
+                            closeButton: 'hidden'
                         }
-                    )
+                    })
                     setTimeout(() => {
                         location.reload()
                     }, 5000)
@@ -398,12 +405,9 @@
             case VersionChange.MinorUpgrade:
                 console.log('Minor upgrade detected')
                 onceMounted(() => {
-                    toast.info(
-                        'The site has been updated with new features or fixes, please refresh the page when you have a moment',
-                        {
-                            duration: Number.POSITIVE_INFINITY
-                        }
-                    )
+                    toast.info(m.site_updated_refresh_when_ready(), {
+                        duration: Number.POSITIVE_INFINITY
+                    })
                 })
                 break
             default:
@@ -418,10 +422,10 @@
             class="text-nowrap text-center mt-2 sm:mt-0 dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
             tag="h4"
-            >{currentVisibility === GameVisibility.Public
-                ? ''
-                : `${currentVisibility.toUpperCase()}: `}{gameService.currentGameSession.primaryGame
-                .name}</Heading
+            >{#if currentVisibility === GameVisibility.Public}{gameService.currentGameSession
+                    .primaryGame.name}{:else}{PRERELEASE_GAME_HEADINGS[currentVisibility]({
+                    name: gameService.currentGameSession.primaryGame.name
+                })}{/if}</Heading
         >
     {/if}
 {/snippet}
@@ -470,7 +474,7 @@
                             href="/about"
                             class="about-link hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                         >
-                            About Us
+                            {m.nav_about_us()}
                         </a>
                         <a
                             id="pay-it-forward-link"
@@ -478,17 +482,17 @@
                             class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-900 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
                         >
                             <HeartOutline class="h-5 w-5" />
-                            <span class="pay-it-forward-label">Pay it forward</span>
+                            <span class="pay-it-forward-label">{m.nav_pay_it_forward()}</span>
                         </a>
                         <Tooltip triggeredBy="#pay-it-forward-link" placement="bottom" class="z-50">
-                            Help charities put games on more tables. Nothing goes to us.
+                            {m.nav_pay_it_forward_tooltip()}
                         </Tooltip>
                         <div class="header-icons flex items-center gap-3">
                             <a
                                 href="/pay-it-forward"
                                 class="pay-it-forward-icon inline-flex md:hidden items-center leading-none text-amber-600 hover:text-amber-700 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
                             >
-                                <span class="sr-only">Pay it forward</span>
+                                <span class="sr-only">{m.nav_pay_it_forward()}</span>
                                 <HeartOutline class="h-6 w-6" />
                             </a>
                             <a
@@ -533,10 +537,10 @@
                                 <button
                                     type="button"
                                     class="bug-report-button inline-flex items-center leading-none cursor-pointer text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                                    title="Report a bug"
+                                    title={m.nav_report_bug()}
                                     onclick={() => (showBugReport = true)}
                                 >
-                                    <span class="sr-only">Report a bug</span>
+                                    <span class="sr-only">{m.nav_report_bug()}</span>
                                     <svg
                                         aria-hidden="true"
                                         viewBox="0 0 24 24"
@@ -557,10 +561,10 @@
                                         ? 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
                                         : 'text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}"
                                     aria-pressed={following}
-                                    title={following ? 'Following' : 'Follow this game'}
+                                    title={following ? m.nav_following_game() : m.nav_follow_game()}
                                     onclick={toggleFollowing}
                                 >
-                                    <span class="sr-only">Follow this game</span>
+                                    <span class="sr-only">{m.nav_follow_game()}</span>
                                     {#if following}
                                         <BookmarkSolid class="h-5 w-5" aria-hidden="true" />
                                     {:else}
@@ -577,12 +581,14 @@
                                 color="blue"
                                 class="{showPwaRefresh || canInstallPwa ? 'me-1' : 'me-4'} h-[30px]"
                                 onclick={gotoDashboard}
-                                ><span class="my-games-label">My&nbsp;</span>Games</Button
+                                ><span class="my-games-label">{m.nav_my_games()}</span><span
+                                    class="games-label">{m.nav_games()}</span
+                                ></Button
                             >
                             {#if showPwaRefresh}
                                 <button
                                     class="pwa-refresh me-1 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
-                                    aria-label="Refresh to update"
+                                    aria-label={m.nav_refresh_to_update()}
                                     onclick={() => location.reload()}
                                 >
                                     <RefreshOutline class="h-6 w-6" aria-hidden="true" />
@@ -591,7 +597,7 @@
                             {#if canInstallPwa}
                                 <button
                                     class="pwa-install cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
-                                    aria-label="Install BoardTogether"
+                                    aria-label={m.nav_install_app()}
                                     onclick={installPwa}
                                 >
                                     <DownloadOutline class="h-6 w-6" aria-hidden="true" />
@@ -600,9 +606,9 @@
                             <a
                                 href="/tournaments"
                                 class="competitions-link me-4 inline-flex items-center cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
-                                title="Tournaments and leagues"
+                                title={m.nav_tournaments_and_leagues()}
                             >
-                                <span class="sr-only">Tournaments and leagues</span>
+                                <span class="sr-only">{m.nav_tournaments_and_leagues()}</span>
                                 <svg
                                     aria-hidden="true"
                                     viewBox="0 0 24 24"
@@ -624,7 +630,7 @@
                         <button
                             id="user-drop"
                             class="account-menu cursor-pointer text-gray-700 dark:text-gray-300"
-                            aria-label="Open account menu"
+                            aria-label={m.nav_open_account_menu()}
                         >
                             <span class="account-avatar"><AccountAvatar user={sessionUser} /></span>
                             <svg
@@ -649,7 +655,8 @@
                             <DropdownGroup class="py-1">
                                 <DropdownHeader class="py-2">
                                     <span class="block text-sm"
-                                        >{sessionUser.username || 'username not assigned'}</span
+                                        >{sessionUser.username ||
+                                            m.nav_username_not_assigned()}</span
                                     >
                                 </DropdownHeader>
                                 <DropdownDivider class={nextGame ? 'mb-0' : ''} />
@@ -661,7 +668,7 @@
                                         <span
                                             class="inline-flex items-center gap-2 whitespace-nowrap"
                                         >
-                                            Next turn
+                                            {m.nav_next_turn()}
                                             <span
                                                 class="inline-flex min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                                                 >{otherTurnCount}</span
@@ -680,20 +687,20 @@
                                 {/if}
                                 {#if bgStatsUrl}
                                     <DropdownItem class="w-full text-left" href={bgStatsUrl}
-                                        >Log to BG Stats</DropdownItem
+                                        >{m.nav_log_to_bg_stats()}</DropdownItem
                                     >
                                 {/if}
                                 {#if bgStatsUrl}
                                     <DropdownDivider />
                                 {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
-                                    >Profile</DropdownItem
+                                    >{m.nav_profile()}</DropdownItem
                                 >
                                 <DropdownItem class="w-full text-left" onclick={openPreferences}
-                                    >Preferences</DropdownItem
+                                    >{m.preferences_title()}</DropdownItem
                                 >
                                 <DropdownItem class="w-full text-left" onclick={gotoNotifications}
-                                    >Notifications</DropdownItem
+                                    >{m.nav_notifications()}</DropdownItem
                                 >
                                 {#if authorizationService.isAdmin}
                                     <DropdownItem class="w-full text-left" onclick={gotoAdmin}
@@ -703,18 +710,20 @@
                                 <DropdownDivider />
                                 <DropdownItem
                                     onclick={gotoAbout}
-                                    class="{aboutMenuClass} w-full text-left">About us</DropdownItem
+                                    class="{aboutMenuClass} w-full text-left"
+                                    >{m.nav_about_us()}</DropdownItem
                                 >
                                 {#if reportGame}
                                     <DropdownItem
                                         class="w-full text-left"
-                                        onclick={() => contentReport.open()}>Report…</DropdownItem
+                                        onclick={() => contentReport.open()}
+                                        >{m.nav_report()}</DropdownItem
                                     >
                                 {/if}
                                 <DropdownItem
                                     onclick={gotoPayItForward}
                                     class="md:hidden w-full text-left whitespace-nowrap dark:text-[#f2dfae]"
-                                    >Pay it forward</DropdownItem
+                                    >{m.nav_pay_it_forward()}</DropdownItem
                                 >
 
                                 <DropdownDivider class={aboutMenuClass} />
@@ -738,7 +747,7 @@
                                     </li>
                                 {/if}
                                 <DropdownItem class="w-full text-left" onclick={logout}
-                                    >Sign out</DropdownItem
+                                    >{m.nav_sign_out()}</DropdownItem
                                 >
                                 {#if authorizationService.canUseDeveloperTools}
                                     <DropdownDivider />
@@ -770,13 +779,16 @@
                         {#if canInstallPwa}
                             <button
                                 class="pwa-install me-1 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
-                                aria-label="Install BoardTogether"
+                                aria-label={m.nav_install_app()}
                                 onclick={installPwa}
                             >
                                 <DownloadOutline class="h-6 w-6" aria-hidden="true" />
                             </button>
                         {/if}
-                        <Button onclick={openLoginModal} size="sm" color="blue">Sign in</Button>
+                        <LanguageMenu />
+                        <Button onclick={openLoginModal} size="sm" color="blue"
+                            >{m.nav_sign_in()}</Button
+                        >
                     {/if}
                 </div>
             </div>
@@ -797,8 +809,8 @@
 {:else}
     <AuthModal
         bind:open={showLoginModal}
-        title={loginViewTitles[loginView]}
-        label={loginView === 'signin' ? 'Sign in' : loginViewTitles[loginView]}
+        title={loginViewTitles[loginView]()}
+        label={loginView === 'signin' ? m.nav_sign_in() : loginViewTitles[loginView]()}
         variant={loginView === 'signin' ? 'welcome' : 'form'}
     >
         <LoginPanel bind:view={loginView} />
@@ -818,7 +830,13 @@
     />
 {/if}
 {#if sessionUser}
-    <Modal bind:open={showPreferences} title="Preferences" size="sm" outsideclose autoclose={false}>
+    <Modal
+        bind:open={showPreferences}
+        title={m.preferences_title()}
+        size="sm"
+        outsideclose
+        autoclose={false}
+    >
         <PreferencesPanel />
     </Modal>
 {/if}
@@ -844,11 +862,10 @@
 >
     <Alert color="blue" class="dark:bg-transparent dark:text-blue-400">
         <div class="flex items-center gap-3">
-            <span class="text-lg font-medium">Just so you know...</span>
+            <span class="text-lg font-medium">{m.notification_prompt_dismissed_title()}</span>
         </div>
         <p class="mt-2 mb-4 text-sm">
-            If you do not want to be prompted about notifications any more, you can configure that
-            in your prefences.
+            {m.notification_prompt_dismissed_body()}
         </p>
         <div class="flex gap-2">
             <Button
@@ -856,10 +873,10 @@
                     showCancelPrompt = false
                 }}
                 size="xs"
-                color="blue">Got it</Button
+                color="blue">{m.got_it()}</Button
             >
             <Button onclick={openPreferences} size="xs" outline color="light"
-                >Go to Preferences</Button
+                >{m.notification_prompt_go_to_preferences()}</Button
             >
         </div>
     </Alert>
@@ -871,18 +888,15 @@
                 <p class="flex items-center text-sm font-normal text-gray-500 dark:text-gray-400">
                     <span class="inline-flex p-1 me-3 bg-gray-200 rounded-full dark:bg-gray-600">
                         <BellSolid class="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                        <span class="sr-only">Light bulb</span>
+                        <span class="sr-only">{m.notification_prompt_icon()}</span>
                     </span>
-                    <span>
-                        Receive notifications about game invitations and to let you know it is your
-                        turn?
-                    </span>
+                    <span>{m.notification_prompt_question()}</span>
                 </p>
                 <Button
                     onclick={() => requestNotificationPermission()}
                     color="blue"
                     class="ms-4 max-h-[24px]"
-                    size="xs">Allow</Button
+                    size="xs">{m.notification_prompt_allow()}</Button
                 >
             </div>
 
@@ -891,7 +905,7 @@
                     onclick={() => dismissPrompt()}
                     color="light"
                     class="ms-4 max-h-[24px]"
-                    size="xs">Close</Button
+                    size="xs">{m.close()}</Button
                 >
             </div>
         </div></Banner
@@ -901,8 +915,12 @@
 
 <style>
     .game-logo,
-    .game-menu-icon {
+    .game-menu-icon,
+    .games-label {
         display: none;
+    }
+    .my-games-label {
+        white-space: nowrap;
     }
     .account-menu {
         display: grid;
@@ -959,6 +977,9 @@
             font-size: 14px;
             line-height: 20px;
             text-align: left;
+        }
+        .mobile-game-header .games-label {
+            display: inline;
         }
         .mobile-game-header .mobile-game-title,
         .mobile-game-header .my-games-label,

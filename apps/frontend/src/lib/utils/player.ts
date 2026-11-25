@@ -1,4 +1,5 @@
 import { PlayerStatus, type Game, type Player } from '@tabletop/common'
+import { m } from '$lib/paraglide/messages'
 import { isUsersNonHotseatTurn } from './dashboardGames'
 
 export function playerSortValue(player: Player, ownerId: string) {
@@ -34,24 +35,24 @@ export function playerHighlight(
 
 export function playerStatusDisplay(player: Player, ownerId: string) {
     if (player.userId === ownerId) {
-        return 'host'
+        return m.games_player_status_host()
     }
     switch (player.status) {
         case PlayerStatus.Joined:
-            return 'joined'
+            return m.games_player_status_joined()
         case PlayerStatus.Reserved:
-            return 'invited'
+            return m.games_player_status_invited()
         case PlayerStatus.Declined:
-            return 'declined'
+            return m.games_player_status_declined()
         default:
-            return 'open'
+            return m.games_player_status_open()
     }
 }
 
 export function activePlayerText(game: Game, userId: string | undefined) {
     const activePlayerIds = game.activePlayerIds ?? []
-    if (activePlayerIds.length !== 1) return 'Multiple players'
-    if (isUsersNonHotseatTurn(game, userId)) return 'You'
+    if (activePlayerIds.length !== 1) return m.games_player_multiple()
+    if (isUsersNonHotseatTurn(game, userId)) return m.games_player_you()
     return game.players.find((player) => player.id === activePlayerIds[0])?.name
 }
 

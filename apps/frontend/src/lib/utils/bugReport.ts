@@ -16,6 +16,7 @@ import {
     type ManifestService
 } from '@tabletop/frontend-components'
 import { isInstalledApp } from '$lib/stores/pwaInstallPrompt.svelte.js'
+import { m } from '$lib/paraglide/messages'
 
 const USER_AGENT_MAX_LENGTH = 512
 
@@ -76,15 +77,15 @@ export async function localGameScenario(store: GameStore, gameId: string): Promi
 
 export function bugReportFailureMessage(error: unknown): string {
     if (error instanceof LocalGameTooLargeError) {
-        return 'This game is too large to attach to a bug report.'
+        return m.games_bug_report_too_large()
     }
     if (error instanceof APIError && error.name === 'RateLimited') {
-        return 'You have sent several reports just now. Please try again in a few minutes.'
+        return m.games_bug_report_rate_limited()
     }
     if (error instanceof APIError) {
-        return 'Could not send your bug report.'
+        return m.games_bug_report_failed()
     }
-    return 'Could not send your bug report. Please try again in a few minutes.'
+    return m.games_bug_report_failed_try_later()
 }
 
 function bugReportClient(): BugReportClient {

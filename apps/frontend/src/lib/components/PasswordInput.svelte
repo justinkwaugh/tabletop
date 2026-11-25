@@ -2,6 +2,7 @@
     import { Input } from 'flowbite-svelte'
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { trim } from '@tabletop/frontend-components'
+    import { m } from '$lib/paraglide/messages'
 
     let {
         id,
@@ -38,7 +39,7 @@
         <button
             type="button"
             onclick={() => (visible = !visible)}
-            aria-label={visible ? 'Hide password' : 'Show password'}
+            aria-label={visible ? m.auth_password_hide() : m.auth_password_show()}
             class="pointer-events-auto p-2"
         >
             {#if visible}

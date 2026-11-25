@@ -1,7 +1,7 @@
 <script lang="ts">
     import { evenOddsWinRate } from '@tabletop/common'
+    import { m } from '$lib/paraglide/messages'
     import {
-        countOf,
         formatAverage,
         formatRate,
         formatRecord,
@@ -19,24 +19,29 @@
 
     const summary = $derived(scope.summary)
     const facts = $derived([
-        countOf(summary.opponentCount, 'opponent'),
-        `first finished ${monthName(localMonth(summary.firstFinishedAt), 'long')}`,
-        `last finished ${timeSince(new Date(summary.lastFinishedAt))}`,
+        m.content_stats_opponent_count({ count: summary.opponentCount }),
+        m.content_stats_first_finished({
+            month: monthName(localMonth(summary.firstFinishedAt), 'long')
+        }),
+        m.content_stats_last_finished({ time: timeSince(new Date(summary.lastFinishedAt)) }),
         summary.averageDays < 1
-            ? 'under a day per game on average'
-            : `${countOf(Math.round(summary.averageDays), 'day')} per game on average`,
+            ? m.content_stats_average_under_a_day()
+            : m.content_stats_average_days({ count: Math.round(summary.averageDays) }),
         ...(scope.kind === 'title' && scope.bestScore !== undefined
-            ? [`best score ${scope.bestScore}`]
+            ? [m.content_stats_best_score({ score: scope.bestScore })]
             : []),
         ...(summary.tournamentGames > 0
             ? [
-                  `${countOf(summary.tournamentGames, 'tournament table')}, ${summary.tournamentWins} won`
+                  m.content_stats_tournament_tables({
+                      count: summary.tournamentGames,
+                      wins: summary.tournamentWins
+                  })
               ]
             : [])
     ])
 </script>
 
-<section class="sheet" aria-label={`${scope.name} stats`}>
+<section class="sheet" aria-label={m.content_stats_sheet_label({ name: scope.name })}>
     <header class="sheet-head">
         {#if scope.kind === 'title' && scope.thumbnailUrl}
             <img src={scope.thumbnailUrl} alt="" />
@@ -49,30 +54,36 @@
 
     <dl class="figures">
         <div class="figure">
-            <dt>games finished</dt>
+            <dt>{m.content_stats_games_finished()}</dt>
             <dd class="value">{summary.games}</dd>
             <dd class="note">{scope.gamesNote}</dd>
         </div>
         <div class="figure">
-            <dt>won–tied–lost</dt>
+            <dt>{m.content_stats_won_tied_lost()}</dt>
             <dd class="value">{formatRecord(summary)}</dd>
         </div>
         <div class="figure">
-            <dt>win rate</dt>
+            <dt>{m.content_stats_win_rate()}</dt>
             <dd class="value">{formatRate(summary.winRate)}</dd>
-            <dd class="note">even odds: {formatRate(summary.evenOddsWinRate)}</dd>
+            <dd class="note">
+                {m.content_stats_even_odds({ rate: formatRate(summary.evenOddsWinRate) })}
+            </dd>
         </div>
         <div class="figure">
-            <dt>best win streak</dt>
+            <dt>{m.content_stats_best_win_streak()}</dt>
             <dd class="value">{summary.bestWinStreak}</dd>
-            <dd class="note">currently {summary.currentWinStreak}</dd>
+            <dd class="note">
+                {m.content_stats_current_win_streak({ count: summary.currentWinStreak })}
+            </dd>
         </div>
         {#if summary.finishes}
             <div class="figure">
-                <dt>average finish</dt>
+                <dt>{m.content_stats_average_finish()}</dt>
                 <dd class="value">{formatAverage(summary.finishes.average)}</dd>
                 <dd class="note">
-                    at {formatAverage(summary.finishes.averagePlayerCount)}-player tables
+                    {m.content_stats_at_table_size({
+                        count: formatAverage(summary.finishes.averagePlayerCount)
+                    })}
                 </dd>
             </div>
         {/if}
@@ -80,13 +91,13 @@
 
     <div class="panels">
         <div class="panel">
-            <h3>Win rate by player count</h3>
+            <h3>{m.content_stats_win_rate_by_player_count()}</h3>
             <table class="player-counts">
                 <tbody>
                     {#each summary.playerCounts as size (size.playerCount)}
                         <tr>
-                            <th scope="row">{size.playerCount} players</th>
-                            <td class="games">{countOf(size.games, 'game')}</td>
+                            <th scope="row">{m.player_count({ count: size.playerCount })}</th>
+                            <td class="games">{m.played_game_count({ count: size.games })}</td>
                             <td class="rate">{formatRate(size.winRate)}</td>
                             <td class="meter">
                                 <WinRateMeter
@@ -99,34 +110,38 @@
                 </tbody>
             </table>
             <ul class="key" aria-hidden="true">
-                <li><span class="swatch"></span>Your win rate</li>
-                <li><span class="tick"></span>Even odds at that table size</li>
+                <li><span class="swatch"></span>{m.content_stats_key_your_win_rate()}</li>
+                <li><span class="tick"></span>{m.content_stats_key_even_odds()}</li>
             </ul>
         </div>
         <div class="panel">
-            <h3>Last {countOf(summary.recentOutcomes.length, 'game')}</h3>
+            <h3>{m.content_stats_last_games({ count: summary.recentOutcomes.length })}</h3>
             <OutcomeStrip outcomes={summary.recentOutcomes} />
             <ul class="key" aria-hidden="true">
-                <li>W won</li>
-                <li>T tied</li>
-                <li>L lost</li>
-                <li>newest on the right</li>
+                <li>{m.content_stats_key_won({ letter: m.content_stats_outcome_letter_won() })}</li>
+                <li>
+                    {m.content_stats_key_tied({ letter: m.content_stats_outcome_letter_tied() })}
+                </li>
+                <li>
+                    {m.content_stats_key_lost({ letter: m.content_stats_outcome_letter_lost() })}
+                </li>
+                <li>{m.content_stats_key_newest_right()}</li>
             </ul>
         </div>
         <div class="panel wide">
-            <h3>Games finished per month</h3>
+            <h3>{m.content_stats_games_per_month()}</h3>
             <MonthlyGamesChart monthlyGames={scope.monthlyGames} {months} />
         </div>
         {#if summary.opponents.length}
             <div class="panel wide">
-                <h3>Most played opponents</h3>
+                <h3>{m.content_stats_most_played_opponents()}</h3>
                 <table class="opponents">
                     <thead>
                         <tr>
-                            <th scope="col">Opponent</th>
-                            <th scope="col" class="number">Games</th>
-                            <th scope="col" class="number">You won</th>
-                            <th scope="col" class="number">They won</th>
+                            <th scope="col">{m.content_stats_opponent()}</th>
+                            <th scope="col" class="number">{m.content_stats_games()}</th>
+                            <th scope="col" class="number">{m.content_stats_you_won()}</th>
+                            <th scope="col" class="number">{m.content_stats_they_won()}</th>
                         </tr>
                     </thead>
                     <tbody>

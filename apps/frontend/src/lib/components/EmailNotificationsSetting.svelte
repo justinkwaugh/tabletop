@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages'
     import { Toggle } from 'flowbite-svelte'
     import { wantsGameAndCompetitionEmails } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
@@ -9,13 +10,11 @@
 <Toggle
     checked={wantsGameAndCompetitionEmails(editor.values)}
     onchange={(event) => editor.update({ gameAndCompetitionEmails: event.currentTarget.checked })}
-    >Email me about games and competitions</Toggle
+    >{m.email_notifications_toggle()}</Toggle
 >
 <p class="text-sm text-gray-700 dark:text-gray-300">
-    Invitations, games starting and finishing, and league and tournament news, including sign-up
-    reminders. Account emails are always sent.
+    {m.email_notifications_detail()}
 </p>
 <p class="text-sm font-medium text-gray-900 dark:text-white">
-    Email never tells you it's your turn. For that, turn on web, Discord or Telegram notifications
-    above.
+    {m.email_notifications_not_turns()}
 </p>

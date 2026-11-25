@@ -1,0 +1,1759 @@
+{
+    "$schema": "https://inlang.com/schema/inlang-message-format",
+    "preferences_title": "Préférences",
+    "preferences_language": "Langue",
+    "language_browser_default": "Langue du navigateur",
+    "preferences_prevent_web_notification_prompt": "Ne plus proposer d’activer les notifications web",
+    "preferences_colorblind_palette": "Palette adaptée au daltonisme",
+    "preferences_preferred_player_colors": "Couleurs de joueur préférées",
+    "preferences_bg_stats": "Enregistrer les parties dans BG Stats",
+    "preferences_bg_stats_help": "Affiche sur vos parties en ligne terminées un lien pour importer la partie, les joueurs, les scores et les vainqueurs dans l’application BG Stats. Vous confirmez chaque import dans BG Stats.",
+    "preferences_save_failed": "Impossible d’enregistrer vos préférences. Veuillez réessayer.",
+    "close": "Fermer",
+    "got_it": "Compris",
+    "loading_game_library": "Chargement de la ludothèque…",
+    "site_updated_refreshing": "Le site a été mis à jour et la page doit être actualisée. Actualisation dans 5 secondes",
+    "site_updated_refresh_when_ready": "Le site a été mis à jour avec des nouveautés ou des correctifs. Actualisez la page dès que vous avez un moment",
+    "nav_about_us": "À propos",
+    "nav_pay_it_forward": "Donner au suivant",
+    "nav_report_bug": "Signaler un bug",
+    "nav_follow_game": "Suivre cette partie",
+    "nav_following_game": "Partie suivie",
+    "nav_my_games": "Mes parties",
+    "nav_games": "Parties",
+    "nav_refresh_to_update": "Actualiser pour mettre à jour",
+    "nav_install_app": "Installer BoardTogether",
+    "nav_tournaments_and_leagues": "Tournois et ligues",
+    "nav_open_account_menu": "Ouvrir le menu du compte",
+    "nav_username_not_assigned": "nom d’utilisateur non défini",
+    "nav_next_turn": "Tour suivant",
+    "nav_log_to_bg_stats": "Enregistrer dans BG Stats",
+    "nav_profile": "Profil",
+    "nav_notifications": "Notifications",
+    "nav_report": "Signaler…",
+    "nav_sign_out": "Se déconnecter",
+    "nav_sign_in": "Se connecter",
+    "notification_prompt_question": "Recevoir des notifications pour les invitations à des parties et quand c’est votre tour ?",
+    "notification_prompt_icon": "Notifications",
+    "notification_prompt_allow": "Autoriser",
+    "notification_prompt_dismissed_title": "Bon à savoir…",
+    "notification_prompt_dismissed_body": "Si vous ne souhaitez plus que l’on vous propose les notifications, vous pouvez le régler dans vos préférences.",
+    "notification_prompt_go_to_preferences": "Ouvrir les préférences",
+    "dashboard_page_title": "Mes parties — Board Together",
+    "dashboard_heading": "Vos parties.",
+    "dashboard_go_to_library": "Aller à la ludothèque",
+    "dashboard_tabs_label": "Mes parties",
+    "dashboard_tab_current": "En cours",
+    "dashboard_tab_following": "Suivies",
+    "dashboard_tab_history": "Historique",
+    "dashboard_tab_stats": "Stats",
+    "dashboard_loading_games": "Chargement de vos parties…",
+    "dashboard_no_games": "Une partie, ça vous tente ?",
+    "dashboard_explore_library": "Explorer la ludothèque",
+    "dashboard_loading_followed": "Chargement des parties que vous suivez…",
+    "dashboard_followed_load_failed": "Impossible de charger les parties que vous suivez.",
+    "dashboard_no_followed": "Suivez des parties auxquelles vous ne participez pas pour les retrouver ici.",
+    "dashboard_follow_hint": "Ouvrez une partie que vous regardez et appuyez sur {#bookmark/} dans la barre du haut.",
+    "dashboard_follow_hint_bookmark": "le marque-page",
+    "saving": "Enregistrement…",
+    "submit": "Valider",
+    "unexpected_error_try_again": "Une erreur inattendue s’est produite, veuillez réessayer",
+    "player_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} joueur",
+                "countPlural=*": "{count: number} joueurs"
+            }
+        }
+    ],
+    "player_count_range": "{min} à {max} joueurs",
+    "create_game_heading": "Créer une partie",
+    "create_game_pick_title": "Choisissez un jeu",
+    "create_game_change_title": "Changer de jeu",
+    "create_game_loading_titles": "Chargement des jeux…",
+    "create_game_search_placeholder": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Rechercher parmi {count: number} jeu",
+                "countPlural=*": "Rechercher parmi {count: number} jeux"
+            }
+        }
+    ],
+    "create_game_search_label": "Rechercher un jeu",
+    "create_game_titles_label": "Jeux",
+    "create_game_open_tables": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} ouverte",
+                "countPlural=*": "{count: number} ouvertes"
+            }
+        }
+    ],
+    "create_game_no_match": "Aucun jeu ne correspond à « {search} ».",
+    "profile_heading": "Modifier votre profil…",
+    "profile_update_failed": "Échec de la mise à jour",
+    "profile_updated": "Profil mis à jour",
+    "profile_username": "Nom d’utilisateur",
+    "profile_username_placeholder": "choisissez un nom d’utilisateur",
+    "profile_username_exists": "Ce nom d’utilisateur existe déjà",
+    "profile_password": "Mot de passe",
+    "profile_password_placeholder": "au moins 12 caractères",
+    "profile_linked_accounts": "Comptes liés",
+    "profile_unlink": "Dissocier",
+    "profile_sign_out_everywhere_explanation": "Une session est ouverte sur un appareil auquel vous ne faites plus confiance ? Déconnectez-vous de tous les appareils, y compris celui-ci.",
+    "profile_sign_out_everywhere": "Se déconnecter partout",
+    "profile_sign_out_everywhere_failed": "Nous n’avons pas pu confirmer la déconnexion",
+    "profile_sign_out_everywhere_failed_detail": "D’autres sessions sont peut-être encore actives. Veuillez réessayer.",
+    "email_change_heading": "Adresse e-mail",
+    "email_change_current_address": "Adresse vérifiée actuelle :",
+    "email_change_done": "Votre adresse e-mail a été modifiée. Vos autres sessions ont été déconnectées.",
+    "email_change_enter_code": "Saisissez le code envoyé à {#address}{email}{/address}. Votre adresse actuelle reste active tant que vous n’avez pas vérifié la nouvelle.",
+    "email_change_code_label": "Code de vérification",
+    "email_change_verify": "Vérifier et changer d’adresse",
+    "email_change_send_new_code": "Envoyer un nouveau code",
+    "email_change_cancel": "Annuler le changement d’adresse",
+    "email_change_new_address": "Nouvelle adresse e-mail",
+    "email_change_unchanged_until_verified": "Votre adresse actuelle et l’accès à votre compte restent inchangés tant que vous n’avez pas vérifié la nouvelle adresse.",
+    "email_change_send_code": "Envoyer le code de vérification",
+    "email_change_load_failed": "Nous n’avons pas pu charger votre changement d’adresse en attente. Veuillez recharger la page et réessayer.",
+    "email_change_invalid_address": "Saisissez une adresse e-mail valide.",
+    "email_change_address_not_supported": "Cette adresse e-mail n’est pas prise en charge. Veuillez en utiliser une autre.",
+    "email_change_address_in_use": "Cette adresse e-mail est déjà utilisée.",
+    "email_change_send_failed": "Nous n’avons pas pu envoyer le code. Votre adresse e-mail actuelle reste inchangée. Veuillez réessayer.",
+    "email_change_code_invalid": "Ce code est incorrect ou a expiré. Utilisez le dernier code reçu ou demandez-en un nouveau.",
+    "email_change_address_now_in_use": "Cette adresse e-mail est désormais utilisée par un autre compte. Annulez et choisissez une autre adresse.",
+    "email_change_confirm_failed": "Nous n’avons pas pu confirmer le changement. Veuillez recharger la page pour vérifier votre adresse e-mail actuelle avant de réessayer.",
+    "email_change_cancel_failed": "Nous n’avons pas pu annuler le changement en attente. Veuillez réessayer.",
+    "cancel": "Annuler",
+    "time_zone": "Fuseau horaire",
+    "time_zone_save_failed": "Impossible d’enregistrer votre fuseau horaire. Veuillez réessayer.",
+    "time_zone_mismatch": "Votre navigateur est réglé sur {browserZone}, mais votre compte utilise {accountZone}.",
+    "time_zone_use_browser": "Utiliser {zone}",
+    "delete_account_heading": "Supprimer le compte",
+    "delete_account_summary": "Supprimez définitivement votre compte et tout ce qui y est rattaché. Les parties terminées conservent vos coups sous le nom « Deleted player » (joueur supprimé).",
+    "delete_account_administrator": "Les comptes administrateur ne peuvent pas être supprimés.",
+    "delete_account_start": "Supprimer le compte…",
+    "delete_account_confirm_title": "Supprimer votre compte ?",
+    "delete_account_irreversible": "Cette action est irréversible.",
+    "delete_account_removed": "Ce qui est supprimé",
+    "delete_account_removed_identity": "Votre nom d’utilisateur, votre adresse e-mail, votre mot de passe et votre compte Google ou Discord lié",
+    "delete_account_removed_settings": "Vos préférences et vos paramètres de notification ; toutes vos sessions sont déconnectées",
+    "delete_account_removed_games": "Les parties que vous avez créées et qui n’ont pas commencé, ainsi que vos places dans les autres",
+    "delete_account_removed_signups": "Vos inscriptions aux saisons de ligue qui n’ont pas commencé",
+    "delete_account_kept": "Ce qui est conservé, sans votre nom",
+    "delete_account_kept_finished": "Les parties terminées et vos messages de discussion, affichés sous le nom « Deleted player 1 » (joueur supprimé 1), et ainsi de suite",
+    "delete_account_kept_in_progress": "Les parties en cours : les autres joueurs peuvent y mettre fin, et la plupart des parties à 2 joueurs se terminent par la victoire de votre adversaire",
+    "delete_account_kept_competitions": "Les tournois auxquels vous participez et les saisons de ligue en cours, qu’un administrateur termine sans vous",
+    "delete_account_type_username": "Saisissez votre nom d’utilisateur, {#username}{username}{/username}, pour confirmer",
+    "delete_account_failed": "Nous n’avons pas pu supprimer votre compte. Veuillez réessayer.",
+    "delete_account_deleting": "Suppression…",
+    "delete_account_confirm": "Supprimer mon compte",
+    "delete_account_done": "Votre compte a été supprimé.",
+    "nav_pay_it_forward_tooltip": "Aidez des associations à mettre des jeux sur plus de tables. Rien ne nous revient.",
+    "follow_update_failed": "Impossible de mettre à jour vos parties suivies.",
+    "notifications_turn_heading": "Notifications de tour",
+    "notifications_turn_intro": "BoardTogether vous prévient que c’est votre tour par votre navigateur web, Discord et Telegram. Les notifications de tour ne sont jamais envoyées par e-mail.",
+    "notifications_web_heading": "Notifications web",
+    "notifications_turn_reminders_heading": "Rappels de tour",
+    "notifications_reminder_hours_heading": "Heures de rappel",
+    "notifications_email_heading": "E-mail",
+    "reminder_hours_weekdays": "Du lundi au vendredi",
+    "reminder_hours_weekends": "Samedi et dimanche",
+    "reminder_hours_every_day": "Tous les jours",
+    "reminder_hours_intro": "Choisissez les heures auxquelles vous souhaitez recevoir les rappels de tour. Touchez une heure, ou faites glisser sur plusieurs, pour les activer ou les désactiver. Les rappels de la première heure de votre tour arrivent tout de suite ; les suivants attendent votre prochaine heure sélectionnée. Si aucune heure n’est sélectionnée, les rappels arrivent à toute heure.",
+    "reminder_hours_grid_label": "{days} : heures de rappel",
+    "reminder_hours_separate_weekend": "Heures différentes le week-end",
+    "reminder_hours_any_time": "À toute heure",
+    "turn_reminders_after_hours": [
+        {
+            "declarations": ["input hours", "local hoursPlural = hours: plural"],
+            "selectors": ["hoursPlural"],
+            "match": {
+                "hoursPlural=one": "Après {hours} heure",
+                "hoursPlural=*": "Après {hours} heures"
+            }
+        }
+    ],
+    "turn_reminders_twice_daily": "Deux fois par jour",
+    "turn_reminders_daily": "Une fois par jour",
+    "turn_reminders_no_more": "Plus rien",
+    "turn_reminders_intro": "Choisissez les rappels que vous recevez tant que c’est votre tour. Les rappels s’arrêtent dès que vous avez joué.",
+    "turn_reminders_turn_begins": "Au début de votre tour",
+    "turn_reminders_turn_begins_detail": "Environ une minute après le début de votre tour",
+    "turn_reminders_always_sent": "Toujours envoyé",
+    "turn_reminders_then": "Ensuite, pendant une semaine au plus",
+    "turn_reminders_repeat_label": "Répéter les rappels",
+    "turn_reminders_hours_apply": "Les heures de rappel ci-dessous s’appliquent toujours : à partir du rappel « Après 5 heures », les rappels attendent votre prochaine heure sélectionnée.",
+    "email_notifications_toggle": "Recevoir des e-mails sur les parties et les compétitions",
+    "email_notifications_detail": "Invitations, débuts et fins de partie, actualités des ligues et des tournois, y compris les rappels d’inscription. Les e-mails liés au compte sont toujours envoyés.",
+    "email_notifications_not_turns": "Les e-mails ne vous préviennent jamais que c’est votre tour. Pour cela, activez ci-dessus les notifications web, Discord ou Telegram.",
+    "try_again": "Réessayer",
+    "web_notifications_on": "Les notifications sont activées sur cet appareil.",
+    "web_notifications_each_device": "Activez-les dans chaque navigateur et sur chaque appareil où vous souhaitez les recevoir.",
+    "web_notifications_setting_up": "Configuration des notifications pour cet appareil…",
+    "web_notifications_setup_failed": "Board Together n’a pas pu configurer les notifications pour cet appareil.",
+    "web_notifications_offer": "Board Together peut vous prévenir que c’est votre tour par l’intermédiaire de ce navigateur, même quand le site est fermé. Activez les notifications dans chaque navigateur et sur chaque appareil où vous souhaitez les recevoir.",
+    "web_notifications_turn_on": "Activer les notifications sur cet appareil",
+    "web_notifications_blocked": "Ce navigateur bloque les notifications de Board Together.",
+    "web_notifications_blocked_help": "Autorisez les notifications dans les paramètres de ce site, généralement accessibles par l’icône située à côté de la barre d’adresse, puis rechargez cette page.",
+    "web_notifications_unsupported": "Ce navigateur ne peut pas afficher de notifications. Sur un iPhone ou un iPad, ajoutez Board Together à votre écran d’accueil depuis le menu Partager, puis ouvrez-le à partir de là et revenez sur cette page.",
+    "topic_registrations_load_failed": "BoardTogether n’a pas pu charger vos paramètres Discord et Telegram.",
+    "notification_channel_disconnect": "Déconnecter",
+    "discord_bot_heading": "Notifications Discord",
+    "discord_bot_connected": "Le bot Discord est connecté.",
+    "discord_bot_disconnect_failed": "BoardTogether n’a pas pu déconnecter le bot Discord. Veuillez réessayer.",
+    "discord_bot_connected_detail": "Le bot BoardTogether vous envoie un message privé quand c’est votre tour ou qu’on vous invite à une partie. Vous pouvez aussi le désactiver en lui envoyant /stop, et le réactiver avec /notify.",
+    "discord_bot_offer": "BoardTogether dispose d’un bot Discord qui peut vous envoyer des messages privés, quels que soient les serveurs dont vous faites partie.",
+    "discord_bot_add": "Ajoutez le bot à votre compte Discord et il commencera aussitôt à vous envoyer des notifications. Si vous l’aviez ajouté avant de lier votre compte, envoyez-lui /notify.",
+    "discord_bot_link_first": "Commencez par lier votre compte Discord.",
+    "discord_webhook_heading": "Webhook de salon Discord",
+    "discord_webhook_invalid_url": "Ce n’est pas une URL de webhook Discord. Elle doit commencer par https://discord.com/api/webhooks/.",
+    "discord_webhook_not_found": "Discord n’a aucun webhook à cette URL. Il a peut-être été supprimé, ou son URL a été réinitialisée.",
+    "discord_webhook_unsupported": "Ce webhook appartient à une application Discord et ne peut pas recevoir ces messages. Créez-en un nouveau dans les paramètres du salon, sous Intégrations.",
+    "discord_webhook_failed": "Discord a refusé un message. Veuillez réessayer.",
+    "discord_webhook_mentions_you": "Chaque message vous mentionne : Discord vous notifie donc même dans un salon partagé.",
+    "discord_webhook_link_to_mention": "Liez votre compte Discord et chaque message vous mentionnera : Discord vous notifiera alors même dans un salon partagé.",
+    "discord_webhook_posting_named": "Les messages sont publiés via le webhook Discord {name}.",
+    "discord_webhook_posting": "Les messages sont publiés via votre webhook Discord.",
+    "discord_webhook_disconnect_failed": "BoardTogether n’a pas pu déconnecter le webhook. Veuillez réessayer.",
+    "discord_webhook_prefer_bot": "Pour la plupart des joueurs, le bot Discord ci-dessus est le meilleur choix : il vous écrit directement et ne demande aucune configuration sur un serveur.",
+    "discord_webhook_instructions": "Si vous préférez que vos notifications soient publiées dans un salon d’un serveur Discord que vous gérez, connectez plutôt un webhook. Dans les paramètres du salon, ouvrez Intégrations, puis Webhooks, et créez un webhook. Copiez ensuite son URL et collez-la ci-dessous.",
+    "discord_webhook_url_label": "URL du webhook",
+    "discord_webhook_connect": "Connecter",
+    "telegram_heading": "Notifications Telegram",
+    "telegram_connected": "Telegram est connecté.",
+    "telegram_disconnect_failed": "BoardTogether n’a pas pu déconnecter Telegram. Veuillez réessayer.",
+    "telegram_connected_detail": "Le bot BoardTogether vous y écrit quand c’est votre tour ou qu’on vous invite à une partie. Vous pouvez aussi le désactiver en lui envoyant /stop.",
+    "telegram_offer": "BoardTogether dispose d’un bot Telegram qui peut vous écrire quand c’est votre tour. Appuyez sur Connecter, puis sur Démarrer dans Telegram.",
+    "telegram_link_failed": "BoardTogether n’a pas pu préparer de lien Telegram.",
+    "discord_sign_in": "Se connecter avec Discord",
+    "discord_link": "Lier",
+    "discord_continue": "Continuer avec Discord",
+    "discord_add_bot": "Ajouter le bot",
+    "title_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} jeu",
+                "countPlural=*": "{count: number} jeux"
+            }
+        }
+    ],
+    "dashboard_history_load_failed": "Impossible de charger l’historique.",
+    "dashboard_history_loading": "Chargement de l’historique…",
+    "dashboard_history_empty": "Vos parties terminées apparaîtront ici.",
+    "dashboard_history_load_more": "Charger plus de parties",
+    "dashboard_history_all_shown": "Toutes les parties sont affichées ({count: number})",
+    "time_ago_just_now": "à l’instant",
+    "time_ago_minutes": "il y a {count: number} min",
+    "time_ago_hours": "il y a {count: number} h",
+    "time_ago_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "il y a {count: number} jour",
+                "countPlural=*": "il y a {count: number} jours"
+            }
+        }
+    ],
+    "time_ago_weeks": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "il y a {count: number} semaine",
+                "countPlural=*": "il y a {count: number} semaines"
+            }
+        }
+    ],
+    "time_ago_months": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "il y a {count: number} mois",
+                "countPlural=*": "il y a {count: number} mois"
+            }
+        }
+    ],
+    "time_ago_years": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "il y a {count: number} an",
+                "countPlural=*": "il y a {count: number} ans"
+            }
+        }
+    ],
+    "start_countdown_seconds": "Démarrage dans {seconds} s",
+    "start_countdown_starting": "Démarrage…",
+    "auth_title_welcome": "Bienvenue !",
+    "auth_title_create_account": "Créer un compte",
+    "auth_title_reset_password": "Réinitialiser le mot de passe",
+    "auth_title_password_reset": "Mot de passe réinitialisé",
+    "auth_page_title_create_account": "Créer un compte — Board Together",
+    "auth_page_title_reset_password": "Réinitialiser le mot de passe — Board Together",
+    "auth_username": "Nom d’utilisateur",
+    "auth_username_placeholder": "choisissez un nom d’utilisateur",
+    "auth_password": "Mot de passe",
+    "auth_new_password": "Nouveau mot de passe",
+    "auth_email": "E-mail",
+    "auth_email_address": "Adresse e-mail",
+    "auth_email_placeholder": "nom@exemple.com",
+    "auth_password_show": "Afficher le mot de passe",
+    "auth_password_hide": "Masquer le mot de passe",
+    "auth_password_min_length_help": "Utilisez au moins 12 caractères.",
+    "auth_username_exists": "Ce nom d’utilisateur existe déjà",
+    "auth_email_exists": "Cette adresse e-mail est déjà utilisée",
+    "auth_sign_in": "Se connecter",
+    "auth_sign_up": "S’inscrire",
+    "auth_signing_in": "Connexion…",
+    "auth_back": "Retour",
+    "auth_back_to_sign_in": "Retour à la connexion",
+    "auth_continue": "Continuer",
+    "auth_ok": "OK",
+    "auth_need_account": "Pas encore de compte ? {#signup}Inscrivez-vous{/signup}",
+    "auth_have_account": "Déjà un compte ? {#signin}Connectez-vous{/signin}",
+    "auth_age_confirmation": "J’ai 13 ans ou plus et j’accepte les {#terms}Conditions d’utilisation{/terms}. Découvrez comment nous utilisons vos données dans la {#privacy}Politique de confidentialité{/privacy}.",
+    "auth_validation_required": "Champ obligatoire",
+    "auth_validation_invalid_email": "Adresse e-mail invalide",
+    "auth_validation_min_length": [
+        {
+            "declarations": ["input length", "local lengthPlural = length: plural"],
+            "selectors": ["lengthPlural"],
+            "match": {
+                "lengthPlural=one": "Doit contenir au moins {length} caractère",
+                "lengthPlural=*": "Doit contenir au moins {length} caractères"
+            }
+        }
+    ],
+    "auth_validation_age_confirmation": "Confirmez que vous avez 13 ans ou plus pour créer un compte",
+    "auth_challenge_expiry": "Il est valable jusqu’à {time}, et seul le plus récent fonctionne.",
+    "auth_unavailable_account": "Compte indisponible",
+    "auth_login_or": "ou",
+    "auth_login_use_username": "Nom d’utilisateur et mot de passe",
+    "auth_login_failed": "Connexion impossible. Vérifiez votre nom d’utilisateur et votre mot de passe, puis réessayez.",
+    "auth_login_forgot_password": "Mot de passe oublié ?",
+    "auth_login_please_login": "Connectez-vous…",
+    "auth_signup_failed": "Nous n’avons pas pu créer votre compte. Veuillez réessayer.",
+    "auth_signup_email_help": "Votre adresse reste privée. Elle sert uniquement à la récupération du compte et aux notifications.",
+    "auth_signup_creating": "Création…",
+    "auth_forgot_check_email": "Consultez vos e-mails",
+    "auth_forgot_link_sent": "Si cette adresse est associée à un compte, nous y avons envoyé un lien de réinitialisation du mot de passe.",
+    "auth_forgot_try_another_email": "Essayer une autre adresse",
+    "auth_forgot_intro": "Nous vous enverrons par e-mail un lien pour réinitialiser votre mot de passe.",
+    "auth_forgot_send_failed": "Nous n’avons pas pu envoyer l’e-mail de réinitialisation. Veuillez réessayer.",
+    "auth_forgot_sending": "Envoi…",
+    "auth_forgot_send_link": "Envoyer le lien",
+    "auth_reset_link_rejected": "Ce lien de réinitialisation a expiré, a été remplacé par un plus récent ou a déjà été utilisé. Demandez-en un nouveau ci-dessous.",
+    "auth_reset_success": "Votre mot de passe a été mis à jour. Connectez-vous avec celui-ci pour continuer.",
+    "auth_reset_failed": "Nous n’avons pas pu mettre à jour votre mot de passe. Veuillez réessayer.",
+    "auth_reset_set_password": "Définir le nouveau mot de passe",
+    "auth_reauth_title": "Confirmez votre identité",
+    "auth_reauth_action_failed": "L’action confirmée a échoué",
+    "auth_reauth_password_rejected": "Ce mot de passe n’a pas été accepté.",
+    "auth_reauth_failed": "Nous n’avons pas pu confirmer votre identité. Veuillez réessayer.",
+    "auth_reauth_confirming": "Confirmation…",
+    "auth_reauth_confirm": "Confirmer",
+    "auth_reauth_no_method": "Ce compte n’a ni mot de passe ni compte lié permettant de confirmer votre identité. Utilisez « Mot de passe oublié ? » sur la page de connexion pour en définir un, puis reconnectez-vous.",
+    "auth_reauth_go_to_sign_in": "Aller à la connexion",
+    "auth_reauth_request_change_password": "Pour votre sécurité, confirmez votre identité avant de changer votre mot de passe.",
+    "auth_reauth_confirmed_change_password": "Votre identité est confirmée. Continuez pour changer votre mot de passe.",
+    "auth_reauth_request_update_profile": "Pour votre sécurité, confirmez votre identité avant de mettre à jour votre profil.",
+    "auth_reauth_confirmed_update_profile": "Votre identité est confirmée. Continuez pour mettre à jour votre profil.",
+    "auth_reauth_request_change_email": "Pour votre sécurité, confirmez votre identité avant de changer votre adresse e-mail.",
+    "auth_reauth_confirmed_change_email": "Votre identité est confirmée. Continuez pour changer votre adresse e-mail.",
+    "auth_reauth_request_confirm_new_email": "Pour votre sécurité, confirmez votre identité avant de confirmer votre nouvelle adresse e-mail.",
+    "auth_reauth_confirmed_confirm_new_email": "Votre identité est confirmée. Continuez pour confirmer votre nouvelle adresse e-mail.",
+    "auth_reauth_request_delete_account": "Pour votre sécurité, confirmez votre identité avant de supprimer votre compte.",
+    "auth_reauth_confirmed_delete_account": "Votre identité est confirmée. Continuez pour supprimer votre compte.",
+    "auth_reauth_request_update_email": "Pour votre sécurité, confirmez votre identité avant de mettre à jour votre adresse e-mail.",
+    "auth_reauth_confirmed_update_email": "Votre identité est confirmée. Continuez pour mettre à jour votre adresse e-mail.",
+    "auth_reauth_request_complete_profile": "Pour votre sécurité, confirmez votre identité avant de compléter votre profil.",
+    "auth_reauth_confirmed_complete_profile": "Votre identité est confirmée. Continuez pour compléter votre profil.",
+    "auth_reauth_request_link_discord": "Pour votre sécurité, confirmez votre identité avant d’ajouter Discord comme autre moyen de vous connecter à votre compte.",
+    "auth_reauth_confirmed_link_discord": "Votre identité est confirmée. Continuez pour ajouter Discord comme autre moyen de vous connecter à votre compte.",
+    "auth_reauth_request_link_google": "Pour votre sécurité, confirmez votre identité avant d’ajouter Google comme autre moyen de vous connecter à votre compte.",
+    "auth_reauth_confirmed_link_google": "Votre identité est confirmée. Continuez pour ajouter Google comme autre moyen de vous connecter à votre compte.",
+    "auth_google_sign_in_failed": "La connexion avec Google a échoué",
+    "auth_discord_authorization_failed": "L’autorisation Discord a échoué",
+    "auth_discord_not_completed": "Discord n’a pas terminé l’autorisation",
+    "auth_discord_popup_blocked": "Le navigateur a bloqué la fenêtre Discord",
+    "auth_discord_start_timeout": "L’autorisation Discord n’a pas pu démarrer à temps",
+    "auth_discord_abandoned": "L’autorisation Discord a pris trop de temps et a été abandonnée",
+    "auth_onboarding_signup_deadline": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Les inscriptions inachevées sont supprimées au bout de {days} jour.",
+                "daysPlural=*": "Les inscriptions inachevées sont supprimées au bout de {days} jours."
+            }
+        }
+    ],
+    "auth_onboarding_verify_heading": "Vérifiez votre adresse e-mail…",
+    "auth_onboarding_complete_heading": "Complétez votre profil…",
+    "auth_onboarding_oops": "Oups…",
+    "auth_onboarding_unexpected_error": "Une erreur inattendue s’est produite. Veuillez réessayer, en espérant que cela se passe mieux cette fois.",
+    "auth_onboarding_verification_failed": "Échec de la vérification",
+    "auth_onboarding_verification_failed_detail": "Vérifiez que vous avez saisi le code le plus récent et qu’il n’a pas expiré. Un code est valable 15 minutes.",
+    "auth_onboarding_email_sent": "E-mail envoyé",
+    "auth_onboarding_check_email": "Consultez vos e-mails : un nouveau code de vérification vous a été envoyé.",
+    "auth_onboarding_token_sent": "Un e-mail contenant un code de vérification a été envoyé à {#address}{email}{/address}. Saisissez ce code ci-dessous pour vérifier votre adresse e-mail.",
+    "auth_onboarding_send_new_token": "Envoyer un nouveau code",
+    "auth_onboarding_email_privacy": "Nous ne rendrons jamais votre adresse e-mail publique. Elle sert uniquement à la récupération du compte et aux notifications.",
+    "auth_invitation_heading": "Rejoindre cette partie ?",
+    "auth_invitation_not_found": "L’invitation a expiré ou est introuvable",
+    "auth_invitation_wrong_user": "Ce lien d’invitation est destiné à un autre utilisateur",
+    "auth_invitation_already_declined": "Vous avez déjà refusé cette invitation",
+    "auth_invitation_invalid": "Impossible de valider l’invitation",
+    "auth_join_page_title": "Rejoindre {name} · Board Together",
+    "auth_join_invitation_page_title": "Invitation à une partie · Board Together",
+    "auth_join_invitation": "Invitation à une partie",
+    "auth_join_started_opening": "Cette partie a déjà commencé. Ouverture de la partie…",
+    "auth_join_finished_opening": "Cette partie est terminée. Ouverture de la partie…",
+    "auth_join_failed": "Impossible de rejoindre la partie. Elle a peut-être changé ; vérifiez les places disponibles et réessayez.",
+    "auth_join_unreachable": "Impossible d’accéder à la partie. Veuillez réessayer.",
+    "auth_join_seat_summary": [
+        {
+            "declarations": [
+                "input players",
+                "input openSeats",
+                "local playersPlural = players: plural",
+                "local openSeatsPlural = openSeats: plural"
+            ],
+            "selectors": ["playersPlural", "openSeatsPlural"],
+            "match": {
+                "playersPlural=one, openSeatsPlural=one": "{players: number} joueur · {openSeats: number} place libre",
+                "playersPlural=one, openSeatsPlural=*": "{players: number} joueur · {openSeats: number} places libres",
+                "playersPlural=*, openSeatsPlural=one": "{players: number} joueurs · {openSeats: number} place libre",
+                "playersPlural=*, openSeatsPlural=*": "{players: number} joueurs · {openSeats: number} places libres"
+            }
+        }
+    ],
+    "auth_join_game_options": "Options de la partie",
+    "auth_join_players": "Joueurs",
+    "auth_join_open_seat": "Place libre",
+    "auth_join_joined": "Vous avez rejoint cette partie.",
+    "auth_join_go_to_game": "Aller à la partie",
+    "auth_join_already_started": "Cette partie a déjà commencé.",
+    "auth_join_finished": "Cette partie est terminée.",
+    "auth_join_no_open_seats": "Il n’y a plus de place libre dans cette partie.",
+    "auth_join_load_failed_heading": "Impossible de charger la partie",
+    "auth_join_load_failed_detail": "Vérifiez votre connexion et réessayez.",
+    "auth_join_unavailable_heading": "Invitation indisponible",
+    "auth_join_unavailable_detail": "Cette partie n’existe plus ou n’est plus publique.",
+    "auth_join_no_thanks": "Non merci",
+    "auth_join_joining": "Un instant…",
+    "auth_join": "Rejoindre",
+    "games_card_answer_request": "Répondre",
+    "games_card_your_turn": "Votre tour",
+    "games_card_take_your_turn": "Jouer votre tour",
+    "games_card_result_winner": "Vainqueur",
+    "games_card_result_tied": "Égalité",
+    "games_card_result_no_winner": "Aucun vainqueur",
+    "games_card_result_abandoned": "Abandonnée",
+    "games_card_stalling": "Inactive",
+    "games_card_ends_in_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Fin dans {count: number} jour",
+                "countPlural=*": "Fin dans {count: number} jours"
+            }
+        }
+    ],
+    "games_card_stalled": "Expirée",
+    "games_card_called": "Arrêtée",
+    "games_card_conceded": "Concédée",
+    "games_card_finished": "Terminée",
+    "games_card_winner_you_and_others": "Vous et d’autres",
+    "games_card_winners_see_below": "Voir ci-dessous",
+    "games_card_loading_game": "Chargement de la partie",
+    "games_card_cover_alt": "miniature de la boîte",
+    "games_card_hosted_by": "par {#host}{name}{/host}",
+    "games_card_tournament": "Tournoi",
+    "games_card_join": "Rejoindre",
+    "games_card_start": "Démarrer",
+    "games_card_edit": "Modifier",
+    "games_card_enter": "Entrer",
+    "games_card_watch": "Regarder",
+    "games_card_revisit": "Revoir",
+    "games_card_continue": "Continuer",
+    "games_card_waiting_to_start": "En attente{#break/}de démarrage",
+    "games_card_active_player": "Joueur actif",
+    "games_card_unknown_game": "Jeu inconnu",
+    "games_card_seat_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} joueur",
+                "countPlural=*": "{count: number} joueurs"
+            }
+        }
+    ],
+    "games_card_pace": "Rythme",
+    "games_card_mode": "Mode",
+    "games_card_hotseat": "Hotseat",
+    "games_card_stall_deadline": "La partie se termine sans vainqueur si personne ne joue d’ici le {date}.",
+    "games_card_last_action": "Dernière action",
+    "games_card_time_with_pace_warning": "{time}{#hidden}, {warning}{/hidden}",
+    "games_card_open_seats": "Places libres",
+    "games_card_open_seats_none": "Aucune",
+    "games_card_players_heading": "JOUEURS",
+    "games_card_score_heading": "SCORE",
+    "games_card_explorations_heading": "EXPLORATIONS",
+    "games_card_player_local": "en local",
+    "games_card_decline": "Refuser",
+    "games_card_leave": "Quitter",
+    "games_card_edit_game": "Modifier la partie",
+    "games_card_start_game": "Démarrer la partie",
+    "games_card_play_game": "Jouer",
+    "games_card_watch_game": "Regarder la partie",
+    "games_card_unfollow": "Ne plus suivre",
+    "games_card_delete": "Supprimer",
+    "games_card_hide_details": "Masquer les détails de la partie",
+    "games_card_show_details": "Afficher les détails de la partie",
+    "games_player_you": "Vous",
+    "games_player_multiple": "Plusieurs joueurs",
+    "games_player_status_host": "hôte",
+    "games_player_status_joined": "a rejoint",
+    "games_player_status_invited": "invitation envoyée",
+    "games_player_status_declined": "a refusé",
+    "games_player_status_open": "libre",
+    "games_option_yes": "Oui",
+    "games_option_no": "Non",
+    "games_option_none": "Aucun",
+    "games_delete_confirm": "Voulez-vous vraiment supprimer cette partie ?",
+    "games_delete_cannot_undo": "Cette action est irréversible.",
+    "games_no_cancel": "Non, annuler",
+    "games_delete_yes": "Oui, je confirme",
+    "games_copy_invite_link": "Copier le lien d’invitation",
+    "games_copy_game_link": "Copier le lien de la partie",
+    "games_copy_invite_link_for": "Copier le lien d’invitation de la partie {name}",
+    "games_copy_game_link_for": "Copier le lien de la partie {name}",
+    "games_invite_link_copied": "Lien d’invitation copié",
+    "games_game_link_copied": "Lien de la partie copié",
+    "games_copy_link_failed": "Impossible de copier le lien. Veuillez réessayer.",
+    "games_tab_title_answer": "Réponse attendue · {game}",
+    "games_tab_title_turn": "Votre tour · {game}",
+    "games_vote_undoes_moves": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Annule des coups de {count: number} joueur.",
+                "countPlural=*": "Annule des coups de {count: number} joueurs."
+            }
+        }
+    ],
+    "games_vote_failed_reason": "Cela n’a pas fonctionné : {reason}.",
+    "games_vote_failed": "Cela n’a pas fonctionné. Veuillez réessayer.",
+    "games_vote_undo_request": "{#player}{name}{/player} demande à revenir à un moment antérieur",
+    "games_vote_undo_request_undoing": [
+        {
+            "declarations": ["input name", "input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#player}{name}{/player} demande à revenir à un moment antérieur {#detail}en annulant des coups de {count: number} joueur{/detail}",
+                "countPlural=*": "{#player}{name}{/player} demande à revenir à un moment antérieur {#detail}en annulant des coups de {count: number} joueurs{/detail}"
+            }
+        }
+    ],
+    "games_vote_call_request_no_winner": "{#player}{name}{/player} demande à arrêter la partie {#detail}sans vainqueur{/detail}",
+    "games_vote_call_request_winner": "{#player}{name}{/player} demande à arrêter la partie {#detail}avec {winner} pour vainqueur{/detail}",
+    "games_vote_undo_request_sentence": "{#player}{name}{/player} demande à revenir à un moment antérieur.",
+    "games_vote_undo_request_undoing_sentence": [
+        {
+            "declarations": ["input name", "input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#player}{name}{/player} demande à revenir à un moment antérieur {#detail}en annulant des coups de {count: number} joueur{/detail}.",
+                "countPlural=*": "{#player}{name}{/player} demande à revenir à un moment antérieur {#detail}en annulant des coups de {count: number} joueurs{/detail}."
+            }
+        }
+    ],
+    "games_vote_call_request_no_winner_sentence": "{#player}{name}{/player} demande à arrêter la partie {#detail}sans vainqueur{/detail}.",
+    "games_vote_call_request_winner_sentence": "{#player}{name}{/player} demande à arrêter la partie {#detail}avec {winner} pour vainqueur{/detail}.",
+    "games_vote_tally_agreed": "{approvals: number} sur {total: number} d’accord",
+    "games_vote_tally_needed": "{approvals: number} sur {required: number} requis",
+    "games_vote_view_that_point": "Voir ce moment",
+    "games_vote_withdraw": "Retirer",
+    "games_vote_decline": "Refuser",
+    "games_vote_agree": "Accepter",
+    "games_vote_answer_before_playing": "Répondez avant de pouvoir rejouer.",
+    "games_vote_undo_yourself": "Vous pouvez annuler cela vous-même avec le bouton « Undo ».",
+    "games_vote_ok": "OK",
+    "games_vote_confirm_undo": "Demander à tout le monde de revenir ici ?",
+    "games_vote_send_request": "Envoyer la demande",
+    "games_vote_ask_to_undo": "Demander à revenir ici",
+    "games_vote_notice_answer": "Vous devez répondre avant de pouvoir rejouer. Acceptez ou refusez dans le bandeau en haut de la partie.",
+    "games_call_offer_concede": "Concéder",
+    "games_call_offer_call": "Arrêter la partie",
+    "games_call_concede_confirm": "Voulez-vous vraiment concéder cette partie ?",
+    "games_call_cannot_undo": "Cette action est irréversible.",
+    "games_call_ask_end": "Demander à tout le monde d’arrêter la partie maintenant ?",
+    "games_call_ends_if": "Elle s’arrête si {required: number} des {total: number} joueurs sont d’accord, y compris vous.",
+    "games_call_who_wins": "Qui gagne ?",
+    "games_call_no_winner": "Aucun vainqueur",
+    "games_call_play_goes_on": "La partie continue pendant le vote.",
+    "games_call_yes_concede": "Oui, je concède",
+    "games_call_ask_everyone": "Demander à tous",
+    "games_bug_report_screenshot_limit": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Un rapport peut contenir jusqu’à {count: number} capture d’écran.",
+                "countPlural=*": "Un rapport peut contenir jusqu’à {count: number} captures d’écran."
+            }
+        }
+    ],
+    "games_bug_report_image_unreadable": "Impossible de lire cette image.",
+    "games_bug_report_sent": "Merci ! Votre rapport de bug a été envoyé.",
+    "games_bug_report_what_went_wrong": "Quel est le problème ?",
+    "games_bug_report_placeholder": "Qu’avez-vous fait, que s’est-il passé et à quoi vous attendiez-vous ?",
+    "games_bug_report_screenshot_alt": "Capture d’écran {number}",
+    "games_bug_report_remove_screenshot": "Retirer la capture d’écran {number}",
+    "games_bug_report_adding": "Ajout…",
+    "games_bug_report_privacy": "Votre description, vos captures d’écran, votre nom d’utilisateur et votre identifiant Discord (si vous en avez lié un), ainsi que le nom du jeu et l’état de la partie, sont publiés sur notre forum Discord, visible de tous. Une copie de la partie et les informations sur votre navigateur nous sont transmises en privé.",
+    "games_bug_report_sending": "Envoi…",
+    "games_bug_report_too_large": "Cette partie est trop volumineuse pour être jointe à un rapport de bug.",
+    "games_bug_report_rate_limited": "Vous venez d’envoyer plusieurs rapports. Veuillez réessayer dans quelques minutes.",
+    "games_bug_report_failed": "Impossible d’envoyer votre rapport de bug.",
+    "games_bug_report_failed_try_later": "Impossible d’envoyer votre rapport de bug. Veuillez réessayer dans quelques minutes.",
+    "games_report_title": "Signaler",
+    "games_report_message_title": "Signaler le message",
+    "games_report_owner_anonymous": "L’hôte de la partie ne saura pas qui a fait ce signalement. Nous examinons chaque signalement sous quelques jours.",
+    "games_report_player_anonymous": "Le joueur ne saura pas qui a fait ce signalement. Nous examinons chaque signalement sous quelques jours.",
+    "games_report_named_anonymous": "{name} ne saura pas qui a fait ce signalement. Nous examinons chaque signalement sous quelques jours.",
+    "games_report_sent": "Merci. Votre signalement a été envoyé.",
+    "games_report_failed": "Votre signalement n’a pas pu être envoyé. Veuillez réessayer.",
+    "games_report_what": "Que souhaitez-vous signaler ?",
+    "games_report_game_name": "Le nom de la partie « {name} »",
+    "games_report_username": "Le nom d’utilisateur d’un joueur",
+    "games_report_player_label": "Joueur",
+    "games_report_choose_player": "Choisir un joueur",
+    "games_report_chat_message": "Un message de la discussion",
+    "games_report_message_label": "Message",
+    "games_report_choose_message": "Choisir un message",
+    "games_report_message_option": "{author} : {text}",
+    "games_report_whats_wrong": "Quel est le problème ?",
+    "games_report_anything_else": "Autre chose à nous signaler ? {#optional}(facultatif){/optional}",
+    "games_report_send": "Envoyer le signalement",
+    "games_page_not_found": "La partie demandée est introuvable",
+    "games_page_not_started": "La partie demandée n’a pas encore commencé",
+    "games_page_not_supported": "La partie demandée n’est pas prise en charge",
+    "games_page_no_longer_available": "La partie demandée n’est plus disponible",
+    "games_page_load_failed": "Impossible de charger la partie",
+    "games_report_reason_bullying": "Intimidation ou harcèlement",
+    "games_report_reason_hate": "Haine",
+    "games_report_reason_sexual_content": "Contenu sexuel",
+    "games_report_reason_self_harm": "Suicide, automutilation ou troubles alimentaires",
+    "games_report_reason_intimate_image": "Images intimes partagées sans consentement",
+    "games_report_reason_illegal": "Contenu illégal",
+    "games_report_reason_spam": "Spam ou arnaque",
+    "games_report_reason_other": "Autre chose",
+    "games_report_author_administrator": "Administrateur",
+    "games_report_author_unknown": "Joueur inconnu",
+    "library_page_title": "Ludothèque — Board Together",
+    "library_all_games": "Tous les jeux",
+    "library_unknown_game": "Jeu inconnu",
+    "library_maturity_alpha": "Alpha",
+    "library_maturity_beta": "Bêta",
+    "library_series_18xx_description": "Des jeux de chemin de fer mêlant spéculation boursière et pose de rails. Dirigez des compagnies, prenez des parts chez vos rivaux et revendez tout avant que le prochain train ne fasse rouiller leur flotte.",
+    "library_series_gipf_project_description": "Les jeux abstraits pour deux joueurs de Kris Burm. Des pièces simples, aucune information cachée et aucun hasard : tout se joue sur le plateau, avec les choix qui s’offrent à vous.",
+    "library_shelf_view_series": [
+        {
+            "declarations": ["input name", "input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Voir {name}, {count: number} jeu",
+                "countPlural=*": "Voir {name}, {count: number} jeux"
+            }
+        }
+    ],
+    "library_shelf_view_title": "Voir {name}",
+    "library_shelf_view_title_with_maturity": "Voir {name}, {maturity}",
+    "library_shelf_sign_in_to_play": "Connectez-vous pour jouer à {name}",
+    "library_title_page_title": "{name} — Board Together",
+    "library_title_unavailable": "Ce jeu n’est pas disponible dans votre ludothèque.",
+    "library_title_cover_alt": "Boîte du jeu {name}",
+    "library_title_designed_by": "Créé par {#designer}{designer}{/designer}",
+    "library_title_published_by": "Édité par {#publisher}{publisher}{/publisher}",
+    "library_title_published_by_seller": "Édité par {#publisher}{publisher}{/publisher}{#separator/}{#shop}l’acheter chez {publisher}{/shop}",
+    "library_opens_in_new_tab": "(s’ouvre dans un nouvel onglet)",
+    "library_start_game": "Créer une partie",
+    "library_start_game_arrow": "Créer une partie →",
+    "library_title_game_created": "Partie créée. Vous la retrouverez dans vos parties ci-dessous.",
+    "library_loading": "Chargement…",
+    "library_loading_games": "Chargement des parties…",
+    "library_games_load_failed": "Impossible de charger ces parties.",
+    "library_games_unavailable": "Ces parties sont temporairement indisponibles.",
+    "library_previous": "Précédent",
+    "library_next": "Suivant",
+    "library_in_progress": "En cours",
+    "library_recently_finished": "Terminées récemment",
+    "library_title_games_your_games": "Vos parties",
+    "library_title_games_your_games_empty": "Vos parties de ce jeu apparaîtront ici.",
+    "library_title_games_open_games": "Parties ouvertes",
+    "library_title_games_open_games_empty": "Aucune table ouverte pour le moment. Créez-en une et invitez d’autres joueurs à la rejoindre.",
+    "library_title_games_in_progress_empty": "Aucune partie publique de ce jeu n’est en cours pour le moment.",
+    "library_title_games_recently_finished_empty": "Aucune partie publique de ce jeu n’est encore terminée.",
+    "library_title_games_open_games_pages": "Pages des parties ouvertes",
+    "library_title_games_in_progress_pages": "Pages des parties en cours",
+    "library_title_games_recently_finished_pages": "Pages des parties terminées récemment",
+    "library_title_games_community": "Parties de la communauté",
+    "library_competitions_heading": "Tournois et ligues",
+    "library_competitions_all_tournaments": "Tous les tournois",
+    "library_competitions_all_leagues": "Toutes les ligues",
+    "library_competitions_loading": "Chargement des tournois et des ligues…",
+    "library_competitions_load_failed_both": "Impossible de charger les tournois et les ligues.",
+    "library_competitions_load_failed_tournaments": "Impossible de charger les tournois.",
+    "library_competitions_load_failed_leagues": "Impossible de charger les ligues.",
+    "library_competitions_none": "Aucun tournoi ni ligue à afficher pour ce jeu en ce moment.",
+    "library_competitions_ladder_league": "Ligue en échelle",
+    "library_competitions_pyramid_league": "Ligue en pyramide",
+    "library_competitions_players_per_game": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} joueur par partie",
+                "countPlural=*": "{count: number} joueurs par partie"
+            }
+        }
+    ],
+    "library_competitions_games_each": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} partie chacun",
+                "countPlural=*": "{count: number} parties chacun"
+            }
+        }
+    ],
+    "library_competitions_joined": "Inscrits : {roster}",
+    "library_competitions_more_tournaments": "Plus de tournois",
+    "library_entry_your_turn": "Votre tour",
+    "library_entry_answer_request": "Répondre",
+    "library_entry_enter": "Entrer",
+    "library_entry_watch": "Regarder",
+    "library_entry_revisit": "Revoir",
+    "library_entry_named": "{action} : {name}",
+    "library_entry_join": "Rejoindre",
+    "library_entry_join_named": "Rejoindre {name}",
+    "library_entry_join_failed": "Impossible de rejoindre cette partie. Veuillez réessayer.",
+    "library_entry_joined": "Rejointe",
+    "library_entry_full": "Complète",
+    "library_table_title": "Jeu",
+    "library_table_name": "Nom",
+    "library_table_seats": "Places",
+    "library_table_options": "Options",
+    "library_table_pace": "Rythme",
+    "library_table_created": "Créée",
+    "library_table_progress": "Progression",
+    "library_table_turn": "Joueur actif",
+    "library_table_last_action": "Dernière action",
+    "library_table_winner": "Vainqueur",
+    "library_table_finished": "Terminée",
+    "library_table_show_details": "Afficher les détails de la partie {name}",
+    "library_table_hide_details": "Masquer les détails de la partie {name}",
+    "library_table_to_move": "Joueur actif : {player}",
+    "library_table_won": "Victoire : {winners}",
+    "library_table_pace_value": "Rythme : {pace}",
+    "library_table_seats_taken": "Places prises : {taken} sur {total: number}",
+    "library_table_game_options": "Options de la partie",
+    "library_table_game_options_heading": "OPTIONS DE LA PARTIE",
+    "library_table_players": "Joueurs",
+    "library_table_players_heading": "JOUEURS",
+    "library_table_score_heading": "SCORE",
+    "library_table_no_winner": "Aucun vainqueur",
+    "library_table_standard_options": "Standard",
+    "library_table_option_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} option",
+                "countPlural=*": "{count: number} options"
+            }
+        }
+    ],
+    "library_table_host": "hôte",
+    "library_pace_daily_or_faster": "Quotidien ou plus rapide",
+    "library_pace_brisk_or_faster": "Soutenu ou plus rapide",
+    "library_pace_fast_or_faster": "Rapide ou plus rapide",
+    "library_pace_live": "En direct",
+    "library_series_page_title": "Jeux {name} — Board Together",
+    "library_series_unavailable": "Cette série n’est pas disponible dans la ludothèque.",
+    "library_series_shelf_load_failed": "Impossible de charger l’étagère de jeux. Veuillez actualiser la page pour réessayer.",
+    "library_titles": "Jeux",
+    "library_series_tab_lobby": "Salon",
+    "library_series_tab_finished": "Terminées",
+    "library_series_players": "Joueurs",
+    "library_series_any": "Tous",
+    "library_series_pace": "Rythme",
+    "library_series_show_more": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Afficher plus {#count}{count: number} restante{/count}",
+                "countPlural=*": "Afficher plus {#count}{count: number} restantes{/count}"
+            }
+        }
+    ],
+    "library_series_created_listed": "La partie {#game}{name}{/game} est ouverte aux joueurs. Elle est mise en évidence dans « En attente de joueurs ».",
+    "library_series_created_unlisted": "La partie {#game}{name}{/game} est créée. Vous la retrouverez dans {#dashboard}Mes parties{/dashboard}.",
+    "library_series_looking_for_players": "En attente de joueurs",
+    "library_series_looking_for_players_label": "Parties en attente de joueurs",
+    "library_series_no_open_match": "Aucune table ouverte ne correspond.",
+    "library_series_in_progress_label": "Parties en cours",
+    "library_series_no_in_progress_match": "Aucune partie publique en cours ne correspond.",
+    "library_series_recently_finished_label": "Parties terminées récemment",
+    "library_series_no_finished_match": "Aucune partie publique terminée récemment ne correspond.",
+    "library_picker_in_progress": "{count: number} en cours",
+    "library_picker_titles_selected": "Jeux · {count: number}",
+    "library_picker_all_titles": "Tous les jeux",
+    "library_picker_all": "Tous",
+    "library_picker_has_open_tables": "Avec des tables ouvertes",
+    "library_picker_with_games": "Avec des parties en ce moment",
+    "library_picker_no_games": "Sans partie en ce moment",
+    "library_picker_clear": "Effacer",
+    "library_picker_show_games": "Afficher les parties",
+    "library_picker_remove": "Retirer {name}",
+    "tournaments_heading_label": "Compétitions",
+    "tournaments_heading_tournaments": "Tournois",
+    "tournaments_heading_leagues": "Ligues",
+    "tournaments_scoring_knockout": "Chaque match se joue en deux parties, une de chaque côté ; si chacun en gagne une, une belle les départage. Une partie partagée compte pour moitié. Derrière le vainqueur, les joueurs sont classés selon le tour atteint.",
+    "tournaments_scoring_average_place": "Classement par rang moyen. En cas d’égalité, l’avantage va à qui a le plus souvent devancé l’autre aux tables communes, puis au départage.",
+    "tournaments_scoring_wins": "Une victoire rapporte 1 point ; les vainqueurs ex æquo se le partagent.",
+    "tournaments_format_mini": "Mini",
+    "tournaments_format_mini_tournament": "Mini-tournoi",
+    "tournaments_format_knockout": "Élimination directe",
+    "tournaments_format_knockout_tournament": "Tournoi à élimination directe",
+    "tournaments_format_multi_stage": "Multi-phases",
+    "tournaments_format_multi_stage_tournament": "Tournoi en plusieurs phases",
+    "tournaments_tag_league": "Ligue",
+    "tournaments_tag_league_group": "Groupe de ligue",
+    "tournaments_roster_of_capacity": "{count: number} / {capacity: number}",
+    "tournaments_roster_joined": "Inscrits : {roster}",
+    "tournaments_registration_closes_at_start": "Les inscriptions ferment au démarrage du tournoi.",
+    "tournaments_registration_assigned": "Les joueurs sont affectés par la ligue.",
+    "tournaments_registration_starts_when_full": [
+        {
+            "declarations": ["input capacity", "local capacityPlural = capacity: plural"],
+            "selectors": ["capacityPlural"],
+            "match": {
+                "capacityPlural=one": "Démarre dès que {capacity: number} joueur est inscrit",
+                "capacityPlural=*": "Démarre dès que {capacity: number} joueurs sont inscrits"
+            }
+        }
+    ],
+    "tournaments_registration_closes_on": [
+        {
+            "declarations": ["input date", "local minimumPlural = minimum: plural"],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Les inscriptions ferment le {date}. Au moins {minimum: number} joueur requis.",
+                "minimumPlural=*": "Les inscriptions ferment le {date}. Au moins {minimum: number} joueurs requis."
+            }
+        }
+    ],
+    "tournaments_registration_closed_on": [
+        {
+            "declarations": ["input date", "local minimumPlural = minimum: plural"],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Inscriptions closes le {date}. Au moins {minimum: number} joueur requis.",
+                "minimumPlural=*": "Inscriptions closes le {date}. Au moins {minimum: number} joueurs requis."
+            }
+        }
+    ],
+    "tournaments_registration_closes_on_capped": [
+        {
+            "declarations": [
+                "input date",
+                "input capacity",
+                "local minimumPlural = minimum: plural"
+            ],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Les inscriptions ferment le {date}. Au moins {minimum: number} joueur requis ; {capacity: number} au maximum.",
+                "minimumPlural=*": "Les inscriptions ferment le {date}. Au moins {minimum: number} joueurs requis ; {capacity: number} au maximum."
+            }
+        }
+    ],
+    "tournaments_registration_closed_on_capped": [
+        {
+            "declarations": [
+                "input date",
+                "input capacity",
+                "local minimumPlural = minimum: plural"
+            ],
+            "selectors": ["minimumPlural"],
+            "match": {
+                "minimumPlural=one": "Inscriptions closes le {date}. Au moins {minimum: number} joueur requis ; {capacity: number} au maximum.",
+                "minimumPlural=*": "Inscriptions closes le {date}. Au moins {minimum: number} joueurs requis ; {capacity: number} au maximum."
+            }
+        }
+    ],
+    "tournaments_summary_completed": "Terminé",
+    "tournaments_summary_completed_on": "Terminé le {date}",
+    "tournaments_games_finished": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} partie terminée",
+                "countPlural=*": "{count: number} parties terminées"
+            }
+        }
+    ],
+    "tournaments_status_scheduling_paused": "Planification suspendue",
+    "tournaments_status_start_delayed": "Démarrage retardé",
+    "tournaments_status_draft": "Brouillon",
+    "tournaments_status_registration_open": "Inscriptions ouvertes",
+    "tournaments_status_registration_closed": "Inscriptions closes",
+    "tournaments_status_finished": "Terminé",
+    "tournaments_status_in_progress": "En cours",
+    "tournaments_status_starting": "Démarrage…",
+    "tournaments_status_roster_locked": "Liste des joueurs figée",
+    "tournaments_status_cancelled_undersubscribed": "Annulé — trop peu d’inscrits",
+    "tournaments_status_cancelled": "Annulé",
+    "tournaments_knockout_final": "Finale",
+    "tournaments_knockout_semi_finals": "Demi-finales",
+    "tournaments_knockout_quarter_finals": "Quarts de finale",
+    "tournaments_knockout_round": "Tour {round}",
+    "tournaments_knockout_semi_final_match": "Demi-finale {match}",
+    "tournaments_knockout_quarter_final_match": "Quart de finale {match}",
+    "tournaments_knockout_round_match": "Tour {round} · Match {match}",
+    "tournaments_knockout_game": "Partie {game}",
+    "tournaments_knockout_decider": "Belle",
+    "tournaments_knockout_decider_numbered": "Belle {number}",
+    "tournaments_knockout_game_label": "P{game}",
+    "tournaments_knockout_decider_label": "B",
+    "tournaments_knockout_decider_label_numbered": "B{number}",
+    "tournaments_knockout_champion": "Vainqueur",
+    "tournaments_knockout_runner_up": "Finaliste",
+    "tournaments_knockout_in_final": "En finale",
+    "tournaments_knockout_in_semi_finals": "En demi-finales",
+    "tournaments_knockout_in_quarter_finals": "En quarts de finale",
+    "tournaments_knockout_in_round": "Au tour {round}",
+    "tournaments_knockout_out_in_semi_finals": "Élimination en demi-finales",
+    "tournaments_knockout_out_in_quarter_finals": "Élimination en quarts de finale",
+    "tournaments_knockout_out_in_round": "Élimination au tour {round}",
+    "tournaments_bracket_heading": "Tableau",
+    "tournaments_bracket_bye": "Exempt",
+    "tournaments_bracket_nobody": "Personne",
+    "tournaments_bracket_to_be_decided": "À déterminer",
+    "tournaments_bracket_game_shared": "{game} : victoire partagée entre {winners}",
+    "tournaments_bracket_game_won": "{game} : gagnée par {winners}",
+    "tournaments_bracket_game_in_progress": "{game} : en cours",
+    "tournaments_bracket_game_starting": "{game} : démarrage en cours",
+    "tournaments_bracket_walkover": "Par forfait",
+    "tournaments_bracket_your_match": "Votre match · {match}",
+    "tournaments_bracket_rounds_label": "Tours",
+    "tournaments_bracket_whole": "Tableau complet",
+    "tournaments_bracket_legend": "P1 et P2 se jouent en même temps, une de chaque côté. B est la belle.",
+    "tournaments_bracket_draw_pending": "Le tirage au sort a lieu à la clôture des inscriptions.",
+    "tournaments_bracket_load_failed": "Impossible de charger le tableau",
+    "tournaments_page_title": "Tournois · Tabletop",
+    "tournaments_tab_mine": "Les miens",
+    "tournaments_tab_open": "Ouverts",
+    "tournaments_tab_in_progress": "En cours",
+    "tournaments_tab_completed": "Terminés",
+    "tournaments_tab_drafts": "Brouillons",
+    "tournaments_empty_title_filter": "Aucun tournoi de ce jeu dans cet onglet.",
+    "tournaments_empty_mine": "Vos tournois apparaîtront ici quand vous en aurez rejoint un.",
+    "tournaments_empty_open": "Aucun tournoi n’est ouvert aux inscriptions pour le moment.",
+    "tournaments_empty_in_progress": "Aucun tournoi n’est en cours pour le moment.",
+    "tournaments_empty_finished": "Aucun tournoi terminé pour l’instant.",
+    "tournaments_empty_drafts": "Aucun brouillon. Créez un tournoi pour commencer.",
+    "tournaments_list_load_failed": "Impossible de charger les tournois",
+    "tournaments_create_tournament": "Créer un tournoi",
+    "tournaments_filter_by_game": "Filtrer par jeu",
+    "tournaments_all_games": "Tous les jeux",
+    "tournaments_loading": "Chargement des tournois",
+    "tournaments_explore_open": "Explorer les tournois ouverts →",
+    "tournaments_card_players_per_game": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#strong}{count: number}{/strong} joueur par partie",
+                "countPlural=*": "{#strong}{count: number}{/strong} joueurs par partie"
+            }
+        }
+    ],
+    "tournaments_card_games_each": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#strong}{count: number}{/strong} partie chacun",
+                "countPlural=*": "{#strong}{count: number}{/strong} parties chacun"
+            }
+        }
+    ],
+    "tournaments_game_options": "Options de jeu",
+    "tournaments_next_page": "Page suivante",
+    "tournaments_detail_page_title": "{name} · Tabletop",
+    "tournaments_detail_tournament": "Tournoi",
+    "tournaments_detail_back": "← Tournois",
+    "tournaments_detail_load_failed": "Impossible de charger le tournoi",
+    "tournaments_detail_update_failed": "Impossible de mettre à jour le tournoi",
+    "tournaments_detail_rebuild_failed": "Impossible de recalculer le classement",
+    "tournaments_detail_confirm_start": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Clore les inscriptions et démarrer avec {count: number} joueur ?",
+                "countPlural=*": "Clore les inscriptions et démarrer avec {count: number} joueurs ?"
+            }
+        }
+    ],
+    "tournaments_detail_league_group_heading": "{#league}{league}{/league} · Saison {season} · Groupe {group}",
+    "tournaments_detail_registration_full": "Tournoi complet",
+    "tournaments_detail_join": "Rejoindre le tournoi",
+    "tournaments_detail_close_editor": "Fermer l’éditeur",
+    "tournaments_detail_edit_draft": "Modifier le brouillon",
+    "tournaments_detail_open_registration": "Ouvrir les inscriptions",
+    "tournaments_detail_manage": "Gérer",
+    "tournaments_detail_needs_players": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Il faut au moins {count: number} joueur",
+                "countPlural=*": "Il faut au moins {count: number} joueurs"
+            }
+        }
+    ],
+    "tournaments_detail_start_now": "Clore et démarrer maintenant",
+    "tournaments_detail_resume_scheduling": "Reprendre la planification",
+    "tournaments_detail_pause_scheduling": "Suspendre la planification",
+    "tournaments_detail_retry_scheduling": "Relancer la planification",
+    "tournaments_detail_replace_player": "Remplacer un joueur",
+    "tournaments_detail_correct_result": "Corriger un résultat",
+    "tournaments_detail_rebuild_standings": "Recalculer le classement",
+    "tournaments_detail_cancel_tournament": "Annuler le tournoi",
+    "tournaments_detail_winners": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Vainqueur :",
+                "countPlural=*": "Vainqueurs ex æquo :"
+            }
+        }
+    ],
+    "tournaments_detail_paused_note": "Le lancement de nouvelles parties est suspendu. Les parties déjà commencées peuvent continuer.",
+    "tournaments_detail_scheduling_error_note": "Certaines parties attendent de démarrer. La planification sera relancée automatiquement.",
+    "tournaments_detail_schedule_ready": "Le programme est prêt. En attente du démarrage des parties.",
+    "tournaments_detail_awaiting_schedule": "En attente de la planification des parties.",
+    "tournaments_detail_edit_draft_label": "Modifier le brouillon du tournoi",
+    "tournaments_detail_players": "Joueurs",
+    "tournaments_detail_be_first": "Ouvrez le bal !",
+    "tournaments_detail_name": "Nom",
+    "tournaments_detail_status": "Statut",
+    "tournaments_wins": "Victoires",
+    "tournaments_detail_avg_place": "Rang moy.",
+    "tournaments_average_place": "Rang moyen",
+    "tournaments_detail_score": "Score",
+    "tournaments_detail_tiebreak": "Départage",
+    "tournaments_detail_action": "Action",
+    "tournaments_detail_substitute_for_title": "Remplace {name}",
+    "tournaments_detail_substitute_for": "pour {name}",
+    "tournaments_detail_withdrawn": "Forfait",
+    "tournaments_detail_tournament_winner": "Vainqueur du tournoi",
+    "tournaments_detail_knockout_record": "Parties gagnées : {score} sur {completed: number} · En cours : {active: number}",
+    "tournaments_detail_game_counts": "Terminées : {completed: number} · En cours : {active: number} · En attente : {waiting: number}",
+    "tournaments_detail_leave": "Quitter",
+    "tournaments_detail_show_still_in": "N’afficher que les joueurs encore en lice",
+    "tournaments_detail_show_knocked_out": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Afficher {count: number} joueur éliminé",
+                "countPlural=*": "Afficher les {count: number} joueurs éliminés"
+            }
+        }
+    ],
+    "tournaments_detail_no_players": "Aucun joueur pour l’instant.",
+    "tournaments_detail_info": "Informations sur le tournoi",
+    "tournaments_players_per_game": "Joueurs par partie",
+    "tournaments_format": "Format",
+    "tournaments_detail_games_per_match": "Parties par match",
+    "tournaments_detail_games_per_match_value": "2, en même temps ; une belle en cas d’égalité",
+    "tournaments_total_games_per_player": "Total de parties par joueur",
+    "tournaments_detail_simultaneous_games": "Parties simultanées par joueur",
+    "tournaments_detail_stages": "Phases",
+    "tournaments_detail_decider_options": "Options de la belle",
+    "tournaments_detail_scoring": "Calcul du classement",
+    "tournaments_detail_result_corrections": "Corrections de résultats ({count: number})",
+    "tournaments_detail_correction": "Table {table} : {winners} — {reason}",
+    "tournaments_game_options_standard": "Partie standard. Aucune option configurable.",
+    "tournaments_seated_option_help": "Les parties de tournoi attribuent les places, et c’est la place qui détermine cette option.",
+    "tournaments_select_placeholder": "Choisir une option",
+    "tournaments_ranking": "Classement",
+    "tournaments_schedule_preview_failed": "Impossible de prévisualiser le programme",
+    "tournaments_schedule_save_failed": "Impossible d’enregistrer le programme",
+    "tournaments_schedule_load_failed": "Impossible de charger le programme",
+    "tournaments_schedule_heading": "Programme",
+    "tournaments_schedule_preview_heading": "Aperçu du programme",
+    "tournaments_schedule_games_finished": [
+        {
+            "declarations": ["input finished", "local totalPlural = total: plural"],
+            "selectors": ["totalPlural"],
+            "match": {
+                "totalPlural=one": "{finished: number} / {total: number} partie terminée",
+                "totalPlural=*": "{finished: number} / {total: number} parties terminées"
+            }
+        }
+    ],
+    "tournaments_schedule_preparing": "Préparation…",
+    "tournaments_schedule_new_draw": "Nouveau tirage",
+    "tournaments_schedule_preview": "Prévisualiser le programme",
+    "tournaments_schedule_save": "Enregistrer le programme",
+    "tournaments_table": "Table",
+    "tournaments_schedule_seat": "Place {position}",
+    "tournaments_schedule_progress": "Progression",
+    "tournaments_schedule_game": "Partie",
+    "tournaments_schedule_void_reason": "Non comptée : cette partie n’entre pas dans le classement",
+    "tournaments_schedule_starting_game": "Démarrage de cette partie",
+    "tournaments_schedule_waiting_accounts": "En attente de comptes actifs",
+    "tournaments_schedule_waiting_scheduling": "En attente de planification",
+    "tournaments_schedule_waiting_capacity": "En attente de disponibilité des joueurs",
+    "tournaments_schedule_open_table": "Ouvrir la table {number}",
+    "tournaments_schedule_void": "Non comptée",
+    "tournaments_schedule_tournament_win": "Victoire en tournoi",
+    "tournaments_schedule_play_table": "Jouer à la table {number}",
+    "tournaments_schedule_view_table": "Voir la table {number}",
+    "tournaments_schedule_play": "Jouer",
+    "tournaments_schedule_view": "Voir",
+    "tournaments_schedule_games_each": "Parties par joueur",
+    "tournaments_schedule_each_seat": "Chaque place",
+    "tournaments_schedule_every_pair_meets": "Chaque paire se rencontre",
+    "tournaments_schedule_opponents_meet": "Les adversaires se rencontrent",
+    "tournaments_schedule_repeated_groups": "Groupes répétés",
+    "tournaments_schedule_previous": "Précédent",
+    "tournaments_schedule_next": "Suivant",
+    "tournaments_schedule_balanced_note": "Les positions de départ et le nombre de parties sont équilibrés. Ce tirage est un candidat équilibré ; d’autres tirages peuvent donner des confrontations différentes.",
+    "tournaments_schedule_roster_locked_note": "La liste des joueurs est figée. Prévisualisez les tables et les positions de départ avant d’enregistrer.",
+    "tournaments_form_titles_load_failed": "Impossible de charger les jeux disponibles pour les tournois.",
+    "tournaments_form_save_failed": "Impossible d’enregistrer le tournoi",
+    "tournaments_form_edit_heading": "Modifier le tournoi",
+    "tournaments_form_name": "Nom",
+    "tournaments_form_name_placeholder": "Choisissez un nom pour votre tournoi",
+    "tournaments_form_knockout_help": "Face-à-face : perdre un match est éliminatoire. Chaque match se joue en deux parties, une de chaque côté, avec une belle si chacun en gagne une.",
+    "tournaments_form_mini_help": "Les joueurs disputent un nombre fixe de parties et sont classés aux points.",
+    "tournaments_form_game": "Jeu",
+    "tournaments_form_game_placeholder": "Choisir un jeu",
+    "tournaments_form_loading_titles": "Chargement des jeux…",
+    "tournaments_form_titles_unavailable": "Les jeux sont indisponibles.",
+    "tournaments_form_decider": "Belle",
+    "tournaments_form_decider_help": "Un match à égalité se décide par une troisième partie jouée avec ces options. Ses places ne sont pas attribuées : c’est la mise en place propre au jeu qui décide du côté de chacun.",
+    "tournaments_form_registration_closes": "Clôture des inscriptions",
+    "tournaments_form_when_full": "Quand le tournoi est complet",
+    "tournaments_form_on_date": "À une date précise",
+    "tournaments_form_closing_date": "Date de clôture",
+    "tournaments_form_local_time": "Dans votre heure locale.",
+    "tournaments_form_advanced": "Options avancées",
+    "tournaments_form_at_same_time": "En simultané",
+    "tournaments_form_roster_size": "Nombre d’inscrits",
+    "tournaments_form_starts_after_full": "Démarre une minute après que le tournoi est complet.",
+    "tournaments_form_minimum_players": "Minimum de joueurs",
+    "tournaments_form_cancels_below_minimum": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Annulé si moins de {count: number} joueur s’inscrit.",
+                "countPlural=*": "Annulé si moins de {count: number} joueurs s’inscrivent."
+            }
+        }
+    ],
+    "tournaments_form_limit_roster": "Limiter le nombre d’inscrits",
+    "tournaments_form_maximum_players": "Maximum de joueurs",
+    "tournaments_form_description_optional": "Description {#optional}(facultative){/optional}",
+    "tournaments_form_description": "Description",
+    "tournaments_form_save_draft": "Enregistrer le brouillon",
+    "tournaments_form_create_draft": "Créer le brouillon",
+    "tournaments_replace_failed": "Impossible de remplacer le joueur",
+    "tournaments_tables_load_failed": "Impossible de charger les tables",
+    "tournaments_replace_heading": "Remplacer un joueur",
+    "tournaments_replace_knockout_intro": "Un joueur déclaré forfait perd son match et son adversaire se qualifie. En élimination directe, une place ne peut pas être reprise par un remplaçant.",
+    "tournaments_replace_intro": "Un remplaçant reprend la place du joueur et termine ses parties. Les parties inachevées d’un joueur déclaré forfait ne comptent pour personne.",
+    "tournaments_replace_player": "Joueur",
+    "tournaments_replace_choose_player": "Choisir un joueur",
+    "tournaments_replace_withdrawn_in_progress": [
+        {
+            "declarations": ["input name", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{name} est forfait, mais une de ses parties est encore en cours. Finaliser le forfait y mettra fin.",
+                "countPlural=*": "{name} est forfait, mais {count: number} de ses parties sont encore en cours. Finaliser le forfait y mettra fin."
+            }
+        }
+    ],
+    "tournaments_replace_finish_withdrawing": "Finaliser le forfait : {name}",
+    "tournaments_replace_with": "Remplacement ou forfait",
+    "tournaments_replace_substitute": "Remplaçant",
+    "tournaments_replace_withdraw": "Forfait",
+    "tournaments_replace_username_placeholder": "Nom d’utilisateur",
+    "tournaments_replace_games_in_progress": "Parties en cours",
+    "tournaments_table_number": "Table {table}",
+    "tournaments_replace_take_over": "Reprendre la partie",
+    "tournaments_replace_restart": "La recommencer",
+    "tournaments_replace_dropped_league": "{name} quitte la compétition. La place du remplaçant ne peut ni monter ni descendre, et il commencera la saison prochaine au niveau le plus bas.",
+    "tournaments_replace_dropped": "{name} quitte la compétition. La place du remplaçant ne peut pas remporter le tournoi.",
+    "tournaments_replace_knockout_withdraw_note": "{name} est forfait : ses parties inachevées prennent fin et ne comptent pour personne, et son adversaire se qualifie. Ses matchs déjà gagnés restent acquis, mais son nom n’apparaîtra pas au classement.",
+    "tournaments_replace_withdraw_note": "{name} est forfait : ses parties inachevées prennent fin et ne comptent pour personne. Ses résultats déjà acquis sont conservés, mais son nom n’apparaîtra pas au classement.",
+    "tournaments_replace_withdraw_note_league": "{name} est forfait : ses parties inachevées prennent fin et ne comptent pour personne. Ses résultats déjà acquis sont conservés, mais son nom n’apparaîtra pas au classement et sa place ne sera pas reconduite la saison prochaine.",
+    "tournaments_replace_substitute_action": "Remplacer",
+    "tournaments_replace_withdraw_action": "Déclarer {name} forfait",
+    "tournaments_correction_failed": "Impossible de corriger le résultat",
+    "tournaments_correction_heading": "Corriger le résultat retenu pour le tournoi",
+    "tournaments_correction_places_intro": "Choisissez tous les rangs. La partie jouée et son historique restent inchangés.",
+    "tournaments_correction_winners_intro": "Choisissez les vainqueurs retenus. La partie jouée et son historique restent inchangés.",
+    "tournaments_correction_choose_table": "Choisir une table terminée",
+    "tournaments_correction_places_legend": "Rangs — les joueurs ayant le même numéro partagent un rang",
+    "tournaments_correction_winners_legend": "Vainqueurs retenus — choisissez-en un ou plusieurs",
+    "tournaments_correction_reason": "Motif",
+    "tournaments_correction_save": "Enregistrer la correction",
+    "tournaments_placement_scoring": "Classement par rang moyen (le plus bas l’emporte), puis selon qui a le plus souvent devancé l’autre aux tables que les joueurs à égalité ont partagées, puis au départage.",
+    "tournaments_tiebreak_points_behind": "Le départage correspond à l’écart moyen de points avec le meilleur score aux tables du joueur, compté en négatif, plus un centième de son score final moyen. Le plus élevé l’emporte.",
+    "tournaments_tiebreak_share_of_winner": "Le départage correspond au score final moyen du joueur, en pourcentage du meilleur score final à ses tables. Le plus élevé l’emporte.",
+    "tournaments_tiebreak_score_sum": "Le départage correspond à la somme des scores finaux du joueur sur l’ensemble de ses parties.",
+    "leagues_page_title": "Ligues · Tabletop",
+    "leagues_detail_page_title": "{name} · Tabletop",
+    "leagues_detail_page_title_loading": "Ligue · Tabletop",
+    "leagues_back_to_leagues": "← Ligues",
+    "leagues_create_league": "Créer une ligue",
+    "leagues_list_load_failed": "Impossible de charger les ligues",
+    "leagues_list_empty": "Aucune ligue pour l’instant.",
+    "leagues_list_card_format": [
+        {
+            "declarations": [
+                "input gamesPerEntrant",
+                "input tableSize",
+                "input groupSize",
+                "local gamesPerEntrantPlural = gamesPerEntrant: plural"
+            ],
+            "selectors": ["gamesPerEntrantPlural"],
+            "match": {
+                "gamesPerEntrantPlural=one": "{tableSize} joueurs par partie · {gamesPerEntrant} partie chacun · groupes de {groupSize}",
+                "gamesPerEntrantPlural=*": "{tableSize} joueurs par partie · {gamesPerEntrant} parties chacun · groupes de {groupSize}"
+            }
+        }
+    ],
+    "leagues_shape_pyramid": "Pyramide",
+    "leagues_shape_ladder": "Échelle",
+    "leagues_status_not_open": "Pas encore ouverte",
+    "leagues_status_waiting_for_players": "En attente d’autres joueurs",
+    "leagues_status_sign_up_open": "Inscriptions ouvertes",
+    "leagues_status_sign_up_closed": "Inscriptions closes",
+    "leagues_status_starting": "Démarrage…",
+    "leagues_status_in_progress": "En cours",
+    "leagues_status_finished": "Terminée",
+    "leagues_status_cancelled": "Annulée",
+    "leagues_status_draft": "Brouillon",
+    "leagues_level": "Niveau {level}",
+    "leagues_season_name": "Saison {number}",
+    "leagues_season_name_seeding": "Saison {number} · Placement",
+    "leagues_season_with_status": "{season} · {status}",
+    "leagues_closing_now": "Clôture en cours",
+    "leagues_closes_in_minutes": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Clôture dans {count: number} minute",
+                "countPlural=*": "Clôture dans {count: number} minutes"
+            }
+        }
+    ],
+    "leagues_closes_in_hours": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Clôture dans {count: number} heure",
+                "countPlural=*": "Clôture dans {count: number} heures"
+            }
+        }
+    ],
+    "leagues_closes_in_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Clôture dans {count: number} jour",
+                "countPlural=*": "Clôture dans {count: number} jours"
+            }
+        }
+    ],
+    "leagues_my_place_signed_up": "Inscription enregistrée",
+    "leagues_my_place_held": "Votre place au niveau {level} est réservée. Confirmez-la pour jouer.",
+    "leagues_my_place_in_group": "Vous êtes dans le groupe {group}",
+    "leagues_roster_signed_up": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} inscrit",
+                "countPlural=*": "{count: number} inscrits"
+            }
+        }
+    ],
+    "leagues_roster_needed": "{count: number} sur {minimum: number} requis",
+    "leagues_load_failed": "Impossible de charger la ligue",
+    "leagues_update_sign_up_failed": "Impossible de mettre à jour les inscriptions",
+    "leagues_preview_failed": "Impossible de prévisualiser les groupes",
+    "leagues_save_sign_up_policy_failed": "Impossible d’enregistrer les paramètres d’inscription",
+    "leagues_cancel_season_failed": "Impossible d’annuler la saison",
+    "leagues_sign_up_failed": "Inscription impossible",
+    "leagues_withdraw_failed": "Désinscription impossible",
+    "leagues_format_heading": "Format",
+    "leagues_detail_games_finished": [
+        {
+            "declarations": [
+                "input finished",
+                "input total",
+                "local finishedPlural = finished: plural"
+            ],
+            "selectors": ["finishedPlural"],
+            "match": {
+                "finishedPlural=one": "{#count}{finished: number}{/count} partie terminée sur {total: number}",
+                "finishedPlural=*": "{#count}{finished: number}{/count} parties terminées sur {total: number}"
+            }
+        }
+    ],
+    "leagues_detail_games_finished_label": "Parties de la saison terminées",
+    "leagues_progress_in_progress": "En cours",
+    "leagues_detail_active_games": "{count: number} en cours",
+    "leagues_detail_seasons_label": "Saisons",
+    "leagues_detail_edit_draft_label": "Modifier le brouillon de la ligue",
+    "leagues_detail_preview_label": "Aperçu des groupes",
+    "leagues_detail_preview_too_few": "Trop peu de joueurs sont inscrits pour remplir deux niveaux.",
+    "leagues_detail_preview_intro": "Les groupes tels qu’ils seraient si les inscriptions fermaient maintenant avec ces joueurs.",
+    "leagues_group_name": "Groupe {group}",
+    "leagues_detail_season_groups_label": "Groupes de la saison {number}",
+    "leagues_detail_seeding_letters": "Les lettres indiquent le niveau de chaque joueur pour la saison {number}, d’après les rangs obtenus dans l’ensemble des groupes.",
+    "leagues_detail_movement_legend": "{#promoted/} promotion {#relegated/} relégation pour la saison {number}",
+    "leagues_detail_cancelled": "La saison {number} a été annulée pendant les inscriptions.",
+    "leagues_detail_cancelled_current": "La saison {number} a été annulée pendant les inscriptions. La saison suivante commencera quand un administrateur l’ouvrira.",
+    "leagues_detail_not_opened": "La saison 0 n’est pas encore ouverte.",
+    "leagues_format_game": "Jeu",
+    "leagues_format_shape": "Structure",
+    "leagues_format_shape_pyramid": "Pyramide : les vainqueurs de groupe montent, les deux derniers descendent",
+    "leagues_format_shape_ladder": "Échelle : les deux premiers montent, les deux derniers descendent",
+    "leagues_format_groups": "Groupes",
+    "leagues_format_groups_detail": "{groupSize} joueurs ; de {bottomMinimum} à {bottomMaximum} au niveau le plus bas",
+    "leagues_format_games": "Parties",
+    "leagues_format_games_detail": "{gamesPerEntrant} par joueur, {tableSize} joueurs par partie",
+    "leagues_format_ranking": "Classement",
+    "leagues_format_at_once": "En simultané",
+    "leagues_format_at_once_detail": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Jusqu’à {count: number} partie",
+                "countPlural=*": "Jusqu’à {count: number} parties"
+            }
+        }
+    ],
+    "leagues_between_seasons": "Entre les saisons",
+    "leagues_format_sign_up_automatic": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Inscriptions de {days} jour, ouvertes automatiquement",
+                "daysPlural=*": "Inscriptions de {days} jours, ouvertes automatiquement"
+            }
+        }
+    ],
+    "leagues_format_sign_up_by_administrator": [
+        {
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
+            "match": {
+                "daysPlural=one": "Inscriptions de {days} jour, ouvertes par un administrateur",
+                "daysPlural=*": "Inscriptions de {days} jours, ouvertes par un administrateur"
+            }
+        }
+    ],
+    "leagues_group_results_link": "Résultats →",
+    "leagues_group_games_link": "Parties →",
+    "leagues_group_games_finished_label": "Parties terminées du groupe {group}",
+    "leagues_group_finished_of_total": "{finished: number} sur {total: number} parties",
+    "leagues_group_place": "Rang",
+    "leagues_group_name_column": "Nom",
+    "leagues_group_wins": "Victoires",
+    "leagues_group_wins_abbr": "V",
+    "leagues_group_average_place": "Rang moyen. Classement par rang moyen (le plus bas l’emporte), puis selon qui a le plus souvent devancé l’autre aux tables que les joueurs à égalité ont partagées, puis au départage.",
+    "leagues_group_average_place_abbr": "Moy.",
+    "leagues_group_points": "Points",
+    "leagues_group_points_abbr": "Pts",
+    "leagues_group_games_column": "Parties",
+    "leagues_group_tiebreak_abbr": "Dép.",
+    "leagues_group_withdrew": "{name} a déclaré forfait",
+    "leagues_group_substitute": "Remplace {name}. Cette place ne peut ni monter ni descendre.",
+    "leagues_group_substitute_abbr": "Rempl.",
+    "leagues_group_next_level": "Niveau {level} la saison prochaine",
+    "leagues_group_promoted": "Promotion",
+    "leagues_group_relegated": "Relégation",
+    "leagues_group_games_summary": "Terminées : {finished: number} · En cours : {active: number} · En attente : {waiting: number}",
+    "leagues_group_games_summary_with_void": "Terminées : {finished: number} · En cours : {active: number} · En attente : {waiting: number} · Non comptées : {voided: number}",
+    "leagues_form_edit_heading": "Modifier la ligue",
+    "leagues_form_titles_load_failed": "Impossible de charger les jeux disponibles pour les ligues.",
+    "leagues_form_save_failed": "Impossible d’enregistrer la ligue",
+    "leagues_form_name": "Nom",
+    "leagues_form_name_placeholder": "Choisissez un nom pour votre ligue",
+    "leagues_form_game_placeholder": "Choisir un jeu",
+    "leagues_form_loading_titles": "Chargement des jeux…",
+    "leagues_form_shape_label": "Structure de la ligue",
+    "leagues_form_pyramid_help": "Chaque niveau compte deux fois plus de groupes que celui du dessus. Les vainqueurs de groupe montent ; les deux derniers descendent.",
+    "leagues_form_ladder_help": "Un groupe par niveau. Les deux premiers montent ; les deux derniers descendent.",
+    "leagues_form_players_per_game": "Joueurs par partie",
+    "leagues_opens_automatically": "Ouvrir les inscriptions suivantes dès qu’une saison se termine",
+    "leagues_form_sign_up_days": "Durée des inscriptions (jours)",
+    "leagues_form_sign_up_days_help": "Les joueurs de la saison précédente confirment leur place pendant cette période. Les groupes démarrent à la clôture.",
+    "leagues_form_advanced": "Options avancées",
+    "leagues_form_games_per_player": "Parties par joueur",
+    "leagues_form_concurrency": "En simultané",
+    "leagues_form_group_sizes": "Groupes de {groupSize} ; les groupes du niveau le plus bas comptent de {bottomMinimum} à {bottomMaximum} joueurs.",
+    "leagues_form_description_optional": "Description {#optional}(facultative){/optional}",
+    "leagues_form_description": "Description",
+    "leagues_form_save_draft": "Enregistrer le brouillon",
+    "leagues_form_create_draft": "Créer le brouillon",
+    "leagues_manage": "Gérer",
+    "leagues_manage_open_season": "Ouvrir la saison {number}",
+    "leagues_manage_move_close": "Déplacer la clôture",
+    "leagues_manage_close_editor": "Fermer l’éditeur",
+    "leagues_manage_edit_draft": "Modifier le brouillon",
+    "leagues_manage_sign_up_closes": "Clôture des inscriptions {#hint}(votre heure locale){/hint}",
+    "leagues_manage_preview_groups": "Prévisualiser les groupes",
+    "leagues_manage_cancel_season_confirm": "Annuler la saison {number} ? Ses inscriptions prennent fin sans qu’aucun groupe ne démarre. Vous pourrez ensuite ouvrir la saison suivante.",
+    "leagues_manage_cancel_season": "Annuler la saison",
+    "leagues_manage_sign_up_lasts": "Durée des inscriptions : {#days/} jours",
+    "leagues_manage_save": "Enregistrer",
+    "leagues_sign_up_seeding_explanation": "La saison {number} sert de saison de placement. Tout le monde joue dans des groupes tirés au sort, et les résultats déterminent le niveau de chaque joueur pour la saison {nextNumber}.",
+    "leagues_sign_up_held_explanation": "Les places des joueurs de la saison précédente leur sont réservées. Confirmez la vôtre avant la clôture des inscriptions ; une place non confirmée revient au meilleur joueur du niveau inférieur. Les nouveaux joueurs commencent au niveau le plus bas, ou occupent les places qu’aucun joueur de la saison précédente ne peut prendre.",
+    "leagues_sign_up_not_confirmed": "Place pas encore confirmée",
+    "leagues_sign_up_count_signed_up": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#count}{count: number}{/count} inscrit",
+                "countPlural=*": "{#count}{count: number}{/count} inscrits"
+            }
+        }
+    ],
+    "leagues_sign_up_count_confirmed_or_signed_up": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{#count}{count: number}{/count} confirmé ou inscrit",
+                "countPlural=*": "{#count}{count: number}{/count} confirmés ou inscrits"
+            }
+        }
+    ],
+    "leagues_sign_up_needed_to_start": "{count: number} requis pour démarrer",
+    "leagues_sign_up_progress_label": "Progression vers le minimum de joueurs",
+    "leagues_sign_up_enough": "C’est suffisant pour démarrer. D’autres joueurs sont les bienvenus.",
+    "leagues_sign_up_more_needed": "Il en manque {count: number}.",
+    "leagues_sign_up_waiting_for_administrator": "Les groupes démarreront dès qu’un administrateur aura fixé une nouvelle date de clôture.",
+    "leagues_sign_up_groups_start_at_close": "Les groupes sont tirés au sort et démarrent à la clôture des inscriptions.",
+    "leagues_sign_up_place_confirmed": "Votre place au niveau {level} est confirmée",
+    "leagues_sign_up_withdraw": "Se désinscrire",
+    "leagues_sign_up_confirm_place": "Confirmer votre place",
+    "leagues_sign_up": "S’inscrire",
+    "leagues_sign_up_place_held": "Votre place au niveau {level} est réservée jusqu’à la clôture des inscriptions.",
+    "leagues_sign_up_level_confirmed": "· confirmées : {confirmed} sur {total: number}",
+    "leagues_sign_up_new_players": "Nouveaux joueurs",
+    "leagues_sign_up_players": "Joueurs",
+    "leagues_sign_up_no_one_yet": "Personne pour l’instant. Inscrivez-vous pour ouvrir le bal.",
+    "leagues_sign_up_previous_results": "Voir les {#link}résultats de la saison {number}{/link}.",
+    "content_time_zone_option": "{zone} ({offset})",
+    "content_stats_all_games": "Tous les jeux",
+    "content_stats_all_badge": "Tous",
+    "content_stats_different_games": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} jeu différent",
+                "countPlural=*": "{count: number} jeux différents"
+            }
+        }
+    ],
+    "content_stats_since_month": "depuis {month}",
+    "content_stats_load_failed": "Impossible de charger les statistiques.",
+    "content_stats_loading": "Chargement des statistiques…",
+    "content_stats_empty": "Vos statistiques apparaîtront ici dès que vous aurez terminé une partie.",
+    "content_stats_by_game": "Statistiques par jeu",
+    "content_stats_show_for": "Afficher les statistiques pour",
+    "content_stats_scope_option": [
+        {
+            "declarations": [
+                "input games",
+                "input name",
+                "input rate",
+                "local gamesPlural = games: plural"
+            ],
+            "selectors": ["gamesPlural"],
+            "match": {
+                "gamesPlural=one": "{name} — {games: number} partie jouée, {rate}",
+                "gamesPlural=*": "{name} — {games: number} parties jouées, {rate}"
+            }
+        }
+    ],
+    "content_stats_scope_summary": [
+        {
+            "declarations": ["input games", "input record", "local gamesPlural = games: plural"],
+            "selectors": ["gamesPlural"],
+            "match": {
+                "gamesPlural=one": "{games: number} jouée · {record}",
+                "gamesPlural=*": "{games: number} jouées · {record}"
+            }
+        }
+    ],
+    "content_stats_opponent_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} adversaire",
+                "countPlural=*": "{count: number} adversaires"
+            }
+        }
+    ],
+    "content_stats_first_finished": "première terminée en {month}",
+    "content_stats_last_finished": "dernière terminée {time}",
+    "content_stats_average_under_a_day": "moins d’un jour par partie en moyenne",
+    "content_stats_average_days": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} jour par partie en moyenne",
+                "countPlural=*": "{count: number} jours par partie en moyenne"
+            }
+        }
+    ],
+    "content_stats_best_score": "meilleur score : {score: number}",
+    "content_stats_tournament_tables": [
+        {
+            "declarations": [
+                "input count",
+                "input wins",
+                "local countPlural = count: plural",
+                "local winsPlural = wins: plural"
+            ],
+            "selectors": ["countPlural", "winsPlural"],
+            "match": {
+                "countPlural=one, winsPlural=one": "{count: number} table de tournoi, {wins: number} gagnée",
+                "countPlural=one, winsPlural=*": "{count: number} table de tournoi, {wins: number} gagnées",
+                "countPlural=*, winsPlural=one": "{count: number} tables de tournoi, {wins: number} gagnée",
+                "countPlural=*, winsPlural=*": "{count: number} tables de tournoi, {wins: number} gagnées"
+            }
+        }
+    ],
+    "content_stats_sheet_label": "Statistiques : {name}",
+    "content_stats_games_finished": "parties terminées",
+    "content_stats_won_tied_lost": "victoires–égalités–défaites",
+    "content_stats_win_rate": "taux de victoire",
+    "content_stats_even_odds": "à chances égales : {rate}",
+    "content_stats_best_win_streak": "meilleure série de victoires",
+    "content_stats_current_win_streak": "en cours : {count: number}",
+    "content_stats_average_finish": "rang moyen",
+    "content_stats_at_table_size": "à des tables de {count} joueurs",
+    "content_stats_win_rate_by_player_count": "Taux de victoire par nombre de joueurs",
+    "content_stats_key_your_win_rate": "Votre taux de victoire",
+    "content_stats_key_even_odds": "À chances égales pour ce nombre de joueurs",
+    "content_stats_last_games": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Dernière partie",
+                "countPlural=*": "{count: number} dernières parties"
+            }
+        }
+    ],
+    "content_stats_outcome_letter_won": "V",
+    "content_stats_outcome_letter_tied": "É",
+    "content_stats_outcome_letter_lost": "D",
+    "content_stats_outcome_won": "victoire",
+    "content_stats_outcome_tied": "égalité",
+    "content_stats_outcome_lost": "défaite",
+    "content_stats_key_newest_right": "la plus récente à droite",
+    "content_stats_results_oldest_first": "Résultats, du plus ancien au plus récent",
+    "content_stats_games_per_month": "Parties terminées par mois",
+    "content_stats_most_played_opponents": "Adversaires les plus fréquents",
+    "content_stats_opponent": "Adversaire",
+    "content_stats_games": "Parties",
+    "content_stats_you_won": "Vos victoires",
+    "content_stats_they_won": "Ses victoires",
+    "content_stats_month_tooltip": "{month} — terminées : {games: number}, victoires ou égalités : {wonOrTied: number}",
+    "content_stats_won_or_tied": "Victoires ou égalités",
+    "content_stats_lost": "Défaites",
+    "content_stats_month": "Mois",
+    "content_stats_finished": "Terminées",
+    "content_stats_win_rate_meter": "Taux de victoire {rate}, à chances égales {evenOdds}",
+    "content_stats_key_won": "{letter} : victoire",
+    "content_stats_key_tied": "{letter} : égalité",
+    "content_stats_key_lost": "{letter} : défaite",
+    "content_legal_privacy_title": "Politique de confidentialité",
+    "content_legal_terms_title": "Conditions d’utilisation",
+    "content_legal_privacy_page_title": "Politique de confidentialité — Board Together",
+    "content_legal_terms_page_title": "Conditions d’utilisation — Board Together",
+    "content_legal_privacy_unpublished": "Ce site n’a pas encore publié de politique de confidentialité.",
+    "content_legal_terms_unpublished": "Ce site n’a pas encore publié de conditions d’utilisation.",
+    "content_legal_links_label": "Informations légales",
+    "content_legal_links_privacy": "Confidentialité",
+    "content_legal_links_terms": "Conditions",
+    "content_footer_free_to_play": "Gratuit, pour toujours.",
+    "content_principles_label": "Le projet",
+    "content_principles_free": "{#strong}Toujours{/strong} gratuit.",
+    "content_principles_open_source": "{#strong}Entièrement{/strong} open source.",
+    "content_color_order_label": "Couleurs de joueur préférées",
+    "content_color_order_swatch": "{color}, {position} sur {total: number}",
+    "content_color_order_hint": "faites glisser, ou utilisez les touches fléchées, pour changer l’ordre",
+    "content_color_red": "rouge",
+    "content_color_orange": "orange",
+    "content_color_yellow": "jaune",
+    "content_color_green": "vert",
+    "content_color_blue": "bleu",
+    "content_color_purple": "violet",
+    "content_color_pink": "rose",
+    "content_color_brown": "brun",
+    "content_color_gray": "gris",
+    "content_color_black": "noir",
+    "content_color_white": "blanc",
+    "content_landing_page_title": "Board Together — Jouez à des jeux de société en ligne",
+    "content_landing_page_description": "Jouez à des jeux de société en ligne entre amis, à votre rythme. Explorez les jeux de Board Together. Gratuit et entièrement open source.",
+    "content_landing_welcome": "Envie de faire{#br/}une {#highlight}partie ?{/highlight}",
+    "content_landing_intro": "Invitez vos amis.{#br/}Jouez vos tours à votre rythme.",
+    "content_landing_take_a_seat": "Prenez place",
+    "content_landing_explore_games": "Explorer les jeux",
+    "content_landing_small_print": "{#strong}Toujours{/strong} gratuit. Entièrement open source. Pas de cagnotte, mais vous pouvez {#payItForward}donner au suivant →{/payItForward}",
+    "content_landing_heading_signed_in": "À quoi voulez-vous jouer ?",
+    "content_landing_heading": "Trouvez votre prochain jeu.",
+    "content_landing_library_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} jeu dans la ludothèque",
+                "countPlural=*": "{count: number} jeux dans la ludothèque"
+            }
+        }
+    ],
+    "content_landing_loading": "Mise en place des jeux…",
+    "content_landing_load_failed": "Impossible de charger l’étagère de jeux. Veuillez actualiser la page pour réessayer.",
+    "content_landing_show_fewer": "Afficher moins de jeux",
+    "content_landing_see_all": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Voir {count: number} jeu",
+                "countPlural=*": "Voir les {count: number} jeux"
+            }
+        }
+    ],
+    "content_about_page_title": "À propos — Board Together",
+    "content_about_page_description": "Board Together est un site gratuit et open source pour jouer à des jeux de société en ligne entre amis. Rejoignez la conversation ou aidez à créer le prochain jeu.",
+    "content_about_lead": "{#wordmark/} est un lieu pour jouer à des jeux de société en ligne entre amis.",
+    "content_about_welcome": "Nous espérons que vous prenez plaisir à jouer ici. Si vous avez des remarques, nous serons ravis de les lire.",
+    "content_about_talk_heading": "Discutons",
+    "content_about_talk_body": "Une question, une idée, ou un jeu qui fait des siennes ? Venez en discuter avec nous sur Discord. Les compliments comme les critiques sont aussi les bienvenus.",
+    "content_about_join_discord": "Rejoignez-nous sur Discord",
+    "content_opens_in_new_tab": "(s’ouvre dans un nouvel onglet)",
+    "content_about_contribute_heading": "Donner un coup de main",
+    "content_about_contribute_body": "Envie de contribuer ? Jetez un œil au projet Tabletop sur GitHub. Il y a mille façons d’aider, avec ou sans écrire de code.",
+    "content_about_contributions_label": "Façons de contribuer",
+    "content_about_contribution_design": "Design et illustrations",
+    "content_about_contribution_code": "Corrections de bugs et fonctionnalités",
+    "content_about_contribution_games": "Nouveaux jeux",
+    "content_about_contribution_ideas": "Idées et retours",
+    "content_about_explore_github": "Explorer le projet sur GitHub",
+    "content_about_pay_it_forward_body": "Nous ne voulons pas de dons personnels. Si jouer ici a compté pour vous, aidez à apporter le jeu aux personnes qui en ont besoin.",
+    "content_about_see_charities": "Voir les associations",
+    "content_pif_gamers_outreach_purpose": "Du jeu pour les enfants hospitalisés",
+    "content_pif_gamers_outreach_description": "Fabrique des chariots de jeu vidéo aux normes médicales et les apporte aux enfants hospitalisés qui ne peuvent pas quitter leur chambre. Plus de 350 hôpitaux à ce jour.",
+    "content_pif_us_charity": "Association américaine",
+    "content_pif_special_effect_purpose": "Du jeu pour les personnes en situation de handicap",
+    "content_pif_special_effect_description": "Des ergothérapeutes et des spécialistes du jeu vidéo mettent en place des manettes adaptées et des commandes oculaires, pour que les personnes ayant un handicap physique puissent jouer aux jeux qu’elles aiment.",
+    "content_pif_uk_charity": "Association britannique",
+    "content_pif_raised_for": "{amount} pour {charity}",
+    "content_pif_raised_by_players": "collectés par les joueurs de BoardTogether",
+    "content_pif_page_title": "Donner au suivant — Board Together",
+    "content_pif_page_description": "BoardTogether est gratuit et ne veut pas de dons personnels. Si vous avez aimé jouer, aidez à apporter le jeu aux personnes qui en ont besoin, avec Gamers Outreach ou SpecialEffect.",
+    "content_pif_heading": "Donnez au suivant.",
+    "content_back_to_library": "Retour à la ludothèque",
+    "content_pif_lead": "{#wordmark/} est gratuit, et nous comptons bien que cela dure.",
+    "content_pif_no_donations": "Nous ne voulons pas de dons personnels.",
+    "content_pif_bills_are_ours": "Les factures, c’est notre affaire, et rien de ce que vous donnez depuis cette page ne nous revient.",
+    "content_pif_pass_it_on": "Donnez plutôt au suivant.",
+    "content_pif_pass_it_on_body": "Si les parties jouées ici ont compté pour vous, aidez à mettre des jeux entre les mains des personnes qui en ont besoin. Les associations consacrées au jeu de société sont rares et souvent modestes ; nous nous sommes donc tournés vers notre grand frère, le jeu vidéo.",
+    "content_pif_pass_it_on_wide": "Ces deux associations reconnues apportent le jeu aux personnes qui n’y ont pas facilement accès : des enfants coincés dans leur chambre d’hôpital, et des joueurs qui ont besoin de commandes adaptées.",
+    "content_pif_charities_label": "Associations",
+    "content_pif_give_to": "Donner à {charity}",
+    "content_pif_opens_campaign": "Ouvre la campagne BoardTogether sur tiltify.com.",
+    "content_pif_opens_donation_page": "Ouvre leur page de dons sur {host}.",
+    "content_pif_raised_so_far": "Total collecté à ce jour",
+    "content_pif_other_charities": "Si ces deux-là ne vous parlent pas, donnez plutôt à l’association de votre choix. C’est donner au suivant tout autant.",
+    "content_pif_receives_nothing": "BoardTogether ne reçoit rien par ces liens.",
+    "nav_game_heading_beta": "BÊTA : {name}",
+    "nav_game_heading_alpha": "ALPHA : {name}",
+    "played_game_count": [
+        {
+            "declarations": ["input count", "local countPlural = count: plural"],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count: number} partie",
+                "countPlural=*": "{count: number} parties"
+            }
+        }
+    ],
+    "pace_live_name": "En direct",
+    "pace_live_past_limit": "Rythme « En direct » dépassé",
+    "pace_fast_name": "Rapide",
+    "pace_fast_line": "Rapide · sous 1 h",
+    "pace_fast_summary": "Rapide · 1 h",
+    "pace_fast_past_limit": "Rythme de 1 h dépassé",
+    "pace_brisk_name": "Soutenu",
+    "pace_brisk_line": "Soutenu · sous 4 h",
+    "pace_brisk_summary": "Soutenu · 4 h",
+    "pace_brisk_past_limit": "Rythme de 4 h dépassé",
+    "pace_daily_name": "Quotidien",
+    "pace_daily_line": "Quotidien · sous 24 h",
+    "pace_daily_past_limit": "Rythme de 24 h dépassé",
+    "pace_relaxed_name": "Détendu",
+    "pace_relaxed_line": "Détendu · sous 3 jours",
+    "pace_relaxed_summary": "Détendu · 3 jours",
+    "pace_relaxed_past_limit": "Rythme de 3 jours dépassé"
+}

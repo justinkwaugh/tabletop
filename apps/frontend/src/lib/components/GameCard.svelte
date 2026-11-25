@@ -30,7 +30,7 @@
         playerStatusDisplay
     } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
-    import { lastMovePaceWarning } from '$lib/utils/gamePace'
+    import { lastMovePaceWarning, paceTexts } from '$lib/utils/gamePace'
     import { startCountdownText } from '$lib/utils/startCountdown'
     import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
     import { goto } from '$app/navigation'
@@ -38,7 +38,10 @@
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
     import CopyGameLinkButton from './CopyGameLinkButton.svelte'
-    import { GAME_PACE_LABELS, GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import { GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import { m } from '$lib/paraglide/messages'
+    import { getLocale } from '$lib/paraglide/runtime'
+    import RichMessage from './RichMessage.svelte'
 
     const HIGHLIGHT_CLASS = { active: 'text-orange-400', winner: 'text-blue-400', none: '' }
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
@@ -152,20 +155,20 @@
     )
 
     let awaited = $derived(awaitedFromUserNonHotseat(game, sessionUser?.id))
-    const AWAITED_BADGES: Record<UserAwaited, string> = {
-        answer: 'Answer Request',
-        turn: 'Your Turn'
+    const AWAITED_BADGES: Record<UserAwaited, () => string> = {
+        answer: m.games_card_answer_request,
+        turn: m.games_card_your_turn
     }
-    const AWAITED_BUTTONS: Record<UserAwaited, string> = {
-        answer: 'Answer Request',
-        turn: 'Take Your Turn'
+    const AWAITED_BUTTONS: Record<UserAwaited, () => string> = {
+        answer: m.games_card_answer_request,
+        turn: m.games_card_take_your_turn
     }
 
     let currentTime = $derived(minuteClock.now)
     let stallLevel = $derived(gameStallLevel(game, currentTime))
     let stallColor = $derived(stallColors[stallLevel])
 
-    let paceLabels = $derived(GAME_PACE_LABELS[gamePaceOf(game).pace])
+    let gamePace = $derived(paceTexts(gamePaceOf(game).pace))
     let pacedOpen = $derived(isOpen && !game.hotseat)
     let pacedStarted = $derived(game.status === GameStatus.Started && !game.hotseat)
     let hostName = $derived(pacedOpen ? ownerName(game) : undefined)
@@ -283,53 +286,53 @@
     function gameResultText() {
         switch (game.result) {
             case GameResult.Win:
-                return 'Winner'
+                return m.games_card_result_winner()
             case GameResult.Draw:
-                return 'Tied'
+                return m.games_card_result_tied()
             case GameResult.Abandoned:
-                return game.call ? 'No winner' : 'Abandoned'
+                return game.call ? m.games_card_result_no_winner() : m.games_card_result_abandoned()
             default:
-                return 'Winner'
+                return m.games_card_result_winner()
         }
     }
 
     function stallText() {
         switch (stallLevel) {
             case GameStallLevel.AtRisk:
-                return 'Stalling'
-            case GameStallLevel.Ending: {
-                const days = daysUntilStalledGameEnds(game, currentTime)
-                return days === 1 ? 'Ends in 1 day' : `Ends in ${days} days`
-            }
+                return m.games_card_stalling()
+            case GameStallLevel.Ending:
+                return m.games_card_ends_in_days({
+                    count: daysUntilStalledGameEnds(game, currentTime)
+                })
             default:
-                return 'Stalled'
+                return m.games_card_stalled()
         }
     }
 
     function finishedLabel() {
         switch (game.call?.kind) {
             case GameCallKind.Called:
-                return 'Called'
+                return m.games_card_called()
             case GameCallKind.Conceded:
-                return 'Conceded'
+                return m.games_card_conceded()
             case GameCallKind.Stalled:
-                return 'Stalled'
+                return m.games_card_stalled()
             default:
-                return 'Finished'
+                return m.games_card_finished()
         }
     }
 
     function gameResultPlayerText() {
         const myOutcome = myPlayer ? gameOutcome(game, myPlayer.id) : GameOutcome.Lost
-        if (myOutcome === GameOutcome.Won) return 'You'
-        if (myOutcome === GameOutcome.Tied) return 'You and others'
+        if (myOutcome === GameOutcome.Won) return m.games_player_you()
+        if (myOutcome === GameOutcome.Tied) return m.games_card_winner_you_and_others()
         if (game.winningPlayerIds.length === 0) {
             return '-'
         } else if (game.winningPlayerIds.length === 1) {
             const winningPlayerIds = game.winningPlayerIds ?? []
             return game.players.find((p) => p.id === winningPlayerIds[0])?.name
         } else {
-            return `See below`
+            return m.games_card_winners_see_below()
         }
     }
 
@@ -354,11 +357,17 @@
         <span class="relative inline-flex items-center justify-center">
             <span class:invisible={openingGame}>{label}</span>
             {#if openingGame}
-                <Spinner size="4" class="absolute" aria-label="Loading game" />
+                <Spinner size="4" class="absolute" aria-label={m.games_card_loading_game()} />
             {/if}
         </span>
     </Button>
 {/snippet}
+
+{#snippet hostNameText(name: string)}<span class="text-gray-300">{name}</span>{/snippet}
+
+{#snippet lineBreak()}<br />{/snippet}
+
+{#snippet hiddenText(text: string)}<span class="sr-only">{text}</span>{/snippet}
 
 <Card
     onclick={opensFromCard ? openFromCard : undefined}
@@ -371,7 +380,7 @@
                 {#if title}
                     <img
                         class="h-[80px] w-[80px] object-contain"
-                        alt="cover thumbnail"
+                        alt={m.games_card_cover_alt()}
                         src={title.info.thumbnailUrl}
                     />
                 {:else if loading}
@@ -391,19 +400,23 @@
                                 {game.name}
                             </h1>
                             {#if pacedStarted}
-                                <div class="mt-0.5 text-xs text-gray-400">{paceLabels.line}</div>
+                                <div class="mt-0.5 text-xs text-gray-400">{gamePace.line()}</div>
                             {:else if hostName}
                                 <div
                                     class="mt-0.5 max-w-full truncate text-xs text-gray-400"
                                     title={hostName}
                                 >
-                                    by <span class="text-gray-300">{hostName}</span>
+                                    <RichMessage
+                                        parts={m.games_card_hosted_by.parts({ name: hostName })}
+                                        markup={{ host: hostNameText }}
+                                    />
                                 </div>
                             {/if}
                             {#if game.tournament}<a
                                     class="mt-1 text-xs text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                     href={`/tournaments/${game.tournament.tournamentId}`}
-                                    onclick={(event) => event.stopPropagation()}>Tournament</a
+                                    onclick={(event) => event.stopPropagation()}
+                                    >{m.games_card_tournament()}</a
                                 >{/if}
                         </div>
                         <div class="ms-2 flex shrink-0 items-center gap-1">
@@ -415,35 +428,35 @@
                                             size="xs"
                                             color="green"
                                             class={cornerHitArea}
-                                            onclick={joinGame}>Join</Button
+                                            onclick={joinGame}>{m.games_card_join()}</Button
                                         >
                                     {:else if collapsedButton === 'start'}
                                         <Button
                                             size="xs"
                                             color="primary"
                                             class={cornerHitArea}
-                                            onclick={startGame}>Start</Button
+                                            onclick={startGame}>{m.games_card_start()}</Button
                                         >
                                     {:else if collapsedButton === 'edit'}
                                         <Button
                                             size="xs"
                                             color="blue"
                                             class={cornerHitArea}
-                                            onclick={editGame}>Edit</Button
+                                            onclick={editGame}>{m.games_card_edit()}</Button
                                         >
                                     {:else if collapsedButton === 'enter'}
                                         {@render gameEntryButton(
                                             awaited
-                                                ? AWAITED_BADGES[awaited]
+                                                ? AWAITED_BADGES[awaited]()
                                                 : canPlay
-                                                  ? 'Enter'
-                                                  : 'Watch',
+                                                  ? m.games_card_enter()
+                                                  : m.games_card_watch(),
                                             awaited ? 'yellow' : 'primary',
                                             'h-[20px]'
                                         )}
                                     {:else if collapsedButton === 'revisit'}
                                         {@render gameEntryButton(
-                                            'Revisit',
+                                            m.games_card_revisit(),
                                             'light',
                                             'h-[20px] dark:text-gray-200'
                                         )}
@@ -453,13 +466,16 @@
                                             size="xs"
                                             color="blue"
                                             class="h-[20px] ms-1"
-                                            onclick={continueGame}>Continue</Button
+                                            onclick={continueGame}>{m.games_card_continue()}</Button
                                         >
                                     {/if}
                                 </div>
                                 {#if waitingToStart && !autoStartText}
                                     <div class="text-xs text-right text-gray-400">
-                                        Waiting<br />to start
+                                        <RichMessage
+                                            parts={m.games_card_waiting_to_start.parts()}
+                                            markup={{ break: lineBreak }}
+                                        />
                                     </div>
                                 {/if}
                             {/if}
@@ -480,7 +496,7 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Active Player
+                                    {m.games_card_active_player()}
                                 </div>
                                 <div
                                     class="max-w-full truncate text-xs text-orange-400"
@@ -507,10 +523,11 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    {title?.info.metadata.name ?? (loading ? '' : 'Unknown Game')}
+                                    {title?.info.metadata.name ??
+                                        (loading ? '' : m.games_card_unknown_game())}
                                 </div>
                                 <div class="text-xs text-gray-400">
-                                    {totalSeats} player
+                                    {m.games_card_seat_count({ count: totalSeats })}
                                 </div>
                             </div>
                         {/if}
@@ -520,10 +537,10 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Pace
+                                    {m.games_card_pace()}
                                 </div>
                                 <div class="text-xs text-nowrap text-gray-400">
-                                    {paceLabels.summary}
+                                    {gamePace.summary()}
                                 </div>
                             </div>
                         {/if}
@@ -533,14 +550,16 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Mode
+                                    {m.games_card_mode()}
                                 </div>
-                                <div class="text-xs text-green-400">Hotseat</div>
+                                <div class="text-xs text-green-400">{m.games_card_hotseat()}</div>
                             </div>
                         {:else if game.status === GameStatus.Started && stallLevel !== GameStallLevel.None}
                             <div
                                 class="flex flex-col justify-center items-end"
-                                title={`The game ends with no winner if nobody moves by ${stalledGameEndsAt(game).toLocaleDateString()}.`}
+                                title={m.games_card_stall_deadline({
+                                    date: stalledGameEndsAt(game).toLocaleDateString(getLocale())
+                                })}
                             >
                                 <div
                                     class={stallColor.label}
@@ -558,7 +577,7 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Last Action
+                                    {m.games_card_last_action()}
                                 </div>
                                 <div
                                     class="text-xs text-nowrap {paceWarning
@@ -566,9 +585,13 @@
                                         : 'text-gray-400'}"
                                     title={paceWarning}
                                 >
-                                    {timeSince(lastMoveAt(game))}{#if paceWarning}<span
-                                            class="sr-only">, {paceWarning}</span
-                                        >{/if}
+                                    {#if paceWarning}<RichMessage
+                                            parts={m.games_card_time_with_pace_warning.parts({
+                                                time: timeSince(lastMoveAt(game)),
+                                                warning: paceWarning
+                                            })}
+                                            markup={{ hidden: hiddenText }}
+                                        />{:else}{timeSince(lastMoveAt(game))}{/if}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -591,11 +614,11 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Open Seats
+                                    {m.games_card_open_seats()}
                                 </div>
                                 <div class="text-xs text-gray-400">
                                     {#if openSeats === 0}
-                                        None
+                                        {m.games_card_open_seats_none()}
                                     {:else}
                                         {openSeats}
                                     {/if}
@@ -627,9 +650,13 @@
                 <div in:fade={{ duration: 400 }} out:fade={{ duration: 75 }}>
                     <div class="flex flex-col text-sm">
                         <div class="flex flex-row justify-between">
-                            <div class="text-xs font-semibold">PLAYERS</div>
+                            <div class="text-xs font-semibold">
+                                {m.games_card_players_heading()}
+                            </div>
                             {#if finalScores}
-                                <div class="text-xs font-semibold">SCORE</div>
+                                <div class="text-xs font-semibold">
+                                    {m.games_card_score_heading()}
+                                </div>
                             {/if}
                         </div>
                         <Hr class="mt-1 mb-1" />
@@ -651,7 +678,7 @@
                                 {:else}
                                     <div>
                                         {game.hotseat
-                                            ? 'local'
+                                            ? m.games_card_player_local()
                                             : playerStatusDisplay(player, game.ownerId)}
                                     </div>
                                 {/if}
@@ -661,7 +688,9 @@
                     {#if explorations.length > 0}
                         <div class="flex flex-col text-sm mt-4">
                             <div class="flex flex-row justify-between">
-                                <div class="text-xs font-semibold">EXPLORATIONS</div>
+                                <div class="text-xs font-semibold">
+                                    {m.games_card_explorations_heading()}
+                                </div>
                             </div>
                             <Hr class="mt-1 mb-1" />
                             {#each explorations as exploration (exploration.id)}
@@ -682,55 +711,55 @@
                         >
                             {#if canDecline}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}
-                                    >Decline</Button
+                                    >{m.games_card_decline()}</Button
                                 >
                             {/if}
                             {#if canLeave}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}
-                                    >Leave</Button
+                                    >{m.games_card_leave()}</Button
                                 >
                             {/if}
                             {#if canJoin}
                                 <Button size="xs" color="green" class="mx-2" onclick={joinGame}
-                                    >Join</Button
+                                    >{m.games_card_join()}</Button
                                 >
                             {/if}
                             {#if canEdit}
                                 <Button size="xs" color="blue" class="mx-2" onclick={editGame}
-                                    >Edit Game</Button
+                                    >{m.games_card_edit_game()}</Button
                                 >
                             {/if}
                             {#if canStart}
                                 <Button size="xs" color="primary" class="mx-2" onclick={startGame}
-                                    >Start Game</Button
+                                    >{m.games_card_start_game()}</Button
                                 >
                             {/if}
                             {#if canPlay || canWatch}
                                 {@render gameEntryButton(
                                     awaited
-                                        ? AWAITED_BUTTONS[awaited]
+                                        ? AWAITED_BUTTONS[awaited]()
                                         : canPlay
-                                          ? 'Play Game'
-                                          : 'Watch Game',
+                                          ? m.games_card_play_game()
+                                          : m.games_card_watch_game(),
                                     awaited ? 'yellow' : 'primary',
                                     'mx-2'
                                 )}
                             {/if}
                             {#if canContinue}
                                 <Button size="xs" color="blue" class="mx-2" onclick={continueGame}
-                                    >Continue</Button
+                                    >{m.games_card_continue()}</Button
                                 >
                             {/if}
                             {#if canRevisit}
                                 {@render gameEntryButton(
-                                    'Revisit',
+                                    m.games_card_revisit(),
                                     'light',
                                     'mx-2 dark:text-gray-200'
                                 )}
                             {/if}
                             {#if onunfollow}
                                 <Button size="xs" color="light" class="mx-2" onclick={unfollowGame}
-                                    >Unfollow</Button
+                                    >{m.games_card_unfollow()}</Button
                                 >
                             {/if}
                             {#if bgStatsUrl}
@@ -740,7 +769,7 @@
                                     class="mx-2"
                                     href={bgStatsUrl}
                                     onclick={(event) => event.stopPropagation()}
-                                    >Log to BG Stats</Button
+                                    >{m.nav_log_to_bg_stats()}</Button
                                 >
                             {/if}
                             {#if canModerate}
@@ -754,7 +783,7 @@
                             {/if}
                             {#if canDelete}
                                 <Button size="xs" color="red" class="mx-2" onclick={deleteGame}
-                                    >Delete</Button
+                                    >{m.games_card_delete()}</Button
                                 >
                             {/if}
                         </div>
@@ -782,7 +811,9 @@
                 <button
                     type="button"
                     class="peer absolute -inset-x-8 top-3 -bottom-8 cursor-pointer focus-visible:bg-white/5 focus-visible:outline-none"
-                    aria-label={isExpanded ? 'Hide game details' : 'Show game details'}
+                    aria-label={isExpanded
+                        ? m.games_card_hide_details()
+                        : m.games_card_show_details()}
                     aria-expanded={isExpanded}
                     onclick={toggleExpand}
                 ></button>

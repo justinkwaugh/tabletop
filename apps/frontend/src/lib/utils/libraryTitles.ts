@@ -9,11 +9,12 @@ import {
     type User
 } from '@tabletop/common'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
+import { m } from '$lib/paraglide/messages'
 
 export type LibrarySeries = {
     id: string
     name: string
-    description: string
+    description: () => string
     hasLobby: boolean
 }
 
@@ -26,15 +27,13 @@ const librarySeries = new Map<string, LibrarySeries>(
         {
             id: '18xx',
             name: '18xx',
-            description:
-                'Railroad games of share trading and track building. Run companies, buy into your rivals, and sell out before the next train rusts their fleet.',
+            description: m.library_series_18xx_description,
             hasLobby: true
         },
         {
             id: 'gipf-project',
             name: 'GIPF project',
-            description:
-                'Kris Burm’s two-player abstract games. Simple pieces, open information and no luck: every game turns on the board and the choices in front of you.',
+            description: m.library_series_gipf_project_description,
             hasLobby: false
         }
     ].map((series) => [series.id, series])
@@ -44,23 +43,21 @@ function titleSortName(name: string): string {
     return name.replace(/^(a|an|the)\s+/i, '')
 }
 
-export function titleMaturityLabel(metadata: GameMetadata): 'Alpha' | 'Beta' | undefined {
+export function titleMaturityLabel(metadata: GameMetadata): string | undefined {
     switch (getTitleVisibility(metadata)) {
         case GameVisibility.Alpha:
-            return 'Alpha'
+            return m.library_maturity_alpha()
         case GameVisibility.Beta:
-            return 'Beta'
+            return m.library_maturity_beta()
         case GameVisibility.Public:
             return undefined
     }
 }
 
 export function playerCountText(metadata: GameMetadata): string {
-    const range =
-        metadata.maxPlayers === metadata.minPlayers
-            ? `${metadata.minPlayers}`
-            : `${metadata.minPlayers}–${metadata.maxPlayers}`
-    return `${range} players`
+    return metadata.maxPlayers === metadata.minPlayers
+        ? m.player_count({ count: metadata.minPlayers })
+        : m.player_count_range({ min: metadata.minPlayers, max: metadata.maxPlayers })
 }
 
 export function availableLibraryTitles(
@@ -136,8 +133,4 @@ export function libraryShelfItems(entries: GameCatalogEntry[]): LibraryShelfItem
 
 export function libraryUrl(user?: User): string {
     return user ? '/library' : '/#games'
-}
-
-export function gameCount(count: number): string {
-    return `${count} ${count === 1 ? 'game' : 'games'}`
 }

@@ -9,13 +9,15 @@
     import type { Game } from '@tabletop/common'
     import { followFailureMessage } from '$lib/services/followedGames.svelte'
     import { toast } from 'svelte-sonner'
+    import { m } from '$lib/paraglide/messages'
+    import RichMessage from '$lib/components/RichMessage.svelte'
 
     const { gameService, followedGames, authorizationService } = getAppContext()
     const TABS = [
-        { id: 'current', label: 'Current' },
-        { id: 'following', label: 'Following' },
-        { id: 'history', label: 'History' },
-        { id: 'stats', label: 'Stats' }
+        { id: 'current', label: m.dashboard_tab_current },
+        { id: 'following', label: m.dashboard_tab_following },
+        { id: 'history', label: m.dashboard_tab_history },
+        { id: 'stats', label: m.dashboard_tab_stats }
     ] as const
     type Tab = (typeof TABS)[number]['id']
 
@@ -43,14 +45,20 @@
     }
 </script>
 
-<svelte:head><title>My games — Board Together</title></svelte:head>
+{#snippet bookmarkIcon()}<BookmarkOutline class="inline-icon" aria-hidden="true" /><span
+        class="sr-only">{m.dashboard_follow_hint_bookmark()}</span
+    >{/snippet}
+
+<svelte:head><title>{m.dashboard_page_title()}</title></svelte:head>
 <main class="dashboard collection-page">
     <header class="page-heading collection-header">
-        <h1 class="collection-heading">Your games.</h1>
-        <a href="/library" class="find-game">Go to the library <span aria-hidden="true">→</span></a>
+        <h1 class="collection-heading">{m.dashboard_heading()}</h1>
+        <a href="/library" class="find-game"
+            >{m.dashboard_go_to_library()} <span aria-hidden="true">→</span></a
+        >
     </header>
     <div class="navigation">
-        <div class="collection-tabs" role="tablist" aria-label="My games">
+        <div class="collection-tabs" role="tablist" aria-label={m.dashboard_tabs_label()}>
             {#each TABS as choice (choice.id)}
                 <button
                     class="collection-tab"
@@ -62,7 +70,7 @@
                     onclick={() => selectTab(choice.id)}
                     onkeydown={moveTab}
                 >
-                    {choice.label}
+                    {choice.label()}
                     {#if choice.id === 'current'}<span class="count">{games.length}</span
                         >{:else if choice.id === 'following' && followedGames.loaded}<span
                             class="count">{followedGames.games.length}</span
@@ -82,11 +90,11 @@
             {#if games.length}
                 <DashboardGameList {games} />
             {:else if gameService.loading}
-                <p class="empty" role="status">Loading your games…</p>
+                <p class="empty" role="status">{m.dashboard_loading_games()}</p>
             {:else}
                 <div class="empty">
-                    <p>Ready for a game?</p>
-                    <a href="/library">Explore the library →</a>
+                    <p>{m.dashboard_no_games()}</p>
+                    <a href="/library">{m.dashboard_explore_library()} →</a>
                 </div>
             {/if}
         </div>
@@ -102,18 +110,17 @@
             {#if followedGames.games.length}
                 <DashboardGameList games={followedGames.games} onunfollow={unfollow} />
             {:else if followedGames.loading}
-                <p class="empty" role="status">Loading the games you follow…</p>
+                <p class="empty" role="status">{m.dashboard_loading_followed()}</p>
             {:else if !followedGames.loaded}
-                <p class="empty" role="status">Couldn’t load the games you follow.</p>
+                <p class="empty" role="status">{m.dashboard_followed_load_failed()}</p>
             {:else}
                 <div class="empty">
-                    <p>Follow games you aren’t playing in to keep them here.</p>
+                    <p>{m.dashboard_no_followed()}</p>
                     <p class="hint">
-                        Open a game you’re watching and press
-                        <BookmarkOutline class="inline-icon" aria-hidden="true" /><span
-                            class="sr-only">the bookmark</span
-                        >
-                        in the top bar.
+                        <RichMessage
+                            parts={m.dashboard_follow_hint.parts()}
+                            markup={{ bookmark: bookmarkIcon }}
+                        />
                     </p>
                 </div>
             {/if}

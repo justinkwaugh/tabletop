@@ -3,6 +3,9 @@
     import LibraryLink from '$lib/components/project/LibraryLink.svelte'
     import ProjectPrinciples from '$lib/components/project/ProjectPrinciples.svelte'
     import Wordmark from '$lib/components/project/Wordmark.svelte'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
+    import { getLocale } from '$lib/paraglide/runtime'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         Charity,
@@ -18,9 +21,9 @@
         id: Charity
         name: string
         logo: string
-        country: string
-        purpose: string
-        description: string
+        country: () => string
+        purpose: () => string
+        description: () => string
         campaignUrl: string
         donateUrl: string
         donateHost: string
@@ -31,10 +34,9 @@
             id: Charity.GamersOutreach,
             name: 'Gamers Outreach',
             logo: gamersOutreachLogo,
-            country: 'US',
-            purpose: 'Play for kids in hospitals',
-            description:
-                'Builds medical-grade gaming carts and brings them to kids in hospitals who can’t leave their rooms. Over 350 hospitals so far.',
+            country: m.content_pif_us_charity,
+            purpose: m.content_pif_gamers_outreach_purpose,
+            description: m.content_pif_gamers_outreach_description,
             campaignUrl:
                 'https://tiltify.com/+boardtogether-community/fundraiser-for-gamers-outreach-foundation',
             donateUrl: 'https://gamersoutreach.org/donate',
@@ -44,10 +46,9 @@
             id: Charity.SpecialEffect,
             name: 'SpecialEffect',
             logo: specialEffectLogo,
-            country: 'UK',
-            purpose: 'Play for people with disabilities',
-            description:
-                'Occupational therapists and gaming specialists set up adapted controllers and eye control, so people with physical disabilities can play the games they love.',
+            country: m.content_pif_uk_charity,
+            purpose: m.content_pif_special_effect_purpose,
+            description: m.content_pif_special_effect_description,
             campaignUrl:
                 'https://tiltify.com/+boardtogether-community/fundraiser-for-specialeffect',
             donateUrl: 'https://www.specialeffect.org.uk/donate',
@@ -74,14 +75,19 @@
         const perCharity = charities.flatMap((charity) => {
             const raised = raisedFor(charity.id)
             return raised
-                ? [`${formatMoney(raised.amount, raised.currency)} for ${charity.name}`]
+                ? [
+                      m.content_pif_raised_for({
+                          amount: formatMoney(raised.amount, raised.currency),
+                          charity: charity.name
+                      })
+                  ]
                 : []
         })
-        return ['raised by BoardTogether players', ...perCharity].join(' · ')
+        return [m.content_pif_raised_by_players(), ...perCharity].join(' · ')
     }
 
     function formatMoney(amount: number, currency: CurrencyCode): string {
-        return new Intl.NumberFormat('en', {
+        return new Intl.NumberFormat(getLocale(), {
             style: 'currency',
             currency,
             maximumFractionDigits: 0
@@ -89,22 +95,23 @@
     }
 </script>
 
+{#snippet wordmark()}<Wordmark />{/snippet}
+
 <svelte:head>
-    <title>Pay it forward — Board Together</title>
-    <meta
-        name="description"
-        content="BoardTogether is free and doesn't want personal donations. If you've enjoyed playing, help bring games to people who need them through Gamers Outreach or SpecialEffect."
-    />
+    <title>{m.content_pif_page_title()}</title>
+    <meta name="description" content={m.content_pif_page_description()} />
 </svelte:head>
 
 <main class="pay-it-forward-page collection-page">
     <header class="page-heading collection-header">
-        <h1 class="collection-heading">Pay it forward.</h1>
-        <LibraryLink label="Back to the library" />
+        <h1 class="collection-heading">{m.content_pif_heading()}</h1>
+        <LibraryLink label={m.content_back_to_library()} />
     </header>
 
     <div class="introduction">
-        <p class="lead"><Wordmark /> is free, and we plan to keep it that way.</p>
+        <p class="lead">
+            <RichMessage parts={m.content_pif_lead.parts()} markup={{ wordmark }} />
+        </p>
         <div class="principles-column">
             <ProjectPrinciples />
         </div>
@@ -112,68 +119,62 @@
 
     <section aria-labelledby="no-donations-heading">
         <h2 id="no-donations-heading" class="statement refusal">
-            We don’t want personal donations.
+            {m.content_pif_no_donations()}
         </h2>
-        <p class="body">The bills are ours, and nothing you give from this page comes to us.</p>
+        <p class="body">{m.content_pif_bills_are_ours()}</p>
     </section>
 
     <section aria-labelledby="pass-it-on-heading">
-        <h2 id="pass-it-on-heading" class="statement">Pass it on instead.</h2>
+        <h2 id="pass-it-on-heading" class="statement">{m.content_pif_pass_it_on()}</h2>
         <p class="body">
-            If the games here have been worth something to you, help put games in front of people
-            who need them. Board game charities are few and mostly small, so we’ve looked to our big
-            brother, video games.
-            <span class="wide-only"
-                >These two well-established charities bring games to people who can’t easily get to
-                them: kids stuck in hospital rooms, and players who need adapted controls.</span
-            >
+            {m.content_pif_pass_it_on_body()}
+            <span class="wide-only">{m.content_pif_pass_it_on_wide()}</span>
         </p>
     </section>
 
-    <ul class="charities" aria-label="Charities">
+    <ul class="charities" aria-label={m.content_pif_charities_label()}>
         {#each charities as charity (charity.id)}
             {@const campaignOpen = raisedFor(charity.id)?.campaignOpen ?? true}
             <li class="charity">
                 <div class="charity-heading">
                     <h3><img class="logo" src={charity.logo} alt={charity.name} /></h3>
-                    <span class="country">{charity.country} charity</span>
+                    <span class="country">{charity.country()}</span>
                 </div>
-                <p class="purpose">{charity.purpose}</p>
-                <p class="description">{charity.description}</p>
+                <p class="purpose">{charity.purpose()}</p>
+                <p class="description">{charity.description()}</p>
                 <a
                     class="give-link"
                     href={campaignOpen ? charity.campaignUrl : charity.donateUrl}
                     target="_blank"
                     rel="noreferrer"
                 >
-                    Give to {charity.name}
+                    {m.content_pif_give_to({ charity: charity.name })}
                     <ArrowUpRightFromSquareOutline class="h-4 w-4" />
-                    <span class="sr-only">(opens in a new tab)</span>
+                    <span class="sr-only">{m.content_opens_in_new_tab()}</span>
                 </a>
                 <p class="destination">
                     {campaignOpen
-                        ? 'Opens the BoardTogether campaign on tiltify.com.'
-                        : `Opens their donation page on ${charity.donateHost}.`}
+                        ? m.content_pif_opens_campaign()
+                        : m.content_pif_opens_donation_page({ host: charity.donateHost })}
                 </p>
             </li>
         {/each}
     </ul>
 
     {#if tally && tally.totalUsd > 0}
-        <section class="tally" aria-label="Raised so far">
+        <section class="tally" aria-label={m.content_pif_raised_so_far()}>
             <p class="tally-total">{formatMoney(tally.totalUsd, 'USD')}</p>
             <p class="tally-detail">{tallyDetail()}</p>
         </section>
     {/if}
 
     <p class="body other-charities">
-        If these two aren’t for you, give to your favorite charity instead. It’s paying it forward
-        all the same.
+        {m.content_pif_other_charities()}
     </p>
 
     <p class="trust">
         <ShieldCheckOutline class="h-4 w-4 shrink-0" />
-        BoardTogether receives nothing from these links.
+        {m.content_pif_receives_nothing()}
     </p>
 </main>
 

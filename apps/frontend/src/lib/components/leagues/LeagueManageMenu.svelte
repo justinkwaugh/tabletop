@@ -7,6 +7,8 @@
         type LeagueSignUpPolicy
     } from '@tabletop/common'
     import { localDateTimeInputValue } from '$lib/utils/dateTimeInput'
+    import RichMessage from '$lib/components/RichMessage.svelte'
+    import { m } from '$lib/paraglide/messages'
 
     let {
         league,
@@ -36,11 +38,15 @@
     let signUpDays = $derived(league.signUp.days)
     let action = $derived.by(
         (): { operation: LeagueSignUpOperation; label: string } | undefined => {
-            if (league.status === 'draft') return { operation: 'publish', label: 'Open Season 0' }
+            if (league.status === 'draft')
+                return { operation: 'publish', label: m.leagues_manage_open_season({ number: 0 }) }
             if (season?.status === 'signUp')
-                return { operation: 'signUp/close', label: 'Move the close' }
+                return { operation: 'signUp/close', label: m.leagues_manage_move_close() }
             if (season?.status === 'finished' || season?.status === 'cancelled')
-                return { operation: 'seasons/next', label: `Open Season ${season.number + 1}` }
+                return {
+                    operation: 'seasons/next',
+                    label: m.leagues_manage_open_season({ number: season.number + 1 })
+                }
             return undefined
         }
     )
@@ -51,10 +57,20 @@
     }
 </script>
 
+{#snippet localTimeHint(text: string)}<span class="text-[10px]">{text}</span>{/snippet}
+{#snippet signUpDaysInput()}<input
+        type="number"
+        min={leagueSignUpDays.minimum}
+        max={leagueSignUpDays.maximum}
+        class="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+        bind:value={signUpDays}
+    />{/snippet}
+
 {#if league.status === 'draft' || league.status === 'active'}
     <details class="relative" bind:open>
         <summary class="manage-toggle"
-            >Manage <svg
+            >{m.leagues_manage()}
+            <svg
                 aria-hidden="true"
                 class="size-3 shrink-0"
                 viewBox="0 0 16 16"
@@ -69,13 +85,18 @@
         >
             {#if league.status === 'draft'}
                 <button class="menu-item" disabled={busy} onclick={() => run(onedit)}
-                    >{editingDraft ? 'Close the editor' : 'Edit draft'}</button
+                    >{editingDraft
+                        ? m.leagues_manage_close_editor()
+                        : m.leagues_manage_edit_draft()}</button
                 >
             {/if}
             {#if action}
                 <div class="menu-section">
                     <label class="flex flex-col gap-1 text-gray-500 dark:text-gray-400">
-                        Sign-up closes <span class="text-[10px]">(your local time)</span>
+                        <RichMessage
+                            parts={m.leagues_manage_sign_up_closes.parts()}
+                            markup={{ hint: localTimeHint }}
+                        />
                         <input
                             type="datetime-local"
                             class="rounded border border-gray-300 bg-white px-2 py-1 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
@@ -93,7 +114,7 @@
             {/if}
             {#if season?.status === 'signUp'}
                 <button class="menu-item" disabled={busy} onclick={() => run(onpreview)}
-                    >Preview groups</button
+                    >{m.leagues_manage_preview_groups()}</button
                 >
                 <button
                     class="menu-item text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30"
@@ -102,30 +123,27 @@
                         run(() => {
                             if (
                                 confirm(
-                                    `Cancel Season ${season.number}? Its sign-up ends without starting any groups. You can open the next season afterwards.`
+                                    m.leagues_manage_cancel_season_confirm({
+                                        number: season.number
+                                    })
                                 )
                             )
                                 oncancel()
-                        })}>Cancel season</button
+                        })}>{m.leagues_manage_cancel_season()}</button
                 >
             {/if}
             {#if league.status === 'active'}
                 <div class="menu-section">
-                    <p class="mb-1.5 font-medium">Between seasons</p>
+                    <p class="mb-1.5 font-medium">{m.leagues_between_seasons()}</p>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" bind:checked={opensAutomatically} />
-                        Open the next sign-up when a season ends
+                        {m.leagues_opens_automatically()}
                     </label>
                     <label class="mt-2 flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                        Sign-up lasts
-                        <input
-                            type="number"
-                            min={leagueSignUpDays.minimum}
-                            max={leagueSignUpDays.maximum}
-                            class="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-                            bind:value={signUpDays}
+                        <RichMessage
+                            parts={m.leagues_manage_sign_up_lasts.parts()}
+                            markup={{ days: signUpDaysInput }}
                         />
-                        days
                     </label>
                     <button
                         class="mt-2 w-full rounded border border-gray-400 px-2 py-1.5 hover:border-gray-300 disabled:opacity-50"
@@ -134,7 +152,7 @@
                                 signUpDays === league.signUp.days)}
                         onclick={() =>
                             run(() => onsignuppolicy({ opensAutomatically, days: signUpDays }))}
-                        >Save</button
+                        >{m.leagues_manage_save()}</button
                     >
                 </div>
             {/if}
