@@ -31,7 +31,6 @@ const fontsCommit = '83c62e30d87daa70216dab6b984d00d20d96d585'
 /** CSS family name → path in google/fonts. */
 const fonts = {
     Bodoni: 'ofl/bodonimoda/BodoniModa[opsz,wght].ttf',
-    BodoniItalic: 'ofl/bodonimoda/BodoniModa-Italic[opsz,wght].ttf',
     Cinzel: 'ofl/cinzel/Cinzel[wght].ttf',
     PlayfairItalic: 'ofl/playfairdisplay/PlayfairDisplay-Italic[wght].ttf',
     FellItalic: 'ofl/imfellenglish/IMFeENit28P.ttf',
@@ -89,7 +88,7 @@ const covers = {
         crop: { left: 0.47, right: 0.959, top: 0 },
         css: `
 .scrim{background:linear-gradient(#0000 58%,#1b0d08b0 100%)}
-.num{top:4px;font:italic 800 132px/1 BodoniItalic;color:#8e2414;text-shadow:0 1px 0 #f7dcc1,0 3px 14px #f7dcc180;letter-spacing:-.01em}
+.num{top:4px;font:italic 900 136px/1 PlayfairItalic;color:#8e2414;text-shadow:0 1px 0 #f7dcc1,0 3px 14px #f7dcc180}
 .sub{bottom:74px;font:600 13px Cinzel;letter-spacing:.34em;color:#f6e3c8;padding-left:.34em;text-shadow:0 1px 4px #000d}
 .sub2{bottom:40px;font:italic 600 27px CormorantItalic;color:#f6e3c8;letter-spacing:.03em;text-shadow:0 1px 5px #000d}
 .credit{color:#f6e3c8;text-shadow:0 1px 3px #000c}.artist{color:#f6e3c8cc;text-shadow:0 1px 2px #000c}`,
