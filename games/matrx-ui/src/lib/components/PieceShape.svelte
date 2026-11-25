@@ -2,7 +2,14 @@
 
 <script lang="ts">
     import type { BoardView } from '$lib/board/geometry.js'
-    import { creaseOf, lookBox, pieceDrawing, type Disc } from '$lib/board/pieceShape.js'
+    import {
+        creaseOf,
+        HOLE_SHADE,
+        holeLightBelow,
+        lookBox,
+        pieceDrawing,
+        type Disc
+    } from '$lib/board/pieceShape.js'
     import { lookUrl } from '$lib/board/looks.js'
     import { liftOffCrease, liftOffDisc, type PieceParts } from '$lib/animators/drop.js'
     import KindBadge from './KindBadge.svelte'
@@ -30,6 +37,8 @@
 
 {#each drawing.bases as base, index (index)}
     {@const tone = discs[index].tone}
+    {@const crease = creaseOf(view, discs[index], radius)}
+    {@const light = holeLightBelow(view, radius, discs[index + 1])}
     <g transform="translate(0 {base})">
         <g out:liftOffDisc={{ parts }}>
             <g {@attach parts?.disc(index)}>
@@ -43,8 +52,16 @@
                 {#if index < drawing.bases.length - 1}
                     <g out:liftOffCrease={{ parts }}>
                         <g {@attach parts?.crease(index)}>
-                            <path d={creaseOf(view, discs[index], radius)} class="crease {tone}"
+                            <!-- Down a DVONN disc's hole, where light falls, the crease is lighter. -->
+                            <path
+                                d={light ? `${crease} ${light}` : crease}
+                                fill-rule="evenodd"
+                                class="crease {tone}"
                             ></path>
+                            {#if light}
+                                <path d={light} fill-opacity={HOLE_SHADE} class="crease {tone}"
+                                ></path>
+                            {/if}
                         </g>
                     </g>
                 {/if}

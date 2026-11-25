@@ -2,9 +2,10 @@
 
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import { PIECE_RADIUS, SHADOW_BLUR, type BoardView } from '$lib/board/geometry.js'
+    import { PIECE_RADIUS, type BoardView } from '$lib/board/geometry.js'
     import type { Disc } from '$lib/board/pieceShape.js'
     import type { PieceParts } from '$lib/animators/drop.js'
+    import BoardShadow from './BoardShadow.svelte'
     import PieceShape from './PieceShape.svelte'
 
     let {
@@ -27,14 +28,7 @@
 </script>
 
 <g {@attach shadow}>
-    <ellipse
-        rx={PIECE_RADIUS + SHADOW_BLUR}
-        ry={PIECE_RADIUS * view.tilt + SHADOW_BLUR}
-        cy={2}
-        fill="url(#gp-board-shadow)"
-    ></ellipse>
-    <ellipse rx={PIECE_RADIUS} ry={PIECE_RADIUS * view.tilt} fill="url(#gp-board-contact)"
-    ></ellipse>
+    <BoardShadow {view} bottom={discs[0]} />
 </g>
 <g id={bodyId} {@attach body}>
     <PieceShape {discs} radius={PIECE_RADIUS} {view} {parts} {badge} />
