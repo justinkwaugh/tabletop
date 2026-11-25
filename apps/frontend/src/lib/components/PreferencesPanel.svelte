@@ -20,7 +20,7 @@
     }
 </script>
 
-<div class="flex flex-col space-y-6">
+<div class="flex flex-col space-y-6 outline-none" tabindex="-1" data-autofocus>
     <LanguagePicker />
     <Toggle
         checked={preferences.preventWebNotificationPrompt}
