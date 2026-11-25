@@ -5,9 +5,10 @@ consumes the title logic from `@tabletop/1862`, the shared table from `@tabletop
 Game Client support.
 
 The table opens on the Board view: the boardless map, with the market's single row of 67 spaces
-above it and the depot to its east. There is no published board artwork. Company station tokens
-are drawn from each company's printed colours by `scripts/generate-logos.mjs`. The cover is the
-rulebook's coloured engraving of an early station.
+above it and the depot to its east. There is no published board artwork. Company station tokens are
+drawn from each company's printed colours by `scripts/generate-logos.mjs`. The cover sets the title
+over the rulebook's coloured engraving of an early station, from the _Illustrated London News_ of
+1845; `tools/cover-art` renders it.
 
 `pnpm --filter @tabletop/1862-ui dev` serves the standalone harness on port 4195, with the
 prepared positions described in [src/scenarios](src/scenarios/README.md).

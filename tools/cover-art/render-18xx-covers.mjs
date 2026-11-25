@@ -1,11 +1,11 @@
 /**
- * Renders catalogue covers for 18xx titles: a public-domain painting, print or map from Wikimedia
- * Commons under new title lettering in SIL Open Font License fonts from google/fonts. Each cover is
- * written to games/<title>-ui/src/lib/images/cover.webp. See README.md beside this script for the
+ * Renders catalogue covers for 18xx titles: a painting, print, map or engraving, from Wikimedia
+ * Commons or a title's public rulebook, under new title lettering in SIL Open Font License fonts
+ * from google/fonts. Each cover is written to games/<title>-ui/src/lib/images/cover.webp. See README.md beside this script for the
  * sources and licences.
  *
- * Prerequisites: network access, Playwright's Chromium, and ImageMagick's `convert` and `identify`
- * with WebP. Playwright is resolved from the working directory, so run it from a package that has
+ * Prerequisites: network access, Playwright's Chromium, ImageMagick's `convert` and `identify`
+ * with WebP, and poppler's `pdfimages`. Playwright is resolved from the working directory, so run it from a package that has
  * it:
  *
  *   cd apps/frontend && node ../../tools/cover-art/render-18xx-covers.mjs [title ...]
@@ -32,6 +32,7 @@ const fontsCommit = '83c62e30d87daa70216dab6b984d00d20d96d585'
 const fonts = {
     Bodoni: 'ofl/bodonimoda/BodoniModa[opsz,wght].ttf',
     Cinzel: 'ofl/cinzel/Cinzel[wght].ttf',
+    Playfair: 'ofl/playfairdisplay/PlayfairDisplay[wght].ttf',
     PlayfairItalic: 'ofl/playfairdisplay/PlayfairDisplay-Italic[wght].ttf',
     FellItalic: 'ofl/imfellenglish/IMFeENit28P.ttf',
     FellCanon: 'ofl/imfellfrenchcanon/IMFeFCrm28P.ttf',
@@ -50,7 +51,8 @@ const height = 680
 const outputWidth = 770
 
 /**
- * Each cover names its Commons file and the window cut from it, as fractions of the image: left
+ * Each cover names its art, a Commons `file` or the first image on a `pdf` page, and the window cut
+ * from it, as fractions of the image: left
  * and right edges, the top edge, and the window's width/height (the cover's own by default). The
  * art is the cover's background, or wherever the cover's own CSS places `var(--art)`.
  */
@@ -96,6 +98,28 @@ const covers = {
 <div class="abs sub">The Game of</div><div class="abs sub2">Sicilian Railways</div>
 <div class="credit">Federico Vellani</div><div class="artist">after Thomas Cole<br>Mount Etna from Taormina</div>`
     },
+    1862: {
+        pdf: {
+            url: 'https://gmtwebsiteassets.s3.us-west-2.amazonaws.com/1862/1862_TRAIN_RULES-Final.pdf',
+            page: 1
+        },
+        crop: { left: 0.05, right: 0.94, top: 0.02, aspect: 1.2 },
+        css: `
+.cover{background:#efe5cc}
+.art{position:absolute;left:20px;right:20px;top:262px;bottom:50px;background:var(--art) center/cover;border:1px solid #1f3b2b}
+.frame{position:absolute;left:14px;right:14px;top:256px;bottom:44px;border:1px solid #1f3b2b}
+.rule{margin:auto;width:300px;border-top:1px solid #1f3b2b}
+.r1{top:24px}.r2{top:28px}
+.num{top:36px;font:400 124px/1 AlfaSlab;color:#1f4a33;letter-spacing:.02em}
+.mania{top:170px;font:700 23px Cinzel;letter-spacing:.3em;color:#2a2219;padding-left:.3em}
+.counties{top:202px;font:400 26px/1 FellItalic;color:#7a2a1c}
+.credit{color:#2a2219;bottom:16px}.artist{color:#2a2219;bottom:14px}`,
+        html: `<div class="abs rule r1"></div><div class="abs rule r2"></div>
+<div class="abs num">1862</div><div class="abs mania">Railway Mania</div>
+<div class="abs counties">in the Eastern Counties</div>
+<div class="art"></div><div class="frame"></div>
+<div class="credit">Mike Hutton</div><div class="artist">after the Illustrated London News, 1845,<br>coloured for the rulebook</div>`
+    },
     1860: {
         file: 'File:Ventnor, Isle of Wight, England, ca. 1899.jpg',
         crop: { left: 0.04, right: 0.595, top: 0 },
@@ -119,6 +143,25 @@ const covers = {
 .credit{color:#4a3a28;left:20px;bottom:16px}.artist{color:#4a3a28;right:18px;bottom:14px}`,
         html: `<div class="art"></div><div class="abs num">1882</div><div class="abs name">ASSINIBOIA</div>
 <div class="credit">Marc Voyer</div><div class="artist">American Bank Note Co. map, 1880s<br>The Prairie Section of the Canadian Pacific</div>`
+    },
+    1894: {
+        pdf: {
+            url: 'https://raw.githubusercontent.com/Galatolol/1894/999516ef097f13dbbe862a4fe0f24a1dab9db6b9/1894_rules.pdf',
+            page: 1
+        },
+        crop: { left: 0, right: 1, top: 0.15, aspect: 0.99 },
+        css: `
+.cover{background:#eee6d3}
+.rule{left:18px;right:18px;border-top:1px solid #1b1714}
+.r1{top:16px}.r2{top:20px;border-top-width:3px}.r3{top:160px;border-top-width:3px}.r4{top:166px}
+.num{top:22px;font:900 132px/1 Playfair;font-variant-numeric:lining-nums;color:#a12318;letter-spacing:.01em}
+.byline{top:172px;font:600 11px Cinzel;letter-spacing:.42em;color:#1b1714;padding-left:.42em}
+.art{position:absolute;left:18px;right:18px;top:194px;bottom:44px;background:var(--art) center/cover;border:1px solid #1b1714;filter:sepia(.35) contrast(1.05)}
+.caption{bottom:20px;font:italic 500 13px CormorantItalic;color:#1b1714;letter-spacing:.02em}`,
+        html: `<div class="abs rule r1"></div><div class="abs rule r2"></div><div class="abs num">1894</div>
+<div class="abs rule r3"></div><div class="abs rule r4"></div><div class="abs byline">Jan Kłos</div>
+<div class="art"></div>
+<div class="abs caption">The derailment at the gare Montparnasse, 22 October 1895</div>`
     },
     '18chesapeake': {
         file: 'File:George Inness - The Lackawanna Valley - Google Art Project.jpg',
@@ -208,9 +251,17 @@ function commonsImage(title) {
     }
 }
 
+/** The first image on a page of a PDF, as a PNG. */
+async function pdfImage(id, { url, page }) {
+    const pdf = await cached(`${id}-source.pdf`, async () => url)
+    const prefix = join(cache, `${id}-pdf`)
+    execFileSync('pdfimages', ['-png', '-f', `${page}`, '-l', `${page}`, pdf, prefix])
+    return `${prefix}-000.png`
+}
+
 /** Cuts the cover's window out of its source and returns it as a JPEG data URL. */
-async function art(id, { file, crop }) {
-    const source = await cached(`${id}-source`, commonsImage(file))
+async function art(id, { file, pdf, crop }) {
+    const source = pdf ? await pdfImage(id, pdf) : await cached(`${id}-source`, commonsImage(file))
     const [w, h] = execFileSync('identify', ['-format', '%w %h', `${source}[0]`], {
         encoding: 'utf8'
     })
