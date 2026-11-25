@@ -374,9 +374,7 @@ it.each([
             advancement,
             updated,
             playgroundTitleForType(definition.info.id).rules.stockRules.market,
-            (id) => id,
-            (id) => id,
-            changes.get(advancement.id)
+            { companyChanges: changes.get(advancement.id) }
         )
         if (definition === Top) {
             for (const id of ['MC', 'SB', 'VR'])

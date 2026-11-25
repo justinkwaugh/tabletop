@@ -2,7 +2,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { PendingRouteAnswer } from './routeSolveQueue.js'
     import { tableRouteSolver } from './tableRouteSolver.js'
-    import { DefaultRunSubsidyName } from './routePresentation.js'
+    import { titleRunNames } from './routePresentation.js'
     import TrainRunTable from './TrainRunTable.svelte'
     import { RunStepTimeLimitMs } from '../session/routesModule.svelte.js'
 
@@ -16,7 +16,7 @@
         trainColors: Readonly<Record<string, string>>
     } = $props()
     const money = $derived(session.presentation.money)
-    const subsidyName = $derived(session.presentation.runSubsidyName ?? DefaultRunSubsidyName)
+    const runNames = $derived(titleRunNames(session.presentation))
     const solver = tableRouteSolver()
     let error = $state<string>()
     let attempt = $state(0)
@@ -107,7 +107,7 @@
             attachments={routes.editor.attachments}
             movableAttachments={routes.editable ? routes.editor.movableAttachments : []}
             onAttach={(attachmentId) => routes.attach(attachmentId)}
-            {subsidyName}
+            {runNames}
             bonusName={(sourceId) => session.names.routeBonus(sourceId)}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />
@@ -126,14 +126,14 @@
                 This run earns {money(routes.reducedRun.revenue)}; {target.phrase} is
                 {money(routes.revenueToReach ?? 0)}.
                 {#if routes.reducedRun.subsidyToBeat !== undefined}
-                    <br />To run for less, it must bring more {subsidyName} than
+                    <br />To run for less, it must bring more {runNames.subsidy} than
                     {money(routes.reducedRun.subsidyToBeat)}. It brings
                     {money(routes.reducedRun.subsidy)}.
                 {/if}
             </p>
         {:else if routes.reducedRun}<p class="note">
                 This run earns {money(routes.reducedRun.revenue)}, less than {target.phrase},
-                {money(routes.revenueToReach ?? 0)}, and brings {subsidyName} of
+                {money(routes.revenueToReach ?? 0)}, and brings {runNames.subsidy} of
                 {money(routes.reducedRun.subsidy)} instead of
                 {money(routes.reducedRun.subsidyToBeat ?? 0)}.
             </p>

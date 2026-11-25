@@ -3,7 +3,7 @@
     import { isObsoleteTrain, type OperatingResult, type Train } from '@tabletop/18xx'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { capitalized } from '../presentation/words.js'
-    import { DefaultRunSubsidyName, routeColor } from './routePresentation.js'
+    import { routeColor, titleRunNames, type RunNames } from './routePresentation.js'
 
     let {
         money,
@@ -19,7 +19,7 @@
         attachments = [],
         movableAttachments = [],
         onAttach,
-        subsidyName = DefaultRunSubsidyName,
+        runNames = titleRunNames({}),
         bonusName,
         colorOffset = 0
     }: {
@@ -39,8 +39,8 @@
         /** The rolling stock the chosen train could take over, offered under its row. */
         movableAttachments?: readonly Train[]
         onAttach?: (attachmentId: string) => void
-        /** What the run's payment to the treasury beside its revenue is called. */
-        subsidyName?: string
+        /** What the run's subsidy and its bonus beside its routes are called. */
+        runNames?: RunNames
         /** Names what earned a route's bonus, so that each train's bonuses are listed under it. */
         bonusName?: (sourceId: string) => string
         /** Where the routes' colours start, for a table beside another's. */
@@ -129,11 +129,16 @@
                 </tr>
             {/each}
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
+        {#if result.bonus}<tr class="run-bonus"
+                ><th scope="row">{capitalized(runNames.bonus)}</th><td class="income"
+                    >{money(result.bonus)}</td
+                ></tr
+            >{/if}
     </tbody>
     <tfoot
         ><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr
         >{#if result.subsidy}<tr class="subsidy"
-                ><th scope="row">{capitalized(subsidyName)}</th><td class="income"
+                ><th scope="row">{capitalized(runNames.subsidy)}</th><td class="income"
                     >{money(result.subsidy)}</td
                 ></tr
             >{/if}</tfoot
@@ -183,6 +188,9 @@
         margin-left: 3px;
         color: var(--rail-muted, #817565);
         font-weight: 600;
+    }
+    .run-bonus th {
+        font-weight: inherit;
     }
     .bonus td {
         padding: 0 0 2px 14px;

@@ -251,6 +251,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * to the treasury" where the title names nothing.
      */
     runSubsidyName?: string
+    /**
+     * What a run earns beside its routes is called, as 1880's share price bonus; "run bonus"
+     * where the title names nothing.
+     */
+    runBonusName?: string
     /** What the revenue a company may decide apart from the rest is called, as 1822's permanent train's. */
     separateEarningsName?: string
     privatePurchaseLabel?: string

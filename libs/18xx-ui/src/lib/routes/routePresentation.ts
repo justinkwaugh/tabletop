@@ -40,6 +40,26 @@ export function recordedRunRoutes(run: RunTrains): readonly (TrainRoute | RouteR
 
 /** What a run's payment to the treasury beside its revenue is called where a title names nothing. */
 export const DefaultRunSubsidyName = 'subsidy to the treasury'
+/** What a run earns beside its routes is called where a title names nothing. */
+export const DefaultRunBonusName = 'run bonus'
+
+/** What a title calls the parts of a run's income that no route earned. */
+export interface RunNames {
+    /** The bank's payment to the treasury beside the revenue, as 1822's mail income. */
+    subsidy: string
+    /** The revenue the run earns beside its routes, as 1880's share price bonus. */
+    bonus: string
+}
+
+export function titleRunNames(presentation: {
+    runSubsidyName?: string
+    runBonusName?: string
+}): RunNames {
+    return {
+        subsidy: presentation.runSubsidyName ?? DefaultRunSubsidyName,
+        bonus: presentation.runBonusName ?? DefaultRunBonusName
+    }
+}
 
 /** The hexes the trains' runs stand on: each start and its track, a run at one station having no track. */
 export function runLocationIds(routes: readonly Pick<TrainRoute, 'start' | 'paths'>[]): string[] {

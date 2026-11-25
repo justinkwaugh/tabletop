@@ -453,14 +453,9 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
     expect(sharesOwned(result.updatedState, 'MS', blair)).toBe(3)
     const flotation = result.processedActions.find(isFloatCompany)!
     const changes = historyCompanyChanges(result.processedActions)
-    const description = historyDescription(
-        flotation,
-        result.updatedState,
-        TheOldPrinceMarket,
-        (id) => id,
-        (id) => id,
-        changes.get(flotation.id)
-    )
+    const description = historyDescription(flotation, result.updatedState, TheOldPrinceMarket, {
+        companyChanges: changes.get(flotation.id)
+    })
     expect(description.detail).toContain('MS President: alex → blair')
     expect(description.detail).toContain('PEIR President: blair → casey')
     expect(description.detail).toContain('blair exchanged PEIR #3 for 1 MS')

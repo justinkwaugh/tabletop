@@ -98,18 +98,29 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
     }
     const bonusNames: Record<string, string> = { 'east-west': 'East–West', SC: 'Steamboat' }
     expect(
-        historyDescription(
-            run,
-            state,
-            TestMarket,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            (id) => bonusNames[id]
-        ).detail
+        historyDescription(run, state, TestMarket, { routeBonusName: (id) => bonusNames[id] })
+            .detail
     ).toBe('East–West +$80 · Steamboat +$40 · +$20 at G9')
+})
+
+// 1880 bug report: a run's total included the share price bonus with nothing naming it.
+it('names a run’s bonus beside its routes and the subsidy beside its revenue', () => {
+    const run: RunTrains = {
+        id: 'run',
+        gameId: 'history',
+        source: ActionSource.User,
+        playerId: 'alex',
+        type: 'RunTrains',
+        companyId: 'R',
+        routes: [],
+        metadata: { companyId: 'R', revenue: 130, routes: [], bonus: 50, subsidy: 10 }
+    }
+    const describe = (runNames?: { subsidy: string; bonus: string }) =>
+        historyDescription(run, historyStateFixture(), TestMarket, { runNames }).detail
+    expect(describe({ subsidy: 'mail income', bonus: 'share price bonus' })).toBe(
+        'Share price bonus +$50 · $10 mail income'
+    )
+    expect(describe()).toBe('Run bonus +$50 · $10 subsidy to the treasury')
 })
 
 it('names where track and stations went with the place formatter it is given', () => {
@@ -129,18 +140,7 @@ it('names where track and stations went with the place formatter it is given', (
     }
     const place = (locationId: string) => (locationId === 'H12' ? 'Altoona' : locationId)
     const describe = (formatter?: (locationId: string) => string) =>
-        historyDescription(
-            lay,
-            state,
-            TestMarket,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            formatter
-        ).text
+        historyDescription(lay, state, TestMarket, { place: formatter }).text
     expect(describe(place)).toBe('Laid track at Altoona')
     expect(describe(placeReference)).toBe(`Laid track at ${placeReference('H12')}`)
 })
@@ -241,19 +241,9 @@ it('names the pool a share was bought from', () => {
         }
     })
     const describe = (action: BuyShares) =>
-        historyDescription(
-            action,
-            historyStateFixture(),
-            TestMarket,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            (poolId) => (poolId === 'open-market' ? 'Market' : 'IPO')
-        ).text
+        historyDescription(action, historyStateFixture(), TestMarket, {
+            poolName: (poolId) => (poolId === 'open-market' ? 'Market' : 'IPO')
+        }).text
     expect(describe(buy('open-market'))).toBe('Bought 1 R from Market for $67')
     expect(describe(buy('initial-offering'))).toBe('Bought 1 R from IPO for $67')
     expect(describe(buy())).toBe('Bought 1 R for $67')
@@ -298,9 +288,9 @@ it('names who went bankrupt, and for which company’s train', () => {
         metadata: { companyId: 'R', playerId: 'alex', shortfall: 139 }
     }
     expect(
-        historyDescription(bankruptcy, historyStateFixture(), TestMarket, undefined, (id) =>
-            id.toUpperCase()
-        )
+        historyDescription(bankruptcy, historyStateFixture(), TestMarket, {
+            playerName: (id) => id.toUpperCase()
+        })
     ).toEqual({ text: 'ALEX went bankrupt', detail: '$139 short of R’s train', important: true })
 })
 
@@ -322,9 +312,9 @@ it('says how much of a bankrupt player’s stock reached the company’s treasur
         }
     }
     expect(
-        historyDescription(bankruptcy, historyStateFixture(), TestMarket, undefined, (id) =>
-            id.toUpperCase()
-        ).detail
+        historyDescription(bankruptcy, historyStateFixture(), TestMarket, {
+            playerName: (id) => id.toUpperCase()
+        }).detail
     ).toBe('$287 short of R’s train · $270 from their remaining shares to its treasury')
 })
 
@@ -385,9 +375,9 @@ it('describes a called game by its call, not by an actor', () => {
         }
     }
     expect(
-        historyDescription(call, historyStateFixture(), TestMarket, undefined, (id) =>
-            id.toUpperCase()
-        )
+        historyDescription(call, historyStateFixture(), TestMarket, {
+            playerName: (id) => id.toUpperCase()
+        })
     ).toEqual({ text: 'ALEX conceded; BLAKE wins', important: true })
 })
 
@@ -412,20 +402,9 @@ it('names what an outgoing president took for the president’s certificate (184
         certificateIds
     })
     const describe = (certificateIds: string[]) =>
-        historyDescription(
-            choice(certificateIds),
-            state,
-            TestMarket,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            { charters: TestCharters, multiShare: { name: 'Last certificate' } }
-        ).text
+        historyDescription(choice(certificateIds), state, TestMarket, {
+            certificates: { charters: TestCharters, multiShare: { name: 'Last certificate' } }
+        }).text
     expect(describe(['last'])).toBe(
         'Took the last certificate (20%) for R’s president’s certificate'
     )

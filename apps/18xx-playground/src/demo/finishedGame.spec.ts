@@ -43,19 +43,10 @@ function describedFor(
     market: StockMarketChart,
     companyChanges?: HistoryCompanyChanges
 ) {
-    return historyDescription(
-        action,
-        state,
-        market,
-        undefined,
-        undefined,
+    return historyDescription(action, state, market, {
         companyChanges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        (poolId) => poolId
-    )
+        poolName: (poolId) => poolId
+    })
 }
 import {
     finalWealth,
@@ -257,19 +248,12 @@ it('replays the finished game and restores every history step in both directions
     for (const action of offered) expect(lots.map((lot) => lot.id)).toContain(action.lotId)
     for (const action of actions)
         expect(
-            historyDescription(
-                action,
-                state,
-                topMarket,
-                TheOldPrinceNames.company,
-                (id) => id,
-                undefined,
-                moneyFormat('$'),
-                (id) => auctionLotName(id, state, lots, TheOldPrinceNames.company),
-                undefined,
-                undefined,
-                (poolId) => poolId
-            ).text
+            historyDescription(action, state, topMarket, {
+                companyName: TheOldPrinceNames.company,
+                money: moneyFormat('$'),
+                lotName: (id) => auctionLotName(id, state, lots, TheOldPrinceNames.company),
+                poolName: (poolId) => poolId
+            }).text
         ).toBeTruthy()
     let restored = state
     for (const action of [...actions].reverse())

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import TrainRunTable from './TrainRunTable.svelte'
+    import { titleRunNames } from './routePresentation.js'
 
     let {
         session,
@@ -26,7 +27,7 @@
             trainColors={session.presentation.trainColors}
             {onFocusRoute}
             label="Projected train income"
-            subsidyName={session.presentation.runSubsidyName}
+            runNames={titleRunNames(session.presentation)}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />
         {#if !projection.solution.exhaustive}<small>Best routes found within the search time.</small

@@ -9,6 +9,7 @@
     import { auctionLotName } from './auctionHistory.js'
     import { historyGroups, operatingPlayerOf } from './historyGroups.js'
     import { describeAutomaticStep } from './historyAutomaticStep.js'
+    import { titleRunNames } from '../routes/routePresentation.js'
     import {
         companyLabels,
         historyDescription,
@@ -87,22 +88,23 @@
         return session.historyCompanyName(id)
     }
     function describeShared(action: GameAction) {
-        return historyDescription(
-            action,
-            gameState,
-            session.stockMarketChart,
+        return historyDescription(action, gameState, session.stockMarketChart, {
             companyName,
-            (id) => session.getPlayerName(id),
-            companyChanges.get(action.id),
-            session.presentation.money,
-            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-            (id) => session.names.routeBonus(id),
-            session.placeName,
-            (id) => session.poolName(id),
-            { charters: session.charters, multiShare: session.presentation.multiShareCertificate },
-            session.presentation.runSubsidyName,
-            session.historyWording
-        )
+            playerName: (id) => session.getPlayerName(id),
+            companyChanges: companyChanges.get(action.id),
+            money: session.presentation.money,
+            lotName: (id) =>
+                auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
+            routeBonusName: (id) => session.names.routeBonus(id),
+            place: session.placeName,
+            poolName: (id) => session.poolName(id),
+            certificates: {
+                charters: session.charters,
+                multiShare: session.presentation.multiShareCertificate
+            },
+            runNames: titleRunNames(session.presentation),
+            wording: session.historyWording
+        })
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
