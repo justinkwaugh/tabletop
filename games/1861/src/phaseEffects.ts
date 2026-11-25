@@ -52,7 +52,7 @@ export const PhaseNationalisation1861 = new PhaseNationalisation({
     },
     // The RSR places its St. Petersburg station if it never operated (GTG §11). Its Moscow
     // station comes only with the grey tile, not at phase 8 as GTG §8.13 adds: the designer rules
-    // the All-Aboard text definitive (§7.4).
+    // his Rules of Play v2.0 definitive (§7.4).
     placeReservedStations: (state) =>
         placeRsrHome(requireState1861(state)) ? [StPetersburgLocationId] : []
 })

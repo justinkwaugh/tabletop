@@ -7,7 +7,7 @@ import { TileSetChesapeake } from './tiles.js'
 import { MarketChesapeake } from './stockMarket.js'
 
 describe('18Chesapeake rulings', () => {
-    it('lets a player at the certificate limit buy a yellow-zone share (AAG errata; BGG 37361979)', () => {
+    it('lets a player at the certificate limit buy a yellow-zone share (publisher’s errata; BGG 37361979)', () => {
         const game = opened(4)
         edit(game, (state) => {
             kit.operated(state, 'LV', 'p2', { price: 70 })

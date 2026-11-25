@@ -13,5 +13,6 @@ on the map until the company is started again.
 
 `pnpm --filter @tabletop/1860-ui dev` serves the standalone harness on port 4256.
 
-The company logos in `src/lib/images/logos` are drawn for this package in the charters' colours.
-The cover is the All-Aboard Games box art from BoardGameGeek.
+The company logos in `src/lib/images/logos` are drawn for this package in the charters' colours. The
+cover sets the title over a photochrom of Ventnor from the East Cliff (Detroit Publishing Co.,
+1890s, public domain); `tools/cover-art` renders it.

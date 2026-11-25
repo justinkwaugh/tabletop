@@ -26,7 +26,7 @@ const isUpgrade = (color: string) => color !== 'yellow'
 
 /**
  * The company's home hexes still without track, where it must lay its tile before anywhere else
- * (AAG §10.4, which the designer rules definitive where the Grand Trunk rulebook is silent).
+ * (RoP §10.4, which the designer rules definitive where the Grand Trunk rulebook is silent).
  */
 function untrackedHomes(state: ConstructionState, companyId: string): string[] {
     const mapState = new RailwayMapState(Map1867, TileSet1867, state.tileInventory)

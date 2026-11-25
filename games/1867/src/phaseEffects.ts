@@ -36,7 +36,7 @@ export const PhaseNationalisation1867 = new PhaseNationalisation({
     nationalise: (state, companyId, operatingCompanyId) =>
         nationalise1867(requireState1867(state), companyId, operatingCompanyId)
     // The CN's Montreal station comes only with the grey tile, not at phase 8 as GTG §8.13 adds:
-    // the designer rules the All-Aboard text definitive (AAG §7.4).
+    // the designer rules his Rules of Play definitive (RoP §7.4).
 })
 
 /** Interest and repayments as a company comes to buy trains; unpaid interest nationalises (GTG §8.10). */
@@ -46,7 +46,7 @@ export const LoanSettlements1867 = new LoanSettlements(LoanRules1867, (state, co
 
 export const NationalActions1867 = CnStations.actions()
 
-/** Montreal's grey tile gives the CN its station there at once (AAG §7.4). */
+/** Montreal's grey tile gives the CN its station there at once (RoP §7.4). */
 export function placesMontrealStation(handler: StateHandler1867): StateHandler1867 {
     return CnStations.placesKeptStation(handler, (state) =>
         cnMontrealStationDue(state) ? MontrealLocationId : undefined

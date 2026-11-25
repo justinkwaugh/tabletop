@@ -7,9 +7,9 @@ games, each with the actions that led to it.
   lowest bid falls by $5; nominate it and the others may raise or pass (GTG §5).
 - **Minor auction**: the privates sold. Choose a minor and the city its station goes in: any city
   with no station, Toronto's and Montreal's cities each on their own (GTG §7.2.1).
-- **Minor laying track**: a minor's operating turn. A company whose home hex has no track lays
-  there first; a second track action costs $20 and only one of the two may be an upgrade
-  (GTG §8.6, AAG §10.4).
+- **Minor laying track**: a minor's operating turn. A company whose home hex has no track lays there
+  first; a second track action costs $20 and only one of the two may be an upgrade (GTG §8.6, RoP
+  §10.4).
 - **Merger round**: a minor's owner decides. Convert a minor from the blue zone, choose partner
   minors to merge into a major, or pass (GTG §9).
 - **Major company buying trains**: interest is settled first; a company without a train borrows

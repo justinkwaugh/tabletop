@@ -8,6 +8,6 @@ the NdM president's choices appear in the action area.
 
 `pnpm --filter @tabletop/18mex-ui dev` serves the standalone harness on port 4252.
 
-The company logos in `src/lib/images/logos` are 18xx.games's 18MEX logos, with FCP's renamed
-`PAC`, the rulebook's initials for the Pacific Railroad. The cover is the All-Aboard Games box
-art from BoardGameGeek.
+The company logos in `src/lib/images/logos` are 18xx.games's 18MEX logos, with FCP's renamed `PAC`,
+the rulebook's initials for the Pacific Railroad. The cover sets the title over José María Velasco's
+_Cañada de Metlac_ (1893, public domain); `tools/cover-art` renders it.

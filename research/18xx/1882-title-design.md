@@ -1,9 +1,9 @@
 # 1882: Assiniboia — title design
 
-Rules authority: the All-Aboard Games rulebook of 2020-08-12 (the published file, the same as BGG
-filepage 206629) and the AAG errata, saved with text copies in `/workspace/artassets/1882`
-(`rulebook-aag-published/`, `errata-gdoc/`). Section numbers below are the rulebook's. Rulings
-from the BoardGameGeek forums (thing 282435) are collected, with their authors and links, in
+Rules authority: the published rulebook of 2020-08-12 (the same as BGG filepage 206629) and the
+publisher's errata, saved with text copies in `/workspace/artassets/1882` (`rulebook-published/`,
+`errata-gdoc/`). Section numbers below are the rulebook's. Rulings from the BoardGameGeek forums
+(thing 282435) are collected, with their authors and links, in
 `/workspace/artassets/1882/rulings.md`; the designer, Marc Voyer, posts as thethrax and the
 publisher as scottredracecar. The research engine (`g_1882`) supplied hex coordinates, terrain,
 river costs and tile track layouts, checked against the rulebook and its tile chart (§17).
@@ -95,7 +95,8 @@ Made while implementing; the forum sources are in `rulings.md`.
 2. **Emergency purchases buy the cheapest bank train** (§11.8), as 18xx.games. The designer's
    older answer (any legal train, 2020-05-19) predates the published rules.
 3. **A player may raise their own bid** on a private, as the family's waterfall auction and
-   18xx.games allow. The AAG text dropped v14's "increase their current bid"; there is no ruling.
+   18xx.games allow. The published text dropped v14's "increase their current bid"; there is no
+   ruling.
 4. **Over 60% after leaving the orange zone** follows the family's zone holding limits, as for
    1830; the rules are silent, and 18xx.games is reported to force a sale.
 5. **Companies buy privates from phase 3 until they close** (§8), so the SC also in phase 5 (§11
@@ -136,10 +137,11 @@ Made while implementing; the forum sources are in `rulings.md`.
   across it from both sides (the family's rule, checked on a finished game in
   `games/1882-ui/src/lib/riverCosts.spec.ts`). Names that would sit under a river cost on a
   hex's top side are moved below it or under their cities, as the board prints them.
-- **Cover**: the All-Aboard Games box lid, from BoardGameGeek's image of the published edition.
-- **Company abbreviations** follow the AAG rulebook (CNoR, GTP, QL, SCR), not 18xx.games's (CNR,
-  GT, QLL, SC). Tokens are drawn in the companies' colours with these initials rather than with
-  18xx.games's logos, which print the other abbreviations.
+- **Cover**: the title over the American Bank Note Co. map of the Canadian Pacific's prairie section
+  (1880s, public domain).
+- **Company abbreviations** follow the published rulebook (CNoR, GTP, QL, SCR), not 18xx.games's
+  (CNR, GT, QLL, SC). Tokens are drawn in the companies' colours with these initials rather than
+  with 18xx.games's logos, which print the other abbreviations.
 
 ## Verification
 

@@ -1,15 +1,15 @@
 # 1860 — title design
 
 Rules authority: the second-edition rulebook (JKLM/Z-Man 2010), saved as text in
-`/workspace/artassets/1860/rules-2nd-edition-rulespal.txt`, which All-Aboard Games reprinted in
-2022 as the third edition "with the minimum number of changes" and a handful of clarifications
-(the designer, Mike Hutton, on BoardGameGeek). The third edition's text is known through forum
-quotations and the 18xx.guide player aid (`18xx-guide-player-aid.txt`). The BoardGameGeek
-rulings for thing 12750 (257 threads, 2,233 posts) are digested, with links, in
-`/workspace/artassets/1860/rulings.md`; ids below (AU-3, TR-6, …) are that digest's. Section
-names in the code (Running Trains, Insolvency, …) are the rulebook's. The research engine
-(`g_1860`) supplied the hex coordinates and the tile manifest's track layouts, checked against the
-rulebook and the player aid's manifest; its procedures are evidence only.
+`/workspace/artassets/1860/rules-2nd-edition-rulespal.txt`, which was reprinted in 2022 as the third
+edition "with the minimum number of changes" and a handful of clarifications (the designer, Mike
+Hutton, on BoardGameGeek). The third edition's text is known through forum quotations and the
+18xx.guide player aid (`18xx-guide-player-aid.txt`). The BoardGameGeek rulings for thing 12750 (257
+threads, 2,233 posts) are digested, with links, in `/workspace/artassets/1860/rulings.md`; ids below
+(AU-3, TR-6, …) are that digest's. Section names in the code (Running Trains, Insolvency, …) are the
+rulebook's. The research engine (`g_1860`) supplied the hex coordinates and the tile manifest's
+track layouts, checked against the rulebook and the player aid's manifest; its procedures are
+evidence only.
 
 Scope: the second/third edition game for 2–4 players on the extended (3–4 player) map, with
 these optional rules as game options: simplified insolvency revenue, no passing small stations

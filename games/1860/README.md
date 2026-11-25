@@ -1,7 +1,7 @@
 # 1860
 
-`@tabletop/1860` is the game logic for 1860: Railways on the Isle of Wight (Mike Hutton; JKLM
-2004 and 2010, All-Aboard Games 2022), for 2–4 players, on the shared 18xx family runtime in
+`@tabletop/1860` is the game logic for 1860: Railways on the Isle of Wight (Mike Hutton; JKLM 2004
+and 2010, third edition 2022), for 2–4 players, on the shared 18xx family runtime in
 `@tabletop/18xx`.
 
 The rules authority is the second-edition rulebook, which the third edition reprinted with light

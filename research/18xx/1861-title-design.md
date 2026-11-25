@@ -252,17 +252,17 @@ Decided by the owner on 2026-11-14, after comparing the GTG edition and the desi
 - Mergers worth less than R100 are illegal (the designer's 2021 ruling).
 - The director still chooses the stations before the share purchases (the research engine's
   order).
-- Changed by the owner on 2026-11-17, with 1867: the merger order is the designer's (AAG §12.3,
-  ruled definitive over GTG §9.2C). The player with the most shares directs, ties going to the
-  owner of the merging minor earliest in operating order; the director buys first; anyone who
-  then holds more than the director takes over.
+- Changed by the owner on 2026-11-17, with 1867: the merger order is the designer's (§12.3, ruled
+  definitive over GTG §9.2C). The player with the most shares directs, ties going to the owner of
+  the merging minor earliest in operating order; the director buys first; anyone who then holds more
+  than the director takes over.
 - A company that cannot pay its interest pays none of it and is nationalised; its loans are
   repaid from its cash and the RSR takes the rest (GTG §8.10, §10.1).
 - The RSR keeps v2.0's station limit: six outside Moscow and St. Petersburg, plus those two.
 - Moscow's grey tile places the RSR's Moscow station (designer, thread 2575164). Changed by the
-  owner on 2026-11-17, with 1867: only the grey tile places it, not phase 8 as GTG §8.13 adds
-  (the All-Aboard text is definitive). As phase 8 begins the RSR still places its St. Petersburg
-  station if it never operated (GTG §11).
+  owner on 2026-11-17, with 1867: only the grey tile places it, not phase 8 as GTG §8.13 adds (v2.0
+  is definitive). As phase 8 begins the RSR still places its St. Petersburg station if it never
+  operated (GTG §11).
 - The minor at Yuzovka is "Y, Yuzovka Railway", as 18xx.games has it.
 - The options are the GTG edition's (§14, §16): unlimited 2+2 and 5+5E (on by default) or two of
   each; no price floor on nationalisation; RSR train exports; long game; left of auctioneer; and

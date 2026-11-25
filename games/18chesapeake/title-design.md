@@ -1,17 +1,17 @@
 # 18Chesapeake — title design
 
-Rules authority: the All-Aboard Games rulebook of 2020-08-12 (the published file from the AAG
-shop) and the AAG errata, saved with text copies in `/workspace/artassets/18chesapeake`
-(`rulebook-aag-published/`, `errata-gdoc/`). The 2020-06-25 Dropbox rulebook is kept beside it for
-its map page. Section numbers below are the published rulebook's. Rulings from the BoardGameGeek
-forums (thing 253608, 282 threads) are collected, with their authors and links, in
-`/workspace/artassets/18chesapeake/rulings.md`; the designer and publisher, Scott Petersen, posts
-as scottredracecar. The research engine (`g_18_chesapeake`) supplied hex coordinates, terrain,
-tile track layouts and the stock market grid, checked against the rulebook, its tile chart (§18)
-and the Dropbox map.
+Rules authority: the published rulebook of 2020-08-12 (the file from the publisher's shop) and the
+publisher's errata, saved with text copies in `/workspace/artassets/18chesapeake`
+(`rulebook-published/`, `errata-gdoc/`). The 2020-06-25 Dropbox rulebook is kept beside it for its
+map page. Section numbers below are the published rulebook's. Rulings from the BoardGameGeek forums
+(thing 253608, 282 threads) are collected, with their authors and links, in
+`/workspace/artassets/18chesapeake/rulings.md`; the designer and publisher, Scott Petersen, posts as
+scottredracecar. The research engine (`g_18_chesapeake`) supplied hex coordinates, terrain, tile
+track layouts and the stock market grid, checked against the rulebook, its tile chart (§18) and the
+Dropbox map.
 
 Scope: the whole game for 2–6 players, with the two-player variant (§14) at two-player tables, and
-the Off the Rails expansion as a game option. Its rules are the AAG rule sheet
+the Off the Rails expansion as a game option. Its rules are the published rule sheet
 (`/workspace/artassets/18chesapeake/otr-rules/`) with the community readings in `rulings.md` §10:
 orange and brown zones apply to every player, and "sell before" means sell-buy-sell.
 

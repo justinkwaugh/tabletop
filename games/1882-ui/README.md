@@ -12,5 +12,6 @@ private tile lay offers the extra lay.
 
 `pnpm --filter @tabletop/1882-ui dev` serves the standalone harness on port 4226.
 
-The rebellion and fishing icons in `src/lib/images/icons` are 18xx.games's 1882 icons. The cover is
-the All-Aboard Games box lid.
+The rebellion and fishing icons in `src/lib/images/icons` are 18xx.games's 1882 icons. The cover
+sets the title over the American Bank Note Co. map of the Canadian Pacific's prairie section (1880s,
+public domain); `tools/cover-art` renders it.

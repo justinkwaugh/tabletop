@@ -9,5 +9,6 @@ private tile lay and private station.
 
 `pnpm --filter @tabletop/18chesapeake-ui dev` serves the standalone harness on port 4228.
 
-The company logos in `src/lib/images/logos` are 18xx.games's 18Chesapeake logos, as 1830's are.
-The cover is the All-Aboard Games box art.
+The company logos in `src/lib/images/logos` are 18xx.games's 18Chesapeake logos, as 1830's are. The
+cover sets the title over George Inness's _The Lackawanna Valley_ (c. 1856, public domain);
+`tools/cover-art` renders it.

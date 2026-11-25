@@ -55,7 +55,7 @@ export const StockRules1882: StockRules = {
         return limit
     },
     // Yellow, orange and brown shares are free of the certificate limit, orange and brown of the
-    // 60% limit (§10.1, AAG errata).
+    // 60% limit (§10.1, publisher's errata).
     ...marketZoneHoldingLimits({
         market: Market1882,
         charters: Charters1882,
