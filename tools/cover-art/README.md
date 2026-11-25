@@ -15,7 +15,7 @@ source, lettering and colours are in the script's `covers` table.
 
 | Title        | Artwork                                                                                                               |
 | ------------ | --------------------------------------------------------------------------------------------------------------------- |
-| 1817         | Currier & Ives, _American Railroad Scene: Lightning Express Trains Leaving the Junction_, 1874 (Library of Congress)  |
+| 1817         | Joseph Pennell, _The Stock Exchange_, etching, 1904 (National Gallery of Art, CC0)                                    |
 | 1822         | J. M. W. Turner, _Rain, Steam and Speed – The Great Western Railway_, 1844 (National Gallery, London)                 |
 | 1849         | Thomas Cole, _Mount Etna from Taormina_                                                                               |
 | 1860         | Detroit Publishing Co. photochrom, _Ventnor from the East Cliff_, 1890s (Library of Congress)                         |

@@ -58,18 +58,15 @@ const outputWidth = 770
  */
 const covers = {
     1817: {
-        file: 'File:American railroad scene- lightning express trains leaving the junction LCCN90708612.jpg',
-        crop: { left: 0.1, right: 0.5, top: 0.11 },
+        file: 'File:Joseph Pennell, The Stock Exchange, 1904, NGA 32874.jpg',
+        crop: { left: 0.05, right: 0.95, top: 0.04 },
         css: `
-.cover{background:#1e2a23}
-.art{position:absolute;left:18px;right:18px;top:154px;bottom:18px;background:var(--art) center 70%/cover}
-.frame{position:absolute;left:14px;right:14px;top:150px;bottom:14px;border:1px solid #c9a55a}
-.num{top:12px;font:400 116px/1 Abril;color:#e2bf6a;letter-spacing:.01em}
-.tag{top:128px;font:600 11.5px Cinzel;letter-spacing:.3em;color:#c9a55a;padding-left:.3em}
-.artist{color:#f3e7c7cc;text-shadow:0 1px 2px #000c;right:32px;bottom:30px}`,
-        html: `<div class="art"></div><div class="frame"></div>
-<div class="abs num">1817</div><div class="abs tag">Craig Bartell · Tim Flowers</div>
-<div class="artist">after Currier &amp; Ives<br>Lightning Express Trains, 1874</div>`
+.cover{background-color:#efe9dc}
+.scrim{background:linear-gradient(#efe9dcd0 0,#efe9dc70 20%,#efe9dc00 32%,#0000 84%,#efe9dccc 100%)}
+.num{top:28px;font:900 146px/1 Playfair;font-variant-numeric:lining-nums;color:#1d1a17;letter-spacing:.01em}
+.credit{color:#1d1a17}.artist{color:#1d1a17cc}`,
+        html: `<div class="scrim"></div><div class="abs num">1817</div>
+<div class="credit">Craig Bartell<br>Tim Flowers</div><div class="artist">after Joseph Pennell<br>The Stock Exchange, 1904</div>`
     },
     1822: {
         file: 'File:Turner - Rain, Steam and Speed - National Gallery file.jpg',
