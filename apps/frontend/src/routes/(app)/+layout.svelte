@@ -625,9 +625,9 @@
                                 {/if}
                                 {#if callOffer}
                                     <DropdownItem
-                                        class="w-full text-left"
+                                        class="w-full text-left whitespace-nowrap"
                                         onclick={() => (showCallGame = true)}
-                                        >{callOffer.label}…</DropdownItem
+                                        >{callOffer.label}</DropdownItem
                                     >
                                     <DropdownDivider />
                                 {/if}
@@ -636,13 +636,7 @@
                                         >Log to BG Stats</DropdownItem
                                     >
                                 {/if}
-                                {#if reportGame}
-                                    <DropdownItem
-                                        class="w-full text-left"
-                                        onclick={() => contentReport.open()}>Report…</DropdownItem
-                                    >
-                                {/if}
-                                {#if bgStatsUrl || reportGame}
+                                {#if bgStatsUrl}
                                     <DropdownDivider />
                                 {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
@@ -664,6 +658,12 @@
                                     onclick={gotoAbout}
                                     class="{aboutMenuClass} w-full text-left">About us</DropdownItem
                                 >
+                                {#if reportGame}
+                                    <DropdownItem
+                                        class="w-full text-left"
+                                        onclick={() => contentReport.open()}>Report…</DropdownItem
+                                    >
+                                {/if}
                                 <DropdownItem
                                     onclick={gotoPayItForward}
                                     class="md:hidden w-full text-left whitespace-nowrap dark:text-[#f2dfae]"
