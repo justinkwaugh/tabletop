@@ -17,7 +17,7 @@
         ownerMayDeleteGame,
         stalledGameEndsAt
     } from '@tabletop/common'
-    import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
+    import { awaitedFromUserNonHotseat, type UserAwaited } from '$lib/utils/dashboardGames'
     import { bgStatsPlayUrl } from '$lib/utils/bgStats'
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { gameCardOptions } from '$lib/utils/gameOptions'
@@ -149,7 +149,15 @@
             : startCountdownText(autoStartAt, secondClock.now.getTime())
     )
 
-    let isMyTurn = $derived(isUsersNonHotseatTurn(game, sessionUser?.id))
+    let awaited = $derived(awaitedFromUserNonHotseat(game, sessionUser?.id))
+    const AWAITED_BADGES: Record<UserAwaited, string> = {
+        answer: 'Answer Request',
+        turn: 'Your Turn'
+    }
+    const AWAITED_BUTTONS: Record<UserAwaited, string> = {
+        answer: 'Answer Request',
+        turn: 'Take Your Turn'
+    }
 
     let currentTime = $derived(minuteClock.now)
     let stallLevel = $derived(gameStallLevel(game, currentTime))
@@ -418,8 +426,12 @@
                                         >
                                     {:else if collapsedButton === 'enter'}
                                         {@render gameEntryButton(
-                                            isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
-                                            isMyTurn ? 'yellow' : 'primary',
+                                            awaited
+                                                ? AWAITED_BADGES[awaited]
+                                                : canPlay
+                                                  ? 'Enter'
+                                                  : 'Watch',
+                                            awaited ? 'yellow' : 'primary',
                                             'h-[20px]'
                                         )}
                                     {:else if collapsedButton === 'revisit'}
@@ -688,12 +700,12 @@
                             {/if}
                             {#if canPlay || canWatch}
                                 {@render gameEntryButton(
-                                    isMyTurn
-                                        ? 'Take Your Turn'
+                                    awaited
+                                        ? AWAITED_BUTTONS[awaited]
                                         : canPlay
                                           ? 'Play Game'
                                           : 'Watch Game',
-                                    isMyTurn ? 'yellow' : 'primary',
+                                    awaited ? 'yellow' : 'primary',
                                     'mx-2'
                                 )}
                             {/if}

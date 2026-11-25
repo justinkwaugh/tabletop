@@ -1,4 +1,6 @@
 import { GameStatus, type Game } from './game.js'
+import type { Player } from './player.js'
+import { undoVoteHoldsUp } from './playerVote.js'
 
 type VotingGame = Pick<Game, 'hotseat' | 'tournament' | 'concedable' | 'status' | 'call'>
 
@@ -16,6 +18,13 @@ export function callRequestIneligibility(game: VotingGame): string | undefined {
     if (reason) return reason
     if (game.status !== GameStatus.Started) return 'the game is over'
     return undefined
+}
+
+export function gameHoldsUpPlayer(
+    game: Pick<Game, 'status' | 'vote'>,
+    player: Pick<Player, 'id' | 'userId'>
+): boolean {
+    return game.status === GameStatus.Started && undoVoteHoldsUp(game.vote, player)
 }
 
 function lifecycleIneligibility(game: VotingGame): string | undefined {

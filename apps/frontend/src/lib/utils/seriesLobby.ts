@@ -10,7 +10,7 @@ import {
     type Player
 } from '@tabletop/common'
 import { hasPendingGameInvitation } from './gameInvitation'
-import { isUsersNonHotseatTurn } from './dashboardGames'
+import { awaitedFromUserNonHotseat, type UserAwaited } from './dashboardGames'
 import type { DisplayedGameOption } from './gameOptions'
 import type { LibrarySeries } from './libraryTitles'
 import {
@@ -41,7 +41,8 @@ export type TitleGameCounts = { open: number; inProgress: number }
 
 export type PickerTitle = { entry: GameCatalogEntry; counts: TitleGameCounts }
 
-export type LobbyEntry = 'join' | 'joined' | 'full' | 'yourTurn' | 'enter' | 'watch' | 'revisit'
+export type LobbyEntry =
+    'join' | 'joined' | 'full' | 'yourTurn' | 'answerRequest' | 'enter' | 'watch' | 'revisit'
 
 const NO_GAMES: TitleGameCounts = { open: 0, inProgress: 0 }
 
@@ -165,13 +166,19 @@ export function takenSeats(game: Game): number {
     return game.players.filter((player) => player.status !== PlayerStatus.Open).length
 }
 
+const AWAITED_ENTRIES: Record<UserAwaited, LobbyEntry> = {
+    answer: 'answerRequest',
+    turn: 'yourTurn'
+}
+
 export function lobbyEntry(game: Game, userId: string | undefined): LobbyEntry {
     const isMine = game.players.some(
         (player) => player.userId === userId && player.status !== PlayerStatus.Open
     )
     if (game.status === GameStatus.Finished) return 'revisit'
     if (game.status === GameStatus.Started) {
-        if (isUsersNonHotseatTurn(game, userId)) return 'yourTurn'
+        const awaited = awaitedFromUserNonHotseat(game, userId)
+        if (awaited) return AWAITED_ENTRIES[awaited]
         return isMine ? 'enter' : 'watch'
     }
     if (hasPendingGameInvitation(game, userId)) return 'join'

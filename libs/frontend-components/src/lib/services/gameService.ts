@@ -3,7 +3,8 @@ import {
     Game,
     GameAction,
     GameState,
-    type HydratedGameState
+    type HydratedGameState,
+    type PlayerVote
 } from '@tabletop/common'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
 import type { GameLoadResult, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
@@ -44,5 +45,6 @@ export type GameService = {
     declineGame(gameId: string): Promise<Game>
     clear(): void
     getExplorations(gameId: string): Game[]
+    getPlayerVote(gameId: string): PlayerVote | undefined
     setGameState(game: Game, state: GameState): Promise<void>
 }

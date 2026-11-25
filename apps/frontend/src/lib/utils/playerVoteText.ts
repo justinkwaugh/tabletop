@@ -24,6 +24,25 @@ export function voteErrorMessage(error: unknown): string {
         : 'That did not work. Please try again.'
 }
 
+export function voteRequest(vote: PlayerVote): string {
+    return vote.kind === PlayerVoteKind.Undo
+        ? 'is asking to undo to an earlier point'
+        : 'is asking to end the game'
+}
+
+export function voteDetail(
+    vote: PlayerVote,
+    undoPreview: UndoVotePreview | undefined,
+    playerName: (playerId: string) => string
+): string | undefined {
+    if (vote.kind === PlayerVoteKind.Undo) {
+        return undoPreview && `undoing ${undoneDetail(undoPreview)}`
+    }
+    return callWinnerDetail(
+        vote.declaredWinnerId === undefined ? undefined : playerName(vote.declaredWinnerId)
+    )
+}
+
 export function callWinnerDetail(winnerName: string | undefined): string {
     return winnerName === undefined ? 'with no winner' : `with ${winnerName} as the winner`
 }

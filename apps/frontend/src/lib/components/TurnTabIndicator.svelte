@@ -1,12 +1,18 @@
 <script lang="ts">
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { restoreDefaultFavicon, showTurnFavicon } from '$lib/utils/favicon'
+    import type { UserAwaited } from '$lib/utils/dashboardGames'
 
     let { gameId, gameName }: { gameId: string; gameName: string } = $props()
 
     const { gameService } = getAppContext()
-    const isMyTurn = $derived(gameService.isSessionUsersTurn(gameId))
-    const title = $derived(isMyTurn ? `Your turn · ${gameName}` : gameName)
+    const AWAITED_TITLES: Record<UserAwaited, string> = {
+        answer: 'Answer request',
+        turn: 'Your turn'
+    }
+
+    const awaited = $derived(gameService.awaitedFromSessionUser(gameId))
+    const title = $derived(awaited ? `${AWAITED_TITLES[awaited]} · ${gameName}` : gameName)
 
     $effect(() => {
         document.title = title
@@ -19,7 +25,7 @@
     })
 
     $effect(() => {
-        if (!isMyTurn) {
+        if (!awaited) {
             return
         }
         showTurnFavicon()

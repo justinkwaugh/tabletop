@@ -17,7 +17,8 @@ import {
     type CallGameAction,
     isTwoPlayerGame,
     requiredCallApprovals,
-    type ScenarioData
+    type ScenarioData,
+    type PlayerVote
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
 import type { GameService } from '$lib/services/gameService.js'
@@ -121,6 +122,10 @@ export class HarnessGameService implements GameService {
         return Array.from(this.gamesById.values()).filter(
             (game) => game.parentId === gameId && game.category === GameCategory.Exploration
         )
+    }
+
+    getPlayerVote(): PlayerVote | undefined {
+        return undefined
     }
 
     async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {

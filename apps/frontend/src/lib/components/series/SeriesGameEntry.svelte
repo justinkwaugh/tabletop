@@ -10,6 +10,7 @@
 
     const LABELS: Record<Exclude<LobbyEntry, 'join' | 'joined' | 'full'>, string> = {
         yourTurn: 'Your Turn',
+        answerRequest: 'Answer Request',
         enter: 'Enter',
         watch: 'Watch',
         revisit: 'Revisit'
@@ -69,10 +70,12 @@
     .entry.join:disabled {
         opacity: 0.6;
     }
-    .entry.yourTurn {
+    .entry.yourTurn,
+    .entry.answerRequest {
         background: var(--color-yellow-600);
     }
-    .entry.yourTurn:hover {
+    .entry.yourTurn:hover,
+    .entry.answerRequest:hover {
         background: var(--color-yellow-700);
     }
     .entry.revisit {

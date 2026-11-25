@@ -69,12 +69,23 @@ export function playerVoteOutcome(
     }
     const required = requiredCallApprovals(players)
     if (approvals.length >= required) return PlayerVoteOutcome.Passed
-    const undecided = voters.filter(
-        (player) =>
-            !vote.approvingPlayerIds.includes(player.id) &&
-            !vote.decliningPlayerIds.includes(player.id)
-    )
+    const undecided = voters.filter((player) => awaitsAnswerFrom(vote, player.id))
     return approvals.length + undecided.length < required
         ? PlayerVoteOutcome.Failed
         : PlayerVoteOutcome.Open
+}
+
+export function awaitsAnswerFrom(vote: PlayerVote, playerId: string): boolean {
+    const declines = vote.kind === PlayerVoteKind.Call ? vote.decliningPlayerIds : []
+    return !vote.approvingPlayerIds.includes(playerId) && !declines.includes(playerId)
+}
+
+// An open Undo Vote holds up every Player it still needs an answer from: going back changes what
+// they would be acting on.
+export function undoVoteHoldsUp(vote: PlayerVote | undefined, player: VotingPlayer): boolean {
+    return (
+        vote?.kind === PlayerVoteKind.Undo &&
+        player.userId !== undefined &&
+        awaitsAnswerFrom(vote, player.id)
+    )
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { GameCategory, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
-import { isUsersNonHotseatTurn, nextTurnGame } from './dashboardGames'
+import {
+    GameCategory,
+    GameStatus,
+    PlayerStatus,
+    PlayerVoteKind,
+    type Game,
+    type UndoVote
+} from '@tabletop/common'
+import { awaitedFromUser, isUsersNonHotseatTurn, nextTurnGame } from './dashboardGames'
 
 function game(id: string, overrides: Partial<Game> = {}): Game {
     return {
@@ -70,5 +77,41 @@ describe('non-hotseat turn', () => {
         )
         expect(isUsersNonHotseatTurn(game('a'), 'spectator')).toBe(false)
         expect(isUsersNonHotseatTurn(game('a'))).toBe(false)
+    })
+})
+
+describe('awaited from the user', () => {
+    const vote = (approvingPlayerIds: string[]): UndoVote => ({
+        id: 'v',
+        kind: PlayerVoteKind.Undo,
+        initiatorPlayerId: 'opponent',
+        targetActionId: 'a',
+        targetActionIndex: 0,
+        approvingPlayerIds
+    })
+
+    it('is an answer while an undo request needs it, ahead of the turn', () => {
+        expect(awaitedFromUser(game('a'), 'user')).toBe('turn')
+        expect(awaitedFromUser(game('a', { vote: vote(['opponent']) }), 'user')).toBe('answer')
+        expect(
+            awaitedFromUser(
+                game('a', { activePlayerIds: ['opponent'], vote: vote(['opponent']) }),
+                'user'
+            )
+        ).toBe('answer')
+        expect(awaitedFromUser(game('a', { vote: vote(['opponent', 'player']) }), 'user')).toBe(
+            'turn'
+        )
+        expect(
+            awaitedFromUser(game('a', { vote: vote(['opponent']) }), 'spectator')
+        ).toBeUndefined()
+    })
+
+    it('counts a game held up on the user as waiting for them', () => {
+        const games = [
+            game('a'),
+            game('b', { activePlayerIds: ['opponent'], vote: vote(['opponent']) })
+        ]
+        expect(nextTurnGame(games, 'a', 'user')?.id).toBe('b')
     })
 })

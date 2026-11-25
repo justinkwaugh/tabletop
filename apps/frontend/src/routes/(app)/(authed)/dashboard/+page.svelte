@@ -4,7 +4,7 @@
     import DashboardGameList from '$lib/components/DashboardGameList.svelte'
     import DashboardHistory from '$lib/components/DashboardHistory.svelte'
     import DashboardStats from '$lib/components/DashboardStats.svelte'
-    import { currentDashboardGames, isUsersGameTurn } from '$lib/utils/dashboardGames'
+    import { currentDashboardGames, isWaitingOnUser } from '$lib/utils/dashboardGames'
 
     const { gameService, authorizationService } = getAppContext()
     const TABS = [
@@ -21,8 +21,8 @@
     const games = $derived(
         currentDashboardGames(gameService.activeGames, gameService.waitingGames, userId)
     )
-    const turnCount = $derived(games.filter((game) => isUsersGameTurn(game, userId)).length)
-    const visible = $derived(games.filter((game) => !onlyMyTurn || isUsersGameTurn(game, userId)))
+    const turnCount = $derived(games.filter((game) => isWaitingOnUser(game, userId)).length)
+    const visible = $derived(games.filter((game) => !onlyMyTurn || isWaitingOnUser(game, userId)))
 
     function selectTab(selected: Tab) {
         tab = selected

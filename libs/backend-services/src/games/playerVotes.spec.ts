@@ -11,6 +11,7 @@ import {
 import { SyntheticDefinition as Definition } from './tests/syntheticGame.js'
 import { createSyntheticHost, syntheticUser } from './tests/syntheticHost.js'
 import {
+    DisallowedActionError,
     DisallowedPlayerVoteError,
     DisallowedUndoError,
     GameUpdateCollisionError
@@ -108,17 +109,37 @@ describe('Undo votes', () => {
         expect(host.state().activePlayerIds).toEqual(['p1'])
     })
 
-    it('keeps play going while the vote is open and undoes the later moves too', async () => {
+    it('keeps play going for players who answered and undoes the later moves too', async () => {
         const host = createHost()
         await host.apply(host.step('s1', 'p1'))
         await host.apply(host.step('s2', 'p2'))
         await host.request(1, 'p1')
-        await host.apply(host.step('s3', 'p3'))
+        await expect(host.apply(host.step('s3', 'p3'))).rejects.toBeInstanceOf(
+            DisallowedActionError
+        )
 
-        await host.vote(true, 'p2')
         await host.vote(true, 'p3')
+        await host.apply(host.step('s3', 'p3'))
+        expect(host.summary()).toEqual(['0:s1', '1:s2', '2:s3'])
+        await host.vote(true, 'p2')
         expect(host.summary()).toEqual(['0:s1'])
         expect(host.state().activePlayerIds).toEqual(['p2'])
+    })
+
+    it('keeps a held-up player’s declaration when they try to replace it', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.note('n1', 'p3', 'first'))
+        await host.apply(host.step('s2', 'p2'))
+        await host.request(0, 'p1')
+
+        const undo = vi.mocked(host.store.undoActionsFromGame)
+        undo.mockClear()
+        await expect(host.apply(host.note('n2', 'p3', 'second', 3, 'n1'))).rejects.toBeInstanceOf(
+            DisallowedActionError
+        )
+        expect(undo).not.toHaveBeenCalled()
+        expect(host.summary()).toEqual(['0:s1', '1:n1', '2:s2'])
     })
 
     it('goes back across an action that revealed information', async () => {

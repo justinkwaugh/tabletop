@@ -5,7 +5,9 @@ import {
     callWinnerDetail,
     undoneDetail,
     undoneSummary,
+    voteDetail,
     voteErrorMessage,
+    voteRequest,
     voteTally
 } from './playerVoteText.js'
 
@@ -22,6 +24,21 @@ describe('playerVoteText', () => {
         expect(undoneDetail(preview)).toBe('moves by 2 players')
     })
 
+    it('says what a vote asks for', () => {
+        const ballot = { id: 'v', initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'] }
+        expect(
+            voteRequest({
+                ...ballot,
+                kind: PlayerVoteKind.Undo,
+                targetActionId: 'a',
+                targetActionIndex: 4
+            })
+        ).toBe('is asking to undo to an earlier point')
+        expect(voteRequest({ ...ballot, kind: PlayerVoteKind.Call, decliningPlayerIds: [] })).toBe(
+            'is asking to end the game'
+        )
+    })
+
     it('shows the server’s reason for a refused vote', () => {
         const error = new APIError({
             name: 'DisallowedPlayerVoteError',
@@ -30,6 +47,31 @@ describe('playerVoteText', () => {
         })
         expect(voteErrorMessage(error)).toBe("That didn't work: a vote is open.")
         expect(voteErrorMessage(new Error('offline'))).toBe('That did not work. Please try again.')
+    })
+
+    it('details an undo once its preview arrives, and a call by its winner', () => {
+        const ballot = { id: 'v', initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'] }
+        const undo = {
+            ...ballot,
+            kind: PlayerVoteKind.Undo,
+            targetActionId: 'a',
+            targetActionIndex: 4
+        } as const
+        const name = (playerId: string) => (playerId === 'p2' ? 'Ann' : 'Bob')
+        expect(voteDetail(undo, undefined, name)).toBeUndefined()
+        expect(voteDetail(undo, preview, name)).toBe('undoing moves by 2 players')
+        expect(
+            voteDetail(
+                {
+                    ...ballot,
+                    kind: PlayerVoteKind.Call,
+                    decliningPlayerIds: [],
+                    declaredWinnerId: 'p2'
+                },
+                undefined,
+                name
+            )
+        ).toBe('with Ann as the winner')
     })
 
     it('names the winner a call declares', () => {

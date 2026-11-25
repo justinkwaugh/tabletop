@@ -41,13 +41,18 @@ import {
     sameSeatAccounts,
     type SeriesActivity,
     type UndoVotePreview,
-    type User
+    type User,
+    type PlayerVote
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import type { NotificationService } from './notificationService.svelte'
-import { isUsersGameTurn, isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
+import {
+    awaitedFromUserNonHotseat,
+    isWaitingOnUser,
+    type UserAwaited
+} from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 import { gamePageDependency } from '$lib/utils/gamePage'
 import { invalidate } from '$app/navigation'
@@ -89,15 +94,15 @@ export class GameService implements GameServiceInterface {
                     game.status === GameStatus.Started && game.category !== GameCategory.Exploration
             )
             .toSorted((a, b) => {
-                const isMyBTurn = isUsersGameTurn(b, sessionUser.id)
-                const isMyATurn = isUsersGameTurn(a, sessionUser.id)
+                const waitsOnMeB = isWaitingOnUser(b, sessionUser.id)
+                const waitsOnMeA = isWaitingOnUser(a, sessionUser.id)
                 const activityOrder =
                     (a.lastActionAt ?? a.createdAt).getTime() -
                     (b.lastActionAt ?? b.createdAt).getTime()
                 return (
                     Number(a.hotseat) - Number(b.hotseat) ||
-                    (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
-                    (isMyATurn ? activityOrder : -activityOrder)
+                    (waitsOnMeB ? 1 : 0) - (waitsOnMeA ? 1 : 0) ||
+                    (waitsOnMeA ? activityOrder : -activityOrder)
                 )
             })
     })
@@ -151,12 +156,10 @@ export class GameService implements GameServiceInterface {
         this.localGameStore = new IndexedDbGameStore()
     }
 
-    isSessionUsersTurn(gameId: string): boolean {
+    awaitedFromSessionUser(gameId: string): UserAwaited | undefined {
         const game = this.gamesById.get(gameId)
-        return (
-            game !== undefined &&
-            isUsersNonHotseatTurn(game, this.authorizationService.getSessionUser()?.id)
-        )
+        if (game === undefined) return undefined
+        return awaitedFromUserNonHotseat(game, this.authorizationService.getSessionUser()?.id)
     }
 
     async hasActiveGames() {
@@ -338,6 +341,10 @@ export class GameService implements GameServiceInterface {
         return Array.from(this.localGamesById.values()).filter(
             (game) => game.parentId === gameId && game.category === GameCategory.Exploration
         )
+    }
+
+    getPlayerVote(gameId: string): PlayerVote | undefined {
+        return this.cachedGame(gameId)?.vote
     }
 
     async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {

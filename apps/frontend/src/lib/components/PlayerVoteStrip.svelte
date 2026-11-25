@@ -6,8 +6,10 @@
     } from '@tabletop/frontend-components'
     import {
         assertExists,
+        awaitsAnswerFrom,
         playerVoteIneligibility,
         PlayerVoteKind,
+        gameHoldsUpPlayer,
         votingPlayers,
         type GameState,
         type HydratedGameState,
@@ -20,12 +22,14 @@
     import { untrack } from 'svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
-        callWinnerDetail,
-        undoneDetail,
         undoneSummary,
+        voteDetail,
         voteErrorMessage,
+        voteRequest,
         voteTally
     } from '$lib/utils/playerVoteText'
+    import { readNoticedVoteIds, rememberNoticedVote } from '$lib/utils/voteNotice'
+    import PlayerVoteNotice from './PlayerVoteNotice.svelte'
     import {
         offersUndoRequest,
         shownProposal,
@@ -74,7 +78,9 @@
     let proposal: Proposal | undefined = $state()
     const shown = $derived(shownProposal(proposal, position))
 
-    let voteSummary: UndoVotePreview | undefined = $state()
+    let summary: { voteId: string; preview: UndoVotePreview | undefined } | undefined = $state()
+    const voteSummary = $derived(summary?.voteId === vote?.id ? summary?.preview : undefined)
+    const summarySettled = $derived(vote !== undefined && summary?.voteId === vote.id)
     const summaryTarget = $derived(
         vote?.kind === PlayerVoteKind.Undo && canVote
             ? { vote, lastActionAt: game.lastActionAt }
@@ -82,14 +88,22 @@
     )
     $effect(() => {
         const target = summaryTarget
-        voteSummary = undefined
         if (!target) return
+        const voteId = target.vote.id
         gameService
             .previewUndoVote(game, target.vote.targetActionIndex)
             .then((preview) => {
-                if (summaryTarget === target) voteSummary = preview
+                if (vote?.id === voteId) summary = { voteId, preview }
             })
-            .catch((error: unknown) => console.warn('Undo vote summary unavailable', error))
+            .catch((error: unknown) => {
+                console.warn('Undo vote summary unavailable', error)
+                if (vote?.id === voteId) {
+                    summary = {
+                        voteId,
+                        preview: summary?.voteId === voteId ? summary.preview : undefined
+                    }
+                }
+            })
     })
 
     // The asker stays in History View while their vote is open. Once it passes, the game has been
@@ -113,6 +127,19 @@
             showLiveGame?.()
         }
     })
+
+    const detail = $derived(vote && voteDetail(vote, voteSummary, playerName))
+    const heldUp = $derived(canVote && voter !== undefined && gameHoldsUpPlayer(game, voter))
+
+    let noticedVoteIds = $derived(voter?.userId ? readNoticedVoteIds(voter.userId) : [])
+    const noticeOpen = $derived(
+        heldUp && vote !== undefined && summarySettled && !noticedVoteIds.includes(vote.id)
+    )
+
+    function dismissNotice(open: boolean) {
+        if (open || !vote || !voter?.userId) return
+        noticedVoteIds = rememberNoticedVote(voter.userId, vote.id)
+    }
 
     let busy = $state(false)
 
@@ -156,20 +183,9 @@
     <div class="vote-strip" role="status">
         <span class="line">
             <span>
-                <span
-                    class="me-1 rounded px-1.5 font-semibold"
-                    style:background-color={$colors.getPlayerBgColorValue(vote.initiatorPlayerId)}
-                    style:color={$colors.getPlayerTextColorValue(vote.initiatorPlayerId)}
-                    >{playerName(vote.initiatorPlayerId)}</span
-                >{#if vote.kind === PlayerVoteKind.Undo}<span class="font-medium text-white"
-                        >is asking to undo to an earlier point</span
-                    >{#if voteSummary}<span class="text-gray-400"
-                            >{` undoing ${undoneDetail(voteSummary)}`}</span
-                        >{/if}{:else}<span class="font-medium text-white"
-                        >is asking to end the game</span
-                    ><span class="text-gray-400"
-                        >{` ${callWinnerDetail(vote.declaredWinnerId === undefined ? undefined : playerName(vote.declaredWinnerId))}`}</span
-                    >{/if}
+                {@render playerChip(vote.initiatorPlayerId)}<span class="font-medium text-white"
+                    >{voteRequest(vote)}</span
+                >{#if detail}<span class="text-gray-400">{` ${detail}`}</span>{/if}
             </span>
         </span>
         <span class="line">
@@ -177,8 +193,7 @@
                 {#each voters as player (player.id)}
                     <span
                         class="h-2.5 w-2.5 rounded-full border-2"
-                        class:border-gray-500={!approvals.includes(player.id) &&
-                            !declines.includes(player.id)}
+                        class:border-gray-500={awaitsAnswerFrom(vote, player.id)}
                         class:border-green-400={approvals.includes(player.id)}
                         class:bg-green-400={approvals.includes(player.id)}
                         class:border-red-400={declines.includes(player.id)}
@@ -208,7 +223,7 @@
                     onclick={() => run(() => gameService.withdrawVote(game, vote.id))}
                     >Withdraw</Button
                 >
-            {:else if voter && !approvals.includes(voter.id) && !declines.includes(voter.id)}
+            {:else if voter && awaitsAnswerFrom(vote, voter.id)}
                 <Button
                     size="xs"
                     color="alternative"
@@ -226,6 +241,11 @@
                 >
             {/if}
         </span>
+        {#if heldUp}
+            <span class="line own-line font-medium text-yellow-300"
+                >Answer before you can play again.</span
+            >
+        {/if}
         {#if position}
             <span class="line own-line"><ViewingHistoryLine /></span>
         {/if}
@@ -277,6 +297,24 @@
             {/if}
         {/if}
     </div>
+{/if}
+
+{#snippet playerChip(playerId: string)}
+    <span
+        class="me-1 rounded px-1.5 font-semibold"
+        style:background-color={$colors.getPlayerBgColorValue(playerId)}
+        style:color={$colors.getPlayerTextColorValue(playerId)}>{playerName(playerId)}</span
+    >
+{/snippet}
+
+{#if noticeOpen && vote}
+    <PlayerVoteNotice
+        bind:open={() => noticeOpen, dismissNotice}
+        initiatorPlayerId={vote.initiatorPlayerId}
+        {playerChip}
+        request={voteRequest(vote)}
+        {detail}
+    />
 {/if}
 
 <style>

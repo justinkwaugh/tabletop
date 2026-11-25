@@ -40,6 +40,8 @@ import {
     UndoVote,
     UndoVotePreview,
     playerVoteIneligibility,
+    gameHoldsUpPlayer,
+    awaitsAnswerFrom,
     callRequestIneligibility,
     playerUndoRestriction,
     PlayerUndoRestriction,
@@ -1550,6 +1552,9 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
+        // Checked again with the stored Game below; checked here first because superseding a
+        // declaration persists its reversal before the Action is applied.
+        this.assertNotHeldUpByUndoVote(game, player, user, action)
         game = await this.supersedeDeclaration({ definition, game, action, user })
         const reconciledRace = await this.reconcileRace({ definition, game, action })
 
@@ -1589,6 +1594,8 @@ export class GameService {
                     if (existingGame.status !== GameStatus.Started) {
                         throw new GameNotInProgressError({ id: gameId })
                     }
+
+                    this.assertNotHeldUpByUndoVote(existingGame, player, user, action)
 
                     const executedState = actionResult.actionCascade.before
                     if (
@@ -1814,6 +1821,21 @@ export class GameService {
             })
         action.index = state.actionCount
         return raced
+    }
+
+    private assertNotHeldUpByUndoVote(
+        game: Game,
+        player: Player,
+        user: User,
+        action: GameAction
+    ): void {
+        if (player.userId === user.id && gameHoldsUpPlayer(game, player)) {
+            throw new DisallowedActionError({
+                gameId: game.id,
+                actionId: action.id,
+                reason: 'the undo request needs your answer first'
+            })
+        }
     }
 
     private async supersedeDeclaration({
@@ -2145,10 +2167,7 @@ export class GameService {
                 if (vote?.id !== voteId || vote.kind !== PlayerVoteKind.Call) {
                     throw new DisallowedPlayerVoteError({ gameId, reason: 'the vote is closed' })
                 }
-                if (
-                    vote.approvingPlayerIds.includes(player.id) ||
-                    vote.decliningPlayerIds.includes(player.id)
-                ) {
+                if (!awaitsAnswerFrom(vote, player.id)) {
                     return UpdateValidationResult.Cancel
                 }
                 const declined = {

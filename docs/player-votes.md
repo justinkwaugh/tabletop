@@ -7,6 +7,9 @@ A Player Vote lets the Players of a Hosted Game decide a lifecycle question toge
 - A Player in History View, at a position earlier than their own Undo reaches, may ask everyone to go back to it. The vote targets the first Action after that position, which must be a User Action.
 - Every Player with an account must agree. Any Player may decline, which closes the vote. The Player who asked may withdraw it.
 - At most one vote is open. It has no expiry. Play continues while it is open, and the Actions taken meanwhile are undone too when it passes.
+- A Player the vote still needs an answer from cannot act until they answer: the backend refuses their Actions (`undoVoteHoldsUp` in `libs/common/src/game/model/playerVote.ts`). An administrator acting for them is not held up. A Call Request holds nobody up. They may still undo their own moves; an Undo that reaches the vote's target closes the vote.
+- The host tells a held-up Player once per vote, in a modal pointing to the strip, which also says they must answer before they can play again. The modal remembers which votes each account has seen in that browser.
+- Outside the game the Site Frontend treats a Game that holds the Player up as waiting on them, as it does their turn: the game card and series lobby show **Answer Request**, the browser tab says so, and the Game counts for the dashboard's turn filter and the next-game link.
 - The other Players receive an Attention Notice through web push and Discord.
 - Hotseat and Tournament Games have no votes. Finished Games do, since an Authorized Undo may reopen one.
 - A passed vote runs the ordinary Undo path with the Player restrictions lifted. The unavailable-history check still applies. Undo restores the random-number position, so replaying draws the same dice and cards.
@@ -34,7 +37,9 @@ Three optional `GameSessionBridge` members come from the shared Game Client bund
 - `showHistoryBeforeAction(actionIndex)`: moves History View to the position just before an Action.
 - `showLiveGame()`: leaves History View. The host calls it for the Player who asked once their vote passes and the Undo has reached the client.
 
-A UI Artifact gains them only through a new UI-only Publication. Until a title is republished, the host offers the request at every History View position, and the server answers "you can undo this yourself" where Undo already reaches. The host also hides View that point, and the Player who asked stays in History View after the vote passes.
+The host supplies one optional member the other way: `BridgedContext.gameService.playerVote`, the Game's open vote from the Site Frontend's game cache. The Game Session reads it to refuse a held-up Player's Action before it is applied or sent, with a toast pointing to the strip. A Site Frontend built before it supplies no such member, and the Game Session then leaves the refusal to the backend. A UI Artifact built before it shows the backend's refusal as a failed Action and resyncs, so release the Site Frontend, then the backend, then a UI-only Publication of each title.
+
+A UI Artifact gains the bridge members only through a new UI-only Publication. Until a title is republished, the host offers the request at every History View position, and the server answers "you can undo this yourself" where Undo already reaches. The host also hides View that point, and the Player who asked stays in History View after the vote passes.
 
 The replay rule needs both sides, and the Site Frontend goes first. A UI Artifact built before it reports each replay frame, so the request still comes and goes during a replay. A Site Frontend built before it substitutes a stand-in position whenever none is reported, so with a new UI Artifact a replay from Live View would offer the request on every frame, and it ignores `replaying`, so a replay from History View keeps offering the request. Release the Site Frontend, then a UI-only Publication of each title with a History tab Replay (Bus, Magna Grecia, MarraCash, Reef Encounter, Urbino). Someone without a seat is reported no position and cannot vote, so the host shows them History View with its stand-in.
 
