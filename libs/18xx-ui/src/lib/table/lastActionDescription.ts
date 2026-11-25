@@ -6,8 +6,7 @@ import {
     type HistoryDescription,
     type TitleActionDescription
 } from './historyDescription.js'
-import { auctionLotName } from './auctionHistory.js'
-import { titleRunNames } from '../routes/routePresentation.js'
+import { sessionHistoryOptions } from './sessionHistoryOptions.js'
 
 export function describeLastAction(
     session: EighteenXXSessionView,
@@ -25,22 +24,13 @@ export function describeLastAction(
             : { text: `Bid ${money(action.amount)} for ${session.lotName(lot)}` }
     }
     if (isPassAuction(action)) return { text: 'Passed' }
+    const titleNames = { companyName, place: placeReference }
     const shared = () =>
-        historyDescription(action, gameState, session.stockMarketChart, {
-            companyName,
-            playerName: (id) => session.getPlayerName(id),
-            money,
-            lotName: (id) =>
-                auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-            routeBonusName: (id) => session.names.routeBonus(id),
-            place: placeReference,
-            poolName: (id) => session.poolName(id),
-            certificates: {
-                charters: session.charters,
-                multiShare: session.presentation.multiShareCertificate
-            },
-            runNames: titleRunNames(session.presentation),
-            wording: session.historyWording
-        })
-    return describeAction?.(action, { companyName, place: placeReference }, shared) ?? shared()
+        historyDescription(
+            action,
+            gameState,
+            session.stockMarketChart,
+            sessionHistoryOptions(session, gameState, titleNames)
+        )
+    return describeAction?.(action, titleNames, shared) ?? shared()
 }

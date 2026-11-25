@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import type { RouteBonus, RouteResult, RunTrains, TrainRoute } from '@tabletop/18xx'
 import type { MapRoute } from '../maps/mapDrawing.js'
+import type { TitlePresentation } from '../session/titlePresentation.js'
 
 export const DefaultRouteColors: readonly string[] = [
     '#b24bce',
@@ -45,16 +46,13 @@ export const DefaultRunBonusName = 'run bonus'
 
 /** What a title calls the parts of a run's income that no route earned. */
 export interface RunNames {
-    /** The bank's payment to the treasury beside the revenue, as 1822's mail income. */
     subsidy: string
-    /** The revenue the run earns beside its routes, as 1880's share price bonus. */
     bonus: string
 }
 
-export function titleRunNames(presentation: {
-    runSubsidyName?: string
-    runBonusName?: string
-}): RunNames {
+export function titleRunNames(
+    presentation: Pick<TitlePresentation, 'runSubsidyName' | 'runBonusName'>
+): RunNames {
     return {
         subsidy: presentation.runSubsidyName ?? DefaultRunSubsidyName,
         bonus: presentation.runBonusName ?? DefaultRunBonusName

@@ -17,6 +17,7 @@ import type {
     StartStockRound
 } from '@tabletop/18xx'
 import { afterPlayerName, historyDescription } from './historyDescription.js'
+import type { RunNames } from '../routes/routePresentation.js'
 import { historyStateFixture } from './history.fixture.js'
 import { TestCharters, TestCompanyId, TestMarket } from '@tabletop/18xx/testing'
 import { placeReference } from '@tabletop/18xx'
@@ -103,7 +104,6 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
     ).toBe('East–West +$80 · Steamboat +$40 · +$20 at G9')
 })
 
-// 1880 bug report: a run's total included the share price bonus with nothing naming it.
 it('names a run’s bonus beside its routes and the subsidy beside its revenue', () => {
     const run: RunTrains = {
         id: 'run',
@@ -115,7 +115,7 @@ it('names a run’s bonus beside its routes and the subsidy beside its revenue',
         routes: [],
         metadata: { companyId: 'R', revenue: 130, routes: [], bonus: 50, subsidy: 10 }
     }
-    const describe = (runNames?: { subsidy: string; bonus: string }) =>
+    const describe = (runNames?: RunNames) =>
         historyDescription(run, historyStateFixture(), TestMarket, { runNames }).detail
     expect(describe({ subsidy: 'mail income', bonus: 'share price bonus' })).toBe(
         'Share price bonus +$50 · $10 mail income'

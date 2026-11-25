@@ -343,17 +343,11 @@ const FamilyHistoryWording: HistoryWording = {
     phaseLabel: numberedPhaseLabel
 }
 
-/**
- * How a title names what its history mentions. Each field the title leaves out falls back to the
- * family's: ids for names, dollars for money, and the family's wording.
- */
 export interface HistoryDescriptionOptions {
     companyName?: (id: string) => string
     playerName?: (id: string) => string
-    /** The presidencies and closings the action caused, shown beside it. */
     companyChanges?: HistoryCompanyChanges
     money?: MoneyFormat
-    /** Names an auction lot; the company's name where the title names nothing. */
     lotName?: (id: string) => string
     routeBonusName?: (sourceId: string) => string
     place?: (locationId: string) => string

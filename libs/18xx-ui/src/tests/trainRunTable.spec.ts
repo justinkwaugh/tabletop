@@ -34,8 +34,6 @@ function table(result: OperatingResult, runBonusName?: string): string {
     }).body.replace(/<!--[^]*?-->/g, '')
 }
 
-// 1880 bug report: a company on a ¥5 bonus space ran two 2-trains for ¥40 each, and the table
-// totalled ¥130 without saying where the other ¥50 came from.
 it('lists the run’s bonus beside its routes so the trains and bonus add up to the total', () => {
     const body = table(
         { companyId: 'R', routes: [route('a', 40), route('b', 40)], revenue: 130, bonus: 50 },

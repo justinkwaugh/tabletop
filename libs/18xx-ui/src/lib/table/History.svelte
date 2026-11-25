@@ -6,10 +6,9 @@
     import { historyCash } from './historyCash.js'
     import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
-    import { auctionLotName } from './auctionHistory.js'
     import { historyGroups, operatingPlayerOf } from './historyGroups.js'
     import { describeAutomaticStep } from './historyAutomaticStep.js'
-    import { titleRunNames } from '../routes/routePresentation.js'
+    import { sessionHistoryOptions } from './sessionHistoryOptions.js'
     import {
         companyLabels,
         historyDescription,
@@ -89,21 +88,8 @@
     }
     function describeShared(action: GameAction) {
         return historyDescription(action, gameState, session.stockMarketChart, {
-            companyName,
-            playerName: (id) => session.getPlayerName(id),
-            companyChanges: companyChanges.get(action.id),
-            money: session.presentation.money,
-            lotName: (id) =>
-                auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-            routeBonusName: (id) => session.names.routeBonus(id),
-            place: session.placeName,
-            poolName: (id) => session.poolName(id),
-            certificates: {
-                charters: session.charters,
-                multiShare: session.presentation.multiShareCertificate
-            },
-            runNames: titleRunNames(session.presentation),
-            wording: session.historyWording
+            ...sessionHistoryOptions(session, gameState, titleNames),
+            companyChanges: companyChanges.get(action.id)
         })
     }
     function describe(action: GameAction) {
