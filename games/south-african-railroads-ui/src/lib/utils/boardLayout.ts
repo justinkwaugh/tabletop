@@ -1,5 +1,6 @@
 import { assertExists, type BoundingBox, type Point } from '@tabletop/common'
 import { MapId, sarMap, type RailroadId } from '@tabletop/south-african-railroads'
+import { PAMPAS_LAYOUT } from './maps/pampas.js'
 import { PENNSYLVANIA_LAYOUT } from './maps/pennsylvania.js'
 import { SOUTH_AFRICA_LAYOUT } from './maps/southAfrica.js'
 import { TEXAS_SPECIAL_LAYOUT } from './maps/texasSpecial.js'
@@ -197,7 +198,8 @@ const BOARD_LAYOUTS: Record<MapId, BoardLayout> = {
     [MapId.SouthAfrica]: new BoardLayout(MapId.SouthAfrica, SOUTH_AFRICA_LAYOUT),
     [MapId.TexasSpecial]: new BoardLayout(MapId.TexasSpecial, TEXAS_SPECIAL_LAYOUT),
     [MapId.Pennsylvania]: new BoardLayout(MapId.Pennsylvania, PENNSYLVANIA_LAYOUT),
-    [MapId.Veld]: new BoardLayout(MapId.Veld, VELD_LAYOUT)
+    [MapId.Veld]: new BoardLayout(MapId.Veld, VELD_LAYOUT),
+    [MapId.Pampas]: new BoardLayout(MapId.Pampas, PAMPAS_LAYOUT)
 }
 
 export function boardLayout(mapId: MapId): BoardLayout {

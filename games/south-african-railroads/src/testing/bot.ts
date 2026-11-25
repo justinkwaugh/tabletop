@@ -8,7 +8,6 @@ import {
 import { MapId } from '../maps/types.js'
 import { ActionBox } from '../model/actionBoxes.js'
 import type { HydratedSarGameState } from '../model/gameState.js'
-import { homeLinks } from '../model/track.js'
 import { ActionType } from '../definition/actions.js'
 import { Definition } from '../definition/definition.js'
 import { SarRuntime } from '../definition/runtime.js'
@@ -56,7 +55,7 @@ export function botAction(state: HydratedSarGameState, playerId: string, step: n
         case MachineState.FreeBuild: {
             const due = state.freeBuild
             assertExists(due, 'A free build is due')
-            const [linkId] = homeLinks(state, state.map.home(due.railroadId))
+            const [linkId] = state.freeLinkOptions(due.railroadId)
             return act({
                 ...base,
                 type: ActionType.BuildTrack,
@@ -66,13 +65,21 @@ export function botAction(state: HydratedSarGameState, playerId: string, step: n
         }
         case MachineState.ChoosingAction: {
             const boxes = state.availableBoxes(playerId)
+            const specials = state.specialActionBoxes(playerId)
+            if (specials.length > 0 && (boxes.length === 0 || step % 7 === 0)) {
+                const box = specials[step % specials.length]
+                return act({ ...base, type: ActionType.ChooseAction, box, special: true })
+            }
             const box = boxes[step % boxes.length] ?? ActionBox.ConstructTrack
             return act({ ...base, type: ActionType.ChooseAction, box })
         }
         case MachineState.ConstructingTrack:
         case MachineState.DelegatedBuild: {
-            if (valid.includes(ActionType.DelegateBuild)) {
-                const [railroadId] = state.buildableRailroads()
+            if (
+                valid.includes(ActionType.DelegateBuild) &&
+                (!valid.includes(ActionType.BuildTrack) || step % 2 === 1)
+            ) {
+                const [railroadId] = state.delegableRailroads(playerId)
                 return act({
                     ...base,
                     type: ActionType.DelegateBuild,

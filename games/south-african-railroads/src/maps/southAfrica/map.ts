@@ -78,7 +78,7 @@ export const SOUTH_AFRICA: MapDefinition = {
     startingCash: { 3: 80, 4: 70, 5: 60, 6: 50 },
     // The rulebook limits only the three-player game to two Offer Stock slots. The redrawn board
     // marks the third slot "4p, 5p", but a six-player game has it too.
-    offerStockSlots: { 3: 2, 4: 3, 5: 3, 6: 3 },
+    actionTrack: { kind: 'locomotives', offerStockSlots: { 3: 2, 4: 3, 5: 3, 6: 3 } },
     dividendsBeforeFinal: 5,
     specialDividendsRoundUp: false
 }

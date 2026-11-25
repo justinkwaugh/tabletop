@@ -3,7 +3,8 @@
         ACTION_BOXES,
         ACTION_TRACK_ADVANCE,
         ACTION_TRACK_LIMIT,
-        ActionBox
+        ActionBox,
+        ROW_ACTIONS
     } from '@tabletop/south-african-railroads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
@@ -23,33 +24,68 @@
     const finalPayoffNext = $derived(state.isFinalPayoffNext())
     const context = $derived(boxContext(state))
     const era = $derived(eraName(state))
-    const trackFraction = $derived(Math.min(state.actionTrack / (ACTION_TRACK_LIMIT + 1), 1))
+    const rows = $derived(state.actionRows())
+    const trackFraction = $derived(
+        rows ? state.fullRows() / 2 : Math.min(state.actionTrack / (ACTION_TRACK_LIMIT + 1), 1)
+    )
     const trackWillPass = $derived(
         gameSession.dividendBoxes.some((box) => box !== ActionBox.PayDividends)
     )
+    const payout = $derived(finalPayoffNext ? 'the final payoff' : 'dividends')
+
+    // A slot holds the player whose locomotive stands there, or on a board with action rows
+    // whether its box is filled.
+    type Slot = { playerId?: string; filled: boolean }
 
     const boxes = $derived(
-        ACTION_BOXES.map((box) => {
-            const occupants = gameSession.placedPlayers
-                .filter((player) => player.locomotive === box)
-                .map((player) => player.playerId)
-            const slots = Math.max(state.boxCapacity(box), occupants.length)
-            const advance = ACTION_TRACK_ADVANCE[box]
-            return {
+        (rows ? ROW_ACTIONS : ACTION_BOXES).map((box) => {
+            const common = {
                 box,
                 title: BOX_NAMES[box],
                 shortTitle: BOX_SHORT_NAMES[box],
                 terms: boxTerms(state.map, box, context),
                 rules: boxRules(state.map, box, context),
-                advance: box === ActionBox.PayDividends ? '↺' : `+${advance}`,
                 paysDividends: gameSession.dividendBoxes.includes(box),
-                slots: Array.from({ length: slots }, (_, index) => occupants[index]),
-                selectable: gameSession.selectableBoxes.includes(box)
+                selectable: gameSession.selectableBoxes.includes(box),
+                special: gameSession.specialActionBoxes.includes(box)
+            }
+            if (rows && box !== ActionBox.PayDividends) {
+                const capacity = rows.rows[box]
+                const filled = state.boxesFilled(box)
+                return {
+                    ...common,
+                    advance: `${filled}/${capacity}`,
+                    full: filled >= capacity,
+                    slots: Array.from({ length: capacity }, (_, index): Slot => ({
+                        filled: index < filled
+                    }))
+                }
+            }
+            const occupants = gameSession.placedPlayers
+                .filter((player) => player.locomotive === box)
+                .map((player) => player.playerId)
+            const slots = Math.max(state.boxCapacity(box), occupants.length)
+            return {
+                ...common,
+                advance: box === ActionBox.PayDividends ? '↺' : `+${ACTION_TRACK_ADVANCE[box]}`,
+                full: false,
+                slots: Array.from({ length: slots }, (_, index): Slot => ({
+                    playerId: occupants[index],
+                    filled: false
+                }))
             }
         })
     )
 
     function advanceTitle(entry: (typeof boxes)[number]): string {
+        if (rows) {
+            if (entry.full) {
+                return 'This row is full until the next round'
+            }
+            return entry.paysDividends
+                ? `Fills a second row: ${payout} follow once its action is done`
+                : `${entry.advance} boxes filled this round`
+        }
         if (entry.box === ActionBox.PayDividends) {
             return `Pays ${finalPayoffNext ? 'the final payoff' : 'dividends'} and resets the action track`
         }
@@ -65,32 +101,42 @@
         ><span class="full">{entry.title}</span><span class="short">{entry.shortTitle}</span></span
     >
     <span class="rules" title={entry.rules}>{entry.terms}</span>
-    <span class="slots">
-        {#each entry.slots as playerId, index (index)}
-            <span class="slot">
-                {#if playerId}<PlayerInitial {playerId} />{/if}
+    <span class="slots" class:row={rows}>
+        {#each entry.slots as slot, index (index)}
+            <span class="slot" class:filled={slot.filled}>
+                {#if slot.playerId}<PlayerInitial playerId={slot.playerId} />{/if}
             </span>
         {/each}
     </span>
 {/snippet}
 
-<div class="strip" aria-label="Action boxes">
-    <div class="timer" title="Action track: dividends are paid once it passes {ACTION_TRACK_LIMIT}">
+<div class="strip" class:rows aria-label="Action boxes">
+    <div
+        class="timer"
+        title={rows
+            ? `Action rows: ${payout} are paid once two rows are full`
+            : `Action track: dividends are paid once it passes ${ACTION_TRACK_LIMIT}`}
+    >
         <span class="round" class:final={finalPayoffNext}>
             {#if finalPayoffNext}Final<br class="wide" /> Round{:else}Round<br class="wide" />
                 <span class="nowrap">{state.round()} of {state.rounds()}</span>{#if era}<br />
                     <span class="era">{era}</span>{/if}{/if}
         </span>
         <span class="track">
-            <span class="clock" class:ending={trackWillPass}>{state.actionTrack}</span>
-            <span class="limit">of {ACTION_TRACK_LIMIT}</span>
+            {#if rows}
+                <span class="clock" class:ending={trackWillPass}>{state.fullRows()}</span>
+                <span class="limit">of 2 rows full</span>
+            {:else}
+                <span class="clock" class:ending={trackWillPass}>{state.actionTrack}</span>
+                <span class="limit">of {ACTION_TRACK_LIMIT}</span>
+            {/if}
         </span>
         <span class="track-bar" class:ending={trackWillPass}
             ><span style:width="{trackFraction * 100}%"></span></span
         >
     </div>
     {#each boxes as entry (entry.box)}
-        <div class="box" class:selectable={entry.selectable}>
+        <div class="box" class:selectable={entry.selectable} class:full={entry.full}>
             <span class="bubble" class:pays={entry.paysDividends} title={advanceTitle(entry)}
                 >{entry.advance}</span
             >
@@ -107,6 +153,15 @@
                 <div class="face">
                     {@render boxContent(entry)}
                 </div>
+            {/if}
+            {#if entry.special}
+                <button
+                    type="button"
+                    class="special"
+                    title="Take {entry.title} without filling a box. You may do this once a game."
+                    onclick={() => gameSession.chooseSpecialAction(entry.box)}
+                    >Special action</button
+                >
             {/if}
         </div>
     {/each}
@@ -195,9 +250,14 @@
         display: none;
     }
 
+    .strip.rows {
+        grid-template-columns: minmax(0, 0.8fr) repeat(3, minmax(0, 1fr));
+    }
+
     .box {
         position: relative;
         display: flex;
+        flex-direction: column;
         border: 2px solid #28394d;
         border-radius: 8px;
         background: #fdfdfb;
@@ -287,6 +347,45 @@
         margin-top: auto;
     }
 
+    .slots.row {
+        flex-wrap: nowrap;
+        gap: 2px;
+    }
+
+    .slots.row .slot {
+        width: 18px;
+        height: 18px;
+        border-style: solid;
+        border-color: #28394d;
+        background: #fdfdfb;
+    }
+
+    .slots.row .slot.filled {
+        background: #3f597a;
+    }
+
+    .box.full .face {
+        opacity: 0.55;
+    }
+
+    .special {
+        margin: 0 6px 6px;
+        padding: 2px 6px;
+        border: 1.5px dashed #c8961a;
+        border-radius: 5px;
+        background: #fff8e2;
+        color: #6b4c05;
+        font-family: 'SAR Baskerville', Georgia, serif;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .special:hover,
+    .special:focus-visible {
+        background: #ffe9a8;
+        outline: none;
+    }
+
     .slot {
         display: inline-flex;
         align-items: center;
@@ -303,6 +402,21 @@
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 8px 6px;
             margin: 6px 8px 0;
+        }
+
+        .strip.rows {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .slots.row .slot {
+            width: 14px;
+            height: 14px;
+        }
+
+        .special {
+            margin: 0 3px 4px;
+            padding: 1px 3px;
+            font-size: 10.5px;
         }
 
         .timer {

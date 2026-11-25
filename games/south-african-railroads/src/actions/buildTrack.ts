@@ -5,7 +5,6 @@ import { ActionType } from '../definition/actions.js'
 import { RailroadId } from '../maps/types.js'
 import type { HydratedSarGameState } from '../model/gameState.js'
 import { Payout, payShareholders } from '../model/payouts.js'
-import { homeLinks } from '../model/track.js'
 
 // Paid to a railroad's shareholders when its track first reaches the metro railroad's home, or
 // to the metro railroad's when its track first meets another's.
@@ -90,7 +89,7 @@ export class HydratedBuildTrack extends HydratableAction<typeof BuildTrack> impl
         )
         assert(
             this.linkIds.length === 1 &&
-                homeLinks(state, state.map.home(this.railroadId)).includes(this.linkIds[0]),
+                state.freeLinkOptions(this.railroadId).includes(this.linkIds[0]),
             'The free link must leave the railroad’s home'
         )
         return 0

@@ -112,8 +112,11 @@ export function boxTerms(map: SarMap, box: ActionBox, context: BoxContext): stri
 export function boxRules(map: SarMap, box: ActionBox, context: BoxContext): string {
     switch (box) {
         case ActionBox.ConstructTrack:
-            return context.war
-                ? `War: a railroad you control lays one link for $${context.war.linkCost}; no double links or connections, and the ${map.railroad(context.war.haltedRailroad).shortName} builds nothing`
+            if (context.war) {
+                return `War: a railroad you control lays one link for $${context.war.linkCost}; no double links or connections, and the ${map.railroad(context.war.haltedRailroad).shortName} builds nothing`
+            }
+            return map.definition.largestShareholderBuilds
+                ? 'Any railroad lays a link for $5, two for $15, or a connection; its largest shareholder chooses where'
                 : 'A railroad you control lays a link for $5, two for $15, or a connection'
         case ActionBox.OfferStock:
             return 'Auction a railroad’s unsold share, or one of your own'
@@ -181,8 +184,14 @@ export function describeAction(map: SarMap, action: GameAction): Description {
         return ['passed']
     }
     if (isChooseAction(action)) {
-        const track = action.metadata ? ` (action track ${action.metadata.actionTrack})` : ''
         const idle = action.metadata?.nothingToDo ? ' with nothing to do' : ''
+        if (action.special) {
+            return [`used their special action for ${BOX_NAMES[action.box]}${idle}`]
+        }
+        const track =
+            action.metadata && map.definition.actionTrack.kind === 'locomotives'
+                ? ` (action track ${action.metadata.actionTrack})`
+                : ''
         return [`chose ${BOX_NAMES[action.box]}${track}${idle}`]
     }
     if (isBuildTrack(action)) {

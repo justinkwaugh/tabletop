@@ -39,6 +39,16 @@
 <div class="ticket" class:acting style:--player={color}>
     <div class="band">
         <span class="name">{gameSession.getPlayerName(playerId)}</span>
+        {#if playerState.specialActionUsed !== undefined && !ended}
+            <span
+                class="special"
+                class:used={playerState.specialActionUsed}
+                title={playerState.specialActionUsed
+                    ? 'Special action used'
+                    : 'Special action available: once a game, any action without filling a box'}
+                >★</span
+            >
+        {/if}
         <span class="cash" title="Cash in hand"
             ><span class="cash-label">Cash</span>${playerState.cash}</span
         >
@@ -143,6 +153,18 @@
         font-weight: 500;
         letter-spacing: 0.06em;
         text-transform: uppercase;
+    }
+
+    .special {
+        margin-left: auto;
+        margin-right: 6px;
+        color: #c8961a;
+        font-size: 15px;
+        line-height: 1;
+    }
+
+    .special.used {
+        color: #c9c0aa;
     }
 
     .cash {

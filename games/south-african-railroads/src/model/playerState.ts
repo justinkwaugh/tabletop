@@ -10,7 +10,9 @@ export const SarPlayerState = Type.Evaluate(
         Type.Object({
             cash: Type.Number(),
             locomotive: Type.Enum(ActionBox),
-            leaveTownCubes: Type.Number()
+            leaveTownCubes: Type.Number(),
+            // On a board with action rows, whether the player has spent their special action.
+            specialActionUsed: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -26,6 +28,7 @@ export class HydratedSarPlayerState
     declare cash: number
     declare locomotive: ActionBox
     declare leaveTownCubes: number
+    declare specialActionUsed?: boolean
 
     constructor(data: SarPlayerState) {
         super(data, SarPlayerStateValidator)

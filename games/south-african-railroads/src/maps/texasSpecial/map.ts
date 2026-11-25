@@ -85,7 +85,7 @@ export const TEXAS_SPECIAL: MapDefinition = {
         dallas: [3, 4, 5, 6]
     },
     startingCash: { 3: 80, 4: 70, 5: 60, 6: 50 },
-    offerStockSlots: { 3: 2, 4: 3, 5: 3, 6: 3 },
+    actionTrack: { kind: 'locomotives', offerStockSlots: { 3: 2, 4: 3, 5: 3, 6: 3 } },
     dividendsBeforeFinal: 5,
     specialDividendsRoundUp: false
 }

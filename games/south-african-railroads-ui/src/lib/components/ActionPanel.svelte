@@ -1,6 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { ACTION_BOXES, MachineState } from '@tabletop/south-african-railroads'
+    import { ACTION_BOXES, MachineState, ROW_ACTIONS } from '@tabletop/south-african-railroads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BOX_SHORT_NAMES, boxContext, boxRules, linkName } from '$lib/utils/describeAction.js'
     import AuctionPanel from './AuctionPanel.svelte'
@@ -21,12 +21,15 @@
     const machineState = $derived(state.machineState)
     const me = $derived(gameSession.myPlayerId)
     const holdings = $derived(me ? state.holdings(me) : [])
+    const rows = $derived(state.actionRows())
     const boxGuide = $derived(
-        ACTION_BOXES.map((box) => ({
+        (rows ? ROW_ACTIONS : ACTION_BOXES).map((box) => ({
             box,
             name: BOX_SHORT_NAMES[box],
             rules: boxRules(map, box, boxContext(state)),
-            open: gameSession.selectableBoxes.includes(box),
+            open:
+                gameSession.selectableBoxes.includes(box) ||
+                gameSession.specialActionBoxes.includes(box),
             paysDividends: gameSession.dividendBoxes.includes(box)
         }))
     )
@@ -58,11 +61,20 @@
             {map.settlement(map.home(state.freeBuild.railroadId)).name}: choose a highlighted link.
         </p>
     {:else if machineState === MachineState.ChoosingAction}
-        <p class="prompt">
-            Choose an action below. A <span class="bubble pays">red</span> box pays {state.isFinalPayoffNext()
-                ? 'the final payoff'
-                : 'dividends'} at once.
-        </p>
+        {#if rows}
+            <p class="prompt">
+                Choose an action below. A <span class="bubble pays">red</span> box fills a second
+                row: {state.isFinalPayoffNext() ? 'the final payoff follows' : 'dividends follow'}
+                once its action is done.{#if gameSession.specialActionBoxes.length > 0}{' '}Your
+                    special action, once a game, takes any action without filling a box.{/if}
+            </p>
+        {:else}
+            <p class="prompt">
+                Choose an action below. A <span class="bubble pays">red</span> box pays {state.isFinalPayoffNext()
+                    ? 'the final payoff'
+                    : 'dividends'} at once.
+            </p>
+        {/if}
         <dl class="guide">
             {#each boxGuide as entry (entry.box)}
                 <div class:closed={!entry.open}>
@@ -97,7 +109,15 @@
                 {@render railroadChoices()}
             {/if}
         {:else if !gameSession.selectedRailroad}
-            <p class="prompt">Choose which of your railroads builds.</p>
+            {#if map.definition.largestShareholderBuilds}
+                <p class="prompt">
+                    Choose a railroad to build. You lay its track where you are its largest
+                    shareholder or the largest holding is shared; otherwise its largest shareholder
+                    does.
+                </p>
+            {:else}
+                <p class="prompt">Choose which of your railroads builds.</p>
+            {/if}
             {@render railroadChoices()}
         {:else if gameSession.firstLink}
             <p class="prompt">

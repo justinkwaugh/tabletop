@@ -58,3 +58,17 @@ Veld Railroads plays as South African Railroads except where its rules and board
 - **A railroad's first link into Johannesburg pays its special dividend on its income after the build.** The ZASM never earns it. The ZASM's own special dividend is paid when its track first meets another railroad's, provided no other railroad then has track into Johannesburg.
 - **In the recovery round every special dividend pays income ÷ 10, rounded down**, as the board prints, not only those for connections.
 - **In the war a player develops up to three settlements; one with nothing left to develop may stop after the first.** Declining the paid third develops Johannesburg, as declining the second does in peacetime.
+
+## Pampas Railroads
+
+Pampas Railroads plays as South African Railroads except where its rules sheet and Fabian Peng Kärrholm's redrawn board differ. Each choice below is covered by a test in `src/model/pampas.spec.ts`.
+
+- **Each action fills the next box in its row: five Construct Track, four Develop Settlements, three Offer Stock.** A full row cannot be chosen. Dividends are paid once the action that fills a second row is done, and every row empties.
+- **The special action takes any action, a full row included, without filling a box**, once a game. So it both reaches an unavailable action and delays a dividend.
+- **Construct Track may be chosen for any railroad able to build.** Its largest shareholder builds; when the largest holding is shared, the turn player builds. A player who is not the largest shareholder hands the build over.
+- **Every opening railroad's free first link leaves Buenos Aires along a link marked in its colour on the board.** The C&R, opened when track reaches Córdoba, takes Cruz del Eje or Deán Funes.
+- **"Most developed" metro areas are compared by income.** Buenos Aires' income must stay above every other metro area's, and Tucumán's below; a development that would tie them is not allowed. Settlements must have track to be developed, as in South African Railroads.
+- **Special dividends, from connections abroad, pay income ÷ 5 rounded up**, like ordinary dividends.
+- **The start player marker moves with the acting player**, so after a dividend play simply continues with the next player, as in South African Railroads.
+- **Players tied on the most money are separated by their shares of the most valuable railroad**, all railroads tied for the highest value counted together; a tie that remains is a draw.
+- **The short game printed on the round track is not offered.** Every game runs nine rounds, the ninth ending in the final payoff.

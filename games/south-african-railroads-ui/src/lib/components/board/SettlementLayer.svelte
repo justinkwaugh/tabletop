@@ -1,21 +1,18 @@
 <script lang="ts">
-    import { SettlementKind, type SettlementDefinition } from '@tabletop/south-african-railroads'
+    import {
+        SettlementKind,
+        type PointSettlementKind,
+        type SettlementDefinition
+    } from '@tabletop/south-african-railroads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { METRO_CELL, boardLayout } from '$lib/utils/boardLayout.js'
     import { mapLabels } from '$lib/utils/mapLabels.js'
     import { RAILROAD_STYLE } from '$lib/utils/railroadStyle.js'
-    import { polygonPoints } from '$lib/utils/shapes.js'
+    import { SETTLEMENT_SYMBOLS, UNOWNED_BASE_FILL } from '$lib/utils/settlementSymbols.js'
     import { SHADOW_OFFSET } from '$lib/utils/shapes.js'
+    import SettlementSymbol from './SettlementSymbol.svelte'
 
     const gameSession = getGameSession()
-
-    const SYMBOL_FILL: Partial<Record<SettlementKind, string>> = {
-        [SettlementKind.AgriculturalRailhead]: '#f2b81e',
-        [SettlementKind.RailroadStation]: '#2d58b0',
-        [SettlementKind.MercantileCenter]: '#d42a22',
-        [SettlementKind.NaturalResource]: '#f5df1f'
-    }
-    const UNOWNED_BASE_FILL = '#8a7860'
 
     const map = $derived(gameSession.gameState.map)
     const layout = $derived(boardLayout(map.id))
@@ -44,9 +41,12 @@
         return Math.max(width, height) / 2 + 5
     }
 
-    function symbolFill(place: SettlementDefinition): string {
-        const homeOf = map.homeOf(place.id)
-        return SYMBOL_FILL[place.kind] ?? (homeOf ? RAILROAD_STYLE[homeOf].fill : UNOWNED_BASE_FILL)
+    function symbolFill(kind: PointSettlementKind, settlementId: string): string {
+        const homeOf = map.homeOf(settlementId)
+        return (
+            SETTLEMENT_SYMBOLS[kind].fill ??
+            (homeOf ? RAILROAD_STYLE[homeOf].fill : UNOWNED_BASE_FILL)
+        )
     }
 
     function metroCells(place: SettlementDefinition) {
@@ -72,18 +72,6 @@
         }
     }
 </script>
-
-{#snippet symbol(place: SettlementDefinition, fill: string | undefined)}
-    {#if place.kind === SettlementKind.RailroadStation}
-        <rect x="-13.5" y="-13.5" width="27" height="27" rx="2" {fill} class:symbol={fill}></rect>
-    {:else if place.kind === SettlementKind.AgriculturalRailhead || place.kind === SettlementKind.NaturalResource}
-        <polygon points={polygonPoints(6, 18.5)} {fill} class:symbol={fill}></polygon>
-    {:else if place.kind === SettlementKind.MercantileCenter}
-        <circle r="16.3" {fill} class:symbol={fill}></circle>
-    {:else}
-        <polygon points={polygonPoints(5, 23)} {fill} class:symbol={fill}></polygon>
-    {/if}
-{/snippet}
 
 <g class="settlement-layer">
     {#each labels.baseNames as base (base.railroadId)}
@@ -181,16 +169,16 @@
                     ></rect>
                 {/if}
             {:else}
+                {@const kind = place.kind}
                 <g transform="translate({place.x} {place.y})">
                     <g transform="translate({SHADOW_OFFSET.x} {SHADOW_OFFSET.y})" class="shadow">
-                        {@render symbol(place, undefined)}
+                        <SettlementSymbol {kind} />
                     </g>
-                    {@render symbol(place, symbolFill(place))}
+                    <SettlementSymbol {kind} fill={symbolFill(kind, place.id)} />
                     <text
-                        y="5"
+                        y={SETTLEMENT_SYMBOLS[kind].incomeBaseline}
                         class="income"
-                        class:dark={place.kind === SettlementKind.AgriculturalRailhead ||
-                            place.kind === SettlementKind.NaturalResource}>{place.income}</text
+                        class:dark={SETTLEMENT_SYMBOLS[kind].darkText}>{place.income}</text
                     >
                     {#if place.level > 0}
                         {@const radius = developedRingRadius(place)}
@@ -314,11 +302,6 @@
         font-weight: 700;
         text-anchor: middle;
         pointer-events: none;
-    }
-
-    .symbol {
-        stroke: #0d1219;
-        stroke-width: 1.6;
     }
 
     .income {

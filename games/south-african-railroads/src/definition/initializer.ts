@@ -45,6 +45,7 @@ export class SarGameInitializer
     ): HydratedSarGameState {
         const { mapId } = readSarSetup(game.config)
         const map = sarMap(mapId)
+        const rows = map.definition.actionTrack.kind === 'rows'
         const prng = new Prng(state.prng)
         const colors = [...SarColors]
         shuffle(colors, prng.random)
@@ -55,7 +56,8 @@ export class SarGameInitializer
                     color: colors[index],
                     cash: map.startingCash(game.players.length),
                     locomotive: ActionBox.ConstructTrack,
-                    leaveTownCubes: 0
+                    leaveTownCubes: 0,
+                    ...(rows ? { specialActionUsed: false } : {})
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -77,6 +79,7 @@ export class SarGameInitializer
             connections: [],
             developments: {},
             actionTrack: 0,
+            ...(rows ? { rowsFilled: {} } : {}),
             dividendsPaid: 0,
             developmentsThisTurn: 0
         })
