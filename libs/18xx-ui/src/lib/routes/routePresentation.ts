@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import type { RouteBonus, RouteResult, RunTrains, TrainRoute } from '@tabletop/18xx'
 import type { MapRoute } from '../maps/mapDrawing.js'
+import type { TitlePresentation } from '../session/titlePresentation.js'
 
 export const DefaultRouteColors: readonly string[] = [
     '#b24bce',
@@ -40,6 +41,23 @@ export function recordedRunRoutes(run: RunTrains): readonly (TrainRoute | RouteR
 
 /** What a run's payment to the treasury beside its revenue is called where a title names nothing. */
 export const DefaultRunSubsidyName = 'subsidy to the treasury'
+/** What a run earns beside its routes is called where a title names nothing. */
+export const DefaultRunBonusName = 'run bonus'
+
+/** What a title calls the parts of a run's income that no route earned. */
+export interface RunNames {
+    subsidy: string
+    bonus: string
+}
+
+export function titleRunNames(
+    presentation: Pick<TitlePresentation, 'runSubsidyName' | 'runBonusName'>
+): RunNames {
+    return {
+        subsidy: presentation.runSubsidyName ?? DefaultRunSubsidyName,
+        bonus: presentation.runBonusName ?? DefaultRunBonusName
+    }
+}
 
 /** The hexes the trains' runs stand on: each start and its track, a run at one station having no track. */
 export function runLocationIds(routes: readonly Pick<TrainRoute, 'start' | 'paths'>[]): string[] {

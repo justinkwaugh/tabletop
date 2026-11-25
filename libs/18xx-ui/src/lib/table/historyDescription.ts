@@ -8,9 +8,9 @@ import type {
     RouteBonus
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
-import { lowerFirst } from '../presentation/words.js'
+import { capitalized, lowerFirst } from '../presentation/words.js'
 import { numberedPhaseLabel } from '../phases/phaseChart.js'
-import { DefaultRunSubsidyName } from '../routes/routePresentation.js'
+import { titleRunNames, type RunNames } from '../routes/routePresentation.js'
 import {
     companyShareCount,
     isCloseCorporation,
@@ -343,42 +343,56 @@ const FamilyHistoryWording: HistoryWording = {
     phaseLabel: numberedPhaseLabel
 }
 
+export interface HistoryDescriptionOptions {
+    companyName?: (id: string) => string
+    playerName?: (id: string) => string
+    companyChanges?: HistoryCompanyChanges
+    money?: MoneyFormat
+    lotName?: (id: string) => string
+    routeBonusName?: (sourceId: string) => string
+    place?: (locationId: string) => string
+    poolName?: (poolId: string) => string
+    certificates?: HistoryCertificates
+    runNames?: RunNames
+    wording?: HistoryWording
+}
+type ResolvedHistoryOptions = Required<Omit<HistoryDescriptionOptions, 'companyChanges'>> &
+    Pick<HistoryDescriptionOptions, 'companyChanges'>
+
+function resolveHistoryOptions(options: HistoryDescriptionOptions): ResolvedHistoryOptions {
+    const companyName = options.companyName ?? ((id: string) => id)
+    return {
+        companyName,
+        playerName: options.playerName ?? ((id) => id),
+        companyChanges: options.companyChanges,
+        money: options.money ?? moneyFormat('$'),
+        lotName: options.lotName ?? companyName,
+        routeBonusName:
+            options.routeBonusName ??
+            ((sourceId) => {
+                throw new Error(`Route bonus ${sourceId} needs the title's names`)
+            }),
+        place: options.place ?? ((locationId) => locationId),
+        poolName:
+            options.poolName ??
+            ((poolId) => {
+                throw new Error(`Certificate pool ${poolId} needs the title's names`)
+            }),
+        certificates: options.certificates ?? { charters: undefined },
+        runNames: options.runNames ?? titleRunNames({}),
+        wording: options.wording ?? FamilyHistoryWording
+    }
+}
+
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
     chart: StockMarketChart,
-    companyName: (id: string) => string = (id) => id,
-    playerName: (id: string) => string = (id) => id,
-    companyChanges?: HistoryCompanyChanges,
-    money: MoneyFormat = moneyFormat('$'),
-    lotName: (id: string) => string = companyName,
-    routeBonusName: (sourceId: string) => string = (sourceId) => {
-        throw new Error(`Route bonus ${sourceId} needs the title's names`)
-    },
-    place: (locationId: string) => string = (locationId) => locationId,
-    poolName: (poolId: string) => string = (poolId) => {
-        throw new Error(`Certificate pool ${poolId} needs the title's names`)
-    },
-    certificates: HistoryCertificates = { charters: undefined },
-    runSubsidyName: string = DefaultRunSubsidyName,
-    wording: HistoryWording = FamilyHistoryWording
+    options: HistoryDescriptionOptions = {}
 ): HistoryDescription {
-    const description = describeShared(
-        action,
-        state,
-        chart,
-        companyName,
-        playerName,
-        companyChanges,
-        money,
-        lotName,
-        routeBonusName,
-        place,
-        poolName,
-        certificates,
-        runSubsidyName,
-        wording
-    )
+    const resolved = resolveHistoryOptions(options)
+    const description = describeShared(action, state, chart, resolved)
+    const { companyName, playerName, money } = resolved
     const paid = departurePaymentsDetail(
         departurePayments(action),
         { companyName, playerName, bankName: 'Bank' },
@@ -391,17 +405,19 @@ function describeShared(
     action: GameAction,
     state: EighteenXXState,
     chart: StockMarketChart,
-    companyName: (id: string) => string,
-    playerName: (id: string) => string,
-    companyChanges: HistoryCompanyChanges | undefined,
-    money: MoneyFormat,
-    lotName: (id: string) => string,
-    routeBonusName: (sourceId: string) => string,
-    place: (locationId: string) => string,
-    poolName: (poolId: string) => string,
-    certificates: HistoryCertificates,
-    runSubsidyName: string,
-    { terms, phaseLabel }: HistoryWording
+    {
+        companyName,
+        playerName,
+        companyChanges,
+        money,
+        lotName,
+        routeBonusName,
+        place,
+        poolName,
+        certificates,
+        runNames,
+        wording: { terms, phaseLabel }
+    }: ResolvedHistoryOptions
 ): HistoryDescription {
     const lowerPhaseLabel = (phaseId: string) => lowerFirst(phaseLabel([phaseId]))
     const layEffects = (effects: TrackLayEffects | undefined) =>
@@ -533,8 +549,11 @@ function describeShared(
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
             detail: joinDetails(
                 runBonusesDetail(action.metadata.routes, money, routeBonusName, place),
+                action.metadata.bonus
+                    ? `${capitalized(runNames.bonus)} +${money(action.metadata.bonus)}`
+                    : undefined,
                 action.metadata.subsidy
-                    ? `${money(action.metadata.subsidy)} ${runSubsidyName}`
+                    ? `${money(action.metadata.subsidy)} ${runNames.subsidy}`
                     : undefined
             )
         }

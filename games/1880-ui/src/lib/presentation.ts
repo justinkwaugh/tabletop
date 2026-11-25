@@ -97,6 +97,8 @@ export const Presentation1880: TitlePresentation<State1880> = {
     companyNames: CompanyNames1880,
     unstartedCompanies: Unstarted1880,
     privatePurchaseHeading: 'Privates',
+    // A major on a bonus space adds ten times the space's bonus to its run (§X).
+    runBonusName: 'share price bonus',
     marketZones: [
         { color: 'pink', name: 'Par', description: 'A starting price: ¥100, 90, 80 or 70.' },
         {

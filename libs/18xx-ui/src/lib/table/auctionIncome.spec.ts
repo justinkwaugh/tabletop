@@ -26,13 +26,9 @@ function resolution(id: string, metadata: ResolveAuction['metadata']): ResolveAu
 }
 
 function describePayment(metadata: ResolveAuction['metadata']) {
-    return historyDescription(
-        resolution('income', metadata),
-        historyStateFixture(),
-        TestMarket,
-        undefined,
-        (id) => id.toUpperCase()
-    )
+    return historyDescription(resolution('income', metadata), historyStateFixture(), TestMarket, {
+        playerName: (id) => id.toUpperCase()
+    })
 }
 
 it('keeps every private income payment on the card of the auction that needed it', () => {

@@ -8,19 +8,7 @@ import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRou
 import { example } from './stockTestUtils.js'
 
 function describedIn1889(action: GameAction, state: EighteenXXState) {
-    return historyDescription(
-        action,
-        state,
-        Shikoku1889Market,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        (poolId) => poolId
-    )
+    return historyDescription(action, state, Shikoku1889Market, { poolName: (poolId) => poolId })
 }
 
 it('keeps standing instructions out of the history and shows the automatic pass like any pass', () => {
