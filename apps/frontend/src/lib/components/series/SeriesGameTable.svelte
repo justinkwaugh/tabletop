@@ -7,6 +7,7 @@
         gamePaceOf,
         lastMoveAt,
         PlayerStatus,
+        takenSeats,
         type Game,
         type GameCatalogEntry
     } from '@tabletop/common'
@@ -24,7 +25,6 @@
         optionsSummary,
         panelPlayers,
         shortTitleName,
-        takenSeats,
         winnerText
     } from '$lib/utils/seriesLobby'
     import { m } from '$lib/paraglide/messages'

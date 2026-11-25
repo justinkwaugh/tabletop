@@ -1,4 +1,4 @@
-import { GamePace } from '@tabletop/common'
+import { GamePace } from './gamePace.js'
 
 export type GamePaceLabels = {
     name: string

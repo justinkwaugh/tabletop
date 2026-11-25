@@ -1,4 +1,13 @@
+import { Type } from 'typebox'
+import { Compile } from 'typebox/compile'
+
 const API_ENDPOINT = 'https://discord.com/api/v10'
+
+export const CreatedMessage = Compile(Type.Object({ id: Type.String() }))
+
+export async function discordRefusal(response: Response, what: string): Promise<Error> {
+    return new Error(`Discord rejected ${what} with ${response.status}: ${await response.text()}`)
+}
 
 export type DiscordFile = {
     filename: string

@@ -4,6 +4,7 @@ import {
     gamePacePreset,
     GameStatus,
     PlayerStatus,
+    takenSeats,
     type Game,
     type GameCatalogEntry,
     type GameMetadata,
@@ -161,10 +162,6 @@ function matchesPace(game: Game, filter: SeriesFilter): boolean {
 
 export function seatChoices(games: Game[]): number[] {
     return [...new Set(games.map((game) => game.players.length))].sort((a, b) => a - b)
-}
-
-export function takenSeats(game: Game): number {
-    return game.players.filter((player) => player.status !== PlayerStatus.Open).length
 }
 
 const AWAITED_ENTRIES: Record<UserAwaited, LobbyEntry> = {

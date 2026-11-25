@@ -128,6 +128,7 @@ import {
     StoredTournamentSchedule,
     loadTournamentSchedule
 } from '../model/storedTournamentSchedule.js'
+import type { GameChangeListener } from '../../games/gameChangeListener.js'
 
 const ACTION_CHUNK_SIZE = 200
 // Production Redis uses volatile-lru, which evicts only expiring keys; without an expiry, large
@@ -145,6 +146,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     // Without them, as in most specs, no Game Title's or Series' activity is listed or maintained.
     private readonly titleActivity: ActivityCache | undefined
     private readonly seriesActivity: ActivityCache | undefined
+    private readonly gameChanges: GameChangeListener | undefined
 
     constructor(
         private readonly cacheService: RedisCacheService,
@@ -153,17 +155,20 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             tournamentCachePrefix = 'tournaments:v1',
             encoding = GAME_STORAGE_ENCODING,
             titleActivity,
-            seriesActivity
+            seriesActivity,
+            gameChanges
         }: {
             tournamentCachePrefix?: string
             encoding?: StoredJsonEncoding
             titleActivity?: ActivityCache
             seriesActivity?: ActivityCache
+            gameChanges?: GameChangeListener
         } = {}
     ) {
         this.games = firestore.collection('games').withConverter(gameConverter)
         this.titleActivity = titleActivity
         this.seriesActivity = seriesActivity
+        this.gameChanges = gameChanges
         this.tournamentCacheKeys = new TournamentCacheKeys(tournamentCachePrefix)
         this.stateConverter = stateConverter(encoding)
         this.actionChunkConverter = actionChunkConverter(encoding)
@@ -2412,6 +2417,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     private recordActivity(before: Game | undefined, after: Game | undefined): void {
         void this.titleActivity?.applyChange(before, after)
         void this.seriesActivity?.applyChange(before, after)
+        void this.gameChanges?.applyChange(before, after)
     }
 
     private reopenedGameFields(): Partial<Game> {

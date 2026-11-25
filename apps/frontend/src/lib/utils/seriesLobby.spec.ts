@@ -22,7 +22,6 @@ import {
     seriesFilterSearch,
     seriesPageView,
     shortTitleName,
-    takenSeats,
     titleGameCounts,
     widenFilterToShow,
     winnerText
@@ -214,14 +213,6 @@ describe('series games', () => {
 
     it('offers the player counts the games have', () => {
         expect(seatChoices(games)).toEqual([3, 4])
-    })
-
-    it('counts the seats already taken', () => {
-        expect(
-            takenSeats(
-                game('o', '1830', { players: [seat(0), seat(1, { status: PlayerStatus.Open })] })
-            )
-        ).toBe(1)
     })
 })
 
