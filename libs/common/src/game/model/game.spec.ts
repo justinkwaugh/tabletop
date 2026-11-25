@@ -7,7 +7,8 @@ import {
     GameStorage,
     GameWithoutState,
     omitGameState,
-    ownerMayDeleteGame
+    ownerMayDeleteGame,
+    takenSeats
 } from './game.js'
 import { PlayerStatus } from './player.js'
 
@@ -31,6 +32,14 @@ function createGame(): Pick<Game, 'players'> {
         ]
     }
 }
+
+describe('takenSeats', () => {
+    test('counts every seat that is not open', () => {
+        const game = createGame()
+        game.players[1] = { ...game.players[1], status: PlayerStatus.Open }
+        expect(takenSeats(game)).toBe(1)
+    })
+})
 
 describe('findPlayerForUserId', () => {
     test('finds the game player assigned to a user', () => {

@@ -948,6 +948,10 @@ export class GameService {
         return this.gameStore.findTitleActivity(titleId)
     }
 
+    getTitleName(titleId: string): string {
+        return this.getTitle(titleId)?.info.metadata.name ?? titleId
+    }
+
     getSeriesTitleIds(seriesId: string, roles: readonly Role[]): string[] {
         return this.getTitles()
             .filter(
@@ -965,6 +969,11 @@ export class GameService {
             inProgress: listed(activity.inProgress),
             recentlyFinished: listed(activity.recentlyFinished)
         }
+    }
+
+    /** Every Title's open games in a Series lobby, whoever may discover the Title. */
+    async getOpenSeriesGames(seriesId: string): Promise<Game[]> {
+        return (await this.gameStore.findSeriesActivity(seriesId)).open
     }
 
     async getCompletedGamesForUser(user: User): Promise<Game[]> {

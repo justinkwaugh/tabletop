@@ -4,6 +4,10 @@ import {
     AblyService,
     AblyTransport,
     BugReportService,
+    LobbyPostQueue,
+    LobbyPosts,
+    parseLobbyChannels,
+    PostedLobbies,
     CatalogService,
     CharityTallyRefresher,
     CharityTallyService,
@@ -25,6 +29,7 @@ import {
     EnvSecretsService,
     EnvService,
     FirestoreCharityTallyStore,
+    FirestoreLobbyPostStore,
     FirestoreChatStore,
     FirestoreGameStore,
     FirestoreGameFollowStore,
@@ -120,6 +125,7 @@ declare module 'fastify' {
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
+        lobbyPosts: LobbyPosts | undefined
         contentReports: ContentReports | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
         charityTallyService: CharityTallyService
@@ -138,6 +144,8 @@ const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const useSseRealtime = process.env['ENABLE_SSE_REALTIME'] === 'true'
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 const BUG_REPORT_DATA_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_DATA_CHANNEL_ID']
+const LOBBY_CHANNELS = parseLobbyChannels(process.env['DISCORD_LOBBY_CHANNELS'])
+const useLobbyPosts = !!process.env['DISCORD_BOT_TOKEN'] && Object.keys(LOBBY_CHANNELS).length > 0
 const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 const useTelegram = !!process.env['TELEGRAM_BOT_TOKEN']
@@ -203,9 +211,17 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         ssePubSub ?? new NullPubSubService()
     )
 
+    const postedLobbies = new PostedLobbies(
+        LOBBY_CHANNELS,
+        (titleId) => availableTitles.get(titleId)?.info.metadata
+    )
+    const lobbyPostQueue = useLobbyPosts
+        ? new LobbyPostQueue(taskService, postedLobbies)
+        : undefined
     const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore, {
         titleActivity: new ActivityCache(redisService.client, TitleActivityScope),
-        seriesActivity: new ActivityCache(redisService.client, SeriesActivityScope)
+        seriesActivity: new ActivityCache(redisService.client, SeriesActivityScope),
+        gameChanges: lobbyPostQueue
     })
     const gameFollowStore = new FirestoreGameFollowStore(redisCacheService, fastify.firestore)
     const gameService = new GameService(
@@ -445,6 +461,19 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
                   userService,
                   taskService,
                   MODERATION_EMAIL,
+                  FRONTEND_HOST
+              )
+            : undefined
+    )
+    fastify.decorate(
+        'lobbyPosts',
+        discordBotApi && lobbyPostQueue
+            ? new LobbyPosts(
+                  gameService,
+                  discordBotApi,
+                  new FirestoreLobbyPostStore(fastify.firestore),
+                  lobbyPostQueue,
+                  postedLobbies,
                   FRONTEND_HOST
               )
             : undefined

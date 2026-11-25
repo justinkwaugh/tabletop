@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { TournamentGameReference } from '../../site/tournamentGameReference.js'
 import { DateType } from '../../util/typebox.js'
-import { Player } from './player.js'
+import { Player, PlayerStatus } from './player.js'
 import { GameState } from './gameState.js'
 import { GameResult } from './gameResult.js'
 import { GameConfig } from './gameConfig.js'
@@ -134,6 +134,10 @@ export function isListedPublicGame(game: Pick<Game, 'isPublic' | 'unlisted'>): b
 
 export function isListedOpenGame(game: Pick<Game, 'isPublic' | 'unlisted' | 'status'>): boolean {
     return isListedPublicGame(game) && game.status === GameStatus.WaitingForPlayers
+}
+
+export function takenSeats(game: Pick<Game, 'players'>): number {
+    return game.players.filter((player) => player.status !== PlayerStatus.Open).length
 }
 
 export function gameUserIds(game: Pick<Game, 'players' | 'ownerId' | 'tournament'>): string[] {

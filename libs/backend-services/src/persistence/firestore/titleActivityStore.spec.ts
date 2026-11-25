@@ -20,6 +20,8 @@ import {
     SeriesActivityScope,
     TitleActivityScope
 } from '../../games/activityCache.js'
+import { LobbyPostQueue } from '../../discord/lobbyPosts.js'
+import { PostedLobbies } from '../../discord/postedLobbies.js'
 import { UpdateValidationResult } from '../stores/validator.js'
 import { FirestoreGameStore } from './gameStore.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
@@ -399,6 +401,45 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 expect(reads).toEqual({ queries: 3, documents: 0 })
                 await seriesStore.findSeriesActivity(seriesId)
                 expect(reads).toEqual({ queries: 3, documents: 0 })
+            })
+
+            it('queues a lobby post sync for each write to a game open in a posted lobby', async () => {
+                const createPushTask = vi.fn(async () => undefined)
+                const lobbyStore = new FirestoreGameStore(live.cache, db, {
+                    gameChanges: new LobbyPostQueue(
+                        { createPushTask },
+                        new PostedLobbies({ [seriesId]: { channelId: 'lobby-1' } }, () => ({
+                            name: titleId,
+                            designer: 'Designer',
+                            description: 'A title',
+                            year: '2026',
+                            minPlayers: 1,
+                            maxPlayers: 4,
+                            defaultPlayerCount: 2,
+                            version: '1.0.0',
+                            beta: false
+                        }))
+                    )
+                })
+                const open = game('open', {
+                    series: seriesId,
+                    status: GameStatus.WaitingForPlayers
+                })
+
+                await lobbyStore.createGame(open)
+                const [filled] = await lobbyStore.updateGame({
+                    game: open,
+                    fields: { status: GameStatus.WaitingToStart }
+                })
+                await lobbyStore.updateGame({
+                    game: filled,
+                    fields: { status: GameStatus.Started, startedAt: new Date() }
+                })
+
+                await vi.waitFor(() => expect(createPushTask).toHaveBeenCalledTimes(2))
+                expect(createPushTask).toHaveBeenCalledWith(
+                    expect.objectContaining({ payload: { gameId: open.id } })
+                )
             })
 
             it('adds an older game once it is labelled with the series', async () => {

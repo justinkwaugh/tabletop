@@ -16,7 +16,7 @@ import { nanoid } from 'nanoid'
 import { GameService } from '../games/gameService.js'
 import { GameNotFoundError } from '../games/errors.js'
 import { UserService } from '../users/userService.js'
-import { DiscordBotApi, type DiscordFile } from './discordBotApi.js'
+import { CreatedMessage, DiscordBotApi, discordRefusal, type DiscordFile } from './discordBotApi.js'
 import {
     bugReportDataMessage,
     bugReportPost,
@@ -54,7 +54,6 @@ type ReportedGameData = {
     storedLocally: boolean
 }
 
-const CreatedMessage = Compile(Type.Object({ id: Type.String() }))
 const CreatedThread = Compile(Type.Object({ id: Type.String(), guild_id: Type.String() }))
 
 const ForumTags = Compile(
@@ -84,7 +83,7 @@ export class BugReportService {
 
         const reportId = nanoid(10)
         const reportedAt = new Date()
-        const titleName = this.gameService.getTitle(game.typeId)?.info.metadata.name ?? game.typeId
+        const titleName = this.gameService.getTitleName(game.typeId)
         const dataMessageId = await this.postData(
             game,
             report,
@@ -125,9 +124,7 @@ export class BugReportService {
                 : await this.discordBotApi.post(path, post)
         if (!response.ok) {
             await this.discordBotApi.delete(this.dataMessagePath(dataMessageId))
-            throw new Error(
-                `Discord rejected the bug report with ${response.status}: ${await response.text()}`
-            )
+            throw await discordRefusal(response, 'the bug report')
         }
         await this.linkDataToThread(dataMessageId, reportId, await response.json())
     }
@@ -150,11 +147,7 @@ export class BugReportService {
             scenarioFile && scenario?.attached
                 ? await this.discordBotApi.postWithFiles(path, message, [scenarioFile])
                 : await this.discordBotApi.post(path, message)
-        if (!response.ok) {
-            throw new Error(
-                `Discord rejected the bug report data with ${response.status}: ${await response.text()}`
-            )
-        }
+        if (!response.ok) throw await discordRefusal(response, 'the bug report data')
         const created: unknown = await response.json()
         if (!CreatedMessage.Check(created)) {
             throw new Error('Discord did not return the bug report data message')

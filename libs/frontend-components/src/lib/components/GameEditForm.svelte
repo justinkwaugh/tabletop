@@ -29,6 +29,7 @@
         GameState,
         GameStorage,
         isBooleanConfigOption,
+        GAME_PACE_LABELS,
         isListConfigOption,
         isListedPublicGame,
         listOptionDescription,
@@ -52,7 +53,6 @@
     import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
     import { continuationGame, type EditableGame } from '$lib/utils/gameContinuation.svelte.js'
-    import { GAME_PACE_LABELS } from '$lib/utils/gamePaceLabels.js'
 
     const EditMode = {
         Create: 'create',

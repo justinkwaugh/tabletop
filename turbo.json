@@ -13,6 +13,7 @@
                 "DISCORD_BOT_TOKEN",
                 "DISCORD_BUG_REPORT_CHANNEL_ID",
                 "DISCORD_BUG_REPORT_DATA_CHANNEL_ID",
+                "DISCORD_LOBBY_CHANNELS",
                 "MODERATION_EMAIL",
                 "TILTIFY_CLIENT_ID",
                 "TELEGRAM_BOT_TOKEN",
