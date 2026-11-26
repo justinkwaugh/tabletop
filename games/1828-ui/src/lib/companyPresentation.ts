@@ -39,9 +39,7 @@ export const CompanyNames1828 = companyNameVariants(
         ...Majors1828.map(({ id }) => named(id, MajorSymbols[id])),
         ...Object.entries(PrivateInitials1828).map(([id, initials]) => named(id, initials)),
         // Each $250 private goes by the public company whose directorship it brings (§13.2.3).
-        ...DirectorPrivates1828.map(({ id, companyId }) =>
-            named(id, `${MajorSymbols[companyId]} $250`)
-        ),
+        ...DirectorPrivates1828.map(({ id, companyId }) => named(id, MajorSymbols[companyId])),
         named(CobourgRailwayId, PrivateInitials1828[CpId])
     ])
 )
