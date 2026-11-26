@@ -5,6 +5,7 @@
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import DiscardOrderCards from '$lib/components/DiscardOrderCards.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import AnswerButton from '$lib/components/AnswerButton.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
@@ -27,6 +28,7 @@
     const swapWidth = new ChoiceWidth()
     // Land Warden — the second card's buttons share the widest one's width.
     const secondWidth = new ChoiceWidth()
+    const noSecondWidth = new ChoiceWidth()
     // Rule 4 — an enlarged drawn card pages through the cards drawn, in draw order.
     const drawnGroup = () => drawnPreviewGroup(search.drawn)
 
@@ -167,53 +169,51 @@
             </div>
         {/if}
         <!-- Land Warden — shown only when a drawn card can be the second; no label over an empty row. Both cards
-             go in one play, so the second is answered before the kept card's buttons are shown. -->
+             go in one play, so the second is answered before the kept card's plays are shown. -->
         {#if search.secondCandidates.length > 0}
             {@const second = search.second}
-            <div class="mb-2 text-xs" data-second-plays>
+            <div class="mb-2 text-xs">
                 {#if !search.needsSecondAnswer}
                     <span class="text-oath-text-muted">Also play:</span>
                 {/if}
-                <CardChoiceRow
-                    choices={cardChoices(search.secondCandidates)}
-                    picked={second ? [second.cardId] : []}
-                    onpick={(cardId) => search.tapSecondCard(cardId)}
-                    {busy}
-                    height={80}
-                >
-                    {#snippet under(choice)}
-                        {#each search.secondPlays.filter((o) => o.cardId === choice.cardId) as option (option.key)}
-                            {@const on = second?.key === option.key}
-                            <button
-                                type="button"
-                                class="rounded border px-1 text-[10px] max-sm:min-h-11 {on
-                                    ? 'border-oath-accent bg-oath-accent-soft'
-                                    : 'border-oath-divider hover:border-oath-accent'}"
-                                style:min-width="{secondWidth.widest}px"
-                                aria-pressed={on}
-                                disabled={busy}
-                                onclick={() =>
-                                    search.setSecondPlay(toggleSingle(second?.key, option.key))}
-                            >
-                                <span class="inline-block w-max" {@attach secondWidth.measure}
-                                    >{option.mode}</span
+                <div data-second-plays>
+                    <CardChoiceRow
+                        choices={cardChoices(search.secondCandidates)}
+                        picked={second ? [second.cardId] : []}
+                        onpick={(cardId) => search.tapSecondCard(cardId)}
+                        {busy}
+                        height={80}
+                    >
+                        {#snippet under(choice)}
+                            {#each search.secondPlays.filter((o) => o.cardId === choice.cardId) as option (option.key)}
+                                {@const on = second?.key === option.key}
+                                <button
+                                    type="button"
+                                    class="rounded border px-1 text-[10px] max-sm:min-h-11 {on
+                                        ? 'border-oath-accent bg-oath-accent-soft'
+                                        : 'border-oath-divider hover:border-oath-accent'}"
+                                    style:min-width="{secondWidth.widest}px"
+                                    aria-pressed={on}
+                                    disabled={busy}
+                                    onclick={() =>
+                                        search.setSecondPlay(toggleSingle(second?.key, option.key))}
                                 >
-                            </button>
-                        {/each}
-                    {/snippet}
-                </CardChoiceRow>
-                <button
-                    type="button"
-                    class="mt-1 rounded border px-3 py-1 text-sm max-sm:min-h-11 {search.secondDeclined
-                        ? 'border-oath-accent bg-oath-accent-soft'
-                        : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
-                    aria-pressed={search.secondDeclined}
-                    data-no-second
-                    disabled={busy}
-                    onclick={() => search.declineSecond()}
-                >
-                    No second card
-                </button>
+                                    <span class="inline-block w-max" {@attach secondWidth.measure}
+                                        >{option.mode}</span
+                                    >
+                                </button>
+                            {/each}
+                        {/snippet}
+                    </CardChoiceRow>
+                </div>
+                <div class="mt-1">
+                    <AnswerButton
+                        picked={search.secondDeclined}
+                        width={noSecondWidth}
+                        disabled={busy}
+                        onclick={() => search.declineSecond()}>No second card</AnswerButton
+                    >
+                </div>
             </div>
         {/if}
         {#if search.discardFirstOptions.length > 0}
@@ -228,7 +228,7 @@
                 />
             </div>
         {/if}
-        <div class="flex items-start gap-3" class:hidden={search.needsSecondAnswer}>
+        <div class="flex items-start gap-3">
             <span class="relative inline-flex shrink-0">
                 <CardImage
                     cardId={search.kept}
@@ -241,7 +241,7 @@
                     label={cardName(search.kept)}
                 />
             </span>
-            <div>
+            <div class:hidden={search.needsSecondAnswer}>
                 <!-- One width, the widest label's: a row on a wide screen, a column below it. -->
                 <div class="inline-grid auto-cols-fr gap-1 lg:grid-flow-col">
                     {#each search.placements as option (option.label)}

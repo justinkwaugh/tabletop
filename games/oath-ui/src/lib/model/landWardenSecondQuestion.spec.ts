@@ -110,9 +110,9 @@ describe('Land Warden: the second card is asked before the kept card is played',
         expect(draft.needsSecondAnswer).toBe(true)
     })
 
-    it('"To your site" pressed before the answer plays nothing and discards nothing', async () => {
+    it('"To your site" pressed before the answer is refused, and nothing is played or discarded', async () => {
         const { draft, sent } = await keptAlchemist()
-        await draft.choosePlacement({ play: SearchPlay.Site })
+        await expect(draft.choosePlacement({ play: SearchPlay.Site })).rejects.toThrow()
         expect(sent).not.toHaveBeenCalled()
         expect(draft.placement).toBeUndefined()
         expect(draft.needsSecondAnswer).toBe(true)
@@ -162,6 +162,16 @@ describe('Land Warden: the second card is asked before the kept card is played',
         expect(draft.back()).toBe(true)
         expect(draft.kept).toBe(ALCHEMIST)
         expect(draft.needsSecondAnswer).toBe(true)
+    })
+
+    it('Undo takes back the answer with the picks beside the play, as one step', async () => {
+        const { draft } = await keptAlchemist()
+        draft.declineSecond()
+        draft.setDiscardFirst(WOLVES)
+        expect(draft.back()).toBe(true)
+        expect(draft.discardFirsts).toEqual([])
+        expect(draft.needsSecondAnswer).toBe(true)
+        expect(draft.kept).toBe(ALCHEMIST)
     })
 
     it('control: without Land Warden nothing is asked, and "To your site" plays at once', async () => {

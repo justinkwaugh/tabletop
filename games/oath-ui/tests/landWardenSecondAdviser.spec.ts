@@ -47,7 +47,7 @@ const SECOND_QUESTION = 'Land Warden: also play a second card?'
 const secondModeBoxes = (page: Page) =>
     panel(page)
         .locator('[data-second-plays]')
-        .locator('button:not(:has(img)):not(.magnifier):not([data-no-second])')
+        .locator('button:not(:has(img)):not(.magnifier)')
         .evaluateAll((buttons) =>
             buttons.map((button) => {
                 const box = button as HTMLElement
