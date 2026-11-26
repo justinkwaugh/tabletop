@@ -20,6 +20,7 @@ import {
 import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import {
     ActionType,
+    AutoJumpRule,
     Definition,
     MarbleColor,
     ZertzInfo,
@@ -93,7 +94,11 @@ const CAPTURE_OPENING = [
     place(SECOND, MarbleColor.Grey, { q: 1, r: 0 }, { q: -3, r: 0 })
 ]
 
-function prepared(opening: GameAction[] = OPENING, hotseat = false) {
+function prepared(
+    opening: GameAction[] = OPENING,
+    hotseat = false,
+    autoJump = AutoJumpRule.Optional
+) {
     const game = ZertzRuntime.initializer.initializeGame(
         {
             id: 'zertz-session',
@@ -102,7 +107,7 @@ function prepared(opening: GameAction[] = OPENING, hotseat = false) {
             storage: GameStorage.Local,
             hotseat,
             seed: 5,
-            config: defaultGameConfig(ZertzInfo.configurator?.options ?? []),
+            config: { ...defaultGameConfig(ZertzInfo.configurator?.options ?? []), autoJump },
             players: [FIRST, SECOND].map((id) => ({
                 id,
                 name: id,
@@ -350,6 +355,15 @@ describe('Stepping through history', () => {
 })
 
 describe('The auto-jump chip', () => {
+    it('is shown only in a game created with auto-jump optional', async () => {
+        expect((await sessionFor(prepared())).showsAutoJump).toBe(true)
+        for (const rule of [AutoJumpRule.Forced, AutoJumpRule.Off]) {
+            const session = await sessionFor(prepared(OPENING, false, rule))
+            expect(session.showsAutoJump).toBe(false)
+            expect(session.canSetAutoJump).toBe(false)
+        }
+    })
+
     it('says what the game now holds once the declaration lands', async () => {
         const session = await sessionFor(prepared())
         const on = await session.toggleAutoJump()

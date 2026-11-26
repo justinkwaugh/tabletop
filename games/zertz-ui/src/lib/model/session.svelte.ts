@@ -12,6 +12,7 @@ import {
 } from '@tabletop/common'
 import {
     ActionType,
+    AutoJumpRule,
     Capture,
     isPlaceMarble,
     PlaceMarble,
@@ -84,11 +85,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         boardNotation(this.view.frame(this.gameState.setup).positions, this.view)
     )
 
-    // Shown to a seated player while the game lasts, unless it was created with auto-jump for both.
     showsAutoJump: boolean = $derived(
         this.myPlayer !== undefined &&
             this.gameState.result === undefined &&
-            this.gameState.autoJumpForAll !== true
+            this.gameState.autoJumpRule === AutoJumpRule.Optional
     )
     autoJump: boolean = $derived.by(() => {
         const playerId = this.myPlayer?.id

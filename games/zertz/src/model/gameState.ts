@@ -14,7 +14,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ZertzPlayerState, HydratedZertzPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
-import { SETUP_RULES, ZertzSetup } from '../definition/config.js'
+import { AutoJumpRule, SETUP_RULES, ZertzSetup } from '../definition/config.js'
 import { HydratedZertzBoard, placementSeed, ZertzBoard, type Jump, type Ring } from './board.js'
 import { MARBLE_COLORS, MarbleColor, MarbleCounts, hasAnyMarble } from './marbles.js'
 
@@ -49,8 +49,9 @@ export const ZertzGameState = Type.Evaluate(
             // board, so only the turns since then are kept, each as a hash of its position.
             positions: Type.Array(Type.Number()),
             endReason: Type.Optional(Type.Enum(EndReason)),
-            // Set when the game was created with auto-jump for both players.
-            autoJumpForAll: Type.Optional(Type.Boolean())
+            // Set when the game was created with auto-jump forced on, or off, for both players.
+            autoJumpForAll: Type.Optional(Type.Boolean()),
+            autoJumpForNone: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -79,6 +80,7 @@ export class HydratedZertzGameState
     declare positions: number[]
     declare endReason?: EndReason
     declare autoJumpForAll?: boolean
+    declare autoJumpForNone?: boolean
 
     constructor(data: ZertzGameState) {
         super(data, ZertzGameStateValidator)
@@ -109,8 +111,21 @@ export class HydratedZertzGameState
         return chainFrom === undefined ? this.board.allJumps() : this.board.jumpsFrom(chainFrom)
     }
 
+    get autoJumpRule(): AutoJumpRule {
+        if (this.autoJumpForAll === true) return AutoJumpRule.Forced
+        if (this.autoJumpForNone === true) return AutoJumpRule.Off
+        return AutoJumpRule.Optional
+    }
+
     autoJumps(playerId: string): boolean {
-        return this.autoJumpForAll === true || this.getPlayerState(playerId).autoJump === true
+        switch (this.autoJumpRule) {
+            case AutoJumpRule.Forced:
+                return true
+            case AutoJumpRule.Off:
+                return false
+            case AutoJumpRule.Optional:
+                return this.getPlayerState(playerId).autoJump === true
+        }
     }
 
     // The jump an auto-jumping player makes for themselves: the only one open to them.
