@@ -1,6 +1,6 @@
 import type { Point } from '@tabletop/common'
 import { followHex, type HexPlacement } from './followHex.js'
-import { TileBox } from './tilePiece.js'
+import { TileBox, type PieceLayout } from './tilePiece.js'
 
 /** Where a picker drawn around a map hex stands: the hex, the tile size there, and its ✗/✓ controls. */
 export class HexPickerFrame {
@@ -19,6 +19,30 @@ export class HexPickerFrame {
                 Math.min(this.width - this.buttonSize * 1.2, center.x)
             ),
             y: Math.max(this.buttonSize * 0.6, center.y - halfHeight - this.buttonSize * 0.65) + 1
+        }
+    }
+    /** Where a point of the map stands on screen, from where the followed hex's centre is on the map. */
+    onScreen(point: Point, hexCenter: Point): Point {
+        const scale = this.tileSize / TileBox
+        return {
+            x: this.center.x + (point.x - hexCenter.x) * scale,
+            y: this.center.y + (point.y - hexCenter.y) * scale
+        }
+    }
+    /**
+     * Where a piece over the followed hex stands on screen, laid out on the map where it covers
+     * more than that hex: its middle, half its height, and how many hexes across it is.
+     */
+    piece(
+        hexCenter: Point,
+        layout: PieceLayout | undefined
+    ): { center: Point; halfHeight: number; extent: number } {
+        if (!layout) return { center: this.center, halfHeight: this.hexHeight / 2, extent: 1 }
+        return {
+            center: this.onScreen(layout.middle, hexCenter),
+            halfHeight:
+                this.hexHeight / 2 + ((layout.height - TileBox) * this.tileSize) / TileBox / 2,
+            extent: Math.max(layout.width, layout.height) / TileBox
         }
     }
     /** The action that keeps the frame on its hex as the map moves. */

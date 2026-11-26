@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { TrackConstruction, getCompany, rotateTileFace, tileUpgradeMappings } from '@tabletop/18xx'
+import {
+    RailwayMapState,
+    TrackConstruction,
+    getCompany,
+    rotateTileFace,
+    tileUpgradeMappings
+} from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { laidTiles } from '@tabletop/18xx/testing'
 import {
@@ -121,14 +127,16 @@ describe('track construction', () => {
 
     it('gives Tampa no brown upgrade', () => {
         const { state } = exampleGame(EighteenThirtyTwoScenarios, 'construction', 3)
+        const tampa = new RailwayMapState(
+            EighteenThirtyTwoTrackRules.map,
+            EighteenThirtyTwoTileSet,
+            state.tileInventory
+        ).tile('Z25')
         const restriction = (definitionId: string) =>
-            EighteenThirtyTwoTrackRules.restriction(state, {
-                companyId: 'CG',
-                locationId: 'Z25',
-                definitionId,
-                rotation: 0,
-                nodeMapping: {}
-            })
+            EighteenThirtyTwoTrackRules.placementRestriction?.(
+                { locationId: 'Z25', definitionId, rotation: 0, nodeMapping: {} },
+                tampa
+            )
         expect(restriction('18xx:63')).toBe('Tampa has no brown upgrade')
         expect(restriction('18xx:14')).toBeUndefined()
     })

@@ -29,7 +29,7 @@ import {
 import { RouteRulesMex } from './routes.js'
 import { CompanyRulesMex, StockRulesMex, ndmUnitsValue } from './stock.js'
 import { MarketMex } from './stockMarket.js'
-import { CopperCanyonTileId } from './tiles.js'
+import { CopperCanyonTileId, mapStateMex } from './tiles.js'
 import { TrackRulesMex } from './track.js'
 import {
     FourDId,
@@ -295,11 +295,10 @@ describe('track (4.4.1, Table III, Table IV)', () => {
         }
         expect(TrackRulesMex.terrainCost?.(state, request, 0)).toBe(60)
         expect(
-            TrackRulesMex.restriction(state, {
-                ...request,
-                locationId: 'P11',
-                definitionId: '18mex:479P'
-            })
+            TrackRulesMex.placementRestriction?.(
+                { ...request, locationId: 'P11', definitionId: '18mex:479P' },
+                mapStateMex(state).tile('P11')
+            )
         ).toMatch(/from Mexico City/)
     })
     it('lets only the KCM&O’s owner lay Copper Canyon, for $60, closing the private', () => {

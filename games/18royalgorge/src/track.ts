@@ -1,4 +1,4 @@
-import type { ConstructionState, TrackRules } from '@tabletop/18xx'
+import type { TrackRules } from '@tabletop/18xx'
 import { PrisonId } from './ids.js'
 import { placeGold } from './gold.js'
 import {
@@ -13,11 +13,11 @@ import { requireStateRoyalGorge } from './state.js'
 import { SteelRecipient, buySteel, nextSteel } from './steel.js'
 import {
     BrownGorgeTileIds,
+    GreenGorgeTileIds,
     SalidaOneSpaceBrownId,
     SalidaTwoSpaceGreenId,
     SpecialTileIds,
     TileSetRoyalGorge,
-    mapStateRoyalGorge,
     preservesStopsRoyalGorge,
     tileFaceRoyalGorge
 } from './tiles.js'
@@ -27,9 +27,7 @@ import { treatySigned } from './debt.js'
 /** Up to six lays or upgrades a turn, in any mix (TR-2). */
 export const LaysPerTurn = 6
 
-function tileAt(state: ConstructionState, locationId: string) {
-    return mapStateRoyalGorge(state).tile(locationId)
-}
+const GorgeTileIds = [GreenGorgeTileIds, BrownGorgeTileIds]
 
 export const TrackRulesRoyalGorge: TrackRules = {
     map: MapRoyalGorge,
@@ -56,34 +54,46 @@ export const TrackRulesRoyalGorge: TrackRules = {
     // The prison's labour halves the terrain of its railroad's lays (Y5).
     terrainCost: (state, request, cost) =>
         ownsOpenPrivate(state, request.companyId, PrisonId) ? Math.floor(cost / 2) : cost,
-    restriction(state, request) {
-        if (SpecialTileIds.includes(request.definitionId))
-            return 'Only an event or a private lays this tile.'
-        const gorgeTile = BrownGorgeTileIds[request.locationId]
-        if (GorgeLocationIds.includes(request.locationId)) {
-            if (!treatySigned(state.phaseId))
-                return 'The Royal Gorge is closed until the Treaty of Boston.'
-            if (gorgeTile !== request.definitionId)
-                return 'Only the brown gorge upgrades the gorge.'
-            if (request.rotation !== 0) return 'The gorge lies only as the board prints it.'
-        } else if (Object.values(BrownGorgeTileIds).includes(request.definitionId))
+    placementRestriction(placement, before) {
+        if (GorgeLocationIds.includes(placement.locationId)) {
+            if (
+                !GorgeTileIds.some(
+                    (tiles) => tiles[placement.locationId] === placement.definitionId
+                )
+            )
+                return 'Only the gorge’s own tiles upgrade the gorge.'
+            if (placement.rotation !== 0) return 'The gorge lies only as the board prints it.'
+        } else if (
+            GorgeTileIds.some((tiles) => Object.values(tiles).includes(placement.definitionId))
+        )
             return 'The gorge tiles belong to the Royal Gorge.'
         // An upgrade may not take away station spaces, even empty ones (Letter Tiles).
         if (
-            tileAt(state, request.locationId).placement?.definitionId === SalidaTwoSpaceGreenId &&
-            request.definitionId === SalidaOneSpaceBrownId
+            before.placement?.definitionId === SalidaTwoSpaceGreenId &&
+            placement.definitionId === SalidaOneSpaceBrownId
         )
             return 'An upgrade may not remove a station space.'
         return undefined
     },
-    // The brown gorge is one tile: laid on one hex, it lies across all three, for one steel and
-    // one lay (RG-1).
-    companionTiles: (_state, details) =>
-        BrownGorgeTileIds[details.locationId] === details.definitionId
-            ? Object.entries(BrownGorgeTileIds)
+    restriction(state, request) {
+        if (SpecialTileIds.includes(request.definitionId))
+            return 'Only an event or a private lays this tile.'
+        if (GorgeLocationIds.includes(request.locationId) && !treatySigned(state.phaseId))
+            return 'The Royal Gorge is closed until the Treaty of Boston.'
+        return undefined
+    },
+    // The gorge is one tile in each colour: the treaty lays the green across all three hexes (DB-1),
+    // and the brown, laid on one hex, lies across all three, for one steel and one lay (RG-1).
+    companionTiles: (_state, details) => {
+        const gorge = GorgeTileIds.find(
+            (tiles) => tiles[details.locationId] === details.definitionId
+        )
+        return gorge
+            ? Object.entries(gorge)
                   .filter(([locationId]) => locationId !== details.locationId)
                   .map(([locationId, definitionId]) => ({ locationId, definitionId, rotation: 0 }))
-            : [],
+            : []
+    },
     afterLay(state, details, _payer, ordinary) {
         const title = requireStateRoyalGorge(state)
         const face = tileFaceRoyalGorge(details.definitionId)

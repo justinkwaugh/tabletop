@@ -12,7 +12,8 @@ import { major1822, minor1822 } from './companies.js'
 import {
     layRestriction1822,
     londonConsentPlayerId1822,
-    londonOtherConsentPlayerIds1822
+    londonOtherConsentPlayerIds1822,
+    londonPlacementRestriction1822
 } from './layRestriction.js'
 import { Map1822, OystermouthNodeId, SwanseaLocationId } from './map.js'
 import {
@@ -159,6 +160,7 @@ export const TrackRules1822: TrackRules = {
         const home = minor1822(companyId)?.home
         return home ? [home.locationId] : []
     },
+    placementRestriction: londonPlacementRestriction1822,
     restriction: (state, request) =>
         layRestriction1822(state, request) ?? secondUpgradeRestriction(state, request),
     consentPlayerId: londonConsentPlayerId1822,

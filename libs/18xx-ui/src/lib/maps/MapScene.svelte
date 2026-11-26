@@ -50,6 +50,7 @@
         highlightedLocationIds = legalLocationIds,
         outlinedLocationIds = [],
         maskUnavailableLocations = false,
+        selectableLocationIds,
         previewLocationId,
         translucentLocationId,
         selection,
@@ -72,6 +73,8 @@
         /** Hexes outlined as a selected hex is, without selecting them. */
         outlinedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
+        /** The hexes a tap may select, where only some may: taps on the rest reach the board. */
+        selectableLocationIds?: readonly string[]
         previewLocationId?: string
         /** Hexes one tile covers together, highlighted as one piece. */
         tileGroups?: readonly (readonly string[])[]
@@ -232,7 +235,9 @@
         )}
 
         {@const available =
-            !!onselect && (!maskUnavailableLocations || legalLocationIds.includes(id))}
+            !!onselect &&
+            (!maskUnavailableLocations || legalLocationIds.includes(id)) &&
+            (!selectableLocationIds || selectableLocationIds.includes(id))}
         {@const selected = selection?.locationId === id}
         {@const target: MapSelection = { kind: 'hex', locationId: id }}
         {#if entry.hidden}

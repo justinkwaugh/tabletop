@@ -2020,3 +2020,13 @@ export function mapSelectionRect(
         height: radius * 2 * scale
     }
 }
+
+/** The drawing of a hex the map draws. */
+export function drawnLocation(
+    scene: Pick<MapDrawing, 'locations'>,
+    locationId: string
+): MapDrawnLocation {
+    const entry = scene.locations.find((entry) => entry.location.id === locationId)
+    assertExists(entry, `The map draws ${locationId}`)
+    return entry
+}

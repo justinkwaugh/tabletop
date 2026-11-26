@@ -3,7 +3,7 @@ import {
     sameStopCounts,
     type ConstructionState,
     type TileFace,
-    type TrackRequest,
+    type TrackPlacement,
     type TrackRules
 } from '@tabletop/18xx'
 import { ChicagoLocationId, Map1850, WestChicagoNodeId } from './map.js'
@@ -29,12 +29,15 @@ function laysThisTurn(state: ConstructionState): boolean[] {
 // Laid on its only legs that upgrades can keep, the tile's second city is the western (§6.1.3).
 const ForbiddenChicagoRotation = 2
 
-function chicagoRestriction(request: TrackRequest): string | undefined {
-    if (request.locationId !== ChicagoLocationId || request.definitionId !== ChicagoYellowTileId)
+function chicagoRestriction(placement: TrackPlacement): string | undefined {
+    if (
+        placement.locationId !== ChicagoLocationId ||
+        placement.definitionId !== ChicagoYellowTileId
+    )
         return undefined
-    if (request.rotation === ForbiddenChicagoRotation)
+    if (placement.rotation === ForbiddenChicagoRotation)
         return 'Chicago’s yellow tile may not have legs to the northwest and due east'
-    return request.nodeMapping[WestChicagoNodeId] === WestChicagoNodeId
+    return placement.nodeMapping[WestChicagoNodeId] === WestChicagoNodeId
         ? undefined
         : 'The Chicago, Burlington & Quincy starts in west Chicago'
 }
@@ -73,7 +76,7 @@ export const TrackRules1850: TrackRules = {
         if (requireState1850(state).bridgeLaid && request.locationId === BridgeLocationId)
             return 'A tile laid with the Bridge Company cannot be upgraded this operating round'
         const blocker = PrivateCatalog1850.blockedBy(state, request.locationId)
-        if (blocker) return `No track here while a player owns the ${blocker.name}`
-        return chicagoRestriction(request)
-    }
+        return blocker ? `No track here while a player owns the ${blocker.name}` : undefined
+    },
+    placementRestriction: chicagoRestriction
 }

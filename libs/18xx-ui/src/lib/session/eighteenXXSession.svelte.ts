@@ -121,6 +121,7 @@ import type {
     TitlePresentation
 } from './titlePresentation.js'
 import { TrackModule, type TitleTrackLay } from './trackModule.svelte.js'
+import { TilePlanModule } from './tilePlanModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { CorporateFinanceModule } from './corporateFinanceModule.svelte.js'
@@ -414,6 +415,16 @@ export class EighteenXXSession<
             !!this.moduleSession.state.privateStation ||
             !!this.stations.homeChoice
     )
+    readonly tilePlan = new TilePlanModule(
+        this.moduleSession,
+        () => this.mapView,
+        () =>
+            !this.track.showChoices &&
+            !this.routes.editable &&
+            !this.stations.canPlace &&
+            !this.map.offeredCityLocationIds.length &&
+            !this.mapLocationChoice
+    )
     readonly routes = new RoutesModule(
         this.moduleSession,
         () => this.map.networkRoutes,
@@ -436,6 +447,7 @@ export class EighteenXXSession<
         this.stations,
         this.routes,
         [this.companyAuction, this.stock],
+        this.tilePlan,
         () => this.mapDisplayState
     )
     readonly projectedRun = new ProjectedRunModule(

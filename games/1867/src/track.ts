@@ -6,7 +6,7 @@ import {
     rotateTileFace,
     tileExits,
     type ConstructionState,
-    type TrackRequest,
+    type TrackPlacement,
     type TrackRules
 } from '@tabletop/18xx'
 import { LoanRules1867 } from './loans.js'
@@ -36,8 +36,7 @@ function untrackedHomes(state: ConstructionState, companyId: string): string[] {
 }
 
 /** A yellow tile laid where the map prints a yellow triangle must connect to it (GTG §8.6.2). */
-function missesStub(request: TrackRequest): boolean {
-    const { locationId, definitionId, rotation } = request
+function missesStub({ locationId, definitionId, rotation }: TrackPlacement): boolean {
     const stub = YellowTileStubs1867[locationId]
     if (stub === undefined) return false
     const definition = TileSet1867.definitions.find((entry) => entry.id === definitionId)
@@ -79,7 +78,10 @@ export const TrackRules1867: TrackRules = {
         const homes = untrackedHomes(state, request.companyId)
         if (homes.length && !homes.includes(request.locationId))
             return 'A company lays its first tile in its home hex.'
-        if (missesStub(request)) return 'A yellow tile here must connect to the yellow triangle.'
         return undefined
-    }
+    },
+    placementRestriction: (placement) =>
+        missesStub(placement)
+            ? 'A yellow tile here must connect to the yellow triangle.'
+            : undefined
 }

@@ -7,11 +7,14 @@ import {
     getCompany,
     homeStationId,
     type ConstructionState,
+    type MapTile,
     type TileFace,
+    type TrackPlacement,
     type TrackRequest,
     type TrackRules,
     type TrackStep
 } from '@tabletop/18xx'
+import { assertExists } from '@tabletop/common'
 import { EighteenUSAMap } from './map.js'
 import {
     EighteenUSATileSet,
@@ -156,6 +159,7 @@ export const EighteenUSATrackRules: TrackRules = {
             return Math.max(0, cost - MountainDiscount)
         return cost
     },
+    placementRestriction,
     restriction(state, request) {
         const definition = tileDefinition(request.definitionId)
         if (!definition) return 'Unknown tile'
@@ -163,13 +167,6 @@ export const EighteenUSATrackRules: TrackRules = {
             return 'Only P27 Company Town lays a Company Town.'
         if (request.definitionId === RegionalHeadquartersTileId)
             return 'Only P16 Regional Headquarters lays its tile.'
-        if (
-            BTileIds.includes(request.definitionId) &&
-            !currentFace(state, request.locationId)?.labels.some((label) =>
-                MetropolisBLabels.includes(label)
-            )
-        )
-            return 'B tiles upgrade only the Atlanta, Chicago, Denver and New Orleans metropolises.'
         if (!phaseColors(state).includes(definition.face.color) && hasCity(definition.face))
             return 'Only plain track may be a colour beyond the phase (P11).'
         return layRestriction(state, request, true)
@@ -189,10 +186,31 @@ function currentFace(state: ConstructionState, locationId: string): TileFace | u
     return placedFace(state, locationId) ?? EighteenUSAMap.location(locationId).preprintedTile
 }
 
+/** The metropolises' B tiles, the stubs toward New York and its printed tile. */
+function placementRestriction(placement: TrackPlacement, before: MapTile): string | undefined {
+    const definition = tileDefinition(placement.definitionId)
+    assertExists(definition, `Unknown 18USA tile ${placement.definitionId}`)
+    if (
+        BTileIds.includes(placement.definitionId) &&
+        !before.face.labels.some((label) => MetropolisBLabels.includes(label))
+    )
+        return 'B tiles upgrade only the Atlanta, Chicago, Denver and New Orleans metropolises.'
+    const stub = RequiredTileEdges[placement.locationId]
+    if (
+        stub !== undefined &&
+        definition.face.color === 'yellow' &&
+        !tileExits(rotateTileFace(definition.face, placement.rotation)).has(stub)
+    )
+        return 'The tile must connect to the printed track toward New York.'
+    if (placement.locationId === NewYorkId && definition.face.color === 'yellow')
+        return 'New York is already yellow.'
+    return undefined
+}
+
 /**
- * What limits every lay, a private's too: green cities on empty city hexes from phase 5, ore
- * tokens, the stubs toward New York and its printed tile; and, for a lay that is one of the
- * turn's tile actions, one city upgrade and one lay a hex (§12.2, §13.3, P11).
+ * What limits every lay, a private's too: green cities on empty city hexes from phase 5 and ore
+ * tokens; and, for a lay that is one of the turn's tile actions, one city upgrade and one lay a
+ * hex (§12.2, §13.3, P11).
  */
 export function layRestriction(
     state: ConstructionState,
@@ -228,14 +246,5 @@ export function layRestriction(
         return 'Only one city may be upgraded a turn (P11).'
     if (tileAction && state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
         return 'The second lay must be on a different hex'
-    const stub = RequiredTileEdges[request.locationId]
-    if (
-        stub !== undefined &&
-        definition.face.color === 'yellow' &&
-        !tileExits(rotateTileFace(definition.face, request.rotation)).has(stub)
-    )
-        return 'The tile must connect to the printed track toward New York.'
-    if (request.locationId === NewYorkId && definition.face.color === 'yellow')
-        return 'New York is already yellow.'
     return undefined
 }

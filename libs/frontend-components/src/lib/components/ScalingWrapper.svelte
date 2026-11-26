@@ -1485,12 +1485,14 @@
         : 'margin: 0; border: 0; padding: 0; max-width: none; max-height: none; color: inherit; background: transparent;'}
 >
     {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}
+    <!-- Clipped, never scrollable: focusing content, as showModal() does, would scroll a hidden-overflow
+         surface and shift the view without its transform knowing. -->
     <div
         bind:this={scroller}
-        class="scaling-surface overflow-hidden box-border"
+        class="scaling-surface box-border"
         class:w-full={!isExpanded}
         class:h-full={!isExpanded}
-        style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none; user-select: none; cursor: ${mouseDragging ? 'grabbing' : 'grab'};`}
+        style={`overflow: clip; ${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none; user-select: none; cursor: ${mouseDragging ? 'grabbing' : 'grab'};`}
         onwheel={handleWheel}
     >
         <div

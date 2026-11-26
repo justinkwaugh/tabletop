@@ -35,6 +35,7 @@ import {
 import type { RoutesModule, RoutesSession } from './routesModule.svelte.js'
 import type { StationsModule, StationsState } from './stationsModule.svelte.js'
 import type { TrackModule } from './trackModule.svelte.js'
+import type { TilePlanModule } from './tilePlanModule.svelte.js'
 import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 
 type MapState = Parameters<typeof stationMapTokens>[0] &
@@ -101,6 +102,7 @@ type Stations = Pick<
 export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
 type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
 type Routes = Pick<RoutesModule<RoutesSession['state']>, 'tap'>
+type Plan = Pick<TilePlanModule, 'locationId' | 'inventory' | 'tap' | 'clear'>
 
 export class MapModule {
     showTrackAccess = $state(true)
@@ -114,6 +116,7 @@ export class MapModule {
         private readonly stations: Stations,
         private readonly routes: Routes,
         private readonly homeOffers: readonly HomeOffer[],
+        private readonly plan: Plan,
         private readonly displayState: () => MapState = () => session.state
     ) {}
 
@@ -209,13 +212,16 @@ export class MapModule {
     private previewTileInventory = $derived.by(() =>
         this.landedLay ? this.track.construction.inventoryAfter(this.landedLay) : undefined
     )
-    displayedTileInventory = $derived.by(() => this.previewTileInventory ?? this.tileInventory)
+    displayedTileInventory = $derived.by(
+        () => this.plan.inventory ?? this.previewTileInventory ?? this.tileInventory
+    )
     displayedStationState = $derived.by(
         (): StationState => this.landedLayStations ?? this.stations.displayState
     )
-    displayedScene = $derived.by(() =>
-        this.previewTileInventory ? this.draw(this.previewTileInventory, this.scene) : this.scene
-    )
+    displayedScene = $derived.by(() => {
+        const inventory = this.plan.inventory ?? this.previewTileInventory
+        return inventory ? this.draw(inventory, this.scene) : this.scene
+    })
     displayedTokens = $derived.by(() => {
         if (this.landedLayStations)
             return stationMapTokens(
@@ -242,6 +248,8 @@ export class MapModule {
         if (this.session.publishing) return undefined
         const constructionLocation = this.track.selection.locationId?.value
         if (constructionLocation) return { kind: 'hex', locationId: constructionLocation }
+        const plannedLocation = this.plan.locationId
+        if (plannedLocation) return { kind: 'hex', locationId: plannedLocation }
         const stationPosition = this.stations.selection.placement?.value.position
         if (stationPosition) return { kind: 'slot', ...stationPosition }
         const inspection = this.inspection
@@ -333,6 +341,7 @@ export class MapModule {
     }
     select(selection: MapSelection, allowInspection = true) {
         if (this.track.showChoices) {
+            this.plan.clear()
             const legal = this.track.locationIds
             const piece = tileGroupOf(this.view(), selection.locationId) ?? [selection.locationId]
             const previewed = this.track.preview?.locationId
@@ -352,6 +361,7 @@ export class MapModule {
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)
         else if (allowInspection) this.inspect(selection)
+        else this.plan.tap(selection.locationId)
     }
 
     private placeStation(selection: MapSelection) {

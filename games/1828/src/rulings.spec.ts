@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { turnOrderFrom } from '@tabletop/common'
 import {
+    RailwayMapState,
     ReserveBidAuction,
     controllingOwner,
     furtherShareAllowed,
@@ -934,13 +935,15 @@ describe('the Virginia Coalfields (§14.3.1.1, §16)', () => {
     })
     it('takes only tile #4 in the tunnel', () => {
         const game = kit.table(4, 7)
-        const reason = TrackRules1828.restriction(game.hydrated, {
-            companyId: 'CO',
-            locationId: 'K13',
-            definitionId: '18xx:3',
-            rotation: 0,
-            nodeMapping: {}
-        })
+        const tunnel = new RailwayMapState(
+            TrackRules1828.map,
+            TileSet1828,
+            game.hydrated.tileInventory
+        ).tile('K13')
+        const reason = TrackRules1828.placementRestriction?.(
+            { locationId: 'K13', definitionId: '18xx:3', rotation: 0, nodeMapping: {} },
+            tunnel
+        )
         expect(reason).toMatch(/#4/)
     })
 })

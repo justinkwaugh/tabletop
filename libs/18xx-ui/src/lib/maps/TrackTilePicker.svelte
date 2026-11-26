@@ -10,8 +10,9 @@
     import { HexPickerFrame } from './hexPickerFrame.svelte.js'
     import HexPickerControls from './HexPickerControls.svelte'
     import TilePiece from './TilePiece.svelte'
-    import { TileBox, pieceLayout, type PieceHex } from './tilePiece.js'
+    import { TileBox, pieceDrawing, pieceLayout } from './tilePiece.js'
     import { tileGroupOf } from './tileGroups.js'
+    import { drawnLocation } from './mapDrawing.js'
     import { assertExists, type Point } from '@tabletop/common'
 
     let {
@@ -24,29 +25,26 @@
     const frame = new HexPickerFrame()
     const locationId = $derived(session.track.selection.locationId?.value)
     const mapScale = $derived(frame.tileSize / TileBox)
-    function sceneHex(id: string) {
-        const entry = session.map.scene.locations.find((candidate) => candidate.location.id === id)
-        assertExists(entry, `The map draws ${id}`)
-        return entry
-    }
     /** Where a point of the map, in map units, stands on screen, from the followed hex. */
     function onScreen(point: Point): Point {
         assertExists(locationId, 'The picker follows a chosen hex')
-        const anchor = sceneHex(locationId).center
-        return {
-            x: frame.center.x + (point.x - anchor.x) * mapScale,
-            y: frame.center.y + (point.y - anchor.y) * mapScale
-        }
+        return frame.onScreen(point, drawnLocation(session.map.scene, locationId).center)
     }
     const group = $derived(locationId ? tileGroupOf(session.mapView, locationId) : undefined)
     const groupLayout = $derived(
-        group ? pieceLayout(group.map((id) => sceneHex(id).center)) : undefined
+        group
+            ? pieceLayout(group.map((id) => drawnLocation(session.map.scene, id).center))
+            : undefined
     )
-    const center = $derived(groupLayout ? onScreen(groupLayout.middle) : frame.center)
+    const placedPiece = $derived(
+        frame.piece(
+            locationId ? drawnLocation(session.map.scene, locationId).center : frame.center,
+            groupLayout
+        )
+    )
+    const center = $derived(placedPiece.center)
     /** Half the height the hex, or the piece, takes on screen. */
-    const halfHeight = $derived(
-        frame.hexHeight / 2 + (groupLayout ? ((groupLayout.height - TileBox) * mapScale) / 2 : 0)
-    )
+    const halfHeight = $derived(placedPiece.halfHeight)
     const controls = $derived(frame.controlsAbove(center, halfHeight))
     /** The tiles each choice lays as one piece, by tile, where it lays more than one. */
     const pieces = $derived.by(() => {
@@ -59,24 +57,7 @@
                         : session.track.choices.find((choice) => choice.definitionId === tile.id)
                 const tiles = details ? session.track.pieceOf(details) : []
                 if (tiles.length < 2) return []
-                const layout = pieceLayout(tiles.map((entry) => sceneHex(entry.locationId).center))
-                const hexes = tiles.map((entry, index): PieceHex => {
-                    const definition = session.mapView.tileSet.definitions.find(
-                        (candidate) => candidate.id === entry.definitionId
-                    )
-                    assertExists(definition, `Tile ${entry.definitionId} is in the set`)
-                    const { outline, joints } = sceneHex(entry.locationId)
-                    return {
-                        face: definition.face,
-                        printedNumber: definition.printedNumber,
-                        rotation: entry.rotation,
-                        layout: placedTileLayout(session.mapView.layouts, entry.definitionId),
-                        offset: layout.offsets[index],
-                        outline,
-                        joints
-                    }
-                })
-                return [[tile.id, { hexes, layout }] as const]
+                return [[tile.id, pieceDrawing(tiles, session.map.scene, session.mapView)] as const]
             })
         )
     })
@@ -90,9 +71,7 @@
     })
     const selectedId = $derived(session.track.preview?.definitionId)
     /** How many hexes across a piece laid over the group is, so its hexes keep a tile's size. */
-    const pieceExtent = $derived(
-        groupLayout ? Math.max(groupLayout.width, groupLayout.height) / TileBox : 1
-    )
+    const pieceExtent = $derived(placedPiece.extent)
     /**
      * The choices' arc, and the size a choice's whole piece takes there: each hex at a tile's
      * size where the pieces fit around the group, otherwise a piece within one tile's size.

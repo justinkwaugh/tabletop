@@ -46,6 +46,11 @@ export const EighteenNinetyFourTrackRules: TrackRules = {
     useful: ({ home, connected }) => home || connected,
     stopAllowed: londonAccess,
     homeLocations: (companyId) => EighteenNinetyFourMap.reservedLocationIds(companyId),
+    // Paris's marked city stays the marked city of every tile (§12.2).
+    placementRestriction: (placement) =>
+        placement.locationId === ParisLocationId && placement.nodeMapping['city-0'] !== 'city-0'
+            ? 'The PLM’s station space must stay on the marked city.'
+            : undefined,
     restriction(state, request) {
         if (EighteenNinetyFourPrivateCatalog.blockedBy(state, request.locationId))
             return 'A player-owned private company blocks this hex.'
@@ -63,9 +68,6 @@ export const EighteenNinetyFourTrackRules: TrackRules = {
         ).tile(request.locationId).placement
         if (state.phaseId === 'D' && placed && placed.definitionId in SplitCityTiles)
             return 'Green cities cannot be upgraded in phase D.'
-        // Paris's marked city stays the marked city of every tile (§12.2).
-        if (request.locationId === ParisLocationId && request.nodeMapping['city-0'] !== 'city-0')
-            return 'The PLM’s station space must stay on the marked city.'
         return undefined
     }
 }

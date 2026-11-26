@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { getCompany, homeStationId, type StationPosition } from '@tabletop/18xx'
+import { RailwayMapState, getCompany, homeStationId, type StationPosition } from '@tabletop/18xx'
 import {
     auctionMinor,
     edit,
@@ -11,6 +11,7 @@ import {
     setCash
 } from '../test/kit.js'
 import { CnId } from './companies.js'
+import { Map1867 } from './map.js'
 import { CnMontrealStationId } from './national.js'
 import { EndingRules1867, OperatingRules1867, TrainRules1867 } from './operating.js'
 import { CompanyRules1867, StockRules1867 } from './stock.js'
@@ -128,8 +129,11 @@ describe('1867 track', () => {
             rotation,
             nodeMapping: {}
         })
-        expect(TrackRules1867.restriction(game.hydrated, lay(0))).toMatch(/triangle/)
-        expect(TrackRules1867.restriction(game.hydrated, lay(1))).toBeUndefined()
+        const before = new RailwayMapState(Map1867, TileSet1867, game.hydrated.tileInventory).tile(
+            'G15'
+        )
+        expect(TrackRules1867.placementRestriction?.(lay(0), before)).toMatch(/triangle/)
+        expect(TrackRules1867.placementRestriction?.(lay(1), before)).toBeUndefined()
     })
 })
 

@@ -89,17 +89,17 @@ export const TrackRulesMex: TrackRules = {
     homeLocations: (companyId) => [homeLocationMex(companyId)],
     terrainCost: (state, request, cost) =>
         request.locationId === MexicoCityLocationId ? cost + pueblaCost(state) : cost,
-    restriction(_state, request) {
-        if (request.definitionId === CopperCanyonTileId)
-            return 'Only a company owning the KCM&O lays the Copper Canyon tile.'
-        const pair = mexicoCityPair(request.definitionId)
-        if (pair) {
-            if (request.locationId !== MexicoCityLocationId)
-                return 'The Mexico City double tile is laid from Mexico City.'
-            if (request.rotation !== 0) return 'The Mexico City tiles lie only as printed.'
-        }
+    placementRestriction(placement) {
+        if (!mexicoCityPair(placement.definitionId)) return undefined
+        if (placement.locationId !== MexicoCityLocationId)
+            return 'The Mexico City double tile is laid from Mexico City.'
+        if (placement.rotation !== 0) return 'The Mexico City tiles lie only as printed.'
         return undefined
     },
+    restriction: (_state, request) =>
+        request.definitionId === CopperCanyonTileId
+            ? 'Only a company owning the KCM&O lays the Copper Canyon tile.'
+            : undefined,
     // The Mexico City tiles are double hexes, Puebla's half laid with Mexico City's (4.4.1(g)).
     companionTiles(_state, details) {
         const pair = mexicoCityPair(details.definitionId)

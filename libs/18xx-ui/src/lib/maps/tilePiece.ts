@@ -1,7 +1,9 @@
-import type { Point } from '@tabletop/common'
-import type { TileFace, TileRotation } from '@tabletop/18xx'
+import { assertExists, type Point } from '@tabletop/common'
+import type { BoardTile, TileFace, TileRotation } from '@tabletop/18xx'
+import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
-import type { HexSegment } from './mapDrawing.js'
+import { drawnLocation, type HexSegment, type MapDrawing } from './mapDrawing.js'
+import type { MapViewDefinition } from './stationPresentation.js'
 
 /** The span a tile drawing takes, in map units, around its hex's centre. */
 export const TileBox = 106
@@ -42,4 +44,38 @@ export type PieceHex = {
     outline: readonly HexSegment[]
     /** Its sides shared with another hex of the piece, drawn without a seam. */
     joints: readonly HexSegment[]
+}
+
+type PieceView = Pick<MapViewDefinition, 'layouts'> & {
+    tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'>
+}
+
+/** Draws the tiles one lay places together as one piece, from where their hexes stand on the map. */
+export function pieceDrawing(
+    tiles: readonly BoardTile[],
+    scene: Pick<MapDrawing, 'locations'>,
+    view: PieceView
+): { hexes: PieceHex[]; layout: PieceLayout } {
+    const hexes = tiles.map((tile) => {
+        return { tile, entry: drawnLocation(scene, tile.locationId) }
+    })
+    const layout = pieceLayout(hexes.map(({ entry }) => entry.center))
+    return {
+        layout,
+        hexes: hexes.map(({ tile, entry }, index) => {
+            const definition = view.tileSet.definitions.find(
+                (candidate) => candidate.id === tile.definitionId
+            )
+            assertExists(definition, `Tile ${tile.definitionId} is in the set`)
+            return {
+                face: definition.face,
+                printedNumber: definition.printedNumber,
+                rotation: tile.rotation,
+                layout: placedTileLayout(view.layouts, tile.definitionId),
+                offset: layout.offsets[index],
+                outline: entry.outline,
+                joints: entry.joints
+            }
+        })
+    }
 }

@@ -20,6 +20,7 @@ import {
     PrivateCatalog1833NE,
     PrivatePowerRules1833NE,
     blockedByPrivate,
+    mapState,
     privatePhaseEffects
 } from './privates.js'
 import { trainRetirement } from './trains.js'
@@ -305,14 +306,12 @@ describe('tiles with an orientation arrow (§6.46)', () => {
         ['G22', '1833ne:N23'],
         ['B11', '1833ne:N26']
     ])('lays %s’s %s only as its arrow shows', (locationId, definitionId) => {
+        const before = mapState(position([], [], {}, 'II')).tile(locationId)
         const reason = (rotation: TileRotation) =>
-            TrackRules1833NE.restriction?.(position([], [], {}, 'II'), {
-                companyId: 'CV',
-                locationId,
-                definitionId,
-                rotation,
-                nodeMapping: {}
-            })
+            TrackRules1833NE.placementRestriction?.(
+                { locationId, definitionId, rotation, nodeMapping: {} },
+                before
+            )
         expect(reason(0)).toBeUndefined()
         for (const rotation of [1, 2, 3, 4, 5] as const)
             expect(reason(rotation)).toBe(
@@ -522,15 +521,14 @@ describe('tile supply and orientation (§6.46–6.47)', () => {
     })
 
     it('lays Sherbrooke’s tile only as its arrow shows: north, north-east and south', () => {
-        const state = position([], [], {})
-        const request = (rotation: 0 | 1) => ({
-            companyId: 'StL&A',
+        const before = mapState(position([], [], {})).tile('F5')
+        const placement = (rotation: 0 | 1) => ({
             locationId: 'F5',
             definitionId: '1833ne:N11',
             rotation,
             nodeMapping: {}
         })
-        expect(TrackRules1833NE.restriction?.(state, request(0))).toBeUndefined()
-        expect(TrackRules1833NE.restriction?.(state, request(1))).toContain('arrow')
+        expect(TrackRules1833NE.placementRestriction?.(placement(0), before)).toBeUndefined()
+        expect(TrackRules1833NE.placementRestriction?.(placement(1), before)).toContain('arrow')
     })
 })

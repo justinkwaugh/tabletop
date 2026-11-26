@@ -196,6 +196,7 @@ describe('private tile lays keep 18USA’s track rules (§12.2, P11)', () => {
         )
         assertExists(terms, 'Lehigh Coal lays track now')
         const stub = RequiredTileEdges.D26
+        const construction = privateTrackConstruction(game.hydrated, terms, EighteenUSATrackRules)
         const missing = ['18xx:7', '18xx:8', '18xx:9'].flatMap((definitionId) => {
             const face = EighteenUSATileSet.definitions.find((tile) => tile.id === definitionId)
             assertExists(face, 'A yellow track tile')
@@ -206,14 +207,14 @@ describe('private tile lays keep 18USA’s track rules (§12.2, P11)', () => {
         expect(missing.length).toBeGreaterThan(0)
         for (const { definitionId, rotation } of missing)
             expect(
-                terms.restriction?.({
+                construction.evaluate({
                     companyId: 'ATSF',
                     locationId: 'D26',
                     definitionId,
                     rotation,
                     nodeMapping: {}
-                })
-            ).toBeDefined()
+                }).reason
+            ).toMatch(/toward New York/)
     })
 
     it('lets the Regional HQ upgrade no second city in a turn with Pettibone & Mulliken', () => {

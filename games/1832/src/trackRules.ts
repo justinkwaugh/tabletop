@@ -25,6 +25,12 @@ function atlantaJoinsCities(before: TileFace, after: TileFace): boolean {
     return before.labels.includes('A') && after.labels.includes('A') && after.color === 'brown'
 }
 
+function tileColor(definitionId: string): string {
+    const definition = EighteenThirtyTwoTileSet.definitions.find((tile) => tile.id === definitionId)
+    assertExists(definition, 'A track request names a tile of the set')
+    return definition.face.color
+}
+
 const stopCount = (face: TileFace, kind: 'city' | 'town') =>
     face.nodes.filter((node) => node.kind === kind).length
 
@@ -138,18 +144,16 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
         resolveSharedCities(requireEighteenThirtyTwoState(state), details.locationId)
         return { payments: [], closedPrivateIds: [] }
     },
+    placementRestriction: (placement) =>
+        placement.locationId === Tampa && tileColor(placement.definitionId) === 'brown'
+            ? 'Tampa has no brown upgrade'
+            : undefined,
     restriction(state, request) {
         // A System's upgrade is of a different tile from its yellow lay (§11.6.8).
         if (state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
             return 'A tile laid this turn cannot be replaced'
-        const definition = EighteenThirtyTwoTileSet.definitions.find(
-            (tile) => tile.id === request.definitionId
-        )
-        assertExists(definition, 'A track request names a tile of the set')
-        if (request.locationId === Tampa && definition.face.color === 'brown')
-            return 'Tampa has no brown upgrade'
         if (
-            definition.face.color === currentTileFace(state, request.locationId).color &&
+            tileColor(request.definitionId) === currentTileFace(state, request.locationId).color &&
             !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '3')
         )
             return 'A medium city becomes a city from phase 3'

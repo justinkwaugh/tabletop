@@ -69,12 +69,14 @@ export const TrackRules1828: TrackRules = {
     useful: ({ home, connected }) => home || connected,
     homeLocations: (companyId) => Map1828.reservedLocationIds(companyId),
     stopAllowed: (state, companyId, center) => CoalAccess.open(state, companyId, center),
+    placementRestriction: (placement) =>
+        placement.locationId === TunnelLocationId && placement.definitionId !== TunnelTileId
+            ? 'Only tile #4 may be laid in the Virginia Coalfields Tunnel.'
+            : undefined,
     restriction(state, request) {
         const blocker = PrivateCatalog1828.blockedBy(state, request.locationId)
         if (blocker && !(blocker.id === CpId && request.companyId === CobourgRailwayId))
             return 'A player-owned private company blocks this hex.'
-        if (request.locationId === TunnelLocationId && request.definitionId !== TunnelTileId)
-            return 'Only tile #4 may be laid in the Virginia Coalfields Tunnel.'
         if (turnLays(state).some((lay) => lay.locationId === request.locationId))
             return 'A company cannot upgrade a tile it laid or upgraded this round.'
         return undefined

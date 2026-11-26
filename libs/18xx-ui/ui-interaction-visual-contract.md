@@ -595,6 +595,56 @@ second-lay cost, history, reload, and full Undo; and 1889's single auto placemen
 Back skipping it, station-preserving upgrade, Finish track and Undo. Shared
 semantic preview/target rendering is lasting; the control panel remains provisional.
 
+### Upgrade preview
+
+`session.tilePlan` (TilePlanModule) owns a player's look ahead at a hex: the tiles that may
+one day upgrade it, tried in turn. It is local transient state and never an Action; Undo
+neither reads nor clears it.
+
+Availability: a plan may open only when no other choice takes map taps, so it is
+`available` only while there is no construction choice, editable run, station placement,
+offered city or title location choice, and never in History View or while publishing.
+While available, the map's selectable hexes are exactly `tilePlan.locationIds`: each hex of
+a piece track already reaches (the hex has track, or a neighbour's track runs to their shared
+edge) that some tile may still upgrade. Every other hex is `aria-disabled` and lets taps
+through, so the board's double-tap still enters full screen there.
+
+Lifetime: the plan is a writable derived reset whenever `available` changes, so it closes as
+the player's own map choice begins and never returns afterwards. Validity: it shows only while
+its hex is still in `locationIds`, and each tried tile only while it still fits the tile
+before it; another player's lay that ends the hex's upgrades closes it.
+
+Intents and precedence: tapping a previewable hex opens a plan there, laid from the hex of
+its tile group the title lays from; tapping the plan's piece turns its latest tile; picking a
+ring tile tries it, dropping later colours; tapping away, a non-previewable hex or Escape
+closes it. While open, every hex but the plan's piece is masked, the piece is outlined, and
+`tilePlan.inventory` replaces the drawn tiles (MapModule.displayedScene), above any track
+preview it can never coexist with. TilePlanPicker draws the ring and a Preview badge; it has
+no accept or cancel control.
+
+The ring offers `TrackConstruction.futureLays` per level: every tile the map, the tiles and
+the title's `placementRestriction` allow, whatever the phase, company or cash. A tile the
+supply has run out of is shown dimmed and cannot be tried.
+
+Verification scenarios (checked in the 1822 and 18RoyalGorge harnesses, Chromium and WebKit,
+desktop and a 393 px phone):
+
+- In a stock round, tapping a hex track runs into opens the ring around it with the rest of the
+  map masked; a bare hex away from track, or one no tile can still upgrade, opens nothing and
+  a double-tap there enters full screen.
+- Trying a tile draws it on the hex and adds the next colour to the ring; trying another tile
+  of an earlier colour drops the later colours; tapping the hex turns the latest tile and the
+  next colour follows its rotation.
+- A run-out tile shows dimmed and does nothing when tapped.
+- Tapping away, tapping a non-previewable hex, or Escape closes the plan and restores the
+  board.
+- Tapping a gorge hex in 18RoyalGorge plans the whole gorge: green and brown gorge tiles show
+  as three-hex pieces in the ring and lie across all three hexes on the map.
+- With a plan open, the player's own track step, station placement, run or home choice closes
+  it; it does not return afterwards. Undo undoes the last committed Action and leaves an open
+  plan as it is.
+- Zooming in before entering full screen leaves the ring centred on its hex.
+
 ### Station placement and track access
 
 The session owns manual station → city-slot selections. An explicit click on a

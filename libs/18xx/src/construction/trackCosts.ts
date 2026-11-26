@@ -1,6 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import { RailwayMapState } from '../map/mapState.js'
-import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
+import { faceRunsToEdge, rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import type { TileEdge } from '../tiles/tile.js'
 import {
     laidTileFace,
@@ -43,10 +43,7 @@ export function completedCrossingCost(
     const neighbor = map.neighbor(request.locationId, edge)
     assertExists(neighbor, 'Construction validates neighboring hexes before pricing borders')
     const tile = new RailwayMapState(map, tileSet, state.tileInventory).tile(neighbor.id)
-    const opposite = rotateTileEdge(edge, 3)
-    return rotateTileFace(tile.face, tile.rotation).paths.some((path) =>
-        path.endpoints.some((end) => end.kind === 'edge' && end.edge === opposite)
-    )
+    return faceRunsToEdge(rotateTileFace(tile.face, tile.rotation), rotateTileEdge(edge, 3))
         ? cost
         : 0
 }

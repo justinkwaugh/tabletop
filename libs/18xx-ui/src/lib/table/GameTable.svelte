@@ -93,6 +93,7 @@
     import CompanyStartContent from '../stock/CompanyStartContent.svelte'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
+    import TilePlanPicker from '../maps/TilePlanPicker.svelte'
     import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
     import LocationTileChoice from '../maps/LocationTileChoice.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
@@ -516,7 +517,8 @@
                 session.stations.canPlace)
     )
     const mapTakesTaps = $derived(
-        !consentPreview && (maskPlacementLocations || session.routes.editable)
+        !consentPreview &&
+            (maskPlacementLocations || session.routes.editable || session.tilePlan.available)
     )
     const placementLocationIds = $derived(
         locationChoice
@@ -723,6 +725,11 @@
                 return {
                     legalLocationIds: placementLocationIds,
                     highlightedLocationIds: highlightedPlacementLocationIds
+                }
+            if (session.tilePlan.locationId)
+                return {
+                    legalLocationIds: session.tilePlan.locationIds,
+                    highlightedLocationIds: session.tilePlan.pieceLocationIds
                 }
             if (
                 (session.titleMapRoutes.length ||
@@ -1044,11 +1051,17 @@
                 : undefined
             : session.map.selection}
         maskUnavailableLocations={!!mapMask}
+        selectableLocationIds={session.tilePlan.available
+            ? session.tilePlan.locationIds
+            : undefined}
         legalLocationIds={mapMask?.legalLocationIds}
         highlightedLocationIds={mapMask?.highlightedLocationIds}
         previewLocationId={session.track.displayedPreview?.locationId ??
-            session.stations.preview?.position.locationId}
-        tileGroups={session.track.showChoices ? session.mapView.tileGroups : undefined}
+            session.stations.preview?.position.locationId ??
+            session.tilePlan.previewedLocationId}
+        tileGroups={session.track.showChoices || session.tilePlan.locationId
+            ? session.mapView.tileGroups
+            : undefined}
         translucentLocationId={consentPreview?.details.locationId}
         appearance={tileAppearance}
         hexDiameter={MapHexDiameter}
@@ -1064,6 +1077,16 @@
                         )
                       : session.map.select(selection, false)
             : undefined}
+    />
+{/snippet}
+
+{#snippet tilePlanPicker(viewport: HTMLDivElement)}
+    <TilePlanPicker
+        plan={session.tilePlan}
+        {viewport}
+        scene={session.map.scene}
+        mapView={session.mapView}
+        appearance={tileAppearance}
     />
 {/snippet}
 
@@ -1544,6 +1567,9 @@
                                             appearance={tileAppearance}
                                         />
                                     {/if}
+                                    {#if active && session.tilePlan.locationId}
+                                        {@render tilePlanPicker(viewport)}
+                                    {/if}
                                     {#if active && locationChoice?.followUp}
                                         {@render followUpPicker(locationChoice.followUp, viewport)}
                                     {/if}
@@ -1585,6 +1611,9 @@
                                             {viewport}
                                             appearance={tileAppearance}
                                         />
+                                    {/if}
+                                    {#if active && session.tilePlan.locationId}
+                                        {@render tilePlanPicker(viewport)}
                                     {/if}
                                     {#if active && locationChoice?.followUp}
                                         {@render followUpPicker(locationChoice.followUp, viewport)}

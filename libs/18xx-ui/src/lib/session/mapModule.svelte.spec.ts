@@ -36,6 +36,7 @@ function homeOffer(offer: Partial<HomeOffer>): HomeOffer {
     return { homePositions: [], chooseHome: () => {}, chosenHome: undefined, ...offer }
 }
 const noAuctionHomes = homeOffer({})
+const noPlan = { locationId: undefined, inventory: undefined, tap() {}, clear() {} }
 
 function table(
     machineState: 'LayingTrack' | 'StockRound',
@@ -91,7 +92,8 @@ function table(
         track,
         stations,
         routes,
-        homeOffers
+        homeOffers,
+        noPlan
     )
     return { map, track, stations, routes, session }
 }
@@ -115,6 +117,7 @@ describe('MapModule', () => {
             stations,
             routes,
             [noAuctionHomes],
+            noPlan,
             () => shown
         )
         const drawn = map.scene
@@ -286,7 +289,15 @@ describe('MapModule', () => {
             () => {}
         )
         const routes = new RoutesModule(session, () => [])
-        const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
+        const map = new MapModule(
+            session,
+            () => view,
+            track,
+            stations,
+            routes,
+            [noAuctionHomes],
+            noPlan
+        )
         expect(stations.homeLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'slot', ...home, slot: 0 })
         await Promise.resolve()
@@ -389,7 +400,15 @@ describe('MapModule', () => {
             () => {}
         )
         const routes = new RoutesModule(session, () => [])
-        const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
+        const map = new MapModule(
+            session,
+            () => view,
+            track,
+            stations,
+            routes,
+            [noAuctionHomes],
+            noPlan
+        )
         expect(stations.privateStationLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
         await Promise.resolve()

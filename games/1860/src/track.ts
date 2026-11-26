@@ -161,12 +161,15 @@ export const TrackRules1860: TrackRules = {
     preservesStops: (before, after) =>
         sameStopCounts(before, after) ||
         after.labels.some((label) => label === 'V' || label === 'N'),
-    restriction(state, request) {
-        if (FixedRotationTileIds.includes(request.definitionId) && request.rotation !== 0)
+    placementRestriction({ definitionId, rotation }) {
+        if (FixedRotationTileIds.includes(definitionId) && rotation !== 0)
             return 'This tile is laid only as printed.'
         // The yellow Cowes tile runs south or south-west (TR-9).
-        if (request.definitionId === YellowCowesTileId && request.rotation > 1)
+        if (definitionId === YellowCowesTileId && rotation > 1)
             return 'The Cowes tile runs south or south-west.'
+        return undefined
+    },
+    restriction(state, request) {
         const face = tileFace1860(request.definitionId)
         if (layingHomeTile(state, request.companyId))
             return request.locationId === company1860(request.companyId).home

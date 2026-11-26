@@ -113,11 +113,13 @@ export const TrackRules1833NE: TrackRules = {
     relabels: (locationId, definitionId) =>
         locationId === 'F17' &&
         [...PreferredBrownCities, ...FallbackBrownCities].includes(definitionId),
+    placementRestriction: (placement) =>
+        ArrowTiles.includes(placement.definitionId) && placement.rotation !== 0
+            ? 'This tile is laid as its arrow shows, matching the compass rose.'
+            : undefined,
     restriction(state, request) {
         if (blockedByPrivate(state, request.locationId))
             return 'A player-owned private company blocks this hex.'
-        if (ArrowTiles.includes(request.definitionId) && request.rotation !== 0)
-            return 'This tile is laid as its arrow shows, matching the compass rose.'
         const reserved = FirstRoundReservedHexes[request.locationId]
         if (reserved && reserved !== request.companyId && firstOperatingRound(state))
             return `Only the ${reserved} may build here in the first operating round.`

@@ -1,6 +1,7 @@
 import {
     privateOwner,
     type ConstructionState,
+    type TrackPlacement,
     type TrackRequest,
     presidentOf
 } from '@tabletop/18xx'
@@ -98,6 +99,13 @@ export function londonOtherConsentPlayerIds1822(
         : []
 }
 
+/** London's stations keep their sides (§1.2.3). */
+export function londonPlacementRestriction1822(placement: TrackPlacement): string | undefined {
+    return LondonTileIds1822.includes(placement.definitionId) && placement.rotation !== 0
+        ? 'London is developed in place.'
+        : undefined
+}
+
 /** Why a tile may not be laid as asked, whoever lays it and by what power. */
 export function layRestriction1822(
     state: ConstructionState,
@@ -107,9 +115,6 @@ export function layRestriction1822(
     const title = requireState1822(state)
     if (request.companyId === MetropolitanId && title.debutCompanyIds.includes(MetropolitanId))
         return 'Placing its home station is the Metropolitan Railway’s track lay this turn.'
-    // London's stations keep their sides (§1.2.3).
-    if (LondonTileIds1822.includes(request.definitionId) && request.rotation !== 0)
-        return 'London is developed in place.'
     if (request.locationId === LondonLocationId) return undefined
     // A hex beside London with no holder takes a yellow tile only if it joins the London
     // station's track (§5.10.7).

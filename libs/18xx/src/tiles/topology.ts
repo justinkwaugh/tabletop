@@ -90,6 +90,13 @@ export function terminusNodeId(path: TilePath): string | undefined {
     return node
 }
 
+/** Whether some track of the face runs to the edge. */
+export function faceRunsToEdge(face: TileFace, edge: TileEdge): boolean {
+    return face.paths.some((path) =>
+        path.endpoints.some((end) => end.kind === 'edge' && end.edge === edge)
+    )
+}
+
 export function tilePathsAtEndpoint(face: TileFace, endpoint: TileEndpoint): readonly TilePath[] {
     return face.paths.filter((path) =>
         path.endpoints.some((end) => sameTileEndpoint(end, endpoint))
