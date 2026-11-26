@@ -139,7 +139,7 @@ test('1817 companies borrow during their turn and settle interest in a Loans ste
     const loans = steps.getByLabel('Loans', { exact: true })
     await expect(loans).toContainText('Loans 0/5 · 5%')
     await loans.getByRole('button', { name: 'Take loan ($100)' }).click()
-    await expect(loans).toContainText('Loans 1/5')
+    await expect(loans).toContainText('Loans 1/5 · 5% · $5 interest')
 
     await steps.getByRole('button', { name: 'Station' }).click()
     const trains = page.getByRole('region', { name: 'Train purchases' })

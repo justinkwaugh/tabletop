@@ -8,6 +8,17 @@
     /** A right's name mid-sentence: "ferry marker", but "E token" keeps its letter. */
     const inSentence = (name: string) => (/^\p{Lu}\s/u.test(name) ? name : lowerFirst(name))
     const terms = $derived(session.presentation.loanTerms)
+    const summary = $derived.by(() => {
+        if (!companyId) return undefined
+        const interestDue = session.loans.interestDue
+        return [
+            `${terms?.name ?? 'Loans'} ${session.loans.held(companyId)}`,
+            terms?.fixedTerms ? undefined : `${session.loans.rate}%`,
+            interestDue ? `${money(interestDue)} interest` : undefined
+        ]
+            .filter((part) => part !== undefined)
+            .join(' · ')
+    })
 </script>
 
 {#each session.accessRights.offers as offer (`${offer.companyId}:${offer.rightId}`)}
@@ -19,11 +30,7 @@
 {/each}
 {#if rules && companyId}
     <div class="loan-actions" aria-label={terms?.name ?? 'Loans'}>
-        <span
-            >{terms?.name ?? 'Loans'}
-            {session.loans.held(companyId)}{#if !terms?.fixedTerms}
-                · {session.loans.rate}%{/if}</span
-        >
+        <span>{summary}</span>
         {#if session.loans.canTake && session.gameState.machineState !== 'RepayingLoans'}<button
                 onclick={() => session.loans.take(companyId)}
                 >{terms?.take ?? 'Take loan'} ({money(rules.value)})</button

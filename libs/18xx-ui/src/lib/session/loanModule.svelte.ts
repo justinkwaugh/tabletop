@@ -8,6 +8,7 @@ import {
     loanRateTable,
     loansOutstanding,
     nextOperatingCompany,
+    turnInterestOwed,
     type EighteenXXState,
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
@@ -63,6 +64,13 @@ export class LoanModule {
             .slice(turnStart + 1)
             .find((action) => isPayInterest(action) && action.companyId === companyId)
         return payment && isPayInterest(payment) ? payment.metadata : undefined
+    })
+    /** The interest the operating company will owe this turn on its loans now, until it pays. */
+    interestDue = $derived.by(() => {
+        const rules = this.rules
+        const companyId = this.operatingCompanyId
+        if (!rules || rules.automatic || !companyId || this.interestPaid) return undefined
+        return turnInterestOwed(this.session.state, rules, companyId) || undefined
     })
     canRepay = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('RepayLoan')
