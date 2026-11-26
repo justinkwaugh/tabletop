@@ -88,20 +88,17 @@ export class PrivateConstruction {
     get maximumLays(): number {
         return this.privateId === 'LSL' ? 1 : 2
     }
-    /** Every lay that starts or continues a plan the power can complete. */
     choices(requests: readonly TrackRequest[]): TrackLayDetails[] {
         const plan = this.evaluate(requests, false)
         return plan.state ? [...this.offers(plan)] : []
     }
-    /** Whether any lay starts a plan the power can complete; stops at the first it finds. */
     hasChoice(): boolean {
         const plan = this.evaluate([], false)
-        return !!plan.state && !this.offers(plan).next().done
+        return !!plan.state && this.canExtend(plan)
     }
-    /**
-     * The lays that extend ``plan`` toward a plan the power can complete. Each candidate is laid
-     * onto a copy of the planned State, which already holds the earlier lays.
-     */
+    private canExtend(plan: PlannedLays): boolean {
+        return !this.offers(plan).next().done
+    }
     private *offers(plan: PlannedLays): Generator<TrackLayDetails> {
         if (plan.lays.length >= this.maximumLays) return
         const companyId = privatePowerCompany(this.state, this.playerId, this.privateId)
@@ -116,7 +113,7 @@ export class PrivateConstruction {
             for (const choice of construction.choices(locationId)) {
                 const next = this.extend(plan, choice)
                 // A lay must either complete the power or leave a further lay that does.
-                if (!this.incomplete(next) || !this.offers(next).next().done) yield choice
+                if (!this.incomplete(next) || this.canExtend(next)) yield choice
             }
         }
     }
@@ -143,13 +140,14 @@ export class PrivateConstruction {
             if (!result.details) return { reason: result.reason }
             plan = this.extend(plan, result.details)
         }
-        if (plan.state === this.state) plan = { ...plan, state: this.copy(this.state) }
         const reason = complete ? this.incomplete(plan) : undefined
         return reason ? { reason } : plan
     }
-    /** ``plan`` with ``details`` laid onto a copy of its State. */
     private extend(plan: PlannedLays, details: TrackLayDetails): PlannedLays {
-        const state = this.copy(plan.state)
+        const state = stateWith(plan.state, {
+            cash: structuredClone(plan.state.cash),
+            bank: { ...plan.state.bank }
+        })
         const lay = applyTrackLay(
             state,
             TrackRules1846,
@@ -159,12 +157,7 @@ export class PrivateConstruction {
         )
         return { state, lays: [...plan.lays, lay] }
     }
-    private copy(state: PrivateConstructionState): PrivateConstructionState {
-        return stateWith(state, { cash: structuredClone(state.cash), bank: { ...state.bank } })
-    }
-    /** Why the planned lays do not complete the power, if they do not. */
     private incomplete({ state, lays }: PlannedLays): string | undefined {
-        if (!lays.length) return 'Choose one or two permitted tile lays.'
         if (
             (this.privateId === 'MC' || this.privateId === 'O&I') &&
             lays.length === 2 &&

@@ -321,12 +321,12 @@ describe('1846 private construction', () => {
         const evaluations = vi.spyOn(TrackConstruction.prototype, 'evaluate')
         try {
             construction(table, 'LM').choices([])
-            const listing = evaluations.mock.calls.length
+            const listingEvaluations = evaluations.mock.calls.length
             evaluations.mockClear()
             expect(
                 constructionPrivateIds(table.hydrated, table.state.activePlayerIds[0])
             ).toContain('LM')
-            expect(evaluations.mock.calls.length).toBeLessThan(listing / 2)
+            expect(evaluations.mock.calls.length).toBeLessThan(listingEvaluations / 2)
         } finally {
             evaluations.mockRestore()
         }
@@ -334,28 +334,28 @@ describe('1846 private construction', () => {
     it('Little Miami lists its tiles without replaying a planned lay', () => {
         const table = major()
         acquire(table, 'LM')
-        const choices = TrackConstruction.prototype.choices
-        let listing = 0
+        const originalChoices = TrackConstruction.prototype.choices
+        const originalEvaluate = TrackConstruction.prototype.evaluate
+        let listingDepth = 0
         let replays = 0
-        const evaluate = TrackConstruction.prototype.evaluate
         const spies = [
             vi.spyOn(TrackConstruction.prototype, 'choices').mockImplementation(function (
                 this: TrackConstruction,
                 locationId
             ) {
-                listing++
+                listingDepth++
                 try {
-                    return choices.call(this, locationId)
+                    return originalChoices.call(this, locationId)
                 } finally {
-                    listing--
+                    listingDepth--
                 }
             }),
             vi.spyOn(TrackConstruction.prototype, 'evaluate').mockImplementation(function (
                 this: TrackConstruction,
                 request
             ) {
-                if (!listing) replays++
-                return evaluate.call(this, request)
+                if (!listingDepth) replays++
+                return originalEvaluate.call(this, request)
             })
         ]
         try {
