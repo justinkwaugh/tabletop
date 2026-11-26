@@ -31,7 +31,23 @@ for (const title of ['TOP', '1889']) {
             .locator('tbody tr')
             .filter({ has: page.locator('th .player-label') })
         const playerNames = playerRows.locator('th .player-label')
-        await expect(playerNames).toHaveText(['Alex', 'Blair', 'Casey'])
+        await expect(playerNames).toHaveCount(3)
+        // TOP passes in pass order, so its players start in turn order, as its player cards do.
+        const initialPlayers =
+            title === 'TOP'
+                ? await page
+                      .locator('[aria-label="Players"] [aria-label$=" portfolio"]')
+                      .evaluateAll((cards) =>
+                          cards.map((card) =>
+                              (card.getAttribute('aria-label') ?? '').replace(/ portfolio$/, '')
+                          )
+                      )
+                      .then((names) =>
+                          names.filter((name) => ['Alex', 'Blair', 'Casey'].includes(name))
+                      )
+                : ['Alex', 'Blair', 'Casey']
+        expect(initialPlayers).toHaveLength(3)
+        await expect(playerNames).toHaveText(initialPlayers)
 
         const netWorth = sheet.getByRole('columnheader', { name: 'Net worth' })
         const playerNetWorth = () => amounts(playerRows.locator('td:last-child'))
@@ -43,7 +59,7 @@ for (const title of ['TOP', '1889']) {
         }
         await netWorth.getByRole('button').click()
         await expect(netWorth).not.toHaveAttribute('aria-sort')
-        await expect(playerNames).toHaveText(['Alex', 'Blair', 'Casey'])
+        await expect(playerNames).toHaveText(initialPlayers)
 
         const initialCompanies = await companyOrder(sheet)
         const cash = sheet.getByRole('rowheader', { name: 'Cash' })
@@ -115,8 +131,17 @@ for (const title of ['TOP', '1889']) {
         const turnOrder = corner.getByRole('button', { name: 'Player', exact: true })
         const playerNames = sheet.locator('.player-label')
         const seats = ['Alex', 'Blair', 'Casey']
+        const passOrder = title === 'TOP'
         await expect(corner).toHaveText('Player / Company')
-        await expect(sheet.locator('thead th:has(.sort-header)').nth(1)).toHaveText('Cash')
+        await expect(sheet.locator('thead th:has(.sort-header)').nth(1)).toHaveText(
+            passOrder ? 'Pass' : 'Cash'
+        )
+        // A pass-order title starts in turn order, as its player cards do.
+        if (passOrder) {
+            await expect(turnOrder).toHaveAttribute('aria-pressed', 'true')
+            await turnOrder.click()
+        }
+        await expect(turnOrder).toHaveAttribute('aria-pressed', 'false')
         await expect(playerNames).toHaveText(seats)
 
         await turnOrder.click()
@@ -148,7 +173,9 @@ for (const title of ['TOP', '1889']) {
         const stockActions = page.getByRole('navigation', { name: 'Stock actions' })
         const confirmation = page.getByRole('dialog', { name: 'Confirm share trade' })
         const actingPlayers = sheet.locator('tr.current-player th .player-label')
-        await sheet.getByRole('button', { name: 'Player', exact: true }).click()
+        const turnOrder = sheet.getByRole('button', { name: 'Player', exact: true })
+        if (title === '1889') await turnOrder.click()
+        await expect(turnOrder).toHaveAttribute('aria-pressed', 'true')
         await expect(playerNames).toHaveText(['Alex', 'Blair', 'Casey'])
 
         await sheet
@@ -167,5 +194,12 @@ for (const title of ['TOP', '1889']) {
 
         // Blair's pass changes next round's priority, not this round's turn order.
         await expect(playerNames).toHaveText(['Alex', 'Blair', 'Casey'])
+        if (title === 'TOP')
+            await expect(
+                sheet
+                    .locator('tbody tr')
+                    .filter({ has: page.locator('th .player-label') })
+                    .locator('td.stat-start')
+            ).toHaveText(['', '1', ''])
     })
 }

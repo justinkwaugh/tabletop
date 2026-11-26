@@ -88,7 +88,6 @@
     )
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
     const cash = $derived(cashOwnedBy(gameState, owner))
-    const control = $derived(controllingOwner(gameState, company.id))
     function investorTint(entry: { owner: Owner }) {
         const investor = entry.owner
         const playerId =
@@ -153,19 +152,6 @@
             return privateCompanyOwner && sameOwner(privateCompanyOwner, owner)
         })
     })
-    const personalPrivates = $derived(
-        session.privates.companies.flatMap((item) => {
-            const privateCompanyOwner = privateOwner(gameState, item.id)
-            const priceRange = session.decisions.privatePurchasePriceRange(company.id, item.id)
-            return !item.closed &&
-                privateCompanyOwner &&
-                control &&
-                sameOwner(privateCompanyOwner, control) &&
-                priceRange
-                ? [{ ...item, maximumPrice: priceRange.maximum }]
-                : []
-        })
-    )
     const trades = $derived(offersTrades ? session.stock.companyTrades(company.id) : undefined)
     const tradeLabel = $derived(
         [trades?.offers.length ? 'Buy' : '', trades?.sales.length ? 'Sell' : '']
@@ -388,7 +374,7 @@
                         : 'No issued shares.'}
                 </p>{/if}
         </section>
-        {#if !vertical || privates.length || personalPrivates.length || investmentCompanies.length}
+        {#if !vertical || privates.length || investmentCompanies.length}
             <section aria-label="Company assets">
                 <section aria-label="Private companies and powers">
                     {#if !vertical || privates.length}
@@ -396,18 +382,6 @@
                         {#each privates as item (item.id)}
                             {@render privateCard(item)}
                         {:else}<p class="empty">None</p>{/each}
-                    {/if}
-                    {#if personalPrivates.length && control}
-                        {#if !vertical || privates.length}<hr />{/if}
-                        <h3>Purchasable privates</h3>
-                        {#each personalPrivates as item (item.id)}
-                            {@render privateCard(
-                                item,
-                                item.maximumPrice === undefined
-                                    ? 'No maximum'
-                                    : `${money(item.maximumPrice)}`
-                            )}
-                        {/each}
                     {/if}
                 </section>
                 {#if investmentCompanies.length}
@@ -531,7 +505,7 @@
     </div>
 {/snippet}
 
-{#snippet privateCard(item: (typeof session.privates.companies)[number], purchasePrice?: string)}
+{#snippet privateCard(item: (typeof session.privates.companies)[number])}
     <article class="private" data-private-description-row>
         <div class="private-heading">
             <div class="private-name">
@@ -564,15 +538,14 @@
                     )}{#if held}<small class="private-holdings">{held}</small>{/if}{/if}
             </div>
             <span
-                >{purchasePrice ??
-                    (item.closed
-                        ? 'Closed'
-                        : companyPowers
-                          ? ''
-                          : (session.presentation.privateStatus?.(gameState, item.id) ??
-                            (session.presentation.privatesWithoutIncome
-                                ? ''
-                                : `${money(item.revenue)} / OR`)))}</span
+                >{item.closed
+                    ? 'Closed'
+                    : companyPowers
+                      ? ''
+                      : (session.presentation.privateStatus?.(gameState, item.id) ??
+                        (session.presentation.privatesWithoutIncome
+                            ? ''
+                            : `${money(item.revenue)} / OR`))}</span
             >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
@@ -1138,11 +1111,6 @@
     }
     .section-heading {
         margin-top: 12px;
-    }
-    hr {
-        border: 0;
-        border-top: 1px solid var(--rail-border, #e3d9cd);
-        margin: 8px 0;
     }
     .investment {
         display: flex;

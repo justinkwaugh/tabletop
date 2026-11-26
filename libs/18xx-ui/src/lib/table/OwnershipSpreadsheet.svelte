@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte'
     import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
     import { multiShareMark, type MultiShareMark } from '../finance/multiShareCertificates.js'
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
@@ -299,6 +300,7 @@
     )
     type OwnerStatistics = {
         turnOrder?: number
+        passOrder?: number
         cash: number
         /** The cash a player's bids hold back, shown under it. */
         reserved?: number
@@ -316,18 +318,29 @@
         assertExists(first, 'A sortable column needs a sort direction')
         return first.direction
     }
-    const OwnerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
+    const passOrderShown = $derived(session.passing === 'pass-order')
+    const OwnerStatisticKeys = ['passOrder', 'cash', 'shares', 'certs', 'netWorth'] as const
     type OwnerStatistic = (typeof OwnerStatisticKeys)[number]
     const ownerStatisticKeys: readonly OwnerStatistic[] = $derived(
-        session.noCertificateLimit
-            ? OwnerStatisticKeys.filter((key) => key !== 'certs')
-            : OwnerStatisticKeys
+        OwnerStatisticKeys.filter(
+            (key) =>
+                (key !== 'certs' || !session.noCertificateLimit) &&
+                (key !== 'passOrder' || passOrderShown)
+        )
     )
     type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
         label: string
+        ariaLabel?: string
         text: (values: OwnerStatistics) => string
     }
     const ownerStatisticColumns: Record<OwnerStatistic, OwnerStatisticColumn> = {
+        passOrder: {
+            label: 'Pass',
+            ariaLabel: 'Pass order',
+            value: (values) => values.passOrder,
+            text: (values) => (values.passOrder === undefined ? '' : String(values.passOrder)),
+            directions: ['ascending', 'descending']
+        },
         cash: {
             label: 'Cash',
             value: (values) => values.cash,
@@ -373,19 +386,34 @@
         ...lateTitleColumns.map((column) => column.label)
     ])
     const companyStatisticCount = $derived(companyStatisticHeadings.length)
-    let playerSort = $state<SpreadsheetSort<PlayerSortKey>>()
+    const defaultPlayerSort: SpreadsheetSort<PlayerSortKey> | undefined =
+        untrack(() => session.passing) === 'pass-order'
+            ? { key: 'turnOrder', direction: 'ascending' }
+            : undefined
+    let playerSort = $state(defaultPlayerSort)
+    function cyclePlayerSort(key: PlayerSortKey) {
+        const next = nextSpreadsheetSort(playerSort, key, playerSortColumns[key].directions)
+        playerSort = next ?? (key === 'turnOrder' ? undefined : defaultPlayerSort)
+    }
+    const passedPlayerIds = $derived(
+        session.gameState.machineState === 'StockRound' && !session.gameState.stockRound.completed
+            ? session.gameState.stockRound.passedPlayerIds
+            : []
+    )
     let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
     const seatedPlayers = $derived(
         seatOrder.map((playerId) => {
             const turn = playersWithBankruptLast(session.gameState).indexOf(playerId)
             assert(turn >= 0, 'Every seated player has a turn position')
+            const passIndex = passedPlayerIds.indexOf(playerId)
             return {
                 playerId,
                 ...ownerStatisticsFor(
                     { kind: 'player', playerId },
                     session.playerCertificates(playerId)
                 ),
-                turnOrder: turn
+                turnOrder: turn,
+                ...(passIndex >= 0 ? { passOrder: passIndex + 1 } : {})
             }
         })
     )
@@ -706,12 +734,7 @@
         'Player',
         spreadsheetSortDirection(playerSort, 'turnOrder'),
         'ascending',
-        () =>
-            (playerSort = nextSpreadsheetSort(
-                playerSort,
-                'turnOrder',
-                playerSortColumns.turnOrder.directions
-            )),
+        () => cyclePlayerSort('turnOrder'),
         { title: 'Sort players by turn order', toggle: true }
     )}
 {/snippet}
@@ -730,9 +753,18 @@
     direction: SpreadsheetSortDirection | undefined,
     firstDirection: SpreadsheetSortDirection,
     onclick: () => void,
-    { title, toggle = false }: { title?: string; toggle?: boolean } = {}
+    {
+        title,
+        toggle = false,
+        ariaLabel
+    }: { title?: string; toggle?: boolean; ariaLabel?: string } = {}
 )}
-    <button class="sort-header" {title} aria-pressed={toggle ? !!direction : undefined} {onclick}
+    <button
+        class="sort-header"
+        {title}
+        aria-label={ariaLabel}
+        aria-pressed={toggle ? !!direction : undefined}
+        {onclick}
         ><span class="sort-label">{label}</span>{#if direction}{@render sortArrow(
                 direction
             )}{:else}{@render sortArrow(firstDirection, true)}{/if}</button
@@ -771,12 +803,8 @@
             ownerStatisticColumns[key].label,
             direction,
             firstSortDirection(playerSortColumns[key]),
-            () =>
-                (playerSort = nextSpreadsheetSort(
-                    playerSort,
-                    key,
-                    playerSortColumns[key].directions
-                ))
+            () => cyclePlayerSort(key),
+            { ariaLabel: ownerStatisticColumns[key].ariaLabel }
         )}</th
     >
 {/snippet}

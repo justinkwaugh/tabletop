@@ -283,12 +283,6 @@ export class CompanyDecisionsModule {
             : undefined
     )
 
-    privatePurchasePriceRange(companyId: string, privateCompanyId: string) {
-        return this.session.rules.transferRules.priceRange(this.session.state, companyId, {
-            kind: 'private',
-            privateCompanyId
-        })
-    }
     selectPurchaseOffer(request: PurchaseOfferRequest) {
         assert(
             this.canResolve && this.session.validActionTypes.includes('OfferPurchase'),
