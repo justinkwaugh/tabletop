@@ -1,4 +1,13 @@
-import { GAME_PACE_LABELS, gamePaceOf, PlayerStatus, takenSeats, type Game } from '@tabletop/common'
+import {
+    GAME_PACE_LABELS,
+    gamePaceOf,
+    nonStandardGameOptions,
+    PlayerStatus,
+    takenSeats,
+    type Game,
+    type GameConfigurator,
+    type GameOptionValueLabels
+} from '@tabletop/common'
 import {
     ButtonStyle,
     ComponentType,
@@ -6,19 +15,23 @@ import {
 } from 'discord-api-types/v10'
 import { escapeMarkdown, truncate } from './discordFormatting.js'
 import { siteUrl } from '../site/siteUrl.js'
-import { SITE_NAME } from '../site/siteName.js'
 
 export type LobbyPostContext = {
     titleName: string
+    /** The title's options, so the post can show those the game sets away from the standard. */
+    configurator?: GameConfigurator
     frontendHost: string
 }
 
+const OPTION_VALUE_LABELS: GameOptionValueLabels = { yes: 'Yes', no: 'No', none: 'None' }
+
 const OPEN_GAME_COLOR = 0x22c55e
 
-// Discord rejects the whole request when any of these fields is over its limit.
+// Discord rejects the whole request when any of these fields is over its limit; a line is held
+// well under the 4096 of the description it is part of.
 const Limit = {
     EmbedTitle: 256,
-    FieldValue: 1024
+    Line: 1024
 } as const
 
 export type NewLobbyPost = {
@@ -52,19 +65,8 @@ export function lobbyPostUpdate(
             {
                 title: truncate(escapeMarkdown(game.name), Limit.EmbedTitle),
                 url: joinUrl,
-                description: `**${escapeMarkdown(context.titleName)}**`,
-                color: OPEN_GAME_COLOR,
-                fields: [
-                    { name: 'Seats', value: seatsLabel(game), inline: true },
-                    {
-                        name: 'Pace',
-                        value: GAME_PACE_LABELS[gamePaceOf(game).pace].line,
-                        inline: true
-                    },
-                    { name: 'Players', value: playersLabel(game) }
-                ],
-                footer: { text: SITE_NAME },
-                timestamp: game.createdAt.toISOString()
+                description: descriptionLines(game, context).join('\n'),
+                color: OPEN_GAME_COLOR
             }
         ],
         components: [
@@ -83,14 +85,29 @@ export function lobbyPostUpdate(
     }
 }
 
-function seatsLabel(game: Game): string {
+// A line for the title, seats and pace, one for the options if the game sets any away from
+// the standard, and one for the players.
+function descriptionLines(game: Game, context: LobbyPostContext): string[] {
     const open = game.players.length - takenSeats(game)
-    return `${open} open of ${game.players.length}`
+    const pace = GAME_PACE_LABELS[gamePaceOf(game).pace].summary
+    const options = nonStandardOptions(game, context)
+    return [
+        `**${escapeMarkdown(context.titleName)}** · ${open} of ${game.players.length} seats open · ${pace}`,
+        ...(options.length > 0 ? [truncate(`Options: ${options.join(' · ')}`, Limit.Line)] : []),
+        truncate(`Players: ${playerNames(game)}`, Limit.Line)
+    ]
 }
 
-function playersLabel(game: Game): string {
+function nonStandardOptions(game: Game, { configurator }: LobbyPostContext): string[] {
+    if (!configurator) return []
+    return nonStandardGameOptions(game.config, configurator, OPTION_VALUE_LABELS).map(
+        ({ name, value, enabledFlag }) => escapeMarkdown(enabledFlag ? name : `${name}: ${value}`)
+    )
+}
+
+function playerNames(game: Game): string {
     const names = game.players.flatMap((player) =>
         player.status === PlayerStatus.Joined ? [escapeMarkdown(player.name)] : []
     )
-    return truncate(names.length > 0 ? names.join(', ') : 'Nobody yet', Limit.FieldValue)
+    return names.length > 0 ? names.join(', ') : 'Nobody yet'
 }

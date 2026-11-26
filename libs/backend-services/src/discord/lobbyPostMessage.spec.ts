@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { GameStatus, PlayerStatus, type Game } from '@tabletop/common'
+import * as Type from 'typebox'
+import {
+    ConfigOptionType,
+    GameStatus,
+    PlayerStatus,
+    type Game,
+    type GameConfigurator
+} from '@tabletop/common'
 import { ButtonStyle, ComponentType } from 'discord-api-types/v10'
 import { lobbyPostUpdate, newLobbyPost } from './lobbyPostMessage.js'
 
@@ -40,12 +47,8 @@ describe('newLobbyPost', () => {
         const [embed] = post.embeds ?? []
         expect(embed.title).toBe('Rails\\_and\\_\\*stars\\*')
         expect(embed.url).toBe('https://example.com/join/game%201')
-        expect(embed.description).toBe('**1830**')
-        expect(embed.fields).toEqual([
-            { name: 'Seats', value: '2 open of 4', inline: true },
-            { name: 'Pace', value: 'Fast · within 1 h', inline: true },
-            { name: 'Players', value: 'Alice' }
-        ])
+        expect(embed.description).toBe('**1830** · 2 of 4 seats open · Fast · 1 h\nPlayers: Alice')
+        expect(embed).not.toHaveProperty('fields')
         expect(post.components).toEqual([
             {
                 type: ComponentType.ActionRow,
@@ -82,7 +85,70 @@ describe('newLobbyPost', () => {
             ]
         })
         const [embed] = newLobbyPost(game, context, { nonce: 'n-1' }).embeds ?? []
-        expect(embed.fields?.at(-1)).toEqual({ name: 'Players', value: '\\*bold\\*' })
+        expect(embed.description?.split('\n').at(-1)).toBe('Players: \\*bold\\*')
+    })
+})
+
+describe('options', () => {
+    const configurator: GameConfigurator = {
+        schema: Type.Object({}),
+        options: [
+            {
+                id: 'optionalRules',
+                name: 'Optional rules',
+                description: '',
+                type: ConfigOptionType.Boolean,
+                default: false
+            },
+            {
+                id: 'variant',
+                name: 'Variant',
+                description: '',
+                type: ConfigOptionType.List,
+                default: 'base',
+                options: [
+                    { name: 'Base game', value: 'base' },
+                    { name: 'Short (no 6-trains)', value: 'short' }
+                ]
+            },
+            {
+                id: 'privates',
+                name: 'Private draft',
+                description: '',
+                type: ConfigOptionType.Boolean,
+                default: true
+            }
+        ],
+        validateConfig() {},
+        updateConfig() {}
+    }
+
+    function lines(config: Game['config']) {
+        const game = openGame({ config })
+        return lobbyPostUpdate(game, { ...context, configurator }).embeds?.[0].description?.split(
+            '\n'
+        )
+    }
+
+    it('shows no options for a game at the standard settings', () => {
+        expect(lines({ optionalRules: false, variant: 'base', privates: true })).toEqual([
+            '**1830** · 2 of 4 seats open · Fast · 1 h',
+            'Players: Alice'
+        ])
+    })
+
+    it('shows only the options away from the standard on one line, before the players', () => {
+        expect(lines({ optionalRules: true, variant: 'short', privates: false })).toEqual([
+            '**1830** · 2 of 4 seats open · Fast · 1 h',
+            'Options: Optional rules · Variant\\: Short \\(no 6\\-trains\\) · Private draft\\: No',
+            'Players: Alice'
+        ])
+    })
+
+    it('shows no options when the title is not loaded', () => {
+        const game = openGame({ config: { optionalRules: true } })
+        const description = lobbyPostUpdate(game, context).embeds?.[0].description
+        expect(description).not.toContain('Options')
     })
 })
 

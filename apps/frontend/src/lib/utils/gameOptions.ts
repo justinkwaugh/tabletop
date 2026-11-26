@@ -1,17 +1,18 @@
 import {
-    ConfigOptionType,
-    normalizeGameConfig,
+    displayedGameOptions,
+    nonStandardGameOptions,
+    type DisplayedGameOption,
     type GameConfig,
     type GameConfigOptions,
-    type GameConfigurator
+    type GameConfigurator,
+    type GameOptionValueLabels
 } from '@tabletop/common'
 import { m } from '$lib/paraglide/messages'
 
-export type DisplayedGameOption = {
-    name: string
-    value: string
-    // A Yes/No option that is switched on, so its name alone describes it.
-    enabledFlag: boolean
+export type { DisplayedGameOption }
+
+function valueLabels(): GameOptionValueLabels {
+    return { yes: m.games_option_yes(), no: m.games_option_no(), none: m.games_option_none() }
 }
 
 export function configuredGameOptions(
@@ -20,58 +21,12 @@ export function configuredGameOptions(
     // Seats are assigned, so an option the seat decides shows that instead of its setting.
     seated = false
 ): DisplayedGameOption[] {
-    const resolved = resolveConfiguration(config, definition)
-    const definitions = resolved.definitions
-    return Object.entries(resolved.config).map(([id, value]) => {
-        const option = definitions.find((candidate) => candidate.id === id)
-        if (seated && option?.seatedValue)
-            return { name: option.name, value: option.seatedValue, enabledFlag: false }
-        const selected =
-            option?.type === ConfigOptionType.List
-                ? option.options.find((choice) => choice.value === value)?.name
-                : undefined
-        return {
-            name: option?.name ?? id,
-            value:
-                selected ??
-                (typeof value === 'boolean'
-                    ? value
-                        ? m.games_option_yes()
-                        : m.games_option_no()
-                    : value === null
-                      ? m.games_option_none()
-                      : String(value)),
-            enabledFlag: value === true
-        }
-    })
+    return displayedGameOptions(config, definition, valueLabels(), seated)
 }
 
 export function gameCardOptions(
     config: GameConfig,
     definition: GameConfigOptions | GameConfigurator
 ): DisplayedGameOption[] {
-    const resolved = resolveConfiguration(config, definition)
-    const definitions = resolved.definitions
-    const visibleConfig = Object.fromEntries(
-        Object.entries(resolved.config).filter(([id, value]) => {
-            const option = definitions.find((candidate) => candidate.id === id)
-            return option && (option.alwaysShow || value !== (option.default ?? null))
-        })
-    )
-    return configuredGameOptions(visibleConfig, definitions)
-}
-
-function resolveConfiguration(
-    config: GameConfig,
-    definition: GameConfigOptions | GameConfigurator
-) {
-    return Array.isArray(definition)
-        ? { config, definitions: definition }
-        : {
-              config:
-                  definition.normalizeConfig === undefined
-                      ? config
-                      : normalizeGameConfig(config, definition),
-              definitions: definition.options
-          }
+    return nonStandardGameOptions(config, definition, valueLabels())
 }

@@ -29,7 +29,8 @@ export class LobbyPostQueue implements GameChangeListener {
     ) {}
 
     async applyChange(before: Game | undefined, after: Game | undefined): Promise<void> {
-        if (!this.lobbies.channelFor(before) && !this.lobbies.channelFor(after)) return
+        const posted = [before, after].some((game) => this.lobbies.channelsFor(game).length > 0)
+        if (!posted) return
         const gameId = after?.id ?? before?.id
         assertExists(gameId, 'A game write has a game before or after it')
         try {
@@ -49,8 +50,8 @@ export class LobbyPostQueue implements GameChangeListener {
 }
 
 /**
- * Keeps one Discord message per open game in its lobby's channel, from the game as it is now, so
- * syncs may run in any order or more than once.
+ * Keeps one Discord message per open game in each of its lobby's channels that lists it, from the
+ * game as it is now, so syncs may run in any order or more than once.
  */
 export class LobbyPosts {
     constructor(
@@ -67,7 +68,7 @@ export class LobbyPosts {
         const gameIds: string[] = []
         for (const seriesId of this.lobbies.seriesIds()) {
             for (const game of await this.gameService.getOpenSeriesGames(seriesId)) {
-                if (!this.lobbies.channelFor(game)) continue
+                if (this.lobbies.channelsFor(game).length === 0) continue
                 await this.queue.queueSync({ gameId: game.id, quiet: true })
                 gameIds.push(game.id)
             }
@@ -87,14 +88,28 @@ export class LobbyPosts {
         }
     }
 
+    // Each channel is synced on its own, so one channel refusing still updates the others.
     private async show(gameId: string, game: Game | undefined, quiet: boolean): Promise<void> {
-        const channel = this.lobbies.channelFor(game)
-        const post = await this.store.findPost(gameId)
-        const message = post?.message
-        if (message && message.channelId !== channel?.channelId) await this.remove(gameId, message)
-        if (!game || !channel) return
-        if (message?.channelId === channel.channelId) await this.edit(message, game)
-        else await this.create(game, channel, { posts: post?.posts ?? 0, quiet })
+        const channels = this.lobbies.channelsFor(game)
+        const posted = (await this.store.findPost(gameId))?.channels ?? {}
+        const listed = new Set(channels.map(({ channelId }) => channelId))
+        const removals = Object.entries(posted).flatMap(([channelId, { messageId }]) =>
+            messageId && !listed.has(channelId)
+                ? [this.remove(gameId, { channelId, messageId })]
+                : []
+        )
+        const shown = game
+            ? channels.map((channel) => {
+                  const { posts = 0, messageId } = posted[channel.channelId] ?? {}
+                  return messageId
+                      ? this.edit({ channelId: channel.channelId, messageId }, game)
+                      : this.create(game, channel, { posts, quiet })
+              })
+            : []
+        const failure = (await Promise.allSettled([...removals, ...shown])).find(
+            (result): result is PromiseRejectedResult => result.status === 'rejected'
+        )
+        if (failure) throw failure.reason
     }
 
     private async create(
@@ -105,7 +120,7 @@ export class LobbyPosts {
         const response = await this.discordBotApi.post(
             `/channels/${channel.channelId}/messages`,
             newLobbyPost(game, this.context(game), {
-                nonce: this.nonce(game.id, posts),
+                nonce: this.nonce(game.id, channel.channelId, posts),
                 mentionRoleId: posts === 0 && !quiet ? channel.roleId : undefined
             })
         )
@@ -141,9 +156,9 @@ export class LobbyPosts {
     }
 
     // The same for every send of one post, so a retry or a racing sync gets the message back.
-    private nonce(gameId: string, posts: number): string {
+    private nonce(gameId: string, channelId: string, posts: number): string {
         return createHash('sha256')
-            .update(`${gameId}:${posts}`)
+            .update(`${gameId}:${channelId}:${posts}`)
             .digest('base64url')
             .slice(0, NONCE_LENGTH)
     }
@@ -155,6 +170,7 @@ export class LobbyPosts {
     private context(game: Game): LobbyPostContext {
         return {
             titleName: this.gameService.getTitleName(game.typeId),
+            configurator: this.gameService.getTitle(game.typeId)?.info.configurator,
             frontendHost: this.frontendHost
         }
     }

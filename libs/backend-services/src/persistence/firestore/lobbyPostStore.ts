@@ -1,8 +1,12 @@
-import { CollectionReference, FieldValue, Firestore } from '@google-cloud/firestore'
+import { CollectionReference, Firestore } from '@google-cloud/firestore'
 import { BaseError } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import type { LobbyPostStore } from '../stores/lobbyPostStore.js'
-import { StoredLobbyPost, type LobbyMessage } from '../model/storedLobbyPost.js'
+import {
+    SingleChannelLobbyPost,
+    StoredLobbyPost,
+    type LobbyMessage
+} from '../model/storedLobbyPost.js'
 import { UnknownStorageError } from '../stores/errors.js'
 
 export class FirestoreLobbyPostStore implements LobbyPostStore {
@@ -24,9 +28,18 @@ export class FirestoreLobbyPostStore implements LobbyPostStore {
         try {
             return await this.firestore.runTransaction(async (transaction) => {
                 const reference = this.posts.doc(gameId)
-                const stored = this.stored((await transaction.get(reference)).data())
-                if (stored?.message) return stored.message
-                transaction.set(reference, { gameId, posts: (stored?.posts ?? 0) + 1, message })
+                const channels = this.stored((await transaction.get(reference)).data())?.channels
+                const { channelId, messageId } = message
+                const posted = channels?.[channelId]
+                if (posted?.messageId) return { channelId, messageId: posted.messageId }
+                const post: StoredLobbyPost = {
+                    gameId,
+                    channels: {
+                        ...channels,
+                        [channelId]: { posts: (posted?.posts ?? 0) + 1, messageId }
+                    }
+                }
+                transaction.set(reference, post)
                 return message
             })
         } catch (error) {
@@ -38,19 +51,33 @@ export class FirestoreLobbyPostStore implements LobbyPostStore {
         try {
             await this.firestore.runTransaction(async (transaction) => {
                 const reference = this.posts.doc(gameId)
-                const stored = this.stored((await transaction.get(reference)).data())
-                if (stored?.message?.messageId !== message.messageId) return
-                transaction.update(reference, { message: FieldValue.delete() })
+                const channels = this.stored((await transaction.get(reference)).data())?.channels
+                const posted = channels?.[message.channelId]
+                if (!posted || posted.messageId !== message.messageId) return
+                const post: StoredLobbyPost = {
+                    gameId,
+                    channels: { ...channels, [message.channelId]: { posts: posted.posts } }
+                }
+                transaction.set(reference, post)
             })
         } catch (error) {
             this.handleError(error, gameId)
         }
     }
 
+    // Writes always store the per-channel shape, so a single-channel record is rewritten on its
+    // next change.
     private stored(data: unknown): StoredLobbyPost | undefined {
         if (data === undefined) return undefined
-        Value.Assert(StoredLobbyPost, data)
-        return data
+        if (Value.Check(StoredLobbyPost, data)) return data
+        Value.Assert(SingleChannelLobbyPost, data)
+        const { gameId, posts, message } = data
+        // A count without a message cannot say which channel it was for, so it is dropped.
+        if (!message) return { gameId, channels: {} }
+        return {
+            gameId,
+            channels: { [message.channelId]: { posts, messageId: message.messageId } }
+        }
     }
 
     private handleError(error: unknown, gameId: string): never {

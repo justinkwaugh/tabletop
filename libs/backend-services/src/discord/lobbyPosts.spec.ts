@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
-import { GameStatus, PlayerStatus, type Game } from '@tabletop/common'
+import { GamePace, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
 import { GameService } from '../games/gameService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { LobbyPostStore } from '../persistence/stores/lobbyPostStore.js'
@@ -8,17 +8,21 @@ import { DiscordBotApi } from './discordBotApi.js'
 import { LobbyPostQueue, LobbyPosts } from './lobbyPosts.js'
 import { PostedLobbies } from './postedLobbies.js'
 
-const lobbies = new PostedLobbies({ '18xx': { channelId: 'lobby-1', roleId: 'role-1' } }, () => ({
-    name: '1830',
-    designer: 'Francis Tresham',
-    description: 'Railways',
-    year: '1986',
-    minPlayers: 2,
-    maxPlayers: 6,
-    defaultPlayerCount: 4,
-    version: '1.0.0',
-    beta: false
-}))
+const lobbies = new PostedLobbies({ '18xx': { channelId: 'lobby-1', roleId: 'role-1' } }, metadata)
+
+function metadata() {
+    return {
+        name: '1830',
+        designer: 'Francis Tresham',
+        description: 'Railways',
+        year: '1986',
+        minPlayers: 2,
+        maxPlayers: 6,
+        defaultPlayerCount: 4,
+        version: '1.0.0',
+        beta: false
+    }
+}
 
 const open: Game = {
     id: 'game-1',
@@ -44,9 +48,12 @@ const filled: Game = {
     status: GameStatus.WaitingToStart,
     updatedAt: new Date('2026-11-25T12:05:00.000Z')
 }
-const posted: LobbyMessage = { channelId: 'lobby-1', messageId: 'msg-1' }
 const MESSAGES_PATH = '/channels/lobby-1/messages'
 const MESSAGE_PATH = '/channels/lobby-1/messages/msg-1'
+
+function record(posts: number, messageId?: string, channelId = 'lobby-1'): StoredLobbyPost {
+    return { gameId: 'game-1', channels: { [channelId]: { posts, messageId } } }
+}
 
 class MemoryLobbyPostStore implements LobbyPostStore {
     readonly posts = new Map<string, StoredLobbyPost>()
@@ -55,17 +62,25 @@ class MemoryLobbyPostStore implements LobbyPostStore {
         return this.posts.get(gameId)
     }
 
-    async claimMessage(gameId: string, message: LobbyMessage) {
-        const stored = this.posts.get(gameId)
-        if (stored?.message) return stored.message
-        this.posts.set(gameId, { gameId, posts: (stored?.posts ?? 0) + 1, message })
-        return message
+    async claimMessage(gameId: string, { channelId, messageId }: LobbyMessage) {
+        const channels = this.posts.get(gameId)?.channels ?? {}
+        const posted = channels[channelId]
+        if (posted?.messageId) return { channelId, messageId: posted.messageId }
+        this.posts.set(gameId, {
+            gameId,
+            channels: { ...channels, [channelId]: { posts: (posted?.posts ?? 0) + 1, messageId } }
+        })
+        return { channelId, messageId }
     }
 
-    async clearMessage(gameId: string, message: LobbyMessage) {
-        const stored = this.posts.get(gameId)
-        if (stored?.message?.messageId !== message.messageId) return
-        this.posts.set(gameId, { gameId, posts: stored.posts })
+    async clearMessage(gameId: string, { channelId, messageId }: LobbyMessage) {
+        const channels = this.posts.get(gameId)?.channels ?? {}
+        const posted = channels[channelId]
+        if (!posted || posted.messageId !== messageId) return
+        this.posts.set(gameId, {
+            gameId,
+            channels: { ...channels, [channelId]: { posts: posted.posts } }
+        })
     }
 }
 
@@ -118,7 +133,7 @@ describe('LobbyPosts', () => {
 
         expect(discordBotApi.post).toHaveBeenCalledWith(MESSAGES_PATH, expect.anything())
         expect(postedBody()).toMatchObject({ content: '<@&role-1>', enforce_nonce: true })
-        expect(store.posts.get('game-1')).toEqual({ gameId: 'game-1', posts: 1, message: posted })
+        expect(store.posts.get('game-1')).toEqual(record(1, 'msg-1'))
         expect(discordBotApi.delete).not.toHaveBeenCalled()
     })
 
@@ -131,19 +146,19 @@ describe('LobbyPosts', () => {
     })
 
     it('posts a reopened game again without mentioning the role a second time', async () => {
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1 })
+        store.posts.set('game-1', record(1))
         gameReads(open, open)
 
         await lobbyPosts.sync({ gameId: 'game-1' })
 
         expect(postedBody()).toMatchObject({ content: undefined })
-        expect(store.posts.get('game-1')?.posts).toBe(2)
+        expect(store.posts.get('game-1')?.channels['lobby-1']?.posts).toBe(2)
     })
 
     it('sends the same nonce for every send of one post, and a new one for the next post', async () => {
         const nonces: unknown[] = []
         for (const posts of [0, 0, 1]) {
-            store.posts.set('game-1', { gameId: 'game-1', posts })
+            store.posts.set('game-1', record(posts))
             gameReads(open, open)
             await lobbyPosts.sync({ gameId: 'game-1' })
             nonces.push(vi.mocked(discordBotApi.post).mock.calls.at(-1)?.[1])
@@ -155,7 +170,7 @@ describe('LobbyPosts', () => {
     })
 
     it('edits the post of a game still open', async () => {
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
         gameReads(open, open)
 
         await lobbyPosts.sync({ gameId: 'game-1' })
@@ -168,7 +183,7 @@ describe('LobbyPosts', () => {
     })
 
     it('edits again when the game changed while it was editing', async () => {
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
         const joined: Game = {
             ...open,
             name: 'Renamed',
@@ -187,28 +202,28 @@ describe('LobbyPosts', () => {
         ['filled', filled],
         ['gone', undefined]
     ])('removes the post of a game that is %s, keeping its count', async (_, game) => {
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
         gameReads(game, game)
 
         await lobbyPosts.sync({ gameId: 'game-1' })
 
         expect(discordBotApi.delete).toHaveBeenCalledWith(MESSAGE_PATH)
-        expect(store.posts.get('game-1')).toEqual({ gameId: 'game-1', posts: 1 })
+        expect(store.posts.get('game-1')).toEqual(record(1))
         expect(discordBotApi.post).not.toHaveBeenCalled()
     })
 
     it('forgets a post someone already deleted in Discord', async () => {
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
         gameReads(filled, filled)
         vi.mocked(discordBotApi.delete).mockResolvedValue(status(404))
 
         await lobbyPosts.sync({ gameId: 'game-1' })
 
-        expect(store.posts.get('game-1')?.message).toBeUndefined()
+        expect(store.posts.get('game-1')).toEqual(record(1))
     })
 
     it('leaves a post gone when someone deleted it in Discord while the game is open', async () => {
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
         gameReads(open, open)
         vi.mocked(discordBotApi.patch).mockResolvedValue(status(404))
 
@@ -229,24 +244,24 @@ describe('LobbyPosts', () => {
     it('keeps a racing sync’s message when Discord returns that same message', async () => {
         gameReads(open, open)
         vi.spyOn(store, 'findPost').mockResolvedValueOnce(undefined)
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
 
         await lobbyPosts.sync({ gameId: 'game-1' })
 
         expect(discordBotApi.delete).not.toHaveBeenCalled()
-        expect(store.posts.get('game-1')?.message).toEqual(posted)
+        expect(store.posts.get('game-1')).toEqual(record(1, 'msg-1'))
     })
 
     it('deletes its own message when another sync recorded a different one first', async () => {
         gameReads(open, open)
         vi.spyOn(store, 'findPost').mockResolvedValueOnce(undefined)
-        store.posts.set('game-1', { gameId: 'game-1', posts: 1, message: posted })
+        store.posts.set('game-1', record(1, 'msg-1'))
         vi.mocked(discordBotApi.post).mockResolvedValue(status(200, { id: 'msg-2' }))
 
         await lobbyPosts.sync({ gameId: 'game-1' })
 
         expect(discordBotApi.delete).toHaveBeenCalledWith(`${MESSAGES_PATH}/msg-2`)
-        expect(store.posts.get('game-1')?.message).toEqual(posted)
+        expect(store.posts.get('game-1')).toEqual(record(1, 'msg-1'))
     })
 
     it('takes the post down at once when the game filled while it was posting', async () => {
@@ -255,22 +270,21 @@ describe('LobbyPosts', () => {
         await lobbyPosts.sync({ gameId: 'game-1' })
 
         expect(discordBotApi.delete).toHaveBeenCalledWith(MESSAGE_PATH)
-        expect(store.posts.get('game-1')).toEqual({ gameId: 'game-1', posts: 1 })
+        expect(store.posts.get('game-1')).toEqual(record(1))
     })
 
     it('moves the post when its lobby moved to another channel', async () => {
-        store.posts.set('game-1', {
-            gameId: 'game-1',
-            posts: 1,
-            message: { ...posted, channelId: 'old-lobby' }
-        })
+        store.posts.set('game-1', record(1, 'msg-1', 'old-lobby'))
         gameReads(open, open)
 
         await lobbyPosts.sync({ gameId: 'game-1' })
 
         expect(discordBotApi.delete).toHaveBeenCalledWith('/channels/old-lobby/messages/msg-1')
         expect(discordBotApi.post).toHaveBeenCalledWith(MESSAGES_PATH, expect.anything())
-        expect(store.posts.get('game-1')).toEqual({ gameId: 'game-1', posts: 2, message: posted })
+        expect(store.posts.get('game-1')?.channels).toEqual({
+            'old-lobby': { posts: 1 },
+            'lobby-1': { posts: 1, messageId: 'msg-1' }
+        })
     })
 
     it('fails, so the queue retries, when Discord refuses', async () => {
@@ -279,6 +293,116 @@ describe('LobbyPosts', () => {
 
         await expect(lobbyPosts.sync({ gameId: 'game-1' })).rejects.toThrow(/429/)
         expect(store.posts.size).toBe(0)
+    })
+
+    describe('with a channel per pace', () => {
+        const byPace = new PostedLobbies(
+            {
+                '18xx': [
+                    { channelId: 'lobby-1', roleId: 'role-1' },
+                    { channelId: 'live', roleId: 'role-live', paces: [GamePace.Live] },
+                    { channelId: 'async', roleId: 'role-async', paces: [GamePace.Daily] }
+                ]
+            },
+            metadata
+        )
+        const live: Game = { ...open, paceMinutes: 15 }
+
+        beforeEach(() => {
+            lobbyPosts = new LobbyPosts(
+                gameService,
+                discordBotApi,
+                store,
+                new LobbyPostQueue({ createPushTask: async () => undefined }, byPace),
+                byPace,
+                'https://example.com'
+            )
+            let id = 0
+            vi.mocked(discordBotApi.post).mockImplementation(async () =>
+                status(200, { id: `msg-${++id}` })
+            )
+        })
+
+        function postsTo(channelId: string) {
+            return vi
+                .mocked(discordBotApi.post)
+                .mock.calls.filter(([path]) => path === `/channels/${channelId}/messages`)
+                .map(([, body]) => body)
+        }
+
+        it("posts a game in every channel that lists its pace, mentioning each channel's role", async () => {
+            gameReads(live, live)
+
+            await lobbyPosts.sync({ gameId: 'game-1' })
+
+            expect(postsTo('lobby-1')).toEqual([expect.objectContaining({ content: '<@&role-1>' })])
+            expect(postsTo('live')).toEqual([expect.objectContaining({ content: '<@&role-live>' })])
+            expect(postsTo('async')).toEqual([])
+            const nonces = vi
+                .mocked(discordBotApi.post)
+                .mock.calls.map(([, body]) => Reflect.get(Object(body), 'nonce'))
+            expect(new Set(nonces).size).toBe(2)
+        })
+
+        it('moves the post when the game changes pace, leaving its other posts', async () => {
+            store.posts.set('game-1', {
+                gameId: 'game-1',
+                channels: {
+                    'lobby-1': { posts: 1, messageId: 'a' },
+                    live: { posts: 1, messageId: 'b' }
+                }
+            })
+            gameReads(open, open)
+
+            await lobbyPosts.sync({ gameId: 'game-1' })
+
+            expect(discordBotApi.delete).toHaveBeenCalledExactlyOnceWith(
+                '/channels/live/messages/b'
+            )
+            expect(discordBotApi.patch).toHaveBeenCalledExactlyOnceWith(
+                '/channels/lobby-1/messages/a',
+                expect.anything()
+            )
+            expect(postsTo('async')).toEqual([
+                expect.objectContaining({ content: '<@&role-async>' })
+            ])
+        })
+
+        it('removes every post of a game that leaves the lobby', async () => {
+            store.posts.set('game-1', {
+                gameId: 'game-1',
+                channels: {
+                    'lobby-1': { posts: 1, messageId: 'a' },
+                    live: { posts: 1, messageId: 'b' }
+                }
+            })
+            gameReads(filled, filled)
+
+            await lobbyPosts.sync({ gameId: 'game-1' })
+
+            expect(
+                vi
+                    .mocked(discordBotApi.delete)
+                    .mock.calls.map(([path]) => path)
+                    .sort()
+            ).toEqual(['/channels/live/messages/b', '/channels/lobby-1/messages/a'])
+            expect(store.posts.get('game-1')?.channels).toEqual({
+                'lobby-1': { posts: 1 },
+                live: { posts: 1 }
+            })
+        })
+
+        it('still posts in the other channels when one refuses, then fails so the queue retries', async () => {
+            gameReads(live)
+            vi.mocked(discordBotApi.post).mockImplementation(async (path) =>
+                path === '/channels/live/messages' ? status(403) : status(200, { id: 'msg-1' })
+            )
+
+            await expect(lobbyPosts.sync({ gameId: 'game-1' })).rejects.toThrow(/403/)
+            expect(store.posts.get('game-1')?.channels).toEqual({
+                'lobby-1': { posts: 1, messageId: 'msg-1' }
+            })
+        })
     })
 
     it('queues a quiet sync for each game open in a posted lobby', async () => {

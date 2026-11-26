@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    GamePace,
     GameStatus,
     GameVisibility,
     PlayerStatus,
@@ -9,6 +10,13 @@ import {
 import { parseLobbyChannels, PostedLobbies } from './postedLobbies.js'
 
 const channels = { '18xx': { channelId: 'lobby-1', roleId: 'role-1' } }
+const everyPace = { channelId: 'all', roleId: 'role-all' }
+const live = { channelId: 'live', roleId: 'role-live', paces: [GamePace.Live] }
+const async = {
+    channelId: 'async',
+    roleId: 'role-async',
+    paces: [GamePace.Fast, GamePace.Brisk, GamePace.Daily, GamePace.Relaxed]
+}
 
 function metadata(visibility: GameVisibility): GameMetadata {
     return {
@@ -53,7 +61,21 @@ function openGame(fields: Partial<Game> = {}): Game {
 
 describe('PostedLobbies', () => {
     it("finds the channel of an open game's lobby", () => {
-        expect(lobbies.channelFor(openGame())).toEqual(channels['18xx'])
+        expect(lobbies.channelsFor(openGame())).toEqual([channels['18xx']])
+    })
+
+    it.each([
+        ['live', 15, [everyPace, live]],
+        ['fast', 60, [everyPace, async]],
+        ['daily', 24 * 60, [everyPace, async]],
+        ['with no pace set (daily)', undefined, [everyPace, async]]
+    ])("finds each of the lobby's channels that lists a %s game", (_, paceMinutes, expected) => {
+        const byPace = new PostedLobbies(
+            { '18xx': [everyPace, live, async] },
+            (titleId) => titles[titleId]
+        )
+
+        expect(byPace.channelsFor(openGame({ paceMinutes }))).toEqual(expected)
     })
 
     it.each([
@@ -68,11 +90,11 @@ describe('PostedLobbies', () => {
         ['of an Alpha title', { typeId: '18new' }],
         ['of a title not loaded', { typeId: 'unknown' }]
     ])('has none for a game %s', (_, fields) => {
-        expect(lobbies.channelFor(openGame(fields))).toBeUndefined()
+        expect(lobbies.channelsFor(openGame(fields))).toEqual([])
     })
 
     it('has none without a game', () => {
-        expect(lobbies.channelFor(undefined)).toBeUndefined()
+        expect(lobbies.channelsFor(undefined)).toEqual([])
     })
 
     it('lists the posted lobbies', () => {
@@ -83,6 +105,16 @@ describe('PostedLobbies', () => {
 describe('parseLobbyChannels', () => {
     it('reads the channels by lobby', () => {
         expect(parseLobbyChannels(JSON.stringify(channels))).toEqual(channels)
+    })
+
+    it('reads several channels for a lobby, with their paces', () => {
+        const several = { '18xx': [everyPace, live, async] }
+        expect(parseLobbyChannels(JSON.stringify(several))).toEqual(several)
+    })
+
+    it('refuses an unknown pace', () => {
+        const json = JSON.stringify({ '18xx': [{ channelId: 'c', paces: ['slow'] }] })
+        expect(() => parseLobbyChannels(json)).toThrow()
     })
 
     it('has none when unset', () => {
