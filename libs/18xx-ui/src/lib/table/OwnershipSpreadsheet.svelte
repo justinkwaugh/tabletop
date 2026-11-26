@@ -668,6 +668,11 @@
             session.privates.companies.map((company) => company.id)
         )
     )
+    const legendPrivates = $derived(
+        heldPrivates.toSorted((a, b) =>
+            privateName(a.company.id).localeCompare(privateName(b.company.id))
+        )
+    )
     const showLegend = $derived(heldPrivates.length > 0)
     const showOwnerPrivates = $derived(heldPrivates.some((held) => held.side === 'owner'))
     const showCompanyPrivates = $derived(heldPrivates.some((held) => held.side === 'company'))
@@ -892,7 +897,7 @@
                         >{/if}
                     {#if showValue}<span role="columnheader" class="legend-number">Value</span>{/if}
                 </div>
-                {#each heldPrivates as entry (entry.company.id)}
+                {#each legendPrivates as entry (entry.company.id)}
                     <div class="legend-row" role="row">
                         <span role="cell" class="private-mark"
                             >{privateInitials(entry.company.id)}</span
