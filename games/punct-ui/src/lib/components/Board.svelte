@@ -18,7 +18,8 @@
         plateSideFill,
         shadowPath
     } from '$lib/board/drawing.js'
-    import { destinationMarks, winningDots } from '$lib/board/marks.js'
+    import { destinationMarks, topDotsAmong } from '$lib/board/marks.js'
+    import { winningLine } from '$lib/board/winningLine.js'
     import { holeBox, holeUrl } from '$lib/board/looks.js'
     import { drawPiece, pathOf, silhouetteOf, type Tone } from '$lib/board/pieceShape.js'
     import PieceDefs from './PieceDefs.svelte'
@@ -31,6 +32,8 @@
     const labels = $derived(boardLabels(view))
     const frame = $derived(view.frame(labels.map((label) => label.at)))
     const animator = new BoardAnimator(session)
+    const CENTRE_WIN_RADIUS = SPACING * 0.17
+    const CENTRE_WIN_EDGE = 2.5
 
     // The printed board: the pale area a honeycomb cell round every hole, the central hexagon's
     // cells tinted; lines from hole to hole.
@@ -89,7 +92,11 @@
     // Once a space is chosen, the other destinations dim; once a piece is, the other movable ones.
     const destinationsDimmed = $derived(session.chosenAt !== undefined)
     const chosen = $derived(session.chosenPiece !== undefined || session.chosenAt !== undefined)
-    const connection = $derived(session.winningConnection)
+    const win = $derived(animator.win)
+    const winLine = $derived(
+        win && 'run' in win.marks ? winningLine(win.board, win.marks.run, view) : undefined
+    )
+    const centreWins = $derived(win && 'centre' in win.marks ? win.marks.centre : [])
     const emptyChoices = $derived(
         SPACES.filter(
             (coords) =>
@@ -306,16 +313,20 @@
                             {/each}
                         </g>
                     {/each}
-                    {#if connection}
-                        {#each winningDots(session.gameState.board, piece, connection) as cell (spaceKey(cell))}
+                    {#if win}
+                        {#each topDotsAmong(win.board, piece, centreWins) as cell (spaceKey(cell))}
                             {@const spot = onTopOf(view, cell, piece.punct)}
-                            <ellipse
-                                cx={spot.x}
-                                cy={spot.y}
-                                rx={SPACING * 0.1}
-                                ry={SPACING * 0.1 * view.tilt}
-                                class="win-spot"
-                            ></ellipse>
+                            <g transform="translate({spot.x} {spot.y})">
+                                <g class="centre-win" {@attach animator.winDot()}>
+                                    {#each [CENTRE_WIN_EDGE, 0] as edge (edge)}
+                                        <ellipse
+                                            rx={CENTRE_WIN_RADIUS + edge}
+                                            ry={(CENTRE_WIN_RADIUS + edge) * view.tilt}
+                                            class:edge={edge > 0}
+                                        ></ellipse>
+                                    {/each}
+                                </g>
+                            </g>
                         {/each}
                     {/if}
                     {#if session.showLevels && piece.level > 0}
@@ -379,6 +390,15 @@
                 onkeydown={(event) => onKey(event, () => session.chooseSpace(mark.coords))}
             ></ellipse>
         {/each}
+
+        {#if winLine}
+            <g class="win-line">
+                {#each ['under', 'over'] as layer (layer)}
+                    <path d={winLine} pathLength="1" class={layer} {@attach animator.winLine()}
+                    ></path>
+                {/each}
+            </g>
+        {/if}
     </svg>
 </div>
 
@@ -547,12 +567,33 @@
         font-variant-numeric: tabular-nums;
     }
 
-    /* Cyan with a dark edge, as the spots in the other GIPF project games: gold vanished on yellow
-       pieces. */
-    .win-spot {
-        fill: var(--punct-mark);
-        stroke: rgb(0 0 0 / 0.8);
-        stroke-width: 1.4;
+    /* Cyan on dark, as the choice marks: gold vanished on yellow pieces. */
+    .centre-win {
         pointer-events: none;
+    }
+
+    .centre-win ellipse {
+        fill: var(--punct-mark);
+    }
+
+    .centre-win ellipse.edge {
+        fill: var(--punct-mark-edge);
+    }
+
+    .win-line {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        pointer-events: none;
+    }
+
+    .win-line .under {
+        stroke: var(--punct-mark-edge);
+        stroke-width: 12;
+    }
+
+    .win-line .over {
+        stroke: var(--punct-mark);
+        stroke-width: 8;
     }
 </style>

@@ -13,7 +13,6 @@ import {
 import {
     ActionType,
     dotsOf,
-    EndReason,
     isMovePiece,
     isPlacePiece,
     MovePiece,
@@ -33,6 +32,7 @@ import {
 import { PunctStageOrder, setPunctSelection, type PunctSelection } from './stagedSelection.js'
 import { includesCoords, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { wrapRotation } from '$lib/board/rotation.js'
+import { winMarksOf, type WinMarks } from '$lib/board/marks.js'
 
 // A piece standing where the player has put it but not yet committed: brought in from the reserve,
 // or moved from where it stood, its PÜNCT's space before the move being `from`.
@@ -226,16 +226,7 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
         new Set((this.chosenPiece ? this.destinations : this.entryCells).map(spaceKey))
     )
 
-    // The chain of spaces that won, once a connection has ended the game.
-    winningConnection: AxialCoordinates[] | undefined = $derived.by(() => {
-        const state = this.gameState
-        if (state.endReason !== EndReason.Connection) return undefined
-        const [winnerId] = state.winningPlayerIds
-        assertExists(winnerId, 'A connection has a winner')
-        const connection = state.board.connection(winnerId)
-        assertExists(connection, 'A game won by a connection shows it')
-        return connection
-    })
+    winMarks: WinMarks | undefined = $derived(winMarksOf(this.gameState))
 
     // Once a move is played, its motion runs on the state it started from, whose choices still
     // show as they fade; taps on them do nothing until the new state lands.
