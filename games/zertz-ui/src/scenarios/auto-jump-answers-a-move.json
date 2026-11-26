@@ -23,7 +23,7 @@
         ],
         "config": {
             "setup": "Standard",
-            "autoJump": false
+            "autoJump": "Optional"
         },
         "hotseat": false,
         "winningPlayerIds": [],

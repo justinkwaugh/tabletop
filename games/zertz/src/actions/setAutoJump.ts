@@ -3,9 +3,11 @@ import { Compile } from 'typebox/compile'
 import { ActionSource, assert, GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedZertzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { AutoJumpRule } from '../definition/config.js'
 
-// A standing declaration (ADR 0007) either player may make at any time: while it is on, a jump
-// with only one choice is made for them at once. A new one replaces their last (ADR 0008).
+// A standing declaration (ADR 0007) either player may make at any time, in a game created with
+// auto-jump optional: while it is on, a jump with only one choice is made for them at once. A new
+// one replaces their last (ADR 0008).
 export type SetAutoJump = Type.Static<typeof SetAutoJump>
 export const SetAutoJump = Type.Evaluate(
     Type.Intersect([
@@ -30,7 +32,8 @@ export function autoJumpProblem(
     state: HydratedZertzGameState,
     request: Pick<SetAutoJump, 'playerId' | 'on' | 'supersedesActionId'>
 ): string | undefined {
-    if (state.autoJumpForAll === true) return 'Auto-jump is on for both players'
+    if (state.autoJumpRule === AutoJumpRule.Forced) return 'Auto-jump is on for both players'
+    if (state.autoJumpRule === AutoJumpRule.Off) return 'Auto-jump is off in this game'
     if (!state.players.some((player) => player.playerId === request.playerId))
         return 'Only a seated player can auto-jump'
     // A replacement is checked where the declaration it replaces is gone, so it may repeat what

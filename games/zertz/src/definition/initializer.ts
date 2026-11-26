@@ -15,7 +15,8 @@ import { HydratedZertzPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { ZertzColors } from './colors.js'
 import {
-    autoJumpFromConfig,
+    AutoJumpRule,
+    autoJumpRuleFromConfig,
     FirstPlayer,
     firstPlayerFromConfig,
     SETUP_RULES,
@@ -61,10 +62,21 @@ export class ZertzGameInitializer
             board: { rings: layoutCoordinates(rules.board).map((coords) => ({ coords })) },
             pool: structuredClone(rules.pool),
             positions: [],
-            ...(autoJumpFromConfig(game.config) ? { autoJumpForAll: true } : {})
+            ...this.autoJumpFlags(autoJumpRuleFromConfig(game.config))
         })
 
         return new HydratedZertzGameState(zertzGameState)
+    }
+
+    private autoJumpFlags(rule: AutoJumpRule) {
+        switch (rule) {
+            case AutoJumpRule.Forced:
+                return { autoJumpForAll: true }
+            case AutoJumpRule.Off:
+                return { autoJumpForNone: true }
+            case AutoJumpRule.Optional:
+                return {}
+        }
     }
 
     // The game creator is the player whose user created the game; in a local game every seat

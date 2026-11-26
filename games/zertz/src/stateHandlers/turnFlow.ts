@@ -3,6 +3,7 @@ import { ActionType } from '../definition/actions.js'
 import { Capture } from '../actions/capture.js'
 import { autoJumpProblem, HydratedSetAutoJump } from '../actions/setAutoJump.js'
 import { MachineState } from '../definition/states.js'
+import { AutoJumpRule } from '../definition/config.js'
 import { EndReason, HydratedZertzGameState } from '../model/gameState.js'
 
 export function setActivePlayer(gameState: HydratedZertzGameState) {
@@ -37,9 +38,10 @@ export function endTurn(gameState: HydratedZertzGameState): MachineState {
     return MachineState.TakingTurn
 }
 
-// Either player may turn auto-jump on or off as the game goes on, unless it is on for both.
 export function withAutoJump(types: ActionType[], gameState: HydratedZertzGameState): ActionType[] {
-    return gameState.autoJumpForAll === true ? types : [...types, ActionType.SetAutoJump]
+    return gameState.autoJumpRule === AutoJumpRule.Optional
+        ? [...types, ActionType.SetAutoJump]
+        : types
 }
 
 export function isAutoJumpDeclaration(

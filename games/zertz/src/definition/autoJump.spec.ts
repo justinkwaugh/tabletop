@@ -5,7 +5,7 @@ import {
     type AxialCoordinates,
     type GameAction
 } from '@tabletop/common'
-import { ZertzSetup } from './config.js'
+import { AutoJumpRule, normalizeZertzConfig, ZertzConfigurator, ZertzSetup } from './config.js'
 import { ZertzApiActions } from './apiActions.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
@@ -17,11 +17,17 @@ import type { Capture } from '../actions/capture.js'
 import type { SetAutoJump } from '../actions/setAutoJump.js'
 import { actionBase, createGame, engine, type ZertzGame } from './tests/playthrough.js'
 
-function game(autoJump?: boolean): ZertzGame {
+function game(autoJump?: AutoJumpRule | boolean): ZertzGame {
     const created = createGame(ZertzSetup.Standard)
     return autoJump === undefined
         ? created
         : { ...created, config: { ...created.config, autoJump } }
+}
+
+function gameWithoutTheOption(): ZertzGame {
+    const created = createGame(ZertzSetup.Standard)
+    const { autoJump: _, ...config } = created.config
+    return { ...created, config }
 }
 
 function start(zertz: ZertzGame, rings: Ring[]): ZertzGameState {
@@ -102,9 +108,9 @@ function moves(actions: GameAction[]) {
     return actions.map(({ type, source, playerId }) => ({ type, source, playerId }))
 }
 
-describe('auto-jump for both players', () => {
+describe('auto-jump forced for both players', () => {
     it('jumps a chain of single choices for the player to move at once', () => {
-        const zertz = game(true)
+        const zertz = game(AutoJumpRule.Forced)
         const state = start(zertz, CHAIN_FOR_P1)
         expect(state.autoJumpForAll).toBe(true)
 
@@ -124,8 +130,16 @@ describe('auto-jump for both players', () => {
         })
     })
 
-    it('leaves a choice of jumps to the player, then makes a single continuation', () => {
+    it('is what a game created when the option was a toggle holds when it was on', () => {
         const zertz = game(true)
+        new ZertzConfigurator().validateConfig(zertz.config)
+        expect(start(zertz, CHAIN_FOR_P1).autoJumpForAll).toBe(true)
+        expect(normalizeZertzConfig(zertz.config).autoJump).toBe(AutoJumpRule.Forced)
+        expect(normalizeZertzConfig(game(false).config).autoJump).toBe(AutoJumpRule.Optional)
+    })
+
+    it('leaves a choice of jumps to the player, then makes a single continuation', () => {
+        const zertz = game(AutoJumpRule.Forced)
         const state = start(zertz, TWO_CHOICES)
         const result = run(zertz, state, capturing(zertz, 'p0', { q: 0, r: 0 }, { q: 2, r: 0 }))
         expect(moves(result.processedActions)).toEqual([
@@ -136,21 +150,49 @@ describe('auto-jump for both players', () => {
     })
 
     it('offers no declaration and refuses one', () => {
-        const zertz = game(true)
+        const zertz = game(AutoJumpRule.Forced)
         const state = start(zertz, ONE_JUMP)
         expect(engine.getValidActionTypesForPlayer(zertz, state, 'p0')).toEqual([
             ActionType.Capture
         ])
         expect(engine.getValidActionTypesForPlayer(zertz, state, 'p1')).toEqual([])
-        expect(() => run(zertz, state, declaring(zertz, 'p1', true))).toThrow()
+        expect(() => run(zertz, state, declaring(zertz, 'p1', false))).toThrow()
+    })
+})
+
+describe('auto-jump off for both players', () => {
+    it('leaves even a single jump to the player', () => {
+        const zertz = game(AutoJumpRule.Off)
+        const state = start(zertz, CHAIN_FOR_P1)
+        expect(state.autoJumpForNone).toBe(true)
+        const result = run(zertz, state, placing(zertz, { q: 1, r: 0 }, SPARE))
+        expect(result.processedActions).toHaveLength(1)
+        expect(result.updatedState.activePlayerIds).toEqual(['p1'])
+    })
+
+    it('offers no declaration and refuses one', () => {
+        const zertz = game(AutoJumpRule.Off)
+        const state = start(zertz, ONE_JUMP)
+        expect(engine.getValidActionTypesForPlayer(zertz, state, 'p0')).toEqual([
+            ActionType.Capture
+        ])
+        expect(engine.getValidActionTypesForPlayer(zertz, state, 'p1')).toEqual([])
+        expect(() => run(zertz, state, declaring(zertz, 'p0', true))).toThrow()
     })
 })
 
 describe('auto-jump by player', () => {
     it('is off unless asked for, and an older game without the option plays as before', () => {
-        for (const zertz of [game(), game(false)]) {
+        for (const zertz of [
+            game(),
+            game(AutoJumpRule.Optional),
+            game(false),
+            gameWithoutTheOption()
+        ]) {
+            new ZertzConfigurator().validateConfig(zertz.config)
             const state = start(zertz, CHAIN_FOR_P1)
             expect(state.autoJumpForAll).toBeUndefined()
+            expect(state.autoJumpForNone).toBeUndefined()
             expect(state.players.map((player) => player.autoJump)).toEqual([undefined, undefined])
             const result = run(zertz, state, placing(zertz, { q: 1, r: 0 }, SPARE))
             expect(result.processedActions).toHaveLength(1)
