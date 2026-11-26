@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
     TrackConstruction,
@@ -10,7 +10,11 @@ import {
     type TrackLayDetails
 } from '@tabletop/18xx'
 import { stockGame, start } from '../test/testSupport.js'
-import { PrivateConstruction, type ConstructionPrivateId } from './privateConstruction.js'
+import {
+    PrivateConstruction,
+    constructionPrivateIds,
+    type ConstructionPrivateId
+} from './privateConstruction.js'
 import { chicagoPrivateStation } from './privateStation.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { EighteenFortySixMap } from './map.js'
@@ -310,6 +314,56 @@ describe('1846 private construction', () => {
                 builder.evaluate([request(first)]).lays !== undefined ||
                     builder.choices([request(first)]).length > 0
             ).toBe(true)
+    })
+    it('Little Miami stops checking its availability at the first plan that completes', () => {
+        const table = major()
+        acquire(table, 'LM')
+        const evaluations = vi.spyOn(TrackConstruction.prototype, 'evaluate')
+        try {
+            construction(table, 'LM').choices([])
+            const listing = evaluations.mock.calls.length
+            evaluations.mockClear()
+            expect(
+                constructionPrivateIds(table.hydrated, table.state.activePlayerIds[0])
+            ).toContain('LM')
+            expect(evaluations.mock.calls.length).toBeLessThan(listing / 2)
+        } finally {
+            evaluations.mockRestore()
+        }
+    })
+    it('Little Miami lists its tiles without replaying a planned lay', () => {
+        const table = major()
+        acquire(table, 'LM')
+        const choices = TrackConstruction.prototype.choices
+        let listing = 0
+        let replays = 0
+        const evaluate = TrackConstruction.prototype.evaluate
+        const spies = [
+            vi.spyOn(TrackConstruction.prototype, 'choices').mockImplementation(function (
+                this: TrackConstruction,
+                locationId
+            ) {
+                listing++
+                try {
+                    return choices.call(this, locationId)
+                } finally {
+                    listing--
+                }
+            }),
+            vi.spyOn(TrackConstruction.prototype, 'evaluate').mockImplementation(function (
+                this: TrackConstruction,
+                request
+            ) {
+                if (!listing) replays++
+                return evaluate.call(this, request)
+            })
+        ]
+        try {
+            expect(construction(table, 'LM').choices([]).length).toBeGreaterThan(0)
+        } finally {
+            for (const spy of spies) spy.mockRestore()
+        }
+        expect(replays).toBe(0)
     })
     it('Little Miami can use a single tile to complete a connection to existing track', () => {
         const table = major()
