@@ -142,6 +142,22 @@
             }
         return undefined
     })
+    const bidBoxBids = $derived(
+        new Map(
+            session.bidBoxes.available
+                ? session.gameState.players.flatMap(({ playerId }) => {
+                      const bids = session.bidBoxes.playerBids(playerId)
+                      return bids.length ? [[playerId, bids] as const] : []
+                  })
+                : []
+        )
+    )
+    // A compact card drops its Privates heading, unless lots the player has not won sit above.
+    function listsUnwonLots(playerId: string | undefined) {
+        return (
+            !!playerId && (bidBoxBids.has(playerId) || !!playerAuctionLots?.byPlayer.has(playerId))
+        )
+    }
     const focusableCompanyIds = $derived(
         new Set(
             session.gameState.companies
@@ -186,6 +202,8 @@
     }
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>
+
+{#snippet bidAmount(amount: number)}<span class="bid-word">bid</span> {money(amount)}{/snippet}
 
 {#snippet holdings(text: string | undefined)}
     {#if text}<small class="private-holdings">{text}</small>{/if}
@@ -342,10 +360,10 @@
                 >
                     Bidding power <strong>{money(player.biddingPower)}</strong>
                 </p>{/if}
-            {#if player.playerId && session.bidBoxes.available}
-                {@const bids = session.bidBoxes.playerBids(player.playerId)}
+            {#if player.playerId && bidBoxBids.has(player.playerId)}
+                {@const bids = bidBoxBids.get(player.playerId) ?? []}
                 {#if bids.length}
-                    <section class="auction-lot" aria-label={`${player.name} bids`}>
+                    <section class="auction-lot pending-bids" aria-label={`${player.name} bids`}>
                         <h4>
                             Bids · {session.bidBoxes.tokensFree(player.playerId)} of
                             {session.bidBoxes.tokens(player.playerId)} tokens free
@@ -356,7 +374,9 @@
                                     <tr class:outbid={!bid.leading}>
                                         <th scope="row">{session.companyName(bid.lotId)}</th>
                                         <td class="amount"
-                                            >{money(bid.amount)}{bid.leading ? '' : ' outbid'}</td
+                                            >{@render bidAmount(bid.amount)}{bid.leading
+                                                ? ''
+                                                : ' outbid'}</td
                                         >
                                     </tr>
                                 {/each}
@@ -366,9 +386,15 @@
                 {/if}
             {/if}
             {#if player.playerId && playerAuctionLots?.byPlayer.has(player.playerId)}
-                {@const heading = playerAuctionLots.kind === 'bids' ? 'Bids' : 'Auction lot'}
-                <section class="auction-lot" aria-label={`${player.name} ${heading.toLowerCase()}`}>
-                    <h4>{heading}</h4>
+                {@const list =
+                    playerAuctionLots.kind === 'bids'
+                        ? { bidding: true, heading: 'Bids · not yet won', label: 'bids' }
+                        : { bidding: false, heading: 'Auction lot', label: 'auction lot' }}
+                <section
+                    class={['auction-lot', list.bidding && 'pending-bids lot-bids']}
+                    aria-label={`${player.name} ${list.label}`}
+                >
+                    <h4>{list.heading}</h4>
                     <table>
                         <tbody>
                             {#each playerAuctionLots.byPlayer.get(player.playerId) ?? [] as { lot, amount } (lot.id)}
@@ -391,7 +417,11 @@
                                                     : lot.company?.revenue}
                                             />{:else}{session.lotName(lot)}{/if}
                                     </th>
-                                    <td class="amount">{money(amount)}</td>
+                                    <td class="amount"
+                                        >{#if list.bidding}{@render bidAmount(amount)}{:else}{money(
+                                                amount
+                                            )}{/if}</td
+                                    >
                                 </tr>
                             {:else}<tr><td class="empty">None</td></tr>{/each}
                         </tbody>
@@ -566,7 +596,7 @@
                             <h4>Privates</h4>
                             <span title="Income per operating round">Income</span
                             >{#if !session.presentation.privatesWithoutValue}<span>Value</span>{/if}
-                        </div>{/if}
+                        </div>{:else if listsUnwonLots(player.playerId)}<h4>Privates</h4>{/if}
                     <table aria-label={`${player.name} private companies`}>
                         <tbody>
                             {#each player.privates as entry (entry.company.id)}
@@ -962,9 +992,29 @@
     .auction-lot tr.outbid {
         color: var(--rail-muted, #887664);
     }
-    .auction-lot + section,
+    .auction-lot:not(.pending-bids) + section,
     .privates {
         border-top: 1px solid var(--rail-border, #e3d9cd);
+    }
+    /* Bids are not holdings: a band of their own sets them apart from what the player owns. The
+       raised shade differs from the card in every palette, where the inset one can vanish. */
+    .pending-bids {
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: var(--rail-surface-raised, #2b3744);
+    }
+    .pending-bids:last-child {
+        border-bottom: 0;
+    }
+    .pending-bids + .privates {
+        border-top: 0;
+    }
+    /* Bid boxes dim only outbid rows, so their names keep full strength. */
+    .lot-bids th {
+        color: var(--rail-muted, #887664);
+    }
+    .bid-word {
+        font-size: 10px;
+        color: var(--rail-muted, #887664);
     }
     .income-period {
         font-size: 10px;
