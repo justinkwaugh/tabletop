@@ -2261,14 +2261,17 @@
     }
     .private-marks {
         display: inline-flex;
-        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0 0.5em;
+        max-inline-size: 6.5em;
+        font-size: 0.85em;
+        line-height: 1.25;
+        vertical-align: middle;
     }
     .private-mark {
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: 0.02em;
-    }
-    .private-marks .private-mark {
-        padding-inline: 2px;
     }
     td.private-legend {
         vertical-align: top;
