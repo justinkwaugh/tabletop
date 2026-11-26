@@ -35,17 +35,19 @@ const panelCardNames = (page: Page) =>
 const secondMode = (page: Page, mode: string) =>
     panel(page).getByRole('button', { name: mode, exact: true })
 const toYourSite = (page: Page) => panel(page).getByRole('button', { name: /^To your site/ })
+const noSecond = (page: Page) =>
+    panel(page).getByRole('button', { name: 'No second card', exact: true })
+const SECOND_QUESTION = 'Land Warden: also play a second card?'
 
 /**
- * The second card's buttons under "Also play:", in order: each one's label, its width and height in layout pixels
+ * The second card's buttons under each card that may be played second, in order: each one's label, its width and height in layout pixels
  * (the panel may be drawn scaled), its height on the screen, and the width its own label alone would give it, with
  * its padding and border.
  */
 const secondModeBoxes = (page: Page) =>
     panel(page)
-        .locator('div', { has: page.getByText('Also play:', { exact: true }) })
-        .last()
-        .locator('button:not(:has(img)):not(.magnifier)')
+        .locator('[data-second-plays]')
+        .locator('button:not(:has(img)):not(.magnifier):not([data-no-second])')
         .evaluateAll((buttons) =>
             buttons.map((button) => {
                 const box = button as HTMLElement
@@ -77,7 +79,7 @@ async function searched(page: Page) {
     await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
     await expect(step(page, 'Keep one.')).toBeVisible()
     await card(page, 'Wayside Inn').click()
-    await expect(step(page, 'How do you play it?')).toBeVisible()
+    await expect(step(page, SECOND_QUESTION)).toBeVisible()
 }
 
 async function shot(page: Page, name: string, phone: boolean) {
@@ -231,14 +233,36 @@ for (const { name, viewport, phone } of SIZES) {
             await shot(page, 'warden-5-vision-kept', phone)
         })
 
-        test('control: Alchemist kept, "Also play:" offers the Vision of Conquest', async ({
+        test('control: Alchemist kept, Land Warden asks about the Vision of Conquest', async ({
             page
         }) => {
             await drawn(page)
             await card(page, 'Alchemist').click()
-            await expect(step(page, 'How do you play it?')).toBeVisible()
-            await expect(alsoPlay(page)).toBeVisible()
+            await expect(step(page, SECOND_QUESTION)).toBeVisible()
             await expect(card(page, 'Vision of Conquest')).toBeVisible()
+        })
+
+        // Both cards go in one play, so the kept card's buttons wait for the answer: a player who pressed
+        // "To your site" first had the Search end with the Vision discarded.
+        test('Alchemist kept: its plays wait for the second card, and "No second card" shows them', async ({
+            page
+        }) => {
+            await drawn(page)
+            await card(page, 'Alchemist').click()
+            await expect(step(page, SECOND_QUESTION)).toBeVisible()
+            await expect(alsoPlay(page)).toHaveCount(0)
+            await expect(
+                panel(page).getByRole('button', { name: 'Discard', exact: true })
+            ).toBeHidden()
+            await shot(page, 'warden-6-question', phone)
+            await noSecond(page).click()
+            await expect(step(page, 'How do you play it?')).toBeVisible()
+            await expect(noSecond(page)).toHaveAttribute('aria-pressed', 'true')
+            await expect(alsoPlay(page)).toBeVisible()
+            await expect(
+                panel(page).getByRole('button', { name: 'Discard', exact: true })
+            ).toBeVisible()
+            await shot(page, 'warden-7-no-second', phone)
         })
     })
 }

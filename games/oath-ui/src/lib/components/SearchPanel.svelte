@@ -37,6 +37,7 @@
     let step = $derived.by(() => {
         if (search.swapping) return 'Great Spire: swap which?'
         if (!search.kept) return 'Keep one.'
+        if (search.needsSecondAnswer) return 'Land Warden: also play a second card?'
         if (!search.placement) return 'How do you play it?'
         if (search.needsDisplaced) return discardLine(search.room.needed)
         if (search.needsConspiracy) return 'The Conspiracy: take a relic or banner?'
@@ -165,11 +166,14 @@
                 <PlayToSites playTo={gameSession.playTo} />
             </div>
         {/if}
-        <!-- Land Warden — shown only when a drawn card can be the second; no label over an empty row. -->
-        {#if search.secondAllowed && search.secondCandidates.length > 0}
+        <!-- Land Warden — shown only when a drawn card can be the second; no label over an empty row. Both cards
+             go in one play, so the second is answered before the kept card's buttons are shown. -->
+        {#if search.secondCandidates.length > 0}
             {@const second = search.second}
-            <div class="mb-2 text-xs">
-                <span class="text-oath-text-muted">Also play:</span>
+            <div class="mb-2 text-xs" data-second-plays>
+                {#if !search.needsSecondAnswer}
+                    <span class="text-oath-text-muted">Also play:</span>
+                {/if}
                 <CardChoiceRow
                     choices={cardChoices(search.secondCandidates)}
                     picked={second ? [second.cardId] : []}
@@ -198,6 +202,18 @@
                         {/each}
                     {/snippet}
                 </CardChoiceRow>
+                <button
+                    type="button"
+                    class="mt-1 rounded border px-3 py-1 text-sm max-sm:min-h-11 {search.secondDeclined
+                        ? 'border-oath-accent bg-oath-accent-soft'
+                        : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
+                    aria-pressed={search.secondDeclined}
+                    data-no-second
+                    disabled={busy}
+                    onclick={() => search.declineSecond()}
+                >
+                    No second card
+                </button>
             </div>
         {/if}
         {#if search.discardFirstOptions.length > 0}
@@ -212,7 +228,7 @@
                 />
             </div>
         {/if}
-        <div class="flex items-start gap-3">
+        <div class="flex items-start gap-3" class:hidden={search.needsSecondAnswer}>
             <span class="relative inline-flex shrink-0">
                 <CardImage
                     cardId={search.kept}

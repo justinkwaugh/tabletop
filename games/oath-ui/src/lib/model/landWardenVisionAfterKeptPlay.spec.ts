@@ -275,6 +275,7 @@ describe('Land Warden: Bewitch kept with the Vision second', () => {
 
     it('no second card: "becoming a Citizen" is still asked', async () => {
         const { draft, sent } = await bewitchKept()
+        draft.declineSecond()
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(draft.needsWhenPlayed).toBe(true)
         expect(asksCitizen(draft)).toBe(true)

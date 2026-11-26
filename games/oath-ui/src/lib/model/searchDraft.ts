@@ -76,8 +76,16 @@ export type SecondPlay = SearchSecondPlay & {
     room: AdviserRoom
 }
 
-/** Chosen beside the placement: another site, the cards discarded first, a Land Warden second play. */
-type SearchExtras = { toSiteId?: string; discardFirsts?: string[]; secondKey?: string }
+/**
+ * Chosen beside the placement: another site, the cards discarded first, a Land Warden second play, or no second
+ * play ("No second card").
+ */
+type SearchExtras = {
+    toSiteId?: string
+    discardFirsts?: string[]
+    secondKey?: string
+    noSecond?: boolean
+}
 
 /** R-7.3.3 — the picks stay editable until the player plays the card with them. */
 type WhenPlayedPicks = { picks: PowerChoicePicks; confirmed: boolean }
@@ -590,6 +598,19 @@ export class SearchDraft implements PanelDraft {
         return this.secondPlays.find((option) => option.key === this.extras.secondKey)
     }
 
+    /** "No second card" was picked. */
+    get secondDeclined(): boolean {
+        return this.extras.noSecond === true && this.second === undefined
+    }
+
+    /**
+     * Land Warden — both cards go in one resolution, so while a drawn card can be played second the player says
+     * which, or "No second card", before the kept card's play is offered.
+     */
+    get needsSecondAnswer(): boolean {
+        return this.secondCandidates.length > 0 && this.second === undefined && !this.secondDeclined
+    }
+
     /** Land Warden, R-5.1.4.II — the advisers the second card's play may discard; empty when there is room. */
     get secondRoom(): AdviserRoom {
         return this.second?.room ?? NO_ROOM
@@ -741,11 +762,16 @@ export class SearchDraft implements PanelDraft {
     }
 
     setSecondPlay(key: string | undefined): void {
-        this.setExtras({ ...this.extras, secondKey: key })
+        this.setExtras({ ...this.extras, secondKey: key, noSecond: false })
+    }
+
+    /** Land Warden — "No second card": only the kept card is played. */
+    declineSecond(): void {
+        this.setExtras({ ...this.extras, secondKey: undefined, noSecond: true })
     }
 
     async choosePlacement(placement: SearchPlacement): Promise<void> {
-        if (!this.kept) return
+        if (!this.kept || this.needsSecondAnswer) return
         this.flow.set('placement', placement)
         await this.resolveWhenOrdered()
     }

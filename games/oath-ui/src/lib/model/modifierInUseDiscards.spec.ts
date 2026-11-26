@@ -125,6 +125,7 @@ describe('the adviser-limit picker of a Search play leaves out a modifier in use
             discardable: [WOLVES, RANGERS],
             discards: [[WOLVES], [RANGERS]]
         })
+        draft.declineSecond()
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         await draft.chooseDisplaced(LAND_WARDEN)
         expect(sent).not.toHaveBeenCalled()
