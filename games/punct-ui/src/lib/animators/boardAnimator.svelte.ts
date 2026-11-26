@@ -11,6 +11,7 @@ import {
     DIRECTIONS,
     dotsOf,
     lineFrom,
+    type HydratedPunctBoard,
     type HydratedPunctGameState,
     type PlacedPiece
 } from '@tabletop/punct'
@@ -21,6 +22,7 @@ import type {
 } from '$lib/model/session.svelte.js'
 import { boardDiff, isUnchanged, type BoardDiff, type MovedPiece } from '$lib/board/boardDiff.js'
 import { PIECE_THICKNESS, VIEW } from '$lib/board/geometry.js'
+import { winMarksOf, type WinMarks } from '$lib/board/marks.js'
 import { shortestTurn } from '$lib/board/rotation.js'
 import { PiecePose, progressPath, type PieceAt } from './piecePose.js'
 import { StagedMotion } from './stagedMotion.svelte.js'
@@ -45,11 +47,16 @@ const QUICK_DROP = { fall: 0.12, bounce: 2, settle: 0.03 }
 const LIFT_OFF = { rise: -30, duration: QUICK }
 // A moving piece lifts clear of everything on its way, glides and turns, and settles.
 const GLIDE = { duration: 0.5, clearance: 1.3 }
+// The winning marks come once the move has landed.
+const WIN = { draw: 0.6, pop: 0.3, stagger: 0.06 }
 // The motion waits at most this long for its pieces to be drawn; any longer skips its start.
 const DRAW_WAIT = 0.01
 
 // A piece moved by a step, drawn above the board while it goes.
 export type Flier = { piece: PlacedPiece; pose: PiecePose }
+
+// The marks stand on the board of the state that won, which a step shows before it lands.
+export type ShownWin = { marks: WinMarks; board: HydratedPunctBoard }
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedPunctGameState, AnimationContext>
@@ -59,6 +66,7 @@ export class BoardAnimator implements MoveInterrupter {
     // the state it leads to lands.
     pieces: PlacedPiece[] = $derived.by(() => this.session.gameState.board.pieces)
     fliers: Flier[] = $state.raw([])
+    win: ShownWin | undefined = $derived.by(() => this.winOf(this.session.gameState))
     // The piece you are placing or moving, hovering until you drop it.
     readonly staged = new StagedMotion()
 
@@ -66,6 +74,8 @@ export class BoardAnimator implements MoveInterrupter {
     private readonly pieceNodes = new Map<number, Set<SVGGElement>>()
     private readonly shadowNodes = new Map<number, SVGElement>()
     private readonly markNodes = new Set<SVGElement>()
+    private readonly winLineNodes = new Set<SVGElement>()
+    private readonly winDotNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private readonly follower: StagedFollower = (staged, board, released) =>
         this.staged.follow(staged, board, released)
@@ -127,12 +137,30 @@ export class BoardAnimator implements MoveInterrupter {
 
     // A mark of a choice, which fades as the move it offers is made.
     mark(): Attachment<SVGElement> {
+        return this.register(this.markNodes)
+    }
+
+    // The winning line's strokes, drawn along it with a path length of 1.
+    winLine(): Attachment<SVGElement> {
+        return this.register(this.winLineNodes)
+    }
+
+    winDot(): Attachment<SVGGElement> {
+        return this.register(this.winDotNodes)
+    }
+
+    private register<N extends SVGElement>(nodes: Set<N>): Attachment<N> {
         return (node) => {
-            this.markNodes.add(node)
+            nodes.add(node)
             return () => {
-                this.markNodes.delete(node)
+                nodes.delete(node)
             }
         }
+    }
+
+    private winOf(state: HydratedPunctGameState): ShownWin | undefined {
+        const marks = winMarksOf(state)
+        return marks && { marks, board: state.board }
     }
 
     private stop(): boolean {
@@ -148,6 +176,7 @@ export class BoardAnimator implements MoveInterrupter {
             await this.present(step)
         } catch (error) {
             this.fliers = []
+            this.win = this.winOf(this.session.gameState)
             throw error
         }
     }
@@ -171,6 +200,9 @@ export class BoardAnimator implements MoveInterrupter {
         const hovering = landing ?? raised?.id
         if (diff.added.length > 0) this.session.landReserves(to)
         this.pieces = [...to.board.pieces, ...diff.removed]
+        const winBefore = this.winOf(from)
+        const winAfter = this.winOf(to)
+        this.win = winAfter ?? winBefore
         const moves = diff.moved.filter(({ piece }) => piece.id !== hovering)
         this.fliers = moves.map(({ was }) => ({
             piece: was,
@@ -199,6 +231,8 @@ export class BoardAnimator implements MoveInterrupter {
         for (const node of this.markNodes) {
             timeline.to(node, { opacity: 0, duration: quick ? QUICK : MARK_FADE }, 0)
         }
+        const winChanged = (winBefore === undefined) !== (winAfter === undefined)
+        if (winChanged) this.changeWin(winAfter !== undefined, timeline, quick)
 
         const land = () => {
             if (this.landMove === land) this.landMove = undefined
@@ -209,15 +243,68 @@ export class BoardAnimator implements MoveInterrupter {
                 gsap.set(node, { clearProps: 'opacity' })
             }
             for (const node of this.markNodes) gsap.set(node, { clearProps: 'opacity' })
+            if (winChanged) this.settleWin()
             if (landing !== undefined) this.staged.clear()
             if (raised !== undefined) this.staged.settle()
             // A switch of view while the move played, such as a reload after a rejected move,
             // has already shown another state, which this move's board must not cover.
             if (this.session.gameState !== shown) return
             this.pieces = to.board.pieces
+            this.win = winAfter
         }
         this.landMove = land
         animationContext.afterAnimations(land)
+    }
+
+    // A win's line draws on from its first side and its dots pop up as the move lands; an Undo
+    // takes them back at once.
+    private changeWin(coming: boolean, timeline: Timeline, quick: boolean) {
+        const reveal = { t: coming ? 0 : 1 }
+        const lines = [...this.winLineNodes]
+        const show = () => {
+            for (const node of lines) {
+                node.setAttribute('stroke-dasharray', `${reveal.t} 2`)
+                node.setAttribute('visibility', reveal.t > 0 ? 'visible' : 'hidden')
+            }
+        }
+        const dots = [...this.winDotNodes].map((node) => poseOf(node))
+        if (!coming) {
+            timeline.to(reveal, { t: 0, duration: QUICK, ease: 'power1.in', onUpdate: show }, 0)
+            timeline.to(dots, { scale: 0, duration: QUICK, ease: 'power1.in' }, 0)
+            return
+        }
+        const start = quick ? 0 : timeline.duration()
+        show()
+        timeline.to(
+            reveal,
+            {
+                t: 1,
+                duration: quick ? QUICK : WIN.draw,
+                ease: quick ? 'power1.out' : 'power1.inOut',
+                onUpdate: show
+            },
+            start
+        )
+        timeline.fromTo(
+            dots,
+            { scale: 0 },
+            {
+                scale: 1,
+                duration: quick ? QUICK : WIN.pop,
+                ease: quick ? 'power1.out' : 'back.out(2.5)',
+                stagger: quick ? 0 : WIN.stagger,
+                immediateRender: true
+            },
+            start
+        )
+    }
+
+    private settleWin() {
+        for (const node of this.winLineNodes) {
+            node.removeAttribute('stroke-dasharray')
+            node.removeAttribute('visibility')
+        }
+        for (const node of this.winDotNodes) setPose(node, { scale: 1 })
     }
 
     // The hovering piece your own move drops.

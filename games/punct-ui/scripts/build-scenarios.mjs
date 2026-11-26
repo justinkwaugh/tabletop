@@ -138,6 +138,70 @@ function playout(seed, steps, variant = 'Standard') {
     return { game: fresh.startedGame, state: fresh.initialState }
 }
 
+function piecesLeft(state, playerId) {
+    return state
+        .kindsInReserve(playerId)
+        .reduce((count, kind) => count + state.reserveCount(playerId, kind), 0)
+}
+
+// A seeded game played on, pieces moving into the central spaces, until White has one piece
+// left to place.
+function lastPiece(seed) {
+    const { startedGame: game, initialState } = startedGame()
+    let state = initialState
+    let random = seed
+    const next = () => {
+        random = (random * 16807) % 2147483647
+        return random / 2147483647
+    }
+    const nearMiddle = ({ q, r }) => Math.abs(q) + Math.abs(r) + Math.abs(q + r)
+    for (let step = 0; ; step++) {
+        const hydrated = new HydratedPunctGameState(state)
+        const playerId = state.activePlayerIds[0]
+        if (playerId === WHITE && piecesLeft(hydrated, WHITE) === 1) break
+        const base = { id: `s${step}`, gameId: game.id, source: ActionSource.User, playerId }
+        const inwards = hydrated.board.movablePieces(playerId).flatMap((piece) =>
+            hydrated.board
+                .movesOf(piece)
+                .filter((move) => nearMiddle(move.punct) <= 6)
+                .map((move) => ({
+                    ...base,
+                    type: ActionType.MovePiece,
+                    from: piece.punct,
+                    to: move.punct,
+                    rotation: move.rotation
+                }))
+        )
+        const kinds = hydrated.kindsInReserve(playerId)
+        const kind = kinds[Math.floor(next() * kinds.length)]
+        const entries = kind
+            ? hydrated.entriesOf(playerId, kind).filter((entry) => nearMiddle(entry.punct) < 18)
+            : []
+        const move = (inwards.length > 0 && next() < 0.5) || entries.length === 0
+        if (move && inwards.length === 0) throw Error(`Seed ${seed} runs out of moves`)
+        const action = move
+            ? inwards[Math.floor(next() * inwards.length)]
+            : (() => {
+                  const entry = entries[Math.floor(next() * entries.length)]
+                  return {
+                      ...base,
+                      type: ActionType.PlacePiece,
+                      kind,
+                      punct: entry.punct,
+                      rotation: entry.rotation
+                  }
+              })()
+        const result = engine.executeCanonicalAction({ game, state, action })
+        if (result.updatedState.machineState !== 'TakingTurn') {
+            throw Error(`Seed ${seed} ends the game at step ${step}`)
+        }
+        state = result.updatedState
+    }
+    const fresh = startedGame()
+    fresh.initialState.board = { pieces: state.board.pieces }
+    return { game: fresh.startedGame, state: fresh.initialState }
+}
+
 function write(slug, name, { game, state }) {
     const file = startingPositionFile({ slug, name, game, state })
     writeFileSync(join(OUT, file.fileName), file.contents)
@@ -182,3 +246,28 @@ write(
     'Turning past towers',
     position(['WT E8 0', 'WT E8 0', 'WT E8 0', 'WT C7 3', 'WT C7 3', 'WT C7 3'])
 )
+
+// White's chain along row 8 from column A to Q: a bridge at G8–I8 over the gap between a white
+// and a black piece, a two-high white stack at J8–L8, and D8–F8 open, where a straight piece
+// joins the sides.
+write(
+    'one-from-a-connection',
+    'One from a connection',
+    position([
+        'WE A8 2',
+        'WT G8 3',
+        'BE I8 3',
+        'WE G8 2',
+        'WE J8 2',
+        'WC K8 2',
+        'WA N8 5',
+        'WT P10 2',
+        'BT F12 1',
+        'BA K4 2',
+        'BL N11 0',
+        'BE E12 1'
+    ])
+)
+
+// White's last piece, ahead on the central spaces: placing it anywhere wins on the count.
+write('last-piece', 'Last piece', lastPiece(31676))
