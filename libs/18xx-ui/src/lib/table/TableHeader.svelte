@@ -1,7 +1,7 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
-    import { actingOperatingCompany } from '@tabletop/18xx'
     import { currentRoundHeading } from './roundHeading.js'
+    import { turnCompanyId } from './turnCompany.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -60,12 +60,7 @@
             (gameState.selectionAuction && !gameState.selectionAuction.completed)
         )
     )
-    const companyId = $derived(
-        actingOperatingCompany(gameState) ??
-            gameState.operatingSet?.companyOrder.find(
-                (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
-            )
-    )
+    const companyId = $derived(turnCompanyId(gameState, session.presentation))
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const restart = $derived(session.turnRestart)
     const headerId = $props.id()
@@ -132,9 +127,14 @@
                 class="separator"
                 aria-hidden="true">/</span
             ><span class="company" title={session.companyName(company.id)}
-                ><CompanyToken appearance={session.mapView.stations[company.id]} size={22} /><span
-                    class="max-sm:hidden">{session.companyName(company.id)}</span
-                ><span class="sm:hidden">{session.companyInitials(company.id)}</span></span
+                ><CompanyToken
+                    appearance={(company.kind === 'private' &&
+                        session.privateCompanyTokens[company.id]) ||
+                        session.mapView.stations[company.id]}
+                    size={22}
+                /><span class="max-sm:hidden">{session.companyName(company.id)}</span><span
+                    class="sm:hidden">{session.companyInitials(company.id)}</span
+                ></span
             >{/if}
         {#if centered && turnPlayerIds.length}<span class="separator" aria-hidden="true">/</span
             >{@render turnLabel()}{/if}

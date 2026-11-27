@@ -114,5 +114,8 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         abbreviation: 'Draft',
         inProgress: (state) =>
             ['Drafting', 'RevealingDraft', 'BuyingOpeningCompanies'].includes(state.machineState)
-    }
+    },
+    // The Steamboat Company's owner assigns it as the operating round opens, before any company
+    // operates.
+    turnPrivate: (state) => (state.machineState === 'AssigningSteamboat' ? 'SC' : undefined)
 }
