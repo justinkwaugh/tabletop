@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import { Popover } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { Color } from '@tabletop/common'
@@ -49,12 +50,9 @@
             'Sacrifice it to cover an opponent’s adjacent GIPF-\u2060piece with one or two basic pieces (GIPF) from your supply, or jump onto an opponent’s adjacent PÜNCT-\u2060potential.'
     }
 
-    // The panel is held to the screen below the header, so it never runs off a short phone.
-    let open = $state(false)
-    let panel: HTMLDivElement | undefined = $state()
-    $effect(() => {
-        if (!open || !panel) return
-        const node = panel
+    // Holds the panel to the screen below the header, so it never runs off a short phone. The
+    // popover mounts its contents only while open, so this runs each time it opens.
+    const fitBelowHeader: Attachment<HTMLElement> = (node) => {
         const fit = () => {
             // Measured from the header it opens under: the panel itself is placed a frame later.
             const below = document.querySelector(reference)?.getBoundingClientRect().bottom ?? 0
@@ -71,7 +69,7 @@
             cancelAnimationFrame(frame)
             view.removeEventListener('resize', fit)
         }
-    })
+    }
 </script>
 
 <button type="button" id={chipId} class="chip" aria-label="Rules reference">?</button>
@@ -84,9 +82,8 @@
     arrow={false}
     class="z-50 border-0 bg-transparent shadow-none dark:border-0 dark:bg-transparent"
     classes={{ content: 'p-0' }}
-    bind:isOpen={open}
 >
-    <div class="legend" bind:this={panel}>
+    <div class="legend" {@attach fitBelowHeader}>
         <section>
             <h3>Potentials in this game</h3>
             <dl>

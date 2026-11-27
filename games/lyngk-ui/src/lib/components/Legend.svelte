@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import { Popover } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { LyngkVariant, variantFromConfig } from '@tabletop/lyngk'
@@ -13,12 +14,9 @@
 
     const stackOfSix = $derived(variantFromConfig(session.game.config) === LyngkVariant.StackOfSix)
 
-    // The panel is held to the screen below the header, so it never runs off a short phone.
-    let open = $state(false)
-    let panel: HTMLDivElement | undefined = $state()
-    $effect(() => {
-        if (!open || !panel) return
-        const node = panel
+    // Holds the panel to the screen below the header, so it never runs off a short phone. The
+    // popover mounts its contents only while open, so this runs each time it opens.
+    const fitBelowHeader: Attachment<HTMLElement> = (node) => {
         const fit = () => {
             // Measured from the header it opens under: the panel itself is placed a frame later.
             const below = document.querySelector(reference)?.getBoundingClientRect().bottom ?? 0
@@ -35,7 +33,7 @@
             cancelAnimationFrame(frame)
             view.removeEventListener('resize', fit)
         }
-    })
+    }
 </script>
 
 <button type="button" id={chipId} class="chip" aria-label="Rules reference">?</button>
@@ -48,9 +46,8 @@
     arrow={false}
     class="z-50 border-0 bg-transparent shadow-none dark:border-0 dark:bg-transparent"
     classes={{ content: 'p-0' }}
-    bind:isOpen={open}
 >
-    <div class="legend" bind:this={panel}>
+    <div class="legend" {@attach fitBelowHeader}>
         <section>
             <h3>Moving</h3>
             <ul>
@@ -60,9 +57,9 @@
                     piece.
                 </li>
                 <li>
-                    A stack holds at most five pieces, no two of one colour. A white joker stands
-                    for any colour missing{stackOfSix ? ', or for white' : ''}, and never moves on
-                    its own.
+                    A stack holds at most {stackOfSix ? 'six' : 'five'} pieces, no two of one colour.
+                    A white joker stands for any colour missing{stackOfSix ? ', or for white' : ''},
+                    and never moves on its own.
                 </li>
                 <li>
                     Neutral on top: a single only onto another single; a stack only onto one no

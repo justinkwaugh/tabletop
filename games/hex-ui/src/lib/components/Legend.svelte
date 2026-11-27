@@ -1,6 +1,8 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import { Popover } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { Color } from '@tabletop/common'
     import { swapRuleFromConfig } from '@tabletop/hex'
 
     // A (?) chip that opens a short rules reference.
@@ -13,12 +15,19 @@
 
     const swapRule = $derived(swapRuleFromConfig(session.game.config))
 
-    // The panel is held to the screen below the header, so it never runs off a short phone.
-    let open = $state(false)
-    let panel: HTMLDivElement | undefined = $state()
-    $effect(() => {
-        if (!open || !panel) return
-        const node = panel
+    // Named and placed as the board shows them: black and white, or turned upright.
+    const first = $derived(capitalized(session.colorName(Color.Red)))
+    const second = $derived(capitalized(session.colorName(Color.Blue)))
+    const across = $derived(session.upright ? 'left and right' : 'top and bottom')
+    const along = $derived(session.upright ? 'top and bottom' : 'left and right')
+
+    function capitalized(name: string): string {
+        return name.charAt(0).toUpperCase() + name.slice(1)
+    }
+
+    // Holds the panel to the screen below the header, so it never runs off a short phone. The
+    // popover mounts its contents only while open, so this runs each time it opens.
+    const fitBelowHeader: Attachment<HTMLElement> = (node) => {
         const fit = () => {
             // Measured from the header it opens under: the panel itself is placed a frame later.
             const below = document.querySelector(reference)?.getBoundingClientRect().bottom ?? 0
@@ -35,7 +44,7 @@
             cancelAnimationFrame(frame)
             view.removeEventListener('resize', fit)
         }
-    })
+    }
 </script>
 
 <button type="button" id={chipId} class="chip" aria-label="Rules reference">?</button>
@@ -48,26 +57,27 @@
     arrow={false}
     class="z-50 border-0 bg-transparent shadow-none dark:border-0 dark:bg-transparent"
     classes={{ content: 'p-0' }}
-    bind:isOpen={open}
 >
-    <div class="legend" bind:this={panel}>
+    <div class="legend" {@attach fitBelowHeader}>
         <section>
             <h3>Goal</h3>
             <p>
-                Join your two edges with one unbroken chain of your stones: Red the top and bottom,
-                Blue the left and right. Corner cells belong to both edges. Hex has no draws.
+                Join your two edges with one unbroken chain of your stones: {first} the {across},
+                {second} the {along}. Corner cells belong to both edges. Hex has no draws.
             </p>
         </section>
         <section>
             <h3>Your turn</h3>
-            <p>Place one stone on any empty cell. Stones never move. Red places first.</p>
+            <p>Place one stone on any empty cell. Stones never move. {first} places first.</p>
         </section>
         {#if swapRule}
             <section>
                 <h3>Swap rule</h3>
                 <p>
-                    On Blue’s first turn, Blue may swap instead of placing. The stone stays red, the
-                    swapping player becomes Red, and the other player, now Blue, places next.
+                    On {second}’s first turn, {second} may swap instead of placing. The stone stays
+                    {first.toLowerCase()}, the swapping player becomes {first}, and the other
+                    player, now
+                    {second}, places next.
                 </p>
             </section>
         {/if}
