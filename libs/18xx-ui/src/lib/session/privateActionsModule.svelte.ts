@@ -41,7 +41,7 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
               kind: 'confirm'
               confirmLabel: string
               run(): Promise<void>
-              /** Greyed tokens previewing where the power places stations. */
+              /** Faded tokens previewing where the power places stations. */
               reservations?: EighteenXXState['stationReservations']
           }
         | { kind: 'immediate'; run(): Promise<void> }

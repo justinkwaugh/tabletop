@@ -102,6 +102,13 @@ export type MapViewDefinition = {
      * source, shown until a token stands there, such as a joint token's city.
      */
     printedReservations?: readonly { locationId: string; nodeId: string; companyId: string }[]
+    /**
+     * Reserved spaces other than a company's printed home draw their token in greyscale, such as
+     * 1846's reservations in other cities; homes keep their faded colours. Only for titles whose
+     * homes are all printed and stay with their company: a home chosen in play, or passed to
+     * another company by a merger, would grey.
+     */
+    greyNonHomeReservations?: true
     revenueStageColors?: RevenueStageColors
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>

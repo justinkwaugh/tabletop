@@ -126,6 +126,7 @@ export const MapView1846: MapViewDefinition = {
         MS: { label: 'MS', color: '#f3a7b8', imageUrl: MSLogo },
         BIG4: { label: 'B4', color: '#41c8dc', imageUrl: Big4Logo }
     },
+    greyNonHomeReservations: true,
     layouts: mapLayouts,
     joinedEdges: { C21: [5], D22: [2], F22: [0], G21: [3] },
     // Huntington's track leaves over its top, so its name curves under the city.

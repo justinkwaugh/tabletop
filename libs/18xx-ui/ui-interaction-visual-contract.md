@@ -132,7 +132,9 @@ carries, then the company's own. A closed or singled-out company's token anywher
 keeps the company's look.
 A reserved city slot without a token shows the reserving company's token in its own
 colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
-falls back to the company id as small text. Track into an offboard ends in a short
+falls back to the company id as small text. Where the view sets `greyNonHomeReservations`
+(1846), a reservation that is not the company's printed home, nor a previewed placement, shows
+its token in greyscale at full opacity instead. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
 own. A town or junction whose every track the layout prints as a spike or pier draws no
 marker either, and stays a stop that can be selected; a route started at such a town shows

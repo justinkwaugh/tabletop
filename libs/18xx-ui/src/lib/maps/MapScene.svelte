@@ -56,6 +56,7 @@
         selection,
         tokens = [],
         reservations,
+        placementPreviews = [],
         stationAppearances = {},
         routes = [],
         appearance = ClassicTileAppearance,
@@ -82,6 +83,8 @@
         selection?: MapSelection
         tokens?: readonly MapToken[]
         reservations?: readonly StationReservation[]
+        /** Tokens showing where a placement will put them, in their colours as a home's are. */
+        placementPreviews?: readonly StationReservation[]
         stationAppearances?: Readonly<Record<string, StationAppearance>>
         routes?: readonly MapRoute[]
         revenueStageColors?: RevenueStageColors
@@ -97,6 +100,7 @@
     const sceneId = $props.id()
     const currentReservations = $derived([
         ...(reservations ?? printedMapReservations(scene)),
+        ...placementPreviews,
         // A printed space stays held until any token stands in its city.
         ...scene.printedReservations.filter(
             (reservation) =>
@@ -107,6 +111,20 @@
                 )
         )
     ])
+    // Homes and previewed placements keep their colours where other reservations grey.
+    const colouredReservations = $derived([...printedMapReservations(scene), ...placementPreviews])
+    function companyIdsAt(
+        held: readonly StationReservation[],
+        locationId: string,
+        nodeId: string
+    ): string[] {
+        return held
+            .filter(
+                (reservation) =>
+                    reservation.locationId === locationId && reservation.nodeId === nodeId
+            )
+            .map((reservation) => reservation.companyId)
+    }
     const TokenOutlineWidth = 2.1
     // A token's tab tucks behind its right side and reaches out to the room kept for it.
     const TabTuck = 3
@@ -292,12 +310,11 @@
                     {@render selectedTrack()}
                 {/if}
                 {#each entry.drawing.nodes as node (node.node.id)}
-                    {@const reservedCompanyIds = currentReservations
-                        .filter(
-                            (reservation) =>
-                                reservation.locationId === id && reservation.nodeId === node.node.id
-                        )
-                        .map((reservation) => reservation.companyId)}
+                    {@const reservedCompanyIds = companyIdsAt(
+                        currentReservations,
+                        id,
+                        node.node.id
+                    )}
                     <!-- A reservation holds a space, not a particular one: show it in the free spaces. -->
                     {@const reservedBySlot = node.slots
                         .map((_, slot) => slot)
@@ -319,6 +336,9 @@
                             {}
                         )}
                     {@const tokenSize = 2 * node.slotRadius}
+                    {@const colouredCompanyIds = scene.greyNonHomeReservations
+                        ? companyIdsAt(colouredReservations, id, node.node.id)
+                        : []}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
                             (token) =>
@@ -343,7 +363,26 @@
                         {/if}
                         {@const reservedAppearance = reservedAppearances[reservedBySlot[slot]]}
                         {#if !token && reservedAppearance}
-                            <g class="reserved-token" data-map-reservation={reservedBySlot[slot]}>
+                            {@const greyed =
+                                scene.greyNonHomeReservations &&
+                                !colouredCompanyIds.includes(reservedBySlot[slot])}
+                            {@const greyId = `${sceneId}-grey-${id}-${node.node.id}-${slot}`}
+                            {#if greyed}<filter
+                                    id={greyId}
+                                    filterUnits="userSpaceOnUse"
+                                    x={point.x - tokenSize / 2}
+                                    y={point.y - tokenSize / 2}
+                                    width={tokenSize}
+                                    height={tokenSize}
+                                    color-interpolation-filters="sRGB"
+                                    ><feColorMatrix type="saturate" values="0"
+                                    ></feColorMatrix></filter
+                                >{/if}
+                            <g
+                                class={greyed ? undefined : 'reserved-token'}
+                                filter={greyed ? `url(#${greyId})` : undefined}
+                                data-map-reservation={reservedBySlot[slot]}
+                            >
                                 <title>{`Reserved for ${reservedAppearance.label}`}</title>
                                 <CompanyToken
                                     appearance={reservedAppearance}
@@ -1136,8 +1175,8 @@
 </svg>
 
 <style>
-    /* No grayscale: WebKit ignores CSS filter functions on SVG elements, and players
-       preferred the faded colours it shows. */
+    /* A home's reservation fades rather than greys: WebKit ignores CSS filter functions on SVG
+       elements, and players preferred the faded colours. */
     .reserved-token {
         opacity: 0.4;
     }

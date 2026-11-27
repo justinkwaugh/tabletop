@@ -375,6 +375,7 @@ export type MapDrawing = {
     /** Hexside border widths by kind, where the view sets one. */
     borderWidths: Readonly<Record<string, number>>
     printedReservations: NonNullable<MapViewDefinition['printedReservations']>
+    greyNonHomeReservations?: true
     sharedStations: NonNullable<MapViewDefinition['sharedStations']>
 }
 
@@ -465,6 +466,7 @@ export function createMapDrawing(
         | 'terrainIcons'
         | 'borderWidths'
         | 'printedReservations'
+        | 'greyNonHomeReservations'
         | 'sharedStations'
         | 'namePositions'
         | 'nameOffsets'
@@ -507,6 +509,7 @@ export function createMapDrawing(
         terrainIcons = DefaultTerrainIcons,
         borderWidths: viewBorderWidths = {},
         printedReservations = [],
+        greyNonHomeReservations,
         sharedStations = {},
         namePositions = {},
         nameOffsets = {},
@@ -948,6 +951,7 @@ export function createMapDrawing(
         terrainIcons,
         borderWidths: { ...DefaultBorderWidths, ...viewBorderWidths },
         printedReservations,
+        ...(greyNonHomeReservations ? { greyNonHomeReservations } : {}),
         sharedStations,
         bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {
             x,
