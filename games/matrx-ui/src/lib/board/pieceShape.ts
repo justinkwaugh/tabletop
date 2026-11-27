@@ -204,6 +204,38 @@ export function creaseOf(view: BoardView, disc: Disc, radius: number): string {
     )
 }
 
+// Light falls straight down a DVONN disc's hole, onto the disc or board a gap below it: where it
+// lands, seen through the hole, relative to the DVONN disc's underside; `lift` moves it up by that
+// share of the radius. Past it, what shows lies under the disc, in the crease's shade, so the gap
+// shows as a seam at its true height.
+export function holeLight(view: BoardView, radius: number, lift = 0): string | undefined {
+    const height = topProfile(PieceKind.Dvonn, DVONN.hole)
+    const top = flatEllipse(view, radius)(height + lift, DVONN.hole)
+    const depth = view.height((height + STACK_GAP) * radius)
+    return depth < 2 * top.ry ? lens(top, depth) : undefined
+}
+
+// Lit, the board or the top of the disc below shows down the hole in only this share of its shade.
+export const HOLE_SHADE = 0.4
+
+// Down a DVONN disc's hole, the lit patch on the disc it rests on, relative to that disc's underside.
+export function holeLightBelow(view: BoardView, radius: number, above: Disc | undefined) {
+    return above?.kind === PieceKind.Dvonn
+        ? holeLight(view, radius, THICKNESS + STACK_GAP)
+        : undefined
+}
+
+// The board's shade under a stack at its darkest, from PieceDefs' shadow and contact gradients,
+// and down a DVONN disc's hole where light falls on it.
+export const SHADOW_SHADE = 0.3
+export const CONTACT_SHADE = 0.55
+export const HOLE_FLOOR = 1 - (1 - SHADOW_SHADE * HOLE_SHADE) * (1 - CONTACT_SHADE * HOLE_SHADE)
+
+// The lit patch of board down a stack's bottom disc's hole, relative to where the stack stands.
+export function boardHoleLight(view: BoardView, radius: number, bottom: Disc | undefined) {
+    return bottom?.kind === PieceKind.Dvonn ? holeLight(view, radius, STACK_GAP) : undefined
+}
+
 function flatEllipse(view: BoardView, radius: number) {
     return (height: number, r: number): Ellipse => ({
         y: -view.height(height * radius),
