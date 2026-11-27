@@ -32,6 +32,8 @@ export const EighteenXXPreferences = Type.Object(
         tabbedLayout: Type.Unknown(),
         /** Company tokens drawn with their logos (``artwork``), or as discs with ``initials``. */
         tokenStyle: DisplayChoice,
+        /** Reserved spaces drawn as the company's faded ``token``, or its ``initials`` in black. */
+        reservationStyle: DisplayChoice,
         /** Tile color preset: ``default`` (the title's own) or ``maker``. */
         tileStyle: DisplayChoice,
         /** Picked colors over the preset, by tile color such as ``yellow``. */
@@ -87,6 +89,7 @@ export const EighteenXXPreferenceDefinition = {
             operatingOrderChipsTabbed: true,
             publishedArtwork: false,
             tokenStyle: 'artwork',
+            reservationStyle: 'token',
             tileStyle: 'default',
             tileColors: {},
             routeColors: {},
@@ -119,6 +122,7 @@ export const EighteenXXPreferenceDefinition = {
             operatingOrderChipsTabbed: true,
             publishedArtwork: false,
             tokenStyle: 'artwork',
+            reservationStyle: 'token',
             tileStyle: 'default',
             tileColors: {},
             routeColors: {},
@@ -138,6 +142,7 @@ export const EighteenXXPreferenceDefinition = {
 export type EighteenXXDisplayPreferences = Pick<
     Type.Static<typeof EighteenXXPreferences>,
     | 'tokenStyle'
+    | 'reservationStyle'
     | 'tileStyle'
     | 'tileColors'
     | 'routeColors'

@@ -8,6 +8,11 @@ export const TokenStyleOptions: readonly DisplayChoiceOption[] = [
     { value: 'initials', name: 'Initials' }
 ]
 
+export const ReservationStyleOptions: readonly DisplayChoiceOption[] = [
+    { value: 'token', name: 'Token' },
+    { value: 'initials', name: 'Initials' }
+]
+
 export const TileStyleOptions: readonly DisplayChoiceOption[] = [
     { value: 'default', name: 'Default' },
     { value: 'maker', name: '18xx Maker' }

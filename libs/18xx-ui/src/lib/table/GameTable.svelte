@@ -1045,6 +1045,7 @@
         stationAppearances={session.mapView.stations}
         reservations={session.map.displayedReservations}
         placementPreviews={powerReservations}
+        reservationInitials={session.reservationInitials}
         routes={mapRoutes}
         selection={session.isViewingHistory
             ? historyMapSettled
@@ -1804,6 +1805,7 @@
                 {money}
                 artwork={boardArtwork}
                 preview={session.historicalMap}
+                reservationInitials={session.reservationInitials}
                 revenueStageColors={session.mapView.revenueStageColors}
                 appearance={tileAppearance}
                 tileGroups={session.mapView.tileGroups}

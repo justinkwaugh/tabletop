@@ -611,6 +611,7 @@ export class EighteenXXSession<
         return this.displayPreview[key] ?? this.preferences.values[key]
     }
     private readonly shownTokenStyle = $derived(this.shown('tokenStyle'))
+    private readonly shownReservationStyle = $derived(this.shown('reservationStyle'))
     private readonly shownTileStyle = $derived(this.shown('tileStyle'))
     private readonly shownTableStyle = $derived(this.shown('tableStyle'))
     readonly playerTint: number = $derived(this.shown('playerTint'))
@@ -639,6 +640,7 @@ export class EighteenXXSession<
     get display(): EighteenXXDisplayPreferences {
         return {
             tokenStyle: this.shownTokenStyle,
+            reservationStyle: this.shownReservationStyle,
             tileStyle: this.shownTileStyle,
             tileColors: this.shownTileColors(),
             routeColors: this.shownRouteColors(),
@@ -683,6 +685,7 @@ export class EighteenXXSession<
         JSON.stringify(tileDrawingStyle(this.tileAppearance))
     )
     readonly tokenInitials: boolean = $derived(this.shownTokenStyle === 'initials')
+    readonly reservationInitials: boolean = $derived(this.shownReservationStyle === 'initials')
     readonly tablePresentation: TablePresentation = $derived.by(() =>
         tablePresentation(
             this.shownTableStyle,

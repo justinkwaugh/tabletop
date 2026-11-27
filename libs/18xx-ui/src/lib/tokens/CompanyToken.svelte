@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { centredTextShift } from '../presentation/textBaseline.js'
     import { HexOrientation } from '@tabletop/common'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import TileArtwork from '../tiles/TileArtwork.svelte'
+    import TokenInitials from './TokenInitials.svelte'
     let {
         appearance,
         size = 40,
@@ -15,10 +15,6 @@
         x?: number
         y?: number
     } = $props()
-    const InitialsFontSizes = [16, 16, 16, 14, 11.5, 9.5]
-    const labelFitsTokenFontSize = $derived(
-        InitialsFontSizes[Math.min(appearance.label.length, InitialsFontSizes.length - 1)]
-    )
     // A tile spans its hex (radius 50) plus the room Tile's viewBox leaves for its outline.
     const tileBox = $derived(
         appearance.tiles?.orientation === HexOrientation.Pointy
@@ -55,15 +51,6 @@
         <image href={appearance.imageUrl} width="40" height="40"></image>
     {:else}
         <circle cx="20" cy="20" r="20" fill={appearance.color}></circle>
-        <text
-            x="20"
-            y="20"
-            text-anchor="middle"
-            dy={centredTextShift(labelFitsTokenFontSize)}
-            font-family="ui-sans-serif, system-ui, sans-serif"
-            font-size={labelFitsTokenFontSize}
-            font-weight="700"
-            fill={contrastingTextColor(appearance.color)}>{appearance.label}</text
-        >
+        <TokenInitials label={appearance.label} fill={contrastingTextColor(appearance.color)} />
     {/if}
 </svg>

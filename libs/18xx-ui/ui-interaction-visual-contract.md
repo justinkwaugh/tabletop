@@ -134,7 +134,11 @@ A reserved city slot without a token shows the reserving company's token in its 
 colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Where the view sets `greyNonHomeReservations`
 (1846), a reservation that is not the company's printed home, nor a previewed placement, shows
-its token in greyscale at full opacity instead. Track into an offboard ends in a short
+its token in greyscale at full opacity instead. A player whose Display panel sets Reservations
+to Initials (`reservationStyle`, every 18xx title) sees each reservation as the company's label
+in black in the free slot, still titled "Reserved for [company]", in place of the faded or
+greyed token, faded where the token would be greyed; placement previews and solid blocked homes
+keep their tokens. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
 own. A town or junction whose every track the layout prints as a spike or pier draws no
 marker either, and stays a stop that can be selected; a route started at such a town shows

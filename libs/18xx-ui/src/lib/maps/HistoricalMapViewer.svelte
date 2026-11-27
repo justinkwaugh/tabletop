@@ -15,6 +15,7 @@
         revenueStageColors,
         artwork,
         tileGroups,
+        reservationInitials,
         onclose
     }: {
         money: MoneyFormat
@@ -24,6 +25,7 @@
         revenueStageColors?: RevenueStageColors
         /** Hexes one tile covers together, outlined as one where a lay covered them. */
         tileGroups?: readonly (readonly string[])[]
+        reservationInitials: boolean
         onclose: () => void
     } = $props()
     let dialog: HTMLDialogElement
@@ -75,6 +77,7 @@
                 scene={preview.scene}
                 tokens={preview.tokens}
                 reservations={preview.reservations}
+                {reservationInitials}
                 stationAppearances={preview.stationAppearances}
                 routes={preview.routes}
                 outlinedLocationIds={preview.outlinedLocationIds}

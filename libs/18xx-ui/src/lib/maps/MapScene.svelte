@@ -7,6 +7,7 @@
     import MapTrackJoins from './MapTrackJoins.svelte'
     import MapRoutes from './MapRoutes.svelte'
     import MapBonusArrows from './MapBonusArrows.svelte'
+    import TokenInitials from '../tokens/TokenInitials.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
@@ -57,6 +58,7 @@
         tokens = [],
         reservations,
         placementPreviews = [],
+        reservationInitials = false,
         stationAppearances = {},
         routes = [],
         appearance = ClassicTileAppearance,
@@ -85,6 +87,8 @@
         reservations?: readonly StationReservation[]
         /** Tokens showing where a placement will put them, in their colours as a home's are. */
         placementPreviews?: readonly StationReservation[]
+        /** Reservations other than placement previews drawn as the company's initials in black. */
+        reservationInitials?: boolean
         stationAppearances?: Readonly<Record<string, StationAppearance>>
         routes?: readonly MapRoute[]
         revenueStageColors?: RevenueStageColors
@@ -126,6 +130,7 @@
             .map((reservation) => reservation.companyId)
     }
     const TokenOutlineWidth = 2.1
+    const ReservationInk = '#000000'
     // A token's tab tucks behind its right side and reaches out to the room kept for it.
     const TabTuck = 3
     const TabHeight = 13
@@ -339,6 +344,9 @@
                     {@const colouredCompanyIds = scene.greyNonHomeReservations
                         ? companyIdsAt(colouredReservations, id, node.node.id)
                         : []}
+                    {@const previewedCompanyIds = reservationInitials
+                        ? companyIdsAt(placementPreviews, id, node.node.id)
+                        : []}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
                             (token) =>
@@ -363,15 +371,23 @@
                         {/if}
                         {@const reservedAppearance = reservedAppearances[reservedBySlot[slot]]}
                         {#if !token && reservedAppearance}
-                            {@const greyed =
+                            {@const companyId = reservedBySlot[slot]}
+                            {@const x = point.x - tokenSize / 2}
+                            {@const y = point.y - tokenSize / 2}
+                            {@const subdued =
                                 scene.greyNonHomeReservations &&
-                                !colouredCompanyIds.includes(reservedBySlot[slot])}
+                                !colouredCompanyIds.includes(companyId)}
+                            {@const asInitials =
+                                reservationInitials &&
+                                !reservedAppearance.solid &&
+                                !previewedCompanyIds.includes(companyId)}
+                            {@const greyed = subdued && !asInitials}
                             {@const greyId = `${sceneId}-grey-${id}-${node.node.id}-${slot}`}
                             {#if greyed}<filter
                                     id={greyId}
                                     filterUnits="userSpaceOnUse"
-                                    x={point.x - tokenSize / 2}
-                                    y={point.y - tokenSize / 2}
+                                    {x}
+                                    {y}
                                     width={tokenSize}
                                     height={tokenSize}
                                     color-interpolation-filters="sRGB"
@@ -379,17 +395,32 @@
                                     ></feColorMatrix></filter
                                 >{/if}
                             <g
-                                class={greyed ? undefined : 'reserved-token'}
+                                class:faded={asInitials ? subdued : !subdued}
                                 filter={greyed ? `url(#${greyId})` : undefined}
-                                data-map-reservation={reservedBySlot[slot]}
+                                data-map-reservation={companyId}
                             >
                                 <title>{`Reserved for ${reservedAppearance.label}`}</title>
-                                <CompanyToken
-                                    appearance={reservedAppearance}
-                                    size={tokenSize}
-                                    x={point.x - tokenSize / 2}
-                                    y={point.y - tokenSize / 2}
-                                />
+                                {#if asInitials}
+                                    <svg
+                                        {x}
+                                        {y}
+                                        width={tokenSize}
+                                        height={tokenSize}
+                                        viewBox="0 0 40 40"
+                                        aria-hidden="true"
+                                        ><TokenInitials
+                                            label={reservedAppearance.label}
+                                            fill={ReservationInk}
+                                        /></svg
+                                    >
+                                {:else}
+                                    <CompanyToken
+                                        appearance={reservedAppearance}
+                                        size={tokenSize}
+                                        {x}
+                                        {y}
+                                    />
+                                {/if}
                             </g>
                         {:else if slot === 0 && reservedCompanyIds.length && !token && !reservedAppearances[reservedCompanyIds[0]]}
                             <text
@@ -1175,9 +1206,9 @@
 </svg>
 
 <style>
-    /* A home's reservation fades rather than greys: WebKit ignores CSS filter functions on SVG
-       elements, and players preferred the faded colours. */
-    .reserved-token {
+    /* Opacity, not a CSS grayscale: WebKit ignores CSS filter functions on SVG elements, and
+       players preferred faded colours for homes. */
+    .faded {
         opacity: 0.4;
     }
     .map-scene {

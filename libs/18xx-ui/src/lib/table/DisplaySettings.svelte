@@ -16,6 +16,7 @@
     } from '../colors/tablePalette.js'
     import {
         PresetSwatchColors,
+        ReservationStyleOptions,
         TileColorFields,
         TileStyleOptions,
         TokenStyleOptions,
@@ -159,10 +160,23 @@
     <p class="scope">Applies to every 18xx game.</p>
 
     <section aria-labelledby="{id}-tokens">
-        <h3 id="{id}-tokens">Tokens</h3>
-        {@render choices('tokens', TokenStyleOptions, display.tokenStyle, (tokenStyle) =>
-            session.setDisplay({ tokenStyle })
-        )}
+        <div class="token-looks">
+            <div class="token-look">
+                <h3 id="{id}-tokens">Tokens</h3>
+                {@render choices('tokens', TokenStyleOptions, display.tokenStyle, (tokenStyle) =>
+                    session.setDisplay({ tokenStyle })
+                )}
+            </div>
+            <div class="token-look">
+                <h3 id="{id}-reservations">Reservations</h3>
+                {@render choices(
+                    'reservations',
+                    ReservationStyleOptions,
+                    display.reservationStyle,
+                    (reservationStyle) => session.setDisplay({ reservationStyle })
+                )}
+            </div>
+        </div>
         {#if previewCompanies.length}
             <div class="token-preview" aria-hidden="true">
                 {#each previewCompanies as company (company.id)}
@@ -397,6 +411,16 @@
     }
     .swatches span:last-child {
         border-radius: 0 2px 2px 0;
+    }
+    .token-looks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+    }
+    .token-look {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
     .token-preview {
         display: flex;
