@@ -2,8 +2,9 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { controllingOwner, homeStationId, presidentCertificate } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import { botMove, Random } from '../test/bot.js'
-import { edit, kit, type Table } from '../test/kit.js'
-import { mergerReplaces, ownerDirectsMerger } from './investors.js'
+import { edit, kit, opened, placeTile, type Table } from '../test/kit.js'
+import { joinedNetworks, mergerReplaces, ownerDirectsMerger } from './investors.js'
+import { RussiaLocationId } from './map.js'
 
 type Position = { game: Table; seed: number }
 
@@ -122,5 +123,32 @@ describe('a foreign investor merging into its company (§VII)', () => {
                 (station) => station.companyId === merger.companyId && station.status === 'placed'
             ).length
         ).toBe(placedBefore)
+    })
+})
+
+describe('an investor’s network joining its company’s (§VII)', () => {
+    /** Russia's investor in its home, and a JHA station in Qiqihar beside it. */
+    function besideRussia(rotation: 0 | 1): Table {
+        const game = opened(4, 3)
+        const home = game.state.stations.find((station) => station.id === homeStationId('A1'))
+        expect(home).toMatchObject({ status: 'placed', position: { locationId: RussiaLocationId } })
+        edit(game, (state) => {
+            const station = state.stations.find(
+                (entry) => entry.companyId === 'JHA' && entry.status === 'available'
+            )
+            assertExists(station, 'The JHA has a station on its charter')
+            Object.assign(station, {
+                status: 'placed',
+                position: { locationId: 'A5', nodeId: 'city', slot: 0 }
+            })
+        })
+        // The straight city turned once runs from Russia's side; unturned, it runs past it.
+        placeTile(game, 'A5', '18xx:57', rotation)
+        return game
+    }
+
+    it('follows the track as each tile is turned', () => {
+        expect(joinedNetworks(besideRussia(1).hydrated, 'A1', 'JHA')).toBe(true)
+        expect(joinedNetworks(besideRussia(0).hydrated, 'A1', 'JHA')).toBe(false)
     })
 })

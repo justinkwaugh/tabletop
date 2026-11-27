@@ -1,6 +1,7 @@
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
     RailwayMapState,
+    RouteNetwork,
     CompanyStationsOnly,
     applyStationPlacement,
     companyStationCenters,
@@ -270,14 +271,15 @@ export function joinedNetworks(
     investorId: string,
     companyId: string
 ): boolean {
-    const mapState = new RailwayMapState(Map1880, TileSet1880, state.tileInventory)
     const targets = companyStationCenters(state, companyId)
     if (!targets.length) return false
+    // The network's faces are turned as their tiles lie.
+    const network = new RouteNetwork(new RailwayMapState(Map1880, TileSet1880, state.tileInventory))
     const home = companyStationCenters(state, investorId)
     let joined = false
     reachRoutes(
         Map1880,
-        (locationId) => mapState.tile(locationId).face,
+        (locationId) => network.face(locationId),
         home,
         () => false,
         {

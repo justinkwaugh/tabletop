@@ -333,7 +333,11 @@ export function botMove(game: Table, random: Random, steering: BotSteering = {})
             if (
                 offers.length &&
                 valid.includes('BuyTrain') &&
-                (!owned.length || steering.buysEagerly?.(companyId) || random.randInt(3) === 0)
+                (!owned.length ||
+                    steering.buysEagerly?.(companyId) ||
+                    random.randInt(3) === 0 ||
+                    // A restored 2-train alone does not meet the train requirement (R46).
+                    !mayFinish)
             ) {
                 const offer = pick(offers)
                 return move('BuyTrain', {
