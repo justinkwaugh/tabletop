@@ -15,7 +15,6 @@
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
-    import BoardStyleToggle from '$lib/components/BoardStyleToggle.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { DvonnGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -135,7 +134,25 @@
                                     >
                                 </svg>
                             </OverlayToggle>
-                            <BoardStyleToggle />
+                            <OverlayToggle
+                                label="Graph board"
+                                pressed={gameSession.graphBoard}
+                                onToggle={() => gameSession.toggleGraphBoard()}
+                            >
+                                <!-- One hex of the graph: its six spokes and its rim. -->
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="M -6.8 0 H 6.8 M -3.4 -5.89 L 3.4 5.89 M 3.4 -5.89 L -3.4 5.89
+                                           M -6.8 0 L -3.4 -5.89 H 3.4 L 6.8 0 L 3.4 5.89 H -3.4 Z"
+                                        class="line"
+                                    ></path>
+                                </svg>
+                            </OverlayToggle>
                             <!-- Tall stacks shrink to the full height unless a player would
                                  rather see them whole and turn the board to see past them. -->
                             <OverlayToggle
