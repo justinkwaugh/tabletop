@@ -10,7 +10,15 @@ import {
     type RoutePath,
     type TileEdge
 } from '@tabletop/18xx'
-import { edit, holderOf, opened, placeTile, startMajor, type Table } from '../test/kit.js'
+import {
+    edit,
+    holderOf,
+    opened,
+    placeStation,
+    placeTile,
+    startMajor,
+    type Table
+} from '../test/kit.js'
 import { Map1880, RussiaLocationId, TaiwanLocationId } from './map.js'
 import { RouteRules1880, TaiwanBonus } from './routes.js'
 import { marketBonus } from './stockMarket.js'
@@ -146,12 +154,7 @@ describe('building (§VIII, §X)', () => {
         while (holderOf(game, 'BCR:president') === game.player) game.act('FinishStockTurn')
         startMajor(game, 'JHA')
         edit(game, (state) => {
-            const home = state.stations.find((station) => station.id === 'JHA:home')
-            assertExists(home, 'JHA has a home station')
-            Object.assign(home, {
-                status: 'placed',
-                position: { locationId: 'F8', nodeId: 'city-2', slot: 0 }
-            })
+            placeStation(state, 'JHA:home', { locationId: 'F8', nodeId: 'city-2', slot: 0 })
             state.trackStep = { companyId: 'JHA', lays: [], completed: false }
         })
         const laid = new Set(
@@ -171,12 +174,7 @@ describe('building (§VIII, §X)', () => {
         assertExists(across, 'N4 borders M3')
         layCityFacing(game, 'N4', across)
         edit(game, (state) => {
-            const home = state.stations.find((station) => station.id === 'BCR:home')
-            assertExists(home, 'The BCR has a home station')
-            Object.assign(home, {
-                status: 'placed',
-                position: { locationId: 'M3', nodeId: 'city', slot: 0 }
-            })
+            placeStation(state, 'BCR:home', { locationId: 'M3', nodeId: 'city', slot: 0 })
             state.permits.BCR = 'ABC'
             const treasury = state.cash.find(
                 (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'BCR'

@@ -5,7 +5,7 @@ import {
     rotateTileFace,
     type TileRotation
 } from '@tabletop/18xx'
-import { edit, opened, placeTile, type Table } from '../test/kit.js'
+import { edit, opened, placeStation, placeTile, type Table } from '../test/kit.js'
 import { StationRules1880 } from './stations.js'
 import { tileFace1880 } from './tiles.js'
 
@@ -48,14 +48,9 @@ describe('the QSR’s home before it is placed (§X; R61)', () => {
         ])
         // Either space is open to one other company; the other stays the QSR's.
         expect(open(game, 'city')).toHaveLength(2)
-        edit(game, (state) => {
-            const station = state.stations.find((entry) => entry.id === 'BCR:station:1')
-            if (station)
-                Object.assign(station, {
-                    status: 'placed',
-                    position: { locationId: 'D12', nodeId: 'city', slot: 0 }
-                })
-        })
+        edit(game, (state) =>
+            placeStation(state, 'BCR:station:1', { locationId: 'D12', nodeId: 'city', slot: 0 })
+        )
         expect(open(game, 'city', 'NJR')).toEqual([])
         expect(open(game, 'city', 'QSR')).toEqual([1])
     })

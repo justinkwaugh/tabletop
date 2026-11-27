@@ -273,7 +273,6 @@ export function joinedNetworks(
 ): boolean {
     const targets = companyStationCenters(state, companyId)
     if (!targets.length) return false
-    // The network's faces are turned as their tiles lie.
     const network = new RouteNetwork(new RailwayMapState(Map1880, TileSet1880, state.tileInventory))
     const home = companyStationCenters(state, investorId)
     let joined = false

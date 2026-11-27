@@ -1,4 +1,5 @@
-import type { TileRotation } from '@tabletop/18xx'
+import type { StationPosition, TileRotation } from '@tabletop/18xx'
+import { assertExists } from '@tabletop/common'
 import { titleTestKit, type Table as TitleTable } from '../../../libs/18xx/test/titleTestKit.js'
 import { Privates1880 } from '../src/companies.js'
 import { unchosenInvestors } from '../src/investors.js'
@@ -33,6 +34,18 @@ export function edit(game: Table, change: (state: State1880) => void): void {
     const state = structuredClone(game.state)
     change(state)
     game.state = state
+}
+
+export function placeStation(state: State1880, stationId: string, position: StationPosition): void {
+    const index = state.stations.findIndex((station) => station.id === stationId)
+    const station = state.stations[index]
+    assertExists(station, `Unknown station ${stationId}`)
+    state.stations[index] = {
+        id: station.id,
+        companyId: station.companyId,
+        status: 'placed',
+        position
+    }
 }
 
 export function placeTile(
