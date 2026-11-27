@@ -2,7 +2,7 @@
     import { Alert, Button, Label, P } from 'flowbite-svelte'
     import { toast } from 'svelte-sonner'
     import { untrack } from 'svelte'
-    import { ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
+    import { ExternalAuthService, externalIdsByService } from '@tabletop/common'
     import { APIError, getAppContext } from '@tabletop/frontend-components'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import PasswordInput from '$lib/components/PasswordInput.svelte'
@@ -71,7 +71,7 @@
 
     let open = $derived(reauthentication.pending === initiatingAction)
     let user = $derived(authorizationService.getSessionUser())
-    let linkedProviders = $derived(new Set(user?.externalIds.map(externalIdentityProvider) ?? []))
+    let linkedProviders = $derived(externalIdsByService(user))
     let canUsePassword = $derived(Boolean(user?.hasPassword))
     let canUseGoogle = $derived(
         isGoogleSigninEnabled && linkedProviders.has(ExternalAuthService.Google)

@@ -3,9 +3,8 @@
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
-    import { assert, ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
-    import googleLogo from '$lib/components/images/google.jpg'
-    import discordLogo from '$lib/components/images/discord.png'
+    import { assert, ExternalAuthService, externalIdsByService } from '@tabletop/common'
+    import { LINKABLE_SERVICE_DISPLAY } from '$lib/components/linkableServices'
     import GoogleSignIn, {
         isEnabled as isGoogleSigninEnabled
     } from '$lib/components/GoogleSignIn.svelte'
@@ -26,11 +25,6 @@
 
     let { authorizationService, api } = getAppContext()
 
-    const imageForLinkType = new Map<string, string>([
-        ['google', googleLogo],
-        ['discord', discordLogo]
-    ])
-
     let errors: Record<string, string[]> = $state({})
     let errorMessage: string | undefined = $state(undefined)
     let success = $state(false)
@@ -44,9 +38,7 @@
         return authorizationService.getSessionUser()
     })
 
-    let linkedAccountIdsByType: Map<string, string> = $derived.by(() => {
-        return new Map(user?.externalIds?.map((id) => [externalIdentityProvider(id), id]) ?? [])
-    })
+    let linkedAccountIdsByType = $derived(externalIdsByService(user))
 
     let username: string | undefined = $state(sessionUser?.username)
     let password: string | undefined = $state(undefined)
@@ -206,8 +198,8 @@
                         <div class="rounded-lg overflow-hidden w-[40px] h-[40px] me-4">
                             <img
                                 class="w-full h-full object-cover"
-                                alt={ExternalAuthService.Google}
-                                src={imageForLinkType.get(ExternalAuthService.Google)}
+                                alt={LINKABLE_SERVICE_DISPLAY[ExternalAuthService.Google].label}
+                                src={LINKABLE_SERVICE_DISPLAY[ExternalAuthService.Google].logo}
                             />
                         </div>
                         {#if linkedAccountIdsByType.get(ExternalAuthService.Google)}
@@ -229,8 +221,8 @@
                         <div class="rounded-lg overflow-hidden w-[40px] h-[40px] me-4">
                             <img
                                 class="w-full h-full object-cover"
-                                alt={ExternalAuthService.Discord}
-                                src={imageForLinkType.get(ExternalAuthService.Discord)}
+                                alt={LINKABLE_SERVICE_DISPLAY[ExternalAuthService.Discord].label}
+                                src={LINKABLE_SERVICE_DISPLAY[ExternalAuthService.Discord].logo}
                             />
                         </div>
                         {#if linkedAccountIdsByType.get(ExternalAuthService.Discord)}

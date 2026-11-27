@@ -1,7 +1,7 @@
 <script lang="ts">
     import { m } from '$lib/paraglide/messages'
     import { Card, Hr } from 'flowbite-svelte'
-    import { ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
+    import { ExternalAuthService, externalIdsByService } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
     import TurnRemindersEditor from '$lib/components/TurnRemindersEditor.svelte'
@@ -15,9 +15,7 @@
         return authorizationService.getSessionUser()
     })
 
-    let linkedAccountIdsByType: Map<string, string> = $derived.by(() => {
-        return new Map(user?.externalIds?.map((id) => [externalIdentityProvider(id), id]) ?? [])
-    })
+    let linkedAccountIdsByType = $derived(externalIdsByService(user))
 </script>
 
 <div class="flex min-h-[calc(100dvh-70px)] flex-col items-center justify-center gap-6 px-2 py-6">

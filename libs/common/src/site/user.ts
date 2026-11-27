@@ -24,7 +24,13 @@ export enum ExternalAuthService {
     Discord = 'discord'
 }
 
-export function externalIdentityProvider(externalId: string): string {
+export function externalIdsByService(
+    user: Pick<User, 'externalIds'> | undefined
+): Map<string, string> {
+    return new Map(user?.externalIds.map((id) => [externalIdService(id), id]) ?? [])
+}
+
+function externalIdService(externalId: string): string {
     return externalId.split(':', 2)[0]
 }
 

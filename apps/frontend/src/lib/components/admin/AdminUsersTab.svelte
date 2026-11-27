@@ -4,6 +4,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import AdminUserBan from './AdminUserBan.svelte'
     import AdminUserDelete from './AdminUserDelete.svelte'
+    import AdminUserLinkedAccounts from './AdminUserLinkedAccounts.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
     import AdminUserUsername from './AdminUserUsername.svelte'
 
@@ -138,6 +139,7 @@
                     {roleLabels}
                     onsaved={replaceUser}
                 />
+                <AdminUserLinkedAccounts user={selected} />
                 <AdminUserBan user={selected} onsaved={replaceUser} />
             {/if}
             <AdminUserDelete user={selected} onsaved={replaceUser} />

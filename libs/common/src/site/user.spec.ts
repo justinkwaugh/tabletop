@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     accountStatusAfterCompletionCheck,
     canHoldAuthenticatedSession,
+    externalIdsByService,
     isAbandonedSignUp,
     Role,
     UserStatus,
@@ -10,6 +11,22 @@ import {
     wantsGameAndCompetitionEmails,
     withAssignedRoles
 } from './user.js'
+
+describe('externalIdsByService', () => {
+    it('keys each linked external id by its service', () => {
+        const linked = externalIdsByService({
+            externalIds: ['google:1234', 'discord:5678:extra']
+        })
+        expect([...linked]).toEqual([
+            ['google', 'google:1234'],
+            ['discord', 'discord:5678:extra']
+        ])
+    })
+
+    it('has nothing linked without a user', () => {
+        expect(externalIdsByService(undefined).size).toBe(0)
+    })
+})
 
 describe('withAssignedRoles', () => {
     it('keeps non-assignable roles and replaces the assignable ones', () => {
