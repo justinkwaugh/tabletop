@@ -40,12 +40,18 @@ export const VERSION_RULES: Record<GipfVersion, VersionRules> = {
     [GipfVersion.Ultimate]: { pieces: 21, startsWithGipfPieces: false, potentialsOfEveryKind: 3 }
 }
 
+// A word joiner after each hyphen keeps names such as GIPF-piece whole when a description wraps.
+function unbroken(text: string): string {
+    return text.replaceAll('-', '-\u2060')
+}
+
+const LOADED_PIECES =
+    'may push them in on top of basic pieces until they push their first plain basic piece, which forfeits any left.'
+
 const VERSION_DESCRIPTIONS: Record<GipfVersion, string> = {
-    [GipfVersion.Standard]: '18 pieces each; three GIPF-pieces each start on the board.',
-    [GipfVersion.Tournament]:
-        '18 pieces each and an empty board; GIPF-pieces come in before your first other piece.',
-    [GipfVersion.Ultimate]:
-        'A Tournament start with 21 pieces each and 3 potentials of every kind; bring in as many GIPF-pieces as you like before your first other piece.'
+    [GipfVersion.Standard]: `18 pieces each; three GIPF-pieces each start on the board. Each player has the potentials chosen below and ${LOADED_PIECES}`,
+    [GipfVersion.Tournament]: `18 pieces each and an empty board; GIPF-pieces come in before your first other piece. Each player has the potentials chosen below and ${LOADED_PIECES}`,
+    [GipfVersion.Ultimate]: `A Tournament start with 21 pieces each; bring in as many GIPF-pieces as you like before your first other piece. Each player has 3 potentials of every kind and ${LOADED_PIECES}`
 }
 
 // General use, rule 1: at least 3 of each kind in play; the rules set no total.
@@ -67,11 +73,15 @@ const KIND_NAMES: Record<PotentialKind, string> = {
 }
 
 const KIND_POWERS: Record<PotentialKind, string> = {
-    [PieceKind.Tamsk]: 'an extra move when pushed onto the centre',
-    [PieceKind.Zertz]: 'jumps over a line of pieces',
-    [PieceKind.Dvonn]: 'jumps onto an adjacent opponent’s piece',
-    [PieceKind.Yinsh]: 'slides along a line',
-    [PieceKind.Punct]: 'neutralises or takes over an opponent’s GIPF-piece'
+    [PieceKind.Tamsk]:
+        'When pushed onto the centre by either player, it gives its owner an extra move.',
+    [PieceKind.Zertz]: 'Jumps over a line of pieces.',
+    [PieceKind.Dvonn]:
+        'Jumps onto an opponent’s adjacent basic piece or DVONN-potential, never a GIPF-piece or another kind of potential.',
+    [PieceKind.Yinsh]:
+        'Slides any distance along a line, stopping before the first occupied spot (no jumping).',
+    [PieceKind.Punct]:
+        'Sacrifice it to cover an opponent’s adjacent GIPF-piece with one or two basic pieces (GIPF) from your supply, or jump onto an opponent’s adjacent PÜNCT-potential.'
 }
 
 const COUNT_VALUES = ['0', ...POTENTIAL_COUNTS.map(String)]
@@ -94,14 +104,16 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.List,
         name: 'Version',
         // Older site forms show only this, so it describes every version.
-        description: Object.entries(VERSION_DESCRIPTIONS)
-            .map(([version, description]) => `${version}: ${description}`)
-            .join(' '),
+        description: unbroken(
+            Object.entries(VERSION_DESCRIPTIONS)
+                .map(([version, description]) => `${version}: ${description}`)
+                .join(' ')
+        ),
         default: GipfVersion.Standard,
         options: Object.values(GipfVersion).map((version) => ({
             name: version,
             value: version,
-            description: VERSION_DESCRIPTIONS[version]
+            description: unbroken(VERSION_DESCRIPTIONS[version])
         })),
         alwaysShow: true
     },
@@ -109,7 +121,7 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
         id: kind,
         type: ConfigOptionType.List as const,
         name: `${KIND_NAMES[kind]} potentials`,
-        description: `Per player; ${KIND_POWERS[kind]}.`,
+        description: unbroken(KIND_POWERS[kind]),
         default: String(DEFAULT_POTENTIALS[kind]),
         options: COUNT_VALUES.map((value) =>
             // YINSH is the default kind, so with none of it either the game falls back to it.
@@ -117,7 +129,9 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
                 ? {
                       name: 'None',
                       value,
-                      description: `Per player; ${KIND_POWERS[kind]}. With no potentials of any kind, the game uses 6 YINSH.`
+                      description: unbroken(
+                          `${KIND_POWERS[kind]} With no potentials of any kind, the game uses 6 YINSH.`
+                      )
                   }
                 : { name: value === '0' ? 'None' : value, value }
         ),
