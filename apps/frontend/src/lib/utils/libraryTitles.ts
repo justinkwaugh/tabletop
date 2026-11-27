@@ -1,7 +1,7 @@
 import {
     canDiscoverTitle,
-    GameVisibility,
-    getTitleVisibility,
+    getTitleMaturity,
+    TitleMaturity,
     type GameCatalogEntry,
     type GameMetadata,
     type GameState,
@@ -43,15 +43,31 @@ function titleSortName(name: string): string {
     return name.replace(/^(a|an|the)\s+/i, '')
 }
 
-export function titleMaturityLabel(metadata: GameMetadata): string | undefined {
-    switch (getTitleVisibility(metadata)) {
-        case GameVisibility.Alpha:
-            return m.library_maturity_alpha()
-        case GameVisibility.Beta:
-            return m.library_maturity_beta()
-        case GameVisibility.Public:
-            return undefined
+type PrereleaseMaturity = Exclude<TitleMaturity, TitleMaturity.Released>
+
+const PRERELEASE_MESSAGES: Record<
+    PrereleaseMaturity,
+    { label: () => string; gameHeading: (inputs: { name: string }) => string }
+> = {
+    [TitleMaturity.Beta]: {
+        label: m.library_maturity_beta,
+        gameHeading: m.nav_game_heading_beta
+    },
+    [TitleMaturity.Alpha]: {
+        label: m.library_maturity_alpha,
+        gameHeading: m.nav_game_heading_alpha
     }
+}
+
+export function titleMaturityLabel(metadata: GameMetadata): string | undefined {
+    const maturity = getTitleMaturity(metadata)
+    return maturity === TitleMaturity.Released ? undefined : PRERELEASE_MESSAGES[maturity].label()
+}
+
+export function gameHeading(maturity: TitleMaturity, name: string): string {
+    return maturity === TitleMaturity.Released
+        ? name
+        : PRERELEASE_MESSAGES[maturity].gameHeading({ name })
 }
 
 export function playerCountText(metadata: GameMetadata): string {

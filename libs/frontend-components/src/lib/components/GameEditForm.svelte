@@ -14,7 +14,7 @@
     import {
         normalizeMasterSeed,
         GameVisibility,
-        getTitleVisibility,
+        getCatalogVisibility,
         defaultGameConfig,
         normalizeGameConfig,
         GAME_PACE_PRESETS,
@@ -197,7 +197,7 @@
     }
 
     function canListPublicly(): boolean {
-        return getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public
+        return getCatalogVisibility(gameTitle.info.metadata) === GameVisibility.Public
     }
 
     function generateDefaultOptions() {

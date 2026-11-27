@@ -147,7 +147,7 @@ An Active User Account assigned the Admin Role.
 An explicit, recently authenticated session mode in which an Administrator may exercise administrative bypasses. Outside Admin Mode, the Administrator behaves as an ordinary Active Account.
 
 **Beta Catalog Visibility Grant**:
-An additive grant that makes Beta Game Titles visible to an Active Account in catalog discovery. It does not authorize access to a Game or confer administrative authority.
+An additive grant that makes Beta Game Titles other than Public Beta titles visible to an Active Account in catalog discovery. It does not authorize access to a Game or confer administrative authority.
 _Avoid_: Beta entitlement, Beta access role
 
 **Alpha Catalog Visibility Grant**:

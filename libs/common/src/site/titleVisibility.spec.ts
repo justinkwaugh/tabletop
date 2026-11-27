@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { GameVisibility } from '../game/definition/gameMetadata.js'
-import { canDiscoverTitle, getTitleVisibility } from './titleVisibility.js'
+import { GameVisibility, type GameMetadata } from '../game/definition/gameMetadata.js'
+import {
+    canDiscoverTitle,
+    getCatalogVisibility,
+    getTitleMaturity,
+    TitleMaturity
+} from './titleVisibility.js'
 import { Role, User, UserStatus } from './user.js'
 import { Value } from 'typebox/value'
 
@@ -15,6 +20,7 @@ const metadata = {
     version: '1',
     beta: false
 }
+const publicBeta = { ...metadata, beta: true, visibility: GameVisibility.Public }
 
 describe('title catalog visibility', () => {
     it.each([
@@ -36,13 +42,34 @@ describe('title catalog visibility', () => {
     })
 
     it('prefers explicit visibility while supporting older beta metadata', () => {
-        expect(getTitleVisibility(metadata)).toBe(GameVisibility.Public)
-        expect(getTitleVisibility({ ...metadata, beta: true })).toBe(GameVisibility.Beta)
+        expect(getCatalogVisibility(metadata)).toBe(GameVisibility.Public)
+        expect(getCatalogVisibility({ ...metadata, beta: true })).toBe(GameVisibility.Beta)
         expect(
             canDiscoverTitle({ ...metadata, beta: true, visibility: GameVisibility.Public }, [
                 Role.User
             ])
         ).toBe(true)
+    })
+
+    it('shows a Public Beta title to everyone', () => {
+        expect(canDiscoverTitle(publicBeta, [])).toBe(true)
+    })
+
+    it.each<{ case: string; title: GameMetadata; maturity: TitleMaturity }>([
+        { case: 'a released title', title: metadata, maturity: TitleMaturity.Released },
+        { case: 'a Public Beta title', title: publicBeta, maturity: TitleMaturity.Beta },
+        {
+            case: 'a Beta title without explicit visibility',
+            title: { ...metadata, beta: true },
+            maturity: TitleMaturity.Beta
+        },
+        {
+            case: 'an Alpha title',
+            title: { ...metadata, beta: true, visibility: GameVisibility.Alpha },
+            maturity: TitleMaturity.Alpha
+        }
+    ])('marks $case as $maturity', ({ title, maturity }) => {
+        expect(getTitleMaturity(title)).toBe(maturity)
     })
 
     it('accepts both existing accounts and the new alpha role', () => {

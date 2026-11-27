@@ -20,7 +20,7 @@ export const Info1867: GameInfo = {
         version: GAME_VERSION,
         series: EighteenXXSeries,
         beta: true,
-        visibility: GameVisibility.Beta
+        visibility: GameVisibility.Public
     },
     configurator: new Configurator1867()
 }

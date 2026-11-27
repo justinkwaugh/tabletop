@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getTitleVisibility } from '@tabletop/common'
+    import { getTitleMaturity } from '@tabletop/common'
     import { UsersOutline } from 'flowbite-svelte-icons'
     import LibraryTile from '$lib/components/LibraryTile.svelte'
     import SeriesCoverCycle from '$lib/components/SeriesCoverCycle.svelte'
@@ -63,7 +63,7 @@
                         {#if maturityLabel}
                             <span
                                 class="maturity-label"
-                                data-visibility={getTitleVisibility(title.metadata)}
+                                data-maturity={getTitleMaturity(title.metadata)}
                                 >{maturityLabel}</span
                             >
                         {/if}
@@ -98,11 +98,11 @@
         text-align: center;
     }
 
-    .maturity-label[data-visibility='alpha'] {
+    .maturity-label[data-maturity='alpha'] {
         background: var(--color-orange-500);
     }
 
-    .maturity-label[data-visibility='beta'] {
+    .maturity-label[data-maturity='beta'] {
         background: var(--color-amber-400);
     }
 

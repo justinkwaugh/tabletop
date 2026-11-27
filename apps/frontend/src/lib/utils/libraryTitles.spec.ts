@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { GameVisibility, Role, UserStatus, type GameCatalogEntry } from '@tabletop/common'
+import {
+    GameVisibility,
+    Role,
+    TitleMaturity,
+    UserStatus,
+    type GameCatalogEntry
+} from '@tabletop/common'
 import {
     availableCatalogEntries,
+    gameHeading,
     libraryShelfItems,
     librarySeriesById,
     playerCountText,
@@ -33,10 +40,25 @@ const entries = [
         metadata: { ...base.metadata, name: 'Alpha', beta: true, visibility: GameVisibility.Alpha }
     }
 ]
+const publicBeta = {
+    ...base,
+    id: 'public-beta',
+    metadata: {
+        ...base.metadata,
+        name: 'Public Beta',
+        beta: true,
+        visibility: GameVisibility.Public
+    }
+}
 
 describe('catalog visibility after merging alpha support', () => {
     it('shows only public entries to visitors', () => {
         expect(availableCatalogEntries(entries).map((entry) => entry.id)).toEqual(['public'])
+    })
+    it('shows a Public Beta entry to visitors', () => {
+        expect(availableCatalogEntries([publicBeta]).map((entry) => entry.id)).toEqual([
+            'public-beta'
+        ])
     })
     it.each([
         { roles: [Role.BetaTester], ids: ['beta', 'public'] },
@@ -55,6 +77,20 @@ describe('titleMaturityLabel', () => {
             'Beta',
             'Alpha'
         ])
+    })
+
+    it('labels a Public Beta title Beta', () => {
+        expect(titleMaturityLabel(publicBeta.metadata)).toBe('Beta')
+    })
+})
+
+describe('gameHeading', () => {
+    it.each([
+        { maturity: TitleMaturity.Released, heading: 'Title' },
+        { maturity: TitleMaturity.Beta, heading: 'BETA: Title' },
+        { maturity: TitleMaturity.Alpha, heading: 'ALPHA: Title' }
+    ])('names a $maturity game $heading', ({ maturity, heading }) => {
+        expect(gameHeading(maturity, 'Title')).toBe(heading)
     })
 })
 

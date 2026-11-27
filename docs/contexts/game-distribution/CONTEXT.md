@@ -20,8 +20,12 @@ _Avoid_: Category, Collection
 An expectation-setting maturity label for a Game Title. It is not an access-control or resource-authorization boundary.
 _Avoid_: Restricted, prerelease entitlement
 
+**Public Beta**:
+A Beta Game Title that every viewer can discover, not only Active Accounts holding the Beta Catalog Visibility Grant.
+_Avoid_: Open beta
+
 **Beta Catalog Visibility Grant**:
-The grant that exposes Beta Game Titles to an Active Account in catalog discovery. It does not authorize access to a Game or confer administrative authority.
+The grant that exposes Beta Game Titles other than Public Beta titles to an Active Account in catalog discovery. It does not authorize access to a Game or confer administrative authority.
 _Avoid_: Beta entitlement, Beta access role
 
 ## Artifacts and Publication

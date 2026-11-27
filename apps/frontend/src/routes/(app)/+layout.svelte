@@ -42,8 +42,8 @@
     import { fromStore } from 'svelte/store'
     import {
         UserStatus,
-        GameVisibility,
-        getTitleVisibility,
+        getTitleMaturity,
+        TitleMaturity,
         findPlayerForUserId
     } from '@tabletop/common'
     import {
@@ -56,6 +56,7 @@
     import { followFailureMessage } from '$lib/services/followedGames.svelte'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { adminTabPath } from '$lib/utils/adminPaths'
+    import { gameHeading } from '$lib/utils/libraryTitles'
     import { m } from '$lib/paraglide/messages'
     import {
         BellSolid,
@@ -70,14 +71,6 @@
         pwaInstallPrompt,
         registerPwaInstallPrompt
     } from '$lib/stores/pwaInstallPrompt.svelte.js'
-
-    const PRERELEASE_GAME_HEADINGS: Record<
-        Exclude<GameVisibility, GameVisibility.Public>,
-        (inputs: { name: string }) => string
-    > = {
-        [GameVisibility.Beta]: m.nav_game_heading_beta,
-        [GameVisibility.Alpha]: m.nav_game_heading_alpha
-    }
 
     let {
         api,
@@ -272,10 +265,10 @@
         return titlesById[gameService.currentGameSession.primaryGame.typeId]
     })
 
-    let currentVisibility = $derived(
+    let currentMaturity = $derived(
         currentDefinition
-            ? getTitleVisibility(currentDefinition.info.metadata)
-            : GameVisibility.Public
+            ? getTitleMaturity(currentDefinition.info.metadata)
+            : TitleMaturity.Released
     )
 
     async function onLogout() {
@@ -422,10 +415,10 @@
             class="text-nowrap text-center mt-2 sm:mt-0 dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
             tag="h4"
-            >{#if currentVisibility === GameVisibility.Public}{gameService.currentGameSession
-                    .primaryGame.name}{:else}{PRERELEASE_GAME_HEADINGS[currentVisibility]({
-                    name: gameService.currentGameSession.primaryGame.name
-                })}{/if}</Heading
+            >{gameHeading(
+                currentMaturity,
+                gameService.currentGameSession.primaryGame.name
+            )}</Heading
         >
     {/if}
 {/snippet}
@@ -446,7 +439,7 @@
 >
     <Navbar
         fluid={true}
-        class="site-navbar {currentVisibility !== GameVisibility.Public
+        class="site-navbar {currentMaturity !== TitleMaturity.Released
             ? 'dark:bg-red-900'
             : 'dark:bg-gray-800'} "
     >
