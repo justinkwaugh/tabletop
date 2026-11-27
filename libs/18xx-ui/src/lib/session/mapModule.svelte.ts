@@ -102,7 +102,7 @@ type Stations = Pick<
 export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
 type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
 type Routes = Pick<RoutesModule<RoutesSession['state']>, 'tap'>
-type Plan = Pick<TilePlanModule, 'locationId' | 'inventory' | 'tap' | 'clear'>
+type Plan = Pick<TilePlanModule, 'locationId' | 'inventory' | 'stations' | 'tap' | 'clear'>
 
 export class MapModule {
     showTrackAccess = $state(true)
@@ -216,24 +216,26 @@ export class MapModule {
         () => this.plan.inventory ?? this.previewTileInventory ?? this.tileInventory
     )
     displayedStationState = $derived.by(
-        (): StationState => this.landedLayStations ?? this.stations.displayState
+        (): StationState =>
+            this.plan.stations ?? this.landedLayStations ?? this.stations.displayState
     )
     displayedScene = $derived.by(() => {
         const inventory = this.plan.inventory ?? this.previewTileInventory
         return inventory ? this.draw(inventory, this.scene) : this.scene
     })
     displayedTokens = $derived.by(() => {
-        if (this.landedLayStations)
-            return stationMapTokens(
-                { ...this.displayState(), ...this.landedLayStations },
-                this.view()
-            )
+        const laidStations = this.plan.stations ?? this.landedLayStations
+        if (laidStations)
+            return stationMapTokens({ ...this.displayState(), ...laidStations }, this.view())
         return this.stations.preview
             ? stationMapTokens(this.stations.displayState, this.view())
             : this.tokens
     })
     displayedReservations = $derived.by(() => [
-        ...this.stations.openReservations(this.displayedStationState),
+        ...this.stations.openReservations({
+            ...this.displayedStationState,
+            tileInventory: this.displayedTileInventory
+        }),
         ...[
             companyAuctionHomeReservation(this.displayState()),
             ...this.homeOffers.map((offer) => offer.chosenHome)

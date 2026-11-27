@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest'
 import {
     RailwayMap,
     StandardTileCatalog,
+    TileCatalog,
     TileSet,
     TrackConstruction,
+    createCityTileFace,
     createSeparateCitiesTileFace,
     createTrackTileFace,
+    type Station,
     type TileInventory,
     type TrackRules
 } from '@tabletop/18xx'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
+    TestCompanyId,
     TestTrackHomeLocationId,
     minimalPlayState,
     minimalTrackMap,
@@ -33,11 +37,13 @@ function planning(
         rules: minimalTrackRules(),
         tileSet: minimalTrackTileSet
     },
-    inventory: (tileSet: TileSet) => TileInventory = (tileSet) => tileSet.createInventory()
+    inventory: (tileSet: TileSet) => TileInventory = (tileSet) => tileSet.createInventory(),
+    stations: Station[] = []
 ) {
     const state: TilePlanSession['state'] = {
         ...minimalPlayState(),
-        tileInventory: inventory(board.tileSet)
+        tileInventory: inventory(board.tileSet),
+        stations
     }
     const harness = testSession(state, { trackRules: board.rules }, [])
     let enabled = $state(true)
@@ -264,5 +270,80 @@ describe('TilePlanModule', () => {
         setEnabled(true)
         expect(plan.locationId).toBeUndefined()
         expect(plan.inventory).toBeUndefined()
+    })
+
+    it('carries the hex’s stations onto the tiles it tries, setting them aside where a tile splits the city', () => {
+        const catalog = new TileCatalog([
+            {
+                id: 'test:city',
+                printedNumber: 'C',
+                aliases: [],
+                scope: 'test',
+                face: createCityTileFace('brown', [0, 1, 3], 40, 2)
+            },
+            {
+                id: 'test:split',
+                printedNumber: 'S',
+                aliases: [],
+                scope: 'test',
+                face: createSeparateCitiesTileFace('brown', [
+                    { edges: [0], revenue: 40, stationSlots: 1 },
+                    { edges: [3], revenue: 40, stationSlots: 1 }
+                ])
+            }
+        ])
+        const tileSet = new TileSet(
+            {
+                id: 'test-brown',
+                entries: [
+                    { id: 'city', faceDefinitionIds: ['test:city'], count: 1 },
+                    { id: 'split', faceDefinitionIds: ['test:split'], count: 1 }
+                ]
+            },
+            [catalog]
+        )
+        const map = new RailwayMap({
+            ...minimalTrackMap.definition,
+            locations: minimalTrackMap.definition.locations.map((location) =>
+                location.id === BesideHome
+                    ? { ...location, preprintedTile: createCityTileFace('green', [0, 3], 30, 1) }
+                    : location
+            )
+        })
+        const rules: TrackRules = {
+            ...minimalTrackRules(tileSet),
+            map,
+            colorOrder: ['white', 'yellow', 'green', 'brown'],
+            reconfigures: (_locationId, _before, after) =>
+                after.nodes.filter((node) => node.kind === 'city').length > 1
+        }
+        const station: Station = {
+            id: `${TestCompanyId}:station:1`,
+            companyId: TestCompanyId,
+            status: 'placed',
+            position: { locationId: BesideHome, nodeId: 'city', slot: 0 }
+        }
+        const { plan } = planning({ map, rules, tileSet }, undefined, [station])
+        const stationOf = () => plan.stations?.stations.find((entry) => entry.id === station.id)
+        plan.tap(BesideHome)
+        expect(plan.stations).toBeUndefined()
+
+        plan.choose(0, 'test:city')
+        const city = laidOn(plan.inventory, BesideHome)
+        const cityNodes = tileSet.definitions
+            .find((tile) => tile.id === city.definitionId)
+            ?.face.nodes.map((node) => node.id)
+        const kept = stationOf()
+        assert(kept?.status === 'placed', 'The station stays in the upgraded city')
+        expect(cityNodes).toContain(kept.position.nodeId)
+        expect(kept.position.slot).toBe(0)
+
+        plan.choose(0, 'test:split')
+        expect(stationOf()).toEqual({
+            id: station.id,
+            companyId: TestCompanyId,
+            status: 'displaced',
+            locationId: BesideHome
+        })
     })
 })

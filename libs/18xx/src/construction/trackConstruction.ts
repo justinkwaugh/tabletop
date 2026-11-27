@@ -562,6 +562,42 @@ export class TrackConstruction {
             }
         }
     }
+    /**
+     * The stations a lay offered by ``futureLays`` would leave: kept on the cities its node
+     * mapping carries them to, or set aside where it reconfigures the hex or has no space left
+     * for them, which a preview does not judge.
+     */
+    futureStations(lay: FutureLay): StationState {
+        const previous = this.mapState.tile(lay.locationId)
+        const before = rotateTileFace(previous.face, previous.rotation)
+        const definition = this.tileDefinition(lay.definitionId)
+        assertExists(definition, 'A future lay names a known tile')
+        const { face: after } = replacingFace(
+            this.rules,
+            before,
+            rotateTileFace(definition.face, lay.rotation)
+        )
+        const reconfigured =
+            this.reconfiguring(lay.locationId, before, after) &&
+            !Object.keys(lay.nodeMapping).length
+        const migrated = this.migrateStations(lay, after, reconfigured)
+        if (migrated) {
+            const { stations, stationReservations, hexReservations } = migrated
+            return {
+                stations,
+                stationReservations,
+                ...(hexReservations ? { hexReservations } : {})
+            }
+        }
+        return stationsAfterReconfiguration(
+            this.state,
+            lay.locationId,
+            this.state.stations.filter(
+                (station) =>
+                    station.status === 'placed' && station.position.locationId === lay.locationId
+            )
+        )
+    }
     stationsAfter(details: TrackLayDetails): StationState {
         return stationsAfterLay(this.state, details, this.rules)
     }
@@ -805,7 +841,7 @@ export class TrackConstruction {
         )
     }
     private migrateStations(
-        request: TrackRequest,
+        request: Pick<TrackRequest, 'locationId' | 'definitionId' | 'nodeMapping'>,
         after: TileFace,
         reconfigured = false
     ):

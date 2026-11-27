@@ -4,6 +4,7 @@ import {
     type BoardTile,
     type EighteenXXTitleRules,
     type FutureLay,
+    type StationState,
     type TileDefinition,
     type TileInventory,
     type TileRotation
@@ -18,6 +19,8 @@ type PlanMapView = Pick<MapViewDefinition, 'tileGroups'> & {
     map: Pick<MapViewDefinition['map'], 'definition'>
     tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'>
 }
+/** The board's tiles and stations as the plan's tiles leave them. */
+type PlanBoard = StationState & { tileInventory: TileInventory }
 type PlanStep = { definitionId: string; rotation: TileRotation }
 type Plan = { locationId: string; steps: readonly PlanStep[] }
 /** A lay the supply has the tiles for. */
@@ -51,7 +54,7 @@ export class TilePlanModule {
     /** The hexes a tap may open a plan on: each hex of a piece some tile may still upgrade. */
     locationIds = $derived.by((): string[] => {
         if (!this.available) return []
-        const construction = this.construction(this.session.state.tileInventory)
+        const construction = this.construction()
         return this.mapView()
             .map.definition.locations.filter((location) => this.anchor(construction, location.id))
             .map((location) => location.id)
@@ -67,14 +70,14 @@ export class TilePlanModule {
         if (!locationId) return []
         return tileGroupOf(this.mapView(), locationId) ?? [locationId]
     })
-    /** The plan's levels, and the board's tiles with every tile it tries laid. */
-    private tried = $derived.by((): { levels: PlanLevel[]; inventory?: TileInventory } => {
+    /** The plan's levels, and the board's tiles and stations with every tile it tries laid. */
+    private tried = $derived.by((): { levels: PlanLevel[]; board?: PlanBoard } => {
         const plan = this.activePlan
         if (!plan) return { levels: [] }
-        let inventory: TileInventory | undefined
+        let board: PlanBoard | undefined
         const levels: PlanLevel[] = []
         for (const step of [...plan.steps, undefined]) {
-            const construction = this.construction(inventory ?? this.session.state.tileInventory)
+            const construction = this.construction(board)
             const lays = construction.futureLays(plan.locationId)
             const chosen = step
                 ? this.placedLays(lays, step.definitionId).find(
@@ -83,13 +86,23 @@ export class TilePlanModule {
                 : undefined
             levels.push({ lays, ...(chosen ? { chosen } : {}) })
             if (!chosen) break
-            inventory = construction.inventoryAfter(chosen)
+            board = {
+                tileInventory: construction.inventoryAfter(chosen),
+                ...construction.futureStations(chosen)
+            }
         }
-        return { levels, ...(inventory ? { inventory } : {}) }
+        return { levels, ...(board ? { board } : {}) }
     })
     private levels = $derived(this.tried.levels)
     /** The board's tiles with the plan's tiles laid, while it has laid one. */
-    inventory = $derived(this.tried.inventory)
+    inventory = $derived(this.tried.board?.tileInventory)
+    /** The stations as the plan's tiles leave them, while it has laid one. */
+    stations = $derived.by((): StationState | undefined => {
+        const board = this.tried.board
+        if (!board) return undefined
+        const { stations, stationReservations, hexReservations } = board
+        return { stations, stationReservations, ...(hexReservations ? { hexReservations } : {}) }
+    })
     /** The hex whose tile the plan has replaced, while it has. */
     previewedLocationId = $derived.by(() => (this.inventory ? this.locationId : undefined))
     choices = $derived.by((): TilePlanChoice[] =>
@@ -122,7 +135,7 @@ export class TilePlanModule {
             if (this.inventory) this.rotate()
             return
         }
-        const anchor = this.anchor(this.construction(this.session.state.tileInventory), locationId)
+        const anchor = this.anchor(this.construction(), locationId)
         this.plan = anchor ? { locationId: anchor, steps: [] } : undefined
     }
     /** Tries the tile on the plan's hex in place of the level's tile, dropping later levels. */
@@ -172,9 +185,10 @@ export class TilePlanModule {
         if (!piece.some((id) => construction.meetsTrack(id))) return undefined
         return [locationId, ...piece].find((id) => construction.hasFutureLay(id))
     }
-    private construction(inventory: TileInventory): TrackConstruction {
+    /** Construction on the board, or on the board as the plan has laid it. */
+    private construction(board?: PlanBoard): TrackConstruction {
         const { state, rules } = this.session
-        return new TrackConstruction({ ...state, tileInventory: inventory }, rules.trackRules)
+        return new TrackConstruction({ ...state, ...board }, rules.trackRules)
     }
 }
 

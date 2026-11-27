@@ -36,7 +36,13 @@ function homeOffer(offer: Partial<HomeOffer>): HomeOffer {
     return { homePositions: [], chooseHome: () => {}, chosenHome: undefined, ...offer }
 }
 const noAuctionHomes = homeOffer({})
-const noPlan = { locationId: undefined, inventory: undefined, tap() {}, clear() {} }
+const noPlan = {
+    locationId: undefined,
+    inventory: undefined,
+    stations: undefined,
+    tap() {},
+    clear() {}
+}
 
 function table(
     machineState: 'LayingTrack' | 'StockRound',
@@ -206,6 +212,30 @@ describe('MapModule', () => {
         track.tileInFlight = false
         expect(face(map.displayedScene)?.paths.length).toBe(1)
         expect(face(map.scene)?.paths.length).toBe(0)
+    })
+
+    it('draws the stations as an upgrade preview’s tiles leave them', () => {
+        const { session, track, stations, routes } = table('StockRound', [])
+        const plan = {
+            ...noPlan,
+            locationId: TestTrackHomeLocationId,
+            inventory: tileSet.createInventory(),
+            stations: {
+                stations: [
+                    {
+                        id: `${TestCompanyId}:home`,
+                        companyId: TestCompanyId,
+                        status: 'displaced' as const,
+                        locationId: TestTrackHomeLocationId
+                    }
+                ],
+                stationReservations: []
+            }
+        }
+        const map = new MapModule(session, () => view, track, stations, routes, [], plan)
+        expect(map.tokens).toHaveLength(1)
+        expect(map.displayedTokens).toEqual([])
+        expect(map.displayedStationState.stations).toEqual(plan.stations.stations)
     })
 
     it('overlays the inspected company network, and hides it on request or under a track preview', () => {

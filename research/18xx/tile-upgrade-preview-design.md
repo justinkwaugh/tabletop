@@ -76,10 +76,16 @@ hook (`libs/18xx/src/construction/trackConstruction.ts`); the UI is `TilePlanMod
   is a piece as well, so the preview never shows a part-green gorge.
 - A lay is offered when any way of keeping the replaced tile's stops passes
   `placementRestriction`, as real lays try every node mapping (1850's Chicago, 1894's Paris).
+- The hex's stations follow the tiles tried, as `TrackConstruction.futureStations` moves them:
+  onto the cities the lay's node mapping carries them to, or set aside, and not drawn, where the
+  tile reconfigures the hex (1894's split green cities) or has no space left for them. The map
+  draws the plan's stations and its open reservations on the plan's tiles, since a station left
+  on a node the tried tile lacks cannot be drawn.
 
 ## Considered for later
 
-- Stations: whether a hex's stations fit the upgraded tile is not judged.
+- Stations: whether a hex's stations fit the upgraded tile is not judged; a lay is offered
+  regardless.
 - The preview during the player's own track step: undecided, so it is not offered there.
 - 18USA's direct colour skips from phase 5 are not shown in the first ring; the same tiles appear
   one colour later.
