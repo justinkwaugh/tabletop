@@ -2,8 +2,12 @@
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import Legend from './Legend.svelte'
 
     const session = getGameSession()
+    // Full screen may draw a second header; each anchors its own reference panel.
+    const uid = $props.id()
+    const headerId = `header-${uid}`
 
     // The player to act: the opponent takes rows a move made for them during the mover's turn.
     const actingPlayerId = $derived(session.gameState.activePlayerIds[0])
@@ -11,6 +15,7 @@
 
 <!-- A long name is cut off before it reaches Undo. -->
 <div
+    id={headerId}
     class="flex h-[44px] items-center justify-between gap-x-3 px-4 tracking-[0.08em] text-(--yinsh-table-ink) max-sm:h-[30px] max-sm:gap-x-2 max-sm:px-1"
 >
     <div class="header-grid grid min-w-0 text-[18px] max-sm:text-[14px]">
@@ -37,10 +42,15 @@
         {/if}
     </div>
 
-    <div class="header-grid grid shrink-0 text-[18px] max-sm:text-[14px]">
-        {#if session.hasLocalSelection || session.undoableAction}
-            <button type="button" onclick={() => session.undo()} class="header-button">UNDO</button>
-        {/if}
+    <div class="flex shrink-0 items-center gap-2 max-sm:gap-1.5">
+        <div class="header-grid grid text-[18px] max-sm:text-[14px]">
+            {#if session.hasLocalSelection || session.undoableAction}
+                <button type="button" onclick={() => session.undo()} class="header-button"
+                    >UNDO</button
+                >
+            {/if}
+        </div>
+        <Legend reference={`#${headerId}`} />
     </div>
 </div>
 
