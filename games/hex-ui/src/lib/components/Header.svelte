@@ -1,6 +1,7 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import Legend from './Legend.svelte'
 
     const session = getGameSession()
     // Full screen draws a second header in its dialog; each anchors its own guide.
@@ -49,6 +50,7 @@
                 >
             {/if}
         </div>
+        <Legend reference={`#${headerId}`} />
     </div>
 </div>
 
