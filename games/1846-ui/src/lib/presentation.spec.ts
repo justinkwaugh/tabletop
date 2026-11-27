@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Presentation1846 } from './presentation.js'
-import type { EighteenFortySixProjectedState } from '@tabletop/1846'
+import { ActionSource, type GameAction } from '@tabletop/common'
+import { Presentation1846, steamboatTurnPrivateId } from './presentation.js'
 
 describe('company prices', () => {
     it('shows no par, as shares sell at the current price (GMT rules, p. 19)', () => {
@@ -9,10 +9,25 @@ describe('company prices', () => {
 })
 
 describe('turn header', () => {
+    const action = (type: string): GameAction => ({
+        id: type,
+        gameId: 'game',
+        type,
+        source: ActionSource.User
+    })
+
     it('names the Steamboat Company while its owner assigns it, before any company operates', () => {
-        const state = (machineState: string) =>
-            ({ machineState }) as unknown as EighteenFortySixProjectedState
-        expect(Presentation1846.turnPrivate?.(state('AssigningSteamboat'))).toBe('SC')
-        expect(Presentation1846.turnPrivate?.(state('LayingTrack'))).toBeUndefined()
+        expect(Presentation1846.turnPrivateId).toBe(steamboatTurnPrivateId)
+        expect(steamboatTurnPrivateId({ machineState: 'AssigningSteamboat' })).toBe('SC')
+        expect(steamboatTurnPrivateId({ machineState: 'LayingTrack' })).toBeUndefined()
+    })
+
+    it('names the Steamboat Company on the history step of its assignment', () => {
+        expect(
+            steamboatTurnPrivateId({ machineState: 'OperatingSet' }, action('AssignSteamboat'))
+        ).toBe('SC')
+        expect(
+            steamboatTurnPrivateId({ machineState: 'OperatingSet' }, action('LayTile'))
+        ).toBeUndefined()
     })
 })

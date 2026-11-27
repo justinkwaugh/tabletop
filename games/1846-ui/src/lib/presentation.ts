@@ -15,12 +15,21 @@ import {
     NoParCompanyPricePresentation,
     type TitlePresentation
 } from '@tabletop/18xx-ui'
+import type { GameAction } from '@tabletop/common'
 import { CompanyNames1846 } from './companyPresentation.js'
 import { mapPlacement1846 } from './mapPlacement.js'
 import { revenueTokenArt } from './revenueTokens.js'
 import BoomtownToken from './images/tokens/boomtown.svg'
 import MailToken from './images/tokens/mail.svg'
 import MeatPackingToken from './images/tokens/meat-packing.svg'
+export function steamboatTurnPrivateId(
+    state: Pick<EighteenFortySixProjectedState, 'machineState'>,
+    viewedAction?: GameAction
+): string | undefined {
+    return state.machineState === 'AssigningSteamboat' || viewedAction?.type === 'AssignSteamboat'
+        ? 'SC'
+        : undefined
+}
 const StraightTilePair = [
     { definitionId: '18xx:9', rotation: 1 },
     { definitionId: '18xx:9', rotation: 1 }
@@ -115,7 +124,5 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         inProgress: (state) =>
             ['Drafting', 'RevealingDraft', 'BuyingOpeningCompanies'].includes(state.machineState)
     },
-    // The Steamboat Company's owner assigns it as the operating round opens, before any company
-    // operates.
-    turnPrivate: (state) => (state.machineState === 'AssigningSteamboat' ? 'SC' : undefined)
+    turnPrivateId: steamboatTurnPrivateId
 }

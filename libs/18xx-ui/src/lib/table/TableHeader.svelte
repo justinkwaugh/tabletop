@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { assert } from '@tabletop/common'
+    import { assert, assertExists } from '@tabletop/common'
     import { currentRoundHeading } from './roundHeading.js'
     import { turnCompanyId } from './turnCompany.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
@@ -60,8 +60,6 @@
             (gameState.selectionAuction && !gameState.selectionAuction.completed)
         )
     )
-    const companyId = $derived(turnCompanyId(gameState, session.presentation))
-    const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const restart = $derived(session.turnRestart)
     const headerId = $props.id()
     const restartId = `${headerId}-restart`
@@ -71,12 +69,26 @@
     let displayOpen = $state(false)
     let displayModalOpen = $state(false)
     const phone = new MediaQuery(PhoneLayoutQuery)
-    const turnPlayerIds = $derived.by(() => {
-        if (!session.isViewingHistory) return gameState.activePlayerIds
-        const actorId = session.actions
-            .slice(0, gameState.actionCount)
-            .findLast((action) => !isHistoryBookkeeping(action))?.playerId
-        return actorId ? [actorId] : gameState.activePlayerIds
+    const viewedAction = $derived(
+        session.isViewingHistory
+            ? session.actions
+                  .slice(0, gameState.actionCount)
+                  .findLast((action) => !isHistoryBookkeeping(action))
+            : undefined
+    )
+    const turnPlayerIds = $derived(
+        viewedAction?.playerId ? [viewedAction.playerId] : gameState.activePlayerIds
+    )
+    const companyId = $derived(turnCompanyId(gameState, session.presentation, viewedAction))
+    const company = $derived(gameState.companies.find((company) => company.id === companyId))
+    const companyToken = $derived.by(() => {
+        if (!company) return undefined
+        const token =
+            company.kind === 'private'
+                ? session.privateCompanyTokens[company.id]
+                : session.mapView.stations[company.id]
+        assertExists(token, `The turn header requires a token for ${company.id}`)
+        return token
     })
 </script>
 
@@ -123,18 +135,13 @@
                     >{/if}
             {/if}
         </strong>
-        {#if company && gameState.stockRound.completed && !gameState.result}<span
+        {#if company && companyToken && gameState.stockRound.completed && !gameState.result}<span
                 class="separator"
                 aria-hidden="true">/</span
             ><span class="company" title={session.companyName(company.id)}
-                ><CompanyToken
-                    appearance={(company.kind === 'private' &&
-                        session.privateCompanyTokens[company.id]) ||
-                        session.mapView.stations[company.id]}
-                    size={22}
-                /><span class="max-sm:hidden">{session.companyName(company.id)}</span><span
-                    class="sm:hidden">{session.companyInitials(company.id)}</span
-                ></span
+                ><CompanyToken appearance={companyToken} size={22} /><span class="max-sm:hidden"
+                    >{session.companyName(company.id)}</span
+                ><span class="sm:hidden">{session.companyInitials(company.id)}</span></span
             >{/if}
         {#if centered && turnPlayerIds.length}<span class="separator" aria-hidden="true">/</span
             >{@render turnLabel()}{/if}

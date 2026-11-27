@@ -288,11 +288,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /**
-     * A private whose owner the game waits on outside any company's turn, as 1846's Steamboat
-     * Company assigned before the first company operates; the turn header names it in place of
-     * the next company to operate.
+     * A private whose owner acts outside any company's turn, as 1846's Steamboat Company assigned
+     * before the first company operates: the one the game waits on, or, with a history step's
+     * action, the one that action used. The turn header names it in place of the next company.
      */
-    turnPrivate?(state: State): string | undefined
+    turnPrivateId?(state: State, viewedAction?: GameAction): string | undefined
     /** Facts of the title's own for the game information, such as money left to subsidise. */
     gameFacts?(state: State): readonly TitleFact[]
     /** A rule in force announced under the game information, such as 1880's communism. */
