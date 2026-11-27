@@ -239,10 +239,32 @@
             html {
                 background: oklch(21% 0.034 264.665);
             }
+            #status-bar-colour {
+                display: none;
+            }
+            /* iOS 27 blurs the top of a Home Screen app unless a solid fixed element over 10px
+               tall spans the top edge; it then paints the status bar in that colour. A real
+               element, as pseudo-elements are not sampled; background-clip keeps it unpainted. */
+            @supports (-webkit-touch-callout: none) {
+                @media (display-mode: standalone) {
+                    #status-bar-colour {
+                        display: block;
+                        position: fixed;
+                        inset: 0 0 auto;
+                        height: 11px;
+                        background-color: oklch(27.8% 0.033 256.848);
+                        background-clip: text;
+                        -webkit-background-clip: text;
+                        z-index: 1000;
+                        pointer-events: none;
+                    }
+                }
+            }
         </style>
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover" class="bg-[#343a40] dark:bg-gray-900">
+        <div id="status-bar-colour" aria-hidden="true"></div>
         <div style="display: contents">%sveltekit.body%</div>
     </body>
 </html>
