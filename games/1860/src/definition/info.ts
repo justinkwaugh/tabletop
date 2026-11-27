@@ -11,6 +11,10 @@ export const Info1860: GameInfo = {
         bggId: 12750,
         hasScores: true,
         designer: 'Mike Hutton',
+        publisher: {
+            name: 'All Aboard Games',
+            url: 'https://all-aboardgames.com/'
+        },
         year: '2004',
         description:
             'A knife fight in a phone booth for 2–4 players on the Isle of Wight: companies run out of trains and go insolvent, sink to nothing and go bankrupt, then float again for whoever dares. Halts pay subsidies, trains skip small stations, and when British Rail arrives the weakest lines close one round at a time.',

@@ -11,6 +11,10 @@ export const Info1862: GameInfo = {
         bggId: 66837,
         hasScores: true,
         designer: 'Mike Hutton',
+        publisher: {
+            name: 'GMT Games',
+            url: 'https://www.gmtgames.com/p-692-1862-railway-mania-in-the-eastern-counties.aspx'
+        },
         year: '2013',
         description:
             'Railway mania in East Anglia for 2–8 players: petition Parliament for charters, run Freight, Local and Express trains under permits, and merge companies two shares for one.',
