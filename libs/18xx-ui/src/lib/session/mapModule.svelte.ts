@@ -170,14 +170,7 @@ export class MapModule {
         )
     })
     private overfullCityKey = $derived.by(() =>
-        overfullCityKeys(
-            this.displayState().stations,
-            new RailwayMapState(
-                this.view().map,
-                this.view().tileSet,
-                this.displayState().tileInventory
-            )
-        ).join('|')
+        this.overfullCityKeyOf(this.displayState().stations, this.displayState().tileInventory)
     )
     private overfullCities = $derived(this.overfullCityKey ? this.overfullCityKey.split('|') : [])
     private companies = $derived.by(() => this.displayState().companies)
@@ -219,9 +212,14 @@ export class MapModule {
         (): StationState =>
             this.plan.stations ?? this.landedLayStations ?? this.stations.displayState
     )
+    private displayedOverfullCityKey = $derived.by(() =>
+        this.overfullCityKeyOf(this.displayedStationState.stations, this.displayedTileInventory)
+    )
     displayedScene = $derived.by(() => {
         const inventory = this.plan.inventory ?? this.previewTileInventory
-        return inventory ? this.draw(inventory, this.scene) : this.scene
+        if (!inventory) return this.scene
+        const key = this.displayedOverfullCityKey
+        return this.draw(inventory, this.scene, key ? key.split('|') : [])
     })
     displayedTokens = $derived.by(() => {
         const laidStations = this.plan.stations ?? this.landedLayStations
@@ -384,7 +382,18 @@ export class MapModule {
         this.stations.selectPosition(choice)
         void this.stations.confirm()
     }
-    private draw(inventory: MapState['tileInventory'], previous?: MapDrawing) {
+    private overfullCityKeyOf(
+        stations: StationState['stations'],
+        inventory: MapState['tileInventory']
+    ): string {
+        const { map, tileSet } = this.view()
+        return overfullCityKeys(stations, new RailwayMapState(map, tileSet, inventory)).join('|')
+    }
+    private draw(
+        inventory: MapState['tileInventory'],
+        previous?: MapDrawing,
+        overfullCities: readonly string[] = this.overfullCities
+    ) {
         const view = this.view()
         return createMapDrawing(
             view.map,
@@ -393,7 +402,7 @@ export class MapModule {
                 inventory,
                 markers: this.locationMarkers,
                 liftedPrivateBlocks: this.liftedPrivateBlocks,
-                overfullCities: this.overfullCities
+                overfullCities
             },
             view,
             previous

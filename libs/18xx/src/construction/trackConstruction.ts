@@ -455,13 +455,7 @@ export class TrackConstruction {
             this.rules.placementRestriction?.(request, previous) ??
             this.rules.restriction(this.state, request)
         if (restriction) return { reason: restriction }
-        const before = rotateTileFace(previous.face, previous.rotation)
-        const { face: after, trackStops } = replacingFace(
-            this.rules,
-            before,
-            rotateTileFace(definition.face, rotation)
-        )
-        const reconfiguring = this.reconfiguring(locationId, before, after)
+        const { before, after, trackStops } = this.replacedFaces(locationId, definition, rotation)
         if (
             !this.layMappings(locationId, before, after).some(
                 (mapping) =>
@@ -497,7 +491,7 @@ export class TrackConstruction {
         const migrated = this.migrateStations(
             request,
             after,
-            reconfiguring && !Object.keys(nodeMapping).length
+            this.setsStationsAside(locationId, before, after, nodeMapping)
         )
         if (!migrated) return { reason: 'The upgrade cannot preserve all station spaces' }
         const network = this.network(companyId).connections(locationId, after, migrated)
@@ -563,40 +557,26 @@ export class TrackConstruction {
         }
     }
     /**
-     * The stations a lay offered by ``futureLays`` would leave: kept on the cities its node
-     * mapping carries them to, or set aside where it reconfigures the hex or has no space left
-     * for them, which a preview does not judge.
+     * The stations a lay offered by ``futureLays`` would leave. Future lays do not judge
+     * whether the hex's stations fit, so stations a real lay could not keep are set aside.
      */
     futureStations(lay: FutureLay): StationState {
-        const previous = this.mapState.tile(lay.locationId)
-        const before = rotateTileFace(previous.face, previous.rotation)
         const definition = this.tileDefinition(lay.definitionId)
         assertExists(definition, 'A future lay names a known tile')
-        const { face: after } = replacingFace(
-            this.rules,
-            before,
-            rotateTileFace(definition.face, lay.rotation)
+        const { before, after } = this.replacedFaces(lay.locationId, definition, lay.rotation)
+        const migrated = this.migrateStations(
+            lay,
+            after,
+            this.setsStationsAside(lay.locationId, before, after, lay.nodeMapping)
         )
-        const reconfigured =
-            this.reconfiguring(lay.locationId, before, after) &&
-            !Object.keys(lay.nodeMapping).length
-        const migrated = this.migrateStations(lay, after, reconfigured)
-        if (migrated) {
-            const { stations, stationReservations, hexReservations } = migrated
-            return {
-                stations,
-                stationReservations,
-                ...(hexReservations ? { hexReservations } : {})
-            }
-        }
-        return stationsAfterReconfiguration(
-            this.state,
-            lay.locationId,
-            this.state.stations.filter(
-                (station) =>
-                    station.status === 'placed' && station.position.locationId === lay.locationId
+        if (!migrated)
+            return stationsAfterReconfiguration(
+                this.state,
+                lay.locationId,
+                this.placedStationsOn(lay.locationId)
             )
-        )
+        const { stations, stationReservations, hexReservations } = migrated
+        return { stations, stationReservations, ...(hexReservations ? { hexReservations } : {}) }
     }
     stationsAfter(details: TrackLayDetails): StationState {
         return stationsAfterLay(this.state, details, this.rules)
@@ -801,6 +781,35 @@ export class TrackConstruction {
     private reconfiguring(locationId: string, before: TileFace, after: TileFace): boolean {
         return !!this.rules.reconfigures?.(locationId, before, after) && keepsExits(before, after)
     }
+    private setsStationsAside(
+        locationId: string,
+        before: TileFace,
+        after: TileFace,
+        nodeMapping: TileNodeMapping
+    ): boolean {
+        return this.reconfiguring(locationId, before, after) && !Object.keys(nodeMapping).length
+    }
+    private replacedFaces(
+        locationId: string,
+        definition: TileDefinition,
+        rotation: TileRotation
+    ): { before: TileFace; after: TileFace; trackStops: TrackStop[] } {
+        const previous = this.mapState.tile(locationId)
+        const before = rotateTileFace(previous.face, previous.rotation)
+        const { face: after, trackStops } = replacingFace(
+            this.rules,
+            before,
+            rotateTileFace(definition.face, rotation)
+        )
+        return { before, after, trackStops }
+    }
+    private placedStationsOn(locationId: string): PlacedStation[] {
+        return this.state.stations.flatMap((station) =>
+            station.status === 'placed' && station.position.locationId === locationId
+                ? [station]
+                : []
+        )
+    }
     private replacesTile(locationId: string): boolean {
         return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0
     }
@@ -849,10 +858,7 @@ export class TrackConstruction {
         | undefined {
         const { locationId, nodeMapping: mapping } = request
         if (reconfigured) {
-            const displaced = this.state.stations.filter(
-                (station) =>
-                    station.status === 'placed' && station.position.locationId === locationId
-            )
+            const displaced = this.placedStationsOn(locationId)
             return {
                 ...stationsAfterReconfiguration(this.state, locationId, displaced),
                 moved: [],
@@ -863,11 +869,7 @@ export class TrackConstruction {
         const before = this.mapState.tile(locationId).face
         const occupied = new Map<string, Set<number>>()
         const seated = new Map<string, PlacedStation>()
-        const here = this.state.stations.flatMap((station) =>
-            station.status === 'placed' && station.position.locationId === locationId
-                ? [station]
-                : []
-        )
+        const here = this.placedStationsOn(locationId)
         const cityAfter = (station: PlacedStation) => {
             const nodeId = mapping[station.position.nodeId]
             const node = after.nodes.find((entry) => entry.id === nodeId)

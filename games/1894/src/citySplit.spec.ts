@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { stationToReturn } from '@tabletop/18xx'
-import { Definition } from './definition/gameDefinition.js'
+import { assertExists } from '@tabletop/common'
+import { TrackConstruction, stationToReturn } from '@tabletop/18xx'
+import { Definition, EighteenNinetyFourTitleRules } from './definition/gameDefinition.js'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 import { EighteenNinetyFourTileSet } from './tiles.js'
@@ -35,6 +36,24 @@ const stationAt = (state: EighteenNinetyFourState, id: string) =>
     state.stations.find((station) => station.id === id)
 
 describe('splitting a green city (§12.3.2, §7.3.8)', () => {
+    it('sets both stations aside in an upgrade preview of the split', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, greenMechelen)
+        const construction = new TrackConstruction(
+            play.state,
+            EighteenNinetyFourTitleRules.trackRules
+        )
+        const split = construction
+            .futureLays('E16')
+            .find((lay) => lay.definitionId === splitLay.definitionId)
+        assertExists(split, 'Mechelen may be split')
+        const { stations } = construction.futureStations(split)
+        for (const id of ['Belge:home', 'PLM:station:1'])
+            expect(stations.find((station) => station.id === id)).toMatchObject({
+                status: 'displaced',
+                locationId: 'E16'
+            })
+    })
+
     it('sets both stations aside and has the acting company return its own at once', () => {
         const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, greenMechelen)
         play.act('LayTile', splitLay)

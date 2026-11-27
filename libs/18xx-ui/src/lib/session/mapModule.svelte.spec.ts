@@ -11,6 +11,7 @@ import {
     TestPlayerId,
     TestTrackHomeLocationId
 } from '@tabletop/18xx/testing'
+import { isMapSelectionValid } from '../maps/mapDrawing.js'
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
 import { MapModule, type HomeOffer } from './mapModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
@@ -236,6 +237,26 @@ describe('MapModule', () => {
         expect(map.tokens).toHaveLength(1)
         expect(map.displayedTokens).toEqual([])
         expect(map.displayedStationState.stations).toEqual(plan.stations.stations)
+    })
+
+    it('makes room beside a full city for a station an upgrade preview leaves there', () => {
+        const { session, track, stations, routes } = table('StockRound', [])
+        const beside = {
+            id: `${TestCompanyId}:station:1`,
+            companyId: TestCompanyId,
+            status: 'placed' as const,
+            position: { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 1 }
+        }
+        const plan = {
+            ...noPlan,
+            locationId: TestTrackHomeLocationId,
+            inventory: tileSet.createInventory(),
+            stations: { stations: [...session.state.stations, beside], stationReservations: [] }
+        }
+        const map = new MapModule(session, () => view, track, stations, routes, [], plan)
+        expect(map.displayedTokens).toHaveLength(2)
+        for (const token of map.displayedTokens)
+            expect(isMapSelectionValid(map.displayedScene, { kind: 'slot', ...token })).toBe(true)
     })
 
     it('overlays the inspected company network, and hides it on request or under a track preview', () => {

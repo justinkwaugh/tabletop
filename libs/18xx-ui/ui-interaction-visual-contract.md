@@ -618,9 +618,13 @@ Intents and precedence: tapping a previewable hex opens a plan there, laid from 
 its tile group the title lays from; tapping the plan's piece turns its latest tile; picking a
 ring tile tries it, dropping later colours; tapping away, a non-previewable hex or Escape
 closes it. While open, every hex but the plan's piece is masked, the piece is outlined, and
-`tilePlan.inventory` replaces the drawn tiles (MapModule.displayedScene), above any track
-preview it can never coexist with. TilePlanPicker draws the ring and a Preview badge; it has
-no accept or cancel control.
+`tilePlan.inventory` replaces the drawn tiles (MapModule.displayedScene) and `tilePlan.stations`
+the drawn stations and open reservations (MapModule.displayedStationState, displayedTokens,
+displayedReservations), above any track preview it can never coexist with. The stations follow
+each tried tile as `TrackConstruction.futureStations` moves them: onto the cities the lay
+carries them to, beside a full city with room drawn for them, or set aside and not drawn where
+the tile reconfigures the hex or has no space left. TilePlanPicker draws the ring and a Preview
+badge; it has no accept or cancel control.
 
 The ring offers `TrackConstruction.futureLays` per level: every tile the map, the tiles and
 the title's `placementRestriction` allow, whatever the phase, company or cash. A tile the
@@ -644,6 +648,9 @@ desktop and a 393 px phone):
   it; it does not return afterwards. Undo undoes the last committed Action and leaves an open
   plan as it is.
 - Zooming in before entering full screen leaves the ring centred on its hex.
+- In 1894, trying 57, 15 and then a brown split tile (X19) on a city holding a station (Le Havre)
+  draws the split tile without the station and the ring keeps responding; trying 15 again puts
+  the station back in its city.
 
 ### Station placement and track access
 

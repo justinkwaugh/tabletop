@@ -19,9 +19,8 @@ type PlanMapView = Pick<MapViewDefinition, 'tileGroups'> & {
     map: Pick<MapViewDefinition['map'], 'definition'>
     tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'>
 }
-/** The board's tiles and stations as the plan's tiles leave them. */
-type PlanBoard = StationState & { tileInventory: TileInventory }
 type PlanStep = { definitionId: string; rotation: TileRotation }
+type LaidBoard = { inventory: TileInventory; stations: StationState }
 type Plan = { locationId: string; steps: readonly PlanStep[] }
 /** A lay the supply has the tiles for. */
 type SuppliedLay = FutureLay & Required<Pick<FutureLay, 'placement'>>
@@ -70,14 +69,14 @@ export class TilePlanModule {
         if (!locationId) return []
         return tileGroupOf(this.mapView(), locationId) ?? [locationId]
     })
-    /** The plan's levels, and the board's tiles and stations with every tile it tries laid. */
-    private tried = $derived.by((): { levels: PlanLevel[]; board?: PlanBoard } => {
+    /** The plan's levels, and the board as every tile it tries leaves it. */
+    private tried = $derived.by((): { levels: PlanLevel[]; laid?: LaidBoard } => {
         const plan = this.activePlan
         if (!plan) return { levels: [] }
-        let board: PlanBoard | undefined
+        let laid: LaidBoard | undefined
         const levels: PlanLevel[] = []
         for (const step of [...plan.steps, undefined]) {
-            const construction = this.construction(board)
+            const construction = this.construction(laid)
             const lays = construction.futureLays(plan.locationId)
             const chosen = step
                 ? this.placedLays(lays, step.definitionId).find(
@@ -86,23 +85,17 @@ export class TilePlanModule {
                 : undefined
             levels.push({ lays, ...(chosen ? { chosen } : {}) })
             if (!chosen) break
-            board = {
-                tileInventory: construction.inventoryAfter(chosen),
-                ...construction.futureStations(chosen)
+            laid = {
+                inventory: construction.inventoryAfter(chosen),
+                stations: construction.futureStations(chosen)
             }
         }
-        return { levels, ...(board ? { board } : {}) }
+        return { levels, ...(laid ? { laid } : {}) }
     })
     private levels = $derived(this.tried.levels)
     /** The board's tiles with the plan's tiles laid, while it has laid one. */
-    inventory = $derived(this.tried.board?.tileInventory)
-    /** The stations as the plan's tiles leave them, while it has laid one. */
-    stations = $derived.by((): StationState | undefined => {
-        const board = this.tried.board
-        if (!board) return undefined
-        const { stations, stationReservations, hexReservations } = board
-        return { stations, stationReservations, ...(hexReservations ? { hexReservations } : {}) }
-    })
+    inventory = $derived(this.tried.laid?.inventory)
+    stations = $derived(this.tried.laid?.stations)
     /** The hex whose tile the plan has replaced, while it has. */
     previewedLocationId = $derived.by(() => (this.inventory ? this.locationId : undefined))
     choices = $derived.by((): TilePlanChoice[] =>
@@ -185,10 +178,12 @@ export class TilePlanModule {
         if (!piece.some((id) => construction.meetsTrack(id))) return undefined
         return [locationId, ...piece].find((id) => construction.hasFutureLay(id))
     }
-    /** Construction on the board, or on the board as the plan has laid it. */
-    private construction(board?: PlanBoard): TrackConstruction {
+    private construction(laid?: LaidBoard): TrackConstruction {
         const { state, rules } = this.session
-        return new TrackConstruction({ ...state, ...board }, rules.trackRules)
+        return new TrackConstruction(
+            { ...state, ...laid?.stations, tileInventory: laid?.inventory ?? state.tileInventory },
+            rules.trackRules
+        )
     }
 }
 

@@ -112,10 +112,7 @@ export class StationsModule<State extends StationsState> {
             ? this.model.evaluate(this.selection.placement.value).details
             : undefined
     )
-    /**
-     * Reservations no placed station answers yet, which still hold a space: a hex's reservation in
-     * a city with room on its tile, or on the tile a preview lays there.
-     */
+    /** Reservations no placed station answers yet, which still hold a space. */
     openReservations(state: StationState & Partial<Pick<EighteenXXState, 'tileInventory'>>) {
         const rules = this.session.rules.stationRules
         const open = state.stationReservations.filter(
