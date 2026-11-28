@@ -10,3 +10,10 @@ export type UserTopicRegistrations = {
     telegram: BotRegistration
     discordWebhook?: DiscordWebhookConnection
 }
+
+export type AdminTopicRegistrations = {
+    webPushBrowsers: string[]
+    discordBot: boolean
+    telegram: boolean
+    discordWebhook?: DiscordWebhookConnection
+}

@@ -12,6 +12,18 @@ const registered: NotificationSubscription[] = [
         webhookId: '7',
         webhookToken: 'secret',
         name: 'game-night'
+    },
+    {
+        id: 'push-1',
+        transport: TransportType.WebPush,
+        endpoint: 'https://fcm.googleapis.com/fcm/send/token-1',
+        keys: { p256dh: 'p256dh', auth: 'auth' }
+    },
+    {
+        id: 'push-2',
+        transport: TransportType.WebPush,
+        endpoint: 'https://web.push.apple.com/token-2',
+        keys: { p256dh: 'p256dh', auth: 'auth' }
     }
 ]
 
@@ -49,5 +61,25 @@ describe('TopicRegistrationsService', () => {
             telegram: { available: true, connected: false },
             discordWebhook: undefined
         })
+    })
+
+    it('names for an administrator each browser holding a push subscription and every connected channel', async () => {
+        expect(
+            await serviceFor({ discordBot: true, telegram: true }).forAdministrator('user-1')
+        ).toEqual({
+            webPushBrowsers: ['Chrome', 'Safari'],
+            discordBot: true,
+            telegram: false,
+            discordWebhook: { name: 'game-night' }
+        })
+    })
+
+    it('reports to an administrator a bot channel as off while the backend does not run that bot', async () => {
+        const registrations = await serviceFor({
+            discordBot: false,
+            telegram: false
+        }).forAdministrator('user-1')
+
+        expect(registrations.discordBot).toBe(false)
     })
 })

@@ -41,6 +41,7 @@ import type {
     UtcDayRange,
     DiscordWebhookConnectResult,
     UserTopicRegistrations,
+    AdminTopicRegistrations,
     LocaleTag
 } from '@tabletop/common'
 import type {
@@ -516,6 +517,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async searchUsers(_query: string): Promise<User[]> {
         return this.fail('searchUsers')
+    }
+
+    async getUserNotificationsAsAdministrator(_userId: string): Promise<AdminTopicRegistrations> {
+        return this.fail('getUserNotificationsAsAdministrator')
+    }
+
+    async getUserGamesAsAdministrator(_userId: string): Promise<Game[]> {
+        return this.fail('getUserGamesAsAdministrator')
     }
 
     async assignUserRoles(_userId: string, _roles: AdminAssignableRole[]): Promise<User> {

@@ -7,9 +7,12 @@ export function currentDashboardGames(active: Game[], waiting: Game[], userId?: 
 
 export function compareFollowedGames(a: Game, b: Game): number {
     const finished = (game: Game) => game.status === GameStatus.Finished
-    const latest = (game: Game) =>
-        (game.finishedAt ?? game.lastActionAt ?? game.createdAt).getTime()
+    const latest = (game: Game) => lastGameActivity(game).getTime()
     return Number(finished(a)) - Number(finished(b)) || latest(b) - latest(a)
+}
+
+export function lastGameActivity(game: Game): Date {
+    return game.finishedAt ?? game.lastActionAt ?? game.createdAt
 }
 
 export function isUsersGameTurn(game: Game, userId?: string): boolean {

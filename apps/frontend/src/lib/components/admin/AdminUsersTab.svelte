@@ -4,7 +4,9 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import AdminUserBan from './AdminUserBan.svelte'
     import AdminUserDelete from './AdminUserDelete.svelte'
+    import AdminUserGames from './AdminUserGames.svelte'
     import AdminUserLinkedAccounts from './AdminUserLinkedAccounts.svelte'
+    import AdminUserNotifications from './AdminUserNotifications.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
     import AdminUserUsername from './AdminUserUsername.svelte'
 
@@ -140,9 +142,15 @@
                     onsaved={replaceUser}
                 />
                 <AdminUserLinkedAccounts user={selected} />
+                <AdminUserNotifications user={selected} />
                 <AdminUserBan user={selected} onsaved={replaceUser} />
             {/if}
             <AdminUserDelete user={selected} onsaved={replaceUser} />
         </div>
     {/if}
 </div>
+{#if selected}
+    <div class="mt-5">
+        <AdminUserGames user={selected} />
+    </div>
+{/if}

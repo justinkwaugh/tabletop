@@ -8,6 +8,7 @@ import {
     UserStatus,
     isReservedUsername,
     receivesGameAndCompetitionEmail,
+    receivesGameEmail,
     wantsGameAndCompetitionEmails,
     withAssignedRoles
 } from './user.js'
@@ -112,6 +113,16 @@ describe('game and competition emails', () => {
         expect(
             receivesGameAndCompetitionEmail({ email: 'a@example.test', preferences: optedOut })
         ).toBe(false)
+    })
+})
+
+describe('receivesGameEmail', () => {
+    it('sends game emails only to an account that can still sign in', () => {
+        const account = { email: 'a@example.test' }
+        expect(receivesGameEmail({ ...account, status: UserStatus.Active })).toBe(true)
+        expect(receivesGameEmail({ ...account, status: UserStatus.Incomplete })).toBe(true)
+        expect(receivesGameEmail({ ...account, status: UserStatus.Inactive })).toBe(false)
+        expect(receivesGameEmail({ ...account, status: UserStatus.Deleted })).toBe(false)
     })
 })
 

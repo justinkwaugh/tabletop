@@ -100,6 +100,7 @@ import {
     type TournamentTableHandover,
     type TournamentSchedule,
     receivesGameAndCompetitionEmail,
+    receivesGameEmail,
     playersWithDeletedAccount,
     playersWithRenamedSeat,
     turnReminderChoices
@@ -695,12 +696,7 @@ export class GameService {
         for (const player of game.players) {
             if (!player.userId || player.userId === user.id) continue
             const recipient = await this.userService.getUser(player.userId)
-            if (
-                !recipient ||
-                !canHoldAuthenticatedSession(recipient) ||
-                !receivesGameAndCompetitionEmail(recipient)
-            )
-                continue
+            if (!recipient || !receivesGameEmail(recipient)) continue
             await this.taskService.createPushTask({
                 queue: 'game-end-email',
                 path: '/email/sendPlayerRemovedEmail',
@@ -3045,11 +3041,7 @@ export class GameService {
         for (const player of game.players) {
             if (!player.userId) continue
             const user = await this.userService.getUser(player.userId)
-            if (
-                user &&
-                canHoldAuthenticatedSession(user) &&
-                receivesGameAndCompetitionEmail(user)
-            ) {
+            if (user && receivesGameEmail(user)) {
                 recipients.push(user)
             }
         }

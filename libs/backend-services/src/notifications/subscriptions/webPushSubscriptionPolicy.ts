@@ -25,6 +25,22 @@ const supportedPushServiceSubdomains = SUPPORTED_PUSH_SERVICE_DOMAINS.map(
     (domain) => new RegExp(`^[a-z0-9-]+\\.${domain.replaceAll('.', '\\.')}$`)
 )
 
+const PUSH_SERVICE_HOST_BROWSERS: Record<(typeof SUPPORTED_PUSH_SERVICE_HOSTS)[number], string> = {
+    'fcm.googleapis.com': 'Chrome',
+    'jmt17.google.com': 'Chrome pre-release',
+    'updates.push.services.mozilla.com': 'Firefox',
+    'web.push.apple.com': 'Safari'
+}
+
+export function pushServiceBrowser(endpoint: string): string {
+    const { hostname } = new URL(endpoint)
+    const host = SUPPORTED_PUSH_SERVICE_HOSTS.find((supported) => supported === hostname)
+    if (host) return PUSH_SERVICE_HOST_BROWSERS[host]
+    return supportedPushServiceSubdomains.some((pattern) => pattern.test(hostname))
+        ? 'Edge'
+        : hostname
+}
+
 export function isSupportedPushServiceHost(hostname: string): boolean {
     return (
         SUPPORTED_PUSH_SERVICE_HOSTS.some((host) => host === hostname) ||

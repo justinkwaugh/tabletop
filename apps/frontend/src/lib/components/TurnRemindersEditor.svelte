@@ -4,27 +4,21 @@
     import {
         turnReminderChoices,
         type TurnReminderChoices,
-        type TurnReminderFollowUp,
-        type TurnReminderRepeat
+        type TurnReminderFollowUp
     } from '@tabletop/common'
     import { SegmentedControl } from '@tabletop/frontend-components'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import {
+        turnReminderFollowUpOptions,
+        turnReminderRepeatOptions
+    } from '$lib/utils/turnReminders'
 
     const { userPreferencesEditor: editor } = getAppContext()
 
     const choices = $derived(turnReminderChoices(editor.values))
 
-    const followUps: { key: TurnReminderFollowUp; label: string }[] = [
-        { key: 'afterOneHour', label: m.turn_reminders_after_hours({ hours: 1 }) },
-        { key: 'afterFiveHours', label: m.turn_reminders_after_hours({ hours: 5 }) },
-        { key: 'afterThirteenHours', label: m.turn_reminders_after_hours({ hours: 13 }) }
-    ]
-
-    const repeatOptions: { value: TurnReminderRepeat; label: string }[] = [
-        { value: 'twiceDaily', label: m.turn_reminders_twice_daily() },
-        { value: 'daily', label: m.turn_reminders_daily() },
-        { value: 'none', label: m.turn_reminders_no_more() }
-    ]
+    const followUps = turnReminderFollowUpOptions()
+    const repeatOptions = turnReminderRepeatOptions()
 
     function save(change: Partial<TurnReminderChoices>) {
         editor.update({ turnReminders: { ...choices, ...change } })

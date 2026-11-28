@@ -142,6 +142,12 @@ export function receivesGameAndCompetitionEmail<T extends Pick<User, 'email' | '
     return Boolean(user.email) && wantsGameAndCompetitionEmails(user.preferences)
 }
 
+export function receivesGameEmail<T extends Pick<User, 'status' | 'email' | 'preferences'>>(
+    user: T
+): user is T & { email: string } {
+    return canHoldAuthenticatedSession(user) && receivesGameAndCompetitionEmail(user)
+}
+
 export type UserCreateRequest = Type.Static<typeof UserCreateRequest>
 export const UserCreateRequest = Type.Evaluate(
     Type.Intersect(

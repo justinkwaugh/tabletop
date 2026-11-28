@@ -13,6 +13,7 @@ import {
 import {
     assertSupportedWebPushSubscription,
     isSupportedPushServiceHost,
+    pushServiceBrowser,
     webPushSubscriptionRejection
 } from './webPushSubscriptionPolicy.js'
 
@@ -168,5 +169,15 @@ describe('web push subscription policy', () => {
         expect(() =>
             assertSupportedWebPushSubscription(webPushClientData(FCM_ENDPOINT))
         ).not.toThrow()
+    })
+
+    it.each([
+        [FCM_ENDPOINT, 'Chrome'],
+        [CHROME_CANARY_ENDPOINT, 'Chrome pre-release'],
+        [MOZILLA_ENDPOINT, 'Firefox'],
+        [APPLE_ENDPOINT, 'Safari'],
+        [WNS_ENDPOINT, 'Edge']
+    ])('names the browser behind push endpoint %s', (endpoint, browser) => {
+        expect(pushServiceBrowser(endpoint)).toBe(browser)
     })
 })

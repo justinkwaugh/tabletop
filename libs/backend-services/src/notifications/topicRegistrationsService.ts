@@ -1,7 +1,13 @@
-import type { UserTopicRegistrations } from '@tabletop/common'
+import type {
+    AdminTopicRegistrations,
+    DiscordWebhookConnection,
+    UserTopicRegistrations
+} from '@tabletop/common'
 import type { NotificationStore } from '../persistence/stores/notificationStore.js'
 import type { DiscordWebhookSubscription } from './subscriptions/discordWebhookSubscription.js'
 import type { NotificationSubscription } from './subscriptions/notificationSubscription.js'
+import type { WebPushSubscription } from './subscriptions/webPushSubscription.js'
+import { pushServiceBrowser } from './subscriptions/webPushSubscriptionPolicy.js'
 import { userTopic } from './topics.js'
 import { TransportType } from './transports/notificationTransport.js'
 
@@ -17,11 +23,7 @@ export class TopicRegistrationsService {
     ) {}
 
     async forUser(userId: string): Promise<UserTopicRegistrations> {
-        const registered = await this.subscriptions.findNotificationSubscriptions(userTopic(userId))
-        const webhook = registered.find(
-            (subscription): subscription is DiscordWebhookSubscription =>
-                subscription.transport === TransportType.DiscordWebhook
-        )
+        const registered = await this.registeredFor(userId)
         return {
             discordBot: {
                 available: this.bots.discordBot,
@@ -31,8 +33,37 @@ export class TopicRegistrationsService {
                 available: this.bots.telegram,
                 connected: this.bots.telegram && this.holds(registered, TransportType.Telegram)
             },
-            discordWebhook: webhook ? { name: webhook.name } : undefined
+            discordWebhook: this.webhookConnection(registered)
         }
+    }
+
+    async forAdministrator(userId: string): Promise<AdminTopicRegistrations> {
+        const registered = await this.registeredFor(userId)
+        return {
+            webPushBrowsers: registered
+                .filter(
+                    (subscription): subscription is WebPushSubscription =>
+                        subscription.transport === TransportType.WebPush
+                )
+                .map((subscription) => pushServiceBrowser(subscription.endpoint)),
+            discordBot: this.bots.discordBot && this.holds(registered, TransportType.Discord),
+            telegram: this.bots.telegram && this.holds(registered, TransportType.Telegram),
+            discordWebhook: this.webhookConnection(registered)
+        }
+    }
+
+    private registeredFor(userId: string): Promise<NotificationSubscription[]> {
+        return this.subscriptions.findNotificationSubscriptions(userTopic(userId))
+    }
+
+    private webhookConnection(
+        registered: NotificationSubscription[]
+    ): DiscordWebhookConnection | undefined {
+        const webhook = registered.find(
+            (subscription): subscription is DiscordWebhookSubscription =>
+                subscription.transport === TransportType.DiscordWebhook
+        )
+        return webhook ? { name: webhook.name } : undefined
     }
 
     private holds(registered: NotificationSubscription[], transport: TransportType): boolean {

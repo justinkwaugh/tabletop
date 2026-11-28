@@ -39,6 +39,7 @@ import {
     type PendingEmailChange,
     type DiscordWebhookConnectResult,
     type UserTopicRegistrations,
+    type AdminTopicRegistrations,
     User,
     UserPreferences,
     Visibility,
@@ -1274,6 +1275,26 @@ export class TabletopApi {
             .json<UsersResponse>()
 
         return response.payload.users
+    }
+
+    async getUserNotificationsAsAdministrator(userId: string): Promise<AdminTopicRegistrations> {
+        const response = await this.wretch
+            .get(`/admin/users/${encodeURIComponent(userId)}/notifications`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<{ payload: { registrations: AdminTopicRegistrations } }>()
+
+        return response.payload.registrations
+    }
+
+    async getUserGamesAsAdministrator(userId: string): Promise<Game[]> {
+        const response = await this.wretch
+            .get(`/admin/users/${encodeURIComponent(userId)}/games`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GamesResponse>()
+
+        return response.payload.games.map((game) => this.validateGame(game))
     }
 
     async assignUserRoles(userId: string, roles: AdminAssignableRole[]): Promise<User> {
