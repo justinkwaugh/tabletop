@@ -11,7 +11,7 @@
     const WAITING_FOR: Partial<Record<MachineState, string>> = {
         [MachineState.Developing]: 'is choosing a locomotive to develop',
         [MachineState.ExpandingCapacity]: 'is buying production capacity',
-        [MachineState.Shipping]: 'is shipping locomotives'
+        [MachineState.Shipping]: 'is selling locomotives'
     }
 
     // The last player action and the automatic steps it set off, leaving the taxes and the market

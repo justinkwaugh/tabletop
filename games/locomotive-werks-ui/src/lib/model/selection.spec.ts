@@ -8,28 +8,36 @@ import {
     DevelopStageOrder,
     capacityPlan,
     chooseLocomotive,
-    closeWerk,
     keepsWerksOpen,
-    openWerk,
     mergeCapacitySteps,
     plannedUnits,
+    saleChoice,
     setAutoShip,
+    setSaleAutoShip,
     toggleHeld
 } from './selection.js'
 
 describe('holding back shipments', () => {
     it('toggles a locomotive in and out of the held list', () => {
         const held = toggleHeld({}, LocomotiveId.Fast1)
-        expect(held.held?.value).toEqual([LocomotiveId.Fast1])
-        expect(toggleHeld(held, LocomotiveId.Fast1).held?.value).toEqual([])
+        expect(saleChoice(held).held).toEqual([LocomotiveId.Fast1])
+        expect(saleChoice(toggleHeld(held, LocomotiveId.Fast1)).held).toEqual([])
     })
 
-    it('takes back one press at a time', () => {
-        const twice = toggleHeld(toggleHeld({}, LocomotiveId.Fast1), LocomotiveId.Passenger1)
-        const once = popHighestManualStagedSelection(twice, ShipStageOrder).nextState
-        expect(once.held?.value).toEqual([LocomotiveId.Fast1])
+    it('takes back one press at a time, holds and the automatic tick alike', () => {
+        const pressed = setSaleAutoShip(
+            toggleHeld(toggleHeld({}, LocomotiveId.Fast1), LocomotiveId.Passenger1),
+            true
+        )
+        const untick = popHighestManualStagedSelection(pressed, ShipStageOrder).nextState
+        expect(saleChoice(untick)).toEqual({
+            held: [LocomotiveId.Fast1, LocomotiveId.Passenger1],
+            autoShip: false
+        })
+        const once = popHighestManualStagedSelection(untick, ShipStageOrder).nextState
+        expect(saleChoice(once).held).toEqual([LocomotiveId.Fast1])
         const none = popHighestManualStagedSelection(once, ShipStageOrder).nextState
-        expect(none.held).toBeUndefined()
+        expect(none.plan).toBeUndefined()
     })
 })
 
@@ -41,31 +49,6 @@ describe('choosing a locomotive to develop', () => {
         const undone = popHighestManualStagedSelection(second, DevelopStageOrder)
         expect(undone.poppedStage).toBe('locomotive')
         expect(undone.nextState.locomotive).toBeUndefined()
-    })
-})
-
-describe('the werk picker', () => {
-    const step = { locomotiveId: LocomotiveId.Passenger1 }
-
-    it('stays open after a step, and Undo takes the step back and closes it', () => {
-        const planned = addCapacityStep(openWerk({}, LocomotiveId.Passenger1), step)
-        expect(planned.werk).toEqual({ value: LocomotiveId.Passenger1, source: 'auto' })
-        const undone = popHighestManualStagedSelection(planned, CapacityStageOrder).nextState
-        expect(capacityPlan(undone).steps).toEqual([])
-        expect(undone.werk).toBeUndefined()
-    })
-
-    it('closes before any step is taken back when opened after the steps', () => {
-        const opened = openWerk(addCapacityStep({}, step), LocomotiveId.Passenger1)
-        const closed = popHighestManualStagedSelection(opened, CapacityStageOrder).nextState
-        expect(closed.werk).toBeUndefined()
-        expect(capacityPlan(closed).steps).toEqual([step])
-        expect(closeWerk(opened)).toEqual(closed)
-    })
-
-    it('closes when the automatic shipping tick changes', () => {
-        const ticked = setAutoShip(openWerk({}, LocomotiveId.Passenger1), true)
-        expect(ticked.werk).toBeUndefined()
     })
 })
 

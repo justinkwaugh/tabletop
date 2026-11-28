@@ -4,6 +4,10 @@
     import PhaseTrack from './PhaseTrack.svelte'
     import WaitingView from './WaitingView.svelte'
     import RoundReview from './RoundReview.svelte'
+    import CapacityPlanner from './CapacityPlanner.svelte'
+    import DevelopChoices from './DevelopChoices.svelte'
+    import SaleList from './SaleList.svelte'
+    import { locomotiveData } from '@tabletop/locomotive-werks'
 
     const gameSession = getGameSession()
 
@@ -12,9 +16,9 @@
     const plannedIncome = $derived(
         gameSession.plannedShipments.reduce((sum, shipment) => sum + shipment.income, 0)
     )
-    const firstShipment = $derived(gameSession.buyAndShip && state.sellingRound?.number === 1)
+    const firstSale = $derived(gameSession.buyAndShip && state.sellingRound?.number === 1)
     const doneLabel = $derived(
-        `${firstShipment ? 'Done, on to shipping' : 'Done buying'}${
+        `${firstSale ? 'Done, on to selling' : 'Done buying'}${
             gameSession.plannedSpend > 0 ? ` · $${gameSession.plannedSpend}` : ''
         }`
     )
@@ -27,31 +31,41 @@
     {:else if gameSession.isViewingHistory || !gameSession.canAct}
         <WaitingView />
     {:else if machineState === MachineState.Developing}
+        {@const chosen = gameSession.chosenLocomotive}
         <p class="prompt">
             {#if gameSession.developTargets.length > 0}
-                Choose a locomotive on the board to develop. You have ${gameSession.myCash}.
+                Choose a locomotive to develop. You have ${gameSession.myCash}.
             {:else}
                 You can afford no locomotive to develop.
             {/if}
         </p>
+        <DevelopChoices />
+        {#if chosen}
+            <p class="note">Developing it opens a werk with one unit and cannot be undone.</p>
+        {/if}
         <div class="row">
+            {#if chosen}
+                <button type="button" class="primary" onclick={() => gameSession.develop(chosen)}
+                    >Develop · ${locomotiveData(chosen).developmentCost}</button
+                >
+            {/if}
             <button type="button" class="secondary" onclick={() => gameSession.passDevelopment()}
                 >Develop nothing</button
             >
         </div>
     {:else if machineState === MachineState.ExpandingCapacity}
         <p class="prompt">
-            Choose one of your werks on the board to buy or upgrade units, then press Done. You have
-            ${gameSession.myCash}{#if gameSession.plannedSpend > 0}: ${gameSession.plannedSpend} planned,
-                ${gameSession.plannedCash} left{/if}.
+            Buy or upgrade units in your werks, then press Done. You have ${gameSession.myCash}{#if gameSession.plannedSpend > 0}:
+                ${gameSession.plannedSpend} planned, ${gameSession.plannedCash} left{/if}.
         </p>
+        <CapacityPlanner />
         <label class="auto-ship">
             <input
                 type="checkbox"
                 checked={gameSession.autoShip}
                 onchange={(event) => gameSession.setAutoShip(event.currentTarget.checked)}
             />
-            Ship everything automatically this round
+            Sell everything automatically this round
         </label>
         <div class="row">
             <button type="button" class="primary" onclick={() => gameSession.finishExpanding()}
@@ -60,16 +74,25 @@
         </div>
     {:else if machineState === MachineState.Shipping}
         <p class="prompt">
-            Ship your locomotives{#if firstShipment}&nbsp;(your first shipment){/if}. Choose a werk
-            on the board to hold it back or ship it again.
+            Sell your locomotives{#if firstSale}&nbsp;(your first selling turn){/if}. Hold back any
+            you would rather sell in a later selling round.
         </p>
+        <SaleList />
+        <label class="auto-ship">
+            <input
+                type="checkbox"
+                checked={gameSession.saleAutoShip}
+                onchange={(event) => gameSession.setSaleAutoShip(event.currentTarget.checked)}
+            />
+            Sell everything automatically for the rest of this Production
+        </label>
         <div class="row">
             {#if gameSession.plannedShipments.length > 0}
                 <button
                     type="button"
                     class="primary"
                     onclick={() => gameSession.ship(gameSession.plannedShipments)}
-                    >Ship · +${plannedIncome}</button
+                    >Sell · +${plannedIncome}</button
                 >
             {/if}
             <button type="button" class="secondary" onclick={() => gameSession.ship([])}
@@ -93,6 +116,13 @@
     .prompt {
         margin: 0;
         font-size: 15px;
+        text-align: center;
+    }
+
+    .note {
+        margin: 0;
+        font-size: 13px;
+        color: #46596b;
         text-align: center;
     }
 

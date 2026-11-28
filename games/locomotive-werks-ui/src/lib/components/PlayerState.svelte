@@ -6,7 +6,7 @@
     import KindShape from './KindShape.svelte'
 
     // Each panel is the seat's Player Order card on banknote paper: the engineer's cash, and a bar
-    // in each of their locomotives' colours with its generation, its units and any shipped this
+    // in each of their locomotives' colours with its generation, its units and any sold this
     // phase. The panels run in Player Order, so the card needs no order numeral.
     let { playerState }: { playerState: HydratedLwPlayerState } = $props()
 
@@ -32,7 +32,7 @@
                 style:--kind={kindColor(plant.locomotiveId, gameSession.kindPalette)}
                 title="{locomotiveName(plant.locomotiveId)}: {waiting} unit{waiting === 1
                     ? ''
-                    : 's'}{plant.shipped > 0 ? `, ${plant.shipped} shipped this phase` : ''}"
+                    : 's'}{plant.shipped > 0 ? `, ${plant.shipped} sold this phase` : ''}"
             >
                 <span class="generation">{locomotiveData(plant.locomotiveId).generation}</span>
                 {#if gameSession.colorBlind}
@@ -42,7 +42,7 @@
                 {/if}
                 <span class="units">{waiting}<small>unit{waiting === 1 ? '' : 's'}</small></span>
                 {#if plant.shipped > 0}
-                    <span class="shipped">{plant.shipped}<small>shipped</small></span>
+                    <span class="shipped">{plant.shipped}<small>sold</small></span>
                 {/if}
             </div>
         {:else}
@@ -50,7 +50,7 @@
         {/each}
     </div>
     {#if playerState.autoShip}
-        <div class="auto-ship">Shipping everything automatically</div>
+        <div class="auto-ship">Selling everything automatically</div>
     {/if}
     <div
         class="footer"

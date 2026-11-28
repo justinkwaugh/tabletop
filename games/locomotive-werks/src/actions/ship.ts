@@ -30,6 +30,7 @@ export const ShipMetadata = Type.Object({
 })
 
 // One selling turn: the locomotives the player ships, which may be none.
+// With `autoShip`, the player's later selling turns this Production phase are taken for them.
 export type Ship = Type.Static<typeof Ship>
 export const Ship = Type.Evaluate(
     Type.Intersect([
@@ -38,7 +39,8 @@ export const Ship = Type.Evaluate(
             type: Type.Literal(ActionType.Ship),
             playerId: Type.String(),
             metadata: Type.Optional(ShipMetadata),
-            locomotiveIds: Type.Array(Type.Enum(LocomotiveId))
+            locomotiveIds: Type.Array(Type.Enum(LocomotiveId)),
+            autoShip: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -54,6 +56,7 @@ export class HydratedShip extends HydratableAction<typeof Ship> implements Ship 
     declare playerId: string
     declare metadata?: ShipMetadata
     declare locomotiveIds: LocomotiveId[]
+    declare autoShip?: boolean
 
     constructor(data: Ship) {
         super(data, ShipValidator)
@@ -80,6 +83,9 @@ export class HydratedShip extends HydratableAction<typeof Ship> implements Ship 
                 outcome: shipment.plan.outcome
             }
         })
+        if (this.autoShip) {
+            player.autoShip = true
+        }
         const round = state.requireSellingRound()
         round.shipped ||= shipments.length > 0
         state.leaveSellingRound(this.playerId)

@@ -45,7 +45,7 @@
 <div class="review" role="region" aria-label="Round review">
     {#if stage === ReviewStage.Production}
         <table>
-            <caption>Shipped this Production</caption>
+            <caption>Sold this Production</caption>
             <thead>
                 <tr>
                     <th>Player</th>
