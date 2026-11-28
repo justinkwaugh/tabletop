@@ -21,7 +21,8 @@ export default async function (fastify: FastifyInstance) {
             const { titleId } = request.params
             if (!fastify.gameService.getTitle(titleId)) return reply.code(404).send()
             const activity = await fastify.gameService.getTitleActivity(titleId)
-            return { status: 'ok', payload: { activity } }
+            const timeOffsets = await fastify.timeDifferences.offsetsFor(activity.inProgress)
+            return { status: 'ok', payload: { activity, timeOffsets } }
         }
     )
 }

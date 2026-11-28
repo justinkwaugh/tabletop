@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { UserPreferences } from '@tabletop/common'
+import { sharesTimeDifference, UserPreferences } from '@tabletop/common'
 
 type UserPreferencesUpdateRequest = Static<typeof UserPreferencesUpdateRequest>
 const UserPreferencesUpdateRequest = Type.Object(
@@ -27,6 +27,12 @@ export default async function (fastify: FastifyInstance) {
                 request.user.id,
                 preferences
             )
+            if (
+                sharesTimeDifference(request.user.preferences) !==
+                sharesTimeDifference(updatedUser.preferences)
+            ) {
+                await fastify.lobbyPosts?.queueHostedGames(updatedUser)
+            }
 
             return { status: 'ok', payload: { user: updatedUser } }
         }

@@ -684,6 +684,8 @@
     "library_table_to_move": "I tur: {player}",
     "library_table_won": "{winners} vann",
     "library_table_pace_value": "Tempo: {pace}",
+    "library_table_host_time": "Värdens tid",
+    "library_table_host_time_value": "Värd: {difference}",
     "library_table_seats_taken": "{taken} av {total: number} platser tagna",
     "library_table_game_options": "Spelalternativ",
     "library_table_game_options_heading": "SPELALTERNATIV",
@@ -1568,5 +1570,9 @@
     "push_took_over_seat_title": "Du är med i ett pågående parti",
     "push_took_over_seat_body": "Du har tagit över platsen efter {formerHolder} i {game}",
     "push_lost_seat_title": "En annan spelare har fått din plats",
-    "push_lost_seat_body": "{newHolder} har tagit över din plats i {game}"
+    "push_lost_seat_body": "{newHolder} har tagit över din plats i {game}",
+    "time_difference_ahead": "{hours} tim före",
+    "time_difference_behind": "{hours} tim efter",
+    "time_difference_same": "samma tid",
+    "time_difference_their_time": "{time} där"
 }

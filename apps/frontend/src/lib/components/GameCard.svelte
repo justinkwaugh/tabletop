@@ -38,7 +38,8 @@
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
     import CopyGameLinkButton from './CopyGameLinkButton.svelte'
-    import { GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import { GameEditForm } from '@tabletop/frontend-components'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
     import { m } from '$lib/paraglide/messages'
     import { getLocale } from '$lib/paraglide/runtime'
     import RichMessage from './RichMessage.svelte'
@@ -174,6 +175,12 @@
     let hostName = $derived(pacedOpen ? ownerName(game) : undefined)
     let activePlayer = $derived(activePlayerText(game, sessionUser?.id))
     let paceWarning = $derived(pacedStarted ? lastMovePaceWarning(game, currentTime) : undefined)
+    let hostTimeDifference = $derived(
+        gameService.timeOffsets.hostDifferenceText(game, sessionUser?.id, currentTime)
+    )
+    let activePlayerLocalTime = $derived(
+        gameService.timeOffsets.awaitedLocalTimeText(game, sessionUser?.id, currentTime)
+    )
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -364,6 +371,11 @@
 {/snippet}
 
 {#snippet hostNameText(name: string)}<span class="text-gray-300">{name}</span>{/snippet}
+{#snippet tournamentLink()}<a
+        class="text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        href={`/tournaments/${game.tournament?.tournamentId}`}
+        onclick={(event) => event.stopPropagation()}>{m.games_card_tournament()}</a
+    >{/snippet}
 
 {#snippet lineBreak()}<br />{/snippet}
 
@@ -400,24 +412,26 @@
                                 {game.name}
                             </h1>
                             {#if pacedStarted}
-                                <div class="mt-0.5 text-xs text-gray-400">{gamePace.line()}</div>
-                            {:else if hostName}
-                                <div
-                                    class="mt-0.5 max-w-full truncate text-xs text-gray-400"
-                                    title={hostName}
-                                >
-                                    <RichMessage
-                                        parts={m.games_card_hosted_by.parts({ name: hostName })}
-                                        markup={{ host: hostNameText }}
-                                    />
+                                <div class="mt-0.5 max-w-full truncate text-xs text-gray-400">
+                                    {gamePace.line()}{#if game.tournament}{' · '}{@render tournamentLink()}{/if}
                                 </div>
+                            {:else if hostName}
+                                <div class="mt-0.5 flex max-w-full min-w-0 text-xs text-gray-400">
+                                    <span class="truncate" title={hostName}
+                                        ><RichMessage
+                                            parts={m.games_card_hosted_by.parts({ name: hostName })}
+                                            markup={{ host: hostNameText }}
+                                        /></span
+                                    >{#if hostTimeDifference}<span class="shrink-0 whitespace-pre"
+                                            >{' · '}{hostTimeDifference}</span
+                                        >{/if}{#if game.tournament}<span
+                                            class="shrink-0 whitespace-pre"
+                                            >{' · '}{@render tournamentLink()}</span
+                                        >{/if}
+                                </div>
+                            {:else if game.tournament}
+                                <div class="mt-1 text-xs">{@render tournamentLink()}</div>
                             {/if}
-                            {#if game.tournament}<a
-                                    class="mt-1 text-xs text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                                    href={`/tournaments/${game.tournament.tournamentId}`}
-                                    onclick={(event) => event.stopPropagation()}
-                                    >{m.games_card_tournament()}</a
-                                >{/if}
                         </div>
                         <div class="ms-2 flex shrink-0 items-center gap-1">
                             <CopyGameLinkButton {game} />
@@ -498,11 +512,13 @@
                                 >
                                     {m.games_card_active_player()}
                                 </div>
-                                <div
-                                    class="max-w-full truncate text-xs text-orange-400"
-                                    title={activePlayer}
-                                >
-                                    {activePlayer}
+                                <div class="flex max-w-full min-w-0 text-xs">
+                                    <span class="truncate text-orange-400" title={activePlayer}
+                                        >{activePlayer}</span
+                                    >{#if activePlayerLocalTime}<span
+                                            class="shrink-0 whitespace-pre text-gray-400"
+                                            >{' · '}{activePlayerLocalTime}</span
+                                        >{/if}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}

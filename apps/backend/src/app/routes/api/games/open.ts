@@ -19,7 +19,8 @@ export default async function (fastify: FastifyInstance) {
             assert(request.user, 'No user found for create request')
 
             const games = await fastify.gameService.getOpenGamesForTitle(request.params.titleId)
-            return { status: 'ok', payload: { games } }
+            const timeOffsets = await fastify.timeDifferences.offsetsFor(games)
+            return { status: 'ok', payload: { games, timeOffsets } }
         }
     )
 }

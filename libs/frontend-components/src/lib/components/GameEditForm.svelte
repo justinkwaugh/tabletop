@@ -86,7 +86,12 @@
         onsave: (game: Game) => void
     } = $props()
 
-    let { libraryService, authorizationService, gameService } = getAppContext()
+    let {
+        libraryService,
+        authorizationService,
+        gameService,
+        gamePaceNote: PaceNote
+    } = getAppContext()
     let titlesById = $derived(libraryService.titlesById)
     let sessionUser = authorizationService.getSessionUser()
 
@@ -630,6 +635,7 @@
                 bind:value={paceMinutes}
                 class="w-fit"
             />
+            {#if PaceNote}<PaceNote paceMinutes={Number(paceMinutes)} />{/if}
         </div>
     {/if}
     {#if gameTitle.info.configurator && gameTitle.info.configurator.options.length > 0}

@@ -42,7 +42,9 @@ import type {
     DiscordWebhookConnectResult,
     UserTopicRegistrations,
     AdminTopicRegistrations,
-    LocaleTag
+    LocaleTag,
+    TimeDifferenceNoticeQueueing,
+    TimeDifferenceNoticeStatus
 } from '@tabletop/common'
 import type {
     GameVersionProvider,
@@ -54,7 +56,10 @@ import type {
     AblyTokenRequest,
     DiscordAuthorizationPurpose,
     DiscordAuthorizationStart,
-    GameChatMessageResponsePayload
+    GameChatMessageResponsePayload,
+    GameList,
+    SeriesActivityList,
+    TitleActivityList
 } from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
@@ -324,6 +329,14 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('hasActiveGames')
     }
 
+    async getTimeDifferenceNotice(): Promise<TimeDifferenceNoticeStatus> {
+        return this.fail('getTimeDifferenceNotice')
+    }
+
+    async queueTimeDifferenceNotice(): Promise<TimeDifferenceNoticeQueueing> {
+        return this.fail('queueTimeDifferenceNotice')
+    }
+
     async getMyGames(): Promise<Game[]> {
         return this.fail('getMyGames')
     }
@@ -340,16 +353,32 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('unfollowGame')
     }
 
+    async getMyGameList(): Promise<GameList> {
+        return this.fail('getMyGameList')
+    }
+
     async getOpenGames(_titleId: string): Promise<Game[]> {
         return this.fail('getOpenGames')
+    }
+
+    async getOpenGameList(_titleId: string): Promise<GameList> {
+        return this.fail('getOpenGameList')
     }
 
     async getTitleActivity(_titleId: string): Promise<TitleActivity> {
         return this.fail('getTitleActivity')
     }
 
+    async getTitleActivityList(_titleId: string): Promise<TitleActivityList> {
+        return this.fail('getTitleActivityList')
+    }
+
     async getSeriesActivity(_seriesId: string): Promise<SeriesActivity> {
         return this.fail('getSeriesActivity')
+    }
+
+    async getSeriesActivityList(_seriesId: string): Promise<SeriesActivityList> {
+        return this.fail('getSeriesActivityList')
     }
 
     async getGame(

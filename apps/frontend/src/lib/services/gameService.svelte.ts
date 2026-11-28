@@ -13,7 +13,8 @@ import {
     NotificationChannel,
     IndexedDbGameStore,
     localGameRecord,
-    storeLocalGame
+    storeLocalGame,
+    type GameList
 } from '@tabletop/frontend-components'
 import {
     type GameCreationOptions,
@@ -52,6 +53,8 @@ import {
     type UserAwaited
 } from '$lib/utils/dashboardGames'
 import { isNewerGame } from '$lib/utils/gameUpdates'
+import { TimeOffsetStore } from './timeOffsets.svelte'
+import { timeDifferenceStartsAt } from '$lib/utils/timeDifferenceStart'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 import { gamePageDependency } from '$lib/utils/gamePage'
 import { invalidate } from '$app/navigation'
@@ -62,6 +65,8 @@ import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils
 const StoredCurrentGames = Type.Object({ userId: Type.String(), games: Type.Array(Game) })
 
 type GameListChange = { game: Game; removed: boolean }
+
+type CurrentGames = GameList & { localGames: Game[] }
 
 export class GameService implements GameServiceInterface {
     get supportsReproductionSeed(): boolean {
@@ -144,6 +149,7 @@ export class GameService implements GameServiceInterface {
     )
 
     openGamesByTitleId: Map<string, Game[]> = new SvelteMap()
+    readonly timeOffsets = new TimeOffsetStore(timeDifferenceStartsAt)
 
     constructor(
         private readonly libraryService: Pick<LibraryService, 'getTitle' | 'whenReady'>,
@@ -187,7 +193,7 @@ export class GameService implements GameServiceInterface {
             this.applyStoredCurrentGames()
         }
         const sessionUser = this.authorizationService.getSessionUser()
-        let fetched: { games: Game[]; localGames: Game[] } | undefined
+        let fetched: CurrentGames | undefined
         let changes: GameListChange[]
         do {
             this.reloadRequested = false
@@ -199,7 +205,8 @@ export class GameService implements GameServiceInterface {
             }
         } while (this.reloadRequested)
         this.changesDuringLoad = undefined
-        const { games, localGames } = fetched
+        const { games, localGames, timeOffsets } = fetched
+        this.timeOffsets.record(games, timeOffsets)
 
         const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
@@ -250,15 +257,15 @@ export class GameService implements GameServiceInterface {
 
     private async fetchCurrentGames(
         sessionUser: User | undefined
-    ): Promise<{ games: Game[]; localGames: Game[] } | undefined> {
-        const [games, localGames] = await Promise.all([
-            this.api.getMyGames('current'),
+    ): Promise<CurrentGames | undefined> {
+        const [current, localGames] = await Promise.all([
+            this.api.getMyGameList('current'),
             sessionUser ? this.findLocalGames(sessionUser) : []
         ])
         if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
             return undefined
         }
-        return { games, localGames }
+        return { ...current, localGames }
     }
 
     private async findLocalGames(user: User): Promise<Game[]> {
@@ -293,12 +300,14 @@ export class GameService implements GameServiceInterface {
 
     // Should debounce this
     async loadOpenGames(titleId: string) {
-        const response = await this.api.getOpenGames(titleId)
-        this.openGamesByTitleId.set(titleId, response)
+        const { games, timeOffsets } = await this.api.getOpenGameList(titleId)
+        this.timeOffsets.record(games, timeOffsets)
+        this.openGamesByTitleId.set(titleId, games)
     }
 
     async loadSeriesActivity(seriesId: string, titleIds: string[]): Promise<SeriesActivity> {
-        const activity = await this.api.getSeriesActivity(seriesId)
+        const { activity, timeOffsets } = await this.api.getSeriesActivityList(seriesId)
+        this.timeOffsets.record([...activity.open, ...activity.inProgress], timeOffsets)
         for (const titleId of titleIds)
             this.openGamesByTitleId.set(
                 titleId,
@@ -588,6 +597,7 @@ export class GameService implements GameServiceInterface {
 
     clear() {
         this.gamesById.clear()
+        this.timeOffsets.clear()
         this.currentGamesFetched = false
         removeStoredValue(GameService.storedCurrentGamesKey)
     }

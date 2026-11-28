@@ -33,6 +33,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'FirestoreGameStore',
                 'FirestoreGameFollowStore',
                 'FirestoreLeagueStore',
+                'FirestoreNoticeStore',
                 'FirestoreNotificationStore',
                 'FirestorePreferenceStore',
                 'FirestoreSessionStore',
@@ -58,7 +59,9 @@ vi.mock('@tabletop/backend-services', async () => {
                 'TournamentService',
                 'TournamentStallAlerts',
                 'UserService',
-                'DiscordTransport'
+                'DiscordTransport',
+                'TimeDifferenceNotice',
+                'TimeDifferences'
             ].map((name) => [name, Empty])
         ),
         LocalTaskService: class {

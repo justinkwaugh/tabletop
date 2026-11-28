@@ -101,7 +101,8 @@ export const UserPreferences = Type.Object({
     reminderHours: Type.Optional(ReminderHours),
     turnReminders: Type.Optional(TurnReminderChoices),
     gameAndCompetitionEmails: Type.Optional(Type.Boolean()),
-    locale: Type.Optional(LocaleTag)
+    locale: Type.Optional(LocaleTag),
+    shareTimeDifference: Type.Optional(Type.Boolean())
 })
 
 export function turnReminderChoices(preferences: UserPreferences | undefined): TurnReminderChoices {

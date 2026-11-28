@@ -21,7 +21,10 @@ import {
 import { GameService } from './gameService.svelte.js'
 import { stubLocalStorage } from '$lib/test/localStorageStub'
 
-vi.mock('$env/static/public', () => ({ PUBLIC_VAPID_KEY: '' }))
+vi.mock('$env/static/public', () => ({
+    PUBLIC_VAPID_KEY: '',
+    PUBLIC_TIME_DIFFERENCE_STARTS_AT: ''
+}))
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidate: vi.fn(), invalidateAll: vi.fn() }))
 
 const user: User = { id: 'user', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
@@ -56,7 +59,7 @@ function game(id: string, overrides: Partial<Game> = {}): Game {
 function fixture() {
     let listener: NotificationListener | undefined
     const api = new TabletopApi()
-    const getMyGames = vi.spyOn(api, 'getMyGames')
+    const getMyGameList = vi.spyOn(api, 'getMyGameList')
     const service = new GameService(
         { getTitle: () => undefined, whenReady: async () => {} },
         { getSessionUser: () => user },
@@ -65,10 +68,12 @@ function fixture() {
     )
     service.localGameStore.findGamesForUser = async () => []
     const olderResponse = Promise.withResolvers<Game[]>()
-    getMyGames.mockReturnValueOnce(olderResponse.promise)
+    getMyGameList.mockReturnValueOnce(
+        olderResponse.promise.then((games) => ({ games, timeOffsets: {} }))
+    )
     return {
         service,
-        getMyGames,
+        getMyGameList,
         olderResponse,
         notify: async (action: GameNotificationAction, notifiedGame: Game) =>
             listener?.({
@@ -96,13 +101,13 @@ beforeEach(() => {
 })
 
 it('keeps a game created while an older list response is in flight', async () => {
-    const { service, getMyGames, olderResponse, notify } = fixture()
+    const { service, getMyGameList, olderResponse, notify } = fixture()
     const loading = service.loadGames()
     await notify(GameNotificationAction.Create, game('new'))
     olderResponse.resolve([])
     await loading
 
-    expect(getMyGames).toHaveBeenCalledOnce()
+    expect(getMyGameList).toHaveBeenCalledOnce()
     expect(names(service)).toEqual(['new'])
 })
 
@@ -137,26 +142,26 @@ it('keeps a deletion that arrives while the list response is in flight', async (
 })
 
 it('does not refetch for game activity during the load', async () => {
-    const { service, getMyGames, olderResponse, notify } = fixture()
+    const { service, getMyGameList, olderResponse, notify } = fixture()
     const loading = service.loadGames()
     await notify(GameNotificationAction.AddActions, game('busy'))
     await notify(GameNotificationAction.Chat, game('busy'))
     olderResponse.resolve([game('busy')])
     await loading
 
-    expect(getMyGames).toHaveBeenCalledOnce()
+    expect(getMyGameList).toHaveBeenCalledOnce()
 })
 
 it('fetches again when a load is requested while one is running', async () => {
-    const { service, getMyGames, olderResponse } = fixture()
-    getMyGames.mockResolvedValueOnce([game('later')])
+    const { service, getMyGameList, olderResponse } = fixture()
+    getMyGameList.mockResolvedValueOnce({ games: [game('later')], timeOffsets: {} })
 
     const first = service.loadGames()
     const second = service.loadGames()
     olderResponse.resolve([])
     await Promise.all([first, second])
 
-    expect(getMyGames).toHaveBeenCalledTimes(2)
+    expect(getMyGameList).toHaveBeenCalledTimes(2)
     expect(names(service)).toEqual(['later'])
 })
 
@@ -252,4 +257,16 @@ it('does not read the state of a hotseat game with a player to move', async () =
     await loading
 
     expect(loadGameState).not.toHaveBeenCalled()
+})
+
+it("keeps each game's time offsets from the latest list, so an opt-out applies", async () => {
+    const { service, getMyGameList } = fixture()
+    getMyGameList.mockReset()
+    getMyGameList.mockResolvedValueOnce({ games: [game('g')], timeOffsets: { other: 9 } })
+    await service.loadGames()
+    expect(service.timeOffsets.offsetFor('g', 'other')).toBe(9)
+
+    getMyGameList.mockResolvedValueOnce({ games: [game('g')], timeOffsets: { other: null } })
+    await service.loadGames()
+    expect(service.timeOffsets.offsetFor('g', 'other')).toBeUndefined()
 })

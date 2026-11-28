@@ -23,6 +23,7 @@ async function createServer() {
     const getCompletedGamesForUser = vi.fn(async () => [])
     const getGameHistoryForUser = vi.fn(async () => ({ games: [], nextCursor: 'next' }))
     const getGameStatsForUser = vi.fn(async () => ({ titles: [], countedGames: [] }))
+    Reflect.set(server, 'timeDifferences', { offsetsFor: async () => undefined })
     Reflect.set(server, 'gameService', {
         getActiveGamesForUser,
         getCompletedGamesForUser,

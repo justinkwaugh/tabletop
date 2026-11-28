@@ -104,7 +104,9 @@
     async function loadActivity() {
         states.public = 'loading'
         try {
-            activity = await api.getTitleActivity(titleId)
+            const loaded = await api.getTitleActivityList(titleId)
+            gameService.timeOffsets.record(loaded.activity.inProgress, loaded.timeOffsets)
+            activity = loaded.activity
             pages.inProgress = 0
             pages.recentlyFinished = 0
             states.public = 'ready'

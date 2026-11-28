@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
-import { GamePace, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
+import {
+    GamePace,
+    GameStatus,
+    PlayerStatus,
+    Role,
+    UserStatus,
+    type Game,
+    type User
+} from '@tabletop/common'
 import { GameService } from '../games/gameService.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { LobbyPostStore } from '../persistence/stores/lobbyPostStore.js'
@@ -93,6 +101,8 @@ describe('LobbyPosts', () => {
     let discordBotApi: DiscordBotApi
     let store: MemoryLobbyPostStore
     let queueSync: MockInstance<LobbyPostQueue['queueSync']>
+    let hostOffset: number | undefined
+    const hostTimes = { offsetFor: async () => hostOffset }
     let lobbyPosts: LobbyPosts
 
     function gameReads(...games: (Game | undefined)[]) {
@@ -122,8 +132,10 @@ describe('LobbyPosts', () => {
             store,
             queue,
             lobbies,
+            hostTimes,
             'https://example.com'
         )
+        hostOffset = undefined
     })
 
     it("posts a game the first time it opens, mentioning the lobby's role", async () => {
@@ -167,6 +179,36 @@ describe('LobbyPosts', () => {
         expect(first).toHaveLength(25)
         expect(retry).toBe(first)
         expect(next).not.toBe(first)
+    })
+
+    it("shows the host's time when they share it", async () => {
+        hostOffset = 6
+        gameReads(open, open)
+
+        await lobbyPosts.sync({ gameId: 'game-1' })
+
+        const [embed] = Reflect.get(Object(postedBody()), 'embeds')
+        expect(embed.description).toContain("Host's time: UTC+6")
+    })
+
+    it('queues a quiet sync of the open posted games a user hosts', async () => {
+        const host: User = {
+            id: 'u-1',
+            username: 'Alice',
+            status: UserStatus.Active,
+            roles: [Role.User],
+            externalIds: []
+        }
+        vi.spyOn(gameService, 'getActiveGamesForUser').mockResolvedValue([
+            { ...open, id: 'hosted' },
+            { ...open, id: 'joined', ownerId: 'someone-else' },
+            { ...open, id: 'started', status: GameStatus.Started },
+            { ...open, id: 'unlisted', isPublic: false }
+        ])
+
+        await lobbyPosts.queueHostedGames(host)
+
+        expect(queueSync.mock.calls).toEqual([[{ gameId: 'hosted', quiet: true }]])
     })
 
     it('edits the post of a game still open', async () => {
@@ -315,6 +357,7 @@ describe('LobbyPosts', () => {
                 store,
                 new LobbyPostQueue({ createPushTask: async () => undefined }, byPace),
                 byPace,
+                hostTimes,
                 'https://example.com'
             )
             let id = 0

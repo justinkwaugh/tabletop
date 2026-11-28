@@ -1,6 +1,14 @@
 import Fastify from 'fastify'
 import fastifyAuth from '@fastify/auth'
-import { Role, UserStatus, type SeriesActivity, type User } from '@tabletop/common'
+import {
+    GameStatus,
+    Role,
+    UserStatus,
+    type Game,
+    type SeriesActivity,
+    type TimeOffsets,
+    type User
+} from '@tabletop/common'
 import { describe, expect, it, vi } from 'vitest'
 import { errorStatusCode } from '../../../lib/errorStatusCode.js'
 import seriesActivityRoute from './seriesActivity.js'
@@ -14,7 +22,8 @@ const user: User = {
 const activity: SeriesActivity = { open: [], inProgress: [], recentlyFinished: [] }
 
 async function createServer(
-    getSeriesActivity: (seriesId: string, titleIds: string[]) => Promise<SeriesActivity>
+    getSeriesActivity: (seriesId: string, titleIds: string[]) => Promise<SeriesActivity>,
+    offsetsFor: (games: Game[]) => Promise<TimeOffsets | undefined> = async () => undefined
 ) {
     const server = Fastify()
     server.setErrorHandler((error, _request, reply) =>
@@ -25,6 +34,7 @@ async function createServer(
         request.user = user
     })
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
+    Reflect.set(server, 'timeDifferences', { offsetsFor })
     Reflect.set(server, 'gameService', {
         getSeriesTitleIds: (seriesId: string, roles: Role[]) =>
             seriesId === '18xx' && roles.includes(Role.User) ? ['1830', '1846', '1889'] : [],
@@ -43,6 +53,37 @@ describe('series activity requests', () => {
             expect(response.statusCode).toBe(200)
             expect(response.json()).toEqual({ status: 'ok', payload: { activity } })
             expect(getSeriesActivity).toHaveBeenCalledWith('18xx', ['1830', '1846', '1889'])
+        } finally {
+            await server.close()
+        }
+    })
+
+    it('adds the time offsets of the open games and those in progress', async () => {
+        const game = (id: string, status: GameStatus): Game => ({
+            id,
+            typeId: '1889',
+            status,
+            isPublic: true,
+            deleted: false,
+            ownerId: 'dana',
+            name: id,
+            players: [],
+            config: {},
+            hotseat: false,
+            createdAt: new Date('2026-11-27T00:00:00Z'),
+            winningPlayerIds: []
+        })
+        const withGames: SeriesActivity = {
+            open: [game('open', GameStatus.WaitingForPlayers)],
+            inProgress: [game('started', GameStatus.Started)],
+            recentlyFinished: []
+        }
+        const offsetsFor = vi.fn(async () => ({ dana: 9 }))
+        const server = await createServer(async () => withGames, offsetsFor)
+        try {
+            const response = await server.inject('/series-activity/18xx')
+            expect(response.json().payload.timeOffsets).toEqual({ dana: 9 })
+            expect(offsetsFor).toHaveBeenCalledWith([...withGames.open, ...withGames.inProgress])
         } finally {
             await server.close()
         }

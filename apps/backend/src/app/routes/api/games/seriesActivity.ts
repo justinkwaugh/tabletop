@@ -22,7 +22,11 @@ export default async function (fastify: FastifyInstance) {
             const titleIds = fastify.gameService.getSeriesTitleIds(seriesId, request.user.roles)
             if (titleIds.length === 0) return reply.code(404).send()
             const activity = await fastify.gameService.getSeriesActivity(seriesId, titleIds)
-            return { status: 'ok', payload: { activity } }
+            const timeOffsets = await fastify.timeDifferences.offsetsFor([
+                ...activity.open,
+                ...activity.inProgress
+            ])
+            return { status: 'ok', payload: { activity, timeOffsets } }
         }
     )
 }

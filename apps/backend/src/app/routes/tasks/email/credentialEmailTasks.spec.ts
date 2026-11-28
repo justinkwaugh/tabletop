@@ -41,6 +41,7 @@ class RecordingEmailService implements EmailService {
     async sendLeagueSignUpEmail(): Promise<void> {}
     async sendLeagueSeasonStartEmail(): Promise<void> {}
     async sendLeagueSeasonResultsEmail(): Promise<void> {}
+    async sendTimeDifferenceNoticeEmail(): Promise<void> {}
 
     private deliver(delivery: Delivery) {
         if (this.failure) throw this.failure

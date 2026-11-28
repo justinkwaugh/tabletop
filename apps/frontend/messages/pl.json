@@ -826,6 +826,8 @@
     "library_table_to_move": "Ruch: {player}",
     "library_table_won": "Wygrana: {winners}",
     "library_table_pace_value": "Tempo: {pace}",
+    "library_table_host_time": "Czas gospodarza",
+    "library_table_host_time_value": "Gospodarz: {difference}",
     "library_table_seats_taken": "Zajęte miejsca: {taken} z {total: number}",
     "library_table_game_options": "Opcje gry",
     "library_table_game_options_heading": "OPCJE GRY",
@@ -1822,5 +1824,9 @@
     "push_took_over_seat_title": "Dołączasz do trwającej gry",
     "push_took_over_seat_body": "Przejmujesz miejsce gracza {formerHolder} w grze „{game}”",
     "push_lost_seat_title": "Twoje miejsce przypadło innemu graczowi",
-    "push_lost_seat_body": "{newHolder} przejmuje Twoje miejsce w grze „{game}”"
+    "push_lost_seat_body": "{newHolder} przejmuje Twoje miejsce w grze „{game}”",
+    "time_difference_ahead": "{hours} godz. do przodu",
+    "time_difference_behind": "{hours} godz. do tyłu",
+    "time_difference_same": "ten sam czas",
+    "time_difference_their_time": "tam {time}"
 }

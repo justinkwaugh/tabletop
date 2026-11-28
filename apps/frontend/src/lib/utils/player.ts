@@ -1,4 +1,4 @@
-import { PlayerStatus, type Game, type Player } from '@tabletop/common'
+import { PlayerStatus, soleActivePlayer, type Game, type Player } from '@tabletop/common'
 import { m } from '$lib/paraglide/messages'
 import { isUsersNonHotseatTurn } from './dashboardGames'
 
@@ -50,10 +50,9 @@ export function playerStatusDisplay(player: Player, ownerId: string) {
 }
 
 export function activePlayerText(game: Game, userId: string | undefined) {
-    const activePlayerIds = game.activePlayerIds ?? []
-    if (activePlayerIds.length !== 1) return m.games_player_multiple()
-    if (isUsersNonHotseatTurn(game, userId)) return m.games_player_you()
-    return game.players.find((player) => player.id === activePlayerIds[0])?.name
+    const player = soleActivePlayer(game)
+    if (!player) return m.games_player_multiple()
+    return isUsersNonHotseatTurn(game, userId) ? m.games_player_you() : player.name
 }
 
 export function ownerName(game: Pick<Game, 'players' | 'ownerId'>): string | undefined {

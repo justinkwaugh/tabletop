@@ -19,6 +19,9 @@ import {
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
+    TimeOffsets,
+    TimeDifferenceNoticeQueueing,
+    TimeDifferenceNoticeStatus,
     PublicGamePreview,
     GameAction,
     GameChat,
@@ -79,6 +82,9 @@ import type {
     GameChatResponse,
     GameResponse,
     GamesResponse,
+    GameList,
+    SeriesActivityList,
+    TitleActivityList,
     GameWithActionsResponse,
     HasActiveGamesResponse,
     TokenResponse,
@@ -516,13 +522,17 @@ export class TabletopApi {
     }
 
     async getMyGames(scope?: 'current'): Promise<Game[]> {
+        return (await this.getMyGameList(scope)).games
+    }
+
+    async getMyGameList(scope?: 'current'): Promise<GameList> {
         const response = await this.wretch
             .get(scope ? `/games/mine?scope=${scope}` : '/games/mine')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
-        return response.payload.games.map((game) => this.validateGame(game))
+        return this.gameList(response)
     }
 
     async getFollowedGames(): Promise<Game[]> {
@@ -576,16 +586,24 @@ export class TabletopApi {
     }
 
     async getOpenGames(titleId: string): Promise<Game[]> {
+        return (await this.getOpenGameList(titleId)).games
+    }
+
+    async getOpenGameList(titleId: string): Promise<GameList> {
         const response = await this.wretch
             .get(`/games/open/${titleId}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
-        return response.payload.games.map((game) => this.validateGame(game))
+        return this.gameList(response)
     }
 
-    getTitleActivity(titleId: string): Promise<TitleActivity> {
+    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+        return (await this.getTitleActivityList(titleId)).activity
+    }
+
+    getTitleActivityList(titleId: string): Promise<TitleActivityList> {
         return this.requestActivity(
             `/games/activity/${encodeURIComponent(titleId)}`,
             TitleActivity,
@@ -593,7 +611,11 @@ export class TabletopApi {
         )
     }
 
-    getSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+    async getSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+        return (await this.getSeriesActivityList(seriesId)).activity
+    }
+
+    getSeriesActivityList(seriesId: string): Promise<SeriesActivityList> {
         return this.requestActivity(
             `/games/series-activity/${encodeURIComponent(seriesId)}`,
             SeriesActivity,
@@ -601,11 +623,25 @@ export class TabletopApi {
         )
     }
 
+    private gameList(response: GamesResponse): GameList {
+        return {
+            games: response.payload.games.map((game) => this.validateGame(game)),
+            timeOffsets: this.timeOffsets(response.payload.timeOffsets)
+        }
+    }
+
+    // A backend that doesn't show time differences sends no offsets.
+    private timeOffsets(offsets: unknown): TimeOffsets {
+        if (offsets === undefined) return {}
+        Value.Assert(TimeOffsets, offsets)
+        return offsets
+    }
+
     private async requestActivity<T extends TSchema>(
         path: string,
         schema: T,
         unavailableMessage: string
-    ): Promise<Static<T>> {
+    ): Promise<{ activity: Static<T>; timeOffsets: TimeOffsets }> {
         const request = new AbortController()
         const timeout = setTimeout(() => request.abort(), ACTIVITY_TIMEOUT_MS)
         try {
@@ -617,12 +653,17 @@ export class TabletopApi {
                 .error(503, this.handleError)
                 .json<unknown>()
             Value.Assert(
-                Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }),
+                Type.Object({
+                    payload: Type.Object({
+                        activity: Type.Unknown(),
+                        timeOffsets: Type.Optional(Type.Unknown())
+                    })
+                }),
                 response
             )
             const activity = Value.Default(schema, Value.Convert(schema, response.payload.activity))
             Value.Assert(schema, activity)
-            return activity
+            return { activity, timeOffsets: this.timeOffsets(response.payload.timeOffsets) }
         } catch (error) {
             if (request.signal.aborted)
                 throw new APIError({
@@ -1295,6 +1336,31 @@ export class TabletopApi {
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getTimeDifferenceNotice(): Promise<TimeDifferenceNoticeStatus> {
+        const response = await this.wretch
+            .get('/admin/users/time-difference-notice')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        return this.validPayload(TimeDifferenceNoticeStatus, response)
+    }
+
+    async queueTimeDifferenceNotice(): Promise<TimeDifferenceNoticeQueueing> {
+        const response = await this.wretch
+            .post({}, '/admin/users/time-difference-notice')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        return this.validPayload(TimeDifferenceNoticeQueueing, response)
+    }
+
+    private validPayload<T extends TSchema>(schema: T, response: unknown): Static<T> {
+        Value.Assert(Type.Object({ payload: Type.Unknown() }), response)
+        const payload = Value.Convert(schema, response.payload)
+        Value.Assert(schema, payload)
+        return payload
     }
 
     async assignUserRoles(userId: string, roles: AdminAssignableRole[]): Promise<User> {

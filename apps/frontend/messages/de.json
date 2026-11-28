@@ -748,6 +748,8 @@
     "library_table_to_move": "Am Zug: {player}",
     "library_table_won": "Sieger: {winners}",
     "library_table_pace_value": "Tempo: {pace}",
+    "library_table_host_time": "Zeit des Gastgebers",
+    "library_table_host_time_value": "Gastgeber: {difference}",
     "library_table_seats_taken": "{taken} von {total: number} Plätzen belegt",
     "library_table_game_options": "Spieloptionen",
     "library_table_game_options_heading": "SPIELOPTIONEN",
@@ -1609,5 +1611,9 @@
     "push_took_over_seat_title": "Du bist einer laufenden Partie beigetreten",
     "push_took_over_seat_body": "Du hast in der Partie „{game}“ den Platz von {formerHolder} übernommen",
     "push_lost_seat_title": "Dein Platz ging an einen anderen Spieler",
-    "push_lost_seat_body": "{newHolder} hat in der Partie „{game}“ deinen Platz übernommen"
+    "push_lost_seat_body": "{newHolder} hat in der Partie „{game}“ deinen Platz übernommen",
+    "time_difference_ahead": "{hours} Std. voraus",
+    "time_difference_behind": "{hours} Std. zurück",
+    "time_difference_same": "gleiche Zeit",
+    "time_difference_their_time": "{time} dort"
 }

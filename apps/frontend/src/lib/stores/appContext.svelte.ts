@@ -10,6 +10,7 @@ import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
 import { FollowedGames } from '$lib/services/followedGames.svelte'
+import TimeDifferenceNote from '$lib/components/TimeDifferenceNote.svelte'
 import { LibraryService } from '$lib/services/libraryService.svelte'
 import { ManifestService } from '$lib/services/manifestService'
 import { CatalogService } from '$lib/services/catalogService.svelte'
@@ -95,6 +96,7 @@ const appContext: AppContext & {
     chatService: chatService,
     visibilityService,
     userPreferencesEditor,
+    gamePaceNote: TimeDifferenceNote,
     api
 }
 

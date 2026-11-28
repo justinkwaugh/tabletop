@@ -48,4 +48,8 @@ export class NullEmailService implements EmailService {
     async sendLeagueSeasonResultsEmail(): Promise<void> {
         console.log(`EMAIL NOT CONFIGURED: League Season Results Email`)
     }
+
+    async sendTimeDifferenceNoticeEmail(): Promise<void> {
+        console.log(`EMAIL NOT CONFIGURED: Time Difference Notice Email`)
+    }
 }

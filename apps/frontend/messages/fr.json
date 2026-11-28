@@ -774,6 +774,8 @@
     "library_table_to_move": "Joueur actif : {player}",
     "library_table_won": "Victoire : {winners}",
     "library_table_pace_value": "Rythme : {pace}",
+    "library_table_host_time": "Heure de l’hôte",
+    "library_table_host_time_value": "Hôte : {difference}",
     "library_table_seats_taken": "Places prises : {taken} sur {total: number}",
     "library_table_game_options": "Options de la partie",
     "library_table_game_options_heading": "OPTIONS DE LA PARTIE",
@@ -1772,5 +1774,9 @@
     "push_took_over_seat_title": "Vous rejoignez une partie en cours",
     "push_took_over_seat_body": "Vous remplacez {formerHolder} dans la partie {game}",
     "push_lost_seat_title": "Votre place a été attribuée à un autre joueur",
-    "push_lost_seat_body": "{newHolder} a repris votre place dans la partie {game}"
+    "push_lost_seat_body": "{newHolder} a repris votre place dans la partie {game}",
+    "time_difference_ahead": "{hours} h d’avance",
+    "time_difference_behind": "{hours} h de retard",
+    "time_difference_same": "même heure",
+    "time_difference_their_time": "{time} là-bas"
 }

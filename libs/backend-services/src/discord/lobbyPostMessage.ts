@@ -1,5 +1,6 @@
 import {
     GAME_PACE_LABELS,
+    GamePace,
     gamePaceOf,
     nonStandardGameOptions,
     PlayerStatus,
@@ -21,6 +22,8 @@ export type LobbyPostContext = {
     /** The title's options, so the post can show those the game sets away from the standard. */
     configurator?: GameConfigurator
     frontendHost: string
+    /** Whole hours; only when the host shares their time difference and it is being shown. */
+    hostUtcOffset?: number
 }
 
 const OPTION_VALUE_LABELS: GameOptionValueLabels = { yes: 'Yes', no: 'No', none: 'None' }
@@ -86,16 +89,28 @@ export function lobbyPostUpdate(
 }
 
 // A line for the title, seats and pace, one for the options if the game sets any away from
-// the standard, and one for the players.
+// the standard, one for the players and one for the host's time if they share it.
 function descriptionLines(game: Game, context: LobbyPostContext): string[] {
     const open = game.players.length - takenSeats(game)
-    const pace = GAME_PACE_LABELS[gamePaceOf(game).pace].summary
     const options = nonStandardOptions(game, context)
+    const { hostUtcOffset } = context
     return [
-        `**${escapeMarkdown(context.titleName)}** · ${open} of ${game.players.length} seats open · ${pace}`,
+        `**${escapeMarkdown(context.titleName)}** · ${open} of ${game.players.length} seats open · ${paceText(game)}`,
         ...(options.length > 0 ? [truncate(`Options: ${options.join(' · ')}`, Limit.Line)] : []),
-        truncate(`Players: ${playerNames(game)}`, Limit.Line)
+        truncate(`Players: ${playerNames(game)}`, Limit.Line),
+        ...(hostUtcOffset === undefined ? [] : [`Host's time: ${utcOffsetText(hostUtcOffset)}`])
     ]
+}
+
+function paceText(game: Game): string {
+    const { pace } = gamePaceOf(game)
+    const labels = GAME_PACE_LABELS[pace]
+    return pace === GamePace.Live ? labels.name : labels.option
+}
+
+export function utcOffsetText(hours: number): string {
+    if (hours === 0) return 'UTC'
+    return `UTC${hours < 0 ? '\u2212' : '+'}${Math.abs(hours)}`
 }
 
 function nonStandardOptions(game: Game, { configurator }: LobbyPostContext): string[] {

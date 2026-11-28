@@ -9,6 +9,7 @@
     import AdminUserNotifications from './AdminUserNotifications.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
     import AdminUserUsername from './AdminUserUsername.svelte'
+    import AdminTimeDifferenceNotice from './AdminTimeDifferenceNotice.svelte'
 
     const { api } = getAppContext()
     const roleLabels: Record<Role, string> = {
@@ -154,3 +155,5 @@
         <AdminUserGames user={selected} />
     </div>
 {/if}
+
+<AdminTimeDifferenceNotice />

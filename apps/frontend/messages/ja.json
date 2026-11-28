@@ -578,6 +578,8 @@
     "library_table_to_move": "{player}の手番",
     "library_table_won": "勝者：{winners}",
     "library_table_pace_value": "ペース：{pace}",
+    "library_table_host_time": "ホストの時刻",
+    "library_table_host_time_value": "ホスト：{difference}",
     "library_table_seats_taken": "{total: number}席中{taken}席が埋まっています",
     "library_table_game_options": "ゲームオプション",
     "library_table_game_options_heading": "ゲームオプション",
@@ -1231,5 +1233,9 @@
     "push_took_over_seat_title": "進行中のゲームに参加しました",
     "push_took_over_seat_body": "{formerHolder}の席を「{game}」で引き継ぎました",
     "push_lost_seat_title": "席がほかのプレイヤーに引き継がれました",
-    "push_lost_seat_body": "{newHolder}が「{game}」であなたの席を引き継ぎました"
+    "push_lost_seat_body": "{newHolder}が「{game}」であなたの席を引き継ぎました",
+    "time_difference_ahead": "{hours}時間進んでいる",
+    "time_difference_behind": "{hours}時間遅れている",
+    "time_difference_same": "同じ時刻",
+    "time_difference_their_time": "現地{time}"
 }

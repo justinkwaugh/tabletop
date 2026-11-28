@@ -2,7 +2,8 @@ import type {
     GameStartedProps,
     LeagueSeasonResultsProps,
     LeagueSeasonStartProps,
-    LeagueSignUpProps
+    LeagueSignUpProps,
+    TimeDifferenceNoticeProps
 } from '@tabletop/email'
 import { messageLocale, type Locale } from '@tabletop/email/i18n'
 import {
@@ -51,6 +52,8 @@ export type LeagueSignUpEmail = RecipientProps<LeagueSignUpProps> & { url: strin
 export type LeagueSeasonStartEmail = RecipientProps<LeagueSeasonStartProps> & { url: string }
 
 export type LeagueSeasonResultsEmail = RecipientProps<LeagueSeasonResultsProps> & { url: string }
+
+export type TimeDifferenceNoticeEmail = RecipientProps<TimeDifferenceNoticeProps>
 
 export interface EmailService {
     sendVerificationEmail(token: string, to: EmailRecipient): Promise<void>
@@ -113,4 +116,5 @@ export interface EmailService {
     sendLeagueSignUpEmail(email: LeagueSignUpEmail): Promise<void>
     sendLeagueSeasonStartEmail(email: LeagueSeasonStartEmail): Promise<void>
     sendLeagueSeasonResultsEmail(email: LeagueSeasonResultsEmail): Promise<void>
+    sendTimeDifferenceNoticeEmail(email: TimeDifferenceNoticeEmail): Promise<void>
 }

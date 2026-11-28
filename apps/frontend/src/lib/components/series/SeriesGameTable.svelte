@@ -44,7 +44,7 @@
         label: string
         highlightId?: string
     } = $props()
-    const { authorizationService, libraryService } = getAppContext()
+    const { authorizationService, libraryService, gameService } = getAppContext()
     const userId = $derived(authorizationService.getSessionUser()?.id)
     const panelIdPrefix = $props.id()
     const expanded = new SvelteSet<string>()
@@ -58,6 +58,7 @@
             { area: 'seats', label: m.library_table_seats },
             { area: 'options', label: m.library_table_options },
             { area: 'pace', label: m.library_table_pace },
+            { area: 'hosttime', label: m.library_table_host_time },
             { area: 'age', label: m.library_table_created }
         ],
         inProgress: [
@@ -78,7 +79,14 @@
         ]
     }
 
-    const ageLabel = $derived(HEADINGS[kind].find((heading) => heading.area === 'age')?.label())
+    // Until time differences start, the column would only ever be empty.
+    const showsHostTime = $derived(
+        kind === 'open' && gameService.timeOffsets.isShowing(minuteClock.now)
+    )
+    const headings = $derived(
+        HEADINGS[kind].filter((heading) => heading.area !== 'hosttime' || showsHostTime)
+    )
+    const ageLabel = $derived(headings.find((heading) => heading.area === 'age')?.label())
 
     // Undefined until the title loads, so a game with options never shows as Standard.
     function options(game: Game) {
@@ -104,9 +112,9 @@
     }
 </script>
 
-<div class="game-table {kind}" role="region" aria-label={label}>
+<div class="game-table {kind}" class:host-time={showsHostTime} role="region" aria-label={label}>
     <div class="row heading" aria-hidden="true">
-        {#each HEADINGS[kind] as heading (heading.area)}<span
+        {#each headings as heading (heading.area)}<span
                 data-area={heading.area}
                 style:grid-area={heading.area}>{heading.label()}</span
             >{/each}
@@ -120,6 +128,14 @@
             {@const onMove = kind === 'inProgress' ? activePlayerText(game, userId) : undefined}
             {@const paceWarning =
                 kind === 'inProgress' ? lastMovePaceWarning(game, minuteClock.now) : undefined}
+            {@const hostTime =
+                kind === 'open'
+                    ? gameService.timeOffsets.hostDifferenceText(game, userId, minuteClock.now)
+                    : undefined}
+            {@const theirTime =
+                kind === 'inProgress'
+                    ? gameService.timeOffsets.awaitedLocalTimeText(game, userId, minuteClock.now)
+                    : undefined}
             {@const isOpen = expanded.has(game.id)}
             {@const panelId = `${panelIdPrefix}-${game.id}`}
             <li class:highlight={game.id === highlightId} class:expanded={isOpen}>
@@ -145,7 +161,8 @@
                             <span class="onmove"
                                 ><span class="wide-only">{onMove}</span><span class="phone-only"
                                     >{m.library_table_to_move({ player: onMove })}</span
-                                ></span
+                                >{#if theirTime}<span class="their-time">{theirTime}</span
+                                    >{/if}</span
                             >
                         {:else if kind === 'finished'}
                             {@const winners = winnerText(game)}
@@ -162,6 +179,13 @@
                             ).name()}<span class="pace" class:live={pace.pace === GamePace.Live}
                                 ><span class="wide-only">{paceName}</span><span class="phone-only"
                                     >{m.library_table_pace_value({ pace: paceName })}</span
+                                ></span
+                            >{/if}
+                        {#if hostTime}<span class="hosttime"
+                                ><span class="wide-only">{hostTime}</span><span class="phone-only"
+                                    >{m.library_table_host_time_value({
+                                        difference: hostTime
+                                    })}</span
                                 ></span
                             >{/if}
                     </span>
@@ -361,6 +385,16 @@
         grid-area: onmove;
         color: var(--color-orange-400);
     }
+    .their-time {
+        color: var(--color-gray-500);
+    }
+    .their-time::before {
+        content: ' · ';
+    }
+    .hosttime {
+        grid-area: hosttime;
+        color: var(--color-gray-400);
+    }
     .winner {
         grid-area: winner;
         color: var(--color-blue-400);
@@ -478,10 +512,18 @@
         .open .row {
             grid-template-areas: 'chevron cover title name seats options pace age action';
         }
+        .open.host-time {
+            grid-template-columns:
+                var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
+                max-content fit-content(9rem) max-content max-content max-content max-content;
+        }
+        .open.host-time .row {
+            grid-template-areas: 'chevron cover title name seats options pace hosttime age action';
+        }
         .inProgress {
             grid-template-columns:
                 var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
-                minmax(11.5rem, 1fr) fit-content(9rem) max-content fit-content(7.5rem)
+                minmax(11.5rem, 1fr) fit-content(9rem) max-content fit-content(13rem)
                 max-content max-content;
         }
         .inProgress .row {
@@ -500,7 +542,7 @@
         .inProgress {
             grid-template-columns:
                 var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
-                fit-content(9rem) max-content fit-content(7.5rem) max-content max-content;
+                fit-content(9rem) max-content fit-content(13rem) max-content max-content;
         }
         .inProgress .row {
             grid-template-areas: 'chevron cover title name options pace onmove age action';

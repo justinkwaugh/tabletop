@@ -1,6 +1,6 @@
 # Discord Lobby Posts
 
-Each open game in a Series lobby (the 18xx lobby, for now) gets one message in each Discord text channel that lists it, posted by the site's bot. A lobby may have several channels, on one server or several, and a channel may list only games of some paces; the 18xx lobby posts every game to the Board Together channel, and on the Online 18XX friends server Live games to `#live-game-lobby` and every other pace to `#async-game-lobby`. The message shows the title, the game name, open seats, pace, the options the game sets away from the standard (the same ones the site's game cards show; no Options line for a standard game) and joined players, with a **Join game** button. It is edited as seats change and deleted once the game leaves the lobby: all seats taken, started, deleted, or made Unlisted or Invite-Only. Only titles every player can discover are posted; Alpha and Beta titles stay off Discord, as they stay off a regular player's lobby. If a channel has a role, a game's first post in that channel mentions it; edits, a game that reopens, and the launch batch never mention it.
+Each open game in a Series lobby (the 18xx lobby, for now) gets one message in each Discord text channel that lists it, posted by the site's bot. A lobby may have several channels, on one server or several, and a channel may list only games of some paces; the 18xx lobby posts every game to the Board Together channel, and on the Online 18XX friends server Live games to `#live-game-lobby` and every other pace to `#async-game-lobby`. The message shows the title, the game name, open seats, pace in the create form's words ("Daily · moves within a day"; just "Live" for Live), the options the game sets away from the standard (the same ones the site's game cards show; no Options line for a standard game), joined players and, once time differences are shown, the host's whole-hour UTC offset if they share it, with a **Join game** button. Turning the share switch off queues a quiet sync of the open posts that player hosts. It is edited as seats change and deleted once the game leaves the lobby: all seats taken, started, deleted, or made Unlisted or Invite-Only. Only titles every player can discover are posted; Alpha and Beta titles stay off Discord, as they stay off a regular player's lobby. If a channel has a role, a game's first post in that channel mentions it; edits, a game that reopens, and the launch batch never mention it.
 
 ## How it works
 
@@ -37,6 +37,10 @@ Each open game in a Series lobby (the 18xx lobby, for now) gets one message in e
     ```
 
     It queues a quiet sync, without the role mention, for every open game in each posted lobby (a game already posted in some channels is posted quietly in the new ones) and returns their ids; the `maintenance` queue posts them about one a second. Running it again is harmless: games already posted are only edited. It answers 503 when lobby posts are off.
+
+## When time differences start
+
+Posts pick up the "Host's time" line only when they are next synced. On the day `TIME_DIFFERENCE_STARTS_AT` passes (with the notice already sent), run the step 5 backfill again so every open post gains the line at once; it is quiet and only edits posts already up.
 
 ## Turning it off
 

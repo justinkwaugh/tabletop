@@ -119,6 +119,14 @@ export function findPlayerForUserId(
     return game.players.find((player) => player.userId === userId)
 }
 
+export function soleActivePlayer(
+    game: Pick<Game, 'players' | 'activePlayerIds'>
+): Player | undefined {
+    const activePlayerIds = game.activePlayerIds ?? []
+    if (activePlayerIds.length !== 1) return undefined
+    return game.players.find((player) => player.id === activePlayerIds[0])
+}
+
 export function ownerMayDeleteGame(
     game: Pick<Game, 'status' | 'storage' | 'everFinished'>
 ): boolean {

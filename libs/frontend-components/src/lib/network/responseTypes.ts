@@ -1,5 +1,8 @@
 import { Type, type Static } from 'typebox'
 import {
+    TimeOffsets,
+    TitleActivity,
+    SeriesActivity,
     Bookmark,
     CanonicalActionReplay,
     ProcessedActionReplay,
@@ -149,10 +152,19 @@ export const GamesResponse = Type.Evaluate(
     Type.Intersect([
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
-            payload: Type.Object({ games: Type.Array(Game) })
+            payload: Type.Object({
+                games: Type.Array(Game),
+                timeOffsets: Type.Optional(TimeOffsets)
+            })
         })
     ])
 )
+
+export type GameList = { games: Game[]; timeOffsets: TimeOffsets }
+
+export type TitleActivityList = { activity: TitleActivity; timeOffsets: TimeOffsets }
+
+export type SeriesActivityList = { activity: SeriesActivity; timeOffsets: TimeOffsets }
 
 export type ActionsResponse = Static<typeof ActionsResponse>
 export const ActionsResponse = Type.Evaluate(

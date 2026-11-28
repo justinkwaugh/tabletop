@@ -30,6 +30,7 @@ import {
     EnvService,
     FirestoreCharityTallyStore,
     FirestoreLobbyPostStore,
+    FirestoreNoticeStore,
     FirestoreChatStore,
     FirestoreGameStore,
     FirestoreGameFollowStore,
@@ -73,6 +74,8 @@ import {
     StalledGames,
     AccountModeration,
     AbandonedSignUps,
+    TimeDifferences,
+    TimeDifferenceNotice,
     ContentReports,
     STATIC_ROOT,
     TaskService,
@@ -85,7 +88,7 @@ import {
     UserService,
     WebPushTransport
 } from '@tabletop/backend-services'
-import { GameClientCapability } from '@tabletop/common'
+import { GameClientCapability, parseTimeDifferenceStartDate } from '@tabletop/common'
 import { TitleValidation } from '../../runtime/titleValidation.js'
 import { publishedUiSupports } from '../lib/publishedUi.js'
 
@@ -122,6 +125,8 @@ declare module 'fastify' {
         stalledGames: StalledGames
         accountModeration: AccountModeration
         abandonedSignUps: AbandonedSignUps
+        timeDifferences: TimeDifferences
+        timeDifferenceNotice: TimeDifferenceNotice
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
@@ -149,6 +154,9 @@ const useLobbyPosts = !!process.env['DISCORD_BOT_TOKEN'] && Object.keys(LOBBY_CH
 const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 const useTelegram = !!process.env['TELEGRAM_BOT_TOKEN']
+const TIME_DIFFERENCE_STARTS_AT = parseTimeDifferenceStartDate(
+    process.env['TIME_DIFFERENCE_STARTS_AT']
+)
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle' | 'afterTitleLoads'>
 
@@ -394,6 +402,16 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             FRONTEND_HOST
         )
     )
+    const noticeStore = new FirestoreNoticeStore(fastify.firestore)
+    const timeDifferences = new TimeDifferences(userService, noticeStore, TIME_DIFFERENCE_STARTS_AT)
+    fastify.decorate('timeDifferences', timeDifferences)
+    fastify.decorate(
+        'timeDifferenceNotice',
+        new TimeDifferenceNotice(userStore, noticeStore, taskService, emailService, {
+            startsAt: TIME_DIFFERENCE_STARTS_AT,
+            frontendHost: FRONTEND_HOST
+        })
+    )
     fastify.decorate(
         'leagueService',
         new LeagueService(
@@ -474,6 +492,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
                   new FirestoreLobbyPostStore(fastify.firestore),
                   lobbyPostQueue,
                   postedLobbies,
+                  timeDifferences,
                   FRONTEND_HOST
               )
             : undefined

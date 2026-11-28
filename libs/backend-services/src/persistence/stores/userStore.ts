@@ -55,6 +55,7 @@ export interface UserStore {
     deleteUser(userId: string, validate?: (existing: StoredUser) => void): Promise<[User, User]>
     deletePreferences(userId: string): Promise<void>
     findIncompleteUsers(): Promise<User[]>
+    findActiveUserIds(): Promise<string[]>
     deleteAbandonedSignUp(
         userId: string,
         isAbandoned: (existing: StoredUser) => boolean

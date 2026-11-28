@@ -783,6 +783,8 @@
     "library_table_to_move": "Σειρά: {player}",
     "library_table_won": "Νίκη: {winners}",
     "library_table_pace_value": "Ρυθμός: {pace}",
+    "library_table_host_time": "Ώρα οικοδεσπότη",
+    "library_table_host_time_value": "Οικοδεσπότης: {difference}",
     "library_table_seats_taken": "Πιασμένες {taken} από {total: number} θέσεις",
     "library_table_game_options": "Επιλογές παιχνιδιού",
     "library_table_game_options_heading": "ΕΠΙΛΟΓΕΣ ΠΑΙΧΝΙΔΙΟΥ",
@@ -1774,5 +1776,9 @@
     "push_took_over_seat_title": "Συμμετέχεις σε παιχνίδι σε εξέλιξη",
     "push_took_over_seat_body": "Πήρες τη θέση του παίκτη {formerHolder} στο παιχνίδι «{game}»",
     "push_lost_seat_title": "Η θέση σου δόθηκε σε άλλον παίκτη",
-    "push_lost_seat_body": "{newHolder} πήρε τη θέση σου στο παιχνίδι «{game}»"
+    "push_lost_seat_body": "{newHolder} πήρε τη θέση σου στο παιχνίδι «{game}»",
+    "time_difference_ahead": "{hours} ώρ. μπροστά",
+    "time_difference_behind": "{hours} ώρ. πίσω",
+    "time_difference_same": "ίδια ώρα",
+    "time_difference_their_time": "{time} εκεί"
 }

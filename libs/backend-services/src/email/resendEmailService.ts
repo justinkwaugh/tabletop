@@ -22,7 +22,8 @@ import {
     type GameStartedEmail,
     type LeagueSeasonResultsEmail,
     type LeagueSeasonStartEmail,
-    type LeagueSignUpEmail
+    type LeagueSignUpEmail,
+    type TimeDifferenceNoticeEmail
 } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
 import type { ContentReportEmail } from '../moderation/contentReports.js'
@@ -344,6 +345,21 @@ export class ResendEmailService implements EmailService {
                 { league: props.leagueName, season: props.seasonNumber },
                 { locale }
             ),
+            emailHTML
+        )
+    }
+
+    async sendTimeDifferenceNoticeEmail({
+        to,
+        ...props
+    }: TimeDifferenceNoticeEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(
+            templates.TimeDifferenceNotice({ ...props, locale: to.locale })
+        )
+        await this.send(
+            to.email,
+            `Other players will see your time difference from ${templates.timeDifferenceNoticeStartDate(props.startsAt)}`,
             emailHTML
         )
     }

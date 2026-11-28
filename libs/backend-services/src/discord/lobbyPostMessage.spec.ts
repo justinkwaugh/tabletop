@@ -8,7 +8,7 @@ import {
     type GameConfigurator
 } from '@tabletop/common'
 import { ButtonStyle, ComponentType } from 'discord-api-types/v10'
-import { lobbyPostUpdate, newLobbyPost } from './lobbyPostMessage.js'
+import { lobbyPostUpdate, newLobbyPost, utcOffsetText } from './lobbyPostMessage.js'
 
 const context = { titleName: '1830', frontendHost: 'https://example.com' }
 
@@ -47,7 +47,9 @@ describe('newLobbyPost', () => {
         const [embed] = post.embeds ?? []
         expect(embed.title).toBe('Rails\\_and\\_\\*stars\\*')
         expect(embed.url).toBe('https://example.com/join/game%201')
-        expect(embed.description).toBe('**1830** · 2 of 4 seats open · Fast · 1 h\nPlayers: Alice')
+        expect(embed.description).toBe(
+            '**1830** · 2 of 4 seats open · Fast · moves within an hour\nPlayers: Alice'
+        )
         expect(embed).not.toHaveProperty('fields')
         expect(post.components).toEqual([
             {
@@ -132,14 +134,14 @@ describe('options', () => {
 
     it('shows no options for a game at the standard settings', () => {
         expect(lines({ optionalRules: false, variant: 'base', privates: true })).toEqual([
-            '**1830** · 2 of 4 seats open · Fast · 1 h',
+            '**1830** · 2 of 4 seats open · Fast · moves within an hour',
             'Players: Alice'
         ])
     })
 
     it('shows only the options away from the standard on one line, before the players', () => {
         expect(lines({ optionalRules: true, variant: 'short', privates: false })).toEqual([
-            '**1830** · 2 of 4 seats open · Fast · 1 h',
+            '**1830** · 2 of 4 seats open · Fast · moves within an hour',
             'Options: Optional rules · Variant\\: Short \\(no 6\\-trains\\) · Private draft\\: No',
             'Players: Alice'
         ])
@@ -155,5 +157,22 @@ describe('options', () => {
 describe('lobbyPostUpdate', () => {
     it('leaves the content alone so an edit never mentions the role again', () => {
         expect(lobbyPostUpdate(openGame(), context)).not.toHaveProperty('content')
+    })
+
+    it('shows plain Live for a live game', () => {
+        const description = lobbyPostUpdate(openGame({ paceMinutes: 15 }), context).embeds?.[0]
+            .description
+        expect(description?.split('\n')[0]).toBe('**1830** · 2 of 4 seats open · Live')
+    })
+
+    it("shows the host's time last, when it is given", () => {
+        const update = lobbyPostUpdate(openGame(), { ...context, hostUtcOffset: 9 })
+        expect(update.embeds?.[0].description?.split('\n').at(-1)).toBe("Host's time: UTC+9")
+    })
+})
+
+describe('utcOffsetText', () => {
+    it('states whole hours east and west of UTC', () => {
+        expect([0, 9, -5, 14].map(utcOffsetText)).toEqual(['UTC', 'UTC+9', 'UTC\u22125', 'UTC+14'])
     })
 })

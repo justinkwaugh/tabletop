@@ -774,6 +774,8 @@
     "library_table_to_move": "{player} to move",
     "library_table_won": "{winners} won",
     "library_table_pace_value": "{pace} pace",
+    "library_table_host_time": "Host's time",
+    "library_table_host_time_value": "Host {difference}",
     "library_table_seats_taken": "{taken} of {total: number} seats taken",
     "library_table_game_options": "Game options",
     "library_table_game_options_heading": "GAME OPTIONS",
@@ -1692,5 +1694,9 @@
     "push_took_over_seat_title": "You've joined a game in progress",
     "push_took_over_seat_body": "You've taken over {formerHolder}'s seat in {game}",
     "push_lost_seat_title": "Your seat was given to another player",
-    "push_lost_seat_body": "{newHolder} has taken over your seat in {game}"
+    "push_lost_seat_body": "{newHolder} has taken over your seat in {game}",
+    "time_difference_ahead": "{hours} h ahead",
+    "time_difference_behind": "{hours} h behind",
+    "time_difference_same": "same time",
+    "time_difference_their_time": "{time} there"
 }

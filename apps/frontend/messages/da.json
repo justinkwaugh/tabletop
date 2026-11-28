@@ -738,6 +738,8 @@
     "library_table_to_move": "Tur: {player}",
     "library_table_won": "{winners} vandt",
     "library_table_pace_value": "Tempo: {pace}",
+    "library_table_host_time": "Værtens tid",
+    "library_table_host_time_value": "Vært: {difference}",
     "library_table_seats_taken": "{taken} af {total: number} pladser optaget",
     "library_table_game_options": "Spilindstillinger",
     "library_table_game_options_heading": "SPILINDSTILLINGER",
@@ -1607,5 +1609,9 @@
     "push_took_over_seat_title": "Du er kommet med i et igangværende spil",
     "push_took_over_seat_body": "Du har overtaget pladsen efter {formerHolder} i {game}",
     "push_lost_seat_title": "Din plads er givet til en anden spiller",
-    "push_lost_seat_body": "{newHolder} har overtaget din plads i {game}"
+    "push_lost_seat_body": "{newHolder} har overtaget din plads i {game}",
+    "time_difference_ahead": "{hours} t foran",
+    "time_difference_behind": "{hours} t bagud",
+    "time_difference_same": "samme tid",
+    "time_difference_their_time": "{time} der"
 }

@@ -20,7 +20,7 @@
         Tooltip
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
-    import { afterNavigate, goto, onNavigate } from '$app/navigation'
+    import { afterNavigate, goto, onNavigate, replaceState } from '$app/navigation'
     import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import BugReportModal from '$lib/components/BugReportModal.svelte'
@@ -173,18 +173,29 @@
     )
     let canInstallPwa = $derived(pwaInstallPrompt.available)
 
+    const PREFERENCES_LINK_PARAMETER = 'preferences'
+
     const openLoginModal = setLoginModal(() => {
         loginView = 'signin'
         showLoginModal = true
     })
 
-    afterNavigate(() => {
+    afterNavigate(({ to }) => {
         contentReport.close()
         showLoginModal = false
         showCallGame = false
         showBugReport = false
         showPreferences = false
+        if (to?.url.searchParams.has(PREFERENCES_LINK_PARAMETER)) openLinkedPreferences(to.url)
     })
+
+    function openLinkedPreferences(url: URL) {
+        const withoutParameter = new URL(url)
+        withoutParameter.searchParams.delete(PREFERENCES_LINK_PARAMETER)
+        replaceState(withoutParameter, {})
+        if (authorizationService.getSessionUser()) showPreferences = true
+        else openLoginModal()
+    }
 
     function selectTransitionCover(titleId: string | undefined) {
         for (const cover of document.querySelectorAll<HTMLImageElement>('img[data-game-cover]')) {

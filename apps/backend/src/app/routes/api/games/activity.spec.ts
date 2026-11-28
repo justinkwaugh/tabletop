@@ -1,6 +1,13 @@
 import Fastify from 'fastify'
 import fastifyAuth from '@fastify/auth'
-import { Role, UserStatus, type TitleActivity, type User } from '@tabletop/common'
+import {
+    Role,
+    UserStatus,
+    type Game,
+    type TimeOffsets,
+    type TitleActivity,
+    type User
+} from '@tabletop/common'
 import { describe, expect, it, vi } from 'vitest'
 import { errorStatusCode } from '../../../lib/errorStatusCode.js'
 import activityRoute from './activity.js'
@@ -12,7 +19,10 @@ const user: User = {
     externalIds: []
 }
 
-async function createServer(getTitleActivity: (titleId: string) => Promise<TitleActivity>) {
+async function createServer(
+    getTitleActivity: (titleId: string) => Promise<TitleActivity>,
+    offsetsFor: (games: readonly Game[]) => Promise<TimeOffsets | undefined> = async () => undefined
+) {
     const server = Fastify()
     server.setErrorHandler((error, _request, reply) =>
         reply.code(errorStatusCode(error)).send({ status: 'error', error: { name: error.name } })
@@ -22,6 +32,7 @@ async function createServer(getTitleActivity: (titleId: string) => Promise<Title
         request.user = user
     })
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
+    Reflect.set(server, 'timeDifferences', { offsetsFor })
     Reflect.set(server, 'gameService', {
         getTitle: (titleId: string) => (titleId === 'known' ? { id: titleId } : undefined),
         getTitleActivity
@@ -40,6 +51,19 @@ describe('title activity requests', () => {
             expect(response.statusCode).toBe(200)
             expect(response.json()).toEqual({ status: 'ok', payload: { activity } })
             expect(getTitleActivity).toHaveBeenCalledWith('known')
+        } finally {
+            await server.close()
+        }
+    })
+
+    it('adds the time offsets of the games in progress', async () => {
+        const activity: TitleActivity = { inProgress: [], recentlyFinished: [] }
+        const offsetsFor = vi.fn(async () => ({ dana: 9, rhys: null }))
+        const server = await createServer(async () => activity, offsetsFor)
+        try {
+            const response = await server.inject('/activity/known')
+            expect(response.json().payload.timeOffsets).toEqual({ dana: 9, rhys: null })
+            expect(offsetsFor).toHaveBeenCalledWith(activity.inProgress)
         } finally {
             await server.close()
         }

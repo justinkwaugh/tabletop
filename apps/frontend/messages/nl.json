@@ -756,6 +756,8 @@
     "library_table_to_move": "Aan de beurt: {player}",
     "library_table_won": "Gewonnen door {winners}",
     "library_table_pace_value": "Tempo: {pace}",
+    "library_table_host_time": "Tijd van host",
+    "library_table_host_time_value": "Host: {difference}",
     "library_table_seats_taken": "{taken} van {total: number} plekken bezet",
     "library_table_game_options": "Spelopties",
     "library_table_game_options_heading": "SPELOPTIES",
@@ -1674,5 +1676,9 @@
     "push_took_over_seat_title": "Je doet mee aan een lopend spel",
     "push_took_over_seat_body": "Je hebt de plek van {formerHolder} in {game} overgenomen",
     "push_lost_seat_title": "Je plek is aan een andere speler gegeven",
-    "push_lost_seat_body": "{newHolder} heeft je plek in {game} overgenomen"
+    "push_lost_seat_body": "{newHolder} heeft je plek in {game} overgenomen",
+    "time_difference_ahead": "{hours} u voor",
+    "time_difference_behind": "{hours} u achter",
+    "time_difference_same": "zelfde tijd",
+    "time_difference_their_time": "{time} daar"
 }

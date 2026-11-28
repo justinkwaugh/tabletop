@@ -785,6 +785,19 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
+    async findActiveUserIds(): Promise<string[]> {
+        try {
+            const snapshot = await this.users
+                .where('status', '==', UserStatus.Active)
+                .select()
+                .get()
+            this.recordRead(Math.max(1, snapshot.size))
+            return snapshot.docs.map((document) => document.id)
+        } catch (error) {
+            this.handleError(error, UserStatus.Active)
+        }
+    }
+
     async deleteAbandonedSignUp(
         userId: string,
         isAbandoned: (existing: StoredUser) => boolean

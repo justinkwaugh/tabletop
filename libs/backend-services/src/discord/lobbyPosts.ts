@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto'
-import { assertExists, type Game } from '@tabletop/common'
+import { assertExists, GameStatus, type Game, type User } from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 import type { GameService } from '../games/gameService.js'
 import type { GameChangeListener } from '../games/gameChangeListener.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { LobbyPostStore } from '../persistence/stores/lobbyPostStore.js'
 import type { LobbyMessage } from '../persistence/model/storedLobbyPost.js'
+import type { TimeDifferences } from '../users/timeDifferences.js'
 import { CreatedMessage, DiscordBotApi, discordRefusal } from './discordBotApi.js'
 import { lobbyPostUpdate, newLobbyPost, type LobbyPostContext } from './lobbyPostMessage.js'
 import type { LobbyChannel, PostedLobbies } from './postedLobbies.js'
@@ -60,6 +61,7 @@ export class LobbyPosts {
         private readonly store: LobbyPostStore,
         private readonly queue: LobbyPostQueue,
         private readonly lobbies: PostedLobbies,
+        private readonly hostTimes: Pick<TimeDifferences, 'offsetFor'>,
         private readonly frontendHost: string
     ) {}
 
@@ -74,6 +76,20 @@ export class LobbyPosts {
             }
         }
         return gameIds
+    }
+
+    // The preference is already saved, so a failure is logged rather than failing the request.
+    async queueHostedGames(user: User): Promise<void> {
+        try {
+            const games = await this.gameService.getActiveGamesForUser(user)
+            for (const game of games) {
+                if (game.ownerId !== user.id || game.status === GameStatus.Started) continue
+                if (this.lobbies.channelsFor(game).length === 0) continue
+                await this.queue.queueSync({ gameId: game.id, quiet: true })
+            }
+        } catch (error) {
+            console.warn('Could not queue the lobby posts a user hosts', { userId: user.id, error })
+        }
     }
 
     // Reads the game again after each pass, so a pass that read it before a later change, and
@@ -98,14 +114,16 @@ export class LobbyPosts {
                 ? [this.remove(gameId, { channelId, messageId })]
                 : []
         )
-        const shown = game
-            ? channels.map((channel) => {
-                  const { posts = 0, messageId } = posted[channel.channelId] ?? {}
-                  return messageId
-                      ? this.edit({ channelId: channel.channelId, messageId }, game)
-                      : this.create(game, channel, { posts, quiet })
-              })
-            : []
+        const context = game && channels.length > 0 ? await this.context(game) : undefined
+        const shown =
+            game && context
+                ? channels.map((channel) => {
+                      const { posts = 0, messageId } = posted[channel.channelId] ?? {}
+                      return messageId
+                          ? this.edit({ channelId: channel.channelId, messageId }, game, context)
+                          : this.create(game, channel, context, { posts, quiet })
+                  })
+                : []
         const failure = (await Promise.allSettled([...removals, ...shown])).find(
             (result): result is PromiseRejectedResult => result.status === 'rejected'
         )
@@ -115,11 +133,12 @@ export class LobbyPosts {
     private async create(
         game: Game,
         channel: LobbyChannel,
+        context: LobbyPostContext,
         { posts, quiet }: { posts: number; quiet: boolean }
     ): Promise<void> {
         const response = await this.discordBotApi.post(
             `/channels/${channel.channelId}/messages`,
-            newLobbyPost(game, this.context(game), {
+            newLobbyPost(game, context, {
                 nonce: this.nonce(game.id, channel.channelId, posts),
                 mentionRoleId: posts === 0 && !quiet ? channel.roleId : undefined
             })
@@ -131,10 +150,14 @@ export class LobbyPosts {
         if (kept.messageId !== messageId) await this.deleteMessage(message)
     }
 
-    private async edit(message: LobbyMessage, game: Game): Promise<void> {
+    private async edit(
+        message: LobbyMessage,
+        game: Game,
+        context: LobbyPostContext
+    ): Promise<void> {
         const response = await this.discordBotApi.patch(
             this.messagePath(message),
-            lobbyPostUpdate(game, this.context(game))
+            lobbyPostUpdate(game, context)
         )
         if (response.status === NOT_FOUND) return
         if (!response.ok) throw await discordRefusal(response, 'the lobby post edit')
@@ -167,11 +190,13 @@ export class LobbyPosts {
         return game ? String(game.updatedAt?.getTime() ?? 0) : 'gone'
     }
 
-    private context(game: Game): LobbyPostContext {
+    private async context(game: Game): Promise<LobbyPostContext> {
+        const hostUtcOffset = await this.hostTimes.offsetFor(game.ownerId)
         return {
             titleName: this.gameService.getTitleName(game.typeId),
             configurator: this.gameService.getTitle(game.typeId)?.info.configurator,
-            frontendHost: this.frontendHost
+            frontendHost: this.frontendHost,
+            ...(hostUtcOffset === undefined ? {} : { hostUtcOffset })
         }
     }
 }

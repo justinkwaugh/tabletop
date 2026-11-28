@@ -783,6 +783,8 @@
     "library_table_to_move": "Turno: {player}",
     "library_table_won": "Victoria de {winners}",
     "library_table_pace_value": "Ritmo: {pace}",
+    "library_table_host_time": "Hora del anfitrión",
+    "library_table_host_time_value": "Anfitrión: {difference}",
     "library_table_seats_taken": "{taken} de {total: number} asientos ocupados",
     "library_table_game_options": "Opciones de la partida",
     "library_table_game_options_heading": "OPCIONES DE LA PARTIDA",
@@ -1786,5 +1788,9 @@
     "push_took_over_seat_title": "Te has unido a una partida en curso",
     "push_took_over_seat_body": "Has ocupado el asiento de {formerHolder} en {game}",
     "push_lost_seat_title": "Han dado tu asiento a otro jugador",
-    "push_lost_seat_body": "{newHolder} ha ocupado tu asiento en {game}"
+    "push_lost_seat_body": "{newHolder} ha ocupado tu asiento en {game}",
+    "time_difference_ahead": "{hours} h más",
+    "time_difference_behind": "{hours} h menos",
+    "time_difference_same": "misma hora",
+    "time_difference_their_time": "{time} allí"
 }
