@@ -3,7 +3,10 @@ import {
     BANK_WORM_PRICE,
     ContestAward,
     LOAN_AMOUNT,
+    MARKET_IDS,
     PlanKind,
+    Quality,
+    marketId,
     isCalculateMarket,
     isEndYear,
     isGrowSunflowers,
@@ -13,6 +16,7 @@ import {
     isReadMessage,
     isScoreGame,
     isSellPotatoes,
+    type FieldHarvest,
     type LoanSettlement,
     type PlanOutcome,
     type SoilChange
@@ -72,7 +76,7 @@ function planText(outcome: PlanOutcome): string {
     }
 }
 
-export function compostParts(outcome: PlanOutcome): string[] {
+export function compostParts(outcome: PlanOutcome, withEarnings = false): string[] {
     const plan = outcome.plan
     if (plan.kind !== PlanKind.SpreadCompost) return []
     const spread = sum(plan.placements.map((placement) => placement.worms))
@@ -81,7 +85,7 @@ export function compostParts(outcome: PlanOutcome): string[] {
             ? `spread ${plural(spread, 'worm')} on ${fieldList(plan.placements.map((placement) => placement.fieldId))}`
             : '',
         outcome.income > 0
-            ? `sold ${plural(outcome.income / BANK_WORM_PRICE, 'worm')} to the bank`
+            ? `sold ${plural(outcome.income / BANK_WORM_PRICE, 'worm')} to the bank${withEarnings ? ` for ${marks(outcome.income)}` : ''}`
             : ''
     ].filter((part) => part)
 }
@@ -124,6 +128,22 @@ export function outcomeReceipt(outcome: PlanOutcome): ReceiptLine {
 
 export function describeOutcome(outcome: PlanOutcome): Description {
     return [{ playerId: outcome.playerId }, `${planText(outcome)}${money(outcome)}`]
+}
+
+function harvestText(fields: readonly FieldHarvest[]): string {
+    const total = plural(sum(fields.map((field) => field.sacks)), 'sack')
+    const crops = MARKET_IDS.flatMap((id) => {
+        const sacks = sum(
+            fields
+                .filter(
+                    (field) =>
+                        marketId(field.variety, field.organic ? Quality.Bio : Quality.Norm) === id
+                )
+                .map((field) => field.sacks)
+        )
+        return sacks > 0 ? [`${sacks} ${marketName(id)}`] : []
+    })
+    return crops.length > 0 ? `harvested ${total}: ${crops.join(', ')}` : `harvested ${total}`
 }
 
 export function describeSystemAction(action: GameAction): Description[] {
@@ -176,10 +196,7 @@ export function describeSystemAction(action: GameAction): Description[] {
     if (isHarvest(action)) {
         return (action.metadata?.farms ?? [])
             .filter((farm) => farm.fields.length > 0)
-            .map((farm) => [
-                { playerId: farm.playerId },
-                `harvested ${plural(sum(farm.fields.map((field) => field.sacks)), 'sack')}`
-            ])
+            .map((farm) => [{ playerId: farm.playerId }, harvestText(farm.fields)])
     }
     if (isCalculateMarket(action)) {
         return (action.metadata?.moves ?? [])
