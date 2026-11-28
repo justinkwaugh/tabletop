@@ -1,4 +1,5 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
+import { PAMPAS } from './pampas/map.js'
 import { PENNSYLVANIA } from './pennsylvania/map.js'
 import { SOUTH_AFRICA } from './southAfrica/map.js'
 import { TEXAS_SPECIAL } from './texasSpecial/map.js'
@@ -130,7 +131,12 @@ export class SarMap {
     }
 
     offerStockSlots(playerCount: number): number {
-        const slots = this.definition.offerStockSlots[playerCount]
+        const track = this.definition.actionTrack
+        assert(
+            track.kind === 'locomotives',
+            'Only the locomotive action track has Offer Stock slots'
+        )
+        const slots = track.offerStockSlots[playerCount]
         assertExists(slots, `No Offer Stock slots for ${playerCount} players`)
         return slots
     }
@@ -140,7 +146,8 @@ const MAPS: Record<MapId, SarMap> = {
     [MapId.SouthAfrica]: new SarMap(SOUTH_AFRICA),
     [MapId.TexasSpecial]: new SarMap(TEXAS_SPECIAL),
     [MapId.Pennsylvania]: new SarMap(PENNSYLVANIA),
-    [MapId.Veld]: new SarMap(VELD)
+    [MapId.Veld]: new SarMap(VELD),
+    [MapId.Pampas]: new SarMap(PAMPAS)
 }
 
 export function sarMap(mapId: MapId): SarMap {

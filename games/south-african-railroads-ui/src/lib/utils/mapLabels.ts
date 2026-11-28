@@ -3,7 +3,6 @@ import {
     MapId,
     SettlementKind,
     sarMap,
-    type PointSettlementKind,
     type SarMap,
     type SettlementDefinition
 } from '@tabletop/south-african-railroads'
@@ -16,6 +15,7 @@ import {
     type MapLabel
 } from './boardLayout.js'
 import { CONNECTION_STAR_RADIUS, connectionLabelBox } from './mapGeometry.js'
+import { SETTLEMENT_SYMBOLS } from './settlementSymbols.js'
 
 // Libre Baskerville metrics, measured generously so estimates never undershoot the glyphs.
 const NAME_CHAR_WIDTH = 7.6
@@ -26,13 +26,6 @@ const BASE_NAME_ASCENT = 21
 const LABEL_GAP = 3
 const FRAME_INSET = 20
 
-const ICON_HALF_SIZE: Record<PointSettlementKind, number> = {
-    [SettlementKind.RailroadStation]: 13.5,
-    [SettlementKind.AgriculturalRailhead]: 18.5,
-    [SettlementKind.NaturalResource]: 18.5,
-    [SettlementKind.MercantileCenter]: 16.3,
-    [SettlementKind.RailroadBase]: 23
-}
 const LINK_BOX_HALF_SIZE = LINK_BOX_SIZE / 2
 
 export const METRO_FRAME_PAD = 3
@@ -195,7 +188,7 @@ export class MapLabels {
     private pointIconBox(place: SettlementDefinition): BoundingBox {
         return place.kind === SettlementKind.MetroArea
             ? this.metroFrameBox(place)
-            : square(place.x, place.y, ICON_HALF_SIZE[place.kind])
+            : square(place.x, place.y, SETTLEMENT_SYMBOLS[place.kind].size)
     }
 
     private linkBoxes(): BoundingBox[] {

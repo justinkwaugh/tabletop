@@ -16,7 +16,9 @@ import {
     MapId,
     RailroadId,
     SettlementKind,
+    type ActionRows,
     type ExternalConnectionDefinition,
+    type RowAction,
     type WarDefinition
 } from '../maps/types.js'
 import {
@@ -24,6 +26,7 @@ import {
     ACTION_TRACK_ADVANCE,
     ACTION_TRACK_LIMIT,
     ActionBox,
+    ROW_ACTIONS,
     boxCapacity
 } from './actionBoxes.js'
 import { ShareAuction, goesFreeToOpener } from './auction.js'
@@ -48,6 +51,7 @@ import {
     LINK_COST,
     connectionBuilds,
     doubleBuilds,
+    homeLinks,
     isSettlementConnected,
     railroadSettlements,
     singleBuilds,
@@ -70,6 +74,8 @@ export const SarGameState = Type.Object({
     connections: Type.Array(BuiltConnection),
     developments: Type.Record(Type.String(), Type.Number()),
     actionTrack: Type.Number(),
+    // On a board with action rows, how many boxes of each row are filled this round.
+    rowsFilled: Type.Optional(Type.Record(Type.String(), Type.Number())),
     dividendsPaid: Type.Number(),
     developmentsThisTurn: Type.Number(),
     // The two railroads that founded the map's special connection: the founder, then its partner.
@@ -105,6 +111,7 @@ export class HydratedSarGameState
     declare connections: BuiltConnection[]
     declare developments: Record<string, number>
     declare actionTrack: number
+    declare rowsFilled?: Record<string, number>
     declare dividendsPaid: number
     declare developmentsThisTurn: number
     declare specialConnection?: RailroadId[]
@@ -212,7 +219,29 @@ export class HydratedSarGameState
         ).length
     }
 
+    actionRows(): ActionRows | undefined {
+        const track = this.map.definition.actionTrack
+        return track.kind === 'rows' ? track : undefined
+    }
+
+    boxesFilled(box: ActionBox): number {
+        return this.rowsFilled?.[box] ?? 0
+    }
+
+    isRowFull(box: RowAction): boolean {
+        const rows = this.actionRows()
+        assertExists(rows, 'This board has no action rows')
+        return this.boxesFilled(box) >= rows.rows[box]
+    }
+
+    fullRows(): number {
+        return this.actionRows() ? ROW_ACTIONS.filter((box) => this.isRowFull(box)).length : 0
+    }
+
     availableBoxes(playerId: string): ActionBox[] {
+        if (this.actionRows()) {
+            return ROW_ACTIONS.filter((box) => !this.isRowFull(box))
+        }
         const player = this.getPlayerState(playerId)
         return ACTION_BOXES.filter(
             (box) =>
@@ -221,13 +250,34 @@ export class HydratedSarGameState
         )
     }
 
-    // Choosing the box pays dividends at once: Pay Dividends, or a box whose advance takes the
-    // action track past its limit.
+    // The actions the player's special action may take, filling no box: any, once a game.
+    specialActionBoxes(playerId: string): ActionBox[] {
+        return this.actionRows() && !this.getPlayerState(playerId).specialActionUsed
+            ? [...ROW_ACTIONS]
+            : []
+    }
+
+    // Choosing the box pays dividends once its action is done: Pay Dividends, a box whose advance
+    // takes the action track past its limit, or the box that fills a second row.
     triggersDividends(box: ActionBox): boolean {
+        const rows = this.actionRows()
+        if (rows) {
+            return (
+                box !== ActionBox.PayDividends &&
+                !this.isRowFull(box) &&
+                this.boxesFilled(box) + 1 === rows.rows[box] &&
+                this.fullRows() === 1
+            )
+        }
         return (
             box === ActionBox.PayDividends ||
             this.actionTrack + ACTION_TRACK_ADVANCE[box] > ACTION_TRACK_LIMIT
         )
+    }
+
+    // Whether the round is over once the turn's action is done.
+    dividendsDue(): boolean {
+        return this.actionRows() ? this.fullRows() >= 2 : this.actionTrack > ACTION_TRACK_LIMIT
     }
 
     boxCapacity(box: ActionBox): number {
@@ -389,10 +439,37 @@ export class HydratedSarGameState
             .filter((railroadId) => this.canBuild(railroadId))
     }
 
-    // The railroads the acting player may build with directly; empty when they must hand the
-    // build to the controller of another railroad.
+    // The railroads the acting player may build with directly. Where the largest shareholder
+    // builds, the turn player builds for a railroad whose largest holding is shared.
     ownBuildableRailroads(playerId: string): RailroadId[] {
-        return this.buildableRailroads().filter((railroadId) => this.controls(railroadId, playerId))
+        const sharedBuilds = this.map.definition.largestShareholderBuilds === true
+        return this.buildableRailroads().filter(
+            (railroadId) =>
+                this.controls(railroadId, playerId) ||
+                (sharedBuilds && this.controllers(railroadId).length > 1)
+        )
+    }
+
+    // The railroads the turn player may hand to a controlling shareholder to build: any they do
+    // not build themselves where the largest shareholder builds, otherwise every railroad able to
+    // build when none of their own is.
+    delegableRailroads(playerId: string): RailroadId[] {
+        if (this.delegation || this.turnPlayerId() !== playerId) {
+            return []
+        }
+        const own = this.ownBuildableRailroads(playerId)
+        if (this.map.definition.largestShareholderBuilds) {
+            return this.buildableRailroads().filter((railroadId) => !own.includes(railroadId))
+        }
+        return own.length === 0 ? this.buildableRailroads() : []
+    }
+
+    // The links a railroad's free first link may take: those leaving its home, limited on some
+    // boards to the ones printed in its colour.
+    freeLinkOptions(railroadId: RailroadId): string[] {
+        const allowed = this.map.railroad(railroadId).firstLinkIds
+        const links = homeLinks(this, this.map.home(railroadId))
+        return allowed ? links.filter((linkId) => allowed.includes(linkId)) : links
     }
 
     builderRailroads(playerId: string): RailroadId[] {
@@ -426,9 +503,29 @@ export class HydratedSarGameState
             .filter(
                 (candidate) =>
                     this.developmentLevel(candidate.id) < this.map.maxDevelopments(candidate.id) &&
-                    (candidate.id === free || isSettlementConnected(this, candidate.id))
+                    (candidate.id === free || isSettlementConnected(this, candidate.id)) &&
+                    this.keepsMetroOrder(candidate.id)
             )
             .map((candidate) => candidate.id)
+    }
+
+    // On a board ranking its metro areas, a development may not take a metro area's income to
+    // the highest's, nor the lowest's to any other's.
+    private keepsMetroOrder(settlementId: string): boolean {
+        const order = this.map.definition.metroOrder
+        if (!order || this.map.settlement(settlementId).kind !== SettlementKind.MetroArea) {
+            return true
+        }
+        const raised = this.map.incomeLevels(settlementId)[this.developmentLevel(settlementId) + 1]
+        if (settlementId === order.lowest) {
+            return this.map.settlements.every(
+                (place) =>
+                    place.kind !== SettlementKind.MetroArea ||
+                    place.id === order.lowest ||
+                    this.settlementIncome(place.id) > raised
+            )
+        }
+        return settlementId === order.highest || raised < this.settlementIncome(order.highest)
     }
 
     // Wartime allows more developments; all but the last are free.

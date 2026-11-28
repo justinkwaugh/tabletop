@@ -38,8 +38,10 @@ export class HydratedDelegateBuild
     }
 
     apply(state: HydratedSarGameState, _context?: MachineContext) {
-        assert(HydratedDelegateBuild.canDelegate(state, this.playerId), 'You must build yourself')
-        assert(state.canBuild(this.railroadId), `${this.railroadId} cannot build`)
+        assert(
+            state.delegableRailroads(this.playerId).includes(this.railroadId),
+            `You cannot hand ${this.railroadId}'s build to another player`
+        )
         assert(
             state.controls(this.railroadId, this.builderId),
             'Only a controlling shareholder can build'
@@ -48,11 +50,6 @@ export class HydratedDelegateBuild
     }
 
     static canDelegate(state: HydratedSarGameState, playerId: string): boolean {
-        return (
-            state.delegation === undefined &&
-            state.turnPlayerId() === playerId &&
-            state.ownBuildableRailroads(playerId).length === 0 &&
-            state.buildableRailroads().length > 0
-        )
+        return state.delegableRailroads(playerId).length > 0
     }
 }

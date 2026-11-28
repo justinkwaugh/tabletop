@@ -1,10 +1,12 @@
 import type { Color, Point } from '@tabletop/common'
+import type { ActionBox } from '../model/actionBoxes.js'
 
 export enum MapId {
     SouthAfrica = 'SouthAfrica',
     TexasSpecial = 'TexasSpecial',
     Pennsylvania = 'Pennsylvania',
-    Veld = 'Veld'
+    Veld = 'Veld',
+    Pampas = 'Pampas'
 }
 
 export enum RailroadId {
@@ -25,7 +27,13 @@ export enum RailroadId {
     NYC = 'NYC',
     BM = 'BM',
     PRR = 'PRR',
-    PLE = 'PLE'
+    PLE = 'PLE',
+    BAGS = 'BAGS',
+    NA = 'NA',
+    BAP = 'BAP',
+    BAW = 'BAW',
+    CA = 'CA',
+    CR = 'CR'
 }
 
 export enum SettlementKind {
@@ -34,7 +42,11 @@ export enum SettlementKind {
     MercantileCenter = 'MercantileCenter',
     RailroadBase = 'RailroadBase',
     NaturalResource = 'NaturalResource',
-    MetroArea = 'MetroArea'
+    MetroArea = 'MetroArea',
+    Town = 'Town',
+    City = 'City',
+    Mine = 'Mine',
+    Port = 'Port'
 }
 
 export type SettlementDefinition = {
@@ -69,6 +81,8 @@ export type RailroadDefinition = {
     name: string
     color: Color
     homeId: string
+    // The links the free first link may take, when the board allows only some of those at home.
+    firstLinkIds?: readonly string[]
 }
 
 export type PointSettlementKind = Exclude<SettlementKind, SettlementKind.MetroArea>
@@ -110,6 +124,32 @@ export type MetroRailroadDefinition = {
     costMultiplier: number
 }
 
+// South African Railroads' action boxes, each holding a few locomotives, and its action track:
+// dividends follow once the track passes 35, or when a player chooses Pay Dividends.
+export type LocomotiveActionTrack = {
+    kind: 'locomotives'
+    offerStockSlots: Readonly<Record<number, number>>
+}
+
+// Pampas Railroads' rows of boxes, one per action: each choice fills the next box in its row, and
+// dividends follow once two rows are full. Each player may once take any action without filling a
+// box, their special action.
+export type ActionRows = {
+    kind: 'rows'
+    rows: Readonly<Record<RowAction, number>>
+}
+
+export type RowAction = Exclude<ActionBox, ActionBox.PayDividends>
+
+export type ActionTrackDefinition = LocomotiveActionTrack | ActionRows
+
+// The metro area whose income must stay above every other's, and the one whose income must stay
+// below every other's.
+export type MetroOrder = {
+    highest: string
+    lowest: string
+}
+
 export type MapDefinition = {
     id: MapId
     name: string
@@ -118,7 +158,7 @@ export type MapDefinition = {
     initialOffering: readonly RailroadId[]
     startPlayerRailroad: RailroadId
     // A double build may not run into and out of this settlement.
-    doubleBuildBarrierId: string
+    doubleBuildBarrierId?: string
     // The metro area Automatic Metro Development would raise next is developed without a
     // connection, and free as the second development.
     freeMetroDevelopment: boolean
@@ -134,7 +174,13 @@ export type MapDefinition = {
     settlementIncome: Readonly<Partial<Record<PointSettlementKind, readonly number[]>>>
     metroIncome: Readonly<Record<string, readonly number[]>>
     startingCash: Readonly<Record<number, number>>
-    offerStockSlots: Readonly<Record<number, number>>
+    actionTrack: ActionTrackDefinition
+    // Construct Track may be chosen for any railroad; its largest shareholder builds, or the turn
+    // player when the largest holding is shared.
+    largestShareholderBuilds?: boolean
+    metroOrder?: MetroOrder
+    // Players tied on the most money are separated by their shares of the most valuable railroad.
+    breakTiesBySharesOfMostValuable?: boolean
     // Dividends paid before the final payoff, which takes the place of the next and ends the game.
     dividendsBeforeFinal: number
     // Special dividends pay income ÷ 5 rounded up, rather than down.

@@ -529,7 +529,13 @@ describe('the map', () => {
         for (const metroId of map.definition.automaticDevelopment) {
             expect(map.settlement(metroId).kind).toBe(SettlementKind.MetroArea)
         }
-        expect(ids.has(map.definition.doubleBuildBarrierId)).toBe(true)
+        const barrierId = map.definition.doubleBuildBarrierId
+        expect(barrierId === undefined || ids.has(barrierId)).toBe(true)
+        for (const railroad of map.railroads) {
+            for (const linkId of railroad.firstLinkIds ?? []) {
+                expect(map.link(linkId).ends).toContain(railroad.homeId)
+            }
+        }
         for (const place of map.settlements) {
             expect(map.incomeLevels(place.id).length).toBeGreaterThan(1)
         }

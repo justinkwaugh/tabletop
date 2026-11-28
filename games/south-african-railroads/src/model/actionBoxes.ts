@@ -23,6 +23,13 @@ export const ACTION_TRACK_ADVANCE: Record<ActionBox, number> = {
 
 export const ACTION_TRACK_LIMIT = 35
 
+// The order of the rows on a board with action rows.
+export const ROW_ACTIONS = [
+    ActionBox.ConstructTrack,
+    ActionBox.DevelopSettlements,
+    ActionBox.OfferStock
+] as const
+
 export function boxCapacity(box: ActionBox, playerCount: number, map: SarMap): number {
     switch (box) {
         case ActionBox.ConstructTrack:

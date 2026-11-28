@@ -17,7 +17,6 @@ import {
     PassBid,
     PlaceBid,
     HydratedSarGameState,
-    homeLinks,
     type IncomeGain,
     type HydratedSarPlayerState,
     type RailroadId,
@@ -91,6 +90,14 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
         return this.canAct && states.includes(this.gameState.machineState)
     }
 
+    // The boxes the player's once-a-game special action may take, filling no box.
+    specialActionBoxes: ActionBox[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        return playerId && this.actingIn(MachineState.ChoosingAction)
+            ? this.gameState.specialActionBoxes(playerId)
+            : []
+    })
+
     selectableBoxes: ActionBox[] = $derived.by(() => {
         const playerId = this.myPlayerId
         return playerId && this.actingIn(MachineState.ChoosingAction)
@@ -127,35 +134,52 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
         this.actingIn(MachineState.ConstructingTrack, MachineState.DelegatedBuild)
     )
 
-    delegating = $derived(
-        this.building &&
-            this.gameState.machineState === MachineState.ConstructingTrack &&
-            this.myPlayerId !== undefined &&
-            this.gameState.ownBuildableRailroads(this.myPlayerId).length === 0
+    private ownBuildChoices: RailroadId[] = $derived(
+        this.building && this.myPlayerId ? this.gameState.builderRailroads(this.myPlayerId) : []
     )
 
-    buildRailroadOptions: RailroadId[] = $derived.by(() => {
-        const playerId = this.myPlayerId
-        if (!this.building || !playerId) {
-            return []
-        }
-        return this.delegating
-            ? this.gameState.buildableRailroads()
-            : this.gameState.builderRailroads(playerId)
-    })
+    // Railroads the turn player may hand to a controlling shareholder to build.
+    private delegableChoices: RailroadId[] = $derived(
+        this.building &&
+            this.myPlayerId &&
+            this.gameState.machineState === MachineState.ConstructingTrack
+            ? this.gameState.delegableRailroads(this.myPlayerId)
+            : []
+    )
 
-    // A lone option counts as an automatic choice, so Undo steps straight past it.
+    buildRailroadOptions: RailroadId[] = $derived(
+        this.gameState.map.railroads
+            .map((railroad) => railroad.id)
+            .filter(
+                (railroadId) =>
+                    this.ownBuildChoices.includes(railroadId) ||
+                    this.delegableChoices.includes(railroadId)
+            )
+    )
+
+    // A lone option of one's own counts as an automatic choice, so Undo steps straight past it.
     selectedRailroad: RailroadId | undefined = $derived.by(() => {
         const options = this.buildRailroadOptions
         const chosen = this.buildSelection.railroad?.value
         if (chosen && options.includes(chosen)) {
             return chosen
         }
-        return !this.delegating && options.length === 1 ? options[0] : undefined
+        return this.delegableChoices.length === 0 && options.length === 1 ? options[0] : undefined
+    })
+
+    // Whether the build goes to another player: the chosen railroad is not one the player builds
+    // with, or, before a choice, none is.
+    delegating: boolean = $derived.by(() => {
+        const railroadId = this.selectedRailroad
+        return railroadId
+            ? !this.ownBuildChoices.includes(railroadId)
+            : this.ownBuildChoices.length === 0 && this.delegableChoices.length > 0
     })
 
     railroadChoices: RailroadId[] = $derived(
-        this.delegating || this.buildRailroadOptions.length > 1 ? this.buildRailroadOptions : []
+        this.delegableChoices.length > 0 || this.buildRailroadOptions.length > 1
+            ? this.buildRailroadOptions
+            : []
     )
 
     delegateBuilders: string[] = $derived(
@@ -196,7 +220,7 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
     linkTargets: string[] = $derived.by(() => {
         const due = this.gameState.freeBuild
         if (due && this.actingIn(MachineState.FreeBuild) && due.playerId === this.myPlayerId) {
-            return homeLinks(this.gameState, this.gameState.map.home(due.railroadId))
+            return this.gameState.freeLinkOptions(due.railroadId)
         }
         const railroadId = this.selectedRailroad
         if (!railroadId || this.delegating) {
@@ -243,7 +267,7 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
         if (!this.buildRailroadOptions.includes(railroadId)) {
             return
         }
-        if (this.delegating) {
+        if (!this.ownBuildChoices.includes(railroadId)) {
             const builders = this.gameState.controllers(railroadId)
             if (builders.length === 1) {
                 void this.delegateBuild(railroadId, builders[0])
@@ -381,6 +405,12 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
     async chooseBox(box: ActionBox) {
         if (this.selectableBoxes.includes(box)) {
             await this.applyAction(this.createPlayerAction(ChooseAction, { box }))
+        }
+    }
+
+    async chooseSpecialAction(box: ActionBox) {
+        if (this.specialActionBoxes.includes(box)) {
+            await this.applyAction(this.createPlayerAction(ChooseAction, { box, special: true }))
         }
     }
 

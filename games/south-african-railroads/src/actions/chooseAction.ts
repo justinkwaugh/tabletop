@@ -20,7 +20,9 @@ export const ChooseAction = Type.Evaluate(
             type: Type.Literal(ActionType.ChooseAction),
             playerId: Type.String(),
             metadata: Type.Optional(ChooseActionMetadata),
-            box: Type.Enum(ActionBox)
+            box: Type.Enum(ActionBox),
+            // The player's once-a-game special action, which fills no box.
+            special: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -39,18 +41,35 @@ export class HydratedChooseAction
     declare playerId: string
     declare metadata?: ChooseActionMetadata
     declare box: ActionBox
+    declare special?: boolean
 
     constructor(data: ChooseAction) {
         super(data, ChooseActionValidator)
     }
 
     apply(state: HydratedSarGameState, _context?: MachineContext) {
-        assert(
-            state.availableBoxes(this.playerId).includes(this.box),
-            `${this.box} is not available`
-        )
-        state.getPlayerState(this.playerId).locomotive = this.box
-        state.actionTrack += ACTION_TRACK_ADVANCE[this.box]
+        const player = state.getPlayerState(this.playerId)
+        if (this.special) {
+            assert(
+                state.specialActionBoxes(this.playerId).includes(this.box),
+                `The special action cannot take ${this.box}`
+            )
+            player.specialActionUsed = true
+        } else {
+            assert(
+                state.availableBoxes(this.playerId).includes(this.box),
+                `${this.box} is not available`
+            )
+            if (state.actionRows()) {
+                state.rowsFilled = {
+                    ...state.rowsFilled,
+                    [this.box]: state.boxesFilled(this.box) + 1
+                }
+            } else {
+                player.locomotive = this.box
+                state.actionTrack += ACTION_TRACK_ADVANCE[this.box]
+            }
+        }
         state.developmentsThisTurn = 0
         this.metadata = {
             actionTrack: state.actionTrack,
@@ -75,6 +94,10 @@ export class HydratedChooseAction
     }
 
     static canChoose(state: HydratedSarGameState, playerId: string): boolean {
-        return state.turnPlayerId() === playerId && state.availableBoxes(playerId).length > 0
+        return (
+            state.turnPlayerId() === playerId &&
+            (state.availableBoxes(playerId).length > 0 ||
+                state.specialActionBoxes(playerId).length > 0)
+        )
     }
 }

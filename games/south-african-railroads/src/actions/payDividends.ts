@@ -65,6 +65,9 @@ export class HydratedPayDividends
             }
         }
         state.actionTrack = 0
+        if (state.actionRows()) {
+            state.rowsFilled = {}
+        }
         state.dividendsPaid += 1
         this.metadata = {
             final,

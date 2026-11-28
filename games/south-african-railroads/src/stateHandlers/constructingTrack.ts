@@ -55,9 +55,10 @@ export class ConstructingTrackStateHandler implements MachineStateHandler<
         if (state.turnPlayerId() !== playerId) {
             return []
         }
-        return HydratedDelegateBuild.canDelegate(state, playerId)
+        const delegate = HydratedDelegateBuild.canDelegate(state, playerId)
             ? [ActionType.DelegateBuild]
-            : buildActionsFor(state, playerId)
+            : []
+        return [...delegate, ...buildActionsFor(state, playerId)]
     }
 
     enter(context: MachineContext<HydratedSarGameState>) {

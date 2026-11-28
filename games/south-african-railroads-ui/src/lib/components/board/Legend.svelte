@@ -2,23 +2,23 @@
     import { SettlementKind, type PointSettlementKind } from '@tabletop/south-african-railroads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boardLayout } from '$lib/utils/boardLayout.js'
-    import { polygonPoints } from '$lib/utils/shapes.js'
+    import { SETTLEMENT_SYMBOLS, UNOWNED_BASE_FILL } from '$lib/utils/settlementSymbols.js'
+    import SettlementSymbol from './SettlementSymbol.svelte'
 
     const gameSession = getGameSession()
 
-    type Entry = { kind: PointSettlementKind; name: [string, string]; fill: string }
-
-    const ENTRIES: Entry[] = [
-        {
-            kind: SettlementKind.AgriculturalRailhead,
-            name: ['Agricultural', 'Railhead'],
-            fill: '#f2b81e'
-        },
-        { kind: SettlementKind.MercantileCenter, name: ['Mercantile', 'Center'], fill: '#d42a22' },
-        { kind: SettlementKind.RailroadStation, name: ['Railroad', 'Station'], fill: '#2d58b0' },
-        { kind: SettlementKind.RailroadBase, name: ['Railroad', 'Base'], fill: '#8a7860' },
-        { kind: SettlementKind.NaturalResource, name: ['Natural', 'Resource'], fill: '#f5df1f' }
+    const KINDS: PointSettlementKind[] = [
+        SettlementKind.AgriculturalRailhead,
+        SettlementKind.MercantileCenter,
+        SettlementKind.RailroadStation,
+        SettlementKind.RailroadBase,
+        SettlementKind.NaturalResource,
+        SettlementKind.Town,
+        SettlementKind.City,
+        SettlementKind.Mine,
+        SettlementKind.Port
     ]
+    const LEGEND_SCALE = 0.7
 
     const BASE_X = 131
     const DEVELOPED_X = 188
@@ -28,9 +28,12 @@
     const origin = $derived(boardLayout(gameSession.gameState.mapId).spec.legend)
     const rows = $derived.by(() => {
         const incomes = gameSession.gameState.map.definition.settlementIncome
-        return ENTRIES.flatMap((entry) => {
-            const levels = incomes[entry.kind]
-            return levels ? [{ ...entry, levels }] : []
+        return KINDS.flatMap((kind) => {
+            const levels = incomes[kind]
+            const symbol = SETTLEMENT_SYMBOLS[kind]
+            return levels
+                ? [{ kind, levels, name: symbol.name, fill: symbol.fill ?? UNOWNED_BASE_FILL }]
+                : []
         })
     })
 </script>
@@ -42,28 +45,19 @@
     {#each rows as entry, index (entry.kind)}
         <g transform="translate(0 {FIRST_ROW_Y + index * ROW_PITCH})">
             <g transform="translate(14 0)">
-                {#if entry.kind === SettlementKind.AgriculturalRailhead || entry.kind === SettlementKind.NaturalResource}
-                    <polygon points={polygonPoints(6, 13)} fill={entry.fill} class="symbol"
-                    ></polygon>
-                {:else if entry.kind === SettlementKind.MercantileCenter}
-                    <circle r="11" fill={entry.fill} class="symbol"></circle>
-                {:else if entry.kind === SettlementKind.RailroadStation}
-                    <rect
-                        x="-9.5"
-                        y="-9.5"
-                        width="19"
-                        height="19"
-                        rx="2"
-                        fill={entry.fill}
-                        class="symbol"
-                    ></rect>
-                {:else}
-                    <polygon points={polygonPoints(5, 14)} fill={entry.fill} class="symbol"
-                    ></polygon>
-                {/if}
+                <SettlementSymbol
+                    kind={entry.kind}
+                    fill={entry.fill}
+                    size={SETTLEMENT_SYMBOLS[entry.kind].size * LEGEND_SCALE}
+                    strokeWidth={1.4}
+                />
             </g>
-            <text x="34" y="-3" class="name">{entry.name[0]}</text>
-            <text x="34" y="11" class="name">{entry.name[1]}</text>
+            {#if entry.name[1]}
+                <text x="34" y="-3" class="name">{entry.name[0]}</text>
+                <text x="34" y="11" class="name">{entry.name[1]}</text>
+            {:else}
+                <text x="34" y="5" class="name">{entry.name[0]}</text>
+            {/if}
             <text x={BASE_X} y="5" class="amount">${entry.levels[0]}</text>
             <text x={DEVELOPED_X} y="5" class="amount"
                 >${entry.levels[entry.levels.length - 1]}</text
@@ -73,11 +67,6 @@
 </g>
 
 <style>
-    .symbol {
-        stroke: #0d1219;
-        stroke-width: 1.4;
-    }
-
     .heading {
         font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12px;

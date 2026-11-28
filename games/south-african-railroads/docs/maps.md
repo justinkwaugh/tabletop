@@ -9,16 +9,20 @@ Logic (`src/maps/`):
 - `types.ts` lists every `MapId` and every `RailroadId`. A new map adds its id and any railroads it introduces. Railroad ids are shared across maps, so a railroad that appears on two maps keeps one id.
 - `<map>/data.ts` holds the settlements (id, name, kind and printed position), the links between them (with the position of each building box, and for a one-way link the end it is built from, `oneWayFrom`), any external connections (price, value and position) and any closed borders (the links each closes and the dividend after which they open).
 - `<map>/map.ts` is the `MapDefinition`:
-    - `railroads`: id, short and full name, colour and home settlement.
+    - `railroads`: id, short and full name, colour and home settlement, and, where the board marks only some links out of home for a railroad, the links its free first link may take (`firstLinkIds`).
     - `initialOffering`: the railroads auctioned at the start, in order. Every other railroad opens, with a share auctioned at once, when track first reaches its home.
     - `startPlayerRailroad`: the buyer of this railroad's initial share takes the first turn and heads the turn order.
-    - `doubleBuildBarrierId`: the settlement a double build may not run into and out of.
+    - `doubleBuildBarrierId` (optional): the settlement a double build may not run into and out of.
     - `freeMetroDevelopment`: whether the metro area Automatic Metro Development would raise next is developed without a connection, and free as the second development. Once it is full the next in order takes its place.
     - `automaticDevelopment`: the metro areas Automatic Metro Development raises, in order; when one is full, the next. It runs when a player declines the paid second development, or leaves town.
     - `leaveTown`: whether Develop Settlements may instead take a development cube into the player's area, where it pays $3 at every dividend.
     - `specialConnection` (optional): a one-off founding, in place of a build, between a northern and a southern railroad whose track meets. It names the two groups, the cost from the treasury, and the bonus to each founder's value at the final payoff; both founders pay a special dividend.
     - `settlementIncome` for each kind the map uses, and `metroIncome` per metro area: the income at each development level, base first.
-    - `startingCash` and `offerStockSlots` per player count.
+    - `startingCash` per player count.
+    - `actionTrack`: either South African Railroads' locomotives, with the Offer Stock slots per player count, or Pampas Railroads' rows, with the number of boxes in each action's row. On a board with rows each choice fills the next box in its row, dividends follow once two rows are full, and each player has one special action that takes any action without filling a box.
+    - `largestShareholderBuilds` (optional): Construct Track may be chosen for any railroad able to build; its largest shareholder builds, or the turn player when the largest holding is shared.
+    - `metroOrder` (optional): the metro area whose income must stay above every other metro area's, and the one whose income must stay below.
+    - `breakTiesBySharesOfMostValuable` (optional): players tied on the most money are separated by their shares of the most valuable railroad.
     - `dividendsBeforeFinal`: dividends paid before the final payoff, which takes the place of the next one and ends the game. Five on every map but Veld Railroads, which has seven.
     - `specialDividendsRoundUp`: whether special dividends pay income ÷ 5 rounded up rather than down.
     - `startingTreasuryRoll` (optional): each railroad's treasury starts with a die roll, doubled for the railroads it names.
@@ -38,7 +42,7 @@ Settlement names are placed automatically from the printed positions; natural re
 
 ## Shared across maps
 
-These are the same on every map: five shares a railroad, link costs ($5, $15 for two) outside a war and value ($5), the four action boxes and their action-track advances, the action track limit of 35, the $3 paid development, the $3 a Leave Town cube pays, and the dividend (outside a recovery round), final payoff and minimum bid formulas. A map that changes one of these needs it moved into `MapDefinition` first.
+These are the same on every map: five shares a railroad, link costs ($5, $15 for two) outside a war and value ($5), the four action boxes and their action-track advances and the action track limit of 35 on a board with locomotives, the $3 paid development, the $3 a Leave Town cube pays, and the dividend (outside a recovery round), final payoff and minimum bid formulas. A map that changes one of these needs it moved into `MapDefinition` first.
 
 ## Known limits
 

@@ -15,7 +15,8 @@ describe('the Map option', () => {
             MapId.SouthAfrica,
             MapId.Pennsylvania,
             MapId.TexasSpecial,
-            MapId.Veld
+            MapId.Veld,
+            MapId.Pampas
         ])
     })
 })

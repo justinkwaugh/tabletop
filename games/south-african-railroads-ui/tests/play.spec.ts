@@ -244,3 +244,40 @@ test('declines a second Texas Special development, so Dallas develops', async ({
         .poll(() => page.evaluate(() => window.sarSession.gameState.developments.dallas))
         .toBe(1)
 })
+
+test('plays the Pampas Railroads opening on action rows with a special action', async ({
+    page
+}) => {
+    await createGame(page, 'Pampas Railroads')
+    await screenshot(page, '20-pampas-auction')
+    await playInitialOffering(page)
+    await expect.poll(() => machineState(page)).toBe('ChoosingAction')
+    const opening = await page.evaluate(() => {
+        const state = window.sarSession.gameState
+        return {
+            mapId: state.mapId,
+            firstTurn: state.turnManager.turnOrder[0],
+            caOwner: state.railroads.find((railroad) => railroad.id === 'CA')?.owners[0],
+            fromBuenosAires: state.track.every((built) => built.linkId.startsWith('buenos-aires~'))
+        }
+    })
+    expect(opening.mapId).toBe('Pampas')
+    expect(opening.firstTurn).toBe(opening.caOwner)
+    expect(opening.fromBuenosAires).toBe(true)
+    await expect(page.locator('.settlement-layer .metro-name')).toHaveCount(4)
+    await expect(page.locator('.timer .round')).toContainText('1 of 9')
+    await screenshot(page, '21-pampas-first-turn')
+
+    await page.getByRole('button', { name: 'Special action' }).first().click()
+    await expect.poll(() => machineState(page)).toBe('ConstructingTrack')
+    const special = await page.evaluate(() => {
+        const state = window.sarSession.gameState
+        return {
+            used: state.players.find((player) => player.playerId === state.turnPlayerId())
+                ?.specialActionUsed,
+            filled: Object.values(state.rowsFilled ?? {}).reduce((sum, count) => sum + count, 0)
+        }
+    })
+    expect(special).toEqual({ used: true, filled: 0 })
+    await screenshot(page, '22-pampas-constructing')
+})

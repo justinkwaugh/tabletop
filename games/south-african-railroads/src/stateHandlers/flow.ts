@@ -1,16 +1,14 @@
 import { assertExists } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { RailroadId } from '../maps/types.js'
-import { ACTION_TRACK_LIMIT } from '../model/actionBoxes.js'
 import { AuctionKind } from '../model/auction.js'
 import type { HydratedSarGameState } from '../model/gameState.js'
 import { openShareAuction, type ShareSale } from '../model/shareAuctionRules.js'
-import { homeLinks } from '../model/track.js'
 
-// After a turn's action and any railroad opening: dividends when the track passes 35, else the
-// next player's turn.
+// After a turn's action and any railroad opening: dividends when the round is over, else the next
+// player's turn.
 export function finishTurnAction(state: HydratedSarGameState): MachineState {
-    if (state.actionTrack > ACTION_TRACK_LIMIT) {
+    if (state.dividendsDue()) {
         return MachineState.PayingDividends
     }
     return endTurn(state)
@@ -52,7 +50,7 @@ export function afterSale(state: HydratedSarGameState, sale: ShareSale): Machine
         return finishTurnAction(state)
     }
     assertExists(sale.buyerId, 'Opening offerings always find an owner')
-    if (homeLinks(state, state.map.home(sale.railroadId)).length > 0) {
+    if (state.freeLinkOptions(sale.railroadId).length > 0) {
         state.freeBuild = { railroadId: sale.railroadId, playerId: sale.buyerId }
         return MachineState.FreeBuild
     }

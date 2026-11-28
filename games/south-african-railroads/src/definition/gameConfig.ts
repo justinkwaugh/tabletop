@@ -18,7 +18,8 @@ export const SarGameConfigOptions: GameConfigOptions = [
             { name: 'South African Railroads', value: MapId.SouthAfrica },
             { name: 'Pennsylvania Railroad', value: MapId.Pennsylvania },
             { name: 'Texas Special', value: MapId.TexasSpecial },
-            { name: 'Veld Railroads', value: MapId.Veld }
+            { name: 'Veld Railroads', value: MapId.Veld },
+            { name: 'Pampas Railroads', value: MapId.Pampas }
         ],
         alwaysShow: true
     }
